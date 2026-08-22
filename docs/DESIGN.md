@@ -170,7 +170,7 @@ mobile input ต้อง 16px กัน browser zoom; desktop control/body 14px
 ## Interaction / navigation / state contract (UX0)
 
 - Sidebar และ Command Palette อ่านจาก navigation registry เดียว: label/icon/href/permission/search aliases/visibility อยู่ที่เดียว · active route ใช้ exact หรือ longest match ห้าม `startsWith` ทื่อจนติดหลายเมนู
-- desktop Sidebar แสดงหมวด **ภาพรวม / งานขาย / การผลิต / สินค้า / การเงิน / ระบบ** ที่ผู้ใช้มีสิทธิ์ตลอดและเลื่อนภายในเอง · ห้ามซ่อนเมนูหลัง disclosure “เมนูทั้งหมด”; mobile คง bottom navigation 4 งานหลัก + “เพิ่มเติม”
+- desktop Sidebar กว้าง 256px แสดงหมวด **ภาพรวม / งานขาย / การผลิต / สินค้า / การเงิน / ระบบ** ที่ผู้ใช้มีสิทธิ์ตลอดและเลื่อนภายในเอง · ใช้ marker สีประจำบริบทที่หัวหมวด, neutral surface เฉพาะหมวดปัจจุบัน และน้ำเงิน Anajak เฉพาะ active item · ห้ามซ่อนเมนูหลัง disclosure “เมนูทั้งหมด”; mobile คง bottom navigation 4 งานหลัก + “เพิ่มเติม”
 - list state ที่แชร์/ย้อนกลับได้อยู่ใน URL: `q`, `status`, `sort`, `page` + filter เฉพาะหน้า · Orders รองรับ `attention=overdue|due-soon|stuck`
 - query ต้องแยก loading/error/empty ชัดเจน; error มี retry และ live announcement · ห้ามแสดง error เป็น “ไม่มีข้อมูล”
 - dialog/sheet ต้องมี viewport gutter, `max-height`, body scroll, Escape, focus trap และคืน focus ให้ trigger
@@ -188,6 +188,7 @@ mobile input ต้อง 16px กัน browser zoom; desktop control/body 14px
 - ทุกจอที่แสดงม็อกอัพต้องเรียก `src/components/mockup/` ชุดเดียว — `MockupPanel` (จัดการเต็ม) ·
   `MockupGallery` (อ่านอย่างเดียว) · `MockupThumbnail` (รูปปกในแถวรายการ) · `OrderMockupHandoff` (แถบสรุปพาไปบ้านจริง)
   **ห้ามสร้างตัวที่สอง** — ก่อนหน้านี้หน้าออเดอร์มีสองชุด ยิง `design.listByOrder` ซ้ำ และคนอ่านไม่รู้ว่าอันไหนของจริง
+- `MockupThumbnail` ไม่มีรูปให้แสดงช่องว่างขอบประ + `ImageOff` อย่างสงบในขนาดเดิม ทั้งหน้าออเดอร์และคิวผลิต · ห้ามเว้นพื้นที่ล่องหนหรือเปลี่ยนเป็น object icon/initials เพราะคนต้องแยก “ยังไม่มีม็อกอัพ” ออกจาก “มีรูปแล้ว” ได้ทันที
 - สูตรอ่านม็อกอัพอยู่ที่ `src/lib/mockup.ts` ที่เดียว (`mockupImages` / `mockupCoverImage` / `orderMockupCover`)
   ห้ามจอไหนคำนวณเอง · `files` ว่าง = เวอร์ชันก่อน migration ต้องถอยไปใช้ `fileUrl` เป็นรูปปกเสมอ ไม่ backfill
 - **บ้านของม็อกอัพคือหน้าออเดอร์แท็บ `ม็อกอัพ & ไฟล์`** เท่านั้น — จัดเรียงตามชั้นไฟล์: ชั้น 2 ม็อกอัพ (บนสุด

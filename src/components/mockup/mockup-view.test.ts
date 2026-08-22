@@ -66,6 +66,8 @@ describe("MockupThumbnail", () => {
     );
     expect(html).not.toContain("<img");
     expect(html).toContain("aria-hidden");
+    expect(html).toContain('data-mockup-thumbnail="empty"');
+    expect(html).toContain("border-dashed");
   });
 
   it("มีหลายรูปให้ติดตัวเลขบอกว่ายังมีด้านอื่น", () => {
@@ -73,6 +75,7 @@ describe("MockupThumbnail", () => {
       createElement(MockupThumbnail, { cover: "/a.png", count: 3, alt: "ม็อกอัพ v1" }),
     );
     expect(html).toContain("/a.png");
+    expect(html).toContain('data-mockup-thumbnail="image"');
     expect(html).toContain(">3<");
   });
 

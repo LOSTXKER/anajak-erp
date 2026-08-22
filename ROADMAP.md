@@ -458,7 +458,7 @@ PDF ครบชุด (ใบเสนอ/แจ้งหนี้/เสร็
 
 - [x] หัวหน้ามาตรฐานและหัว custom ของ Station/Factory TV ใช้ไอคอนเส้นเรียบตามสีบริบท โดยไม่มีกรอบ พื้นสี หรือเงา
 - [x] registry table/list ไม่วาด object icon หรือ initials ซ้ำกับข้อความ; action/status icon ที่มีความหมายยังคงได้
-- [x] รายการออเดอร์ใช้รูปม็อกอัพจริงล่าสุดเท่านั้น; ถ้าไม่มีรูปให้เว้นช่องว่างโดยไม่สร้าง placeholder icon, initials หรือภาพลายอื่นมาปลอมเป็นม็อกอัพ
+- [x] รายการออเดอร์ใช้รูปม็อกอัพจริงล่าสุดเท่านั้น; รอบแรกไม่มีรูปให้เว้นพื้นที่ล่องหน โดย feedback ล่าสุดแทนที่ด้วยช่องภาพว่างชุดเดียวกับคิวผลิตใน `P1.0-SIDEBAR-MOCKUP`
 - [x] ล็อกด้วย component/`verify:ui`, ตรวจจอจริง desktop/mobile Light/Dark และรัน final gates โดยไม่เปลี่ยน business flow
 
 ### P1.0-PAGE-COPY — คืนคำอธิบายสั้นใต้หัวข้อ (เบสสั่ง 2026-08-23)
@@ -467,6 +467,13 @@ PDF ครบชุด (ใบเสนอ/แจ้งหนี้/เสร็
 - [x] แยก `description` ออกจาก `meta`: description บอกว่าหน้านี้ใช้ทำอะไร ส่วน meta แสดงข้อเท็จจริงเฉพาะรายการ/สถานะที่เปลี่ยนได้
 - [x] ย้าย page-level `HelpTip` ที่เป็นเพียงคำอธิบายหน้ามาแสดงตรง; คง tooltip เฉพาะสูตร กติกา หรือรายละเอียดเสริมที่ไม่ต้องเห็นตลอดเวลา
 - [x] ล็อกความยาวและ fallback ด้วย unit/`verify:ui`, ตรวจ desktop/mobile Light/Dark และรัน final gates โดยไม่เปลี่ยน business flow
+
+### P1.0-SIDEBAR-MOCKUP — รูปออเดอร์ตรงคิวผลิต + Sidebar ใหม่ (เบสสั่ง 2026-08-23)
+
+- [x] รายการออเดอร์ใช้ `MockupThumbnail` ชุดเดียวกับคิวผลิตทั้งรูปจริงและช่องว่างขอบประ บน desktop/mobile โดยไม่สร้าง icon รูปแบบใหม่
+- [x] จัด Sidebar desktop ให้หมวดอ่านออกชัดและโฟกัสหมวดปัจจุบันได้เร็วขึ้น โดยคงรายการ เมนู สิทธิ์ route และ active สีน้ำเงินเดิมทั้งหมด
+- [x] คง mobile bottom navigation และ More sheet flow เดิม พร้อมตรวจ active route, keyboard/focus, overflow และ Light/Dark
+- [x] เพิ่ม regression guard, อัปเดต SPEC/DESIGN/PROGRESS, รัน final gates + Impeccable detector และตรวจ browser จริงก่อน commit
 
 **เพิ่มเข้า P1 (เบสอนุมัติ 2026-06-11 จากผล audit flow ทั้งระบบ):** แพ็คเก็บตกหน้างาน — ขั้นตอนผลิต DTF/DTG จริง (เดิม enum เป็นชุดโรงเย็บ) + โชว์ลายอนุมัติบน order detail/Job Ticket + แจ้งกระดิ่งเมื่อลูกค้าตัดสินแบบ + ด่านปิดงานต้องวางบิลครบ · **Outsource UI ทั้งก้อนดึงจาก P2 มาทำเลย** (silkscreen ส่งร้านนอก 100% แต่ระบบใช้ไม่ได้จริง) — ส่วน AP vendor/WHT ขาจ่าย ยังอยู่ P2 ตามเดิม
 ## 🏭 FLOW-REDESIGN — รื้อทั้งระบบตามผังใหม่ (เบสเคาะครบ 2026-06-12 · แบบเต็ม: `docs/flow-redesign-2026-06-12.html`)

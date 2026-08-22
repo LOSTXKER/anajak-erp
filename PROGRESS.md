@@ -4,6 +4,19 @@
 
 ## ตอนนี้
 
+> **✅ ORDER MOCKUP PLACEHOLDER + SIDEBAR ใหม่ 2026-08-23**
+> รายการออเดอร์ใช้ `MockupThumbnail` ตัวเดียวกับคิวผลิตแล้วทั้ง desktop/mobile: มีรูปให้แสดงรูปจริงล่าสุด, ไม่มีรูปให้แสดงช่องขอบประ `ImageOff` ขนาด 40×40 แทนพื้นที่ล่องหน และเลขออเดอร์คงหนึ่งบรรทัด · ไม่มี object icon/initials กลับเข้าตาราง
+>
+> Sidebar desktop ขยายเป็น 256px และจัดหมวดใหม่ให้มี marker สีบริบทที่หัวหมวด, พื้น neutral เฉพาะหมวดปัจจุบัน และ active item น้ำเงินเดิม · ทุกหมวดยังเปิดตลอด, อ่านจาก navigation/permission registry เดิม, deep route auto-scroll เดิม และ mobile bottom navigation + More sheet ไม่เปลี่ยน flow
+>
+> **หลักฐานจอจริง:** `/orders` ที่ 1440×900 และ 390×844 ทั้ง Light/Dark — ช่องว่างและรูปจริงเท่ากัน 40×40, desktop/mobile แสดงข้อมูลจริง 11 งานไม่มีรูป + 4 งานมีรูป, horizontal overflow 0 · Sidebar กว้าง 256px มี `aria-current` หนึ่งจุดและ active group หนึ่งหมวด; `/settings/stock` เลื่อน current item เข้า viewportได้ · More sheet ปิดด้วย Escape และคืน focus ไป “เพิ่มเติม” · console ไม่มี warning/error/hydration นอกจาก React DevTools/HMR info
+>
+> **ด่านส่งมอบ:** full unit **1296/1296**, typecheck, lint 0 error (26 warning เดิม), `verify:ui`, production build (generate 41 pages), `git diff --check` และ Impeccable detector รอบเดียวผ่าน; detector ไม่พบ finding (`[]`)
+>
+> **ขอบเขต:** presentation/test/docs เท่านั้น ไม่มี dependency, schema, API, query, mutation, permission, status transition หรือ business flow เปลี่ยน · รักษา `scripts/verify-artwork.ts`, `.cursor/`, `public/` ไว้นอก commit และไม่ push/merge/deploy
+>
+> **ต่อที่นี่:** ให้เบสดู `/orders` กับ Sidebar จริง โดยเฉพาะระดับพื้นของหมวดปัจจุบัน; ถ้าต้องการให้ Sidebar แน่นหรือเบากว่านี้ ปรับได้ที่ composition กลางจุดเดียวโดยไม่แตะเมนูหรือสิทธิ์
+
 > **✅ PAGE DESCRIPTION — ทุกหน้าบอกหน้าที่ตรงใต้หัวข้อ 2026-08-23**
 > `PageHeader`/`PageShell` รับ `description` และมี fallback กลางจาก `pageDescriptionForLabel` ครบกลุ่ม Dashboard, งาน, ลูกค้า, ใบเสนอ, ผลิต, สินค้า, การเงิน และตั้งค่า · คำอธิบายเป็นหนึ่งประโยคว่าหน้านี้ใช้ทำอะไร ส่วน `meta` คงไว้สำหรับชื่อโปรเจกต์ SKU จำนวนงาน หรือข้อเท็จจริงเฉพาะรายการ จึงไม่เอาข้อมูลสองชนิดมาปนกัน
 >

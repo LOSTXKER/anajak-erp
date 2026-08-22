@@ -34,6 +34,7 @@ export function MockupThumbnail({
   if (!cover) {
     return (
       <div
+        data-mockup-thumbnail="empty"
         className={cn(
           "flex shrink-0 items-center justify-center text-muted",
           SIZE_CLASS[size],
@@ -50,6 +51,7 @@ export function MockupThumbnail({
 
   return (
     <div
+      data-mockup-thumbnail="image"
       className={cn(
         "relative shrink-0 overflow-hidden border border-border bg-surface-muted",
         SIZE_CLASS[size],

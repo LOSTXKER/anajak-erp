@@ -167,13 +167,31 @@ const hSm = CONTROL_H_SM.split(" ");
     registrySources.some((source) => source.includes("EntityMark")) ||
     !ordersSource.includes("MockupThumbnail") ||
     !ordersSource.includes("mockupCoverImage") ||
-    !ordersSource.includes('data-order-mockup="empty"') ||
+    ordersSource.includes('data-order-mockup="empty"') ||
+    ordersSource.includes("reserveSpace") ||
     ordersSource.includes("orderMockupCover")
   ) {
     failed++;
-    console.log("❌ registry ต้องไร้ object icon และออเดอร์ใช้ม็อกอัพจริงหรือช่องว่างเท่านั้น");
+    console.log("❌ registry ต้องไร้ object icon และออเดอร์ต้องใช้ MockupThumbnail ชุดเดียวกับคิวผลิตทั้งรูปจริง/ช่องว่าง");
   } else {
-    console.log("✅ registry ไร้ object icon และออเดอร์ใช้ม็อกอัพจริงหรือช่องว่างเท่านั้น");
+    console.log("✅ registry ไร้ object icon และออเดอร์ใช้ MockupThumbnail ชุดเดียวกับคิวผลิต");
+  }
+}
+
+{
+  const appShellSource = readFileSync("src/components/layout/app-shell.tsx", "utf8");
+  if (
+    !appShellSource.includes('lg:grid-cols-[16rem_minmax(0,1fr)]') ||
+    !appShellSource.includes("SidebarGroupLabel") ||
+    !appShellSource.includes('data-active-group={groupActive ? "true" : undefined}') ||
+    !appShellSource.includes('groupActive && "bg-surface-muted"') ||
+    !appShellSource.includes('aria-label="เมนูหลักบนมือถือ"') ||
+    !appShellSource.includes('groupedNavigationItems("sidebar", me?.permissions)')
+  ) {
+    failed++;
+    console.log("❌ Sidebar ต้องแบ่งหมวดชัด โฟกัสหมวดปัจจุบัน และคง mobile navigation/permission registry เดิม");
+  } else {
+    console.log("✅ Sidebar แบ่งหมวดชัด โฟกัสหมวดปัจจุบัน และคง navigation contract เดิม");
   }
 }
 

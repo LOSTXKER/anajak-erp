@@ -59,22 +59,10 @@ import { mockupCoverImage } from "@/lib/mockup";
 function OrderMockupMark({
   cover,
   orderNumber,
-  reserveSpace = false,
 }: {
   cover: string | null;
   orderNumber: string;
-  reserveSpace?: boolean;
 }) {
-  if (!cover) {
-    return reserveSpace ? (
-      <span
-        className="block h-10 w-10 shrink-0"
-        aria-hidden="true"
-        data-order-mockup="empty"
-      />
-    ) : null;
-  }
-
   return <MockupThumbnail cover={cover} alt={`ม็อกอัพ ${orderNumber}`} size="sm" />;
 }
 
@@ -594,12 +582,11 @@ function OrdersPageContent() {
                   : null;
                 return (
                   <DataTable.Row key={order.id} href={`/orders/${order.id}`}>
-                  <DataTable.Td>
+                  <DataTable.Td className="whitespace-nowrap">
                     <div className="flex items-center gap-3">
                       <OrderMockupMark
                         cover={mockupCover}
                         orderNumber={order.orderNumber}
-                        reserveSpace
                       />
                       <Link
                         href={`/orders/${order.id}`}
