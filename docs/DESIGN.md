@@ -88,7 +88,8 @@ Vercel Panel System ใช้ workspace เป็นฉากหลังแล�
 - field และ Button ที่ disabled ใช้ muted fill/text + `shadow-none` โดยไม่ลด opacity ทั้งก้อน เพื่อให้ยังอ่านค่าที่ล็อกอยู่ได้; icon-only/checkbox/switch คง feedback disabled ของ primitive ตัวเอง
 - สีสถานะใช้เฉพาะ **blue / red / amber / green** ผ่าน `Badge`, `Alert`, `StatusLabel`, `TINT`
 - `slate-*` เป็น compatibility ramp สำหรับ markup เก่า ไม่ใช่ทางหลักของ component ใหม่
-- เอกสารใน `.print-page` ล็อก grayscale ของตัวเองและ public/print บังคับ Light เสมอ
+- public token บังคับ Light และใช้ masthead neutral แบบไอคอนเส้น ไม่มีแถบสี/icon tile/เงา; panel มุม 8px และสีใช้เฉพาะ primary, focus หรือสถานะจริง
+- เอกสารใน `.print-page` ล็อก grayscale + ความกว้าง A4 และ hierarchy เอกสารของตัวเอง ไม่รับหน้าตา dashboard card · preview บนจอคงเงากระดาษ 4px ได้, จอแคบเลื่อนภายใน `.print-viewport`, และ `@media print` ต้องถอดเงา/มุม/พื้นรองออกทั้งหมด
 
 กฎ: **ห้าม hex ตรงใน component** · ห้าม `gray-*`/`zinc-*` ปน · ห้ามเขียน neutral hover
 ด้วย `slate/white/black` ตรง ๆ; `verify:ui` ตรวจทั้ง class, token layer และ contrast จริงค่ะ

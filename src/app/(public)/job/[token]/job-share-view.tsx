@@ -11,6 +11,8 @@ import {
   FullScreenLoading,
 } from "@/components/public/public-page";
 import { Shirt, CalendarClock, Paperclip, Palette, FileText } from "lucide-react";
+import { FOCUS_BUTTON, INTERACTIVE_HOVER, INTERACTIVE_PRESSED, TINT } from "@/components/ui/tokens";
+import { cn } from "@/lib/utils";
 
 // หน้าใบงานสำหรับร้านนอก (Gate B14 — LINE-friendly ไม่พิมพ์กระดาษ)
 // เปิดผ่านลิงก์ token ไม่ต้อง login — โชว์เฉพาะสิ่งที่ร้านต้องใช้ทำงาน
@@ -39,39 +41,38 @@ export function JobShareView({ token }: { token: string }) {
 
   return (
     <PublicPageShell
-      icon={<Shirt className="h-6 w-6 text-blue-600" />}
+      icon={<Shirt />}
       title="ใบงานผลิต"
       subtitle={`สำหรับ ${d.vendorName} · อ้างอิง ${d.orderNumber}`}
-      tone="production"
       footer="เปิดจากลิงก์ที่ได้รับเท่านั้น — หากข้อมูลไม่ตรงกับที่คุยไว้ กรุณาติดต่อผู้ส่งงาน"
     >
 
         {/* งาน + จำนวน + กำหนดส่งคืน */}
         <Card>
           <CardContent className="space-y-4 p-5">
-            <p className="text-lg font-semibold text-slate-900">{d.description}</p>
+            <p className="text-lg font-semibold text-strong">{d.description}</p>
             <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-xl bg-blue-50 p-3 text-center">
-                <p className="text-2xl font-semibold tabular-nums text-blue-700">{d.quantity}</p>
-                <p className="text-xs text-slate-500">จำนวน (ชิ้น)</p>
+              <div className={cn(TINT.neutral, "rounded-lg border p-3 text-center")}>
+                <p className="text-2xl font-semibold tabular-nums text-strong">{d.quantity}</p>
+                <p className="text-xs text-muted">จำนวน (ชิ้น)</p>
               </div>
-              <div className="rounded-xl bg-amber-50 p-3 text-center">
-                <p className="flex items-center justify-center gap-1.5 text-lg font-semibold text-amber-700">
+              <div className={cn(TINT.neutral, "rounded-lg border p-3 text-center")}>
+                <p className="flex items-center justify-center gap-1.5 text-lg font-semibold text-strong">
                   <CalendarClock className="h-4 w-4 shrink-0" />
                   {d.expectedBackAt ? formatDate(d.expectedBackAt) : "—"}
                 </p>
-                <p className="text-xs text-slate-500">กำหนดส่งคืน</p>
+                <p className="text-xs text-muted">กำหนดส่งคืน</p>
               </div>
             </div>
             <div className="grid gap-1.5 text-sm">
               {d.sentAt && (
                 <div className="flex justify-between">
-                  <span className="text-slate-500">ส่งของให้ร้าน</span>
-                  <span className="font-medium text-slate-800">{formatDate(d.sentAt)}</span>
+                  <span className="text-muted">ส่งของให้ร้าน</span>
+                  <span className="font-medium text-strong">{formatDate(d.sentAt)}</span>
                 </div>
               )}
               {d.notes && (
-                <div className="rounded-xl bg-slate-100 p-3 text-slate-700">
+                <div className={cn(TINT.neutral, "rounded-lg border p-3")}>
                   <span className="font-medium">หมายเหตุ:</span> {d.notes}
                 </div>
               )}
@@ -84,7 +85,7 @@ export function JobShareView({ token }: { token: string }) {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
-                <Palette className="h-4 w-4 text-blue-600" />
+                <Palette className="h-4 w-4 text-muted" />
                 ลาย / ไฟล์งาน
               </CardTitle>
             </CardHeader>
@@ -96,9 +97,9 @@ export function JobShareView({ token }: { token: string }) {
                       <img
                         src={a.fileUrl ?? ""}
                         alt={a.fileName}
-                        className="h-36 w-full rounded-xl border border-slate-200 bg-white object-contain"
+                        className="h-36 w-full rounded-lg border border-border bg-surface object-contain"
                       />
-                      <p className="mt-1 truncate text-2xs text-slate-400">{a.fileName}</p>
+                      <p className="mt-1 truncate text-2xs text-muted">{a.fileName}</p>
                     </a>
                   ))}
                   {designIsImage && design && (
@@ -110,9 +111,9 @@ export function JobShareView({ token }: { token: string }) {
                       <img
                         src={design.imageUrl ?? ""}
                         alt={`แบบ v${design.versionNumber}`}
-                        className="h-36 w-full rounded-xl border border-slate-200 bg-white object-contain"
+                        className="h-36 w-full rounded-lg border border-border bg-surface object-contain"
                       />
-                      <p className="mt-1 truncate text-2xs text-slate-400">
+                      <p className="mt-1 truncate text-2xs text-muted">
                         แบบที่อนุมัติ (v{design.versionNumber})
                       </p>
                     </a>
@@ -128,9 +129,9 @@ export function JobShareView({ token }: { token: string }) {
                         href={design.fileUrl ?? design.imageUrl ?? "#"}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-3 text-sm text-blue-600 hover:bg-slate-50"
+                        className={cn("flex items-center gap-2 rounded-lg border border-border bg-surface p-3 text-sm text-blue-600", INTERACTIVE_HOVER, INTERACTIVE_PRESSED, FOCUS_BUTTON)}
                       >
-                        <Paperclip className="h-4 w-4 shrink-0 text-slate-400" />
+                        <Paperclip className="h-4 w-4 shrink-0 text-muted" />
                         <span className="truncate">แบบที่อนุมัติ (v{design.versionNumber})</span>
                       </a>
                     </li>
@@ -141,9 +142,9 @@ export function JobShareView({ token }: { token: string }) {
                         href={a.fileUrl ?? "#"}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-3 text-sm text-blue-600 hover:bg-slate-50"
+                        className={cn("flex items-center gap-2 rounded-lg border border-border bg-surface p-3 text-sm text-blue-600", INTERACTIVE_HOVER, INTERACTIVE_PRESSED, FOCUS_BUTTON)}
                       >
-                        <Paperclip className="h-4 w-4 shrink-0 text-slate-400" />
+                        <Paperclip className="h-4 w-4 shrink-0 text-muted" />
                         <span className="truncate">{a.fileName}</span>
                       </a>
                     </li>
@@ -153,11 +154,11 @@ export function JobShareView({ token }: { token: string }) {
 
               {prints.length > 0 && (
                 <div className="space-y-1.5">
-                  <p className="text-xs font-medium text-slate-500">สเปคพิมพ์</p>
+                  <p className="text-xs font-medium text-muted">สเปคพิมพ์</p>
                   {prints.map((pr, i) => (
                     <div
                       key={i}
-                      className="flex gap-3 rounded-xl bg-slate-100 p-3 text-sm text-slate-700"
+                      className={cn(TINT.neutral, "flex gap-3 rounded-lg border p-3 text-sm")}
                     >
                       {/* รูปลายรายจุดพิมพ์ — งานหลายจุด ร้านแยกออกว่าลายไหนตำแหน่งไหน */}
                       {pr.designImageUrl && isImageUrl(pr.designImageUrl) && (
@@ -170,7 +171,7 @@ export function JobShareView({ token }: { token: string }) {
                           <img
                             src={pr.designImageUrl}
                             alt={ARTWORK_POSITION_LABELS[pr.position] ?? pr.position}
-                            className="h-16 w-16 rounded border border-slate-200 bg-white object-contain"
+                            className="h-16 w-16 rounded border border-border bg-surface object-contain"
                           />
                         </a>
                       )}
@@ -187,7 +188,7 @@ export function JobShareView({ token }: { token: string }) {
                         )}
                         {pr.colorCount != null && <span>{pr.colorCount} สี</span>}
                         {pr.designNote && (
-                          <span className="w-full text-xs text-slate-500">{pr.designNote}</span>
+                          <span className="w-full text-xs text-muted">{pr.designNote}</span>
                         )}
                       </div>
                     </div>
@@ -203,9 +204,9 @@ export function JobShareView({ token }: { token: string }) {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
-                <FileText className="h-4 w-4 text-blue-600" />
+                <FileText className="h-4 w-4 text-muted" />
                 ตารางไซซ์
-                <span className="font-normal text-slate-400">
+                <span className="font-normal text-muted">
                   (ทั้งออเดอร์ {d.orderTotalQuantity} ชิ้น)
                 </span>
               </CardTitle>
@@ -213,7 +214,7 @@ export function JobShareView({ token }: { token: string }) {
             <CardContent className="space-y-4 p-5 pt-0">
               {/* ตาราง/สเปคเป็นของทั้งออเดอร์ — ใบ outsource ผูกกับขั้นตอนผลิต ไม่ได้แยกรายชิ้น
                   (งานที่ส่งหลายร้าน/แบ่งรอบ ให้ยึดที่ตกลงในแชทเป็นหลัก) */}
-              <p className="rounded-xl bg-slate-100 p-3 text-xs text-slate-500">
+              <p className={cn(TINT.neutral, "rounded-lg border p-3 text-xs")}>
                 {partialBatch
                   ? `รอบนี้ส่ง ${d.quantity} ชิ้น จากทั้งออเดอร์ ${d.orderTotalQuantity} ชิ้น — `
                   : ""}
@@ -222,9 +223,9 @@ export function JobShareView({ token }: { token: string }) {
               {d.items.map((it, i) => (
                 <div key={i} className="space-y-2">
                   {it.description && (
-                    <p className="text-sm font-medium text-slate-800">
+                    <p className="text-sm font-medium text-strong">
                       {it.description}
-                      <span className="ml-1 font-normal text-slate-400">
+                      <span className="ml-1 font-normal text-muted">
                         ({it.totalQuantity} ชิ้น)
                       </span>
                     </p>
@@ -232,12 +233,12 @@ export function JobShareView({ token }: { token: string }) {
                   {it.products.map((p, j) => (
                     <div key={j} className="overflow-x-auto">
                       {p.description && (
-                        <p className="mb-1 text-xs text-slate-500">{p.description}</p>
+                        <p className="mb-1 text-xs text-muted">{p.description}</p>
                       )}
                       {p.variants.length > 0 && (
                         <table className="w-full text-sm">
                           <thead>
-                            <tr className="border-b border-slate-200 text-left text-xs text-slate-500">
+                            <tr className="border-b border-divider text-left text-xs text-muted">
                               <th className="py-1.5 pr-2 font-medium">ไซซ์</th>
                               <th className="py-1.5 pr-2 font-medium">สี</th>
                               <th className="py-1.5 text-right font-medium">จำนวน</th>
@@ -245,10 +246,10 @@ export function JobShareView({ token }: { token: string }) {
                           </thead>
                           <tbody>
                             {p.variants.map((v, k) => (
-                              <tr key={k} className="border-b border-slate-100">
-                                <td className="py-1.5 pr-2 font-medium text-slate-800">{v.size}</td>
-                                <td className="py-1.5 pr-2 text-slate-600">{v.color ?? "—"}</td>
-                                <td className="py-1.5 text-right tabular-nums text-slate-800">
+                              <tr key={k} className="border-b border-divider">
+                                <td className="py-1.5 pr-2 font-medium text-strong">{v.size}</td>
+                                <td className="py-1.5 pr-2 text-secondary">{v.color ?? "—"}</td>
+                                <td className="py-1.5 text-right tabular-nums text-strong">
                                   {v.quantity}
                                 </td>
                               </tr>

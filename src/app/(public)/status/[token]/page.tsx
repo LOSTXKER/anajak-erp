@@ -57,7 +57,7 @@ export default function OrderStatusPage({
 
   return (
     <PublicPageShell
-      icon={<Package className="h-6 w-6 text-blue-600" />}
+      icon={<Package />}
       title={d.brandName}
       subtitle="ติดตามสถานะงานของคุณ"
       hideFooter={d.isBlindShip}
@@ -67,8 +67,8 @@ export default function OrderStatusPage({
           <CardContent className="space-y-4 p-5">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
-                <p className="text-lg font-semibold text-slate-900">{d.title}</p>
-                <p className="text-sm text-slate-500">เลขออเดอร์ {d.orderNumber}</p>
+                <p className="text-lg font-semibold text-strong">{d.title}</p>
+                <p className="text-sm text-muted">เลขออเดอร์ {d.orderNumber}</p>
               </div>
               <span
                 className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium ${statusColor.bg} ${statusColor.text}`}
@@ -93,7 +93,7 @@ export default function OrderStatusPage({
               <XCircle className="h-8 w-8 shrink-0 text-red-500" />
               <div>
                 <p className="font-semibold text-red-700">ออเดอร์ถูกยกเลิก</p>
-                <p className="text-sm text-slate-500">กรุณาติดต่อทีมงานหากมีข้อสงสัย</p>
+                <p className="text-sm text-muted">กรุณาติดต่อทีมงานหากมีข้อสงสัย</p>
               </div>
             </CardContent>
           </Card>
@@ -115,7 +115,7 @@ export default function OrderStatusPage({
                             ? "bg-green-500 text-white"
                             : current
                               ? "bg-blue-600 text-white ring-4 ring-blue-100"
-                              : "bg-slate-200 text-slate-400"
+                              : "bg-surface-muted text-muted"
                         }`}
                       >
                         {done ? <Check className="h-4 w-4" /> : i + 1}
@@ -125,8 +125,8 @@ export default function OrderStatusPage({
                           current
                             ? "font-semibold text-blue-700"
                             : done
-                              ? "text-slate-700"
-                              : "text-slate-400"
+                              ? "text-secondary"
+                              : "text-muted"
                         }`}
                       >
                         {s.label}
@@ -144,7 +144,7 @@ export default function OrderStatusPage({
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
-                <Palette className="h-4 w-4 text-blue-600" />
+                <Palette className="h-4 w-4 text-muted" />
                 แบบที่อนุมัติแล้ว
               </CardTitle>
             </CardHeader>
@@ -155,7 +155,7 @@ export default function OrderStatusPage({
                     href={d.approvedDesign.imageUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block overflow-hidden rounded-lg border border-slate-200"
+                    className="block overflow-hidden rounded-lg border border-border"
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
@@ -170,7 +170,7 @@ export default function OrderStatusPage({
                     href={d.approvedDesign.imageUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-sm text-blue-600 hover:underline"
+                    className="inline-flex min-h-11 touch-manipulation items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm text-blue-600 hover:bg-interactive-hover hover:underline"
                   >
                     <ExternalLink className="h-4 w-4" />
                     เปิดไฟล์แบบที่อนุมัติ
@@ -189,15 +189,15 @@ export default function OrderStatusPage({
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
-                <Truck className="h-4 w-4 text-blue-600" />
+                <Truck className="h-4 w-4 text-muted" />
                 การจัดส่ง
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 p-5 pt-0">
               {d.deliveries.map((dv, i) => (
-                <div key={i} className="rounded-xl border border-slate-200 p-3 text-sm">
+                <div key={i} className="rounded-lg border border-border p-3 text-sm">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="font-medium text-slate-800">
+                    <span className="font-medium text-strong">
                       {SHIPPING_METHOD_LABELS[dv.shippingMethod] ?? dv.shippingMethod}
                     </span>
                     <Badge variant={DELIVERY_STATUS_VARIANTS[dv.status as keyof typeof DELIVERY_STATUS_VARIANTS] ?? "secondary"}>
@@ -205,18 +205,18 @@ export default function OrderStatusPage({
                     </Badge>
                   </div>
                   {dv.trackingNumber && (
-                    <p className="mt-1 text-slate-600">
+                    <p className="mt-1 text-secondary">
                       เลขพัสดุ: <span className="font-mono font-medium">{dv.trackingNumber}</span>
                     </p>
                   )}
                   {dv.shippedAt && (
-                    <p className="text-xs text-slate-400">ส่งเมื่อ {formatDate(dv.shippedAt)}</p>
+                    <p className="text-xs text-muted">ส่งเมื่อ {formatDate(dv.shippedAt)}</p>
                   )}
                   {dv.deliveredAt && (
                     <p className="text-xs text-green-600">ถึงปลายทาง {formatDate(dv.deliveredAt)}</p>
                   )}
                   {dv.lines.length > 0 && (
-                    <ul className="mt-2 space-y-0.5 text-xs text-slate-500">
+                    <ul className="mt-2 space-y-0.5 text-xs text-muted">
                       {dv.lines.map((l, j) => (
                         <li key={j}>
                           • {l.description}
@@ -237,29 +237,29 @@ export default function OrderStatusPage({
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
-                <FileText className="h-4 w-4 text-blue-600" />
+                <FileText className="h-4 w-4 text-muted" />
                 เอกสาร
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2.5 p-5 pt-0">
               {d.quotations.map((q, i) => (
-                <div key={`q${i}`} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 p-3 text-sm">
+                <div key={`q${i}`} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border p-3 text-sm">
                   <div className="min-w-0">
-                    <p className="font-medium text-slate-800">
+                    <p className="font-medium text-strong">
                       ใบเสนอราคา {q.quotationNumber}
                     </p>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-muted">
                       {QUOTATION_STATUS_LABELS_CUSTOMER[q.status] ?? q.status} · ยืนราคาถึง {formatDate(q.validUntil)}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="font-semibold text-slate-800">{baht(q.totalAmount)}</span>
+                    <span className="font-semibold text-strong">{baht(q.totalAmount)}</span>
                     {q.pdfUrl && (
                       <a
                         href={q.pdfUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:underline"
+                        className="inline-flex min-h-11 touch-manipulation items-center gap-1.5 px-2 text-xs text-blue-600 hover:underline"
                       >
                         <ExternalLink className="h-3.5 w-3.5" />
                         PDF
@@ -274,18 +274,18 @@ export default function OrderStatusPage({
                   variant: PAYMENT_STATUS_VARIANTS[inv.paymentStatus as keyof typeof PAYMENT_STATUS_VARIANTS] ?? ("default" as const),
                 };
                 return (
-                  <div key={`i${i}`} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 p-3 text-sm">
+                  <div key={`i${i}`} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border p-3 text-sm">
                     <div className="min-w-0">
-                      <p className="font-medium text-slate-800">
+                      <p className="font-medium text-strong">
                         {INVOICE_TYPE_LABELS_CUSTOMER[inv.type] ?? "ใบแจ้งหนี้"} {inv.invoiceNumber}
                         {inv.isVoided && <span className="ml-1 text-xs text-red-500">(ยกเลิก)</span>}
                       </p>
                       {inv.dueDate && !inv.isVoided && (
-                        <p className="text-xs text-slate-500">ครบกำหนด {formatDate(inv.dueDate)}</p>
+                        <p className="text-xs text-muted">ครบกำหนด {formatDate(inv.dueDate)}</p>
                       )}
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="font-semibold text-slate-800">{baht(inv.totalAmount)}</span>
+                      <span className="font-semibold text-strong">{baht(inv.totalAmount)}</span>
                       <Badge variant={ps.variant}>{ps.label}</Badge>
                     </div>
                   </div>

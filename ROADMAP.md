@@ -689,6 +689,16 @@ PDF ครบชุด (ใบเสนอ/แจ้งหนี้/เสร็
 - [x] **VE4 responsive + states** — ตรวจ Factory TV, billing create dialog และ order form picker เป็น representative ของจอแขวน/overlay/form ที่ desktop-mobile ทั้ง Light/Dark พร้อม Escape/focus return และไม่มี overflow; dialog ผลิตชุดเดียวกันตรวจ source/guard ครบ ✅ 2026-08-23
 - [x] **VE5 verify + handoff** — typecheck/lint/unit/verify:ui/Impeccable detector/build ผ่าน อัปเดต DESIGN/PROGRESS และ commit แยกก้อน โดยไม่รวม public/print หรือไฟล์ค้างของเบส ✅ 2026-08-23
 
+#### ใบงาน VERCEL-PUBLIC-PRINT — หน้าลูกค้าและเอกสารจริง (เบสสั่งต่อ 2026-08-23)
+
+> audit จอจริงแยกหน้าที่ชัด: public token เป็นหน้าใช้งานของลูกค้า/ร้านนอก จึงต้องรับ panel 8px, neutral masthead และ semantic state ชุดเดียวกับระบบ; เอกสารพิมพ์เป็นกระดาษ A4 ทางธุรกิจ ไม่ใช่ app card จึงคง grayscale, document hierarchy, ความกว้างกระดาษ และกฎหมายเดิม โดยยอมให้มีเงาเฉพาะ preview บนจอและต้องถอดออกตอนพิมพ์
+
+- [x] **VPB1 public masthead** — ถอดแถบสี, icon tile สี, มุม 14px และ shadow ออกจาก `PublicPageShell`/error recovery; คง title/subtitle/footer/blind-ship/noindex/token boundary เดิม ✅ 2026-08-23
+- [x] **VPB2 public content rhythm** — quote/status/upload/approve/job ใช้ semantic text/divider/surface, panel ย่อย 8px และ neutral hover; สีเหลือเฉพาะ primary action, focus และสถานะจริง ✅ 2026-08-23
+- [x] **VPB3 print contract** — ตรวจ quotation/invoice/billing note/packing list/job ticket ว่ายังคง A4, light-only, grayscale-safe, print CSS, ยอด/ภาษี/กฎหมาย/ลำดับหน้า และ document marker เดิม; ไม่ restyle เป็น dashboard card ✅ 2026-08-23
+- [x] **VPB4 responsive + states** — ตรวจ public representative ด้วยข้อมูลจริง/error/action controls ที่ desktop/mobile พร้อม overflow และ touch target; print desktop ครบเอกสารที่มีข้อมูลจริง และ production build ที่ 390px กักการเลื่อน A4 ไว้ใน preview; blind-ship ตรวจจาก source/guard โดยไม่สร้าง token ใหม่ ✅ 2026-08-23
+- [x] **VPB5 verify + handoff** — typecheck/lint/unit/verify:ui/Impeccable detector/build ผ่าน อัปเดต SPEC/DESIGN/PROGRESS และ commit แยกก้อนโดยไม่รวมไฟล์ค้างของเบส ✅ 2026-08-23
+
 #### ใบงานต้นแบบ ERP Command Center — ออกแบบใหม่ทั้งระบบแบบไม่ตีกรอบ (เบสสั่ง 2026-08-14)
 
 > พิสูจน์ “ภาษาใหม่ทั้งระบบ” จากของจริงก่อนรื้อหน้าหลัก: แนว **สายการผลิตบนกริด** (Swiss industrial manual + ใบสั่งงานโรงงาน) และน้ำเงิน Anajak `#3973b2` · เว็บอนาคตเป็นอีกช่องทางรับออเดอร์เข้าสู่วงจรเดียว ไม่สร้างหลังบ้าน POD แยก

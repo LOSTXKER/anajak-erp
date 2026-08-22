@@ -1332,6 +1332,69 @@ check(
     console.log("✅ picker/filter/file/dialog interaction minimal ไม่มี hover shadow และคืน focus");
   }
 
+  const publicShellSource = readFileSync(
+    "src/components/public/public-page.tsx",
+    "utf8",
+  );
+  const publicErrorSource = readFileSync(
+    "src/components/public-link-error.tsx",
+    "utf8",
+  );
+  const publicRoutePaths = [
+    "src/app/(public)/quote/[token]/page.tsx",
+    "src/app/(public)/status/[token]/page.tsx",
+    "src/app/(public)/upload/[token]/page.tsx",
+    "src/app/(public)/approve/design/[token]/page.tsx",
+    "src/app/(public)/job/[token]/job-share-view.tsx",
+  ];
+  const publicRouteSources = publicRoutePaths.map(
+    (path) => [path, readFileSync(path, "utf8")] as const,
+  );
+  const publicVisualOffenders = publicRouteSources.filter(
+    ([, source]) =>
+      /rounded-(?:xl|2xl|3xl)|shadow-sm|(?:text|bg|border)-slate-|hover:bg-slate-/.test(
+        source,
+      ),
+  );
+  if (
+    /VISUAL_TONE_CLASSES|rounded-\[14px\]|shadow-sm|absolute inset-x-0 top-0/.test(
+      publicShellSource,
+    ) ||
+    /rounded-\[14px\]|shadow-sm|absolute inset-x-0 top-0/.test(publicErrorSource) ||
+    publicVisualOffenders.length > 0
+  ) {
+    failed++;
+    console.log("❌ public token ต้องใช้ neutral masthead, semantic token และมุม 8px");
+    publicVisualOffenders.forEach(([path]) => console.log(`   ${path}`));
+  } else {
+    console.log("✅ public token ใช้ neutral masthead, semantic token และมุม 8px");
+  }
+
+  const providersSource = readFileSync("src/components/providers.tsx", "utf8");
+  const publicGlobalsSource = readFileSync("src/app/globals.css", "utf8");
+  const printDocumentSource = readFileSync(
+    "src/components/print/print-document.tsx",
+    "utf8",
+  );
+  const statusPublicSource = readFileSync(
+    "src/app/(public)/status/[token]/page.tsx",
+    "utf8",
+  );
+  if (
+    !providersSource.includes('const PUBLIC_LIGHT_PREFIXES = [...PUBLIC_CUSTOMER_PREFIXES, "/print"]') ||
+    !publicGlobalsSource.includes("width: 210mm") ||
+    !publicGlobalsSource.includes("@media print") ||
+    !publicGlobalsSource.includes("overflow-x: auto") ||
+    !publicGlobalsSource.includes("box-shadow: none") ||
+    !printDocumentSource.includes("<DocumentStamp") ||
+    !statusPublicSource.includes("hideFooter={d.isBlindShip}")
+  ) {
+    failed++;
+    console.log("❌ print/public ต้องคง A4 light-only, grayscale และ blind-ship contract");
+  } else {
+    console.log("✅ print/public คง A4 light-only, grayscale และ blind-ship contract");
+  }
+
   // Primitive สถานะคง divider ภายใน; หน้า orders เป็นผู้ครอบ panel ตาม Vercel Panel System
   const ordersStatusSource = readFileSync(
     "src/components/ui/flow-filter-bar.tsx",

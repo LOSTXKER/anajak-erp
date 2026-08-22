@@ -67,20 +67,20 @@ export default function DesignApprovalPage({
             {submitted === "approved" ? (
               <>
                 <CheckCircle className="mx-auto mb-4 h-16 w-16 text-green-500" />
-                <h2 className="mb-2 text-xl font-semibold text-slate-900">
+                <h2 className="mb-2 text-xl font-semibold text-strong">
                   อนุมัติแบบเรียบร้อย!
                 </h2>
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-muted">
                   ขอบคุณที่อนุมัติแบบ ทีมงานจะเริ่มดำเนินการผลิตให้เร็วที่สุด
                 </p>
               </>
             ) : (
               <>
                 <AlertCircle className="mx-auto mb-4 h-16 w-16 text-amber-500" />
-                <h2 className="mb-2 text-xl font-semibold text-slate-900">
+                <h2 className="mb-2 text-xl font-semibold text-strong">
                   รับทราบแล้ว!
                 </h2>
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-muted">
                   ทีมงานจะดำเนินการแก้ไขตามคำแนะนำของคุณ
                   และส่งแบบใหม่ให้ตรวจสอบอีกครั้ง
                 </p>
@@ -94,9 +94,8 @@ export default function DesignApprovalPage({
 
   return (
     <PublicPageShell
-      icon={<Palette className="h-6 w-6 text-blue-600" />}
+      icon={<Palette />}
       subtitle="ตรวจสอบและอนุมัติแบบ"
-      tone="production"
     >
 
         {/* Order Info */}
@@ -107,20 +106,20 @@ export default function DesignApprovalPage({
           <CardContent>
             <div className="grid gap-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-slate-500">เลขออเดอร์</span>
-                <span className="font-medium text-slate-900">
+                <span className="text-muted">เลขออเดอร์</span>
+                <span className="font-medium text-strong">
                   {d.order.orderNumber}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">ชื่องาน</span>
-                <span className="font-medium text-slate-900">
+                <span className="text-muted">ชื่องาน</span>
+                <span className="font-medium text-strong">
                   {d.order.title}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">ลูกค้า</span>
-                <span className="font-medium text-slate-900">
+                <span className="text-muted">ลูกค้า</span>
+                <span className="font-medium text-strong">
                   {d.order.customer.name}
                 </span>
               </div>
@@ -135,7 +134,7 @@ export default function DesignApprovalPage({
               <CardTitle className="text-base">
                 ม็อกอัพเวอร์ชัน {d.versionNumber}
                 {images.length > 1 ? (
-                  <span className="ml-1.5 font-normal text-slate-500">
+                  <span className="ml-1.5 font-normal text-muted">
                     ({images.length} รูป)
                   </span>
                 ) : null}
@@ -163,7 +162,7 @@ export default function DesignApprovalPage({
             {images.map((image, index) => (
               <figure key={`${image.fileUrl}-${index}`} className="space-y-1.5">
                 {image.positionLabel ? (
-                  <figcaption className="text-sm font-medium text-slate-700">
+                  <figcaption className="text-sm font-medium text-secondary">
                     ด้าน{image.positionLabel}
                   </figcaption>
                 ) : null}
@@ -173,7 +172,7 @@ export default function DesignApprovalPage({
                     href={image.fileUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block overflow-hidden rounded-lg border border-slate-200"
+                    className="block overflow-hidden rounded-lg border border-border"
                   >
                     <img
                       src={image.previewUrl}
@@ -187,13 +186,13 @@ export default function DesignApprovalPage({
                   </a>
                 ) : (
                   // .ai/.psd/.pdf แสดงเป็นรูปตรงๆ ไม่ได้ — บอกทางแทนปล่อยรูปแตก
-                  <div className={cn(DASHED, "rounded-xl p-6 text-center text-sm text-slate-500")}>
+                  <div className={cn(DASHED, "rounded-lg p-6 text-center text-sm text-muted")}>
                     ไฟล์นี้เป็นไฟล์งาน เปิดดูตัวอย่างในหน้านี้ไม่ได้ — กดลิงก์ด้านล่างเพื่อดูก่อนตัดสินใจ
                   </div>
                 )}
 
                 {image.caption ? (
-                  <p className="text-sm text-slate-500">{image.caption}</p>
+                  <p className="text-sm text-muted">{image.caption}</p>
                 ) : null}
 
                 <p className="text-center">
@@ -201,7 +200,7 @@ export default function DesignApprovalPage({
                     href={image.fileUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:underline"
+                    className="inline-flex min-h-11 touch-manipulation items-center gap-1.5 px-2 text-sm text-blue-600 hover:underline"
                   >
                     <ExternalLink className="h-3.5 w-3.5" />
                     {image.previewUrl ? "เปิดภาพเต็ม" : "เปิดไฟล์"}
@@ -236,7 +235,7 @@ export default function DesignApprovalPage({
                     ขอแก้ไขแล้ว -- รอแบบใหม่จากทีมงาน
                   </p>
                   {d.customerComment && (
-                    <p className="text-sm text-slate-600">
+                    <p className="text-sm text-secondary">
                       &ldquo;{d.customerComment}&rdquo;
                     </p>
                   )}

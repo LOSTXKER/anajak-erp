@@ -68,16 +68,16 @@ export default function QuoteConfirmPage({
 
   return (
     <PublicPageShell
-      icon={<FileText className="h-6 w-6 text-blue-600" />}
+      icon={<FileText />}
       subtitle={`ใบเสนอราคา ${q.quotationNumber}`}
     >
       {/* Quote header card */}
       <Card>
         <CardContent className="space-y-4 p-5">
           <div>
-            <p className="text-lg font-semibold text-slate-900">{q.title}</p>
+            <p className="text-lg font-semibold text-strong">{q.title}</p>
             {q.description && (
-              <p className="mt-1 whitespace-pre-wrap text-sm text-slate-500">{q.description}</p>
+              <p className="mt-1 whitespace-pre-wrap text-sm text-muted">{q.description}</p>
             )}
           </div>
           <div className="grid gap-1.5 text-sm">
@@ -92,41 +92,41 @@ export default function QuoteConfirmPage({
         <CardContent className="p-5">
           <div className="space-y-3">
             {q.items.map((it, i) => (
-              <div key={i} className="flex items-start justify-between gap-3 border-b border-slate-100 pb-3 last:border-0 last:pb-0">
+              <div key={i} className="flex items-start justify-between gap-3 border-b border-divider pb-3 last:border-0 last:pb-0">
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-slate-800">{it.name}</p>
-                  {it.description && <p className="text-xs text-slate-400">{it.description}</p>}
-                  <p className="mt-0.5 text-xs text-slate-500">
+                  <p className="text-sm font-medium text-strong">{it.name}</p>
+                  {it.description && <p className="text-xs text-muted">{it.description}</p>}
+                  <p className="mt-0.5 text-xs text-muted">
                     {it.quantity.toLocaleString("th-TH")} {it.unit} × {baht(it.unitPrice)}
                   </p>
                 </div>
-                <span className="shrink-0 text-sm font-medium tabular-nums text-slate-800">
+                <span className="shrink-0 text-sm font-medium tabular-nums text-strong">
                   {baht(it.totalPrice)}
                 </span>
               </div>
             ))}
           </div>
 
-          <div className="mt-4 space-y-1.5 border-t border-slate-200 pt-4 text-sm">
+          <div className="mt-4 space-y-1.5 border-t border-divider pt-4 text-sm">
             <div className="flex justify-between">
-              <span className="text-slate-500">ยอดรวมสินค้า</span>
-              <span className="tabular-nums text-slate-700">{baht(q.subtotal)}</span>
+              <span className="text-muted">ยอดรวมสินค้า</span>
+              <span className="tabular-nums text-secondary">{baht(q.subtotal)}</span>
             </div>
             {q.discount > 0 && (
               <div className="flex justify-between">
-                <span className="text-slate-500">ส่วนลด</span>
+                <span className="text-muted">ส่วนลด</span>
                 <span className="tabular-nums text-red-600">-{baht(q.discount)}</span>
               </div>
             )}
             {q.tax > 0 && (
               <div className="flex justify-between">
-                <span className="text-slate-500">ภาษี (VAT)</span>
-                <span className="tabular-nums text-slate-700">+{baht(q.tax)}</span>
+                <span className="text-muted">ภาษี (VAT)</span>
+                <span className="tabular-nums text-secondary">+{baht(q.tax)}</span>
               </div>
             )}
-            <div className="flex items-center justify-between border-t border-slate-200 pt-2.5">
-              <span className="text-base font-semibold text-slate-900">ยอดรวมทั้งหมด</span>
-              <span className="text-lg font-semibold tabular-nums text-blue-600">{baht(q.totalAmount)}</span>
+            <div className="flex items-center justify-between border-t border-divider pt-2.5">
+              <span className="text-base font-semibold text-strong">ยอดรวมทั้งหมด</span>
+              <span className="text-lg font-semibold tabular-nums text-strong">{baht(q.totalAmount)}</span>
             </div>
           </div>
         </CardContent>
@@ -136,8 +136,8 @@ export default function QuoteConfirmPage({
       {q.terms && (
         <Card>
           <CardContent className="p-5">
-            <p className="mb-1 text-xs font-medium text-slate-400">เงื่อนไข</p>
-            <p className="whitespace-pre-wrap text-sm text-slate-600">{q.terms}</p>
+            <p className="mb-1 text-xs font-medium text-muted">เงื่อนไข</p>
+            <p className="whitespace-pre-wrap text-sm text-secondary">{q.terms}</p>
           </CardContent>
         </Card>
       )}
@@ -149,17 +149,17 @@ export default function QuoteConfirmPage({
             <CheckCircle2 className="h-8 w-8 shrink-0 text-green-500" />
             <div>
               <p className="font-semibold text-green-700">ยืนยันใบเสนอแล้ว</p>
-              <p className="text-sm text-slate-500">ขอบคุณค่ะ ทีมงานจะติดต่อกลับเพื่อดำเนินการต่อ</p>
+              <p className="text-sm text-muted">ขอบคุณค่ะ ทีมงานจะติดต่อกลับเพื่อดำเนินการต่อ</p>
             </div>
           </CardContent>
         </Card>
       ) : decided === "REJECTED" ? (
         <Card>
           <CardContent className="flex items-center gap-3 p-5">
-            <XCircle className="h-8 w-8 shrink-0 text-slate-400" />
+            <XCircle className="h-8 w-8 shrink-0 text-muted" />
             <div>
-              <p className="font-semibold text-slate-700">ส่งคำขอแก้ไขแล้ว</p>
-              <p className="text-sm text-slate-500">ทีมงานได้รับเรื่องแล้ว จะติดต่อกลับเพื่อปรับใบเสนอให้ค่ะ</p>
+              <p className="font-semibold text-secondary">ส่งคำขอแก้ไขแล้ว</p>
+              <p className="text-sm text-muted">ทีมงานได้รับเรื่องแล้ว จะติดต่อกลับเพื่อปรับใบเสนอให้ค่ะ</p>
             </div>
           </CardContent>
         </Card>
@@ -169,7 +169,7 @@ export default function QuoteConfirmPage({
             <Clock className="h-8 w-8 shrink-0 text-amber-500" />
             <div>
               <p className="font-semibold text-amber-700">ใบเสนอนี้หมดอายุแล้ว</p>
-              <p className="text-sm text-slate-500">กรุณาติดต่อร้านเพื่อขอใบเสนอราคาฉบับใหม่</p>
+              <p className="text-sm text-muted">กรุณาติดต่อร้านเพื่อขอใบเสนอราคาฉบับใหม่</p>
             </div>
           </CardContent>
         </Card>
@@ -183,7 +183,7 @@ export default function QuoteConfirmPage({
             )}
             {!showReject ? (
               <>
-                <p className="text-center text-sm text-slate-600">
+                <p className="text-center text-sm text-secondary">
                   กรุณาตรวจสอบรายการและราคา หากถูกต้องกด “ยืนยันใบเสนอ” เพื่อให้เราเริ่มงานได้เลยค่ะ
                 </p>
                 <Button
@@ -206,7 +206,7 @@ export default function QuoteConfirmPage({
               </>
             ) : (
               <>
-                <p className="text-sm font-medium text-slate-700">อยากให้แก้ไขส่วนไหน? (ไม่บังคับ)</p>
+                <p className="text-sm font-medium text-secondary">อยากให้แก้ไขส่วนไหน? (ไม่บังคับ)</p>
                 <Textarea
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}

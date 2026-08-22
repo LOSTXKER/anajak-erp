@@ -118,6 +118,10 @@ describe("system visual identity", () => {
     );
     expect(publicHtml).not.toContain("Powered by Anajak Print ERP");
     expect(publicHtml).toContain("แบรนด์ลูกค้า");
+    expect(publicHtml).toContain("text-secondary");
+    expect(publicHtml).not.toContain("bg-module-");
+    expect(publicHtml).not.toContain("shadow-sm");
+    expect(publicHtml).not.toContain("rounded-[14px]");
     expect(printHtml).toContain("PL");
     expect(printHtml).toContain("Packing document");
   });

@@ -517,6 +517,8 @@ input[type="number"] {
   .print-viewport {
     background: #e9e9ec;
     min-height: 100vh;
+    max-width: 100%;
+    overflow-x: auto;
     padding: 24px 16px 64px;
   }
   .print-page {

@@ -4,6 +4,19 @@
 
 ## ตอนนี้
 
+> **✅ VERCEL PUBLIC + PRINT — ปิด visual island ฝั่งลูกค้าและเอกสาร 2026-08-23**
+> public token ทั้ง status/upload/quote/approve/job และหน้า error ใช้ masthead neutral แบบไอคอนเส้น, panel 8px ไร้เงา, semantic text/divider/hover ชุดเดียวกันแล้ว · ถอดแถบสี, icon tile สี, มุม 14px และสีตกแต่ง โดยคง primary/focus/status, noindex, token boundary, action และ blind-ship เดิม
+>
+> print ไม่ถูกเปลี่ยนเป็น dashboard card: quotation/invoice/billing note/packing list/job ticket ยังคงกระดาษ A4, grayscale, document stamp, ยอด/ภาษี/ข้อความกฎหมาย/ลำดับหน้าเดิม · เงาเล็กใช้เฉพาะ preview บนจอและถูกถอดตอนพิมพ์; จอแคบกัก horizontal scroll ไว้ใน `.print-viewport` จึงไม่ดันทั้งหน้าเว็บกว้างเกินจอ
+>
+> **หลักฐานจอจริง:** public status/upload/quote/job ที่ desktop และ status/quote/error ที่ 390px ใช้ข้อมูลจริง, Light-only, card 8px ไร้เงา, ปุ่มบนมือถือ 44px และ page overflow 0 · print invoice/job ticket/packing list/quotation เปิดข้อมูลจริงบน desktop; production build ของ invoice ที่ 390px มี page overflow 0 ขณะที่ A4 คงกว้าง 794px และเลื่อนเฉพาะ preview · billing note ไม่มี record ในฐานทดสอบ จึงตรวจ source/guard แทน
+>
+> **ด่านส่งมอบ:** full unit **1296/1296**, typecheck, lint 0 error (26 warning เดิม), `verify:ui`, production build (generate 41 pages), `git diff --check` และ Impeccable detector รอบเดียวผ่าน; detector `[]`
+>
+> **ขอบเขต:** presentation/CSS/test/docs เท่านั้น ไม่มี dependency, schema, API, query, mutation, permission, validation, status transition หรือ business flow เปลี่ยน · รักษา `scripts/verify-artwork.ts`, `.cursor/` และ `public/` ที่ค้างอยู่ไว้นอก commit
+>
+> **ต่อที่นี่:** visual language ทั้ง dashboard, factory/dialog, public และ print อยู่ใน contract เดียวครบแล้ว; รอบถัดไปควรเป็นการลอง flow งานจริงของเบส ไม่ใช่กวาดสี/มุมเพิ่มแบบไม่ชี้ปัญหา
+
 > **✅ VERCEL EDGE SURFACES — จอโรงงานและ dialog หลังบ้าน 2026-08-23**
 > Factory TV ทั้ง stage/rail/loading/error ใช้มุม 8px ไม่มี decorative shadow ตรงกับ Production/Station แล้ว โดยคง dark-first, 5 work center, refresh 30 วินาที และ no-money/read-only เดิม
 >

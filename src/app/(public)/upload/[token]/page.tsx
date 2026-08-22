@@ -13,7 +13,7 @@ import {
 } from "@/components/public/public-page";
 import { Upload, CheckCircle, FileCheck, Paperclip, X } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import { DASHED_INTERACTIVE } from "@/components/ui/tokens";
+import { DASHED_INTERACTIVE, FOCUS_BUTTON, SUNK_PANEL } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
 
 // หน้าอัปโหลดไฟล์ของลูกค้า (FLOW-REDESIGN ก้อน 4 ชิ้น 3) — เปิดผ่านลิงก์ token ไม่ต้อง login
@@ -114,9 +114,8 @@ export default function CustomerUploadPage({
 
   return (
     <PublicPageShell
-      icon={<Paperclip className="h-6 w-6 text-blue-600" />}
+      icon={<Paperclip />}
       subtitle="ส่งไฟล์งานให้ทีมงาน"
-      tone="product"
     >
         {/* Order Info */}
         <Card>
@@ -154,7 +153,7 @@ export default function CustomerUploadPage({
               type="button"
               onClick={() => inputRef.current?.click()}
               disabled={busy}
-              className={cn(DASHED_INTERACTIVE, "flex w-full flex-col items-center justify-center gap-2 rounded-xl px-4 py-8 text-sm text-slate-500 transition-colors hover:border-blue-400 hover:text-blue-500 disabled:pointer-events-none disabled:opacity-50")}
+              className={cn(DASHED_INTERACTIVE, FOCUS_BUTTON, "flex w-full touch-manipulation flex-col items-center justify-center gap-2 rounded-lg px-4 py-8 text-sm text-muted transition-colors hover:text-strong disabled:pointer-events-none disabled:border-border disabled:bg-surface-muted disabled:text-muted")}
             >
               {busy ? (
                 <>
@@ -165,7 +164,7 @@ export default function CustomerUploadPage({
                 <>
                   <Upload className="h-7 w-7" />
                   <span className="font-medium">เลือกไฟล์เพื่ออัปโหลด</span>
-                  <span className="text-xs text-slate-400">
+                  <span className="text-xs text-muted">
                     รูปภาพ / PDF / AI / PSD / ZIP · สูงสุด {MAX_MB}MB ต่อไฟล์
                   </span>
                 </>
@@ -178,7 +177,7 @@ export default function CustomerUploadPage({
                 {items.map((it, idx) => (
                   <li
                     key={`${it.name}-${idx}`}
-                    className="flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm"
+                    className={cn(SUNK_PANEL, "flex items-center gap-2 rounded-lg px-3 py-2 text-sm")}
                   >
                     {it.status === "uploading" && (
                       <Spinner size="md" className="shrink-0 text-blue-500" />
@@ -189,7 +188,7 @@ export default function CustomerUploadPage({
                     {it.status === "error" && (
                       <X className="h-4 w-4 shrink-0 text-red-500" />
                     )}
-                    <span className="min-w-0 flex-1 truncate text-slate-700">
+                    <span className="min-w-0 flex-1 truncate text-secondary">
                       {it.name}
                     </span>
                     {it.status === "error" && (
@@ -226,11 +225,11 @@ export default function CustomerUploadPage({
                     key={idx}
                     className="flex items-center justify-between gap-2 text-sm"
                   >
-                    <span className="flex min-w-0 items-center gap-2 text-slate-700">
-                      <Paperclip className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                    <span className="flex min-w-0 items-center gap-2 text-secondary">
+                      <Paperclip className="h-3.5 w-3.5 shrink-0 text-muted" />
                       <span className="truncate">{f.fileName}</span>
                     </span>
-                    <span className="shrink-0 text-xs text-slate-400">
+                    <span className="shrink-0 text-xs text-muted">
                       {formatDate(f.createdAt)}
                     </span>
                   </li>

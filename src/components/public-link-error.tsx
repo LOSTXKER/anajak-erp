@@ -33,16 +33,15 @@ export function PublicLinkError({
     // พื้นหน้าเดียวกับหน้าลูกค้าอื่น (ตัวนี้ตกหล่นตอนเปลี่ยนพื้นเป็นขาว 2026-08-01)
     // · Card ให้พื้นกับขอบมาครบแล้ว เดิมเขียน bg-white/border ซ้ำ ซึ่งไม่มีผลด้วยซ้ำ
     <div className="flex min-h-screen items-center justify-center bg-bg p-4 text-strong">
-      <Card className="relative w-full max-w-md overflow-hidden">
-        <div className="absolute inset-x-0 top-0 h-1 bg-red-600" aria-hidden="true" />
+      <Card className="w-full max-w-md">
         <CardContent className="p-6 sm:p-8">
-          <div className="flex items-start gap-4">
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-red-600 text-white shadow-sm" aria-hidden="true">
-              <AlertCircle className="h-5.5 w-5.5" />
+          <div className="flex items-start gap-3">
+            <span className="mt-1 shrink-0 text-red-600" aria-hidden="true">
+              <AlertCircle className="h-5 w-5" />
             </span>
-            <div className="min-w-0 pt-0.5">
+            <div className="min-w-0">
               <h1 className="text-xl font-semibold tracking-[-0.02em] text-strong">เปิดลิงก์ไม่ได้</h1>
-              <p className="mt-1 text-sm leading-relaxed text-slate-600">{message}</p>
+              <p className="mt-1 text-sm leading-relaxed text-secondary">{message}</p>
             </div>
           </div>
 
