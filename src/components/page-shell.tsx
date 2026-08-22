@@ -5,6 +5,7 @@ import { QueryError } from "@/components/ui/query-error";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AccessDenied } from "@/components/ui/access-denied";
 import { cn } from "@/lib/utils";
+import type { VisualTone } from "@/lib/visual-tone";
 
 /* ============================================================
    โครงหน้า dashboard — ที่เดียวของ header + สถานะ โหลด/พัง/ไม่มีสิทธิ์ + ระยะห่าง
@@ -36,12 +37,14 @@ const WIDTH_CLASS: Record<PageWidth, string> = {
 interface PageShellProps {
   // ---- ส่งต่อ PageHeader ทั้งชุด (เขียนครั้งเดียว ใช้ทุก state) ----
   title: ReactNode;
-  description?: ReactNode;
+  meta?: ReactNode;
+  help?: ReactNode;
   action?: ReactNode;
   breadcrumb?: BreadcrumbItem[];
   titleBadge?: ReactNode;
   back?: { href: string; label: string };
   icon?: LucideIcon;
+  tone?: VisualTone;
   eyebrow?: string;
   /** เนื้อหาใต้หัว (แถบ filter/summary) — โชว์เฉพาะตอนปกติ ไม่โชว์ระหว่างโหลด/พัง */
   headerChildren?: ReactNode;
@@ -69,12 +72,14 @@ interface PageShellProps {
 
 export function PageShell({
   title,
-  description,
+  meta,
+  help,
   action,
   breadcrumb,
   titleBadge,
   back,
   icon,
+  tone,
   eyebrow,
   headerChildren,
   header,
@@ -108,13 +113,15 @@ export function PageShell({
       {header ?? (
         <PageHeader
           title={title}
-          description={description}
+          meta={meta}
+          help={help}
           // ปุ่ม action ใช้ไม่ได้ระหว่างโหลด/พัง/ไม่มีสิทธิ์ — ซ่อนกันกดแล้วพัง
           action={normal ? action : undefined}
           breadcrumb={breadcrumb}
           titleBadge={normal ? titleBadge : undefined}
           back={back}
           icon={icon}
+          tone={tone}
           eyebrow={eyebrow}
         >
           {normal ? headerChildren : undefined}

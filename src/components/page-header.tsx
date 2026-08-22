@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { CONTROL_MIN_H } from "@/components/ui/control-size";
 import { cn } from "@/lib/utils";
 import { PageIdentityIcon } from "@/lib/page-identity";
+import { HelpTip } from "@/components/ui/help-tip";
+import { VISUAL_TONE_CLASSES, visualToneForLabel, type VisualTone } from "@/lib/visual-tone";
 
 export interface BreadcrumbItem {
   label: string;
@@ -14,7 +16,8 @@ export interface BreadcrumbItem {
 
 interface PageHeaderProps {
   title: ReactNode;
-  description?: ReactNode;
+  meta?: ReactNode;
+  help?: ReactNode;
   action?: ReactNode;
   breadcrumb?: BreadcrumbItem[];
   /** ป้าย/สถานะที่ยืนข้างหัวข้อ — แยกจาก title เพื่อให้ <h1> มีแต่ข้อความจริง
@@ -24,6 +27,7 @@ interface PageHeaderProps {
   back?: { href: string; label: string };
   /** Visual identity ของโมดูล; ถ้าไม่ส่งจะอนุมานจากชื่อหน้า/เส้นทาง breadcrumb */
   icon?: LucideIcon;
+  tone?: VisualTone;
   /** บริบทสำหรับ assistive technology เท่านั้น; ไม่วาด kicker เหนือ h1 */
   eyebrow?: string;
   children?: ReactNode;
@@ -35,12 +39,14 @@ interface PageHeaderProps {
    ให้รองรับ แทนที่จะปล่อยให้ก๊อปต่อไป (ก๊อปแล้วมันจะเพี้ยนวันที่แก้ที่นี่) */
 export function PageHeader({
   title,
-  description,
+  meta,
+  help,
   action,
   breadcrumb,
   titleBadge,
   back,
   icon,
+  tone,
   eyebrow,
   children,
 }: PageHeaderProps) {
@@ -48,6 +54,10 @@ export function PageHeader({
     typeof title === "string"
       ? title
       : breadcrumb?.at(-1)?.label;
+  const toneSource = [...(breadcrumb?.map((item) => item.label) ?? []), identityLabel]
+    .filter(Boolean)
+    .join(" ");
+  const resolvedTone = tone ?? visualToneForLabel(toneSource);
   return (
     <div className="page-header space-y-4" data-page-identity={identityLabel ?? "custom"}>
       {(() => {
@@ -108,7 +118,8 @@ export function PageHeader({
           )}
           <span
             className={cn(
-              "page-module-mark flex shrink-0 items-center justify-center bg-blue-600 text-white shadow-sm",
+              "page-module-mark flex shrink-0 items-center justify-center shadow-sm",
+              VISUAL_TONE_CLASSES[resolvedTone].solid,
               back ? "h-10 w-10 rounded-xl" : "h-12 w-12 rounded-[14px]",
             )}
             role={eyebrow ? "img" : undefined}
@@ -132,14 +143,9 @@ export function PageHeader({
                 {title}
               </h1>
               {titleBadge}
+              {help && <HelpTip label={typeof title === "string" ? title : "หัวข้อนี้"}>{help}</HelpTip>}
             </div>
-            {description && (
-              /* 14px ไม่ใช่ 12px — "คำอธิบายทั้งหน้า" ต้องขั้นถัดลงจาก h1 24px
-                 ไม่ใช่แต่งตัวเหมือน meta ในแถวตาราง (benchmark 2026-08-04) */
-              <p className="text-sm text-muted">
-                {description}
-              </p>
-            )}
+            {meta && <p className="text-xs leading-relaxed text-muted">{meta}</p>}
           </div>
         </div>
         {action && (

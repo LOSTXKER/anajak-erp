@@ -1,10 +1,17 @@
 import * as React from "react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { HelpTip } from "@/components/ui/help-tip";
+import {
+  VISUAL_TONE_CLASSES,
+  visualToneForLabel,
+  type VisualTone,
+} from "@/lib/visual-tone";
 
 interface SectionProps extends Omit<React.HTMLAttributes<HTMLElement>, "title"> {
   title?: React.ReactNode;
-  description?: React.ReactNode;
+  meta?: React.ReactNode;
+  help?: React.ReactNode;
   action?: React.ReactNode;
   bordered?: boolean;
   flush?: boolean;
@@ -18,6 +25,7 @@ interface SectionProps extends Omit<React.HTMLAttributes<HTMLElement>, "title"> 
   /** ใช้ 3 เมื่อนำ Section แบบไม่มีผิวไปเป็นกลุ่มย่อยภายใน Section หลัก */
   headingLevel?: 2 | 3;
   icon?: LucideIcon;
+  tone?: VisualTone;
 }
 
 /**
@@ -29,13 +37,15 @@ export const Section = React.forwardRef<HTMLDivElement, SectionProps>(
   (
     {
       title,
-      description,
+      meta,
+      help,
       action,
       bordered = true,
       flush = false,
       compact = false,
       headingLevel = 2,
       icon: Icon,
+      tone,
       className,
       children,
       ...props
@@ -43,7 +53,8 @@ export const Section = React.forwardRef<HTMLDivElement, SectionProps>(
     ref
   ) => {
     const Heading = headingLevel === 3 ? "h3" : "h2";
-    const hasHeader = Boolean(title || description || action);
+    const hasHeader = Boolean(title || meta || help || action);
+    const resolvedTone = tone ?? visualToneForLabel(typeof title === "string" ? title : null);
 
     return (
       <section
@@ -69,26 +80,28 @@ export const Section = React.forwardRef<HTMLDivElement, SectionProps>(
           >
             <div className="flex min-w-0 items-start gap-3">
               {Icon && !compact && (
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-surface-muted text-secondary" aria-hidden="true">
+                <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl", VISUAL_TONE_CLASSES[resolvedTone].soft)} aria-hidden="true">
                   <Icon className="h-4.5 w-4.5" strokeWidth={1.8} />
                 </span>
               )}
               <div className="min-w-0 space-y-0.5">
               {title &&
                 (compact ? (
-                  <Heading className="text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                    {title}
-                  </Heading>
+                  <div className="flex items-center gap-1">
+                    <Heading className="text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      {title}
+                    </Heading>
+                    {help && <HelpTip label={typeof title === "string" ? title : "หัวข้อนี้"}>{help}</HelpTip>}
+                  </div>
                 ) : (
-                  <Heading className="text-base font-semibold text-slate-900 dark:text-white">
-                    {title}
-                  </Heading>
+                  <div className="flex items-center gap-1">
+                    <Heading className="text-base font-semibold text-slate-900 dark:text-white">
+                      {title}
+                    </Heading>
+                    {help && <HelpTip label={typeof title === "string" ? title : "หัวข้อนี้"}>{help}</HelpTip>}
+                  </div>
                 ))}
-              {description && (
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  {description}
-                </p>
-              )}
+              {meta && <p className="text-xs text-muted">{meta}</p>}
               </div>
             </div>
             {action && <div className="shrink-0">{action}</div>}

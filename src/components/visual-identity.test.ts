@@ -8,6 +8,8 @@ import { ContextPanel } from "./ui/context-panel";
 import { Section } from "./ui/section";
 import { PublicPageShell } from "./public/public-page";
 import { DocumentStamp } from "./print/print-document";
+import { HelpTip } from "./ui/help-tip";
+import { visualToneForLabel } from "@/lib/visual-tone";
 
 describe("system visual identity", () => {
   it("วาด module marker โดย h1 ยังมีข้อความหัวข้อชุดเดียว", () => {
@@ -16,6 +18,27 @@ describe("system visual identity", () => {
     expect(html).toContain("page-module-mark");
     expect(html.match(/<h1/g)).toHaveLength(1);
     expect(html).toContain("ควบคุมการผลิต");
+    expect(html).toContain("bg-module-production-solid");
+  });
+
+  it("ผูกสีตามบริบทโดยไม่เปลี่ยนน้ำเงินของงานขาย", () => {
+    expect(visualToneForLabel("ออเดอร์")).toBe("brand");
+    expect(visualToneForLabel("ควบคุมการผลิต")).toBe("production");
+    expect(visualToneForLabel("สินค้าและแพทเทิร์น")).toBe("product");
+    expect(visualToneForLabel("บิลและการเงิน")).toBe("finance");
+    expect(visualToneForLabel("ตั้งค่าผู้ใช้")).toBe("system");
+  });
+
+  it("HelpTip มีปุ่มที่เข้าถึงได้และไม่ปลอมเป็น alert", () => {
+    const html = renderToStaticMarkup(
+      createElement(HelpTip, {
+        label: "อายุหนี้",
+        children: "นับจากวันครบกำหนด",
+      } as ComponentProps<typeof HelpTip>),
+    );
+    expect(html).toContain('type="button"');
+    expect(html).toContain('aria-label="ดูคำอธิบาย: อายุหนี้"');
+    expect(html).not.toContain('role="alert"');
   });
 
   it("EntityMark เลือก image แล้วค่อย initials แล้วค่อย icon", () => {
@@ -24,11 +47,12 @@ describe("system visual identity", () => {
     );
     const initials = renderToStaticMarkup(createElement(EntityMark, { label: "บริษัท อาณาจักร" }));
     const icon = renderToStaticMarkup(
-      createElement(EntityMark, { label: "เอกสาร", icon: Factory, fallback: "icon" }),
+      createElement(EntityMark, { label: "เอกสาร", icon: Factory, fallback: "icon", tone: "finance" }),
     );
     expect(image).toContain('data-entity-mark="image"');
     expect(initials).toContain('data-entity-mark="initials"');
     expect(icon).toContain('data-entity-mark="icon"');
+    expect(icon).toContain("bg-module-finance-surface");
   });
 
   it("Section รองรับ icon และ ContextPanel ไม่ปลอมเป็น alert", () => {

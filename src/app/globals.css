@@ -158,6 +158,29 @@
   --color-green-900: #124526;
   --color-green-950: #052e16;
 
+  /* Industrial Fresh — สีประจำบริบท ไม่ใช่สีสถานะ
+     solid ใช้กับ marker, surface/text/border ใช้กับ glyph และ cue เบา */
+  --color-module-brand-solid: #3973b2;
+  --color-module-brand-surface: #e4edf6;
+  --color-module-brand-text: #305f93;
+  --color-module-brand-border: #c6daed;
+  --color-module-production-solid: #0f766e;
+  --color-module-production-surface: #e6f6f3;
+  --color-module-production-text: #0f5e59;
+  --color-module-production-border: #b8e3dc;
+  --color-module-product-solid: #a66a12;
+  --color-module-product-surface: #fff6df;
+  --color-module-product-text: #7a4c08;
+  --color-module-product-border: #efd49b;
+  --color-module-finance-solid: #6d5bd0;
+  --color-module-finance-surface: #f1efff;
+  --color-module-finance-text: #5543ad;
+  --color-module-finance-border: #d6d0fa;
+  --color-module-system-solid: #59636f;
+  --color-module-system-surface: #eef1f4;
+  --color-module-system-text: #46505b;
+  --color-module-system-border: #d7dde3;
+
   /* ============================================================
      ระบบสีพื้นผิว 2026-08-13 — neutral สงบ + interaction เป็นเทากลาง
 
@@ -239,6 +262,21 @@
   --color-yellow-500: #fbbf24;
   --color-amber-500: #fbbf24;
   --color-green-500: #4ade80;
+  --color-module-brand-surface: #173c61;
+  --color-module-brand-text: #c6daed;
+  --color-module-brand-border: #2a5078;
+  --color-module-production-surface: #123b39;
+  --color-module-production-text: #9ce3db;
+  --color-module-production-border: #24655f;
+  --color-module-product-surface: #3c2d12;
+  --color-module-product-text: #f4d28f;
+  --color-module-product-border: #6c4d16;
+  --color-module-finance-surface: #2b2654;
+  --color-module-finance-text: #cbc4ff;
+  --color-module-finance-border: #514899;
+  --color-module-system-surface: #292e35;
+  --color-module-system-text: #d5dae0;
+  --color-module-system-border: #47505b;
   --color-bg: #1a1a1c;
   --color-surface: #252528;
   --color-surface-muted: #1d1d1f;
@@ -268,7 +306,7 @@
 /* ผืนทำงานหลังบ้านใกล้ขาวแบบ Vercel แต่ scope ไว้ใน AppShell เท่านั้น
    เพื่อไม่เปลี่ยนหน้า public/login ที่เป็นคนละประสบการณ์โดยอ้อม */
 .app-workspace {
-  --color-bg: #fafafa;
+  --color-bg: #f6f8fb;
 }
 .dark .app-workspace {
   --color-bg: #1a1a1c;

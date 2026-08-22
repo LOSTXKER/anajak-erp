@@ -2,6 +2,7 @@ import Image from "next/image";
 import type { LucideIcon } from "lucide-react";
 import { Box } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { VISUAL_TONE_CLASSES, type VisualTone } from "@/lib/visual-tone";
 
 type EntityMarkSize = "sm" | "md" | "lg";
 
@@ -27,6 +28,7 @@ export function EntityMark({
   shape = "square",
   fallback = "initials",
   className,
+  tone = "system",
 }: {
   label: string;
   imageSrc?: string | null;
@@ -36,6 +38,7 @@ export function EntityMark({
   shape?: "square" | "avatar";
   fallback?: "initials" | "icon";
   className?: string;
+  tone?: VisualTone;
 }) {
   const styles = SIZE[size];
   const fallbackInitials = fallback === "initials" ? initials?.trim() || initialsOf(label) : "";
@@ -43,7 +46,9 @@ export function EntityMark({
   return (
     <span
       className={cn(
-        "relative inline-flex shrink-0 items-center justify-center overflow-hidden bg-surface-muted font-semibold text-secondary ring-1 ring-inset ring-border",
+        "relative inline-flex shrink-0 items-center justify-center overflow-hidden font-semibold ring-1 ring-inset",
+        VISUAL_TONE_CLASSES[tone].soft,
+        VISUAL_TONE_CLASSES[tone].border,
         styles.frame,
         shape === "avatar" && "rounded-full",
         className

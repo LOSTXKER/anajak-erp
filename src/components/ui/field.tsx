@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { HelpTip } from "@/components/ui/help-tip";
 
 export type FieldState = "default" | "invalid" | "valid";
 
@@ -20,6 +21,7 @@ export interface FieldProps
   children: React.ReactElement<FieldControlProps>;
   id?: string;
   description?: React.ReactNode;
+  help?: React.ReactNode;
   error?: React.ReactNode;
   required?: boolean;
   state?: FieldState;
@@ -36,6 +38,7 @@ export function Field({
   children,
   id,
   description,
+  help,
   error,
   required = false,
   state = "default",
@@ -68,17 +71,18 @@ export function Field({
       data-field-state={invalid ? "invalid" : state}
       {...props}
     >
-      <Label htmlFor={controlId} className={cn(visuallyHiddenLabel && "sr-only")}>
-        {label}
-        {required && (
-          <>
-            <span aria-hidden="true" className="ml-1 text-red-700 dark:text-red-400">
-              *
-            </span>
-            <span className="sr-only"> (จำเป็น)</span>
-          </>
-        )}
-      </Label>
+      <div className={cn("flex items-center gap-1", visuallyHiddenLabel && "sr-only")}>
+        <Label htmlFor={controlId}>
+          {label}
+          {required && (
+            <>
+              <span aria-hidden="true" className="ml-1 text-red-700 dark:text-red-400">*</span>
+              <span className="sr-only"> (จำเป็น)</span>
+            </>
+          )}
+        </Label>
+        {help && <HelpTip label={typeof label === "string" ? label : "ช่องนี้"}>{help}</HelpTip>}
+      </div>
       {control}
       {description && (
         <p id={descriptionId} className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
