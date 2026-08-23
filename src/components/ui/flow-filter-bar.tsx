@@ -14,7 +14,7 @@ import { ACTIVE_UNDERLINE, FOCUS_BUTTON } from "@/components/ui/tokens";
    มาเป็น item แล้วส่งเข้ามา (สถานะออเดอร์อยู่ได้ค่าเดียว ส่วนงานผลิตอยู่ได้
    หลายสายพร้อมกัน — คนละมิติ ยัดเข้า component เดียวจะได้ของที่มี if เต็มไปหมด)
 
-   อ่านซ้ายไปขวาเป็นเส้นทางงานจริง · จอกว้างเป็นแถวเดียวมีแถบสัดส่วน ·
+   อ่านซ้ายไปขวาเป็นเส้นทางงานจริง · จอกว้างเป็นแถวเดียวมีจุดสีบอกประเภท ·
    จอแคบสลับเป็นการ์ด 2 คอลัมน์ (วัดจากพื้นที่จริงด้วย @container ไม่ใช่ขนาดหน้าต่าง)
    ============================================================ */
 
@@ -125,17 +125,12 @@ function DesktopItemButton({
   item,
   isOn,
   onPress,
-  max,
 }: {
   item: FlowFilterItem;
   isOn: boolean;
   onPress: () => void;
-  /** มีค่า = อยู่ในเส้นทางและต้องวาดแถบสัดส่วน · ไม่มีค่า = อยู่นอกเส้นทาง */
-  max?: number;
 }) {
   const fullLabel = item.fullLabel ?? item.label;
-  const inFlow = max !== undefined;
-  const ratioMax = max ?? 1;
 
   return (
     <button
@@ -170,16 +165,13 @@ function DesktopItemButton({
       </span>
       <span
         className={cn(
-          "mt-1 max-w-full text-2xs leading-tight",
-          inFlow ? "block truncate" : "inline-flex items-center gap-1",
+          "mt-1 inline-flex max-w-full items-center justify-center gap-1.5 text-2xs leading-tight",
           isOn
             ? "font-semibold text-blue-700 dark:text-blue-400"
             : "text-slate-500 group-hover:text-secondary group-active:text-secondary dark:text-slate-400 dark:group-hover:text-secondary dark:group-active:text-secondary",
         )}
       >
-        {inFlow ? null : (
-          <span aria-hidden className={cn("h-1.5 w-1.5 shrink-0 rounded-full", item.dotClass)} />
-        )}
+        <span aria-hidden className={cn("h-1.5 w-1.5 shrink-0 rounded-full", item.dotClass)} />
         <span className="truncate">{item.label}</span>
       </span>
       {item.alert !== undefined && item.alert > 0 && (
@@ -187,19 +179,6 @@ function DesktopItemButton({
           <AlertBadge value={item.alert} isOn={isOn} />
         </span>
       )}
-      {inFlow ? (
-        <span
-          className={cn(
-            "mt-1.5 block h-1 overflow-hidden rounded-full",
-            item.count === 0 ? "bg-transparent" : "bg-slate-200 dark:bg-white/10",
-          )}
-        >
-          <span
-            className={cn("block h-full rounded-full", item.dotClass)}
-            style={{ width: `${Math.round((item.count / ratioMax) * 100)}%` }}
-          />
-        </span>
-      ) : null}
     </button>
   );
 }
@@ -227,16 +206,14 @@ export function FlowFilterBar({
   /** aria-label ของกลุ่มบนจอแคบ — ไม่ส่ง = ใช้ ariaLabel */
   mobileAriaLabel?: string;
 }) {
-  // แถบสัดส่วนเทียบกับรายการที่มีงานเยอะสุด — บอก "กองอยู่ตรงไหน" โดยไม่ต้องอ่านเลข
-  const max = Math.max(1, ...items.map((item) => item.count));
   const columns = { gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` };
   const toggle = (key: string) => onSelect(selected === key ? "" : key);
 
   return (
     <div className={cn("@container transition-opacity duration-200", isLoading && "opacity-60")}>
       {/* ── เส้นทางงาน (พื้นที่กว้างพอ) ── */}
-      <div role="group" aria-label={ariaLabel} className="hidden border-y border-divider py-3 @4xl:block">
-        <div className="flex gap-3">
+      <div role="group" aria-label={ariaLabel} className="hidden @4xl:block">
+        <div className="flex gap-5">
           <div className="min-w-0 flex-1">
             {groups && groups.length > 0 && (
               <div className="grid gap-1.5" style={columns}>
@@ -244,7 +221,7 @@ export function FlowFilterBar({
                   <p
                     key={group.label}
                     style={{ gridColumn: `span ${group.keys.length}` }}
-                    className="border-b-2 border-slate-100 pb-1 text-center text-2xs font-semibold uppercase tracking-wide text-slate-500 dark:border-slate-800 dark:text-slate-400"
+                    className="pb-1 text-center text-2xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400"
                   >
                     {group.label}
                   </p>
@@ -259,7 +236,6 @@ export function FlowFilterBar({
                   item={item}
                   isOn={selected === item.key}
                   onPress={() => toggle(item.key)}
-                  max={max}
                 />
               ))}
             </div>
@@ -269,9 +245,9 @@ export function FlowFilterBar({
             <div
               role="group"
               aria-label={aside.ariaLabel}
-              className="w-44 shrink-0 border-l border-slate-100 pl-3 dark:border-slate-800"
+              className="w-44 shrink-0"
             >
-              <p className="border-b-2 border-slate-100 pb-1 text-center text-2xs font-semibold uppercase tracking-wide text-slate-500 dark:border-slate-800 dark:text-slate-400">
+              <p className="pb-1 text-center text-2xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 {aside.label}
               </p>
               <div className="mt-2 grid grid-cols-2 gap-1.5">

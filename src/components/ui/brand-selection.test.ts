@@ -30,6 +30,16 @@ describe("Anajak selected-state contract", () => {
     expect(flowFilterSource).toContain("ACTIVE_UNDERLINE");
   });
 
+  it("status flow เหลือเส้นเฉพาะสถานะที่เลือกและใช้จุดสีแทน progress track", () => {
+    expect(flowFilterSource).not.toContain("border-y border-divider");
+    expect(flowFilterSource).not.toContain("border-l border-slate");
+    expect(flowFilterSource).not.toContain("border-b-2 border-slate-100 pb-1");
+    expect(flowFilterSource).not.toContain("ratioMax");
+    expect(flowFilterSource).not.toContain("style={{ width:");
+    expect(flowFilterSource).toContain("item.dotClass");
+    expect(flowFilterSource).toContain("ACTIVE_UNDERLINE");
+  });
+
   it("navigation และ active filter เฉพาะหน้าใช้ selected role สีน้ำเงิน", () => {
     expect(shellSource).toContain(
       "bg-interactive-selected font-medium text-interactive-selected-text",

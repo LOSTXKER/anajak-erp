@@ -4,6 +4,19 @@
 
 ## ตอนนี้
 
+> **✅ STATUS FLOW DISTILL — ลดเส้นซ้ำในแถบสถานะ Orders (2026-08-23)**
+> แถบสถานะ desktop เหลือกรอบ panel ชั้นเดียว: ถอดเส้นบนล่างด้านใน, เส้นใต้หัวช่วง และเส้นตั้งคั่น “นอกเส้นทาง” · progress track ใต้ทุกสถานะถูกแทนด้วยจุดสี semantic ข้างชื่อ เพราะจำนวนงานด้านบนบอกปริมาณอยู่แล้ว จึงยังสแกนประเภทงานได้โดยไม่มีเส้นแข่งกันหลายชั้น
+>
+> สถานะที่เลือกยังใช้เส้นและข้อความ Anajak Blue ผ่าน `ACTIVE_UNDERLINE`; สถานะพักยัง neutral, count/alert/ARIA/URL state/toggle และ quick+details บนมือถือไม่เปลี่ยน · contract ถูกล็อกทั้ง unit test, `verify:ui` และ `docs/DESIGN.md`
+>
+> **หลักฐานจอจริง:** `/orders` ที่ desktop 1280 Light/Dark — panel ไม่มี internal top/bottom, group underline หรือ outside divider; เลือก “กำลังผลิต” ได้เส้น `#3973b2` Light / `#6b9cca` Dark และ URL `?status=PRODUCING` · 390/320 ไม่มี page/main overflow, summary และ control สูง 44px, console 0 warning/error · `/production` ที่ 1280 ไม่มี overflow/error หลัง primitive กลางเปลี่ยน
+>
+> **ด่านส่งมอบ:** full unit **1641/1641**, typecheck, lint 0 error (26 warning เดิม), `verify:ui`, Prisma validate, production build (41 static pages), `git diff --check` และ Impeccable detector รอบเดียวผ่าน; detector `[]`
+>
+> **ขอบเขต:** presentation/test/docs เท่านั้น · query, mutation, permission, route, status transition, schema, seed และ business flow ไม่เปลี่ยน · ไฟล์ค้างของเบส `scripts/verify-artwork.ts`, `.cursor/`, `public/` ยังอยู่นอก scope
+>
+> **ต่อที่นี่:** ให้เบสลองกดสถานะใน `/orders` จริง; ถ้าจะลดอีก จุดถัดไปควรเป็น “ตัดหัวช่วง” หรือ “ลดจำนวนสี semantic” ทีละอย่าง ไม่ควรถอดกรอบนอกเพราะมันเป็นขอบเขตของตัวกรองทั้งก้อน
+
 > **✅ ANAJAK BLUE SELECTION — คืนสีแบรนด์ให้ current/selected ทั้งระบบ (2026-08-23)**
 > แก้การตีความ Vercel ที่ลดสีแบรนด์เกินไป: workspace, panel, hover และ pressed ยังคง neutral เพื่อให้เนื้อหาสงบ แต่ทุก current/selected/focus กลับมาใช้ Anajak Blue ชุดเดียว · active underline เปลี่ยนทั้งเส้นและข้อความ, Sidebar ใช้ selected tint อ่อนกับข้อความ/ไอคอนน้ำเงิน และ toolbar filter ที่เปิดอยู่ใช้เส้น/ข้อความน้ำเงินโดยไม่ทำพื้นทั้งก้อนเป็นสี
 >

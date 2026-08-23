@@ -38,6 +38,14 @@
 - [x] อัปเดต `docs/DESIGN.md`, UI contract และ regression test ให้ล็อก Anajak Blue เป็น active/selected/focus โดยไม่ทำทั้งเว็บกลายเป็นสีฟ้า
 - [x] Verify: full unit/typecheck/lint/`verify:ui`/Prisma/build + browser ตัวแทน dashboard/orders/order detail/production/products/billing/settings ที่ desktop/mobile Light+Dark, keyboard/focus/overflow/error overlay
 
+### 🎯 STATUS-FLOW-DISTILL — ลดเส้นซ้ำในแถบสถานะ Orders (เบสสั่ง 2026-08-23)
+> ขอบเขต presentation ของ primitive กลาง `FlowFilterBar`: คงสถานะ, จำนวน, URL state, สี semantic, responsive behavior และการกดกรองเดิมทั้งหมด
+
+- [x] Desktop เหลือกรอบ panel ชั้นเดียวและเส้นใต้ Anajak Blue เฉพาะสถานะที่เลือก โดยไม่มีเส้นบนล่างซ้ำ เส้นใต้หัวช่วง หรือเส้นตั้งคั่น “นอกเส้นทาง”
+- [x] เปลี่ยน progress track ใต้ทุกสถานะเป็นจุดสี semantic ข้างชื่อ เพื่อคงการอ่านประเภทสถานะโดยไม่แข่งกับจำนวนงาน
+- [x] ล็อก regression guard ว่าไม่มีเส้นซ้ำ/track กลับมา และ selected state ยังใช้ `ACTIVE_UNDERLINE`
+- [x] ตรวจ `/orders` desktop/mobile Light/Dark, touch target/overflow/error overlay แล้วรัน final gates โดยไม่เปลี่ยน business flow
+
 ## 🏭 PRODUCTION-V2 — หนึ่งข้อมูลจริง หนึ่งบ้านต่อหนึ่งงาน (เบสเคาะ 2026-08-22)
 
 > เป้าหมาย: รื้อแกนการผลิตและ UX เป็นโครงการเดียวตามบทบาท ERP/MES — ERP ใช้วางแผน/ควบคุม/ตรวจย้อนหลัง, Station ใช้ลงมือ, Factory TV อ่านอย่างเดียว · ทำบน branch/worktree แยกจาก checkpoint `5972e65` · schema เพิ่มแบบ additive และห้าม apply/reset ฐาน shared หรือ remote ระหว่างสร้าง

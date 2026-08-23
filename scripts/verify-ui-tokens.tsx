@@ -1419,7 +1419,7 @@ check(
     console.log("✅ print/public คง A4 light-only, grayscale และ blind-ship contract");
   }
 
-  // Primitive สถานะคง divider ภายใน; หน้า orders เป็นผู้ครอบ panel ตาม Vercel Panel System
+  // หน้า detail คง structural divider; FlowFilterBar อยู่ใน panel ของ caller จึงไม่วาดเส้นซ้ำ
   const ordersStatusSource = readFileSync(
     "src/components/ui/flow-filter-bar.tsx",
     "utf8",
@@ -1428,18 +1428,20 @@ check(
     "src/components/orders/detail/order-status-bar.tsx",
     "utf8",
   );
-  const statusWrappers = [ordersStatusSource, detailStatusSource];
   if (
-    statusWrappers.some(
-      (source) =>
-        !source.includes("border-y border-divider") ||
-        source.includes("card-surface"),
-    )
+    ordersStatusSource.includes("border-y border-divider") ||
+    ordersStatusSource.includes("border-l border-slate") ||
+    ordersStatusSource.includes("border-b-2 border-slate-100 pb-1") ||
+    ordersStatusSource.includes("ratioMax") ||
+    ordersStatusSource.includes("style={{ width:") ||
+    ordersStatusSource.includes("card-surface") ||
+    !detailStatusSource.includes("border-y border-divider") ||
+    detailStatusSource.includes("card-surface")
   ) {
     failed++;
-    console.log("❌ primitive status rail ต้องใช้ structural divider โดยไม่สร้าง card ซ้อน");
+    console.log("❌ status rail ต้องมีขอบเขตชั้นเดียวและห้ามวาด divider/progress track ซ้ำ");
   } else {
-    console.log("✅ primitive status rail ใช้ structural divider โดยไม่สร้าง card ซ้อน");
+    console.log("✅ status rail ใช้ขอบเขตชั้นเดียวและไม่มี divider/progress track ซ้ำ");
   }
 
   const orderStatusFilterSource = readFileSync(
