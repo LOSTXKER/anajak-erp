@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_PRODUCTION_WORKLIST_SORT,
   filterProductionWorklist,
+  productionWorklistAction,
   productionWorklistProgress,
   productionWorklistCounts,
   productionWorklistDaySummary,
@@ -139,6 +140,62 @@ describe("production worklist", () => {
       late: 0,
       today: 0,
       inProgress: 0,
+    });
+  });
+
+  it("บอกเหตุที่ต้องทำและเจ้าของถัดไปโดยไม่โยนงานส่งช้ากลับฝ่ายผลิต", () => {
+    const lateDelivery = job({
+      id: "late-delivery",
+      status: "READY_TO_SHIP",
+      stationKey: "post:ship",
+      overdue: true,
+    });
+    expect(productionWorklistAction(lateDelivery)).toEqual({
+      reason: "ส่งงานที่เลยกำหนด",
+      owner: "ฝ่ายจัดส่ง",
+      attention: true,
+      tone: "red",
+    });
+
+    const blocked = job({
+      id: "blocked",
+      status: "PRODUCING",
+      stationKey: "รีดร้อน",
+      productionId: "prod-blocked",
+    });
+    blocked.spots[0]!.waitingOn = ["ฟิล์ม DTF ชุด A"];
+    blocked.spots[0]!.step = {
+      id: "step-blocked",
+      stepType: "HEAT_PRESS",
+      status: "PENDING",
+      sortOrder: 1,
+      assignedTo: { id: "user-a", name: "แนน" },
+    };
+    expect(productionWorklistAction(blocked)).toEqual({
+      reason: "รอ ฟิล์ม DTF ชุด A",
+      owner: "แนน",
+      attention: true,
+      tone: "amber",
+    });
+
+    const failed = job({
+      id: "failed",
+      status: "PRODUCING",
+      stationKey: "DTF",
+      productionId: "prod-failed",
+    });
+    failed.spots[0]!.step = {
+      id: "step-failed",
+      stepType: "DTF_PRINT",
+      status: "FAILED",
+      sortOrder: 1,
+      notes: "[แจ้งปัญหาจากสถานี] ฟิล์มยับ ต้องพิมพ์ใหม่",
+    };
+    expect(productionWorklistAction(failed)).toEqual({
+      reason: "ฟิล์มยับ ต้องพิมพ์ใหม่",
+      owner: "DTF",
+      attention: true,
+      tone: "red",
     });
   });
 

@@ -2050,10 +2050,12 @@ check(
   if (
     !productionModuleNavSource.includes('className={cn("border-b border-divider"') ||
     !productionModuleNavSource.includes("no-scrollbar -mb-px") ||
-    !productionModuleNavSource.includes("sm:border-t-0 sm:py-0 sm:pl-3")
+    !productionModuleNavSource.includes("<DropdownMenu.Root>") ||
+    !productionModuleNavSource.includes("WORKSPACE_ITEMS.map") ||
+    !productionModuleNavSource.includes("พื้นที่หน้างาน")
   ) {
     problems.push(
-      "local navigation ของงานผลิตต้องวางเส้น active ทับ divider เดียวกันบน desktop/จอทัช",
+      "local navigation ของงานผลิตต้องวางเส้น active ทับ divider เดียวกัน และยุบทางเข้าหน้างานไว้ในเมนูเดียว",
     );
   }
 

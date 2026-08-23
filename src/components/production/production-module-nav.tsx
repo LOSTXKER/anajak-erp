@@ -1,13 +1,15 @@
 "use client";
 
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { MonitorUp, ScanLine } from "lucide-react";
+import { ChevronDown, MonitorUp, ScanLine } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { CONTROL_MIN_H } from "@/components/ui/control-size";
 import {
   FOCUS_INSET,
-  INTERACTIVE_HOVER,
-  INTERACTIVE_PRESSED,
+  MENU_ITEM,
+  OVERLAY_PANEL,
   RADIUS,
 } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
@@ -49,7 +51,7 @@ export function ProductionModuleNav({ className }: { className?: string }) {
       data-production-module-nav=""
       className={cn("border-b border-divider", className)}
     >
-      <div className="flex min-w-0 flex-wrap items-center gap-x-3">
+      <div className="flex min-w-0 items-center gap-2">
         <div className="no-scrollbar -mb-px flex min-w-0 flex-1 overflow-x-auto">
           {MODULE_ITEMS.map((item) => {
             const active = isActive(pathname, item.href);
@@ -73,29 +75,41 @@ export function ProductionModuleNav({ className }: { className?: string }) {
           })}
         </div>
 
-        <div
-          role="group"
-          aria-label="พื้นที่หน้างาน"
-          className="flex w-full shrink-0 items-center gap-1 border-t border-divider py-2 sm:w-auto sm:border-l sm:border-t-0 sm:py-0 sm:pl-3"
-        >
-          {WORKSPACE_ITEMS.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                CONTROL_MIN_H,
-                FOCUS_INSET,
-                RADIUS.item,
-                INTERACTIVE_HOVER,
-                INTERACTIVE_PRESSED,
-                "inline-flex items-center gap-1.5 px-2 text-sm font-medium text-secondary transition-colors",
-              )}
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="shrink-0 px-2.5 font-medium"
             >
-              <item.icon className="h-4 w-4 text-muted" strokeWidth={1.75} />
-              {item.label}
-            </Link>
-          ))}
-        </div>
+              <ScanLine aria-hidden="true" />
+              <span className="sm:hidden">หน้างาน</span>
+              <span className="hidden sm:inline">พื้นที่หน้างาน</span>
+              <ChevronDown aria-hidden="true" />
+            </Button>
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Content
+              align="end"
+              sideOffset={6}
+              className={cn(OVERLAY_PANEL, "z-50 min-w-48 p-1")}
+            >
+              {WORKSPACE_ITEMS.map((item) => (
+                <DropdownMenu.Item key={item.href} asChild>
+                  <Link
+                    href={item.href}
+                    className={cn(CONTROL_MIN_H, MENU_ITEM, RADIUS.item)}
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      <item.icon className="h-4 w-4 text-muted" strokeWidth={1.75} />
+                      {item.label}
+                    </span>
+                  </Link>
+                </DropdownMenu.Item>
+              ))}
+            </DropdownMenu.Content>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
       </div>
     </nav>
   );

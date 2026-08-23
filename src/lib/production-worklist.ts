@@ -1,4 +1,5 @@
 import type {
+  BoardException,
   BoardJob,
   BoardOrderLike,
   BoardRailPoint,
@@ -6,6 +7,7 @@ import type {
   ProductionBoard,
 } from "@/lib/production-board";
 import { sortBoardJobs } from "@/lib/production-board";
+import { currentProductionProblemReason } from "@/lib/production-problem";
 
 /* ============================================================
    รายการควบคุมการผลิต — มุมหัวหน้าผลิต
@@ -14,12 +16,20 @@ import { sortBoardJobs } from "@/lib/production-board";
    แต่ยังเก็บทุกจุดงานไว้ในแถวเดียวเพื่อไม่ซ่อนงานที่เดินพร้อมกันหลายสาย
    ============================================================ */
 
-export const PRODUCTION_WORKLIST_LENSES = [
+export const PRODUCTION_WORKLIST_QUEUE_LENSES = [
   { key: "all", label: "ทั้งหมด" },
   { key: "attention", label: "ต้องจัดการ" },
+] as const;
+
+export const PRODUCTION_WORKLIST_STAGE_LENSES = [
   { key: "production", label: "กำลังผลิต" },
   { key: "qc", label: "รอ QC" },
   { key: "packing", label: "แพ็ก / พร้อมส่ง" },
+] as const;
+
+export const PRODUCTION_WORKLIST_LENSES = [
+  ...PRODUCTION_WORKLIST_QUEUE_LENSES,
+  ...PRODUCTION_WORKLIST_STAGE_LENSES,
 ] as const;
 
 export type ProductionWorklistLens =
@@ -116,6 +126,123 @@ export function productionWorklistProgress(
     completed,
     total,
     percent: total > 0 ? Math.round((completed / total) * 100) : 0,
+  };
+}
+
+export type ProductionWorklistAction = {
+  reason: string;
+  owner: string;
+  attention: boolean;
+  tone: "red" | "amber" | "neutral";
+};
+
+function uniqueText(values: readonly (string | null | undefined)[]) {
+  return [...new Set(values.filter((value): value is string => Boolean(value)))];
+}
+
+/**
+ * คำตอบสั้นสำหรับหัวหน้า: แถวนี้ต้องทำอะไร และใครเป็นเจ้าของการส่งต่อถัดไป
+ * เป็น presentation จาก board truth เท่านั้น ไม่สร้างสถานะหรืออนุมาน mutation ใหม่
+ */
+export function productionWorklistAction<
+  S extends BoardStepLike,
+  O extends BoardOrderLike<S>,
+>(job: BoardJob<O, S>, exception?: BoardException): ProductionWorklistAction {
+  const failedSpot = job.spots.find((spot) => spot.step?.status === "FAILED");
+  const failureReason = failedSpot?.step
+    ? currentProductionProblemReason(failedSpot.step)
+    : null;
+  const waits = uniqueText([
+    ...(exception?.waitingOn ?? []),
+    ...job.spots.flatMap((spot) => spot.waitingOn),
+  ]);
+  const assignedNames = uniqueText(
+    job.spots.map((spot) => spot.step?.assignedTo?.name),
+  );
+  const firstSpecificReason = exception?.reasons.find(
+    (reason) => reason.label !== "เลยกำหนด" && reason.label !== "มีปัญหา",
+  );
+
+  let owner: string;
+  if (assignedNames.length > 0) {
+    owner = assignedNames.length === 1
+      ? assignedNames[0]!
+      : `${assignedNames[0]} +${assignedNames.length - 1}`;
+  } else if (job.order.internalStatus === "READY_TO_SHIP") {
+    owner = "ฝ่ายจัดส่ง";
+  } else if (job.order.internalStatus === "PACKING") {
+    owner = "ฝ่ายแพ็ก";
+  } else if (job.order.internalStatus === "QUALITY_CHECK") {
+    owner = "QC";
+  } else if (job.spots.some((spot) => spot.kind === "queue")) {
+    owner = "หัวหน้าผลิต";
+  } else {
+    owner = failedSpot?.stationLabel ?? job.spots[0]?.stationLabel ?? "หัวหน้าผลิต";
+  }
+
+  const attention = Boolean(
+    exception ||
+      job.overdue ||
+      failedSpot ||
+      waits.length > 0,
+  );
+
+  if (waits.length > 0) {
+    return {
+      reason: waits[0]!.startsWith("รอ") ? waits[0]! : `รอ ${waits[0]}`,
+      owner,
+      attention,
+      tone: job.overdue || failedSpot ? "red" : "amber",
+    };
+  }
+
+  if (firstSpecificReason) {
+    return {
+      reason: firstSpecificReason.label,
+      owner,
+      attention,
+      tone: firstSpecificReason.tone,
+    };
+  }
+
+  if (failedSpot) {
+    return {
+      reason: failureReason ?? `แก้ปัญหาที่ ${failedSpot.stationLabel}`,
+      owner,
+      attention,
+      tone: "red",
+    };
+  }
+
+  if (job.overdue) {
+    const reason = job.order.internalStatus === "READY_TO_SHIP"
+      ? "ส่งงานที่เลยกำหนด"
+      : job.order.internalStatus === "PACKING"
+        ? "เร่งแพ็กงานที่เลยกำหนด"
+        : job.order.internalStatus === "QUALITY_CHECK"
+          ? "ตรวจงานที่เลยกำหนด"
+          : "เร่งงานที่เลยกำหนด";
+    return { reason, owner, attention, tone: "red" };
+  }
+
+  if (job.spots.some((spot) => spot.kind === "queue")) {
+    return { reason: "เปิดใบผลิต", owner, attention, tone: "neutral" };
+  }
+  if (job.order.internalStatus === "READY_TO_SHIP") {
+    return { reason: "ส่งมอบให้ลูกค้า", owner, attention, tone: "neutral" };
+  }
+  if (job.order.internalStatus === "PACKING") {
+    return { reason: "แพ็กและเตรียมส่ง", owner, attention, tone: "neutral" };
+  }
+  if (job.order.internalStatus === "QUALITY_CHECK") {
+    return { reason: "ตรวจคุณภาพ", owner, attention, tone: "neutral" };
+  }
+
+  return {
+    reason: `ทำต่อที่ ${job.spots[0]?.stationLabel ?? "สายการผลิต"}`,
+    owner,
+    attention,
+    tone: "neutral",
   };
 }
 

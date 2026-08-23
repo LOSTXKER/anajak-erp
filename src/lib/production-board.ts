@@ -34,6 +34,8 @@ export type BoardStepLike = {
   sortOrder: number;
   qtyDone?: number | null;
   qtyTotal?: number | null;
+  notes?: string | null;
+  qcNotes?: string | null;
   assignedTo?: { id: string; name: string } | null;
 };
 

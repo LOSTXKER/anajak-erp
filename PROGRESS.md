@@ -4,6 +4,19 @@
 
 ## ตอนนี้
 
+> **✅ PRODUCTION CONTROL TRIAGE — หนึ่งแถวตอบเหตุและเจ้าของถัดไป (2026-08-23)**
+> `/production` แสดงคำตอบเชิงปฏิบัติการในทุกแถว/การ์ดว่า **ต้องทำอะไรต่อ + เจ้าของถัดไปคือใคร** จาก board truth เดิม: ขั้นที่มีผู้รับงานใช้ชื่อผู้รับจริง, งานรอ/ล้มเหลวใช้เหตุจาก readiness หรือ production problem note เมื่อมี, QC/แพ็ก/จัดส่งชี้ functional owner ตรงขั้น · งานผลิตครบแต่เลยกำหนดยังคงอยู่ใน “ต้องจัดการ” และระบุฝ่ายจัดส่ง ไม่ถูกโยนกลับฝ่ายผลิต
+>
+> ตัวกรองแยกเป็นสองแกนที่อ่านออก: `ทั้งหมด/ต้องจัดการ` เป็นมุมควบคุม exception ส่วน `กำลังผลิต/QC/แพ็ก-พร้อมส่ง` เป็นขั้นงาน โดยคง `view` URL เดิม · สรุปวันนี้ยุบจาก metric card สามใบเป็นบรรทัดข้อมูลเดียว, Station/Factory ยุบไว้ในเมนู “พื้นที่หน้างาน”, desktop เหลือ preset ข้ามคอลัมน์ 2 ตัวและใช้หัวตารางสำหรับ column sort ส่วน mobile คงตัวเลือกเรียงครบ · การเปิดออเดอร์บันทึกจุด focus และคืนไปลิงก์เดิมเมื่อกลับรายการ
+>
+> **หลักฐานจอจริง:** `/production` 1440×900 Light/Dark — แถวแรก y≈460, menu หน้างานเปิดด้วย keyboard/Escape, `ต้องจัดการ` คง URL `?view=attention`, กดหัวกำหนดส่งได้ `sort=deadline:asc` และ Select เปลี่ยนเป็น “เรียงจากหัวตาราง” · 390×844 Light — การ์ดแรก y≈486 (เดิมราว 617), control ที่เห็นสูง 44px, page overflow 0, เห็นเหตุ/เจ้าของใน first card และเมนูหน้างานยังมีชื่อ · เปิดงานแล้วกลับ URL รายการคืน focus ไปออเดอร์เดิม
+>
+> **ด่านส่งมอบ:** full unit **1645/1645**, typecheck, targeted lint 0 warning/error, `verify:ui`, production build (41 static pages), `git diff --check` และ Impeccable detectorรอบเดียวผ่าน; detector `[]` · full lint ยังมี warning เดิมนอก scope ไม่มี error ใหม่
+>
+> **ขอบเขต:** presentation, accessibility, pure board read model, tests/docs/verifier เท่านั้น · query, mutation, permission, URL values, status transition, schema, seed และ business flow ไม่เปลี่ยน · ไฟล์ของเบส `scripts/verify-artwork.ts`, `.cursor/`, `public/` ยังอยู่นอก scope
+>
+> **ต่อที่นี่:** ให้เบสรีเฟรช `/production` แล้วลองสแกนคอลัมน์ “ต้องทำต่อ” จากเหตุ → เจ้าของถัดไป; ถ้าข้อมูลเหตุของใบเก่าบางใบยังเป็นชื่อขั้นกว้าง ๆ ต้องเติม problem note/readiness truth ที่ต้นทาง ไม่ควรแต่งเหตุใน UI
+
 > **✅ FILTER POPOVER POLISH — เก็บตัวกรองหลายเงื่อนไขทั้งระบบ (2026-08-23)**
 > `FilterPopover` กลางกลับมาเป็น panel งานขนาดกะทัดรัด: หัวกล่อง/ปุ่มปิด/พื้นที่ฟิลด์/footer แยกชั้นด้วย divider เดียว, เปิดแล้ว focus เข้า panel โดยไม่ขึ้นวงสีน้ำเงินที่ปุ่มปิดเอง และ footer ลด “ล้างทั้งหมด” เป็น action รองแทนปุ่มคู่ที่หนักเท่ากัน · trigger ที่มีตัวกรองค้างยังใช้ Anajak Blue พร้อมจำนวนตามระบบสีที่เคาะไว้
 >

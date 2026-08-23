@@ -1,6 +1,6 @@
 "use client";
 
-import type { Ref } from "react";
+import { useEffect, type Ref } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -19,7 +19,7 @@ import { ResponsiveList } from "@/components/ui/responsive-list";
 import { SearchInput } from "@/components/ui/search-input";
 import { Select } from "@/components/ui/select";
 import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
-import { FOCUS_BUTTON, RADIUS } from "@/components/ui/tokens";
+import { FOCUS_BUTTON } from "@/components/ui/tokens";
 import { MockupThumbnail } from "@/components/mockup/mockup-thumbnail";
 import { orderMockupCover } from "@/lib/mockup";
 import { cn, formatDateShort } from "@/lib/utils";
@@ -33,8 +33,10 @@ import {
 } from "@/lib/production-board";
 import {
   PRODUCTION_WORKLIST_SORT_COLUMNS,
-  PRODUCTION_WORKLIST_LENSES,
+  PRODUCTION_WORKLIST_QUEUE_LENSES,
+  PRODUCTION_WORKLIST_STAGE_LENSES,
   PRODUCTION_WORKLIST_SORT_OPTIONS,
+  productionWorklistAction,
   productionWorklistProgress,
   productionWorklistCounts,
   productionWorklistDaySummary,
@@ -53,6 +55,20 @@ const WORKLIST_LENS_ICONS = {
   qc: ClipboardCheck,
   packing: PackageCheck,
 } as const;
+
+const WORKLIST_FOCUS_STORAGE_KEY = "anajak:production-worklist:last-focus";
+
+function worklistFocusId(orderId: string) {
+  return `production-worklist-order-${orderId}`;
+}
+
+function rememberWorklistFocus(orderId: string) {
+  try {
+    window.sessionStorage.setItem(WORKLIST_FOCUS_STORAGE_KEY, orderId);
+  } catch {
+    // sessionStorage อาจถูกปิดโดย browser policy — การนำทางยังทำงานตามปกติ
+  }
+}
 
 function unique(values: readonly string[]) {
   return [...new Set(values.filter(Boolean))];
@@ -104,37 +120,49 @@ function currentWork<S extends BoardStepLike, O extends BoardOrderLike<S>>(
   return unique(job.spots.map((spot) => spot.stationLabel));
 }
 
-function waitingOn<S extends BoardStepLike, O extends BoardOrderLike<S>>(
-  job: BoardJob<O, S>,
-) {
-  return unique(job.spots.flatMap((spot) => spot.waitingOn));
-}
-
 function WorkBadges<S extends BoardStepLike, O extends BoardOrderLike<S>>({
   job,
-  exception,
 }: {
   job: BoardJob<O, S>;
-  exception?: BoardException;
 }) {
   const stages = currentWork(job);
   return (
     <div className="flex min-w-0 flex-wrap gap-1.5">
-      {exception?.reasons.slice(0, 1).map((reason) => (
-        <Badge
-          key={reason.label}
-          variant={reason.tone === "red" ? "destructive" : "warning"}
-          size="sm"
-        >
-          {reason.label}
-        </Badge>
-      ))}
       {stages.slice(0, 2).map((stage) => (
         <Badge key={stage} variant="default" size="sm">
           {stage}
         </Badge>
       ))}
       {stages.length > 2 ? <Badge size="sm">+{stages.length - 2}</Badge> : null}
+    </div>
+  );
+}
+
+function WorkAction<S extends BoardStepLike, O extends BoardOrderLike<S>>({
+  job,
+  exception,
+}: {
+  job: BoardJob<O, S>;
+  exception?: BoardException;
+}) {
+  const action = productionWorklistAction(job, exception);
+  const tone = action.tone === "red"
+    ? "text-red-700 dark:text-red-300"
+    : action.tone === "amber"
+      ? "text-amber-700 dark:text-amber-300"
+      : "text-strong";
+
+  return (
+    <div className="min-w-0">
+      <p className={cn("flex min-w-0 items-center gap-1.5 text-sm font-medium", tone)}>
+        {action.attention ? (
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+        ) : null}
+        <span className="truncate">{action.reason}</span>
+      </p>
+      <p className="mt-0.5 truncate text-xs text-muted">
+        เจ้าของถัดไป: <span className="text-secondary">{action.owner}</span>
+      </p>
     </div>
   );
 }
@@ -171,7 +199,7 @@ function DesktopRows<S extends BoardStepLike, O extends BoardOrderLike<S>>({
           <DataTable.SortableTh {...sortColumn("orderNumber")}>
             ออเดอร์
           </DataTable.SortableTh>
-          <DataTable.Th>งานปัจจุบัน</DataTable.Th>
+          <DataTable.Th>ต้องทำต่อ</DataTable.Th>
           <DataTable.SortableTh {...sortColumn("progress")}>
             ความคืบหน้า
           </DataTable.SortableTh>
@@ -191,13 +219,19 @@ function DesktopRows<S extends BoardStepLike, O extends BoardOrderLike<S>>({
       <DataTable.Body>
         {jobs.map((job) => {
           const exception = exceptionByOrderId.get(job.order.id);
-          const waits = waitingOn(job);
           const href = productionWorklistHref(job, canCreateProduction);
           return (
-            <DataTable.Row key={job.key} href={href} className="h-[76px]">
+            <DataTable.Row
+              key={job.key}
+              href={href}
+              onClick={() => rememberWorklistFocus(job.order.id)}
+              className="h-[82px]"
+            >
               <DataTable.Td className="min-w-44 py-2">
                 <Link
+                  id={worklistFocusId(job.order.id)}
                   href={href}
+                  onClick={() => rememberWorklistFocus(job.order.id)}
                   className={cn(
                     FOCUS_BUTTON,
                     "inline-flex min-h-11 min-w-0 items-center gap-3 rounded-lg",
@@ -222,11 +256,9 @@ function DesktopRows<S extends BoardStepLike, O extends BoardOrderLike<S>>({
                   </span>
                 </Link>
               </DataTable.Td>
-              <DataTable.Td className="min-w-48 py-2">
-                <WorkBadges job={job} exception={exception} />
-                <p className={cn("mt-1 truncate text-xs", waits.length ? "text-amber-700 dark:text-amber-300" : "text-muted")}>
-                  {waits[0] || (job.order.title && job.order.customerName ? job.order.title : "พร้อมทำต่อ")}
-                </p>
+              <DataTable.Td className="min-w-56 py-2">
+                <WorkAction job={job} exception={exception} />
+                <div className="mt-1.5"><WorkBadges job={job} /></div>
               </DataTable.Td>
               <DataTable.Td className="w-32 py-2">
                 <WorkProgress rail={job.rail} />
@@ -264,11 +296,13 @@ function MobileRows<S extends BoardStepLike, O extends BoardOrderLike<S>>({
     <div className="space-y-2">
       {jobs.map((job) => {
         const href = productionWorklistHref(job, canCreateProduction);
-        const waits = waitingOn(job);
+        const exception = exceptionByOrderId.get(job.order.id);
         return (
           <Link
             key={job.key}
+            id={worklistFocusId(job.order.id)}
             href={href}
+            onClick={() => rememberWorklistFocus(job.order.id)}
             className={cn(
               FOCUS_BUTTON,
               "card-surface card-surface-hover block min-h-11 rounded-lg p-4",
@@ -293,13 +327,8 @@ function MobileRows<S extends BoardStepLike, O extends BoardOrderLike<S>>({
               </span>
               <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
             </span>
-            <span className="mt-3 block"><WorkBadges job={job} exception={exceptionByOrderId.get(job.order.id)} /></span>
-            {waits.length ? (
-              <span className="mt-2 flex items-center gap-1.5 text-xs text-amber-700 dark:text-amber-300">
-                <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                <span className="truncate">{waits[0]}</span>
-              </span>
-            ) : null}
+            <span className="mt-3 block"><WorkAction job={job} exception={exception} /></span>
+            <span className="mt-2 block"><WorkBadges job={job} /></span>
             <span className="mt-3 grid grid-cols-[1fr_auto] items-end gap-4">
               <WorkProgress rail={job.rail} />
               <span className="text-right text-xs text-muted">
@@ -332,14 +361,17 @@ function DaySummaryBar({ summary }: { summary: ProductionWorklistDaySummary }) {
   ] as const;
 
   return (
-    <dl className="grid grid-cols-3 gap-2" aria-label="สรุปงานวันนี้">
+    <dl
+      className="flex flex-wrap items-center gap-x-5 gap-y-1 border-b border-divider pb-3"
+      aria-label="สรุปงานวันนี้"
+    >
       {cells.map((cell) => (
         <div
           key={cell.key}
-          className={cn("card-surface px-3 py-2.5", RADIUS.surface)}
+          className="flex items-baseline gap-2"
         >
-          <dt className="text-2xs text-muted sm:text-xs">{cell.label}</dt>
-          <dd className={cn("text-xl font-semibold tabular-nums", cell.tone)}>
+          <dt className="text-xs text-muted">{cell.label}</dt>
+          <dd className={cn("text-base font-semibold tabular-nums", cell.tone)}>
             {cell.value.toLocaleString("th-TH")}
           </dd>
         </div>
@@ -379,33 +411,89 @@ export function ProductionControlWorklist<
   // ตามชิปที่เพิ่งกด ไม่งั้นตัวเลขที่ใช้ตัดสินใจขยับใต้มือทุกครั้งที่เปลี่ยนมุมมอง
   const daySummary = productionWorklistDaySummary(board.jobs);
   const exceptionByOrderId = new Map(board.exceptions.map((item) => [item.orderId, item]));
+  const desktopSortValue = sort === "attention" || sort === "urgent"
+    ? sort
+    : "__column__";
+
+  useEffect(() => {
+    let orderId: string | null = null;
+    try {
+      orderId = window.sessionStorage.getItem(WORKLIST_FOCUS_STORAGE_KEY);
+    } catch {
+      return;
+    }
+    if (!orderId) return;
+
+    const target = document.getElementById(worklistFocusId(orderId));
+    if (!target) return;
+    const frame = window.requestAnimationFrame(() => {
+      target.focus({ preventScroll: true });
+      try {
+        window.sessionStorage.removeItem(WORKLIST_FOCUS_STORAGE_KEY);
+      } catch {
+        // ไม่มีผลต่อการคืน focus ที่ทำสำเร็จแล้ว
+      }
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [jobs]);
 
   return (
     <div className="space-y-4" data-production-worklist>
       <DaySummaryBar summary={daySummary} />
 
-      <section aria-label="มุมรายการงาน" className="flex flex-wrap items-center gap-2">
-        {PRODUCTION_WORKLIST_LENSES.map((item) => {
-          const LensIcon = WORKLIST_LENS_ICONS[item.key];
-          return (
-            <FilterChip
-              key={item.key}
-              selected={lens === item.key}
-              onClick={() => onSelectLens(item.key)}
-              surface="raised"
-              icon={
-                <LensIcon
-                  aria-hidden="true"
-                  className="h-4 w-4"
-                  strokeWidth={1.75}
-                />
-              }
-            >
-              {item.label}
-              <span className="tabular-nums opacity-70">{counts[item.key]}</span>
-            </FilterChip>
-          );
-        })}
+      <section aria-label="กรองรายการงาน" className="no-scrollbar overflow-x-auto pb-1">
+        <div className="flex w-max min-w-full items-center gap-2">
+          <div role="group" aria-label="มุมควบคุมงาน" className="flex items-center gap-2">
+            {PRODUCTION_WORKLIST_QUEUE_LENSES.map((item) => {
+              const LensIcon = WORKLIST_LENS_ICONS[item.key];
+              return (
+                <FilterChip
+                  key={item.key}
+                  selected={lens === item.key}
+                  onClick={() => onSelectLens(item.key)}
+                  surface="raised"
+                  icon={
+                    <LensIcon
+                      aria-hidden="true"
+                      className="h-4 w-4"
+                      strokeWidth={1.75}
+                    />
+                  }
+                >
+                  {item.label}
+                  <span className="tabular-nums opacity-70">{counts[item.key]}</span>
+                </FilterChip>
+              );
+            })}
+          </div>
+
+          <span aria-hidden="true" className="mx-1 h-6 w-px shrink-0 bg-divider" />
+
+          <div role="group" aria-label="กรองตามขั้นงาน" className="flex items-center gap-2">
+            <span className="shrink-0 text-xs font-medium text-muted">ขั้นงาน</span>
+            {PRODUCTION_WORKLIST_STAGE_LENSES.map((item) => {
+              const LensIcon = WORKLIST_LENS_ICONS[item.key];
+              return (
+                <FilterChip
+                  key={item.key}
+                  selected={lens === item.key}
+                  onClick={() => onSelectLens(item.key)}
+                  surface="raised"
+                  icon={
+                    <LensIcon
+                      aria-hidden="true"
+                      className="h-4 w-4"
+                      strokeWidth={1.75}
+                    />
+                  }
+                >
+                  {item.label}
+                  <span className="tabular-nums opacity-70">{counts[item.key]}</span>
+                </FilterChip>
+              );
+            })}
+          </div>
+        </div>
       </section>
 
       <Toolbar>
@@ -418,7 +506,7 @@ export function ProductionControlWorklist<
           containerClassName="w-full @2xl:max-w-md"
         />
         <ToolbarGroup align="end" className="w-full @2xl:w-auto">
-          {/* default/priority เป็น preset ที่ไม่ผูกหัวคอลัมน์ จึงคง Select ไว้บน desktop ด้วย */}
+          {/* มือถือไม่มีหัวตาราง จึงต้องเข้าถึงทุกวิธีเรียงจาก Select */}
           <Select
             value={sort}
             onChange={(event) =>
@@ -427,11 +515,26 @@ export function ProductionControlWorklist<
             aria-label="เรียงรายการงาน"
             shape="pill"
             surface="raised"
-            className="w-full @2xl:w-52"
+            className="w-full @2xl:hidden"
           >
             {PRODUCTION_WORKLIST_SORT_OPTIONS.map((item) => (
               <option key={item.value} value={item.value}>{item.label}</option>
             ))}
+          </Select>
+          {/* desktop ใช้หัวตารางกับ column sort และเหลือเฉพาะ preset ข้ามคอลัมน์ */}
+          <Select
+            value={desktopSortValue}
+            onChange={(event) =>
+              onSelectSort(resolveProductionWorklistSort(event.target.value))
+            }
+            aria-label="ลำดับพิเศษ"
+            shape="pill"
+            surface="raised"
+            className="hidden @2xl:flex @2xl:w-52"
+          >
+            <option value="__column__" disabled>เรียงจากหัวตาราง</option>
+            <option value="attention">ต้องจัดการก่อน</option>
+            <option value="urgent">ด่วนก่อน</option>
           </Select>
         </ToolbarGroup>
       </Toolbar>
