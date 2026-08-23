@@ -12,6 +12,8 @@ interface OrderStatusBadgeProps {
   compact?: boolean;
   /** ปรับบรรทัดสถานะภายในเฉพาะบริบทที่พื้นเปลี่ยน เช่น row hover */
   subClassName?: string;
+  /** ระบุบทบาทของบรรทัดรองใน registry ที่มีสถานะลูกค้าและภายในอยู่พร้อมกัน */
+  labelInternalStatus?: boolean;
 }
 
 /** โทนของสถานะฝั่งลูกค้า — ปลายทาง (จบ/ยกเลิก) เท่านั้นที่ย้อมข้อความ */
@@ -35,6 +37,7 @@ export function OrderStatusBadge({
   internalStatus,
   compact,
   subClassName,
+  labelInternalStatus = false,
 }: OrderStatusBadgeProps) {
   if (!customerStatus && !internalStatus) return null;
 
@@ -58,6 +61,10 @@ export function OrderStatusBadge({
   }
 
   const tone = TONE[customerStatus] ?? "neutral";
+  const internalSubLabel =
+    labelInternalStatus && internalLabel && internalLabel !== customerLabel
+      ? `ภายใน: ${internalLabel}`
+      : internalLabel;
   return (
     <StatusLabel
       label={customerLabel}
@@ -66,7 +73,7 @@ export function OrderStatusBadge({
       tone={tone}
       // ซ่อนบรรทัดล่างเมื่อสะกดตรงกับบรรทัดบน (เช่น "กำลังผลิต / กำลังผลิต")
       // — เขียนซ้ำไม่ได้บอกอะไรเพิ่ม มีแต่ทำให้สงสัยว่าต่างกันตรงไหน
-      sub={internalLabel}
+      sub={internalSubLabel}
       subClassName={subClassName}
       className={compact ? undefined : "gap-0.5"}
     />

@@ -20,6 +20,15 @@
    - สีตัวหนังสือ = `text-strong` / `text-secondary` / `text-muted` (สลับธีมในตัว — ห้ามเขียนคู่ `dark:` เองสำหรับ 3 ระดับนี้ · ด่านใน `verify:ui`) · ช่องตัวเลข/เงิน = `NumberInput` / `MoneyInput` · ติ๊ก = `Checkbox`
    - สถานะ→สี/ป้าย ประกาศที่ `lib/status-config.ts` (+ `*_LABELS_CUSTOMER` สำหรับหน้า public) · วิธีส่ง `lib/shipping-methods.ts` · ช่องทางจ่าย `lib/payment-methods.ts` — ห้ามประกาศ map ซ้ำในหน้า
 
+### 🎯 ORDERS-POLISH — registry scan-first หลังรวม visual system (เบสสั่ง 2026-08-23)
+> ขอบเขต targeted UI refinement ของ `/orders`: คง query, URL state, permission, status contract, route และข้อมูล server เดิม · ไม่แตะ mutation หรือ schema
+
+- [x] Desktop แสดงชื่องานใต้ชื่อลูกค้า และรวมวันส่งจริง+countdown เป็นคอลัมน์เดียวเพื่อตัด horizontal scroll ที่จอ laptop
+- [x] Status filter ปิดเป็น quick set 3–5 สถานะที่มีงาน/ต้องจัดการ และกาง `ทุกสถานะ` เมื่อจำเป็น โดย selected state ต้องมองเห็นและล้างได้เสมอ
+- [x] Mobile card เป็น scan-first 2–3 ชั้น เห็นมากกว่าหนึ่งงานต่อ viewport พร้อมยอดเงิน 2 ตำแหน่ง, label ยอดรวม และ countdown ชุดเดียวกับ desktop
+- [x] CSV ระบุขอบเขตว่าเป็นหน้าปัจจุบัน และย้ายออกจาก action หลักบน mobile โดยยังเข้าถึงได้
+- [x] Verify: targeted test + full unit/typecheck/lint/`verify:ui`/build · browser 1440/1280/390/320 Light+Dark, search→open→Back, filter expand/select/clear, keyboard/focus, overflow, console
+
 ## 🏭 PRODUCTION-V2 — หนึ่งข้อมูลจริง หนึ่งบ้านต่อหนึ่งงาน (เบสเคาะ 2026-08-22)
 
 > เป้าหมาย: รื้อแกนการผลิตและ UX เป็นโครงการเดียวตามบทบาท ERP/MES — ERP ใช้วางแผน/ควบคุม/ตรวจย้อนหลัง, Station ใช้ลงมือ, Factory TV อ่านอย่างเดียว · ทำบน branch/worktree แยกจาก checkpoint `5972e65` · schema เพิ่มแบบ additive และห้าม apply/reset ฐาน shared หรือ remote ระหว่างสร้าง

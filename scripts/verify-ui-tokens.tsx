@@ -1435,13 +1435,14 @@ check(
     "utf8",
   );
   if (
-    !orderStatusFilterSource.includes("xl:border xl:border-border xl:bg-surface") ||
-    !orderStatusFilterSource.includes("xl:rounded-lg")
+    !orderStatusFilterSource.includes("PopoverPrimitive.Content") ||
+    !orderStatusFilterSource.includes("OVERLAY_PANEL") ||
+    !orderStatusFilterSource.includes("border-b-2 bg-transparent")
   ) {
     failed++;
-    console.log("❌ ภาพรวมสถานะ desktop ต้องอยู่ใน panel ขาว/ดำ เส้น 1px มุม 8px");
+    console.log("❌ ตัวกรองสถานะ desktop ต้องเป็นแถบเรียบ และย้ายสถานะเต็มเข้า overlay panel");
   } else {
-    console.log("✅ ภาพรวมสถานะ desktop อยู่ใน panel ขาว/ดำ เส้น 1px มุม 8px");
+    console.log("✅ ตัวกรองสถานะ desktop เป็นแถบเรียบ และสถานะเต็มอยู่ใน overlay panel");
   }
 
   const desktopStatusSource =

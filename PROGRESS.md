@@ -4,6 +4,19 @@
 
 ## ตอนนี้
 
+> **✅ ORDERS REGISTRY — ปิดจุดสแกนยากบน desktop/mobile (2026-08-23)**
+> `/orders` แสดงชื่องานใต้ลูกค้า, รวมวันที่ส่งกับ countdown เป็นคอลัมน์เดียว และระบุสถานะภายในด้วยคำว่า `ภายใน:` เมื่อป้ายลูกค้ากับ workflow ต่างกัน · ที่จอ 1280 ซ่อนเฉพาะคอลัมน์รองช่องทาง/วันที่เปิดเพื่อให้ตารางหลักไม่ต้องเลื่อนแนวนอน ส่วนจอ 1360 ขึ้นไปยังเห็นครบ
+>
+> ตัวกรองสถานะ desktop เหลือชุดด่วน 4 สถานะที่มีงาน/ถูกเลือก และเปิดทุกสถานะใน overlay ที่ปิดด้วย Escape/คืน focus ได้ · mobile ใช้ control สถานะเดียว, การ์ดลดเหลือ 179–197px, รวมกำหนดส่ง+ช่องทาง+วันที่เปิดไว้ฝั่งซ้าย และวาง `ยอดรวม`+เงิน 2 ตำแหน่งไว้ฝั่งขวา · CSV เปลี่ยนชื่อเป็น `ส่งออกหน้านี้`; desktop อยู่หัวหน้า ส่วน mobile อยู่เมนู `เพิ่มเติม`
+>
+> **หลักฐานจอจริง:** 1440 Light/Dark และ 1280 ไม่มี page/table overflow; ที่ 1280 เหลือคอลัมน์หลัก 6 ช่อง · 390 Light/Dark การ์ดแรกขึ้นที่ y=488 สูง 197px, control ที่เห็นไม่น้อยกว่า 44px และไม่มี overflow · 320 ไม่มี page/main overflow · ค้น `แพรว` ได้ 3 ออเดอร์, เปิด `ORD-2608-0015` แล้ว Back ยังเก็บ `q=แพรว`; overlay เลือก `INQUIRY` เหลือ 1 งาน ปิดเอง และล้างกลับ 15 งานได้ · ไม่พบ Next error overlay
+>
+> **ด่านส่งมอบ:** full unit **1637/1637**, typecheck, lint 0 error (26 warning เดิม), `verify:ui`, Prisma validate, production build (41 static pages), `git diff --check` และ Impeccable detector รอบเดียวผ่าน; detector `[]`
+>
+> **ขอบเขต:** presentation, local CSV wording/placement, UI contract test และเอกสารเท่านั้น · query, mutation, permission, route, status transition, schema และข้อมูล seed เดิมไม่เปลี่ยน · dev server ยังเปิดที่ `localhost:3000`
+>
+> **ต่อที่นี่:** ให้เบสรีเฟรช `/orders` แล้วลองสแกนจากชื่องาน → สถานะภายใน → กำหนดส่ง; ถ้าใช้จริงแล้วคอลัมน์ไหนยังแย่งสายตา ค่อยตัดตามบทบาทแทนการเพิ่ม control กลับเข้าไป
+
 > **✅ กู้หน้าออเดอร์บนฐาน DEMO หลังรวม PRODUCTION V2 (2026-08-23)**
 > `/orders` เคยตอบ 500 เพราะ local `anajak_erp_demo` ยังไม่มีคอลัมน์ `orders.production_completion_owner_id` จาก migration ใหม่ ทั้งที่ข้อมูล seed ยังอยู่ครบ 15 ออเดอร์ · สำรองฐานก่อน แล้ว apply `20260822120000_add_production_v2_core` และ `20260822184500_add_outsource_order_lines` กับฐาน demo เท่านั้น โดยไม่ reset/reseed และไม่แตะฐาน shared/remote
 >

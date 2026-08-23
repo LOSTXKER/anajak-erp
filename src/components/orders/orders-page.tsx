@@ -2,6 +2,7 @@
 
 import { Suspense } from "react";
 import Link from "next/link";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { useListPageState, usePageClamp } from "@/hooks/use-list-page-state";
 import { trpc } from "@/lib/trpc";
 import { permAllows } from "@/lib/permissions";
@@ -20,7 +21,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { DataTable } from "@/components/ui/data-table";
 import { ResponsiveList } from "@/components/ui/responsive-list";
 import { OrderStatusBadge } from "@/components/order-status-badge";
-import { cn, formatCurrency, formatDate, formatBaht } from "@/lib/utils";
+import { cn, formatDate, formatBaht } from "@/lib/utils";
 import {
   CUSTOMER_STATUS_LABELS,
   INTERNAL_STATUS_LABELS,
@@ -33,12 +34,12 @@ import {
   Download,
   ShoppingCart,
   ChevronRight,
-  Clock3,
+  MoreHorizontal,
   X,
 } from "lucide-react";
 import type { CustomerStatus, InternalStatus, OrderType } from "@prisma/client";
 import { EmptyState } from "@/components/ui/empty-state";
-import { FOCUS_BUTTON } from "@/components/ui/tokens";
+import { FOCUS_BUTTON, MENU_ITEM, OVERLAY_PANEL } from "@/components/ui/tokens";
 import { hasActiveOrderListFilters } from "@/lib/order-list-ui";
 import {
   ATTENTION_FILTERS,
@@ -154,6 +155,39 @@ function OrderCountdown({
     >
       <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", dot)} />
       {label}
+    </span>
+  );
+}
+
+function OrderDeadline({
+  deadline,
+  internalStatus,
+  relativeFirst = false,
+}: {
+  deadline: Date | string | null | undefined;
+  internalStatus: string;
+  relativeFirst?: boolean;
+}) {
+  if (!deadline) return <span className="text-xs text-muted">—</span>;
+
+  const absoluteDate = (
+    <span
+      className={cn(
+        "whitespace-nowrap text-xs tabular-nums",
+        deadlineToneClass(deadline, internalStatus) ?? "text-muted",
+      )}
+    >
+      {relativeFirst ? `กำหนด ${formatDate(deadline)}` : formatDate(deadline)}
+    </span>
+  );
+  const countdown = ATTENTION_EXEMPT_STATUSES.has(internalStatus) ? null : (
+    <OrderCountdown deadline={deadline} internalStatus={internalStatus} />
+  );
+
+  return (
+    <span className="flex flex-col gap-0.5">
+      {relativeFirst ? countdown : absoluteDate}
+      {relativeFirst ? absoluteDate : countdown}
     </span>
   );
 }
@@ -369,7 +403,7 @@ function OrdersPageContent() {
 
   return (
     // 24px = จังหวะระดับหน้าค่าเดียวทั้งเว็บ (เบสเคาะ 2026-08-04 — เดิม 3 หน้า 3 ค่า)
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <PageHeader
         title="ออเดอร์ทั้งหมด"
         action={
@@ -379,9 +413,10 @@ function OrdersPageContent() {
                 variant="outline"
                 size="sm"
                 onClick={() => exportOrdersCsv(data.orders, canSeeMoney)}
+                className="hidden sm:inline-flex"
               >
                 <Download />
-                ส่งออก CSV
+                ส่งออกหน้านี้
               </Button>
             )}
             {canCreateOrder && (
@@ -391,6 +426,37 @@ function OrdersPageContent() {
                   สร้างออเดอร์
                 </Link>
               </Button>
+            )}
+            {data && data.orders.length > 0 && (
+              <DropdownMenu.Root>
+                <DropdownMenu.Trigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon-sm"
+                    aria-label="เพิ่มเติม"
+                    className="sm:hidden"
+                  >
+                    <MoreHorizontal />
+                  </Button>
+                </DropdownMenu.Trigger>
+                <DropdownMenu.Portal>
+                  <DropdownMenu.Content
+                    align="end"
+                    sideOffset={6}
+                    className={cn(OVERLAY_PANEL, "z-50 min-w-48 p-1")}
+                  >
+                    <DropdownMenu.Item
+                      className={cn(MENU_ITEM, "min-h-11 rounded-lg")}
+                      onSelect={() => exportOrdersCsv(data.orders, canSeeMoney)}
+                    >
+                      <span className="inline-flex items-center gap-2">
+                        <Download className="h-4 w-4" />
+                        ส่งออกหน้านี้
+                      </span>
+                    </DropdownMenu.Item>
+                  </DropdownMenu.Content>
+                </DropdownMenu.Portal>
+              </DropdownMenu.Root>
             )}
           </>
         }
@@ -412,7 +478,7 @@ function OrdersPageContent() {
         isLoading={isLoading}
       />
 
-      <div className="space-y-4 lg:space-y-0 lg:overflow-hidden lg:rounded-lg lg:border lg:border-border lg:bg-surface">
+      <div className="space-y-3 lg:space-y-0 lg:overflow-hidden lg:rounded-lg lg:border lg:border-border lg:bg-surface">
       <Toolbar className="lg:border-b lg:border-divider lg:px-4 lg:py-3">
         <SearchInput
           ref={searchInputRef}
@@ -537,13 +603,9 @@ function OrdersPageContent() {
           // ดูเฉพาะหน้าที่กำลังแสดง — พอเปลี่ยนหน้า/ตัวกรองแล้วมีข้อมูล คอลัมน์กลับมาเอง
           const showPayment = orders.some((o) => o.paymentLabel !== "none");
           const hasDeadline = orders.some((o) => o.deadline);
-          const hasTrackableDeadline = orders.some(
-            (o) => o.deadline && !ATTENTION_EXEMPT_STATUSES.has(o.internalStatus),
-          );
-          // คอลัมน์นับถอยหลังไม่มีประโยชน์เมื่อทั้งหน้าเป็นขีด — แต่ถ้าผู้ใช้กำลังเรียง
-          // ด้วยกำหนดส่ง ต้องคงหัว sortable ไว้ ไม่ให้ control ที่เพิ่งกดหายไป
-          const showCountdown = hasTrackableDeadline || sortBy === "deadline";
-          const showDeadline = hasDeadline;
+          // ถ้าผู้ใช้กำลังเรียงด้วยกำหนดส่ง ต้องคงหัว sortable ไว้แม้หน้านี้ไม่มีวันส่ง
+          // ไม่ให้ control ที่เพิ่งกดหายไปกลางการใช้งาน
+          const showDeadline = hasDeadline || sortBy === "deadline";
           return (
           <DataTable.Root bordered={false}>
             <DataTable.Head>
@@ -554,12 +616,9 @@ function OrdersPageContent() {
                   เลขออเดอร์
                 </DataTable.SortableTh>
                 <DataTable.Th>ลูกค้า / งาน</DataTable.Th>
-                <DataTable.Th>ช่องทาง</DataTable.Th>
-                {showCountdown && (
-                  <DataTable.SortableTh {...sortColumn("deadline")}>
-                    เหลือเวลา
-                  </DataTable.SortableTh>
-                )}
+                <DataTable.Th className="hidden min-[1360px]:table-cell">
+                  ช่องทาง
+                </DataTable.Th>
                 <DataTable.Th>สถานะ</DataTable.Th>
                 {canSeeMoney && (
                   <DataTable.SortableTh align="right" {...sortColumn("totalAmount")}>
@@ -567,13 +626,17 @@ function OrdersPageContent() {
                   </DataTable.SortableTh>
                 )}
                 {showPayment && <DataTable.Th>การชำระ</DataTable.Th>}
-                <DataTable.SortableTh {...sortColumn("createdAt")}>
+                <DataTable.SortableTh
+                  className="hidden min-[1360px]:table-cell"
+                  {...sortColumn("createdAt")}
+                >
                   วันที่
                 </DataTable.SortableTh>
-                {/* ไม่ทำให้เรียงได้ — คอลัมน์ "เหลือเวลา" เรียงด้วยกำหนดส่งอยู่แล้ว
-                    ถ้าให้เรียงได้ทั้งคู่ ตอนเรียงจะประกาศ aria-sort พร้อมกัน 2 คอลัมน์
-                    ซึ่งผิดมาตรฐานและทำให้โปรแกรมอ่านหน้าจอสับสน (audit ก่อน merge จับได้) */}
-                {showDeadline && <DataTable.Th>กำหนดส่ง</DataTable.Th>}
+                {showDeadline && (
+                  <DataTable.SortableTh {...sortColumn("deadline")}>
+                    กำหนดส่ง
+                  </DataTable.SortableTh>
+                )}
               </tr>
             </DataTable.Head>
             <DataTable.Body>
@@ -607,31 +670,26 @@ function OrdersPageContent() {
                           </Badge>
                         )}
                       </p>
-                      {/* ชื่องานถูกถอดออก (เบสสั่ง 2026-07-31 — ซ้ำกับชื่อลูกค้าและอ่านไม่ทัน
-                          ตอนสแกนรายการ) แทนด้วยห้องแชทที่พาไปคุยต่อได้ในคลิกเดียว */}
+                      <p className="mt-0.5 max-w-64 truncate text-xs text-muted">
+                        {order.title}
+                      </p>
                       <ChatLink
                         stopPropagation
                         name={order.customer?.chatName}
                         url={order.customer?.chatUrl}
+                        className="mt-0.5"
                       />
                     </div>
                   </DataTable.Td>
-                  <DataTable.Td className="text-xs text-slate-600 dark:text-slate-400">
+                  <DataTable.Td className="hidden text-xs text-slate-600 min-[1360px]:table-cell dark:text-slate-400">
                     {CHANNEL_LABELS[order.channel] ?? order.channel}
                   </DataTable.Td>
-                  {showCountdown && (
-                    <DataTable.Td>
-                      <OrderCountdown
-                        deadline={order.deadline}
-                        internalStatus={order.internalStatus}
-                      />
-                    </DataTable.Td>
-                  )}
                   <DataTable.Td>
                     <OrderStatusBadge
                       customerStatus={order.customerStatus}
                       internalStatus={order.internalStatus}
                       compact
+                      labelInternalStatus
                     />
                   </DataTable.Td>
                   {canSeeMoney && (
@@ -650,18 +708,15 @@ function OrdersPageContent() {
                     </DataTable.Td>
                   )}
                   {/* วันที่เปิดออเดอร์ — วางติดกำหนดส่งให้อ่านเป็นคู่ ต้นทาง–ปลายทาง */}
-                  <DataTable.Td className="whitespace-nowrap text-xs tabular-nums text-slate-500 dark:text-slate-400">
+                  <DataTable.Td className="hidden whitespace-nowrap text-xs tabular-nums text-slate-500 min-[1360px]:table-cell dark:text-slate-400">
                     {formatDate(order.createdAt)}
                   </DataTable.Td>
                   {showDeadline && (
-                    <DataTable.Td
-                      className={cn(
-                        "text-xs",
-                        deadlineToneClass(order.deadline, order.internalStatus) ??
-                          "text-slate-500 dark:text-slate-400"
-                      )}
-                    >
-                      {order.deadline ? formatDate(order.deadline) : "—"}
+                    <DataTable.Td className="whitespace-nowrap">
+                      <OrderDeadline
+                        deadline={order.deadline}
+                        internalStatus={order.internalStatus}
+                      />
                     </DataTable.Td>
                   )}
                   </DataTable.Row>
@@ -681,7 +736,7 @@ function OrdersPageContent() {
                 <article key={order.id} role="listitem" className="card-surface rounded-lg">
                 <Link
                   href={`/orders/${order.id}`}
-                  className={cn("block min-h-11 rounded-lg p-4", FOCUS_BUTTON)}
+                  className={cn("block min-h-11 rounded-lg p-3", FOCUS_BUTTON)}
                   aria-label={`เปิดออเดอร์ ${order.orderNumber} ${order.customer?.name ?? ""}`}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -694,7 +749,7 @@ function OrdersPageContent() {
                         <p className="font-semibold text-blue-700 dark:text-blue-300">
                           {order.orderNumber}
                         </p>
-                        <p className="mt-1 truncate font-medium text-slate-900 dark:text-white">
+                        <p className="mt-0.5 truncate font-medium text-slate-900 dark:text-white">
                           {order.customer?.name ?? "—"}
                         </p>
                         <p className="truncate text-xs text-slate-500 dark:text-slate-400">
@@ -705,11 +760,12 @@ function OrdersPageContent() {
                     <ChevronRight aria-hidden="true" className="mt-1 h-5 w-5 shrink-0 text-slate-400" />
                   </div>
 
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
                     <OrderStatusBadge
                       customerStatus={order.customerStatus}
                       internalStatus={order.internalStatus}
                       compact
+                      labelInternalStatus
                     />
                     {order.orderType === "CUSTOM" && (
                       <Badge variant="accent" size="sm">
@@ -718,45 +774,30 @@ function OrdersPageContent() {
                     )}
                   </div>
 
-                  <div className="mt-3 grid grid-cols-2 gap-3 border-t border-slate-100 pt-3 text-xs dark:border-slate-800">
-                    <div>
-                      <p className="text-slate-500 dark:text-slate-400">ช่องทาง</p>
-                      <p className="mt-0.5 text-slate-800 dark:text-slate-200">
+                  <div className="mt-2 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3 border-t border-divider pt-2 text-xs">
+                    <div className="min-w-0 space-y-1">
+                      <OrderDeadline
+                        deadline={order.deadline}
+                        internalStatus={order.internalStatus}
+                        relativeFirst
+                      />
+                      <p className="truncate text-muted">
                         {CHANNEL_LABELS[order.channel] ?? order.channel}
+                        {` · เปิด ${formatDate(order.createdAt)}`}
                       </p>
                     </div>
-                    {order.paymentLabel !== "none" ? (
-                      <div>
-                        <p className="text-slate-500 dark:text-slate-400">การชำระ</p>
-                        <div className="mt-0.5"><PaymentIndicator status={order.paymentLabel} /></div>
+                    {canSeeMoney && (
+                      <div className="text-right">
+                        <p className="text-2xs text-muted">ยอดรวม</p>
+                        <p className="font-semibold tabular-nums text-strong">
+                          {formatBaht(order.totalAmount ?? 0)}
+                        </p>
+                        {order.paymentLabel !== "none" && (
+                          <div className="mt-0.5 flex justify-end">
+                            <PaymentIndicator status={order.paymentLabel} />
+                          </div>
+                        )}
                       </div>
-                    ) : canSeeMoney ? (
-                      <p className="text-right font-semibold tabular-nums text-slate-900 dark:text-white">
-                        {formatCurrency(order.totalAmount ?? 0)}
-                      </p>
-                    ) : null}
-                    {/* วันที่เปิดโชว์เสมอ (เดิมโชว์ต่อเมื่อไม่มีกำหนดส่ง) — คู่กับคอลัมน์วันที่ในตาราง */}
-                    <div>
-                      {order.deadline && (
-                        <div
-                          className={cn(
-                            "inline-flex items-center gap-1.5",
-                            deadlineToneClass(order.deadline, order.internalStatus) ??
-                              "text-slate-500 dark:text-slate-400"
-                          )}
-                        >
-                          <Clock3 aria-hidden="true" className="h-3.5 w-3.5" />
-                          {`กำหนด ${formatDate(order.deadline)}`}
-                        </div>
-                      )}
-                      <p className="text-slate-500 dark:text-slate-400">
-                        {`เปิด ${formatDate(order.createdAt)}`}
-                      </p>
-                    </div>
-                    {canSeeMoney && order.paymentLabel !== "none" && (
-                      <p className="text-right font-semibold tabular-nums text-slate-900 dark:text-white">
-                        {formatCurrency(order.totalAmount ?? 0)}
-                      </p>
                     )}
                   </div>
                 </Link>
