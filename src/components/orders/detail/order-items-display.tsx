@@ -48,9 +48,10 @@ type OrderFee = OrderData["fees"][number];
 // Receive Tracking Inline Form (for CUSTOMER_PROVIDED items)
 // ============================================================
 
-function ReceiveTrackingInline({ product, onSuccess }: {
+function ReceiveTrackingInline({ product, onSuccess, readOnly }: {
   product: { id: string; garmentCondition?: string | null; receivedInspected: boolean; receiveNote?: string | null };
   onSuccess: () => void;
+  readOnly: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [condition, setCondition] = useState(product.garmentCondition ?? "");
@@ -60,7 +61,7 @@ function ReceiveTrackingInline({ product, onSuccess }: {
     onSuccess: () => { setEditing(false); onSuccess(); },
   });
 
-  if (!editing) {
+  if (!editing || readOnly) {
     return (
       <div className={cn(TINT.warning, "flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 text-xs")}>
         <Package className="h-3.5 w-3.5 text-yellow-600" />
@@ -74,9 +75,11 @@ function ReceiveTrackingInline({ product, onSuccess }: {
         ) : (
           <span className="text-slate-400">ยังไม่มีหลักฐานใบตรวจรับ</span>
         )}
-        <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(true)} className="ml-auto h-6 gap-1.5 px-2 text-2xs text-yellow-600 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-300">
-          <Edit3 />แก้สภาพ/หมายเหตุ
-        </Button>
+        {!readOnly ? (
+          <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(true)} className="ml-auto h-6 gap-1.5 px-2 text-2xs text-yellow-600 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-300">
+            <Edit3 />แก้สภาพ/หมายเหตุ
+          </Button>
+        ) : null}
       </div>
     );
   }
@@ -129,6 +132,8 @@ interface OrderItemsDisplayProps {
   // นโยบาย ⑦: ช่าง/กราฟิกไม่เห็นราคา — false = ตัดคอลัมน์/ช่องเงินออก (ห้ามโชว์ ฿0)
   // จำนวน/ไซส์/รายละเอียดงานยังเห็นครบ (ต้องใช้ทำงาน)
   showMoney?: boolean;
+  // Production V2 ให้จุดเตรียมงานเป็นเจ้าของหลักฐานรับเสื้อ หน้า Order อ่านอย่างเดียว
+  canEditReceiveTracking?: boolean;
 }
 
 /** หัวข้อย่อยในรายการ (สินค้า/งานพิมพ์/ส่วนเสริม/สรุปราคา) — เขียนซ้ำ 4 ที่ */
@@ -167,7 +172,14 @@ function priceLineText(item: OrderItem, line: PriceLine): { label: string; detai
   };
 }
 
-export function OrderItemsDisplay({ orderId, items, fees, onEditItems, showMoney = true }: OrderItemsDisplayProps) {
+export function OrderItemsDisplay({
+  orderId,
+  items,
+  fees,
+  onEditItems,
+  showMoney = true,
+  canEditReceiveTracking = false,
+}: OrderItemsDisplayProps) {
   const utils = trpc.useUtils();
   const isEmpty = !items || items.length === 0;
   // รายการเดียว = ยุบกล่องชั้นนอกทิ้ง หัวการ์ดพูดครบในบรรทัดเดียวแล้วเข้าเนื้อเลย
@@ -328,6 +340,7 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems, showMoney
                                   <ReceiveTrackingInline
                                     product={{ id: prod.id, garmentCondition: prod.garmentCondition, receivedInspected: prod.receivedInspected, receiveNote: prod.receiveNote }}
                                     onSuccess={() => utils.order.getById.invalidate({ id: orderId })}
+                                    readOnly={!canEditReceiveTracking}
                                   />
                                 </div>
                               )}

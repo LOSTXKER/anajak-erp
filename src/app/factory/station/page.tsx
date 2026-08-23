@@ -1,8 +1,11 @@
 import { Suspense } from "react";
 import { StationModeScreen } from "@/components/factory/station-mode-screen";
+import { ManufacturingStationScreen } from "@/components/factory/manufacturing-station-screen";
 import { Skeleton } from "@/components/ui/skeleton";
+import { productionV2Enabled } from "@/lib/production-v2-flag";
 
 export default function FactoryStationPage() {
+  const Screen = productionV2Enabled() ? ManufacturingStationScreen : StationModeScreen;
   return (
     <Suspense
       fallback={
@@ -12,7 +15,7 @@ export default function FactoryStationPage() {
         </div>
       }
     >
-      <StationModeScreen />
+      <Screen />
     </Suspense>
   );
 }

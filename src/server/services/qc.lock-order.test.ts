@@ -64,7 +64,17 @@ describe("createQcRecord production lock contract", () => {
         }),
       },
       order: {
-        findUniqueOrThrow: vi.fn(async () => {
+        findUniqueOrThrow: vi.fn(async ({ select }: { select: Record<string, unknown> }) => {
+          if (select.productionCompletionOwnerId) {
+            log.push("read:production-owner");
+            return {
+              productionCompletionOwnerId: null,
+              productions: [
+                { workOrderNumber: null, completionOwnerStepId: null },
+                { workOrderNumber: null, completionOwnerStepId: null },
+              ],
+            };
+          }
           log.push("read:order-live");
           return {
             id: "order-1",
@@ -135,6 +145,7 @@ describe("createQcRecord production lock contract", () => {
       "lock:productions:production-a",
       "lock:productions:production-b",
       "lock:orders:order-1",
+      "read:production-owner",
       "read:qc-replay",
       "read:order-live",
       "read:garment-live",

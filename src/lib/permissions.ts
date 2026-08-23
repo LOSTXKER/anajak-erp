@@ -37,7 +37,8 @@ export type Permission =
   | "close_orders" // ปิดงาน (COMPLETED — หลังวางบิลครบ)
   // ── กลุ่มปฏิบัติการ ──
   | "manage_production" // อัปเดตขั้นผลิต/เบิก-คืนเสื้อ/QC/รอบพิมพ์/เบิกวัสดุ/งานร้านนอก
-  | "manage_delivery" // สร้าง/แก้ใบส่งของ + ใบตรวจรับของเข้า
+  | "manage_delivery" // จัดการหลักฐานรับเข้า/จัดส่งเดิม (ไม่อนุญาตกดส่งใน V2)
+  | "ship_orders" // สร้างขนส่ง/เลขติดตาม/ยืนยันส่ง — งานออฟฟิศเท่านั้น
   | "manage_design_files" // อัปโหลดแบบ/แก้แพทเทิร์น/แก้คลังลาย
   | "create_design_assets" // สร้างแพทเทิร์น/ลายใหม่ + ลิงก์อนุมัติแบบ
   | "supervise_operations" // งานหัวหน้า: เปิดใบผลิต/ลบใบส่ง/ถอยสถานะงานส่งแล้ว/QC ร้านนอก
@@ -72,9 +73,12 @@ export const PERMISSION_DEFS: PermissionDef[] = [
   // ── ปฏิบัติการ ──
   // productionTeam/productionUp (updateStep/เบิก-คืน/qc.create/print-run/film-stock/stock ops/outsource orders)
   { key: "manage_production", label: "งานผลิต (ขั้นตอน/เบิกเสื้อ/QC/รอบพิมพ์/ร้านนอก)", group: "ปฏิบัติการ", defaultRoles: ["OWNER", "MANAGER", "PRODUCTION_STAFF"] },
-  // salesOrProduction/receiver (delivery.create/update/updateStatus รวมยืนยันส่ง + goods-receipt.create)
-  // — "ยืนยันส่ง" อยู่สิทธิ์นี้ ไม่ใช่งานหัวหน้า (ช่าง/ขายกดส่งเองได้ตาม flow เดิม · review PERM3 จับ)
-  { key: "manage_delivery", label: "ใบส่งของ (รวมยืนยันส่ง) + ตรวจรับของเข้า", group: "ปฏิบัติการ", defaultRoles: ["OWNER", "MANAGER", "SALES", "PRODUCTION_STAFF"] },
+  // compatibility สำหรับหลักฐานรับเข้า/ใบส่งเดิม; writer ที่สร้างขนส่ง/เลขติดตาม/
+  // เปลี่ยนสถานะใบส่งถูกย้ายไป ship_orders แล้วใน Production V2
+  { key: "manage_delivery", label: "หลักฐานรับเข้าและใบจัดส่งเดิม", group: "ปฏิบัติการ", defaultRoles: ["OWNER", "MANAGER", "SALES", "PRODUCTION_STAFF"] },
+  // Production V2 แยกการแพ็กที่ Station ออกจากการส่งของ: ช่างแพ็กได้ผ่าน
+  // manage_production แต่การสร้างขนส่ง/เลขติดตาม/ยืนยันส่งเป็นงานออฟฟิศเท่านั้น
+  { key: "ship_orders", label: "สร้างขนส่ง/เลขติดตาม/ยืนยันส่ง", group: "ปฏิบัติการ", defaultRoles: ["OWNER", "MANAGER", "SALES"] },
   // designerUp (design.upload + pattern.update + artwork.update)
   { key: "manage_design_files", label: "ไฟล์แบบ/แพทเทิร์น/คลังลาย", group: "ปฏิบัติการ", defaultRoles: ["OWNER", "MANAGER", "DESIGNER"] },
   // patternCreate/artworkCreate/design.regenerateToken

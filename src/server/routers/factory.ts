@@ -392,8 +392,28 @@ export const factoryRouter = router({
         await lockOrderRow(tx, input.orderId);
         const live = await tx.order.findUniqueOrThrow({
           where: { id: input.orderId },
-          select: { id: true, internalStatus: true, customerStatus: true },
+          select: {
+            id: true,
+            internalStatus: true,
+            customerStatus: true,
+            productionCompletionOwnerId: true,
+            productions: {
+              select: { workOrderNumber: true, completionOwnerStepId: true },
+            },
+          },
         });
+        const isProductionV2 = Boolean(live.productionCompletionOwnerId) ||
+          live.productions.some(
+            (production) =>
+              production.workOrderNumber !== null ||
+              production.completionOwnerStepId !== null,
+          );
+        if (isProductionV2) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "งานนี้ต้องปิดงานจาก Final Pack ในโหมดสถานี",
+          });
+        }
         if (live.internalStatus !== "PACKING" && live.internalStatus !== "READY_TO_SHIP") {
           throw new TRPCError({
             code: "BAD_REQUEST",
@@ -403,7 +423,13 @@ export const factoryRouter = router({
 
         // retry หลัง request แรกสำเร็จต้องเป็น idempotent แต่ยังตรวจหลักฐานสดเสมอ
         await assertOrderPackingReadyToShip(tx, input.orderId);
-        if (live.internalStatus === "READY_TO_SHIP") return live;
+        if (live.internalStatus === "READY_TO_SHIP") {
+          return {
+            id: live.id,
+            internalStatus: live.internalStatus,
+            customerStatus: live.customerStatus,
+          };
+        }
 
         const result = await transitionOrder(tx, {
           orderId: input.orderId,

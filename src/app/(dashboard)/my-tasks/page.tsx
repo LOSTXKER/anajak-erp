@@ -19,6 +19,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusLabel, toneFromBadgeVariant } from "@/components/ui/status-label";
 import { STEP_TYPE_LABELS } from "@/lib/production-steps";
+import { manufacturingTaskHref } from "@/lib/manufacturing-task";
 import { APPROVAL_STATUS_LABELS } from "@/lib/status-config";
 import {
   groupTaskItems,
@@ -48,12 +49,37 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
   const ownership = (assignedToId: string | null) =>
     assignedToId === data.viewerId ? "mine" as const : "team" as const;
 
+  const operationHref = (input: {
+    stepType: string;
+    stepId: string;
+    productionId: string;
+    order: { orderNumber: string };
+    executionEnabled: boolean;
+    executionMode: string | null;
+    workCenterCode: string | null;
+  }) => {
+    return manufacturingTaskHref({
+      canSupervise: data.canSupervise,
+      executionEnabled: input.executionEnabled,
+      executionMode: input.executionMode,
+      workCenterCode: input.workCenterCode,
+      stepType: input.stepType,
+      stepId: input.stepId,
+      productionId: input.productionId,
+      orderNumber: input.order.orderNumber,
+    });
+  };
+
   for (const step of data.production) {
     const isBlocked = step.status === "FAILED" || step.status === "ON_HOLD";
     items.push({
       key: `step:${step.stepId}`,
-      href: `/production/${step.productionId}`,
-      title: step.customStepName || STEP_TYPE_LABELS[step.stepType] || step.stepType,
+      href: operationHref(step),
+      title:
+        step.operationName ||
+        step.customStepName ||
+        STEP_TYPE_LABELS[step.stepType] ||
+        step.stepType,
       description: `${step.order.orderNumber} · ${step.order.customer.name}`,
       deadline: step.order.deadline,
       attention: taskAttention(step.order.deadline, isBlocked),
@@ -67,7 +93,9 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
   for (const queue of data.printQueue) {
     items.push({
       key: `step:${queue.stepId}`,
-      href: "/production/print-runs",
+      href: data.canSupervise
+        ? `/production/${queue.productionId}`
+        : `/factory/station?station=dtf-print&productionId=${encodeURIComponent(queue.productionId)}&focusStepId=${encodeURIComponent(queue.stepId)}`,
       title: queue.orderName || queue.orderNumber,
       description: `${queue.orderNumber} · ${queue.customerName}`,
       deadline: queue.dueDate,
@@ -82,7 +110,9 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
   for (const queue of data.pressQueue) {
     items.push({
       key: `step:${queue.stepId}`,
-      href: `/production/${queue.productionId}`,
+      href: data.canSupervise
+        ? `/production/${queue.productionId}`
+        : `/factory/station?station=heat-press&productionId=${encodeURIComponent(queue.productionId)}&focusStepId=${encodeURIComponent(queue.stepId)}`,
       title: queue.title,
       description: queue.orderNumber,
       deadline: queue.deadline,
@@ -99,7 +129,13 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
   for (const queue of data.packQueue) {
     items.push({
       key: `step:${queue.stepId}`,
-      href: `/factory/station?station=final-pack&orderId=${queue.orderId}`,
+      href: data.canSupervise
+        ? queue.productionId
+          ? `/production/${queue.productionId}`
+          : `/production?q=${encodeURIComponent(queue.orderNumber)}`
+        : queue.productionId
+          ? `/factory/station?station=final-pack&jobId=${encodeURIComponent(queue.stepId)}`
+          : `/factory/station?station=final-pack&orderId=${encodeURIComponent(queue.orderId)}`,
       title: queue.title,
       description: `${queue.orderNumber} · ${queue.customerName}`,
       deadline: queue.deadline,
@@ -147,7 +183,7 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
   for (const outsource of admin.outsourceDue.items) {
     items.push({
       key: `outsource:${outsource.id}`,
-      href: "/outsource",
+      href: "/production?view=outsource",
       title: `รับงานกลับจาก ${outsource.vendorName}`,
       description: outsource.orderNumber,
       deadline: outsource.expectedBackAt,

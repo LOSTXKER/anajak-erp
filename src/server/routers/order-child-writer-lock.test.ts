@@ -1,9 +1,13 @@
+import type { Role } from "@prisma/client";
 import { describe, expect, it, vi } from "vitest";
 import type { Context } from "../trpc";
 import { attachmentRouter } from "./attachment";
 import { orderRouter } from "./order";
 
-function transactionContext(tx: Record<string, unknown>): Context {
+function transactionContext(
+  tx: Record<string, unknown>,
+  userRole: Role = "PRODUCTION_STAFF",
+): Context {
   return {
     prisma: {
       $transaction: vi.fn(
@@ -11,7 +15,7 @@ function transactionContext(tx: Record<string, unknown>): Context {
       ),
     } as unknown as Context["prisma"],
     userId: "production-1",
-    userRole: "PRODUCTION_STAFF",
+    userRole,
     permissionOverrides: null,
   };
 }
@@ -54,7 +58,14 @@ describe("order child writers share the saveForm parent lock", () => {
       },
     }));
 
-    expect(tx.$queryRaw).toHaveBeenCalledOnce();
+    expect(tx.orderItemProduct.findUniqueOrThrow).toHaveBeenCalledTimes(2);
+    expect(tx.$queryRaw).toHaveBeenCalledTimes(3);
+    const lockSql = tx.$queryRaw.mock.calls.map((call) =>
+      Array.from(call[0] as TemplateStringsArray).join(""),
+    );
+    expect(lockSql[0]).toContain("pg_advisory_xact_lock");
+    expect(lockSql[1]).toContain("FROM orders");
+    expect(lockSql[2]).toContain("FROM productions");
     expect(tx.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
       tx.orderItemProduct.update.mock.invocationCallOrder[0],
     );
@@ -65,6 +76,66 @@ describe("order child writers share the saveForm parent lock", () => {
     });
     expect(tx.auditLog.create).toHaveBeenCalledOnce();
   });
+
+  it("updateReceiveTracking ปฏิเสธออเดอร์ที่เริ่มผลิตจากจุดเตรียมงานแล้วโดยไม่เขียนหรือ audit", async () => {
+    const tx = {
+      $queryRaw: vi.fn(async (query: TemplateStringsArray) => {
+        const sql = Array.from(query).join("");
+        return sql.includes("FROM productions")
+          ? [{ id: "production-v2" }]
+          : [];
+      }),
+      orderItemProduct: {
+        findUniqueOrThrow: vi.fn().mockResolvedValue({
+          orderItem: { orderId: "order-1" },
+        }),
+        update: vi.fn(),
+      },
+      order: { update: vi.fn() },
+      auditLog: { create: vi.fn() },
+    };
+
+    await expect(
+      orderRouter.createCaller(transactionContext(tx)).updateReceiveTracking({
+        orderItemProductId: "saved-product-1",
+        garmentCondition: "ครบ",
+        receiveNote: "พยายามเขียนทับ",
+      }),
+    ).rejects.toThrow("ต้องบันทึกจากจุดเตรียมงานเท่านั้น");
+
+    expect(tx.$queryRaw).toHaveBeenCalledTimes(3);
+    expect(tx.orderItemProduct.findUniqueOrThrow).toHaveBeenCalledOnce();
+    expect(tx.orderItemProduct.update).not.toHaveBeenCalled();
+    expect(tx.order.update).not.toHaveBeenCalled();
+    expect(tx.auditLog.create).not.toHaveBeenCalled();
+  });
+
+  it.each(["DESIGNER", "ACCOUNTANT"] as const)(
+    "%s ไม่มีสิทธิ์เขียนทับหลักฐานรับเสื้อ",
+    async (role) => {
+      const tx = {
+        orderItemProduct: {
+          findUniqueOrThrow: vi.fn(),
+          update: vi.fn(),
+        },
+        order: { update: vi.fn() },
+        auditLog: { create: vi.fn() },
+      };
+      const ctx = transactionContext(tx, role);
+
+      await expect(
+        orderRouter.createCaller(ctx).updateReceiveTracking({
+          orderItemProductId: "saved-product-1",
+          garmentCondition: "แก้ไข",
+        }),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+
+      expect(ctx.prisma.$transaction).not.toHaveBeenCalled();
+      expect(tx.orderItemProduct.update).not.toHaveBeenCalled();
+      expect(tx.order.update).not.toHaveBeenCalled();
+      expect(tx.auditLog.create).not.toHaveBeenCalled();
+    },
+  );
 
   it("attachment.create ของ ORDER/REFERENCE_IMAGE ล็อกหัวใบและขยับ token", async () => {
     const tx = {

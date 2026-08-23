@@ -13,6 +13,8 @@ import {
   Factory,
 } from "lucide-react";
 import { trpc, type RouterOutput } from "@/lib/trpc";
+import { ManufacturingFactoryBoard } from "@/components/factory/manufacturing-factory-board";
+import { useProductionV2Enabled } from "@/components/factory/production-v2-context";
 import { cn, formatDateShort, formatTime } from "@/lib/utils";
 
 // Factory TV — read-only pulse ของสายงานจริง 5 ด่าน
@@ -30,6 +32,11 @@ function isOverdue(deadline: Date | string | null): boolean {
 }
 
 export default function FactoryBoardPage() {
+  const productionV2 = useProductionV2Enabled();
+  return productionV2 ? <ManufacturingFactoryBoard /> : <LegacyFactoryBoardPage />;
+}
+
+function LegacyFactoryBoardPage() {
   const query = trpc.factory.board.useQuery(undefined, {
     refetchInterval: 30_000,
     refetchIntervalInBackground: true,

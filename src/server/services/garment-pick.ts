@@ -45,9 +45,85 @@ import {
   isLocalDemoStockEnabled,
 } from "@/server/services/local-demo-stock";
 import type { ExtendedPrismaClient, PrismaTx } from "@/lib/prisma";
+import {
+  loadSpecializedOperation,
+  recordSpecializedOperationEvent,
+  recordSpecializedOperationOutput,
+  type SpecializedOperation,
+  type SpecializedQuantityOutput,
+} from "@/server/services/manufacturing-operation-adapter";
 
 const GARMENT_UNIT = "ตัว";
 const GARMENT_TRANSACTION_TIMEOUT_MS = 20_000;
+
+async function garmentIssueQuantityOutputs(
+  tx: PrismaTx,
+  operationId: string,
+  evidence: Array<{
+    productId: string;
+    size: string;
+    color: string | null;
+    qtyGood: number;
+  }>,
+): Promise<SpecializedQuantityOutput[]> {
+  const quantityLines = await tx.operationQuantity.findMany({
+    where: { productionStepId: operationId },
+    select: {
+      id: true,
+      sourceOrderItemProductId: true,
+      size: true,
+      color: true,
+      printPosition: true,
+      qtyPlanned: true,
+      qtyGood: true,
+    },
+  });
+  const sourceProductIds = [
+    ...new Set(
+      quantityLines
+        .map((line) => line.sourceOrderItemProductId)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  const orderProducts = await tx.orderItemProduct.findMany({
+    where: { id: { in: sourceProductIds } },
+    select: { id: true, productId: true },
+  });
+  const inventoryProductByOrderProduct = new Map(
+    orderProducts.map((product) => [product.id, product.productId]),
+  );
+  const outputs: SpecializedQuantityOutput[] = [];
+  for (const item of evidence) {
+    let remaining = item.qtyGood;
+    const candidates = quantityLines
+      .filter(
+        (line) =>
+          inventoryProductByOrderProduct.get(line.sourceOrderItemProductId ?? "") ===
+            item.productId &&
+          line.size === item.size &&
+          (line.color ?? null) === (item.color ?? null) &&
+          line.printPosition === null,
+      )
+      .sort((left, right) => left.id.localeCompare(right.id));
+    for (const line of candidates) {
+      const qtyGood = Math.min(remaining, Math.max(0, line.qtyPlanned - line.qtyGood));
+      if (qtyGood > 0) {
+        outputs.push({
+          quantityLineId: line.id,
+          qtyGood,
+          qtyScrap: 0,
+          qtyRework: 0,
+        });
+        remaining -= qtyGood;
+      }
+      if (remaining === 0) break;
+    }
+    if (remaining !== 0) {
+      badRequest(`จับคู่หลักฐานเบิก SKU กับ quantity line ไม่ครบ (${item.size})`);
+    }
+  }
+  return outputs;
+}
 
 function garmentIdempotencyMarker(
   movementType: "ISSUE" | "RETURN",
@@ -73,6 +149,8 @@ function garmentRequestFingerprint(params: {
   movementType: "ISSUE" | "RETURN";
   productionId: string;
   stepId?: string;
+  operationJobId?: string;
+  expectedRevision?: number;
   lines: Array<{ sku: string; qty: number }>;
   location: string;
   note?: string;
@@ -83,6 +161,8 @@ function garmentRequestFingerprint(params: {
         movementType: params.movementType,
         productionId: params.productionId,
         stepId: params.stepId ?? null,
+        operationJobId: params.operationJobId ?? null,
+        expectedRevision: params.expectedRevision ?? null,
         lines: canonicalGarmentLines(params.lines),
         location: params.location,
         note: params.note || null,
@@ -300,7 +380,9 @@ export async function getGarmentPickState(
 
 interface IssueGarmentsParams {
   productionId: string;
-  stepId: string;
+  stepId?: string;
+  operationJobId?: string;
+  expectedRevision?: number;
   lines: Array<{ sku: string; qty: number }>;
   idempotencyKey: string;
   fromLocation?: string;
@@ -316,10 +398,18 @@ export async function issueGarments(
 ) {
   return prisma.$transaction(
     async (tx) => {
+    const targetStepId = params.operationJobId ?? params.stepId;
+    if (!targetStepId) badRequest("ต้องระบุขั้นเบิกเสื้อ");
+    if (params.operationJobId && params.stepId) {
+      badRequest("ระบุ stepId และ operationJobId พร้อมกันไม่ได้");
+    }
+    if (params.operationJobId && params.expectedRevision === undefined) {
+      badRequest("คำสั่ง Production V2 ต้องระบุ expectedRevision");
+    }
     // สอง read แรกใช้หา lock scope เท่านั้น; คำสั่งจริงตัดสินจากข้อมูลที่อ่านซ้ำหลังถือ
     // topology mutex → steps ทั้งใบตาม id → production → order ครบแล้ว
     const stepReference = await tx.productionStep.findUniqueOrThrow({
-      where: { id: params.stepId },
+      where: { id: targetStepId },
       select: { productionId: true },
     });
     const productionReference = await tx.production.findUniqueOrThrow({
@@ -332,19 +422,25 @@ export async function issueGarments(
     await tx.$queryRaw`SELECT id FROM orders WHERE id = ${productionReference.orderId} FOR UPDATE`;
 
     const step = await tx.productionStep.findUniqueOrThrow({
-      where: { id: params.stepId },
+      where: { id: targetStepId },
         select: {
           id: true,
           productionId: true,
           stepType: true,
           status: true,
           assignedToId: true,
+          executionEnabled: true,
         },
     });
     if (step.productionId !== params.productionId) {
       badRequest("ขั้นตอนนี้ไม่อยู่ในใบผลิตนี้");
     }
-    if (step.stepType !== "GARMENT_PICK") {
+    if (!params.operationJobId && step.executionEnabled) {
+      badRequest(
+        "ขั้นงานนี้ต้องทำจากโหมดสถานี กรุณาเปิดงานปัจจุบันแล้วลองอีกครั้ง",
+      );
+    }
+    if (!params.operationJobId && step.stepType !== "GARMENT_PICK") {
       badRequest("เบิกเสื้อได้เฉพาะขั้น 'เบิกเสื้อจากสต๊อค'");
     }
 
@@ -361,13 +457,15 @@ export async function issueGarments(
       movementType: "ISSUE",
       productionId: production.id,
       stepId: step.id,
+      operationJobId: params.operationJobId,
+      expectedRevision: params.expectedRevision,
       lines: canonicalLines,
       location: fromLocation,
     });
 
     // กติกาเดียวกับ updateStep (PERM) แต่ตัดสินจาก assignee หลัง lock เท่านั้น
     let autoClaim = false;
-    if (!params.canSupervise) {
+    if (!params.operationJobId && !params.canSupervise) {
       if (step.assignedToId === null) autoClaim = true;
       else if (step.assignedToId !== params.userId) {
         forbidden("งานนี้ถูกมอบหมายให้คนอื่นแล้ว");
@@ -400,17 +498,29 @@ export async function issueGarments(
       };
     }
 
+    let operation: SpecializedOperation | null = null;
+    if (params.operationJobId) {
+      operation = await loadSpecializedOperation(tx, {
+        operationJobId: params.operationJobId,
+        expectedRevision: params.expectedRevision!,
+        actorId: params.userId,
+        canSupervise: params.canSupervise,
+        requiredWorkCenterCode: "PREP",
+        productionId: params.productionId,
+      });
+    }
+
     // replay ที่ commit แล้วต้องตอบซ้ำได้แม้ step เปลี่ยนสถานะภายหลัง แต่คำสั่งใหม่
     // ห้ามเขียนทับ exception/พักงาน และห้ามเบิกจาก deep-link ของขั้นอนาคต
-    if (step.status === "FAILED") {
+    if (!operation && step.status === "FAILED") {
         badRequest(
           "เบิกเสื้อไม่ได้ — ขั้นนี้มีปัญหาและต้องให้หัวหน้าแก้ปัญหาก่อน",
         );
     }
-    if (step.status === "ON_HOLD") {
+    if (!operation && step.status === "ON_HOLD") {
       badRequest("เบิกเสื้อไม่ได้ — ขั้นนี้ถูกพักอยู่");
     }
-    const siblings = await tx.productionStep.findMany({
+    const siblings = operation ? [] : await tx.productionStep.findMany({
       where: { productionId: production.id },
       select: {
         id: true,
@@ -420,7 +530,7 @@ export async function issueGarments(
       },
       orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
     });
-    if (!firstPendingStepIdsByLane(siblings).has(step.id)) {
+    if (!operation && !firstPendingStepIdsByLane(siblings).has(step.id)) {
       badRequest("เบิกเสื้อไม่ได้ — ขั้นก่อนหน้าในสายงานเดียวกันยังไม่เสร็จ");
     }
 
@@ -443,6 +553,11 @@ export async function issueGarments(
         fulfilledTotal,
         stepDone,
       } = planGarmentIssue(state.lines, params.lines);
+      const fulfilledBefore = state.lines.reduce(
+        (sum, line) =>
+          sum + Math.min(line.needed, Math.max(0, line.issued - line.returned)),
+        0,
+      );
       let docNumber: string;
       let duplicated = false;
       if (isLocalDemoStockEnabled()) {
@@ -538,6 +653,7 @@ export async function issueGarments(
       await tx.materialUsage.create({
         data: {
           productionId: production.id,
+          productionStepId: step.id,
           productId: ref.productId,
           productVariantId: ref.variantId,
           quantity: line.qty,
@@ -556,7 +672,50 @@ export async function issueGarments(
 
     // เดินสถานะขั้น: เบิกครบ = เสร็จ · เบิกบางส่วน = กำลังทำ (ขั้นที่ปิดไปแล้วไม่ถอย)
     // qty บนขั้นวิ่งตามยอดเบิกจริง — บอกบนบอร์ดได้ว่าเบิกถึงไหน
-    if (step.status !== "COMPLETED") {
+    if (operation) {
+      const quantityEvidence = requested.flatMap((line) => {
+        const ref = stateBySku.get(line.sku)!;
+        const fulfilledBeforeLine = Math.min(
+          ref.needed,
+          Math.max(0, ref.issued - ref.returned),
+        );
+        const fulfilledAfterLine = Math.min(
+          ref.needed,
+          Math.max(0, ref.issued + line.qty - ref.returned),
+        );
+        const qtyGood = fulfilledAfterLine - fulfilledBeforeLine;
+        return qtyGood > 0
+          ? [{
+              productId: ref.productId,
+              size: ref.size,
+              color: ref.color,
+              qtyGood,
+            }]
+          : [];
+      });
+      const quantityLines = await garmentIssueQuantityOutputs(
+        tx,
+        operation.id,
+        quantityEvidence,
+      );
+      await recordSpecializedOperationOutput(tx, {
+        operation,
+        commandId: `garment-issue:${stockGarmentIdempotencyKey(
+          production.orderId,
+          "ISSUE",
+          params.idempotencyKey,
+        )}`,
+        actorId: params.userId,
+        eventType: "MATERIAL_ISSUED",
+        delta: {
+          qtyGood: fulfilledTotal - fulfilledBefore,
+          qtyScrap: 0,
+          qtyRework: 0,
+        },
+        quantityLines,
+        payload: { docNumber, issuedQty: issuedThisRound },
+      });
+    } else if (step.status !== "COMPLETED") {
       await tx.productionStep.update({
         where: { id: step.id },
         data: {
@@ -610,11 +769,14 @@ export async function issueGarments(
 
 interface ReturnGarmentsParams {
   productionId: string;
+  operationJobId?: string;
+  expectedRevision?: number;
   lines: Array<{ sku: string; qty: number }>;
   note?: string;
   idempotencyKey: string;
   toLocation?: string;
   userId: string;
+  canSupervise?: boolean;
 }
 
 export async function returnGarments(
@@ -631,6 +793,9 @@ export async function returnGarments(
       select: { orderId: true },
     });
     await lockProductionTopology(tx, reference.orderId);
+    if (params.operationJobId) {
+      await tx.$queryRaw`SELECT id FROM production_steps WHERE id = ${params.operationJobId} FOR UPDATE`;
+    }
     await tx.$queryRaw`SELECT id FROM productions WHERE id = ${params.productionId} FOR UPDATE`;
     const production = await tx.production.findUniqueOrThrow({
       where: { id: params.productionId },
@@ -640,11 +805,27 @@ export async function returnGarments(
       badRequest("โครงใบผลิตเปลี่ยนจากอีกหน้าจอแล้ว — กรุณาโหลดใหม่");
     }
     await tx.$queryRaw`SELECT id FROM orders WHERE id = ${production.orderId} FOR UPDATE`;
+    if (!params.operationJobId) {
+      const v2Operation = await tx.productionStep.findFirst({
+        where: {
+          productionId: production.id,
+          executionEnabled: true,
+        },
+        select: { id: true },
+      });
+      if (v2Operation) {
+        badRequest(
+          "งานนี้ต้องคืนเสื้อจากงานปัจจุบันในโหมดสถานี",
+        );
+      }
+    }
     const canonicalLines = canonicalGarmentLines(params.lines);
     const toLocation = params.toLocation ?? DEFAULT_STOCK_LOCATION;
     const requestFingerprint = garmentRequestFingerprint({
       movementType: "RETURN",
       productionId: production.id,
+      operationJobId: params.operationJobId,
+      expectedRevision: params.expectedRevision,
       lines: canonicalLines,
       location: toLocation,
       note: params.note,
@@ -672,6 +853,22 @@ export async function returnGarments(
         returnedQty: replay.quantity,
         alreadyRecorded: true,
       };
+    }
+
+    let operation: SpecializedOperation | null = null;
+    if (params.operationJobId) {
+      if (params.expectedRevision === undefined) {
+        badRequest("คำสั่ง Production V2 ต้องระบุ expectedRevision");
+      }
+      operation = await loadSpecializedOperation(tx, {
+        operationJobId: params.operationJobId,
+        expectedRevision: params.expectedRevision,
+        actorId: params.userId,
+        canSupervise: params.canSupervise === true,
+        requiredWorkCenterCode: "PREP",
+        productionId: params.productionId,
+        allowInactiveExecutionScope: true,
+      });
     }
 
     const state = await getGarmentPickState(tx, production.orderId);
@@ -774,6 +971,7 @@ export async function returnGarments(
       await tx.materialUsage.create({
         data: {
           productionId: production.id,
+          productionStepId: params.operationJobId,
           productId: ref.productId,
           productVariantId: ref.variantId,
           quantity: line.qty,
@@ -783,6 +981,19 @@ export async function returnGarments(
           stockMovementRef: docNumber,
           deductedAt: new Date(),
         },
+      });
+    }
+    if (operation) {
+      await recordSpecializedOperationEvent(tx, {
+        operation,
+        commandId: `garment-return:${stockGarmentIdempotencyKey(
+          production.orderId,
+          "RETURN",
+          params.idempotencyKey,
+        )}`,
+        actorId: params.userId,
+        eventType: "MATERIAL_RETURNED",
+        payload: { docNumber, returnedQty },
       });
     }
     await addOrderRevision(tx, {

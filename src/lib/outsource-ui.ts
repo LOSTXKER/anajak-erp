@@ -58,8 +58,6 @@ const RECEIVE_QUEUE_STATUSES: ReadonlySet<string> = new Set([
   "COMPLETED",
 ]);
 
-const DONE_STATUSES: ReadonlySet<string> = new Set(["QC_PASSED", "QC_FAILED"]);
-
 export function outsourceQueueForStatus(status: string): OutsourceQueue {
   if (status === "DRAFT") return "send";
   if (RECEIVE_QUEUE_STATUSES.has(status)) return "receive";
@@ -76,11 +74,13 @@ export function outsourceStatusMeta(status: string) {
   );
 }
 
-export interface OutsourceActionPermissions {
-  canHandleGoods: boolean;
-  canJudgeQc: boolean;
-  canManageSettings: boolean;
-}
+export type OutsourceAvailableCommand =
+  | "share"
+  | "markSent"
+  | "receiveBack"
+  | "passQc"
+  | "failQc"
+  | "cancelDraft";
 
 export interface OutsourceActionAvailability {
   canShare: boolean;
@@ -92,24 +92,24 @@ export interface OutsourceActionAvailability {
 }
 
 /**
- * กติกาปุ่มหน้า Outsource คู่กับ permission/status ฝั่ง server
- * เพื่อไม่ให้หลายหน้าประกาศเงื่อนไขคนละชุดแล้วชวนผู้ใช้กดสิ่งที่ server ปฏิเสธ
+ * แปลงคำสั่งที่ server อนุญาตเป็นปุ่มเท่านั้น หน้าจอห้ามเดาจาก status/role เอง.
+ * enabled ใช้ปิดปุ่มชั่วคราวเมื่อข้อมูล cache ไม่สด โดยไม่เปลี่ยนกติกางาน.
  */
 export function outsourceActionAvailability(
-  status: string,
-  permissions: OutsourceActionPermissions
+  availableCommands: readonly OutsourceAvailableCommand[],
+  options: { enabled?: boolean } = {},
 ): OutsourceActionAvailability {
-  const isDraft = status === "DRAFT";
-  const canJudgeThisQc = status === "RECEIVED_BACK" && permissions.canJudgeQc;
+  const commands = new Set(
+    options.enabled === false ? [] : availableCommands,
+  );
 
   return {
-    canShare: permissions.canHandleGoods && !DONE_STATUSES.has(status),
-    canMarkSent: permissions.canHandleGoods && isDraft,
-    canReceiveBack:
-      permissions.canHandleGoods && RECEIVE_QUEUE_STATUSES.has(status),
-    canPassQc: canJudgeThisQc,
-    canFailQc: canJudgeThisQc,
-    canCancelDraft: permissions.canManageSettings && isDraft,
+    canShare: commands.has("share"),
+    canMarkSent: commands.has("markSent"),
+    canReceiveBack: commands.has("receiveBack"),
+    canPassQc: commands.has("passQc"),
+    canFailQc: commands.has("failQc"),
+    canCancelDraft: commands.has("cancelDraft"),
   };
 }
 

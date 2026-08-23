@@ -12,7 +12,7 @@ import {
 } from "@/server/services/goods-receipt";
 
 // ใบตรวจรับของเข้า/ใบคืนของลูกค้า — router เป็นแค่ผิว logic อยู่ services/goods-receipt
-// ใบทั่วไปใช้ manage_delivery; คำสั่งจาก Station ผูก productionStepId และใช้ manage_production
+// ใบทั่วไปใช้ manage_delivery; คำสั่งจาก Station ผูก step/operation และใช้ manage_production
 // ให้ตรงกับปุ่มปฏิบัติงานของจอสถานี (รวม permission override รายคน)
 
 const receiptLineSchema = z.object({
@@ -46,13 +46,31 @@ export const goodsReceiptRouter = router({
         receiptType: z.enum(RECEIPT_TYPES),
         outsourceOrderId: z.string().optional(),
         productionStepId: z.string().optional(),
+        operationJobId: z.string().optional(),
+        expectedRevision: z.number().int().nonnegative().optional(),
         notes: z.string().optional(),
         photoUrls: fileUrlArraySchema.default([]),
         lines: z.array(receiptLineSchema).min(1),
+      }).superRefine((value, refinement) => {
+        if (value.productionStepId && value.operationJobId) {
+          refinement.addIssue({
+            code: "custom",
+            path: ["operationJobId"],
+            message: "ระบุ productionStepId และ operationJobId พร้อมกันไม่ได้",
+          });
+        }
+        if (value.operationJobId && value.expectedRevision === undefined) {
+          refinement.addIssue({
+            code: "custom",
+            path: ["expectedRevision"],
+            message: "Production V2 ต้องระบุ expectedRevision",
+          });
+        }
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const stationCommand = input.productionStepId !== undefined;
+      const stationCommand =
+        input.productionStepId !== undefined || input.operationJobId !== undefined;
       const requiredPermission = stationCommand ? "manage_production" : "manage_delivery";
       if (!hasPermission(ctx.userRole, ctx.permissionOverrides, requiredPermission)) {
         throw new TRPCError({
@@ -62,10 +80,14 @@ export const goodsReceiptRouter = router({
             : "บัญชีนี้ไม่มีสิทธิ์บันทึกใบตรวจรับของเข้า",
         });
       }
-      if (stationCommand && input.receiptType !== "CUSTOMER_GARMENT") {
+      if (
+        stationCommand &&
+        input.receiptType !== "CUSTOMER_GARMENT" &&
+        !(input.operationJobId && input.receiptType === "CUSTOMER_RETURN")
+      ) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "คำสั่งจากสถานีรองรับเฉพาะการรับเสื้อลูกค้า",
+          message: "คำสั่งจากสถานีรองรับเฉพาะการรับหรือคืนเสื้อลูกค้า",
         });
       }
 
@@ -81,7 +103,42 @@ export const goodsReceiptRouter = router({
     }),
 
   confirmCustomerGarmentEvidence: protectedProcedure
-    .input(z.object({ productionStepId: z.string().min(1) }))
+    .input(
+      z.object({
+        productionStepId: z.string().min(1).optional(),
+        operationJobId: z.string().min(1).optional(),
+        commandId: z.string().min(8).max(100).optional(),
+        expectedRevision: z.number().int().nonnegative().optional(),
+      }).superRefine((value, refinement) => {
+        if (Boolean(value.productionStepId) === Boolean(value.operationJobId)) {
+          refinement.addIssue({
+            code: "custom",
+            path: ["operationJobId"],
+            message: "ระบุ productionStepId หรือ operationJobId อย่างใดอย่างหนึ่ง",
+          });
+        }
+        if (
+          value.operationJobId &&
+          (value.commandId === undefined || value.expectedRevision === undefined)
+        ) {
+          refinement.addIssue({
+            code: "custom",
+            path: [value.commandId === undefined ? "commandId" : "expectedRevision"],
+            message: "Production V2 ต้องระบุ commandId และ expectedRevision",
+          });
+        }
+        if (
+          value.productionStepId &&
+          (value.commandId !== undefined || value.expectedRevision !== undefined)
+        ) {
+          refinement.addIssue({
+            code: "custom",
+            path: ["productionStepId"],
+            message: "legacy target ใช้ commandId/expectedRevision แบบ V2 ไม่ได้",
+          });
+        }
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
       if (!hasPermission(ctx.userRole, ctx.permissionOverrides, "manage_production")) {
         throw new TRPCError({
@@ -90,7 +147,7 @@ export const goodsReceiptRouter = router({
         });
       }
       return confirmCustomerGarmentEvidence(ctx.prisma, {
-        productionStepId: input.productionStepId,
+        ...input,
         userId: ctx.userId,
         canSupervise: hasPermission(
           ctx.userRole,

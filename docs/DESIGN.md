@@ -209,7 +209,42 @@ mobile input ต้อง 16px กัน browser zoom; desktop control/body 14px
 - จอสถานีแสดงม็อกอัพเป็น **ข้อมูลอ้างอิงรอง** ต่อจากจุดงาน และต้องคงข้อความ `ห้ามวางตำแหน่งจากภาพนี้`
   (ขนาด/จุดวางยึดตัวเลขในใบงานเสมอ — `verify:ui` ล็อกไว้)
 
-## Canonical factory operations (`/production*`, `/outsource`, `/factory*`)
+## Canonical Production V2 (`PRODUCTION_V2_ENABLED`)
+
+Production V2 ใช้ `manufacturing` read/command contract เป็นแหล่งความจริงเดียว โดยเก็บ `Production` และ `ProductionStep` เป็น Manufacturing Order/Operation Job เพื่อรักษา FK ของข้อมูลเดิม · schema/command source อยู่ที่ `prisma/schema.prisma`, `src/server/services/manufacturing-*.ts` และ `src/server/routers/manufacturing.ts`; UI ห้ามคำนวณ dependency, readiness, permission หรือสถานะถัดไปซ้ำ
+
+### บ้านและเจ้าของงาน
+
+| บ้าน | เจ้าของและสิ่งที่ทำได้ |
+|---|---|
+| `/production` | หัวหน้า/ออฟฟิศค้นทุกใบผลิต, filter/sort/paginate และเปิดมุม Work Center, Exception, Outsource ภายในหน้าเดียว |
+| `/production/[id]` | Control Record สำหรับ identity/due risk/routing snapshot/operation ledger/readiness/quantity/exception/assignment/resequence/audit; ไม่มี execution command ของพนักงาน |
+| `/factory/station` | พนักงานเลือก Work Center แล้วทำ current job, ดู approved mockup+quantity, ใช้ primary action เดียว, แจ้งปัญหา และไป same-order handoff |
+| `/factory` | TV อ่านอย่างเดียว แสดง WIP/load/late/exception ของ Work Center โดยไม่มี link, button หรือ mutation |
+| Order / My Tasks | Order Production tab เหลือ summary+deep link; My Tasks route ตาม role ไป Control Record หรือ exact Station job |
+| route legacy | print runs, films และ outsource redirect เข้า `/production`; component เก่า mount ได้เฉพาะเมื่อ flag ปิดใน rollback window |
+
+### Data, command และ state contract
+
+- RoutingVersion ที่ release แล้วแก้ไม่ได้; Manufacturing Order เก็บ routing/instruction/approved mockup snapshot และ operation dependency ที่ผ่าน cycle validation · ทุก lane ต้องมี path มารวมที่ Final Pack เดียวซึ่งเป็น terminal operation
+- quantity แยกรายสินค้า/สี/ไซซ์/ตำแหน่งพิมพ์ พร้อม planned/good/scrap/rework; good เท่านั้นปลด successor และทุก reject ต้องมี disposition
+- `OperationEvent` เป็น append-only; command ใช้ `commandId` + `expectedRevision` และ transaction/lock order ชุดเดียวเพื่อให้ retry ไม่เพิ่ม quantity, stock หรือ event ซ้ำ
+- `availableCommands` และ `blockedReason` มาจาก server ตาม actor/work-center membership/assignment; Station และ Factory DTO ใช้ safe mapper ที่ไม่มีราคา ต้นทุน ค่าจ้างหรือค่าขนส่ง
+- Order status เขียนผ่าน transition service จาก release/completion/QC/pack/delivery event; generic `order.updateStatus` ปฏิเสธ production-owned targets เมื่อ flag เปิด และปฏิเสธ hold/cancel/flow target จาก record จริงแม้ปิด flag หากออเดอร์มี V2 Work Order
+- เมื่อสร้าง Manufacturing Order แล้ว item/variant/print definition และหลักฐานรับเสื้อบน Order เป็น read-only; writer เก่าต้องตรวจ ownership หลัง topology+order lock เพื่อไม่ให้ snapshot หน้างาน stale
+- DTF batch commit ตรวจ full membership+revision แล้วรายงาน film good/scrap/reprint ต่อ quantity line; QC fail สร้าง exact defect/exception/rework target และต้องตรวจซ้ำก่อนเดินต่อ
+- Final Pack completion เดิน Order เป็น READY_TO_SHIP เฉพาะเมื่อทุก enabled operation จบแล้ว; Office Delivery เท่านั้นสร้าง shipment/tracking และยืนยันส่งด้วย `ship_orders`
+- scan/QR เปิด order context เท่านั้น; handoff เป็น navigation ที่ผู้ใช้ยืนยันเองและไม่ claim/start/complete
+- capacity ที่ไม่มี standard time ต้องแสดง “ยังไม่ประเมิน”; ห้ามเดาค่าเพื่อเติม UI
+
+### Visual และ verification contract
+
+- ERP ใช้ light workspace เป็นค่าแนะนำและสีเฉพาะ semantic; Station/TV ใช้ high-contrast dark surface · สถานะต้องมีข้อความ/ไอคอนร่วมกับสี
+- Production list ใช้ server-side cursor pagination; mobile เปลี่ยนเป็น scan-first cards, tablet ยอมให้ table container เลื่อนในตัวโดย document ห้าม overflow
+- initial loading/error+retry/empty, cached-stale และ success ต้องแยกกัน; refresh/deep link/Back/Escape/focus/reduced-motion ใช้งานได้
+- verification source คือ `scripts/verify-ui-tokens.tsx`, test ใกล้ service/router/component, `scripts/verify-production-v2-migration.sql` และ `scripts/verify-manufacturing-v2.ts`; cutover ยังต้องรอ walkthrough ของเบสและห้าม merge main/deploy ก่อนรับงาน
+
+## Legacy factory rollback contract (ใช้เฉพาะเมื่อปิด `PRODUCTION_V2_ENABLED`)
 
 > งานโรงงานเป็นโมดูลเดียวที่ใช้ record, permission, readiness และ transition ฝั่ง server ชุดเดียวกัน แต่แยกคำถามตามจอ:
 > หัวหน้าตัดสินลำดับที่ `/production`, พนักงานลงมือที่ `/factory/station` และทั้งโรงงานดู pulse แบบอ่านอย่างเดียวที่ `/factory` ·

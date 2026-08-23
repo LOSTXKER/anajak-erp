@@ -118,6 +118,7 @@ describe("buildPressQueue", () => {
     const findMany = vi.fn().mockResolvedValue([
       {
         id: "step-press",
+        executionEnabled: false,
         status: "IN_PROGRESS",
         qtyDone: 0,
         qtyTotal: 50,
@@ -144,7 +145,106 @@ describe("buildPressQueue", () => {
       qtyDone: 0,
       qtyTotal: 50,
     });
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          stepType: "HEAT_PRESS",
+          AND: expect.arrayContaining([
+            {
+              OR: expect.arrayContaining([
+                expect.objectContaining({
+                  executionEnabled: false,
+                  production: {
+                    order: {
+                      internalStatus: { notIn: ["CANCELLED", "ON_HOLD"] },
+                    },
+                  },
+                }),
+                expect.objectContaining({
+                  executionEnabled: true,
+                  operationState: { in: ["READY", "RUNNING"] },
+                  production: {
+                    workOrderState: { in: ["RELEASED", "IN_PROGRESS"] },
+                    order: {
+                      internalStatus: {
+                        in: [
+                          "PRODUCTION_QUEUE",
+                          "PRODUCING",
+                          "QUALITY_CHECK",
+                          "PACKING",
+                        ],
+                      },
+                    },
+                  },
+                  workCenter: { is: { code: "HEAT_PRESS", isActive: true } },
+                }),
+              ]),
+            },
+          ]),
+        }),
+      }),
+    );
     expect(findMany.mock.calls[0][0]).not.toHaveProperty("take");
+  });
+
+  it("ใช้ assignment เป็น AND กับ topology จึงไม่เปิดทางให้ V2 ที่ Station รับไม่ได้", async () => {
+    const findMany = vi.fn().mockResolvedValue([]);
+    const prisma = { productionStep: { findMany } } as unknown as ExtendedPrismaClient;
+
+    await buildPressQueue(prisma, {
+      userId: "worker-1",
+      ownWorkOnly: true,
+      limit: 8,
+    });
+
+    expect(findMany.mock.calls[0][0].where.AND).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ OR: expect.any(Array) }),
+        { OR: [{ assignedToId: "worker-1" }, { assignedToId: null }] },
+      ]),
+    );
+    const topology = findMany.mock.calls[0][0].where.AND[0];
+    const v2Where = topology.OR.find(
+      (branch: { executionEnabled?: boolean }) => branch.executionEnabled === true,
+    );
+    expect(v2Where.workCenter).toEqual({
+      is: {
+        code: "HEAT_PRESS",
+        isActive: true,
+        members: { some: { userId: "worker-1", isActive: true } },
+      },
+    });
+  });
+
+  it("V2 เชื่อ operationState/dependency ที่ server คำนวณและไม่ถูก legacy gate กั้น lane ขนาน", async () => {
+    const findMany = vi.fn().mockResolvedValue([
+      {
+        id: "operation-press-v2",
+        executionEnabled: true,
+        status: "PENDING",
+        qtyDone: 0,
+        qtyTotal: 20,
+        assignedTo: null,
+        production: {
+          id: "production-v2",
+          steps: [
+            { stepType: "DTF_PRINT", status: "PENDING" },
+            { stepType: "GARMENT_PICK", status: "PENDING" },
+          ],
+          order: {
+            orderNumber: "ORD-V2-PARALLEL",
+            title: "งาน lane ขนาน",
+            deadline: null,
+            customer: { name: "ลูกค้า" },
+          },
+        },
+      },
+    ]);
+    const prisma = { productionStep: { findMany } } as unknown as ExtendedPrismaClient;
+
+    await expect(buildPressQueue(prisma, { limit: 8 })).resolves.toEqual([
+      expect.objectContaining({ stepId: "operation-press-v2" }),
+    ]);
   });
 });
 
@@ -291,11 +391,87 @@ describe("buildPackQueue", () => {
     ]);
     expect(findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { internalStatus: "PACKING" },
+        where: expect.objectContaining({
+          internalStatus: "PACKING",
+          OR: expect.arrayContaining([
+            { productionCompletionOwnerId: null },
+            expect.objectContaining({
+              productionCompletionOwner: {
+                is: expect.objectContaining({
+                  workOrderState: { in: ["RELEASED", "IN_PROGRESS"] },
+                  completionOwnerStep: {
+                    is: expect.objectContaining({
+                      operationCode: "FINAL_PACK",
+                      operationState: { in: ["READY", "RUNNING", "BLOCKED"] },
+                      workCenter: { is: { isActive: true } },
+                    }),
+                  },
+                }),
+              },
+            }),
+          ]),
+        }),
         orderBy: { deadline: "asc" },
         take: 8,
       }),
     );
+  });
+
+  it("ผูกคิวแพ็ก V2 กับ Final Pack Operation เพื่อให้ My Tasks เปิดบ้านตาม role", async () => {
+    const prisma = {
+      order: {
+        findMany: vi.fn().mockResolvedValue([
+          {
+            id: "order-pack-v2",
+            orderNumber: "ORD-2608-0042",
+            title: "เสื้อทีม V2",
+            deadline: null,
+            priority: "NORMAL",
+            blindShip: false,
+            customer: { name: "ลูกค้าบี" },
+            items: [{ totalQuantity: 24 }],
+            productionCompletionOwner: {
+              id: "production-v2",
+              completionOwnerStep: { id: "operation-final-pack" },
+            },
+          },
+        ]),
+      },
+    } as unknown as ExtendedPrismaClient;
+
+    await expect(buildPackQueue(prisma, { limit: 8 })).resolves.toEqual([
+      expect.objectContaining({
+        stepId: "operation-final-pack",
+        orderId: "order-pack-v2",
+        productionId: "production-v2",
+      }),
+    ]);
+  });
+
+  it("คิวแพ็กของช่างคืนเฉพาะ Final Pack ที่เป็นสมาชิกและรับงานได้", async () => {
+    const findMany = vi.fn().mockResolvedValue([]);
+    const prisma = { order: { findMany } } as unknown as ExtendedPrismaClient;
+
+    await buildPackQueue(prisma, {
+      userId: "worker-1",
+      ownWorkOnly: true,
+      limit: 8,
+    });
+
+    const v2Branch = findMany.mock.calls[0][0].where.OR.find(
+      (branch: { productionCompletionOwner?: unknown }) =>
+        Boolean(branch.productionCompletionOwner),
+    );
+    const finalPack = v2Branch.productionCompletionOwner.is.completionOwnerStep.is;
+    expect(finalPack.workCenter).toEqual({
+      is: {
+        isActive: true,
+        members: { some: { userId: "worker-1", isActive: true } },
+      },
+    });
+    expect(finalPack.AND).toEqual(expect.arrayContaining([
+      { OR: [{ assignedToId: "worker-1" }, { assignedToId: null }] },
+    ]));
   });
 });
 

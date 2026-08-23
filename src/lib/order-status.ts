@@ -390,6 +390,46 @@ export const PRODUCTION_STAFF_STATUSES: InternalStatus[] = [
 export const DESIGNER_STATUSES: InternalStatus[] = ["DESIGNING"];
 export const ACCOUNTANT_STATUSES: InternalStatus[] = ["COMPLETED"];
 
+/**
+ * สถานะที่ Production V2 เป็นเจ้าของการเดินงานแต่เพียงผู้เดียว
+ *
+ * Order detail อ่านสถานะเหล่านี้ได้ แต่ห้ามเขียนผ่าน generic updateStatus:
+ * releaseWorkOrder, completeOperation, QC และ Delivery จะเรียก transition service
+ * กลางจากเหตุการณ์จริงของแต่ละบ้านแทน
+ */
+export const PRODUCTION_V2_FLOW_STATUS_TARGETS = [
+  "PRODUCTION_QUEUE",
+  "PRODUCING",
+  "QUALITY_CHECK",
+  "PACKING",
+  "READY_TO_SHIP",
+  "SHIPPED",
+] as const satisfies readonly InternalStatus[];
+
+/**
+ * เมื่อมีใบสั่งผลิตใหม่แล้ว generic Order status ห้ามเปลี่ยนนิยามงาน เดินงาน
+ * ถอย พัก หรือยกเลิก เพราะแต่ละทางต้องประสานใบผลิตทั้งก้อน จุดยกเว้นเดียวคือ
+ * COMPLETED หลัง SHIPPED ซึ่งหน้า Order ยังเป็นบ้านปิดงานและ transition กลางกั้นอยู่.
+ */
+export const PRODUCTION_V2_OWNED_STATUS_TARGETS = [
+  "DRAFT",
+  "INQUIRY",
+  "CONFIRMED",
+  "DESIGNING",
+  "DESIGN_APPROVED",
+  ...PRODUCTION_V2_FLOW_STATUS_TARGETS,
+  "CANCELLED",
+  "ON_HOLD",
+] as const satisfies readonly InternalStatus[];
+
+export function isProductionV2FlowStatusTarget(status: InternalStatus): boolean {
+  return (PRODUCTION_V2_FLOW_STATUS_TARGETS as readonly InternalStatus[]).includes(status);
+}
+
+export function isProductionV2OwnedStatusTarget(status: InternalStatus): boolean {
+  return (PRODUCTION_V2_OWNED_STATUS_TARGETS as readonly InternalStatus[]).includes(status);
+}
+
 // ถอยจากจุดที่ประกาศกับลูกค้าแล้ว (ส่งแล้ว/ปิดแล้ว) = ผู้จัดการขึ้นไป + ต้องมีเหตุผล
 export function isRollbackTransition(from: InternalStatus, to: InternalStatus): boolean {
   return (
@@ -404,10 +444,14 @@ export function isRollbackTransition(from: InternalStatus, to: InternalStatus): 
 export function canPermsSetStatus(
   perms: readonly string[] | null | undefined,
   from: InternalStatus,
-  to: InternalStatus
+  to: InternalStatus,
+  productionV2 = false,
 ): boolean {
   if (!perms) return true; // สิทธิ์ยังโหลดไม่เสร็จ — ไม่ flash ซ่อนปุ่ม
   const has = (p: string) => perms.includes(p);
+  // V2 ให้ release/operation/QC/pack/delivery เป็นผู้เขียนสถานะจากเหตุการณ์จริง
+  // หน้า Order เป็น summary + deep link เท่านั้น จึงไม่เปิดทางลัดข้ามบ้าน
+  if (productionV2 && isProductionV2FlowStatusTarget(to)) return false;
   if (isRollbackTransition(from, to) && !has("supervise_operations")) return false;
   if (PRODUCTION_STAFF_STATUSES.includes(to)) return has("update_order_status_production");
   if (DESIGNER_STATUSES.includes(to)) return has("update_order_status_design");

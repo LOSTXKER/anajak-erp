@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import { router, protectedProcedure } from "../trpc";
 import { getPrintQueue } from "@/server/services/print-run";
 import { hasPermission, type Permission } from "@/lib/permissions";
@@ -11,6 +12,79 @@ import { buildPressQueue, buildPackQueue } from "@/server/services/factory-board
 // กองย่อยจอเช้าแอดมิน — นับทั้งกอง (เท่าที่ดึง) + โชว์รายการย่อ 5 แถวแรกพอให้กดต่อ
 function pile<T>(items: T[]) {
   return { count: items.length, items: items.slice(0, 5) };
+}
+
+const ACTIVE_STATION_WORK_ORDER_STATES = ["RELEASED", "IN_PROGRESS"] as const;
+const ACTIVE_STATION_ORDER_STATUSES = [
+  "PRODUCTION_QUEUE",
+  "PRODUCING",
+  "QUALITY_CHECK",
+  "PACKING",
+] as const;
+
+function productionTaskWhere(
+  ownWorkOnly: boolean,
+  userId: string,
+): Prisma.ProductionStepWhereInput {
+  const topology: Prisma.ProductionStepWhereInput = {
+    OR: [
+      {
+        executionEnabled: true,
+        operationState: { in: ["READY", "RUNNING", "BLOCKED"] },
+        operationCode: { notIn: ["DTF_PRINT", "HEAT_PRESS", "FINAL_PACK"] },
+        production: {
+          workOrderState: { in: [...ACTIVE_STATION_WORK_ORDER_STATES] },
+          order: {
+            internalStatus: { in: [...ACTIVE_STATION_ORDER_STATUSES] },
+          },
+        },
+        workCenter: {
+          is: {
+            isActive: true,
+            ...(ownWorkOnly
+              ? {
+                  members: {
+                    some: { userId, isActive: true },
+                  },
+                }
+              : {}),
+          },
+        },
+        AND: [
+          {
+            OR: [
+              { workResourceId: null },
+              {
+                workResource: {
+                  is: {
+                    isActive: true,
+                    state: { in: ["AVAILABLE", "IN_USE"] },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+      },
+      {
+        executionEnabled: false,
+        stepType: { notIn: ["DTF_PRINT", "HEAT_PRESS", "PACKAGING"] },
+        production: {
+          order: { internalStatus: { in: ["PRODUCTION_QUEUE", "PRODUCING"] } },
+        },
+      },
+    ],
+  };
+
+  return {
+    status: { in: ["PENDING", "IN_PROGRESS", "FAILED", "ON_HOLD"] },
+    AND: [
+      topology,
+      ...(ownWorkOnly
+        ? [{ OR: [{ assignedToId: userId }, { assignedToId: null }] }]
+        : []),
+    ],
+  };
 }
 
 export const taskRouter = router({
@@ -37,20 +111,17 @@ export const taskRouter = router({
     const productionP = can("manage_production")
       ? ctx.prisma.productionStep
           .findMany({
-            where: {
-              status: { in: ["PENDING", "IN_PROGRESS", "FAILED", "ON_HOLD"] },
-              stepType: { notIn: ["DTF_PRINT", "HEAT_PRESS", "PACKAGING"] },
-              production: {
-                order: { internalStatus: { in: ["PRODUCTION_QUEUE", "PRODUCING"] } },
-              },
-              ...(ownWorkOnly
-                ? { OR: [{ assignedToId: ctx.userId }, { assignedToId: null }] }
-                : {}),
-            },
+            where: productionTaskWhere(ownWorkOnly, ctx.userId),
             select: {
               id: true,
               stepType: true,
               customStepName: true,
+              executionEnabled: true,
+              operationCode: true,
+              operationName: true,
+              executionMode: true,
+              operationState: true,
+              workCenter: { select: { code: true, name: true } },
               status: true,
               assignedTo: { select: { id: true, name: true } },
               production: {
@@ -69,6 +140,13 @@ export const taskRouter = router({
                 stepId: s.id,
                 stepType: s.stepType,
                 customStepName: s.customStepName,
+                executionEnabled: s.executionEnabled,
+                operationCode: s.operationCode,
+                operationName: s.operationName,
+                executionMode: s.executionMode,
+                operationState: s.operationState,
+                workCenterCode: s.workCenter?.code ?? null,
+                workCenterName: s.workCenter?.name ?? null,
                 status: s.status,
                 assignedToId: s.assignedTo?.id ?? null,
                 assignedToName: s.assignedTo?.name ?? null,

@@ -224,6 +224,8 @@ describe("factory.markReadyToShip", () => {
             id: "order-1",
             internalStatus: "PACKING",
             customerStatus: "IN_PROGRESS",
+            productionCompletionOwnerId: null,
+            productions: [],
           })
           .mockResolvedValueOnce({
             items: [
@@ -293,6 +295,8 @@ describe("factory.markReadyToShip", () => {
           id: "order-1",
           internalStatus: "SHIPPED",
           customerStatus: "SHIPPED",
+          productionCompletionOwnerId: null,
+          productions: [],
         }),
       },
     };
@@ -311,6 +315,115 @@ describe("factory.markReadyToShip", () => {
       factoryRouter.createCaller(ctx).markReadyToShip({ orderId: "order-1" }),
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
     expect(tx.order.findUniqueOrThrow).toHaveBeenCalledOnce();
+  });
+
+  it("retry ของ legacy order คืน ack ชุดเดิมโดยไม่เผยฟิลด์เจ้าของ Production", async () => {
+    const tx = {
+      $queryRaw: vi.fn().mockResolvedValue([]),
+      order: {
+        findUniqueOrThrow: vi
+          .fn()
+          .mockResolvedValueOnce({
+            id: "order-1",
+            internalStatus: "READY_TO_SHIP",
+            customerStatus: "READY_TO_SHIP",
+            productionCompletionOwnerId: null,
+            productions: [],
+          })
+          .mockResolvedValueOnce({
+            items: [
+              {
+                products: [
+                  {
+                    description: "เสื้อยืด",
+                    variants: [{ size: "M", color: "ดำ", quantity: 5 }],
+                  },
+                ],
+              },
+            ],
+            deliveries: [
+              {
+                status: "PREPARING",
+                lines: [{ description: "เสื้อยืด", size: "M", color: "ดำ", qty: 5 }],
+              },
+            ],
+          }),
+        updateMany: vi.fn(),
+      },
+      orderRevision: {
+        count: vi.fn(),
+        create: vi.fn(),
+      },
+      auditLog: { create: vi.fn() },
+    };
+    const ctx: Context = {
+      prisma: {
+        $transaction: vi.fn(
+          async (callback: (transaction: unknown) => unknown) => callback(tx),
+        ),
+      } as unknown as Context["prisma"],
+      userId: "factory-user",
+      userRole: "PRODUCTION_STAFF",
+      permissionOverrides: null,
+    };
+
+    const result = await factoryRouter
+      .createCaller(ctx)
+      .markReadyToShip({ orderId: "order-1" });
+
+    expect(result).toEqual({
+      id: "order-1",
+      internalStatus: "READY_TO_SHIP",
+      customerStatus: "READY_TO_SHIP",
+    });
+    expect(result).not.toHaveProperty("productionCompletionOwnerId");
+    expect(result).not.toHaveProperty("productions");
+    expect(tx.order.updateMany).not.toHaveBeenCalled();
+    expect(tx.orderRevision.create).not.toHaveBeenCalled();
+    expect(tx.auditLog.create).not.toHaveBeenCalled();
+  });
+
+  it("ปฏิเสธ legacy ready-to-ship writer ของใบผลิต V2 ก่อนแตะสถานะหรือ audit", async () => {
+    const tx = {
+      $queryRaw: vi.fn().mockResolvedValue([]),
+      order: {
+        findUniqueOrThrow: vi.fn().mockResolvedValue({
+          id: "order-1",
+          internalStatus: "PACKING",
+          customerStatus: "IN_PROGRESS",
+          productionCompletionOwnerId: "production-v2-1",
+          productions: [{
+            workOrderNumber: "WO-1",
+            completionOwnerStepId: "operation-pack-1",
+          }],
+        }),
+        updateMany: vi.fn(),
+      },
+      orderRevision: {
+        count: vi.fn(),
+        create: vi.fn(),
+      },
+      auditLog: { create: vi.fn() },
+    };
+    const ctx: Context = {
+      prisma: {
+        $transaction: vi.fn(
+          async (callback: (transaction: unknown) => unknown) => callback(tx),
+        ),
+      } as unknown as Context["prisma"],
+      userId: "factory-user",
+      userRole: "PRODUCTION_STAFF",
+      permissionOverrides: null,
+    };
+
+    await expect(
+      factoryRouter.createCaller(ctx).markReadyToShip({ orderId: "order-1" }),
+    ).rejects.toThrow("ต้องปิดงานจาก Final Pack");
+
+    expect(tx.order.findUniqueOrThrow).toHaveBeenCalledOnce();
+    expect(tx.order.updateMany).not.toHaveBeenCalled();
+    expect(tx.orderRevision.create).not.toHaveBeenCalled();
+    expect(tx.auditLog.create).not.toHaveBeenCalled();
   });
 });
 

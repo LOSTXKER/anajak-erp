@@ -30,6 +30,14 @@ import { getGarmentPickState } from "@/server/services/garment-pick";
 import { promoteOrderArtworks } from "@/server/services/artwork";
 import { lockProductionTopology } from "@/server/services/production-topology-lock";
 import type { ExtendedPrismaClient, PrismaTx } from "@/lib/prisma";
+import type { QualityDisposition } from "@prisma/client";
+import {
+  loadSpecializedOperation,
+  recordSpecializedOperationEvent,
+  recordSpecializedOperationOutput,
+  type SpecializedQuantityOutput,
+} from "@/server/services/manufacturing-operation-adapter";
+import { assertProductionV2ApiEnabled } from "@/server/services/production-v2-gate";
 
 // ============================================================
 // บริบทก่อนตรวจ — ยอดคาดต่อไซส์ + ลายของงาน + เสื้อสำรองที่เบิกเผื่อไว้
@@ -108,8 +116,13 @@ export async function getQcContext(prisma: ExtendedPrismaClient, orderId: string
 export interface CreateQcRecordParams {
   orderId: string;
   idempotencyKey: string;
+  operationJobId?: string;
+  expectedRevision?: number;
+  canSupervise?: boolean;
   qtyGood: number;
+  quantityLines?: Array<{ quantityLineId: string; qtyGood: number }>;
   defects: Array<{
+    quantityLineId?: string;
     qty: number;
     size?: string;
     color?: string;
@@ -117,6 +130,7 @@ export interface CreateQcRecordParams {
     reason: string;
     photoUrls?: string[];
     note?: string;
+    disposition?: QualityDisposition;
   }>;
   notes?: string;
   userId: string;
@@ -142,8 +156,12 @@ function qcRequestFingerprint(params: CreateQcRecordParams) {
     .update(
       JSON.stringify({
         orderId: params.orderId,
+        operationJobId: params.operationJobId ?? null,
+        expectedRevision: params.expectedRevision ?? null,
         qtyGood: params.qtyGood,
+        quantityLines: params.quantityLines ?? [],
         defects: params.defects.map((defect) => ({
+          quantityLineId: defect.quantityLineId ?? null,
           qty: defect.qty,
           size: defect.size ?? null,
           color: defect.color ?? null,
@@ -151,6 +169,7 @@ function qcRequestFingerprint(params: CreateQcRecordParams) {
           reason: defect.reason,
           photoUrls: defect.photoUrls ?? [],
           note: defect.note ?? null,
+          disposition: defect.disposition ?? null,
         })),
         notes: params.notes ?? null,
         userId: params.userId,
@@ -205,16 +224,57 @@ async function lockQcProductionChain(tx: PrismaTx, orderId: string) {
     await tx.$queryRaw`SELECT id FROM productions WHERE id = ${productionId} FOR UPDATE`;
   }
   await tx.$queryRaw`SELECT id FROM orders WHERE id = ${orderId} FOR UPDATE`;
+
+  // อ่านเจ้าของ flow หลัง lock เท่านั้น: ใบผลิต V2 ต้องบันทึก QC ผ่าน FINAL_QC
+  // Operation Job เพื่อให้ revision, quantity, event และ rework อยู่ใน transaction เดียวกัน
+  return tx.order.findUniqueOrThrow({
+    where: { id: orderId },
+    select: {
+      productionCompletionOwnerId: true,
+      productions: {
+        select: {
+          workOrderNumber: true,
+          completionOwnerStepId: true,
+        },
+      },
+    },
+  });
+}
+
+function hasProductionV2Owner(owner: Awaited<ReturnType<typeof lockQcProductionChain>>) {
+  return Boolean(owner.productionCompletionOwnerId) || owner.productions.some(
+    (production) =>
+      production.workOrderNumber !== null || production.completionOwnerStepId !== null,
+  );
 }
 
 export async function createQcRecord(prisma: ExtendedPrismaClient, params: CreateQcRecordParams) {
+  if (params.operationJobId) assertProductionV2ApiEnabled();
   const qtyDefect = assertValidQcCounts(params);
+  if (params.operationJobId) {
+    if (
+      params.qtyGood > 0 &&
+      (!params.quantityLines?.length ||
+        params.quantityLines.reduce((sum, line) => sum + line.qtyGood, 0) !==
+          params.qtyGood)
+    ) {
+      badRequest("QC V2 ต้องแจกจำนวนดีลง quantity line ให้ตรงกับยอดรวม");
+    }
+    if (params.defects.some((defect) => !defect.quantityLineId)) {
+      badRequest("QC V2 ต้องระบุ quantity line ของของเสียทุกบรรทัด");
+    }
+  }
   const recordId = qcRecordIdForRequest(params.orderId, params.idempotencyKey);
   const requestFingerprint = qcRequestFingerprint(params);
 
   const result = await prisma.$transaction(async (tx) => {
     // สองคนตรวจพร้อมกันต้องต่อคิว และ defect path ต้องไม่กลับลำดับ lock กับ production writer
-    await lockQcProductionChain(tx, params.orderId);
+    const productionOwner = await lockQcProductionChain(tx, params.orderId);
+    if (!params.operationJobId && hasProductionV2Owner(productionOwner)) {
+      badRequest(
+        "งานนี้ต้องบันทึกผลตรวจจากงาน Final QC ในโหมดสถานี",
+      );
+    }
 
     // retry หลัง response หลุดต้องจบตรงนี้ก่อนเช็กสถานะ/ยอดสะสม: รอบแรกอาจพางานออกจาก
     // QUALITY_CHECK ไปแล้ว แต่ผลสำเร็จเดิมยังต้องตอบซ้ำได้โดยไม่เพิ่มยอด/audit/notification
@@ -261,8 +321,74 @@ export async function createQcRecord(prisma: ExtendedPrismaClient, params: Creat
         productions: { select: { id: true } },
       },
     });
+    const operation = params.operationJobId
+      ? await loadSpecializedOperation(tx, {
+          operationJobId: params.operationJobId,
+          expectedRevision:
+            params.expectedRevision ??
+            badRequest("คำสั่ง Production V2 ต้องระบุ expectedRevision"),
+          actorId: params.userId,
+          canSupervise: params.canSupervise === true,
+          requiredWorkCenterCode: "FINAL_QC",
+          orderId: params.orderId,
+        })
+      : null;
+    if (operation && params.defects.some((defect) => !defect.disposition)) {
+      badRequest("ของที่ไม่ผ่าน QC ต้องเลือก Hold, Rework หรือ Scrap ทุกบรรทัด");
+    }
+    if (operation) {
+      const evidenceQuantityLineIds = [
+        ...(params.quantityLines ?? []).map((line) => line.quantityLineId),
+        ...params.defects.flatMap((defect) =>
+          defect.quantityLineId ? [defect.quantityLineId] : [],
+        ),
+      ];
+      const uniqueQuantityLineIds = [...new Set(evidenceQuantityLineIds)];
+      if (uniqueQuantityLineIds.length > 0) {
+        const scopedLines = await tx.operationQuantity.findMany({
+          where: {
+            productionStepId: operation.id,
+            id: { in: uniqueQuantityLineIds },
+          },
+          select: {
+            id: true,
+            qtyPlanned: true,
+            qtyGood: true,
+          },
+        });
+        if (scopedLines.length !== uniqueQuantityLineIds.length) {
+          badRequest("quantity line ของผล QC ไม่ได้อยู่ใน Operation Job นี้");
+        }
+        const inspectedByLine = new Map<string, number>();
+        for (const line of params.quantityLines ?? []) {
+          inspectedByLine.set(
+            line.quantityLineId,
+            (inspectedByLine.get(line.quantityLineId) ?? 0) + line.qtyGood,
+          );
+        }
+        for (const defect of params.defects) {
+          if (!defect.quantityLineId) continue;
+          inspectedByLine.set(
+            defect.quantityLineId,
+            (inspectedByLine.get(defect.quantityLineId) ?? 0) + defect.qty,
+          );
+        }
+        const scopedLineById = new Map(
+          scopedLines.map((line) => [line.id, line]),
+        );
+        for (const [quantityLineId, inspectedQty] of inspectedByLine) {
+          const line = scopedLineById.get(quantityLineId)!;
+          const remaining = Math.max(0, line.qtyPlanned - line.qtyGood);
+          if (inspectedQty > remaining) {
+            badRequest(
+              "จำนวนดีและของเสียที่ตรวจรวมกันเกินจำนวนคงเหลือของ quantity line",
+            );
+          }
+        }
+      }
+    }
     // ตรวจนับเกิดที่ด่านตรวจเท่านั้น — ที่อื่นคือกดผิดจังหวะ (เช่น ยังผลิตไม่จบ)
-    if (order.internalStatus !== "QUALITY_CHECK") {
+    if (!operation && order.internalStatus !== "QUALITY_CHECK") {
       // เคสจริง: อีกจอเพิ่งกดเข้าแพ็คตัดหน้าระหว่างกรอกของเสีย — บอกทางแก้ตรงๆ
       // (ฟอร์มฝั่ง UI ไม่ล้างตอน error — ถอยสถานะแล้วกดบันทึกซ้ำได้เลย)
       if (order.internalStatus === "PACKING") {
@@ -284,23 +410,30 @@ export async function createQcRecord(prisma: ExtendedPrismaClient, params: Creat
       0
     );
     const checkedGood = order.qcRecords.reduce((s, r) => s + r.qtyGood, 0);
-    assertQcNotOverCount({ totalExpected, checkedGood, qtyGood: params.qtyGood });
+    if (!operation) {
+      assertQcNotOverCount({ totalExpected, checkedGood, qtyGood: params.qtyGood });
+    }
 
     const created = await tx.qcRecord.create({
       data: {
         id: recordId,
         orderId: params.orderId,
+        productionStepId: operation?.id,
         qtyGood: params.qtyGood,
         qtyDefect,
         notes: params.notes,
         checkedById: params.userId,
         defects: {
           create: params.defects.map((d) => ({
+            ...(operation && d.quantityLineId
+              ? { operationQuantityId: d.quantityLineId }
+              : {}),
             qty: d.qty,
             size: d.size,
             color: d.color,
             printLabel: d.printLabel,
             reason: d.reason,
+            disposition: d.disposition,
             photoUrls: d.photoUrls ?? [],
             note: d.note,
           })),
@@ -315,16 +448,91 @@ export async function createQcRecord(prisma: ExtendedPrismaClient, params: Creat
 
     // กติกาเลือกทาง (ดียังไม่ครบ+เสีย→REWORK/รอของ · ดีครบ→PACK · ดีบางส่วน→STAY)
     // อยู่ qc-count.ts เพื่อให้เส้นบันทึกกับ manual recovery ยึดความหมายเดียวกัน
-    const move = qcNextMove({
-      qtyGood: params.qtyGood,
-      qtyDefect,
-      totalExpected,
-      checkedGood,
-      hasFromStock: pick.lines.length > 0,
-      spareAvailable,
-    });
+    const move = operation
+      ? "STAY"
+      : qcNextMove({
+          qtyGood: params.qtyGood,
+          qtyDefect,
+          totalExpected,
+          checkedGood,
+          hasFromStock: pick.lines.length > 0,
+          spareAvailable,
+        });
 
-    if (move === "HOLD_FOR_STOCK" || move === "REWORK") {
+    if (operation) {
+      const qtyScrap = created.defects.reduce(
+        (sum, defect) =>
+          sum + (defect.disposition === "SCRAP" ? defect.qty : 0),
+        0,
+      );
+      const qtyRework = created.defects.reduce(
+        (sum, defect) =>
+          sum + (defect.disposition === "REWORK" ? defect.qty : 0),
+        0,
+      );
+      const hasBlockingDefect = created.defects.some(
+        (defect) =>
+          defect.disposition === "HOLD" || defect.disposition === "REWORK",
+      );
+      const eventInput = {
+        operation,
+        commandId: `qc-record:${recordId}`,
+        actorId: params.userId,
+        eventType: "QC_RECORDED" as const,
+        ...(hasBlockingDefect ? { nextState: "BLOCKED" as const } : {}),
+        payload: { qcRecordId: created.id, qtyDefect },
+      };
+      if (params.qtyGood + qtyScrap + qtyRework > 0) {
+        const quantityOutputById = new Map<string, SpecializedQuantityOutput>();
+        for (const line of params.quantityLines ?? []) {
+          quantityOutputById.set(line.quantityLineId, {
+            quantityLineId: line.quantityLineId,
+            qtyGood: line.qtyGood,
+            qtyScrap: 0,
+            qtyRework: 0,
+          });
+        }
+        params.defects.forEach((defect) => {
+          if (defect.disposition !== "SCRAP" && defect.disposition !== "REWORK") return;
+          const quantityLineId = defect.quantityLineId!;
+          const current = quantityOutputById.get(quantityLineId) ?? {
+            quantityLineId,
+            qtyGood: 0,
+            qtyScrap: 0,
+            qtyRework: 0,
+          };
+          if (defect.disposition === "SCRAP") current.qtyScrap += defect.qty;
+          if (defect.disposition === "REWORK") current.qtyRework += defect.qty;
+          quantityOutputById.set(quantityLineId, current);
+        });
+        await recordSpecializedOperationOutput(tx, {
+          ...eventInput,
+          delta: { qtyGood: params.qtyGood, qtyScrap, qtyRework },
+          quantityLines: [...quantityOutputById.values()],
+        });
+      } else {
+        await recordSpecializedOperationEvent(tx, eventInput);
+      }
+      for (const defect of created.defects) {
+        const blocksJob =
+          defect.disposition === "HOLD" || defect.disposition === "REWORK";
+        await tx.productionException.create({
+          data: {
+            productionId: operation.productionId,
+            productionStepId: operation.id,
+            workCenterId: operation.workCenterId,
+            sourceQcDefectId: defect.id,
+            code: `QC_DEFECT:${defect.id}`,
+            title: `QC ไม่ผ่าน: ${qcReasonLabel(defect.reason)}`,
+            description: defect.note,
+            severity: blocksJob ? "CRITICAL" : "WARNING",
+            blocksJob,
+            disposition: defect.disposition,
+            raisedById: params.userId,
+          },
+        });
+      }
+    } else if (move === "HOLD_FOR_STOCK" || move === "REWORK") {
       heldForStock = move === "HOLD_FOR_STOCK";
       const reason = `QC พบของเสีย ${qtyDefect} ตัว (${[
         ...new Set(created.defects.map((d) => qcReasonLabel(d.reason))),
@@ -364,6 +572,7 @@ export async function createQcRecord(prisma: ExtendedPrismaClient, params: Creat
       entityId: created.id,
       newValue: {
         orderId: params.orderId,
+        operationJobId: operation?.id ?? null,
         qtyGood: params.qtyGood,
         qtyDefect,
         requestFingerprint,
@@ -401,13 +610,15 @@ export async function createQcRecord(prisma: ExtendedPrismaClient, params: Creat
         select: { orderNumber: true },
       });
       const reasons = [...new Set(record.defects.map((d) => qcReasonLabel(d.reason)))].join("/");
-      const statusNote = movedToPacking
-        ? `ของดีครบตามยอดแล้ว · ของเสีย ${qtyDefect} ตัวเป็นของนอกยอดสั่ง/เสื้อเผื่อ จึงเข้าแพ็คต่อ`
-        : heldForStock
-        ? `เสื้อสำรองไม่พอ (เหลือ ${spareAvailable}/${qtyDefect} ตัว) — งานพักรอของ คุยลูกค้า/สั่งเพิ่มแล้วปลดพัก`
-        : reworkOpened
-          ? `งานถอยกลับผลิตพร้อมขั้นงานแก้แล้ว · เสื้อสำรองเหลือ ${spareAvailable} ตัว`
-          : `งานถอยกลับผลิตแล้ว แต่ยังไม่มีใบผลิต — เปิดใบผลิตสำหรับงานแก้ที่หน้า /production`;
+      const statusNote = params.operationJobId
+        ? "บันทึกผลและ disposition แล้ว งานที่ Hold/Rework ถูกบล็อกไว้ให้หัวหน้าจัดการ"
+        : movedToPacking
+          ? `ของดีครบตามยอดแล้ว · ของเสีย ${qtyDefect} ตัวเป็นของนอกยอดสั่ง/เสื้อเผื่อ จึงเข้าแพ็คต่อ`
+          : heldForStock
+            ? `เสื้อสำรองไม่พอ (เหลือ ${spareAvailable}/${qtyDefect} ตัว) — งานพักรอของ คุยลูกค้า/สั่งเพิ่มแล้วปลดพัก`
+            : reworkOpened
+              ? `งานถอยกลับผลิตพร้อมขั้นงานแก้แล้ว · เสื้อสำรองเหลือ ${spareAvailable} ตัว`
+              : `งานถอยกลับผลิตแล้ว แต่ยังไม่มีใบผลิต — เปิดใบผลิตสำหรับงานแก้ที่หน้า /production`;
       const admins = await prisma.user.findMany({
         where: { role: { in: ["OWNER", "MANAGER"] }, isActive: true },
         select: { id: true },

@@ -12,12 +12,18 @@ import {
   PrismaClient,
   type CustomerStatus,
   type InternalStatus,
+  type OperationPhase,
+  type OperationState,
+  type ProductionStepType,
+  type StepStatus,
+  type WorkOrderState,
 } from "@prisma/client";
 import {
   assertDemoSeedPlan,
   buildDemoResetTableNames,
   DEMO_SEED_SCENARIOS,
   type DemoSeedFeature,
+  type DemoSeedScenario,
   validateDemoDatabaseUrl,
   validateDemoSeedInvocation,
 } from "../src/lib/demo-seed-plan";
@@ -29,6 +35,30 @@ const DEMO_ART =
   encodeURIComponent(
     '<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480" viewBox="0 0 640 480"><rect width="640" height="480" fill="#f4f4f5"/><circle cx="320" cy="210" r="112" fill="#2563eb"/><path d="M252 218h136v32H252z" fill="white"/><text x="320" y="390" text-anchor="middle" font-family="sans-serif" font-size="28" fill="#18181b">ANAJAK DEMO</text></svg>',
   );
+
+const V2_WORK_CENTERS = [
+  { id: "demo-wc-prep", code: "PREP", name: "เตรียมงาน", sortOrder: 10 },
+  { id: "demo-wc-dtf", code: "DTF_PRINT", name: "พิมพ์ DTF", sortOrder: 20 },
+  { id: "demo-wc-press", code: "HEAT_PRESS", name: "รีดร้อน", sortOrder: 30 },
+  { id: "demo-wc-qc", code: "FINAL_QC", name: "ตรวจคุณภาพขั้นสุดท้าย", sortOrder: 40 },
+  { id: "demo-wc-pack", code: "FINAL_PACK", name: "แพ็กขั้นสุดท้าย", sortOrder: 50 },
+  { id: "demo-wc-outsource", code: "OUTSOURCE", name: "งานส่งผลิตภายนอก", sortOrder: 60 },
+] as const;
+
+const V2_CENTER_ID = Object.fromEntries(
+  V2_WORK_CENTERS.map((center) => [center.code, center.id]),
+) as Record<(typeof V2_WORK_CENTERS)[number]["code"], string>;
+
+const V2_ROUTING = {
+  standard: {
+    routingId: "demo-routing-standard",
+    versionId: "demo-routing-standard-v1",
+  },
+  outsource: {
+    routingId: "demo-routing-outsource",
+    versionId: "demo-routing-outsource-v1",
+  },
+} as const;
 
 const DEMO_STOCK_PRODUCTS = {
   ready: {
@@ -258,6 +288,541 @@ type SeededDemoStockProduct = {
   }>;
 };
 
+type DemoV2Operation = {
+  id: string;
+  code: "PREP" | "DTF_PRINT" | "HEAT_PRESS" | "OUTSOURCE" | "FINAL_QC" | "FINAL_PACK";
+  name: string;
+  stepType: ProductionStepType;
+  phase: OperationPhase;
+  state: OperationState;
+  legacyStatus: StepStatus;
+  workCenterId: string;
+  routingOperationId: string;
+  sortOrder: number;
+  qtyGood: number;
+  qtyScrap?: number;
+  qtyRework?: number;
+  assignedToId?: string | null;
+  startedAt?: Date | null;
+  completedAt?: Date | null;
+  executionMode?: "IN_HOUSE" | "OUTSOURCE";
+};
+
+async function seedProductionV2Master(
+  tx: Prisma.TransactionClient,
+  ownerId: string,
+) {
+  await tx.workCenter.createMany({ data: [...V2_WORK_CENTERS] });
+  await tx.workResource.createMany({
+    data: [
+      {
+        id: "demo-resource-dtf-printer-1",
+        workCenterId: V2_CENTER_ID.DTF_PRINT,
+        code: "DTF-01",
+        name: "เครื่องพิมพ์ DTF 01",
+        kind: "MACHINE",
+      },
+      {
+        id: "demo-resource-heat-press-1",
+        workCenterId: V2_CENTER_ID.HEAT_PRESS,
+        code: "PRESS-01",
+        name: "เครื่องรีดร้อน 01",
+        kind: "MACHINE",
+      },
+    ],
+  });
+  await tx.workCenterMember.createMany({
+    data: [
+      { id: "demo-wcm-prep", workCenterId: V2_CENTER_ID.PREP, userId: "demo-user-prep", memberRole: "OPERATOR" },
+      { id: "demo-wcm-dtf", workCenterId: V2_CENTER_ID.DTF_PRINT, userId: "demo-user-dtf", memberRole: "OPERATOR" },
+      { id: "demo-wcm-press", workCenterId: V2_CENTER_ID.HEAT_PRESS, userId: "demo-user-press", memberRole: "OPERATOR" },
+      { id: "demo-wcm-qc", workCenterId: V2_CENTER_ID.FINAL_QC, userId: "demo-user-press", memberRole: "OPERATOR" },
+      { id: "demo-wcm-pack", workCenterId: V2_CENTER_ID.FINAL_PACK, userId: "demo-user-press", memberRole: "OPERATOR" },
+      { id: "demo-wcm-outsource", workCenterId: V2_CENTER_ID.OUTSOURCE, userId: "demo-user-supervisor", memberRole: "LEAD", canDispatch: true, canSupervise: true },
+    ],
+  });
+
+  await tx.routing.createMany({
+    data: [
+      { id: V2_ROUTING.standard.routingId, code: "DEMO_STANDARD_DTF", name: "DTF ในโรงงาน" },
+      { id: V2_ROUTING.outsource.routingId, code: "DEMO_OUTSOURCE", name: "ส่งผลิตภายนอก" },
+    ],
+  });
+  await tx.routingVersion.createMany({
+    data: [
+      {
+        id: V2_ROUTING.standard.versionId,
+        routingId: V2_ROUTING.standard.routingId,
+        versionNumber: 1,
+      },
+      {
+        id: V2_ROUTING.outsource.versionId,
+        routingId: V2_ROUTING.outsource.routingId,
+        versionNumber: 1,
+      },
+    ],
+  });
+
+  const standardOperations = [
+    ["PREP", "เตรียมงาน", 10, "PREPARATION", V2_CENTER_ID.PREP],
+    ["DTF_PRINT", "พิมพ์ DTF", 20, "MANUFACTURING", V2_CENTER_ID.DTF_PRINT],
+    ["HEAT_PRESS", "รีดร้อน", 30, "MANUFACTURING", V2_CENTER_ID.HEAT_PRESS],
+    ["FINAL_QC", "ตรวจคุณภาพขั้นสุดท้าย", 40, "QUALITY", V2_CENTER_ID.FINAL_QC],
+    ["FINAL_PACK", "แพ็กขั้นสุดท้าย", 50, "PACKING", V2_CENTER_ID.FINAL_PACK],
+  ] as const;
+  const outsourceOperations = [
+    ["PREP", "เตรียมงาน", 10, "PREPARATION", V2_CENTER_ID.PREP],
+    ["OUTSOURCE", "ส่งผลิตภายนอก", 20, "OUTSOURCE", V2_CENTER_ID.OUTSOURCE],
+    ["FINAL_QC", "ตรวจคุณภาพขั้นสุดท้าย", 30, "QUALITY", V2_CENTER_ID.FINAL_QC],
+    ["FINAL_PACK", "แพ็กขั้นสุดท้าย", 40, "PACKING", V2_CENTER_ID.FINAL_PACK],
+  ] as const;
+  await tx.routingOperation.createMany({
+    data: [
+      ...standardOperations.map(([code, name, sequence, phase, workCenterId]) => ({
+        id: `demo-route-op-standard-${code.toLowerCase()}`,
+        routingVersionId: V2_ROUTING.standard.versionId,
+        operationCode: code,
+        name,
+        sequence,
+        phase,
+        workCenterId,
+        instructions: { text: `${name}ตามใบงานและภาพอนุมัติ` },
+      })),
+      ...outsourceOperations.map(([code, name, sequence, phase, workCenterId]) => ({
+        id: `demo-route-op-outsource-${code.toLowerCase()}`,
+        routingVersionId: V2_ROUTING.outsource.versionId,
+        operationCode: code,
+        name,
+        sequence,
+        phase,
+        executionMode: code === "OUTSOURCE" ? ("OUTSOURCE" as const) : ("IN_HOUSE" as const),
+        workCenterId,
+        instructions: { text: `${name}ตามใบงานและภาพอนุมัติ` },
+      })),
+    ],
+  });
+  await tx.routingOperationDependency.createMany({
+    data: [
+      // Prep กับ DTF เริ่มขนานกันได้ แล้ว Heat Press รอทั้งสองทาง
+      { id: "demo-route-dep-standard-prep-press", predecessorOperationId: "demo-route-op-standard-prep", successorOperationId: "demo-route-op-standard-heat_press" },
+      { id: "demo-route-dep-standard-dtf-press", predecessorOperationId: "demo-route-op-standard-dtf_print", successorOperationId: "demo-route-op-standard-heat_press" },
+      { id: "demo-route-dep-standard-press-qc", predecessorOperationId: "demo-route-op-standard-heat_press", successorOperationId: "demo-route-op-standard-final_qc" },
+      { id: "demo-route-dep-standard-qc-pack", predecessorOperationId: "demo-route-op-standard-final_qc", successorOperationId: "demo-route-op-standard-final_pack" },
+      { id: "demo-route-dep-outsource-prep-send", predecessorOperationId: "demo-route-op-outsource-prep", successorOperationId: "demo-route-op-outsource-outsource" },
+      { id: "demo-route-dep-outsource-send-qc", predecessorOperationId: "demo-route-op-outsource-outsource", successorOperationId: "demo-route-op-outsource-final_qc" },
+      { id: "demo-route-dep-outsource-qc-pack", predecessorOperationId: "demo-route-op-outsource-final_qc", successorOperationId: "demo-route-op-outsource-final_pack" },
+    ],
+  });
+  await tx.routingVersion.updateMany({
+    where: { id: { in: [V2_ROUTING.standard.versionId, V2_ROUTING.outsource.versionId] } },
+    data: {
+      state: "RELEASED",
+      releasedAt: fromNow(-30),
+      releasedById: ownerId,
+    },
+  });
+}
+
+function v2StateForScenario(status: InternalStatus): WorkOrderState {
+  if (status === "PRODUCTION_QUEUE") return "RELEASED";
+  if (["READY_TO_SHIP", "SHIPPED", "COMPLETED"].includes(status)) return "COMPLETED";
+  return "IN_PROGRESS";
+}
+
+function distributeGood(
+  variants: readonly { quantity: number }[],
+  totalGood: number,
+): number[] {
+  let remaining = totalGood;
+  return variants.map((variant) => {
+    const good = Math.min(variant.quantity, remaining);
+    remaining -= good;
+    return good;
+  });
+}
+
+async function seedProductionV2WorkOrder(
+  tx: Prisma.TransactionClient,
+  input: {
+    scenario: DemoSeedScenario;
+    period: string;
+    orderId: string;
+    productLineId: string;
+    productionId: string;
+    productionCreatedAt: Date;
+    productionEndedAt: Date | null;
+    quantity: number;
+    variants: readonly { size: string; color: string; quantity: number }[];
+    stepIds: SeededOrder["stepIds"];
+    ownerId: string;
+  },
+) {
+  const { scenario } = input;
+  const outsource = scenario.features.includes("OUTSOURCE_OVERDUE");
+  const routePrefix = outsource ? "outsource" : "standard";
+  const routingVersionId = outsource
+    ? V2_ROUTING.outsource.versionId
+    : V2_ROUTING.standard.versionId;
+  const workOrderState = v2StateForScenario(scenario.internalStatus as InternalStatus);
+  const now = fromNow(0, -1);
+  const isAfterProduction = [
+    "QUALITY_CHECK",
+    "PACKING",
+    "READY_TO_SHIP",
+    "SHIPPED",
+    "COMPLETED",
+  ].includes(scenario.internalStatus);
+  const isAfterQc = ["PACKING", "READY_TO_SHIP", "SHIPPED", "COMPLETED"].includes(
+    scenario.internalStatus,
+  );
+  const isAfterPack = ["READY_TO_SHIP", "SHIPPED", "COMPLETED"].includes(
+    scenario.internalStatus,
+  );
+
+  const legacySteps = await tx.productionStep.findMany({
+    where: { productionId: input.productionId },
+    select: {
+      id: true,
+      stepType: true,
+      status: true,
+      assignedToId: true,
+      startedAt: true,
+      completedAt: true,
+    },
+  });
+  const byId = new Map(legacySteps.map((step) => [step.id, step]));
+  const operations: DemoV2Operation[] = [];
+
+  if (input.stepIds.garment) {
+    const legacy = byId.get(input.stepIds.garment)!;
+    const state: OperationState =
+      legacy.status === "COMPLETED"
+        ? "COMPLETED"
+        : legacy.status === "FAILED" || legacy.status === "ON_HOLD"
+          ? "BLOCKED"
+          : "READY";
+    operations.push({
+      id: legacy.id,
+      code: "PREP",
+      name: "เตรียมงาน",
+      stepType: legacy.stepType,
+      phase: "PREPARATION",
+      state,
+      legacyStatus: legacy.status,
+      workCenterId: V2_CENTER_ID.PREP,
+      routingOperationId: `demo-route-op-${routePrefix}-prep`,
+      sortOrder: 10,
+      qtyGood: state === "COMPLETED" ? input.quantity : 0,
+      assignedToId: legacy.assignedToId,
+      startedAt: legacy.startedAt,
+      completedAt: legacy.completedAt,
+    });
+  }
+
+  if (input.stepIds.dtf) {
+    const legacy = byId.get(input.stepIds.dtf)!;
+    const state: OperationState =
+      legacy.status === "COMPLETED"
+        ? "COMPLETED"
+        : legacy.status === "IN_PROGRESS"
+          ? "RUNNING"
+          : "READY";
+    operations.push({
+      id: legacy.id,
+      code: "DTF_PRINT",
+      name: "พิมพ์ DTF",
+      stepType: legacy.stepType,
+      phase: "MANUFACTURING",
+      state,
+      legacyStatus: legacy.status,
+      workCenterId: V2_CENTER_ID.DTF_PRINT,
+      routingOperationId: "demo-route-op-standard-dtf_print",
+      sortOrder: 20,
+      qtyGood: state === "COMPLETED" ? input.quantity : 0,
+      assignedToId: legacy.assignedToId,
+      startedAt: legacy.startedAt,
+      completedAt: legacy.completedAt,
+    });
+  }
+
+  if (input.stepIds.heat) {
+    const legacy = byId.get(input.stepIds.heat)!;
+    const state: OperationState = isAfterProduction
+      ? "COMPLETED"
+      : scenario.features.includes("HEAT_PRESS")
+        ? "READY"
+        : "PLANNED";
+    operations.push({
+      id: legacy.id,
+      code: "HEAT_PRESS",
+      name: "รีดร้อน",
+      stepType: legacy.stepType,
+      phase: "MANUFACTURING",
+      state,
+      legacyStatus: state === "COMPLETED" ? "COMPLETED" : "PENDING",
+      workCenterId: V2_CENTER_ID.HEAT_PRESS,
+      routingOperationId: "demo-route-op-standard-heat_press",
+      sortOrder: 30,
+      qtyGood: state === "COMPLETED" ? input.quantity : 0,
+      assignedToId: legacy.assignedToId,
+      startedAt: legacy.startedAt,
+      completedAt: legacy.completedAt,
+    });
+  }
+
+  if (input.stepIds.outsource) {
+    const legacy = byId.get(input.stepIds.outsource)!;
+    operations.push({
+      id: legacy.id,
+      code: "OUTSOURCE",
+      name: "ส่งผลิตภายนอก",
+      stepType: legacy.stepType,
+      phase: "OUTSOURCE",
+      state: "RUNNING",
+      legacyStatus: "IN_PROGRESS",
+      workCenterId: V2_CENTER_ID.OUTSOURCE,
+      routingOperationId: "demo-route-op-outsource-outsource",
+      sortOrder: 20,
+      qtyGood: 0,
+      assignedToId: legacy.assignedToId,
+      startedAt: legacy.startedAt,
+      completedAt: legacy.completedAt,
+      executionMode: "OUTSOURCE",
+    });
+  }
+
+  const finalQcId = `demo-step-${scenario.key}-final-qc`;
+  const finalPackId = `demo-step-${scenario.key}-final-pack`;
+  const finalQcState: OperationState =
+    scenario.internalStatus === "QUALITY_CHECK"
+      ? "RUNNING"
+      : isAfterQc
+        ? "COMPLETED"
+        : "PLANNED";
+  const finalPackState: OperationState =
+    scenario.internalStatus === "PACKING"
+      ? "RUNNING"
+      : isAfterPack
+        ? "COMPLETED"
+        : "PLANNED";
+  operations.push(
+    {
+      id: finalQcId,
+      code: "FINAL_QC",
+      name: "ตรวจคุณภาพขั้นสุดท้าย",
+      stepType: "CUSTOM",
+      phase: "QUALITY",
+      state: finalQcState,
+      legacyStatus: finalQcState === "COMPLETED" ? "COMPLETED" : finalQcState === "RUNNING" ? "IN_PROGRESS" : "PENDING",
+      workCenterId: V2_CENTER_ID.FINAL_QC,
+      routingOperationId: `demo-route-op-${routePrefix}-final_qc`,
+      sortOrder: outsource ? 30 : 40,
+      qtyGood: finalQcState === "COMPLETED" ? input.quantity : finalQcState === "RUNNING" ? 20 : 0,
+      assignedToId: finalQcState === "RUNNING" ? "demo-user-press" : null,
+      startedAt: finalQcState === "RUNNING" ? fromNow(-1, -4) : null,
+      completedAt: finalQcState === "COMPLETED" ? input.productionEndedAt : null,
+    },
+    {
+      id: finalPackId,
+      code: "FINAL_PACK",
+      name: "แพ็กขั้นสุดท้าย",
+      stepType: "CUSTOM",
+      phase: "PACKING",
+      state: finalPackState,
+      legacyStatus: finalPackState === "COMPLETED" ? "COMPLETED" : finalPackState === "RUNNING" ? "IN_PROGRESS" : "PENDING",
+      workCenterId: V2_CENTER_ID.FINAL_PACK,
+      routingOperationId: `demo-route-op-${routePrefix}-final_pack`,
+      sortOrder: outsource ? 40 : 50,
+      qtyGood: finalPackState === "COMPLETED" ? input.quantity : finalPackState === "RUNNING" ? Math.floor(input.quantity / 2) : 0,
+      assignedToId: finalPackState === "RUNNING" ? "demo-user-press" : null,
+      startedAt: finalPackState === "RUNNING" ? fromNow(-1, -2) : null,
+      completedAt: finalPackState === "COMPLETED" ? input.productionEndedAt : null,
+    },
+  );
+
+  for (const operation of operations) {
+    const common = {
+      operationCode: operation.code,
+      operationName: operation.name,
+      operationPhase: operation.phase,
+      operationState: operation.state,
+      executionMode: operation.executionMode ?? ("IN_HOUSE" as const),
+      workCenterId: operation.workCenterId,
+      workResourceId:
+        operation.code === "DTF_PRINT"
+          ? "demo-resource-dtf-printer-1"
+          : operation.code === "HEAT_PRESS"
+            ? "demo-resource-heat-press-1"
+            : null,
+      routingOperationId: operation.routingOperationId,
+      executionEnabled: true,
+      dispatchSequence: operation.sortOrder,
+      qtyPlanned: input.quantity,
+      qtyGood: operation.qtyGood,
+      qtyScrap: operation.qtyScrap ?? 0,
+      qtyRework: operation.qtyRework ?? 0,
+      qtyTotal: input.quantity,
+      qtyDone: operation.qtyGood,
+      status: operation.legacyStatus,
+      assignedToId: operation.assignedToId ?? null,
+      readyAt: operation.state === "READY" ? now : null,
+      startedAt: operation.startedAt ?? null,
+      completedAt: operation.completedAt ?? null,
+      instructionSnapshot: { text: `${operation.name}ตามจำนวนและภาพที่อนุมัติ` },
+      referenceSnapshot: { mockup: DEMO_ART, source: "LOCAL_DEMO" },
+    };
+    if (byId.has(operation.id)) {
+      await tx.productionStep.update({ where: { id: operation.id }, data: common });
+    } else {
+      await tx.productionStep.create({
+        data: {
+          id: operation.id,
+          productionId: input.productionId,
+          stepType: operation.stepType,
+          customStepName: operation.name,
+          sortOrder: operation.sortOrder,
+          createdAt: input.productionCreatedAt,
+          ...common,
+        },
+      });
+    }
+
+    const goodByVariant = distributeGood(input.variants, operation.qtyGood);
+    await tx.operationQuantity.createMany({
+      data: input.variants.map((variant, index) => ({
+        id: `demo-qty-${scenario.key}-${operation.code.toLowerCase()}-${index}`,
+        productionId: input.productionId,
+        productionStepId: operation.id,
+        scopeKey: `${variant.color}:${variant.size}:FRONT`,
+        scopeKind: operation.code === "FINAL_PACK" ? ("PACK_LINE" as const) : ("VARIANT_PRINT_POSITION" as const),
+        sourceOrderItemProductId: input.productLineId,
+        description: `${variant.color} / ${variant.size}`,
+        size: variant.size,
+        color: variant.color,
+        printPosition: "FRONT",
+        qtyPlanned: variant.quantity,
+        qtyGood: goodByVariant[index],
+        referenceSnapshot: { size: variant.size, color: variant.color, printPosition: "FRONT" },
+      })),
+    });
+
+    const events: Prisma.OperationEventCreateManyInput[] = [
+      {
+        id: `demo-event-${scenario.key}-${operation.code.toLowerCase()}-created`,
+        productionId: input.productionId,
+        productionStepId: operation.id,
+        eventType: "CREATED",
+        commandId: `demo-command-${scenario.key}-${operation.code.toLowerCase()}-created`,
+        actorId: input.ownerId,
+        toState: "PLANNED",
+        occurredAt: input.productionCreatedAt,
+      },
+    ];
+    if (operation.qtyGood > 0) {
+      events.push({
+        id: `demo-event-${scenario.key}-${operation.code.toLowerCase()}-output`,
+        productionId: input.productionId,
+        productionStepId: operation.id,
+        eventType: "OUTPUT_REPORTED",
+        commandId: `demo-command-${scenario.key}-${operation.code.toLowerCase()}-output`,
+        actorId: operation.assignedToId ?? input.ownerId,
+        fromState: "RUNNING",
+        toState: "RUNNING",
+        qtyGoodDelta: operation.qtyGood,
+        occurredAt: operation.completedAt ?? operation.startedAt ?? now,
+      });
+    }
+    if (operation.state === "COMPLETED") {
+      events.push({
+        id: `demo-event-${scenario.key}-${operation.code.toLowerCase()}-completed`,
+        productionId: input.productionId,
+        productionStepId: operation.id,
+        eventType: "COMPLETED",
+        commandId: `demo-command-${scenario.key}-${operation.code.toLowerCase()}-completed`,
+        actorId: operation.assignedToId ?? input.ownerId,
+        fromState: "RUNNING",
+        toState: "COMPLETED",
+        occurredAt: operation.completedAt ?? now,
+      });
+    }
+    await tx.operationEvent.createMany({ data: events });
+  }
+
+  const operationByCode = new Map(operations.map((operation) => [operation.code, operation.id]));
+  const dependencies = outsource
+    ? [
+        ["PREP", "OUTSOURCE"],
+        ["OUTSOURCE", "FINAL_QC"],
+        ["FINAL_QC", "FINAL_PACK"],
+      ]
+    : [
+        ["PREP", "HEAT_PRESS"],
+        ["DTF_PRINT", "HEAT_PRESS"],
+        ["HEAT_PRESS", "FINAL_QC"],
+        ["FINAL_QC", "FINAL_PACK"],
+      ];
+  await tx.operationJobDependency.createMany({
+    data: dependencies.map(([predecessor, successor], index) => ({
+      id: `demo-job-dep-${scenario.key}-${index}`,
+      predecessorStepId: operationByCode.get(predecessor as DemoV2Operation["code"])!,
+      successorStepId: operationByCode.get(successor as DemoV2Operation["code"])!,
+    })),
+  });
+
+  await tx.production.update({
+    where: { id: input.productionId },
+    data: {
+      workOrderNumber: `MO-${input.period}-${String(scenario.sequence).padStart(4, "0")}`,
+      workOrderState,
+      routingVersionId,
+      releasedById: input.ownerId,
+      releasedAt: input.productionCreatedAt,
+      revision: 1,
+      routingSnapshot: { route: routePrefix, dependencies },
+      instructionSnapshot: { text: "ทำตามใบงานและภาพที่ลูกค้าอนุมัติ" },
+      approvedMockupSnapshot: { fileUrl: DEMO_ART, approval: "APPROVED" },
+      plannedStartAt: input.productionCreatedAt,
+      plannedEndAt: fromNow(scenario.deadlineInDays, 10),
+      completionOwnerStepId: finalPackId,
+      status: workOrderState === "COMPLETED" ? "COMPLETED" : workOrderState === "RELEASED" ? "PENDING" : "IN_PROGRESS",
+      startDate: workOrderState === "RELEASED" ? null : input.productionCreatedAt,
+      endDate: workOrderState === "COMPLETED" ? input.productionEndedAt : null,
+    },
+  });
+  await tx.manufacturingReferenceSnapshot.create({
+    data: {
+      id: `demo-snapshot-${scenario.key}-mockup`,
+      productionId: input.productionId,
+      kind: "APPROVED_MOCKUP",
+      contentHash: `demo-${scenario.key}-approved-v1`,
+      payload: { fileUrl: DEMO_ART, approval: "APPROVED", version: 1 },
+    },
+  });
+  await tx.order.update({
+    where: { id: input.orderId },
+    data: { productionCompletionOwnerId: input.productionId },
+  });
+  if (scenario.features.includes("BLOCKED_STOCK")) {
+    const prep = operationByCode.get("PREP")!;
+    await tx.productionException.create({
+      data: {
+        id: `demo-exception-${scenario.key}`,
+        productionId: input.productionId,
+        productionStepId: prep,
+        workCenterId: V2_CENTER_ID.PREP,
+        code: "MATERIAL_SHORTAGE",
+        title: "เสื้อไม่พอเริ่มงาน",
+        description: "สต๊อกทดสอบไม่ครบตามสีและไซซ์",
+        severity: "CRITICAL",
+        blocksJob: true,
+        state: "OPEN",
+        disposition: "HOLD",
+        raisedById: "demo-user-prep",
+      },
+    });
+  }
+}
+
 async function main() {
   validateDemoSeedInvocation(
     process.argv.slice(2),
@@ -484,6 +1049,8 @@ async function main() {
           update: { name: staff.name, role: staff.role, isActive: true },
         });
       }
+
+      await seedProductionV2Master(tx, owner.id);
 
       await tx.customer.createMany({ data: customerSeeds });
       await tx.vendor.createMany({
@@ -765,6 +1332,7 @@ async function main() {
 
         const stepIds: SeededOrder["stepIds"] = {};
         const productionStatuses: InternalStatus[] = [
+          "PRODUCTION_QUEUE",
           "PRODUCING",
           "QUALITY_CHECK",
           "PACKING",
@@ -776,7 +1344,11 @@ async function main() {
           productionStatuses.includes(scenario.internalStatus as InternalStatus)
         ) {
           const productionId = `demo-production-${scenario.key}`;
-          const productionComplete = scenario.internalStatus !== "PRODUCING";
+          const productionComplete = [
+            "READY_TO_SHIP",
+            "SHIPPED",
+            "COMPLETED",
+          ].includes(scenario.internalStatus);
           const productionCreatedAt = fromNow(
             -Math.max(1, scenario.ageDays - 2),
           );
@@ -886,13 +1458,25 @@ async function main() {
             const dtfPrinting = features.has("DTF_PRINTING");
             const dtfPrinted = features.has("DTF_PRINTED");
             const heatReady = features.has("HEAT_PRESS");
-            const downstreamComplete = productionComplete;
-            const garmentStartedAt = downstreamComplete
-              ? fromNow(-12)
-              : fromNow(-8);
-            const garmentCompletedAt = downstreamComplete
-              ? fromNow(-11)
-              : fromNow(-7);
+            const downstreamComplete = [
+              "QUALITY_CHECK",
+              "PACKING",
+              "READY_TO_SHIP",
+              "SHIPPED",
+              "COMPLETED",
+            ].includes(scenario.internalStatus);
+            const queuedForProduction =
+              scenario.internalStatus === "PRODUCTION_QUEUE";
+            const garmentStartedAt = queuedForProduction
+              ? new Date(productionCreatedAt.getTime() + 60 * 60 * 1_000)
+              : downstreamComplete
+                ? fromNow(-12)
+                : fromNow(-8);
+            const garmentCompletedAt = queuedForProduction
+              ? new Date(productionCreatedAt.getTime() + 2 * 60 * 60 * 1_000)
+              : downstreamComplete
+                ? fromNow(-11)
+                : fromNow(-7);
             const dtfTimeline = dtfPrinting
               ? dtfTimelines.printing
               : dtfPrinted
@@ -977,6 +1561,20 @@ async function main() {
               ],
             });
           }
+
+          await seedProductionV2WorkOrder(tx, {
+            scenario,
+            period,
+            orderId: id,
+            productLineId,
+            productionId,
+            productionCreatedAt,
+            productionEndedAt,
+            quantity: scenario.quantity,
+            variants,
+            stepIds,
+            ownerId: owner.id,
+          });
         }
 
         if (received) {
@@ -984,6 +1582,7 @@ async function main() {
             data: {
               id: `demo-receipt-${scenario.key}`,
               orderId: id,
+              productionStepId: stepIds.garment ?? null,
               receiptType: "CUSTOMER_GARMENT",
               notes: "รับครบตามไซส์ ตรวจสภาพก่อนเข้าผลิตแล้ว",
               receivedById: "demo-user-prep",
@@ -1018,14 +1617,31 @@ async function main() {
             data: {
               id: `demo-qc-${scenario.key}`,
               orderId: id,
+              productionStepId: `demo-step-${scenario.key}-final-qc`,
               qtyGood: isPartialCheck ? 20 : scenario.quantity,
-              qtyDefect: 0,
+              qtyDefect: isPartialCheck ? 3 : 0,
               notes: isPartialCheck
                 ? "ตรวจรอบแรกผ่าน 20 ตัว เหลือ 30 ตัวรอตรวจต่อ"
                 : "ผ่านครบ พร้อมเข้าขั้นถัดไป",
               checkedById: "demo-user-press",
               checkedAt,
               createdAt: checkedAt,
+              ...(isPartialCheck
+                ? {
+                    defects: {
+                      create: {
+                        id: `demo-qc-defect-${scenario.key}`,
+                        qty: 3,
+                        size: variants[0]?.size ?? null,
+                        color: variants[0]?.color ?? null,
+                        printLabel: "อกหน้า",
+                        reason: "PRINT_PEEL",
+                        disposition: "REWORK" as const,
+                        note: "ฟิล์มลอกบางส่วน ส่งกลับรีดและต้องตรวจซ้ำ",
+                      },
+                    },
+                  }
+                : {}),
             },
           });
         }
@@ -1209,6 +1825,63 @@ async function main() {
         });
       }
 
+      const receiving = seeded.get("garment-receive");
+      if (!receiving?.stepIds.garment) {
+        throw new Error("Demo Prep partial receipt scenario ไม่ครบ");
+      }
+      await tx.goodsReceipt.create({
+        data: {
+          id: "demo-receipt-garment-receive-partial",
+          orderId: receiving.id,
+          productionStepId: receiving.stepIds.garment,
+          receiptType: "CUSTOMER_GARMENT",
+          notes: "รับบางส่วนก่อน ส่วนที่เหลือลูกค้าส่งตามวันถัดไป",
+          receivedById: "demo-user-prep",
+          receivedAt: fromNow(-1),
+          lines: {
+            create: receiving.variants.map((variant, index) => ({
+              orderItemProductId: receiving.productLineId,
+              description: "เสื้อพนักงานหน้าร้าน รอบสอง",
+              size: variant.size,
+              color: variant.color,
+              qtyExpected: variant.quantity,
+              qtyCounted: index === 0 ? variant.quantity : Math.floor(variant.quantity / 2),
+            })),
+          },
+        },
+      });
+
+      const stockPick = seeded.get("stock-pick-ready");
+      if (!stockPick?.stepIds.garment) {
+        throw new Error("Demo Prep issue/return scenario ไม่ครบ");
+      }
+      await tx.materialUsage.createMany({
+        data: [
+          {
+            id: "demo-material-issue-stock-pick",
+            productionId: "demo-production-stock-pick-ready",
+            productionStepId: stockPick.stepIds.garment,
+            productId: DEMO_STOCK_PRODUCTS.ready.id,
+            productVariantId: DEMO_STOCK_PRODUCTS.ready.variants[0].id,
+            quantity: 8,
+            unit: "PCS",
+            movementType: "ISSUE",
+            note: "เบิกเสื้อไซซ์ S ไปจุดเตรียมงาน",
+          },
+          {
+            id: "demo-material-return-stock-pick",
+            productionId: "demo-production-stock-pick-ready",
+            productionStepId: stockPick.stepIds.garment,
+            productId: DEMO_STOCK_PRODUCTS.ready.id,
+            productVariantId: DEMO_STOCK_PRODUCTS.ready.variants[0].id,
+            quantity: 1,
+            unit: "PCS",
+            movementType: "RETURN",
+            note: "คืนเสื้อเกินจากจุดเตรียมงาน",
+          },
+        ],
+      });
+
       const printing = seeded.get("dtf-printing");
       const printed = seeded.get("dtf-printed");
       const completedRunOrder = seeded.get("heat-press");
@@ -1236,6 +1909,8 @@ async function main() {
           status: "PRINTING",
           note: "ม้วนเช้า — ฟิล์มด้าน 60 ซม.",
           createdById: "demo-user-dtf",
+          operatorId: "demo-user-dtf",
+          workResourceId: "demo-resource-dtf-printer-1",
           createdAt: dtfTimelines.printing.createdAt,
           updatedAt: dtfTimelines.printing.createdAt,
           items: {
@@ -1255,6 +1930,8 @@ async function main() {
           status: "PRINTED",
           note: "พิมพ์เสร็จ รอตัดแยกและติดป้าย",
           createdById: "demo-user-dtf",
+          operatorId: "demo-user-dtf",
+          workResourceId: "demo-resource-dtf-printer-1",
           printedAt: dtfTimelines.printed.printedAt,
           createdAt: dtfTimelines.printed.createdAt,
           updatedAt: dtfTimelines.printed.printedAt,
@@ -1263,6 +1940,10 @@ async function main() {
               productionStepId: printed.stepIds.dtf,
               orderId: printed.id,
               qty: printed.quantity,
+              qtyGood: printed.quantity - 2,
+              qtyScrap: 2,
+              qtyReprint: 2,
+              resultReportedAt: dtfTimelines.printed.printedAt,
               createdAt: dtfTimelines.printed.createdAt,
             },
           },
@@ -1275,6 +1956,8 @@ async function main() {
           status: "COMPLETED",
           note: "ตัดแยกครบ มีฟิล์มเผื่อ 3 ชิ้น",
           createdById: "demo-user-dtf",
+          operatorId: "demo-user-dtf",
+          workResourceId: "demo-resource-dtf-printer-1",
           printedAt: dtfTimelines.completed.printedAt,
           completedAt: dtfTimelines.completed.completedAt,
           createdAt: dtfTimelines.completed.createdAt,
@@ -1285,6 +1968,10 @@ async function main() {
               orderId: completedRunOrder.id,
               qty: completedRunOrder.quantity,
               extraQty: 3,
+              qtyGood: completedRunOrder.quantity,
+              qtyScrap: 2,
+              qtyReprint: 2,
+              resultReportedAt: dtfTimelines.completed.completedAt,
               createdAt: dtfTimelines.completed.createdAt,
             },
           },
@@ -1311,6 +1998,8 @@ async function main() {
           status: "COMPLETED",
           note: "รอบประวัติรวมงานที่ส่งต่อเข้ารีดร้อนแล้ว",
           createdById: "demo-user-dtf",
+          operatorId: "demo-user-dtf",
+          workResourceId: "demo-resource-dtf-printer-1",
           printedAt: dtfTimelines.historical.printedAt,
           completedAt: dtfTimelines.historical.completedAt,
           createdAt: dtfTimelines.historical.createdAt,
@@ -1320,6 +2009,8 @@ async function main() {
               productionStepId: order!.stepIds.dtf!,
               orderId: order!.id,
               qty: order!.quantity,
+              qtyGood: order!.quantity,
+              resultReportedAt: dtfTimelines.historical.completedAt,
               createdAt: dtfTimelines.historical.createdAt,
             })),
           },
@@ -1329,6 +2020,15 @@ async function main() {
       const outsource = seeded.get("outsource-overdue");
       if (!outsource?.stepIds.outsource)
         throw new Error("Demo outsource scenario ไม่ครบ");
+      const outsourceAllocations = (outsourceOrderId: string, total: number) =>
+        distributeGood(outsource.variants, total)
+          .map((qty, index) => ({
+            id: `demo-outsource-line-${outsourceOrderId}-${index}`,
+            outsourceOrderId,
+            operationQuantityId: `demo-qty-outsource-overdue-outsource-${index}`,
+            qty,
+          }))
+          .filter((line) => line.qty > 0);
       await tx.outsourceOrder.create({
         data: {
           id: "demo-outsource-overdue",
@@ -1344,7 +2044,194 @@ async function main() {
           notes: "เกินกำหนด 1 วัน — โทรตามแล้วช่วงเช้า",
           createdAt: fromNow(-6),
           updatedAt: fromNow(-1),
+          allocations: {
+            create: outsourceAllocations(
+              "demo-outsource-overdue",
+              outsource.quantity,
+            ).map((line) => ({
+              id: line.id,
+              operationQuantityId: line.operationQuantityId,
+              qty: line.qty,
+            })),
+          },
         },
+      });
+      await tx.outsourceOrder.createMany({
+        data: [
+          {
+            id: "demo-outsource-history-pass",
+            productionStepId: outsource.stepIds.outsource,
+            vendorId: "demo-vendor-embroidery",
+            status: "QC_PASSED",
+            description: "รอบตัวอย่างที่รับกลับและผ่าน QC",
+            quantity: 6,
+            unitCost: money(32),
+            totalCost: money(192),
+            sentAt: fromNow(-14),
+            expectedBackAt: fromNow(-11),
+            receivedAt: fromNow(-11),
+            qcPassed: true,
+            qcNotes: "จำนวนและงานปักผ่านครบ",
+            createdAt: fromNow(-15),
+            updatedAt: fromNow(-11),
+          },
+          {
+            id: "demo-outsource-history-fail",
+            productionStepId: outsource.stepIds.outsource,
+            vendorId: "demo-vendor-embroidery",
+            status: "QC_FAILED",
+            description: "รอบตัวอย่างที่รับกลับแล้วส่งแก้",
+            quantity: 4,
+            unitCost: money(32),
+            totalCost: money(128),
+            sentAt: fromNow(-10),
+            expectedBackAt: fromNow(-8),
+            receivedAt: fromNow(-8),
+            qcPassed: false,
+            qcNotes: "ตำแหน่งปักคลาด ต้องส่งกลับแก้",
+            createdAt: fromNow(-11),
+            updatedAt: fromNow(-8),
+          },
+        ],
+      });
+      await tx.outsourceOrderLine.createMany({
+        data: [
+          ...outsourceAllocations("demo-outsource-history-pass", 6),
+          ...outsourceAllocations("demo-outsource-history-fail", 4),
+        ],
+      });
+
+      const qualityCheck = seeded.get("quality-check");
+      if (!qualityCheck) throw new Error("Demo QC/rework scenario ไม่ครบ");
+      const qualityProductionId = "demo-production-quality-check";
+      const finalQcStepId = "demo-step-quality-check-final-qc";
+      const reworkException = await tx.productionException.create({
+        data: {
+          id: "demo-exception-quality-rework",
+          productionId: qualityProductionId,
+          productionStepId: finalQcStepId,
+          workCenterId: V2_CENTER_ID.FINAL_QC,
+          code: "QUALITY_DEFECT",
+          title: "ฟิล์มลอก 3 ตัว รอตรวจซ้ำ",
+          description: "ส่งกลับจุดรีดร้อนแล้ว ต้องตรวจซ้ำก่อนแพ็ก",
+          severity: "WARNING",
+          blocksJob: true,
+          state: "ACKNOWLEDGED",
+          disposition: "REWORK",
+          raisedById: "demo-user-press",
+          ownerId: "demo-user-supervisor",
+          acknowledgedAt: fromNow(-1, -2),
+        },
+      });
+      const rework = await tx.reworkCase.create({
+        data: {
+          id: "demo-rework-quality-check",
+          productionId: qualityProductionId,
+          sourceOperationId: finalQcStepId,
+          sourceQcRecordId: "demo-qc-quality-check",
+          sourceQcDefectId: "demo-qc-defect-quality-check",
+          sourceExceptionId: reworkException.id,
+          targetWorkCenterId: V2_CENTER_ID.HEAT_PRESS,
+          state: "AWAITING_REINSPECTION",
+          qty: 3,
+          reason: "ฟิล์มลอก ส่งกลับรีดใหม่",
+          requiresReinspection: true,
+          plannedById: "demo-user-supervisor",
+          releasedById: "demo-user-supervisor",
+          releasedAt: fromNow(-1, -1),
+          completedAt: fromNow(0, -3),
+        },
+      });
+      await tx.productionStep.create({
+        data: {
+          id: "demo-step-quality-check-rework",
+          productionId: qualityProductionId,
+          stepType: "CUSTOM",
+          customStepName: "รีดแก้ฟิล์มลอก",
+          status: "COMPLETED",
+          sortOrder: 35,
+          operationCode: "REWORK-PRESS-01",
+          operationName: "รีดแก้ฟิล์มลอก",
+          operationState: "COMPLETED",
+          operationPhase: "MANUFACTURING",
+          executionMode: "IN_HOUSE",
+          executionEnabled: true,
+          workCenterId: V2_CENTER_ID.HEAT_PRESS,
+          reworkCaseId: rework.id,
+          dispatchSequence: 35,
+          qtyPlanned: 3,
+          qtyGood: 3,
+          qtyTotal: 3,
+          qtyDone: 3,
+          assignedToId: "demo-user-press",
+          startedAt: fromNow(0, -5),
+          completedAt: fromNow(0, -3),
+          instructionSnapshot: { text: "รีดใหม่เฉพาะ 3 ตัวที่ฟิล์มลอก" },
+          referenceSnapshot: { sourceQcDefectId: "demo-qc-defect-quality-check" },
+          createdAt: fromNow(-1),
+        },
+      });
+      await tx.operationJobDependency.create({
+        data: {
+          id: "demo-job-dep-quality-rework-reinspect",
+          predecessorStepId: "demo-step-quality-check-rework",
+          successorStepId: finalQcStepId,
+        },
+      });
+      await tx.operationQuantity.create({
+        data: {
+          id: "demo-qty-quality-rework",
+          productionId: qualityProductionId,
+          productionStepId: "demo-step-quality-check-rework",
+          scopeKey: "REWORK:PRINT_PEEL",
+          scopeKind: "VARIANT_PRINT_POSITION",
+          description: "ฟิล์มลอก 3 ตัว",
+          printPosition: "FRONT",
+          qtyPlanned: 3,
+          qtyGood: 3,
+          referenceSnapshot: { sourceQcDefectId: "demo-qc-defect-quality-check" },
+        },
+      });
+      await tx.productionStep.update({
+        where: { id: finalQcStepId },
+        data: {
+          operationState: "BLOCKED",
+          status: "ON_HOLD",
+          qtyRework: 3,
+          revision: { increment: 1 },
+        },
+      });
+      await tx.operationQuantity.updateMany({
+        where: { productionStepId: finalQcStepId },
+        data: { qtyRework: 1 },
+      });
+      await tx.operationEvent.createMany({
+        data: [
+          {
+            id: "demo-event-quality-rework-completed",
+            productionId: qualityProductionId,
+            productionStepId: "demo-step-quality-check-rework",
+            eventType: "COMPLETED",
+            commandId: "demo-command-quality-rework-completed",
+            actorId: "demo-user-press",
+            fromState: "RUNNING",
+            toState: "COMPLETED",
+            qtyGoodDelta: 3,
+            occurredAt: fromNow(0, -3),
+          },
+          {
+            id: "demo-event-quality-awaiting-reinspection",
+            productionId: qualityProductionId,
+            productionStepId: finalQcStepId,
+            eventType: "REWORK_RELEASED",
+            commandId: "demo-command-quality-awaiting-reinspection",
+            actorId: "demo-user-supervisor",
+            fromState: "RUNNING",
+            toState: "BLOCKED",
+            qtyReworkDelta: 3,
+            occurredAt: fromNow(0, -3),
+          },
+        ],
       });
 
       const shipped = seeded.get("shipped");
@@ -1486,6 +2373,10 @@ async function main() {
         invoices,
         demoStockRows,
         demoStockOrders,
+        v2WorkOrders,
+        v2Dependencies,
+        v2WorkCenterCount,
+        v2ReworkCases,
       ] = await Promise.all([
         tx.order.count(),
         tx.production.findMany({
@@ -1586,6 +2477,55 @@ async function main() {
             },
           },
         }),
+        tx.production.findMany({
+          where: { workOrderNumber: { not: null } },
+          select: {
+            id: true,
+            orderId: true,
+            workOrderNumber: true,
+            workOrderState: true,
+            completionOwnerStepId: true,
+            order: { select: { productionCompletionOwnerId: true } },
+            steps: {
+              where: { executionEnabled: true },
+              select: {
+                id: true,
+                stepType: true,
+                workCenterId: true,
+                operationState: true,
+                qtyPlanned: true,
+                qtyGood: true,
+                qtyScrap: true,
+                qtyRework: true,
+                quantities: {
+                  select: {
+                    qtyPlanned: true,
+                    qtyGood: true,
+                    qtyScrap: true,
+                    qtyRework: true,
+                  },
+                },
+                events: { select: { id: true } },
+              },
+            },
+          },
+        }),
+        tx.operationJobDependency.findMany({
+          select: {
+            predecessorStep: { select: { productionId: true } },
+            successorStep: { select: { productionId: true } },
+          },
+        }),
+        tx.workCenter.count({ where: { isActive: true } }),
+        tx.reworkCase.findMany({
+          select: {
+            id: true,
+            state: true,
+            requiresReinspection: true,
+            sourceQcDefectId: true,
+            operations: { select: { operationState: true } },
+          },
+        }),
       ]);
       if (
         orderCount !== DEMO_SEED_SCENARIOS.length ||
@@ -1595,6 +2535,68 @@ async function main() {
       }
       if (demoStockRows.length !== Object.keys(DEMO_STOCK_PRODUCTS).length) {
         throw new Error("Demo seed สินค้าสต๊อกทดสอบไม่ครบ");
+      }
+      if (
+        v2WorkOrders.length !== productionRows.length ||
+        v2WorkCenterCount !== V2_WORK_CENTERS.length
+      ) {
+        throw new Error("Demo Production V2 work order หรือ Work Center ไม่ครบ");
+      }
+      for (const workOrder of v2WorkOrders) {
+        if (!workOrder.workOrderNumber || workOrder.steps.length === 0) {
+          throw new Error(`Demo V2 work order ${workOrder.id} ไม่มีเลขที่หรืองานสถานี`);
+        }
+        if (
+          !workOrder.completionOwnerStepId ||
+          workOrder.order.productionCompletionOwnerId !== workOrder.id
+        ) {
+          throw new Error(`Demo V2 work order ${workOrder.id} ไม่มี completion owner`);
+        }
+        for (const step of workOrder.steps) {
+          if (!step.workCenterId || step.stepType === "PACKAGING") {
+            throw new Error(`Demo V2 operation ${step.id} ไม่มี Work Center หรือใช้ PACKAGING เดิม`);
+          }
+          if (step.events.length === 0 || step.quantities.length === 0) {
+            throw new Error(`Demo V2 operation ${step.id} ไม่มี ledger หรือ quantity line`);
+          }
+          const sums = step.quantities.reduce(
+            (total, line) => ({
+              planned: total.planned + line.qtyPlanned,
+              good: total.good + line.qtyGood,
+              scrap: total.scrap + line.qtyScrap,
+              rework: total.rework + line.qtyRework,
+            }),
+            { planned: 0, good: 0, scrap: 0, rework: 0 },
+          );
+          if (
+            sums.planned !== step.qtyPlanned ||
+            sums.good !== step.qtyGood ||
+            sums.scrap !== step.qtyScrap ||
+            sums.rework !== step.qtyRework
+          ) {
+            throw new Error(`Demo V2 operation ${step.id} รวม quantity line ไม่ตรง`);
+          }
+        }
+      }
+      if (
+        v2Dependencies.some(
+          (dependency) =>
+            dependency.predecessorStep.productionId !==
+            dependency.successorStep.productionId,
+        )
+      ) {
+        throw new Error("Demo V2 dependency ข้าม Manufacturing Order");
+      }
+      if (
+        !v2ReworkCases.some(
+          (rework) =>
+            rework.state === "AWAITING_REINSPECTION" &&
+            rework.requiresReinspection &&
+            rework.sourceQcDefectId &&
+            rework.operations.some((operation) => operation.operationState === "COMPLETED"),
+        )
+      ) {
+        throw new Error("Demo V2 defect/rework/reinspection scenario ไม่ครบ");
       }
       for (const product of demoStockRows) {
         if (product.source !== "LOCAL" || !product.sku.startsWith("DEMO-")) {

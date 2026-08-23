@@ -60,6 +60,39 @@ export interface PackingOverflow {
   remaining: number;
 }
 
+export interface V2FinalPackLedgerLine {
+  description: string;
+  size: string | null;
+  color: string | null;
+  qtyPlanned: number;
+  qtyGood: number;
+  qtyRework: number;
+}
+
+export interface V2FinalPackLedger {
+  workOrderId: string;
+  workOrderNumber: string;
+  operationJobId: string;
+  operationState: string;
+  isReadyToShip: boolean;
+  lines: V2FinalPackLedgerLine[];
+}
+
+type V2FinalPackOrderShape = {
+  productionCompletionOwnerId: string | null;
+  productions: ReadonlyArray<{ id: string; workOrderNumber: string | null }>;
+  productionCompletionOwner: {
+    id: string;
+    workOrderNumber: string | null;
+    completionOwnerStepId: string | null;
+    steps: ReadonlyArray<{
+      id: string;
+      operationState: string;
+      quantities: ReadonlyArray<V2FinalPackLedgerLine>;
+    }>;
+  } | null;
+};
+
 const normalizePackingDimension = (value?: PackingDimension) =>
   (value ?? "").trim().toLowerCase();
 
@@ -176,6 +209,145 @@ export function findPackingOverflow(
   }
 
   return null;
+}
+
+export function v2FinalPackLedgerFromOrder(
+  order: V2FinalPackOrderShape,
+): V2FinalPackLedger | null {
+  if (!order.productions || order.productions.length === 0) return null;
+  if (order.productions.length !== 1) {
+    badRequest(
+      "ออเดอร์มีใบสั่งผลิต V2 มากกว่าหนึ่งใบ แต่ยังไม่มีการแบ่งจำนวนสำหรับปิดงาน",
+    );
+  }
+  const workOrder = order.productions[0]!;
+  const owner = order.productionCompletionOwner;
+  if (
+    !order.productionCompletionOwnerId ||
+    order.productionCompletionOwnerId !== workOrder.id ||
+    !owner ||
+    owner.id !== workOrder.id
+  ) {
+    badRequest("ใบสั่งผลิตยังไม่มีเจ้าของการปิดงานที่แน่นอน — ส่งของไม่ได้");
+  }
+  if (!owner.workOrderNumber || owner.steps.length !== 1) {
+    badRequest("ใบสั่งผลิตต้องมีขั้น Final Pack เพียงหนึ่งขั้นก่อนส่งของ");
+  }
+  const finalPack = owner.steps[0]!;
+  if (owner.completionOwnerStepId !== finalPack.id) {
+    badRequest("ขั้น Final Pack ไม่ตรงกับเจ้าของการปิดงาน — ส่งของไม่ได้");
+  }
+
+  const linesComplete =
+    finalPack.quantities.length > 0 &&
+    finalPack.quantities.every(
+      (line) =>
+        line.qtyPlanned > 0 &&
+        line.qtyGood === line.qtyPlanned &&
+        line.qtyRework === 0,
+    );
+  return {
+    workOrderId: owner.id,
+    workOrderNumber: owner.workOrderNumber,
+    operationJobId: finalPack.id,
+    operationState: finalPack.operationState,
+    isReadyToShip:
+      finalPack.operationState === "COMPLETED" && linesComplete,
+    lines: [...finalPack.quantities],
+  };
+}
+
+export async function getV2FinalPackLedger(
+  tx: PrismaTx,
+  orderId: string,
+): Promise<V2FinalPackLedger | null> {
+  const order = await tx.order.findUniqueOrThrow({
+    where: { id: orderId },
+    select: {
+      productionCompletionOwnerId: true,
+      productions: {
+        where: { workOrderNumber: { not: null } },
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+        select: { id: true, workOrderNumber: true },
+      },
+      productionCompletionOwner: {
+        select: {
+          id: true,
+          workOrderNumber: true,
+          completionOwnerStepId: true,
+          steps: {
+            where: {
+              executionEnabled: true,
+              operationCode: "FINAL_PACK",
+            },
+            orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+            select: {
+              id: true,
+              operationState: true,
+              quantities: {
+                where: { scopeKind: "PACK_LINE" },
+                orderBy: [{ scopeKey: "asc" }, { id: "asc" }],
+                select: {
+                  description: true,
+                  size: true,
+                  color: true,
+                  qtyPlanned: true,
+                  qtyGood: true,
+                  qtyRework: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+  return v2FinalPackLedgerFromOrder(order);
+}
+
+export async function assertV2FinalPackReadyToShip(
+  tx: PrismaTx,
+  orderId: string,
+): Promise<V2FinalPackLedger | null> {
+  const ledger = await getV2FinalPackLedger(tx, orderId);
+  if (ledger && !ledger.isReadyToShip) {
+    badRequest(
+      `ยังส่งของไม่ได้ — ${ledger.workOrderNumber} ต้องปิด Final Pack และแพ็กครบทุกสินค้า สี และไซซ์ก่อน`,
+    );
+  }
+  return ledger;
+}
+
+export function unallocatedDeliveryLinesFromFinalPack(
+  ledger: V2FinalPackLedger,
+  evidence: PackingEvidence,
+): IncomingPackingLine[] {
+  const packedByKey = new Map(
+    evidence.lines.map((line) => [line.key, line.packed] as const),
+  );
+  const grouped = new Map<
+    string,
+    { description: string; size: string | null; color: string | null; qty: number }
+  >();
+  for (const line of ledger.lines) {
+    const key = packingLineKey(line.description, line.size, line.color);
+    const current = grouped.get(key);
+    if (current) current.qty += line.qtyGood;
+    else {
+      grouped.set(key, {
+        description: line.description,
+        size: line.size,
+        color: line.color,
+        qty: line.qtyGood,
+      });
+    }
+  }
+  return [...grouped.entries()]
+    .map(([key, line]) => ({
+      ...line,
+      qty: Math.max(0, line.qty - (packedByKey.get(key) ?? 0)),
+    }))
+    .filter((line) => line.qty > 0);
 }
 
 export async function getOrderPackingEvidence(

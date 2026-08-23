@@ -47,12 +47,15 @@ interface GarmentLine {
 
 interface GarmentPickCardProps {
   productionId: string;
-  steps: ProductionStep[];
+  steps?: ProductionStep[];
   canIssueGarments: boolean;
   // คืนเศษเป็น recovery ที่ตั้งใจให้ทำได้จาก ERP หลังพัก/ยกเลิก แต่ Station ต้อง fail-closed
   canReturnGarments: boolean;
   /** ขั้น GARMENT_PICK ที่กำลังดูใน navigator; ไม่ส่งค่ายังคงใช้ขั้นแรกเพื่อรองรับ Station เดิม */
   stepId?: string;
+  /** Operation Job ของ V2 ใช้แทน stepId พร้อม revision ป้องกันข้อมูลค้าง */
+  operationJobId?: string;
+  expectedRevision?: number;
   /** ใบเก่าที่ไม่มี GARMENT_PICK: ตัวเลขเป็นหลักฐานที่บันทึกไว้ ไม่ใช่คำตัดสินของจริง */
   legacyReadinessUnknown?: boolean;
   /** วางใน workspace/disclosure ที่มี surface เป็นเจ้าของอยู่แล้ว เพื่อไม่สร้าง Card ซ้อน */
@@ -89,10 +92,12 @@ function GarmentSurface({
 
 export function GarmentPickCard({
   productionId,
-  steps,
+  steps = [],
   canIssueGarments,
   canReturnGarments,
   stepId,
+  operationJobId,
+  expectedRevision,
   legacyReadinessUnknown = false,
   embedded = false,
   primaryTask = false,
@@ -200,6 +205,7 @@ export function GarmentPickCard({
         (step) => step.id === stepId && step.stepType === "GARMENT_PICK",
       )
     : steps.find((step) => step.stepType === "GARMENT_PICK");
+  const pickStepId = operationJobId ?? pickStep?.id ?? null;
   const outstanding = data.lines.reduce(
     (s, l) => s + (l.issued - l.returned),
     0,
@@ -407,7 +413,7 @@ export function GarmentPickCard({
             เป็นแถวเต็มความกว้างท้ายการ์ด มือถือเป้านิ้ว 44px ไม่ซุกมุม header (UX4) */}
         {!garmentDataStale &&
           data.configured &&
-          ((canIssueGarments && pickStep && needMore) ||
+          ((canIssueGarments && pickStepId && needMore) ||
             (canReturnGarments && outstanding > 0)) && (
           <div
             data-station-action-bar={stationMode ? "" : undefined}
@@ -422,7 +428,7 @@ export function GarmentPickCard({
                 : undefined
             }
           >
-            {canIssueGarments && pickStep && needMore && (
+            {canIssueGarments && pickStepId && needMore && (
               <Button
                 size={primaryTask ? "lg" : "default"}
                 data-station-primary-action={stationMode ? "" : undefined}
@@ -433,7 +439,7 @@ export function GarmentPickCard({
                 )}
                 onClick={() => {
                   setIssueErrorVersion(garmentPickQuery.errorUpdatedAt);
-                  setIssueStepId(pickStep.id);
+                  setIssueStepId(pickStepId);
                 }}
               >
                 <PackageOpen />
@@ -462,11 +468,13 @@ export function GarmentPickCard({
       {!garmentDataStale &&
         garmentPickQuery.errorUpdatedAt === issueErrorVersion &&
         issueStepId &&
-        pickStep?.id === issueStepId && (
+        pickStepId === issueStepId && (
         <IssueGarmentsDialog
           key={issueStepId}
           productionId={productionId}
-          stepId={issueStepId}
+          stepId={operationJobId ? undefined : issueStepId}
+          operationJobId={operationJobId}
+          expectedRevision={expectedRevision}
           lines={data.lines}
             stockMode={data.stockMode}
           onClose={() => setIssueStepId(null)}
@@ -477,6 +485,8 @@ export function GarmentPickCard({
         showReturn && (
         <ReturnGarmentsDialog
           productionId={productionId}
+          operationJobId={operationJobId}
+          expectedRevision={expectedRevision}
           lines={data.lines}
             stockMode={data.stockMode}
           onClose={() => setShowReturn(false)}
@@ -498,18 +508,26 @@ function useGarmentInvalidate() {
     utils.production.getByOrderId,
     utils.factory.stationQueue,
     utils.order.getById,
+    utils.manufacturing.stationDispatch,
+    utils.manufacturing.stationJob,
+    utils.manufacturing.workOrder,
+    utils.manufacturing.controlList,
   ];
 }
 
 function IssueGarmentsDialog({
   productionId,
   stepId,
+  operationJobId,
+  expectedRevision,
   lines,
   stockMode,
   onClose,
 }: {
   productionId: string;
-  stepId: string;
+  stepId?: string;
+  operationJobId?: string;
+  expectedRevision?: number;
   lines: GarmentLine[];
   stockMode: "demo-local" | "api" | "unconfigured";
   onClose: () => void;
@@ -607,7 +625,9 @@ function IssueGarmentsDialog({
           onSubmit={() =>
             issue.mutate({
               productionId,
-              stepId,
+              ...(operationJobId
+                ? { operationJobId, expectedRevision }
+                : { stepId: stepId! }),
               idempotencyKey,
               lines: lines
                 .map((l) => ({ sku: l.sku, qty: qty[l.sku] ?? 0 }))
@@ -626,11 +646,15 @@ function IssueGarmentsDialog({
 
 function ReturnGarmentsDialog({
   productionId,
+  operationJobId,
+  expectedRevision,
   lines,
   stockMode,
   onClose,
 }: {
   productionId: string;
+  operationJobId?: string;
+  expectedRevision?: number;
   lines: GarmentLine[];
   stockMode: "demo-local" | "api" | "unconfigured";
   onClose: () => void;
@@ -741,6 +765,7 @@ function ReturnGarmentsDialog({
           onSubmit={() =>
             ret.mutate({
               productionId,
+              ...(operationJobId ? { operationJobId, expectedRevision } : {}),
               idempotencyKey,
               note: note || undefined,
               lines: returnable

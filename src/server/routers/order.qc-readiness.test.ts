@@ -49,9 +49,11 @@ describe("order.updateStatus — QC evidence", () => {
     ).rejects.toThrow("ยังมีใบผลิตหรือขั้นงานค้างอยู่");
 
     expect(String(tx.$queryRaw.mock.calls[0]?.[0])).toContain("pg_advisory_xact_lock");
-    expect(String(tx.$queryRaw.mock.calls[1]?.[0])).toContain("production_steps");
+    expect(String(tx.$queryRaw.mock.calls[1]?.[0])).toContain("orders");
     expect(String(tx.$queryRaw.mock.calls[2]?.[0])).toContain("productions");
-    expect(String(tx.$queryRaw.mock.calls[3]?.[0])).toContain("orders");
+    expect(String(tx.$queryRaw.mock.calls[3]?.[0])).toContain("production_steps");
+    expect(String(tx.$queryRaw.mock.calls[4]?.[0])).toContain("productions");
+    expect(String(tx.$queryRaw.mock.calls[5]?.[0])).toContain("orders");
     expect(tx.order.updateMany).not.toHaveBeenCalled();
     expect(auditCreate).not.toHaveBeenCalled();
   });
@@ -197,6 +199,7 @@ describe("order.updateStatus — QC evidence", () => {
 
   it("ปฏิเสธ QUALITY_CHECK → PACKING เมื่อบันทึกของดีเพียงบางส่วน", async () => {
     const tx = {
+      $queryRaw: vi.fn().mockResolvedValue([]),
       order: {
         findUniqueOrThrow: vi
           .fn()

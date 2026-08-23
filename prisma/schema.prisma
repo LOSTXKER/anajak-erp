@@ -94,6 +94,135 @@ enum StepStatus {
   FAILED
 }
 
+// Production V2 keeps the legacy StepStatus fields during the rollout window,
+// while these states are the canonical manufacturing contract.
+enum WorkOrderState {
+  DRAFT
+  RELEASED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum OperationState {
+  PLANNED
+  READY
+  RUNNING
+  BLOCKED
+  COMPLETED
+  CANCELLED
+}
+
+enum OperationExecutionMode {
+  IN_HOUSE
+  OUTSOURCE
+}
+
+enum OperationPhase {
+  PREPARATION
+  MANUFACTURING
+  OUTSOURCE
+  QUALITY
+  PACKING
+}
+
+enum RoutingVersionState {
+  DRAFT
+  RELEASED
+}
+
+enum CapacityUnit {
+  PIECE
+  MINUTE
+  BATCH
+}
+
+enum WorkResourceKind {
+  MACHINE
+  TOOL
+  LINE
+  BENCH
+  OTHER
+}
+
+enum WorkResourceState {
+  AVAILABLE
+  IN_USE
+  DOWN
+  INACTIVE
+}
+
+enum CalendarExceptionType {
+  CLOSED
+  WORKING
+  CAPACITY_OVERRIDE
+}
+
+enum QuantityScopeKind {
+  PRODUCT
+  VARIANT
+  PRINT_POSITION
+  VARIANT_PRINT_POSITION
+  PACK_LINE
+}
+
+enum OperationEventType {
+  CREATED
+  RELEASED
+  ASSIGNED
+  RESEQUENCED
+  STARTED
+  PAUSED
+  OUTPUT_REPORTED
+  COMPLETED
+  CANCELLED
+  BLOCKED
+  UNBLOCKED
+  EXCEPTION_RAISED
+  EXCEPTION_RESOLVED
+  REWORK_PLANNED
+  REWORK_RELEASED
+  RECEIPT_RECORDED
+  MATERIAL_ISSUED
+  MATERIAL_RETURNED
+  QC_RECORDED
+  PACK_RECORDED
+}
+
+enum ExceptionState {
+  OPEN
+  ACKNOWLEDGED
+  RESOLVED
+  CLOSED
+}
+
+enum ExceptionSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum QualityDisposition {
+  HOLD
+  REWORK
+  SCRAP
+}
+
+enum ReworkState {
+  PLANNED
+  RELEASED
+  IN_PROGRESS
+  AWAITING_REINSPECTION
+  COMPLETED
+  CANCELLED
+}
+
+enum ManufacturingCommandStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+}
+
 enum DesignApprovalStatus {
   PENDING
   APPROVED
@@ -144,13 +273,13 @@ enum CustomerSegment {
 }
 
 enum CustomerType {
-  INDIVIDUAL  // บุคคลธรรมดา
-  CORPORATE   // นิติบุคคล
+  INDIVIDUAL // บุคคลธรรมดา
+  CORPORATE // นิติบุคคล
 }
 
 // tax-point (เผื่อใบกำกับภาษี P1): ขายสินค้า = VAT เกิดตอนส่งมอบ · จ้างทำของ = VAT เกิดตอนรับเงินทุกงวดรวมมัดจำ
 enum TaxLineType {
-  GOODS        // ขายสินค้า (READY_MADE)
+  GOODS // ขายสินค้า (READY_MADE)
   HIRE_OF_WORK // จ้างทำของ (งานสกรีน/ผลิตตามสั่ง)
 }
 
@@ -159,34 +288,44 @@ enum TaxLineType {
 // ============================================================
 
 model User {
-  id            String   @id @default(cuid())
-  supabaseId    String   @unique @map("supabase_id")
-  email         String   @unique
-  name          String
-  role          Role     @default(SALES)
+  id                  String   @id @default(cuid())
+  supabaseId          String   @unique @map("supabase_id")
+  email               String   @unique
+  name                String
+  role                Role     @default(SALES)
   // PERM (เบสเคาะ 2026-07-06): สิทธิ์รายคนทับค่า default ของ role — JSON {"<permission>": true|false}
   // null/ไม่มี key = ใช้ default ตาม role · นิยาม catalog + ตัวเช็คอยู่ src/lib/permissions.ts
-  permissionOverrides Json? @map("permission_overrides")
-  avatarUrl     String?  @map("avatar_url")
-  isActive      Boolean  @default(true) @map("is_active")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  permissionOverrides Json?    @map("permission_overrides")
+  avatarUrl           String?  @map("avatar_url")
+  isActive            Boolean  @default(true) @map("is_active")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
 
   // Relations
-  assignedSteps      ProductionStep[]  @relation("AssignedTo")
-  auditLogs          AuditLog[]
-  approvalRequests   ApprovalRequest[] @relation("Requester")
-  approvalDecisions  ApprovalRequest[] @relation("Approver")
-  communicationLogs  CommunicationLog[]
-  createdOrders      Order[]           @relation("CreatedBy")
-  createdQuotations  Quotation[]       @relation("QuotationCreatedBy")
-  costEntries        CostEntry[]       @relation("CostCreatedBy")
-  uploadedAttachments Attachment[]     @relation("UploadedBy")
-  notifications      Notification[]
-  goodsReceipts      GoodsReceipt[]    @relation("GoodsReceivedBy")
-  qcRecords          QcRecord[]        @relation("QcCheckedBy")
-  printRuns          PrintRun[]        @relation("PrintRunCreatedBy")
-  agentApiKeys       AgentApiKey[]     @relation("AgentApiKeyUser")
+  assignedSteps           ProductionStep[]       @relation("AssignedTo")
+  auditLogs               AuditLog[]
+  approvalRequests        ApprovalRequest[]      @relation("Requester")
+  approvalDecisions       ApprovalRequest[]      @relation("Approver")
+  communicationLogs       CommunicationLog[]
+  createdOrders           Order[]                @relation("CreatedBy")
+  createdQuotations       Quotation[]            @relation("QuotationCreatedBy")
+  costEntries             CostEntry[]            @relation("CostCreatedBy")
+  uploadedAttachments     Attachment[]           @relation("UploadedBy")
+  notifications           Notification[]
+  goodsReceipts           GoodsReceipt[]         @relation("GoodsReceivedBy")
+  qcRecords               QcRecord[]             @relation("QcCheckedBy")
+  printRuns               PrintRun[]             @relation("PrintRunCreatedBy")
+  operatedPrintRuns       PrintRun[]             @relation("PrintRunOperator")
+  agentApiKeys            AgentApiKey[]          @relation("AgentApiKeyUser")
+  workCenterMemberships   WorkCenterMember[]
+  routingVersionsReleased RoutingVersion[]       @relation("RoutingVersionReleasedBy")
+  workOrdersReleased      Production[]           @relation("ProductionReleasedBy")
+  operationEvents         OperationEvent[]       @relation("OperationEventActor")
+  exceptionsRaised        ProductionException[]  @relation("ProductionExceptionRaisedBy")
+  exceptionsOwned         ProductionException[]  @relation("ProductionExceptionOwner")
+  reworksPlanned          ReworkCase[]           @relation("ReworkPlannedBy")
+  reworksReleased         ReworkCase[]           @relation("ReworkReleasedBy")
+  manufacturingCommands   ManufacturingCommand[] @relation("ManufacturingCommandActor")
 
   @@map("users")
 }
@@ -200,7 +339,7 @@ model User {
 
 model AgentApiKey {
   id          String    @id @default(cuid())
-  name        String    // ชื่อ agent เช่น "Nami (เบส)"
+  name        String // ชื่อ agent เช่น "Nami (เบส)"
   keyHash     String    @unique @map("key_hash") // sha256(raw key) hex — ไม่เก็บ plaintext
   keyPrefix   String    @map("key_prefix") // ส่วนหน้าของ key (เช่น "ana_a1b2c3d4") โชว์ระบุใบได้โดยไม่รั่วทั้ง key
   userId      String    @map("user_id") // ผูก User จริง → role + FK audit/createdBy
@@ -221,8 +360,8 @@ model AgentApiKey {
 model AgentCallLog {
   id         String   @id @default(cuid())
   keyId      String   @map("key_id")
-  tool       String   // ชื่อ tool ที่เรียก (เช่น "order_status")
-  ok         Boolean  // สำเร็จไหม
+  tool       String // ชื่อ tool ที่เรียก (เช่น "order_status")
+  ok         Boolean // สำเร็จไหม
   errorCode  String?  @map("error_code") // FORBIDDEN / NOT_FOUND / INTERNAL ฯลฯ
   durationMs Int?     @map("duration_ms")
   createdAt  DateTime @default(now()) @map("created_at")
@@ -239,41 +378,41 @@ model AgentCallLog {
 // ============================================================
 
 model Customer {
-  id              String          @id @default(cuid())
-  name            String
-  company         String?
-  email           String?
-  phone           String?
-  lineId          String?         @map("line_id")
+  id           String          @id @default(cuid())
+  name         String
+  company      String?
+  email        String?
+  phone        String?
+  lineId       String?         @map("line_id")
   // ชื่อ+ลิงก์ห้องแชทที่คุยกับลูกค้าจริง (เบสสั่ง 2026-07-31) — ไม่ผูกกับช่องทางใดช่องทางหนึ่ง
   // ใช้ได้ทั้ง LINE / Shopee / Lazada / TikTok / Facebook · lineId เดิมคงไว้ ไม่แตะ
-  chatName        String?         @map("chat_name")
-  chatUrl         String?         @map("chat_url")
-  address         String?
-  taxId           String?         @map("tax_id")
-  customerType    CustomerType    @default(INDIVIDUAL) @map("customer_type")
-  branchNumber    String?         @map("branch_number") // "00000" = สำนักงานใหญ่
-  segment         CustomerSegment @default(NEW)
-  rfmScore        Float?          @map("rfm_score") // ยังไม่มีโค้ดใช้ — รอ CRM เต็ม P3
-  notes           String?
-  tags            String[]        @default([])
-  totalOrders     Int             @default(0) @map("total_orders")
-  totalSpent      Decimal         @default(0) @map("total_spent") @db.Decimal(12, 2)
-  lastOrderAt     DateTime?       @map("last_order_at")
+  chatName     String?         @map("chat_name")
+  chatUrl      String?         @map("chat_url")
+  address      String?
+  taxId        String?         @map("tax_id")
+  customerType CustomerType    @default(INDIVIDUAL) @map("customer_type")
+  branchNumber String?         @map("branch_number") // "00000" = สำนักงานใหญ่
+  segment      CustomerSegment @default(NEW)
+  rfmScore     Float?          @map("rfm_score") // ยังไม่มีโค้ดใช้ — รอ CRM เต็ม P3
+  notes        String?
+  tags         String[]        @default([])
+  totalOrders  Int             @default(0) @map("total_orders")
+  totalSpent   Decimal         @default(0) @map("total_spent") @db.Decimal(12, 2)
+  lastOrderAt  DateTime?       @map("last_order_at")
 
   // Billing address (separate from general address)
-  billingAddress      String?     @map("billing_address")
-  billingSubDistrict  String?     @map("billing_sub_district")
-  billingDistrict     String?     @map("billing_district")
-  billingProvince     String?     @map("billing_province")
-  billingPostalCode   String?     @map("billing_postal_code")
+  billingAddress     String? @map("billing_address")
+  billingSubDistrict String? @map("billing_sub_district")
+  billingDistrict    String? @map("billing_district")
+  billingProvince    String? @map("billing_province")
+  billingPostalCode  String? @map("billing_postal_code")
 
   // Credit management
-  creditLimit         Decimal?    @map("credit_limit") @db.Decimal(12, 2)
-  defaultPaymentTerms String?     @map("default_payment_terms") // NET_30, COD, DEPOSIT_50, FULL_PREPAY
+  creditLimit         Decimal? @map("credit_limit") @db.Decimal(12, 2)
+  defaultPaymentTerms String?  @map("default_payment_terms") // NET_30, COD, DEPOSIT_50, FULL_PREPAY
 
-  createdAt       DateTime        @default(now()) @map("created_at")
-  updatedAt       DateTime        @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
   orders            Order[]
@@ -296,29 +435,29 @@ model Customer {
 // ห้ามมีช่องเงิน (มติ 2026-06-12 เลิก job costing) — ราคาท่าพิมพ์อยู่ ServiceCatalog ที่เดียว
 // ============================================================
 model CustomerArtwork {
-  id            String  @id @default(cuid())
-  customerId    String  @map("customer_id")
+  id            String   @id @default(cuid())
+  customerId    String   @map("customer_id")
   name          String // ชื่อลาย เช่น "โลโก้อกซ้าย ดำ" (auto ตอน promote · แก้ทีหลังได้)
-  imageUrl      String? @map("image_url") // รูปลาย (ชั้น mockup — โชว์ลูกค้า/portal ได้)
-  printFileUrl  String? @map("print_file_url") // ไฟล์พิมพ์จริง (ชั้น 3 — ภายในเท่านั้น ห้ามหลุด portal)
+  imageUrl      String?  @map("image_url") // รูปลาย (ชั้น mockup — โชว์ลูกค้า/portal ได้)
+  printFileUrl  String?  @map("print_file_url") // ไฟล์พิมพ์จริง (ชั้น 3 — ภายในเท่านั้น ห้ามหลุด portal)
   position      String?
-  printType     String? @map("print_type")
-  printSize     String? @map("print_size")
-  widthCm       Float?  @map("width_cm")
-  heightCm      Float?  @map("height_cm")
-  colorCount    Int?    @map("color_count")
+  printType     String?  @map("print_type")
+  printSize     String?  @map("print_size")
+  widthCm       Float?   @map("width_cm")
+  heightCm      Float?   @map("height_cm")
+  colorCount    Int?     @map("color_count")
   // สเปกรีด — กรอกครั้งเดียวที่ลาย (ไม่บังคับ — gap badge ใน UI · ห้ามเป็นช่องบังคับหน้างาน)
-  heatTempC     Int?    @map("heat_temp_c")
-  heatPressSec  Int?    @map("heat_press_sec")
-  heatPressure  String? @map("heat_pressure") // เบา/กลาง/หนัก — free text ตามภาษาช่าง
-  specNotes     String? @map("spec_notes")
-  sourceOrderId String? @map("source_order_id") // ออเดอร์แรกที่ลายนี้พิมพ์ผ่าน
-  isActive      Boolean @default(true) @map("is_active") // เลิกใช้ = ปิด ไม่ลบ (มีออเดอร์เก่าอ้างอยู่)
+  heatTempC     Int?     @map("heat_temp_c")
+  heatPressSec  Int?     @map("heat_press_sec")
+  heatPressure  String?  @map("heat_pressure") // เบา/กลาง/หนัก — free text ตามภาษาช่าง
+  specNotes     String?  @map("spec_notes")
+  sourceOrderId String?  @map("source_order_id") // ออเดอร์แรกที่ลายนี้พิมพ์ผ่าน
+  isActive      Boolean  @default(true) @map("is_active") // เลิกใช้ = ปิด ไม่ลบ (มีออเดอร์เก่าอ้างอยู่)
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
-  customer    Customer @relation(fields: [customerId], references: [id])
-  sourceOrder Order?   @relation("ArtworkSourceOrder", fields: [sourceOrderId], references: [id])
+  customer    Customer         @relation(fields: [customerId], references: [id])
+  sourceOrder Order?           @relation("ArtworkSourceOrder", fields: [sourceOrderId], references: [id])
   prints      OrderItemPrint[]
   filmStocks  FilmStock[]
 
@@ -330,15 +469,15 @@ model CustomerArtwork {
 
 // ยังไม่มี UI จัดการ — คง schema ไว้รอ CRM เต็ม P3
 model BrandProfile {
-  id          String   @id @default(cuid())
-  customerId  String   @map("customer_id")
-  brandName   String   @map("brand_name")
-  logoUrl     String?  @map("logo_url")
-  colorCodes  String[] @default([]) @map("color_codes")
-  fonts       String[] @default([])
-  styleNotes  String?  @map("style_notes")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id         String   @id @default(cuid())
+  customerId String   @map("customer_id")
+  brandName  String   @map("brand_name")
+  logoUrl    String?  @map("logo_url")
+  colorCodes String[] @default([]) @map("color_codes")
+  fonts      String[] @default([])
+  styleNotes String?  @map("style_notes")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
 
   // Relations
   customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
@@ -351,7 +490,7 @@ model CommunicationLog {
   id         String   @id @default(cuid())
   customerId String   @map("customer_id")
   userId     String   @map("user_id")
-  channel    String   // LINE, PHONE, EMAIL, IN_PERSON
+  channel    String // LINE, PHONE, EMAIL, IN_PERSON
   subject    String?
   content    String
   createdAt  DateTime @default(now()) @map("created_at")
@@ -369,56 +508,56 @@ model CommunicationLog {
 // ============================================================
 
 model Order {
-  id               String         @id @default(cuid())
-  orderNumber      String         @unique @map("order_number")
-  orderType        OrderType      @default(CUSTOM) @map("order_type")
-  channel          OrderChannel   @default(LINE)
-  customerId       String         @map("customer_id")
-  brandProfileId   String?        @map("brand_profile_id")
-  createdById      String         @map("created_by_id")
-  customerStatus   CustomerStatus @default(ORDER_RECEIVED) @map("customer_status")
-  internalStatus   InternalStatus @default(INQUIRY) @map("internal_status")
-  title            String
-  description      String?
-  deadline         DateTime?
+  id             String         @id @default(cuid())
+  orderNumber    String         @unique @map("order_number")
+  orderType      OrderType      @default(CUSTOM) @map("order_type")
+  channel        OrderChannel   @default(LINE)
+  customerId     String         @map("customer_id")
+  brandProfileId String?        @map("brand_profile_id")
+  createdById    String         @map("created_by_id")
+  customerStatus CustomerStatus @default(ORDER_RECEIVED) @map("customer_status")
+  internalStatus InternalStatus @default(INQUIRY) @map("internal_status")
+  title          String
+  description    String?
+  deadline       DateTime?
 
   // Pricing — เงิน = Decimal(12,2) เท่านั้น · taxRate เป็น % (5,2) · profitMargin เป็น % derived คง Float
-  subtotalItems    Decimal        @default(0) @map("subtotal_items") @db.Decimal(12, 2)
-  subtotalFees     Decimal        @default(0) @map("subtotal_fees") @db.Decimal(12, 2)
-  discount         Decimal        @default(0) @db.Decimal(12, 2)
-  discountReason   String?        @map("discount_reason")
-  taxRate          Decimal        @default(0) @map("tax_rate") @db.Decimal(5, 2)
-  taxAmount        Decimal        @default(0) @map("tax_amount") @db.Decimal(12, 2)
-  totalAmount      Decimal        @default(0) @map("total_amount") @db.Decimal(12, 2)
+  subtotalItems  Decimal @default(0) @map("subtotal_items") @db.Decimal(12, 2)
+  subtotalFees   Decimal @default(0) @map("subtotal_fees") @db.Decimal(12, 2)
+  discount       Decimal @default(0) @db.Decimal(12, 2)
+  discountReason String? @map("discount_reason")
+  taxRate        Decimal @default(0) @map("tax_rate") @db.Decimal(5, 2)
+  taxAmount      Decimal @default(0) @map("tax_amount") @db.Decimal(12, 2)
+  totalAmount    Decimal @default(0) @map("total_amount") @db.Decimal(12, 2)
 
   // Cost tracking
-  totalCost        Decimal        @default(0) @map("total_cost") @db.Decimal(12, 2)
-  profitMargin     Float?         @map("profit_margin")
+  totalCost    Decimal @default(0) @map("total_cost") @db.Decimal(12, 2)
+  profitMargin Float?  @map("profit_margin")
 
   // Business rules
-  priority         String         @default("NORMAL") // LOW, NORMAL, HIGH, URGENT
-  paymentTerms     String?        @map("payment_terms") // NET_30, COD, DEPOSIT_50, FULL_PREPAY
-  poNumber         String?        @map("po_number") // Customer's purchase order number
-  estimatedQuantity Int?          @map("estimated_quantity") // For INQUIRY stage when exact breakdown is unknown
+  priority          String  @default("NORMAL") // LOW, NORMAL, HIGH, URGENT
+  paymentTerms      String? @map("payment_terms") // NET_30, COD, DEPOSIT_50, FULL_PREPAY
+  poNumber          String? @map("po_number") // Customer's purchase order number
+  estimatedQuantity Int?    @map("estimated_quantity") // For INQUIRY stage when exact breakdown is unknown
 
   // Shipping address (optional, can be set at order creation)
-  shippingRecipientName String?   @map("shipping_recipient_name")
-  shippingPhone    String?        @map("shipping_phone")
-  shippingAddress  String?        @map("shipping_address")
-  shippingSubDistrict String?     @map("shipping_sub_district")
-  shippingDistrict String?        @map("shipping_district")
-  shippingProvince String?        @map("shipping_province")
-  shippingPostalCode String?      @map("shipping_postal_code")
+  shippingRecipientName String? @map("shipping_recipient_name")
+  shippingPhone         String? @map("shipping_phone")
+  shippingAddress       String? @map("shipping_address")
+  shippingSubDistrict   String? @map("shipping_sub_district")
+  shippingDistrict      String? @map("shipping_district")
+  shippingProvince      String? @map("shipping_province")
+  shippingPostalCode    String? @map("shipping_postal_code")
 
   // Marketplace fields (Shopee, Lazada, TikTok)
-  externalOrderId  String?        @map("external_order_id")
-  platformFee      Decimal?       @map("platform_fee") @db.Decimal(12, 2)
-  trackingNumber   String?        @map("tracking_number")
+  externalOrderId String?  @map("external_order_id")
+  platformFee     Decimal? @map("platform_fee") @db.Decimal(12, 2)
+  trackingNumber  String?  @map("tracking_number")
 
   // เชื่อมจองสต๊อค Anajak Stock (FLOW-REDESIGN ก้อน 1 2026-06-12) — ยืนยันออเดอร์แล้ว
   // จองเสื้อรายไซส์-สีฝั่ง Stock (orderRef = orderNumber) · error เก็บข้อความล่าสุดไว้โชว์/ตามแก้
-  stockReservedAt       DateTime? @map("stock_reserved_at")
-  stockReservationError String?   @map("stock_reservation_error")
+  stockReservedAt           DateTime? @map("stock_reserved_at")
+  stockReservationError     String?   @map("stock_reservation_error")
   // เตือนล่วงหน้าก่อนปลดจองค้าง (auto-release) ไปแล้วเมื่อไหร่ — กันเตือนซ้ำทุกวัน · ปลด/จองใหม่ = ล้างกลับ null
   reservationExpiryWarnedAt DateTime? @map("reservation_expiry_warned_at")
 
@@ -438,32 +577,34 @@ model Order {
   statusTokenExpiresAt DateTime? @map("status_token_expires_at")
 
   // Meta
-  notes            String?
-  cancelledAt      DateTime?      @map("cancelled_at")
-  cancelledReason  String?        @map("cancelled_reason")
-  completedAt      DateTime?      @map("completed_at")
-  createdAt        DateTime       @default(now()) @map("created_at")
-  updatedAt        DateTime       @updatedAt @map("updated_at")
+  notes                       String?
+  cancelledAt                 DateTime? @map("cancelled_at")
+  cancelledReason             String?   @map("cancelled_reason")
+  completedAt                 DateTime? @map("completed_at")
+  productionCompletionOwnerId String?   @unique @map("production_completion_owner_id")
+  createdAt                   DateTime  @default(now()) @map("created_at")
+  updatedAt                   DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  customer     Customer       @relation(fields: [customerId], references: [id])
-  brandProfile BrandProfile?  @relation(fields: [brandProfileId], references: [id])
-  createdBy    User           @relation("CreatedBy", fields: [createdById], references: [id])
-  items        OrderItem[]
-  fees         OrderFee[]
-  revisions    OrderRevision[]
-  changeOrders ChangeOrder[]
-  designs      DesignVersion[]
-  productions  Production[]
-  invoices     Invoice[]
-  quotations   Quotation[]
-  deliveries   Delivery[]
-  costEntries  CostEntry[]
-  goodsReceipts GoodsReceipt[]
-  qcRecords    QcRecord[]
-  printRunItems PrintRunItem[]
-  filmStocks   FilmStock[]
-  artworksSourced CustomerArtwork[] @relation("ArtworkSourceOrder")
+  customer                  Customer          @relation(fields: [customerId], references: [id])
+  brandProfile              BrandProfile?     @relation(fields: [brandProfileId], references: [id])
+  createdBy                 User              @relation("CreatedBy", fields: [createdById], references: [id])
+  items                     OrderItem[]
+  fees                      OrderFee[]
+  revisions                 OrderRevision[]
+  changeOrders              ChangeOrder[]
+  designs                   DesignVersion[]
+  productions               Production[]      @relation("OrderProductions")
+  productionCompletionOwner Production?       @relation("OrderProductionCompletionOwner", fields: [productionCompletionOwnerId], references: [id], onDelete: SetNull)
+  invoices                  Invoice[]
+  quotations                Quotation[]
+  deliveries                Delivery[]
+  costEntries               CostEntry[]
+  goodsReceipts             GoodsReceipt[]
+  qcRecords                 QcRecord[]
+  printRunItems             PrintRunItem[]
+  filmStocks                FilmStock[]
+  artworksSourced           CustomerArtwork[] @relation("ArtworkSourceOrder")
 
   // hot paths: หน้า list กรองตามลูกค้า/สถานะ + เรียงตามวันที่สร้างแทบทุก query
   @@index([customerId])
@@ -474,17 +615,17 @@ model Order {
 }
 
 model OrderItem {
-  id            String   @id @default(cuid())
-  orderId       String   @map("order_id")
-  sortOrder     Int      @default(0) @map("sort_order")
-  description   String   @default("")
-  totalQuantity Int      @default(0) @map("total_quantity")
-  subtotal      Decimal  @default(0) @db.Decimal(12, 2)
+  id            String      @id @default(cuid())
+  orderId       String      @map("order_id")
+  sortOrder     Int         @default(0) @map("sort_order")
+  description   String      @default("")
+  totalQuantity Int         @default(0) @map("total_quantity")
+  subtotal      Decimal     @default(0) @db.Decimal(12, 2)
   // tax-point เผื่อใบกำกับ P1: ขายสินค้า vs จ้างทำของ — จุดเกิด VAT ต่างกัน
   taxLineType   TaxLineType @default(HIRE_OF_WORK) @map("tax_line_type")
   notes         String?
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
 
   // Relations
   order    Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
@@ -497,46 +638,46 @@ model OrderItem {
 }
 
 model OrderItemProduct {
-  id                String   @id @default(cuid())
-  orderItemId       String   @map("order_item_id")
-  sortOrder         Int      @default(0) @map("sort_order")
+  id          String @id @default(cuid())
+  orderItemId String @map("order_item_id")
+  sortOrder   Int    @default(0) @map("sort_order")
 
-  productId         String?  @map("product_id")
-  productType       String   @map("product_type")
-  description       String
-  material          String?
+  productId   String? @map("product_id")
+  productType String  @map("product_type")
+  description String
+  material    String?
 
-  baseUnitPrice     Decimal  @map("base_unit_price") @db.Decimal(12, 2)
-  discount          Decimal  @default(0) @db.Decimal(12, 2)
-  totalQuantity     Int      @default(0) @map("total_quantity")
-  subtotal          Decimal  @default(0) @db.Decimal(12, 2)
+  baseUnitPrice Decimal @map("base_unit_price") @db.Decimal(12, 2)
+  discount      Decimal @default(0) @db.Decimal(12, 2)
+  totalQuantity Int     @default(0) @map("total_quantity")
+  subtotal      Decimal @default(0) @db.Decimal(12, 2)
 
-  itemSource        String?  @map("item_source")
-  packagingOptionId String?  @map("packaging_option_id")
+  itemSource        String? @map("item_source")
+  packagingOptionId String? @map("packaging_option_id")
 
-  fabricType        String?  @map("fabric_type")
-  fabricWeight      String?  @map("fabric_weight")
-  fabricColor       String?  @map("fabric_color")
-  processingType    String?  @map("processing_type")
+  fabricType     String? @map("fabric_type")
+  fabricWeight   String? @map("fabric_weight")
+  fabricColor    String? @map("fabric_color")
+  processingType String? @map("processing_type")
 
-  patternId         String?  @map("pattern_id")
-  collarType        String?  @map("collar_type")
-  sleeveType        String?  @map("sleeve_type")
-  bodyFit           String?  @map("body_fit")
-  patternFileUrl    String?  @map("pattern_file_url")
-  patternNote       String?  @map("pattern_note")
+  patternId      String? @map("pattern_id")
+  collarType     String? @map("collar_type")
+  sleeveType     String? @map("sleeve_type")
+  bodyFit        String? @map("body_fit")
+  patternFileUrl String? @map("pattern_file_url")
+  patternNote    String? @map("pattern_note")
 
-  garmentCondition  String?  @map("garment_condition")
-  receivedInspected Boolean  @default(false) @map("received_inspected")
-  receiveNote       String?  @map("receive_note")
+  garmentCondition  String? @map("garment_condition")
+  receivedInspected Boolean @default(false) @map("received_inspected")
+  receiveNote       String? @map("receive_note")
 
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  orderItem       OrderItem        @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
-  product         Product?         @relation(fields: [productId], references: [id])
-  pattern         Pattern?         @relation(fields: [patternId], references: [id])
-  packagingOption PackagingOption? @relation(fields: [packagingOptionId], references: [id])
+  orderItem       OrderItem          @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  product         Product?           @relation(fields: [productId], references: [id])
+  pattern         Pattern?           @relation(fields: [patternId], references: [id])
+  packagingOption PackagingOption?   @relation(fields: [packagingOptionId], references: [id])
   variants        OrderItemVariant[]
 
   @@index([orderItemId])
@@ -544,12 +685,12 @@ model OrderItemProduct {
 }
 
 model OrderItemVariant {
-  id                  String   @id @default(cuid())
-  orderItemProductId  String   @map("order_item_product_id")
-  size                String
-  color               String?
-  quantity            Int
-  createdAt           DateTime @default(now()) @map("created_at")
+  id                 String   @id @default(cuid())
+  orderItemProductId String   @map("order_item_product_id")
+  size               String
+  color              String?
+  quantity           Int
+  createdAt          DateTime @default(now()) @map("created_at")
 
   // Relations
   orderItemProduct OrderItemProduct @relation(fields: [orderItemProductId], references: [id], onDelete: Cascade)
@@ -561,7 +702,7 @@ model OrderItemVariant {
 model OrderItemPrint {
   id             String   @id @default(cuid())
   orderItemId    String   @map("order_item_id")
-  position       String   // FRONT, BACK, SLEEVE_L, SLEEVE_R, COLLAR, POCKET, OTHER
+  position       String // FRONT, BACK, SLEEVE_L, SLEEVE_R, COLLAR, POCKET, OTHER
   printType      String   @map("print_type") // SILK_SCREEN, DTG, SUBLIMATION, HEAT_TRANSFER, EMBROIDERY
   colorCount     Int?     @map("color_count")
   printSize      String?  @map("print_size") // A5, A4, A3, A2, CUSTOM
@@ -593,7 +734,7 @@ model OrderItemAddon {
   description String?
   pricingType String   @map("pricing_type") // PER_PIECE or PER_ORDER
   unitPrice   Decimal  @map("unit_price") @db.Decimal(12, 2)
-  quantity    Int?     // override qty; null = use item totalQuantity
+  quantity    Int? // override qty; null = use item totalQuantity
   notes       String?
   createdAt   DateTime @default(now()) @map("created_at")
 
@@ -666,8 +807,8 @@ model ChangeOrder {
 
 model ServiceCatalog {
   id           String   @id @default(cuid())
-  category     String   // ADDON, PRINT, FEE
-  type         String   // NECK_LABEL, SILK_SCREEN, DESIGN_FEE, etc.
+  category     String // ADDON, PRINT, FEE
+  type         String // NECK_LABEL, SILK_SCREEN, DESIGN_FEE, etc.
   name         String
   description  String?
   defaultPrice Decimal  @map("default_price") @db.Decimal(12, 2)
@@ -732,9 +873,11 @@ model Quotation {
   // ลิงก์ยืนยันใบเสนอให้ลูกค้า (ก้อน 4) — gate หมดอายุใช้ validUntil (ไม่มี expiry แยก)
   confirmToken    String?   @unique @map("confirm_token")
 
-  /* สำเนาคู่สัญญา ณ วันออกใบ — ดูคำอธิบายเต็มที่ model Invoice
-     ใบเสนอราคาแก้ร่างได้หลังสร้าง จึงรีเฟรช snapshot ตอนแก้ร่างด้วย แล้วตรึงเมื่อส่งใบ
-     (sentAt) — ใบที่ส่งไปแล้วคือใบที่ลูกค้าถืออยู่ ห้ามเปลี่ยนตามโปรไฟล์ */
+  /**
+   * สำเนาคู่สัญญา ณ วันออกใบ — ดูคำอธิบายเต็มที่ model Invoice
+   * ใบเสนอราคาแก้ร่างได้หลังสร้าง จึงรีเฟรช snapshot ตอนแก้ร่างด้วย แล้วตรึงเมื่อส่งใบ
+   * (sentAt) — ใบที่ส่งไปแล้วคือใบที่ลูกค้าถืออยู่ ห้ามเปลี่ยนตามโปรไฟล์
+   */
   buyerName         String? @map("buyer_name")
   buyerCompany      String? @map("buyer_company")
   buyerTaxId        String? @map("buyer_tax_id")
@@ -745,15 +888,15 @@ model Quotation {
   buyerDistrict     String? @map("buyer_district")
   buyerProvince     String? @map("buyer_province")
   buyerPostalCode   String? @map("buyer_postal_code")
-  sellerName    String? @map("seller_name")
-  sellerAddress String? @map("seller_address")
-  sellerTaxId   String? @map("seller_tax_id")
-  sellerBranch  String? @map("seller_branch")
-  sellerPhone   String? @map("seller_phone")
-  sellerEmail   String? @map("seller_email")
+  sellerName        String? @map("seller_name")
+  sellerAddress     String? @map("seller_address")
+  sellerTaxId       String? @map("seller_tax_id")
+  sellerBranch      String? @map("seller_branch")
+  sellerPhone       String? @map("seller_phone")
+  sellerEmail       String? @map("seller_email")
 
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
   customer  Customer        @relation(fields: [customerId], references: [id])
@@ -789,36 +932,36 @@ model QuotationItem {
 // ============================================================
 
 model Product {
-  id              String    @id @default(cuid())
-  sku             String    @unique
-  name            String
-  description     String?
-  productType     String    @map("product_type") // T_SHIRT, POLO, HOODIE, TOTE_BAG
-  category        String?
-  basePrice       Decimal   @map("base_price") @db.Decimal(12, 2)
-  costPrice       Decimal?  @map("cost_price") @db.Decimal(12, 2)
-  imageUrl        String?   @map("image_url")
-  images          String[]  @default([])
-  isActive        Boolean   @default(true) @map("is_active")
+  id          String   @id @default(cuid())
+  sku         String   @unique
+  name        String
+  description String?
+  productType String   @map("product_type") // T_SHIRT, POLO, HOODIE, TOTE_BAG
+  category    String?
+  basePrice   Decimal  @map("base_price") @db.Decimal(12, 2)
+  costPrice   Decimal? @map("cost_price") @db.Decimal(12, 2)
+  imageUrl    String?  @map("image_url")
+  images      String[] @default([])
+  isActive    Boolean  @default(true) @map("is_active")
 
   // Stock sync fields
-  stockProductId  String?   @unique @map("stock_product_id")
-  source          String    @default("STOCK") // "STOCK" | "LOCAL"
-  itemType        String    @default("FINISHED_GOOD") @map("item_type") // FINISHED_GOOD, RAW_MATERIAL, CONSUMABLE
-  barcode         String?
-  unit            String?   // PCS, M, KG, etc.
-  unitName        String?   @map("unit_name") // ชิ้น, เมตร, กก.
-  reorderPoint    Float     @default(0) @map("reorder_point")
-  totalStock      Int       @default(0) @map("total_stock")
-  lastSyncAt      DateTime? @map("last_sync_at")
+  stockProductId String?   @unique @map("stock_product_id")
+  source         String    @default("STOCK") // "STOCK" | "LOCAL"
+  itemType       String    @default("FINISHED_GOOD") @map("item_type") // FINISHED_GOOD, RAW_MATERIAL, CONSUMABLE
+  barcode        String?
+  unit           String? // PCS, M, KG, etc.
+  unitName       String?   @map("unit_name") // ชิ้น, เมตร, กก.
+  reorderPoint   Float     @default(0) @map("reorder_point")
+  totalStock     Int       @default(0) @map("total_stock")
+  lastSyncAt     DateTime? @map("last_sync_at")
 
   // Soft-delete (B11): ลบสินค้าไม่ลบแถวจริง — เก็บประวัติเบิกวัสดุ (MaterialUsage FK Restrict)
   // + order items เดิมที่อ้างถึง · null = ใช้งานอยู่ · query ฝั่ง UI กรอง deletedAt: null
   // (sync ไม่กรอง — สินค้ากลับมาใน Stock = resurrect ล้าง deletedAt)
-  deletedAt       DateTime? @map("deleted_at")
+  deletedAt DateTime? @map("deleted_at")
 
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
   variants          ProductVariant[]
@@ -830,21 +973,21 @@ model Product {
 }
 
 model ProductVariant {
-  id              String  @id @default(cuid())
-  productId       String  @map("product_id")
-  size            String
-  color           String
-  sku             String  @unique
-  priceAdj        Decimal @default(0) @map("price_adj") @db.Decimal(12, 2)
-  stock           Int     @default(0)
-  isActive        Boolean @default(true) @map("is_active")
+  id        String  @id @default(cuid())
+  productId String  @map("product_id")
+  size      String
+  color     String
+  sku       String  @unique
+  priceAdj  Decimal @default(0) @map("price_adj") @db.Decimal(12, 2)
+  stock     Int     @default(0)
+  isActive  Boolean @default(true) @map("is_active")
 
   // Stock sync fields
-  stockVariantId  String? @unique @map("stock_variant_id")
-  barcode         String?
-  sellingPrice    Decimal @default(0) @map("selling_price") @db.Decimal(12, 2)
-  costPrice       Decimal @default(0) @map("cost_price") @db.Decimal(12, 2)
-  totalStock      Int     @default(0) @map("total_stock")
+  stockVariantId String? @unique @map("stock_variant_id")
+  barcode        String?
+  sellingPrice   Decimal @default(0) @map("selling_price") @db.Decimal(12, 2)
+  costPrice      Decimal @default(0) @map("cost_price") @db.Decimal(12, 2)
+  totalStock     Int     @default(0) @map("total_stock")
 
   // Relations
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
@@ -858,25 +1001,25 @@ model ProductVariant {
 // ============================================================
 
 model Delivery {
-  id              String    @id @default(cuid())
-  orderId         String    @map("order_id")
-  recipientName   String    @map("recipient_name")
-  phone           String
-  address         String
-  subDistrict     String?   @map("sub_district")
-  district        String?
-  province        String?
-  postalCode      String?   @map("postal_code")
-  shippingMethod  String    @map("shipping_method") // PICKUP, KERRY, FLASH, THAILAND_POST, J_AND_T, GRAB, LALAMOVE, SHOPEE_SHIP, LAZADA_SHIP, OTHER
-  trackingNumber  String?   @map("tracking_number")
-  shippingCost    Decimal   @default(0) @map("shipping_cost") @db.Decimal(12, 2)
-  isPaid          Boolean   @default(false) @map("is_paid")
-  status          String    @default("PENDING") // PENDING, PREPARING, SHIPPED, DELIVERED, RETURNED
-  shippedAt       DateTime? @map("shipped_at")
-  deliveredAt     DateTime? @map("delivered_at")
-  notes           String?
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
+  id             String    @id @default(cuid())
+  orderId        String    @map("order_id")
+  recipientName  String    @map("recipient_name")
+  phone          String
+  address        String
+  subDistrict    String?   @map("sub_district")
+  district       String?
+  province       String?
+  postalCode     String?   @map("postal_code")
+  shippingMethod String    @map("shipping_method") // PICKUP, KERRY, FLASH, THAILAND_POST, J_AND_T, GRAB, LALAMOVE, SHOPEE_SHIP, LAZADA_SHIP, OTHER
+  trackingNumber String?   @map("tracking_number")
+  shippingCost   Decimal   @default(0) @map("shipping_cost") @db.Decimal(12, 2)
+  isPaid         Boolean   @default(false) @map("is_paid")
+  status         String    @default("PENDING") // PENDING, PREPARING, SHIPPED, DELIVERED, RETURNED
+  shippedAt      DateTime? @map("shipped_at")
+  deliveredAt    DateTime? @map("delivered_at")
+  notes          String?
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
 
   // Relations
   order Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
@@ -907,16 +1050,16 @@ model DeliveryLine {
 // ============================================================
 
 model Notification {
-  id          String   @id @default(cuid())
-  userId      String   @map("user_id")
-  type        String   // ORDER_STATUS, DESIGN_APPROVAL, PAYMENT, DEADLINE, SYSTEM
-  title       String
-  message     String   @default("")
-  link        String?
-  isRead      Boolean  @default(false) @map("is_read")
-  entityType  String?  @map("entity_type") // ORDER, INVOICE, etc.
-  entityId    String?  @map("entity_id")
-  createdAt   DateTime @default(now()) @map("created_at")
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id")
+  type       String // ORDER_STATUS, DESIGN_APPROVAL, PAYMENT, DEADLINE, SYSTEM
+  title      String
+  message    String   @default("")
+  link       String?
+  isRead     Boolean  @default(false) @map("is_read")
+  entityType String?  @map("entity_type") // ORDER, INVOICE, etc.
+  entityId   String?  @map("entity_id")
+  createdAt  DateTime @default(now()) @map("created_at")
 
   // Relations
   user User @relation(fields: [userId], references: [id])
@@ -932,13 +1075,13 @@ model Notification {
 model CostEntry {
   id          String   @id @default(cuid())
   orderId     String   @map("order_id")
-  category    String   // MATERIAL, LABOR, OUTSOURCE, OVERHEAD, PLATFORM_FEE, SHIPPING, OTHER
+  category    String // MATERIAL, LABOR, OUTSOURCE, OVERHEAD, PLATFORM_FEE, SHIPPING, OTHER
   name        String
   description String?
   // ที่มาอัตโนมัติ (step:<id> / outsource:<id>) — upsert ด้วย key นี้ กันต้นทุนซ้ำตอนแก้ค่า
   sourceRef   String?  @unique @map("source_ref")
   amount      Decimal  @db.Decimal(12, 2)
-  quantity    Float?   // จำนวนหน่วยวัสดุ (เมตร/กก.) — ไม่ใช่เงิน คง Float
+  quantity    Float? // จำนวนหน่วยวัสดุ (เมตร/กก.) — ไม่ใช่เงิน คง Float
   unitCost    Decimal? @map("unit_cost") @db.Decimal(12, 2)
   createdById String   @map("created_by_id")
   createdAt   DateTime @default(now()) @map("created_at")
@@ -956,18 +1099,18 @@ model CostEntry {
 // ============================================================
 
 model Attachment {
-  id           String   @id @default(cuid())
-  entityType   String   @map("entity_type") // ORDER, CUSTOMER, QUOTATION, PRODUCTION, INVOICE
-  entityId     String   @map("entity_id")
-  fileName     String   @map("file_name")
-  fileUrl      String   @map("file_url")
-  fileType     String   @map("file_type") // image/png, application/pdf, etc.
-  fileSize     Int      @map("file_size")
-  category     String?  // ค่าที่รู้จัก + ชั้นไฟล์ (3 ชั้น) ดู src/lib/file-layers.ts — REFERENCE_IMAGE, PRINT_FILE (ชั้น 3 ภายในเท่านั้น), PO_DOCUMENT, PAYMENT_SLIP, PHOTO, OTHER
-  printPosition String? @map("print_position") // FRONT, BACK, SLEEVE_L, SLEEVE_R, COLLAR, POCKET, OTHER (for REFERENCE_IMAGE)
-  uploadedById String?  @map("uploaded_by_id") // null = ลูกค้าอัปผ่านลิงก์ token (ไม่มี user — ก้อน 4 ชิ้น 3)
-  notes        String?
-  createdAt    DateTime @default(now()) @map("created_at")
+  id            String   @id @default(cuid())
+  entityType    String   @map("entity_type") // ORDER, CUSTOMER, QUOTATION, PRODUCTION, INVOICE
+  entityId      String   @map("entity_id")
+  fileName      String   @map("file_name")
+  fileUrl       String   @map("file_url")
+  fileType      String   @map("file_type") // image/png, application/pdf, etc.
+  fileSize      Int      @map("file_size")
+  category      String? // ค่าที่รู้จัก + ชั้นไฟล์ (3 ชั้น) ดู src/lib/file-layers.ts — REFERENCE_IMAGE, PRINT_FILE (ชั้น 3 ภายในเท่านั้น), PO_DOCUMENT, PAYMENT_SLIP, PHOTO, OTHER
+  printPosition String?  @map("print_position") // FRONT, BACK, SLEEVE_L, SLEEVE_R, COLLAR, POCKET, OTHER (for REFERENCE_IMAGE)
+  uploadedById  String?  @map("uploaded_by_id") // null = ลูกค้าอัปผ่านลิงก์ token (ไม่มี user — ก้อน 4 ชิ้น 3)
+  notes         String?
+  createdAt     DateTime @default(now()) @map("created_at")
 
   // Relations
   uploadedBy User? @relation("UploadedBy", fields: [uploadedById], references: [id])
@@ -1034,6 +1177,7 @@ model DesignVersionFile {
 model GoodsReceipt {
   id               String   @id @default(cuid())
   orderId          String   @map("order_id")
+  productionStepId String?  @map("production_step_id")
   // CUSTOMER_GARMENT รับเสื้อลูกค้า · SEWING_GARMENT รับเสื้อโรงเย็บ ·
   // OUTSOURCE_RETURN รับกลับร้านนอก · CUSTOMER_RETURN คืนของลูกค้า (ยอดคืนหักจากยอดรับ)
   receiptType      String   @map("receipt_type")
@@ -1044,11 +1188,13 @@ model GoodsReceipt {
   receivedAt       DateTime @default(now()) @map("received_at")
   createdAt        DateTime @default(now()) @map("created_at")
 
-  order      Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  receivedBy User               @relation("GoodsReceivedBy", fields: [receivedById], references: [id])
-  lines      GoodsReceiptLine[]
+  order          Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  receivedBy     User               @relation("GoodsReceivedBy", fields: [receivedById], references: [id])
+  productionStep ProductionStep?    @relation(fields: [productionStepId], references: [id])
+  lines          GoodsReceiptLine[]
 
   @@index([orderId])
+  @@index([productionStepId])
   @@index([outsourceOrderId])
   @@map("goods_receipts")
 }
@@ -1079,39 +1225,49 @@ model GoodsReceiptLine {
 // ============================================================
 
 model QcRecord {
-  id          String   @id @default(cuid())
-  orderId     String   @map("order_id")
-  qtyGood     Int      @map("qty_good")
-  qtyDefect   Int      @default(0) @map("qty_defect") // denorm = sum(defects.qty)
-  notes       String?
-  checkedById String   @map("checked_by_id")
-  checkedAt   DateTime @default(now()) @map("checked_at")
-  createdAt   DateTime @default(now()) @map("created_at")
+  id               String   @id @default(cuid())
+  orderId          String   @map("order_id")
+  productionStepId String?  @map("production_step_id")
+  qtyGood          Int      @map("qty_good")
+  qtyDefect        Int      @default(0) @map("qty_defect") // denorm = sum(defects.qty)
+  notes            String?
+  checkedById      String   @map("checked_by_id")
+  checkedAt        DateTime @default(now()) @map("checked_at")
+  createdAt        DateTime @default(now()) @map("created_at")
 
-  order     Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  checkedBy User       @relation("QcCheckedBy", fields: [checkedById], references: [id])
-  defects   QcDefect[]
+  order          Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  checkedBy      User            @relation("QcCheckedBy", fields: [checkedById], references: [id])
+  productionStep ProductionStep? @relation(fields: [productionStepId], references: [id])
+  defects        QcDefect[]
+  reworkCases    ReworkCase[]    @relation("ReworkSourceQc")
 
   @@index([orderId])
+  @@index([productionStepId])
   @@index([checkedAt])
   @@map("qc_records")
 }
 
 model QcDefect {
-  id         String   @id @default(cuid())
-  qcRecordId String   @map("qc_record_id")
-  qty        Int
-  size       String?
-  color      String?
-  printLabel String?  @map("print_label") // ลายไหน (ตำแหน่ง/ชื่อลาย — งานหลายลายชี้ตัวปัญหาได้)
-  reason     String // รหัสสาเหตุ — ค่า/ป้ายไทยใน src/lib/qc.ts (รวมยอดต่อสาเหตุได้)
-  photoUrls  String[] @default([]) @map("photo_urls")
-  note       String?
+  id                  String              @id @default(cuid())
+  qcRecordId          String              @map("qc_record_id")
+  operationQuantityId String?             @map("operation_quantity_id")
+  qty                 Int
+  size                String?
+  color               String?
+  printLabel          String?             @map("print_label") // ลายไหน (ตำแหน่ง/ชื่อลาย — งานหลายลายชี้ตัวปัญหาได้)
+  reason              String // รหัสสาเหตุ — ค่า/ป้ายไทยใน src/lib/qc.ts (รวมยอดต่อสาเหตุได้)
+  disposition         QualityDisposition?
+  photoUrls           String[]            @default([]) @map("photo_urls")
+  note                String?
 
-  qcRecord QcRecord @relation(fields: [qcRecordId], references: [id], onDelete: Cascade)
+  qcRecord            QcRecord             @relation(fields: [qcRecordId], references: [id], onDelete: Cascade)
+  operationQuantity   OperationQuantity?   @relation(fields: [operationQuantityId], references: [id], onDelete: SetNull)
+  reworkCase          ReworkCase?          @relation("ReworkSourceDefect")
+  productionException ProductionException? @relation("ExceptionSourceQcDefect")
 
   @@index([reason])
   @@index([qcRecordId])
+  @@index([operationQuantityId])
   @@map("qc_defects")
 }
 
@@ -1120,28 +1276,56 @@ model QcDefect {
 // ============================================================
 
 model Production {
-  id          String     @id @default(cuid())
-  orderId     String     @map("order_id")
-  status      StepStatus @default(PENDING)
-  startDate   DateTime?  @map("start_date")
-  endDate     DateTime?  @map("end_date")
-  totalCost   Decimal    @default(0) @map("total_cost") @db.Decimal(12, 2)
-  notes       String?
-  createdAt   DateTime   @default(now()) @map("created_at")
-  updatedAt   DateTime   @updatedAt @map("updated_at")
+  id                     String         @id @default(cuid())
+  orderId                String         @map("order_id")
+  status                 StepStatus     @default(PENDING)
+  // Production V2 canonical Manufacturing Order fields. Legacy fields above
+  // stay readable during the bounded rollback window.
+  workOrderNumber        String?        @unique @map("work_order_number")
+  workOrderState         WorkOrderState @default(DRAFT) @map("work_order_state")
+  routingVersionId       String?        @map("routing_version_id")
+  releasedById           String?        @map("released_by_id")
+  completionOwnerStepId  String?        @unique @map("completion_owner_step_id")
+  revision               Int            @default(0)
+  routingSnapshot        Json?          @map("routing_snapshot")
+  instructionSnapshot    Json?          @map("instruction_snapshot")
+  approvedMockupSnapshot Json?          @map("approved_mockup_snapshot")
+  releasedAt             DateTime?      @map("released_at")
+  plannedStartAt         DateTime?      @map("planned_start_at")
+  plannedEndAt           DateTime?      @map("planned_end_at")
+  startDate              DateTime?      @map("start_date")
+  endDate                DateTime?      @map("end_date")
+  totalCost              Decimal        @default(0) @map("total_cost") @db.Decimal(12, 2)
+  notes                  String?
+  createdAt              DateTime       @default(now()) @map("created_at")
+  updatedAt              DateTime       @updatedAt @map("updated_at")
 
   // Relations
-  order          Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  steps          ProductionStep[]
-  materialUsages MaterialUsage[]
+  order                   Order                            @relation("OrderProductions", fields: [orderId], references: [id], onDelete: Cascade)
+  completionOwnerForOrder Order?                           @relation("OrderProductionCompletionOwner")
+  routingVersion          RoutingVersion?                  @relation(fields: [routingVersionId], references: [id])
+  releasedBy              User?                            @relation("ProductionReleasedBy", fields: [releasedById], references: [id])
+  completionOwnerStep     ProductionStep?                  @relation("ProductionCompletionOwner", fields: [completionOwnerStepId], references: [id])
+  steps                   ProductionStep[]
+  materialUsages          MaterialUsage[]
+  quantityLines           OperationQuantity[]
+  events                  OperationEvent[]
+  exceptions              ProductionException[]
+  reworkCases             ReworkCase[]
+  snapshots               ManufacturingReferenceSnapshot[]
+  commands                ManufacturingCommand[]
 
   @@index([orderId])
+  @@index([workOrderState, plannedEndAt])
+  @@index([routingVersionId])
+  @@index([releasedById])
   @@map("productions")
 }
 
 model MaterialUsage {
   id               String    @id @default(cuid())
   productionId     String    @map("production_id")
+  productionStepId String?   @map("production_step_id")
   productId        String    @map("product_id")
   productVariantId String?   @map("product_variant_id")
   quantity         Float
@@ -1157,45 +1341,492 @@ model MaterialUsage {
   createdAt        DateTime  @default(now()) @map("created_at")
 
   // Relations
-  production Production @relation(fields: [productionId], references: [id], onDelete: Cascade)
-  product    Product    @relation(fields: [productId], references: [id])
+  production     Production      @relation(fields: [productionId], references: [id], onDelete: Cascade)
+  productionStep ProductionStep? @relation(fields: [productionStepId], references: [id])
+  product        Product         @relation(fields: [productId], references: [id])
 
   @@index([productionId])
+  @@index([productionStepId])
   @@map("material_usages")
 }
 
 model ProductionStep {
-  id             String             @id @default(cuid())
-  productionId   String             @map("production_id")
-  stepType       ProductionStepType @map("step_type")
-  customStepName String?            @map("custom_step_name")
-  status         StepStatus         @default(PENDING)
-  sortOrder      Int                @map("sort_order")
+  id                  String                 @id @default(cuid())
+  productionId        String                 @map("production_id")
+  stepType            ProductionStepType     @map("step_type")
+  customStepName      String?                @map("custom_step_name")
+  status              StepStatus             @default(PENDING)
+  sortOrder           Int                    @map("sort_order")
+  // Production V2 canonical Operation Job fields.
+  operationCode       String?                @map("operation_code")
+  operationName       String?                @map("operation_name")
+  operationState      OperationState         @default(PLANNED) @map("operation_state")
+  executionMode       OperationExecutionMode @default(IN_HOUSE) @map("execution_mode")
+  operationPhase      OperationPhase         @default(MANUFACTURING) @map("operation_phase")
+  workCenterId        String?                @map("work_center_id")
+  workResourceId      String?                @map("work_resource_id")
+  routingOperationId  String?                @map("routing_operation_id")
+  reworkCaseId        String?                @map("rework_case_id")
+  dispatchSequence    Int?                   @map("dispatch_sequence")
+  standardMinutes     Int?                   @map("standard_minutes")
+  qtyPlanned          Int                    @default(0) @map("qty_planned")
+  qtyGood             Int                    @default(0) @map("qty_good")
+  qtyScrap            Int                    @default(0) @map("qty_scrap")
+  qtyRework           Int                    @default(0) @map("qty_rework")
+  plannedStartAt      DateTime?              @map("planned_start_at")
+  plannedEndAt        DateTime?              @map("planned_end_at")
+  readyAt             DateTime?              @map("ready_at")
+  revision            Int                    @default(0)
+  executionEnabled    Boolean                @default(false) @map("execution_enabled")
+  instructionSnapshot Json?                  @map("instruction_snapshot")
+  referenceSnapshot   Json?                  @map("reference_snapshot")
   // หน่วยงานจริงคือ "กองเสื้อ" — บอกบางส่วนได้ (ทำแล้ว 120/300) · qtyTotal null = ขั้นแบบติ๊กเฉยๆ
-  qtyDone        Int                @default(0) @map("qty_done")
-  qtyTotal       Int?               @map("qty_total")
-  assignedToId   String?            @map("assigned_to_id")
-  startedAt      DateTime?          @map("started_at")
-  completedAt    DateTime?          @map("completed_at")
-  estimatedCost  Decimal?           @map("estimated_cost") @db.Decimal(12, 2)
-  actualCost     Decimal?           @map("actual_cost") @db.Decimal(12, 2)
-  qcPassed       Boolean?           @map("qc_passed")
-  qcNotes        String?            @map("qc_notes")
-  notes          String?
-  createdAt      DateTime           @default(now()) @map("created_at")
-  updatedAt      DateTime           @updatedAt @map("updated_at")
+  qtyDone             Int                    @default(0) @map("qty_done")
+  qtyTotal            Int?                   @map("qty_total")
+  assignedToId        String?                @map("assigned_to_id")
+  startedAt           DateTime?              @map("started_at")
+  completedAt         DateTime?              @map("completed_at")
+  estimatedCost       Decimal?               @map("estimated_cost") @db.Decimal(12, 2)
+  actualCost          Decimal?               @map("actual_cost") @db.Decimal(12, 2)
+  qcPassed            Boolean?               @map("qc_passed")
+  qcNotes             String?                @map("qc_notes")
+  notes               String?
+  createdAt           DateTime               @default(now()) @map("created_at")
+  updatedAt           DateTime               @updatedAt @map("updated_at")
 
   // Relations
-  production      Production       @relation(fields: [productionId], references: [id], onDelete: Cascade)
-  assignedTo      User?            @relation("AssignedTo", fields: [assignedToId], references: [id])
-  outsourceOrders OutsourceOrder[]
-  printRunItems   PrintRunItem[]
+  production         Production                       @relation(fields: [productionId], references: [id], onDelete: Cascade)
+  completionOwnerFor Production[]                     @relation("ProductionCompletionOwner")
+  assignedTo         User?                            @relation("AssignedTo", fields: [assignedToId], references: [id])
+  workCenter         WorkCenter?                      @relation(fields: [workCenterId], references: [id])
+  workResource       WorkResource?                    @relation(fields: [workResourceId], references: [id])
+  routingOperation   RoutingOperation?                @relation(fields: [routingOperationId], references: [id])
+  reworkCase         ReworkCase?                      @relation("ReworkOperation", fields: [reworkCaseId], references: [id])
+  sourceReworkCases  ReworkCase[]                     @relation("ReworkSourceOperation")
+  outsourceOrders    OutsourceOrder[]
+  printRunItems      PrintRunItem[]
+  goodsReceipts      GoodsReceipt[]
+  materialUsages     MaterialUsage[]
+  qcRecords          QcRecord[]
+  quantities         OperationQuantity[]
+  events             OperationEvent[]
+  exceptions         ProductionException[]
+  predecessorLinks   OperationJobDependency[]         @relation("OperationDependencySuccessor")
+  successorLinks     OperationJobDependency[]         @relation("OperationDependencyPredecessor")
+  snapshots          ManufacturingReferenceSnapshot[]
+  commands           ManufacturingCommand[]
 
   // hot path: task queue "งานของฉัน" กรองตามคนรับผิดชอบ
   @@index([assignedToId])
   @@index([productionId])
   @@index([stepType, status])
+  @@index([workCenterId, operationState, dispatchSequence])
+  @@index([workResourceId])
+  @@index([routingOperationId])
+  @@index([reworkCaseId])
   @@map("production_steps")
+}
+
+// ============================================================
+// PRODUCTION V2 — WORK CENTERS, ROUTINGS, OPERATION LEDGER
+// ============================================================
+
+model WorkCenter {
+  id             String       @id @default(cuid())
+  code           String       @unique
+  name           String
+  description    String?
+  capacityUnit   CapacityUnit @default(PIECE) @map("capacity_unit")
+  capacityPerDay Int?         @map("capacity_per_day")
+  isActive       Boolean      @default(true) @map("is_active")
+  sortOrder      Int          @default(0) @map("sort_order")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  resources         WorkResource[]
+  members           WorkCenterMember[]
+  calendars         WorkCalendar[]
+  routingOperations RoutingOperation[]
+  operationJobs     ProductionStep[]
+  exceptions        ProductionException[]
+  reworkTargets     ReworkCase[]
+
+  @@index([isActive, sortOrder])
+  @@map("work_centers")
+}
+
+model WorkResource {
+  id             String            @id @default(cuid())
+  workCenterId   String            @map("work_center_id")
+  code           String
+  name           String
+  description    String?
+  capacityUnit   CapacityUnit      @default(PIECE) @map("capacity_unit")
+  kind           WorkResourceKind  @default(MACHINE)
+  state          WorkResourceState @default(AVAILABLE)
+  capacityPerDay Int?              @map("capacity_per_day")
+  isActive       Boolean           @default(true) @map("is_active")
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
+
+  workCenter    WorkCenter       @relation(fields: [workCenterId], references: [id])
+  operationJobs ProductionStep[]
+  printRuns     PrintRun[]
+
+  @@unique([workCenterId, code])
+  @@index([workCenterId, isActive])
+  @@map("work_resources")
+}
+
+model WorkCenterMember {
+  id           String   @id @default(cuid())
+  workCenterId String   @map("work_center_id")
+  userId       String   @map("user_id")
+  memberRole   String   @default("OPERATOR") @map("member_role")
+  canDispatch  Boolean  @default(false) @map("can_dispatch")
+  canSupervise Boolean  @default(false) @map("can_supervise")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  workCenter WorkCenter @relation(fields: [workCenterId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workCenterId, userId])
+  @@index([userId, isActive])
+  @@map("work_center_members")
+}
+
+model WorkCalendar {
+  id           String    @id @default(cuid())
+  workCenterId String    @map("work_center_id")
+  name         String
+  timezone     String    @default("Asia/Bangkok")
+  isDefault    Boolean   @default(false) @map("is_default")
+  validFrom    DateTime? @map("valid_from") @db.Date
+  validTo      DateTime? @map("valid_to") @db.Date
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  workCenter WorkCenter              @relation(fields: [workCenterId], references: [id], onDelete: Cascade)
+  days       WorkCalendarDay[]
+  exceptions WorkCalendarException[]
+
+  @@index([workCenterId, isDefault])
+  @@map("work_calendars")
+}
+
+model WorkCalendarDay {
+  id             String  @id @default(cuid())
+  calendarId     String  @map("calendar_id")
+  weekday        Int
+  isWorking      Boolean @default(true) @map("is_working")
+  startMinute    Int?    @map("start_minute")
+  endMinute      Int?    @map("end_minute")
+  capacityPerDay Int?    @map("capacity_per_day")
+
+  calendar WorkCalendar @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+
+  @@unique([calendarId, weekday])
+  @@map("work_calendar_days")
+}
+
+model WorkCalendarException {
+  id               String                @id @default(cuid())
+  calendarId       String                @map("calendar_id")
+  date             DateTime              @db.Date
+  exceptionType    CalendarExceptionType @map("exception_type")
+  capacityOverride Int?                  @map("capacity_override")
+  startMinute      Int?                  @map("start_minute")
+  endMinute        Int?                  @map("end_minute")
+  note             String?
+  createdAt        DateTime              @default(now()) @map("created_at")
+
+  calendar WorkCalendar @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+
+  @@unique([calendarId, date])
+  @@map("work_calendar_exceptions")
+}
+
+model Routing {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  description String?
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  versions RoutingVersion[]
+
+  @@index([isActive])
+  @@map("routings")
+}
+
+model RoutingVersion {
+  id            String              @id @default(cuid())
+  routingId     String              @map("routing_id")
+  versionNumber Int                 @map("version_number")
+  state         RoutingVersionState @default(DRAFT)
+  revision      Int                 @default(0)
+  releasedAt    DateTime?           @map("released_at")
+  releasedById  String?             @map("released_by_id")
+  createdAt     DateTime            @default(now()) @map("created_at")
+  updatedAt     DateTime            @updatedAt @map("updated_at")
+
+  routing          Routing            @relation(fields: [routingId], references: [id], onDelete: Cascade)
+  releasedBy       User?              @relation("RoutingVersionReleasedBy", fields: [releasedById], references: [id])
+  operations       RoutingOperation[]
+  productionOrders Production[]
+
+  @@unique([routingId, versionNumber])
+  @@index([state])
+  @@map("routing_versions")
+}
+
+model RoutingOperation {
+  id                String                 @id @default(cuid())
+  routingVersionId  String                 @map("routing_version_id")
+  operationCode     String                 @map("operation_code")
+  name              String
+  description       String?
+  sequence          Int
+  executionMode     OperationExecutionMode @default(IN_HOUSE) @map("execution_mode")
+  phase             OperationPhase         @default(MANUFACTURING)
+  workCenterId      String?                @map("work_center_id")
+  standardMinutes   Int?                   @map("standard_minutes")
+  instructions      Json?
+  referenceTemplate Json?                  @map("reference_template")
+  createdAt         DateTime               @default(now()) @map("created_at")
+  updatedAt         DateTime               @updatedAt @map("updated_at")
+
+  routingVersion   RoutingVersion               @relation(fields: [routingVersionId], references: [id], onDelete: Cascade)
+  workCenter       WorkCenter?                  @relation(fields: [workCenterId], references: [id])
+  operationJobs    ProductionStep[]
+  predecessorLinks RoutingOperationDependency[] @relation("RoutingDependencySuccessor")
+  successorLinks   RoutingOperationDependency[] @relation("RoutingDependencyPredecessor")
+
+  @@unique([routingVersionId, operationCode])
+  @@index([routingVersionId, sequence])
+  @@index([workCenterId])
+  @@map("routing_operations")
+}
+
+model RoutingOperationDependency {
+  id                     String   @id @default(cuid())
+  predecessorOperationId String   @map("predecessor_operation_id")
+  successorOperationId   String   @map("successor_operation_id")
+  createdAt              DateTime @default(now()) @map("created_at")
+
+  predecessorOperation  RoutingOperation         @relation("RoutingDependencyPredecessor", fields: [predecessorOperationId], references: [id], onDelete: Cascade)
+  successorOperation    RoutingOperation         @relation("RoutingDependencySuccessor", fields: [successorOperationId], references: [id], onDelete: Cascade)
+  operationDependencies OperationJobDependency[]
+
+  @@unique([predecessorOperationId, successorOperationId])
+  @@index([successorOperationId])
+  @@map("routing_operation_dependencies")
+}
+
+model OperationJobDependency {
+  id                        String   @id @default(cuid())
+  predecessorStepId         String   @map("predecessor_step_id")
+  successorStepId           String   @map("successor_step_id")
+  sourceRoutingDependencyId String?  @map("source_routing_dependency_id")
+  createdAt                 DateTime @default(now()) @map("created_at")
+
+  predecessorStep         ProductionStep              @relation("OperationDependencyPredecessor", fields: [predecessorStepId], references: [id], onDelete: Cascade)
+  successorStep           ProductionStep              @relation("OperationDependencySuccessor", fields: [successorStepId], references: [id], onDelete: Cascade)
+  sourceRoutingDependency RoutingOperationDependency? @relation(fields: [sourceRoutingDependencyId], references: [id])
+
+  @@unique([predecessorStepId, successorStepId])
+  @@index([successorStepId])
+  @@index([sourceRoutingDependencyId])
+  @@map("operation_job_dependencies")
+}
+
+model OperationQuantity {
+  id                       String            @id @default(cuid())
+  productionId             String            @map("production_id")
+  productionStepId         String            @map("production_step_id")
+  scopeKey                 String            @map("scope_key")
+  scopeKind                QuantityScopeKind @map("scope_kind")
+  sourceOrderItemId        String?           @map("source_order_item_id")
+  sourceOrderItemProductId String?           @map("source_order_item_product_id")
+  sourceOrderItemVariantId String?           @map("source_order_item_variant_id")
+  sourceOrderItemPrintId   String?           @map("source_order_item_print_id")
+  description              String
+  sku                      String?
+  size                     String?
+  color                    String?
+  printPosition            String?           @map("print_position")
+  qtyPlanned               Int               @map("qty_planned")
+  qtyGood                  Int               @default(0) @map("qty_good")
+  qtyScrap                 Int               @default(0) @map("qty_scrap")
+  qtyRework                Int               @default(0) @map("qty_rework")
+  revision                 Int               @default(0)
+  referenceSnapshot        Json              @map("reference_snapshot")
+  createdAt                DateTime          @default(now()) @map("created_at")
+  updatedAt                DateTime          @updatedAt @map("updated_at")
+
+  production          Production           @relation(fields: [productionId], references: [id], onDelete: Cascade)
+  productionStep      ProductionStep       @relation(fields: [productionStepId], references: [id], onDelete: Cascade)
+  qcDefects           QcDefect[]
+  outsourceOrderLines OutsourceOrderLine[]
+
+  @@unique([productionStepId, scopeKey])
+  @@index([productionId])
+  @@index([productionStepId, scopeKind])
+  @@map("operation_quantities")
+}
+
+model OperationEvent {
+  id               String             @id @default(cuid())
+  productionId     String             @map("production_id")
+  productionStepId String?            @map("production_step_id")
+  eventType        OperationEventType @map("event_type")
+  commandId        String?            @map("command_id")
+  sequence         Int                @default(0)
+  actorId          String?            @map("actor_id")
+  fromState        String?            @map("from_state")
+  toState          String?            @map("to_state")
+  qtyGoodDelta     Int                @default(0) @map("qty_good_delta")
+  qtyScrapDelta    Int                @default(0) @map("qty_scrap_delta")
+  qtyReworkDelta   Int                @default(0) @map("qty_rework_delta")
+  payload          Json?
+  occurredAt       DateTime           @default(now()) @map("occurred_at")
+
+  production     Production      @relation(fields: [productionId], references: [id], onDelete: Cascade)
+  productionStep ProductionStep? @relation(fields: [productionStepId], references: [id], onDelete: SetNull)
+  actor          User?           @relation("OperationEventActor", fields: [actorId], references: [id])
+
+  @@unique([commandId, sequence])
+  @@index([productionId, occurredAt])
+  @@index([productionStepId, occurredAt])
+  @@map("operation_events")
+}
+
+model ProductionException {
+  id               String              @id @default(cuid())
+  productionId     String              @map("production_id")
+  productionStepId String?             @map("production_step_id")
+  workCenterId     String?             @map("work_center_id")
+  sourceQcDefectId String?             @unique @map("source_qc_defect_id")
+  code             String?
+  title            String
+  description      String?
+  severity         ExceptionSeverity   @default(WARNING)
+  blocksJob        Boolean             @default(true) @map("blocks_job")
+  state            ExceptionState      @default(OPEN)
+  disposition      QualityDisposition?
+  raisedById       String              @map("raised_by_id")
+  ownerId          String?             @map("owner_id")
+  acknowledgedAt   DateTime?           @map("acknowledged_at")
+  resolvedAt       DateTime?           @map("resolved_at")
+  closedAt         DateTime?           @map("closed_at")
+  resolution       String?
+  revision         Int                 @default(0)
+  createdAt        DateTime            @default(now()) @map("created_at")
+  updatedAt        DateTime            @updatedAt @map("updated_at")
+
+  production     Production      @relation(fields: [productionId], references: [id], onDelete: Cascade)
+  productionStep ProductionStep? @relation(fields: [productionStepId], references: [id], onDelete: SetNull)
+  workCenter     WorkCenter?     @relation(fields: [workCenterId], references: [id], onDelete: SetNull)
+  sourceQcDefect QcDefect?       @relation("ExceptionSourceQcDefect", fields: [sourceQcDefectId], references: [id], onDelete: SetNull)
+  raisedBy       User            @relation("ProductionExceptionRaisedBy", fields: [raisedById], references: [id])
+  owner          User?           @relation("ProductionExceptionOwner", fields: [ownerId], references: [id])
+  reworkCases    ReworkCase[]
+
+  @@index([productionId, state, blocksJob])
+  @@index([productionStepId, state, blocksJob])
+  @@index([workCenterId, state])
+  @@index([ownerId, state])
+  @@map("production_exceptions")
+}
+
+model ReworkCase {
+  id                   String      @id @default(cuid())
+  productionId         String      @map("production_id")
+  sourceOperationId    String?     @map("source_operation_id")
+  sourceQcRecordId     String?     @map("source_qc_record_id")
+  sourceQcDefectId     String?     @unique @map("source_qc_defect_id")
+  sourceExceptionId    String?     @map("source_exception_id")
+  targetWorkCenterId   String      @map("target_work_center_id")
+  state                ReworkState @default(PLANNED)
+  qty                  Int
+  reason               String
+  requiresReinspection Boolean     @default(true) @map("requires_reinspection")
+  reinspectedAt        DateTime?   @map("reinspected_at")
+  plannedById          String      @map("planned_by_id")
+  releasedById         String?     @map("released_by_id")
+  releasedAt           DateTime?   @map("released_at")
+  completedAt          DateTime?   @map("completed_at")
+  revision             Int         @default(0)
+  createdAt            DateTime    @default(now()) @map("created_at")
+  updatedAt            DateTime    @updatedAt @map("updated_at")
+
+  production       Production           @relation(fields: [productionId], references: [id], onDelete: Cascade)
+  sourceOperation  ProductionStep?      @relation("ReworkSourceOperation", fields: [sourceOperationId], references: [id], onDelete: SetNull)
+  sourceQcRecord   QcRecord?            @relation("ReworkSourceQc", fields: [sourceQcRecordId], references: [id], onDelete: SetNull)
+  sourceQcDefect   QcDefect?            @relation("ReworkSourceDefect", fields: [sourceQcDefectId], references: [id], onDelete: SetNull)
+  sourceException  ProductionException? @relation(fields: [sourceExceptionId], references: [id], onDelete: SetNull)
+  targetWorkCenter WorkCenter           @relation(fields: [targetWorkCenterId], references: [id])
+  plannedBy        User                 @relation("ReworkPlannedBy", fields: [plannedById], references: [id])
+  releasedBy       User?                @relation("ReworkReleasedBy", fields: [releasedById], references: [id])
+  operations       ProductionStep[]     @relation("ReworkOperation")
+
+  @@index([productionId, state])
+  @@index([sourceOperationId])
+  @@index([sourceQcRecordId])
+  @@index([sourceExceptionId])
+  @@index([targetWorkCenterId, state])
+  @@map("rework_cases")
+}
+
+model ManufacturingReferenceSnapshot {
+  id               String   @id @default(cuid())
+  productionId     String   @map("production_id")
+  productionStepId String?  @map("production_step_id")
+  kind             String
+  version          Int      @default(1)
+  sourceEntityType String?  @map("source_entity_type")
+  sourceEntityId   String?  @map("source_entity_id")
+  contentHash      String   @map("content_hash")
+  payload          Json
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  production     Production      @relation(fields: [productionId], references: [id], onDelete: Cascade)
+  productionStep ProductionStep? @relation(fields: [productionStepId], references: [id], onDelete: SetNull)
+
+  @@unique([productionId, productionStepId, kind, version])
+  @@index([productionId, kind])
+  @@map("manufacturing_reference_snapshots")
+}
+
+model ManufacturingCommand {
+  id               String                     @id @default(cuid())
+  commandId        String                     @unique @map("command_id")
+  commandType      String                     @map("command_type")
+  requestHash      String                     @map("request_hash")
+  productionId     String?                    @map("production_id")
+  productionStepId String?                    @map("production_step_id")
+  actorId          String?                    @map("actor_id")
+  expectedRevision Int                        @map("expected_revision")
+  status           ManufacturingCommandStatus @default(PENDING)
+  result           Json?
+  errorCode        String?                    @map("error_code")
+  errorMessage     String?                    @map("error_message")
+  completedAt      DateTime?                  @map("completed_at")
+  createdAt        DateTime                   @default(now()) @map("created_at")
+  updatedAt        DateTime                   @updatedAt @map("updated_at")
+
+  production     Production?     @relation(fields: [productionId], references: [id], onDelete: SetNull)
+  productionStep ProductionStep? @relation(fields: [productionStepId], references: [id], onDelete: SetNull)
+  actor          User?           @relation("ManufacturingCommandActor", fields: [actorId], references: [id])
+
+  @@index([productionId, createdAt])
+  @@index([productionStepId, createdAt])
+  @@index([status, createdAt])
+  @@map("manufacturing_commands")
 }
 
 // ============================================================
@@ -1213,32 +1844,42 @@ enum PrintRunStatus {
 }
 
 model PrintRun {
-  id          String         @id @default(cuid())
-  runNumber   String         @unique @map("run_number") // FR-YYMM-NNNN ผ่าน DocumentSequence
-  status      PrintRunStatus @default(PRINTING)
-  note        String?
-  createdById String         @map("created_by_id")
-  printedAt   DateTime?      @map("printed_at")
-  completedAt DateTime?      @map("completed_at")
-  createdAt   DateTime       @default(now()) @map("created_at")
-  updatedAt   DateTime       @updatedAt @map("updated_at")
+  id             String         @id @default(cuid())
+  runNumber      String         @unique @map("run_number") // FR-YYMM-NNNN ผ่าน DocumentSequence
+  status         PrintRunStatus @default(PRINTING)
+  note           String?
+  createdById    String         @map("created_by_id")
+  operatorId     String?        @map("operator_id")
+  workResourceId String?        @map("work_resource_id")
+  printedAt      DateTime?      @map("printed_at")
+  completedAt    DateTime?      @map("completed_at")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
 
-  createdBy  User           @relation("PrintRunCreatedBy", fields: [createdById], references: [id])
-  items      PrintRunItem[]
-  filmStocks FilmStock[]
+  createdBy    User           @relation("PrintRunCreatedBy", fields: [createdById], references: [id])
+  operator     User?          @relation("PrintRunOperator", fields: [operatorId], references: [id])
+  workResource WorkResource?  @relation(fields: [workResourceId], references: [id])
+  items        PrintRunItem[]
+  filmStocks   FilmStock[]
 
   @@index([status])
+  @@index([operatorId])
+  @@index([workResourceId, status])
   @@map("print_runs")
 }
 
 model PrintRunItem {
-  id               String   @id @default(cuid())
-  printRunId       String   @map("print_run_id")
-  productionStepId String   @map("production_step_id")
-  orderId          String   @map("order_id") // denorm — โชว์คิว/ป้ายไม่ต้อง join ลึก
+  id               String    @id @default(cuid())
+  printRunId       String    @map("print_run_id")
+  productionStepId String    @map("production_step_id")
+  orderId          String    @map("order_id") // denorm — โชว์คิว/ป้ายไม่ต้อง join ลึก
   qty              Int // จำนวนชิ้นของงานนี้ที่พิมพ์ในรอบนี้ (แบ่งพิมพ์หลายรอบได้)
-  extraQty         Int      @default(0) @map("extra_qty") // พิมพ์เผื่อ — กรอกตอนปิดรอบ → เข้าคลังฟิล์ม
-  createdAt        DateTime @default(now()) @map("created_at")
+  extraQty         Int       @default(0) @map("extra_qty") // พิมพ์เผื่อ — กรอกตอนปิดรอบ → เข้าคลังฟิล์ม
+  qtyGood          Int       @default(0) @map("qty_good")
+  qtyScrap         Int       @default(0) @map("qty_scrap")
+  qtyReprint       Int       @default(0) @map("qty_reprint")
+  resultReportedAt DateTime? @map("result_reported_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
 
   printRun       PrintRun       @relation(fields: [printRunId], references: [id], onDelete: Cascade)
   productionStep ProductionStep @relation(fields: [productionStepId], references: [id])
@@ -1282,21 +1923,21 @@ model FilmStock {
 // ============================================================
 
 model Vendor {
-  id             String   @id @default(cuid())
-  name           String
-  contactName    String?  @map("contact_name")
-  phone          String?
-  email          String?
-  lineId         String?  @map("line_id")
-  address        String?
-  capabilities   String[] @default([])
-  qualityRating  Float?   @map("quality_rating")
-  timeRating     Float?   @map("time_rating")
-  priceRating    Float?   @map("price_rating")
-  notes          String?
-  isActive       Boolean  @default(true) @map("is_active")
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  id            String   @id @default(cuid())
+  name          String
+  contactName   String?  @map("contact_name")
+  phone         String?
+  email         String?
+  lineId        String?  @map("line_id")
+  address       String?
+  capabilities  String[] @default([])
+  qualityRating Float?   @map("quality_rating")
+  timeRating    Float?   @map("time_rating")
+  priceRating   Float?   @map("price_rating")
+  notes         String?
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
   // Relations
   outsourceOrders OutsourceOrder[]
@@ -1304,32 +1945,33 @@ model Vendor {
   @@map("vendors")
 }
 
-// หนึ่ง step ส่งร้านนอกได้หลายรอบ (งาน QC ไม่ผ่านส่งกลับแก้เป็นรอบใหม่) —
-// แต่มีงานค้างที่ร้าน (ยังไม่จบ QC) ได้ทีละใบ บังคับที่ outsource.createOrder
+// หนึ่ง Operation Job ส่งร้านนอกได้หลายใบพร้อมกัน โดยแต่ละใบต้องจัดสรรยอด
+// ผ่าน OutsourceOrderLine เพื่อไม่ให้ยอดค้างข้ามใบเกิน OperationQuantity.
 model OutsourceOrder {
-  id               String          @id @default(cuid())
-  productionStepId String          @map("production_step_id")
-  vendorId         String          @map("vendor_id")
-  status           OutsourceStatus @default(DRAFT)
-  description      String
-  quantity         Int
-  unitCost         Decimal         @map("unit_cost") @db.Decimal(12, 2)
-  totalCost        Decimal         @map("total_cost") @db.Decimal(12, 2)
-  sentAt           DateTime?       @map("sent_at")
-  expectedBackAt   DateTime?       @map("expected_back_at")
-  receivedAt       DateTime?       @map("received_at")
-  qcPassed         Boolean?        @map("qc_passed")
-  qcNotes          String?         @map("qc_notes")
-  notes            String?
+  id                  String          @id @default(cuid())
+  productionStepId    String          @map("production_step_id")
+  vendorId            String          @map("vendor_id")
+  status              OutsourceStatus @default(DRAFT)
+  description         String
+  quantity            Int
+  unitCost            Decimal         @map("unit_cost") @db.Decimal(12, 2)
+  totalCost           Decimal         @map("total_cost") @db.Decimal(12, 2)
+  sentAt              DateTime?       @map("sent_at")
+  expectedBackAt      DateTime?       @map("expected_back_at")
+  receivedAt          DateTime?       @map("received_at")
+  qcPassed            Boolean?        @map("qc_passed")
+  qcNotes             String?         @map("qc_notes")
+  notes               String?
   // ลิงก์ใบงานให้ร้านนอกเปิดผ่าน LINE ไม่ต้อง login (B14 — เลียน statusToken ของ Order)
-  shareToken          String?   @unique @map("share_token")
-  shareTokenExpiresAt DateTime? @map("share_token_expires_at")
-  createdAt        DateTime        @default(now()) @map("created_at")
-  updatedAt        DateTime        @updatedAt @map("updated_at")
+  shareToken          String?         @unique @map("share_token")
+  shareTokenExpiresAt DateTime?       @map("share_token_expires_at")
+  createdAt           DateTime        @default(now()) @map("created_at")
+  updatedAt           DateTime        @updatedAt @map("updated_at")
 
   // Relations
-  productionStep ProductionStep @relation(fields: [productionStepId], references: [id], onDelete: Cascade)
-  vendor         Vendor         @relation(fields: [vendorId], references: [id])
+  productionStep ProductionStep       @relation(fields: [productionStepId], references: [id], onDelete: Cascade)
+  vendor         Vendor               @relation(fields: [vendorId], references: [id])
+  allocations    OutsourceOrderLine[]
 
   @@index([productionStepId])
   @@index([status])
@@ -1337,63 +1979,80 @@ model OutsourceOrder {
   @@map("outsource_orders")
 }
 
+model OutsourceOrderLine {
+  id                  String   @id @default(cuid())
+  outsourceOrderId    String   @map("outsource_order_id")
+  operationQuantityId String   @map("operation_quantity_id")
+  qty                 Int
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  outsourceOrder    OutsourceOrder    @relation(fields: [outsourceOrderId], references: [id], onDelete: Cascade)
+  operationQuantity OperationQuantity @relation(fields: [operationQuantityId], references: [id], onDelete: Restrict)
+
+  @@unique([outsourceOrderId, operationQuantityId])
+  @@index([operationQuantityId])
+  @@map("outsource_order_lines")
+}
+
 // ============================================================
 // BILLING & INVOICE
 // ============================================================
 
 model Invoice {
-  id            String        @id @default(cuid())
-  invoiceNumber String        @unique @map("invoice_number")
-  orderId       String        @map("order_id")
-  customerId    String        @map("customer_id")
-  type          InvoiceType
-  amount        Decimal       @db.Decimal(12, 2)
-  discount      Decimal       @default(0) @db.Decimal(12, 2)
-  tax           Decimal       @default(0) @db.Decimal(12, 2)
-  totalAmount   Decimal       @map("total_amount") @db.Decimal(12, 2)
-  paymentStatus PaymentStatus @default(UNPAID) @map("payment_status")
-  dueDate       DateTime?     @map("due_date")
-  paidAt        DateTime?     @map("paid_at")
-  isVoided      Boolean       @default(false) @map("is_voided")
-  voidedReason  String?       @map("voided_reason")
-  notes         String?
+  id                String        @id @default(cuid())
+  invoiceNumber     String        @unique @map("invoice_number")
+  orderId           String        @map("order_id")
+  customerId        String        @map("customer_id")
+  type              InvoiceType
+  amount            Decimal       @db.Decimal(12, 2)
+  discount          Decimal       @default(0) @db.Decimal(12, 2)
+  tax               Decimal       @default(0) @db.Decimal(12, 2)
+  totalAmount       Decimal       @map("total_amount") @db.Decimal(12, 2)
+  paymentStatus     PaymentStatus @default(UNPAID) @map("payment_status")
+  dueDate           DateTime?     @map("due_date")
+  paidAt            DateTime?     @map("paid_at")
+  isVoided          Boolean       @default(false) @map("is_voided")
+  voidedReason      String?       @map("voided_reason")
+  notes             String?
   // ใบลดหนี้/เพิ่มหนี้ต้องอ้างใบกำกับเดิม + เหตุผล (ม.86/10 + ป.80/2542) — บังคับที่
   // billing.create เมื่อ type CN/DN · ใบลดหนี้ที่ผูกใบเรียกเก็บ = หักยอดค้างของใบนั้นจริง
-  originalInvoiceId String? @map("original_invoice_id")
-  adjustmentReason  String? @map("adjustment_reason")
+  originalInvoiceId String?       @map("original_invoice_id")
+  adjustmentReason  String?       @map("adjustment_reason")
   // tax point (Gate B3 · ม.78/1(1) จ้างทำของ = ทุกงวดรับเงิน): วันที่เอกสารตามกฎหมาย
   // (ใบเสร็จของงวดรับเงิน = วันรับเงินจริง ไม่ใช่วันกดสร้าง) · null = ใช้ createdAt
-  issueDate    DateTime? @map("issue_date")
+  issueDate         DateTime?     @map("issue_date")
   // ใบเสร็จ/ใบกำกับที่ออกให้งวดรับเงินไหน — unique: 1 งวด 1 ใบ (กันออกซ้ำ/นับซ้ำถาวร)
-  forPaymentId String?   @unique @map("for_payment_id")
-  /* ── สำเนาคู่สัญญา ณ วันออกเอกสาร (เบสสั่ง 2026-08-12) ──────────────────────
-     ห้ามอัปเดตตาม Customer/Setting ภายหลัง — นี่คือ "ต้นฉบับที่ลูกค้าถืออยู่"
-     เดิมหน้าพิมพ์ join สดทุกครั้ง → ย้ายออฟฟิศ/ลูกค้าแก้ที่อยู่ แล้วพิมพ์ใบเก่าซ้ำ
-     ได้ข้อมูลใหม่ทั้งกอง ไม่ตรงสำเนาที่ยื่นสรรพากรไปแล้ว (ม.86/4 บังคับว่าสำเนา
-     ต้องตรงต้นฉบับ) · nullable ทั้งหมด: ใบที่ออกก่อน migration นี้ยังพิมพ์ได้ด้วย
-     การถอยไปอ่านค่าสด (หน้าพิมพ์ทำ `snapshot ?? ค่าสด` ให้แล้ว)
-     ที่อยู่เก็บแยกช่องเหมือน Customer/Order/Delivery — ไม่ใช่ข้อความ format แล้ว
-     ────────────────────────────────────────────────────────────────────────── */
-  buyerName         String? @map("buyer_name")
-  buyerCompany      String? @map("buyer_company")
-  buyerTaxId        String? @map("buyer_tax_id")
-  buyerBranchNumber String? @map("buyer_branch_number") // เลขดิบ ("00000" = สำนักงานใหญ่) ไม่ใช่ป้าย
-  buyerPhone        String? @map("buyer_phone")
-  buyerAddress      String? @map("buyer_address")
-  buyerSubDistrict  String? @map("buyer_sub_district")
-  buyerDistrict     String? @map("buyer_district")
-  buyerProvince     String? @map("buyer_province")
-  buyerPostalCode   String? @map("buyer_postal_code")
+  forPaymentId      String?       @unique @map("for_payment_id")
+  /**
+   * ── สำเนาคู่สัญญา ณ วันออกเอกสาร (เบสสั่ง 2026-08-12) ──────────────────────
+   * ห้ามอัปเดตตาม Customer/Setting ภายหลัง — นี่คือ "ต้นฉบับที่ลูกค้าถืออยู่"
+   * เดิมหน้าพิมพ์ join สดทุกครั้ง → ย้ายออฟฟิศ/ลูกค้าแก้ที่อยู่ แล้วพิมพ์ใบเก่าซ้ำ
+   * ได้ข้อมูลใหม่ทั้งกอง ไม่ตรงสำเนาที่ยื่นสรรพากรไปแล้ว (ม.86/4 บังคับว่าสำเนา
+   * ต้องตรงต้นฉบับ) · nullable ทั้งหมด: ใบที่ออกก่อน migration นี้ยังพิมพ์ได้ด้วย
+   * การถอยไปอ่านค่าสด (หน้าพิมพ์ทำ `snapshot ?? ค่าสด` ให้แล้ว)
+   * ที่อยู่เก็บแยกช่องเหมือน Customer/Order/Delivery — ไม่ใช่ข้อความ format แล้ว
+   * ──────────────────────────────────────────────────────────────────────────
+   */
+  buyerName         String?       @map("buyer_name")
+  buyerCompany      String?       @map("buyer_company")
+  buyerTaxId        String?       @map("buyer_tax_id")
+  buyerBranchNumber String?       @map("buyer_branch_number") // เลขดิบ ("00000" = สำนักงานใหญ่) ไม่ใช่ป้าย
+  buyerPhone        String?       @map("buyer_phone")
+  buyerAddress      String?       @map("buyer_address")
+  buyerSubDistrict  String?       @map("buyer_sub_district")
+  buyerDistrict     String?       @map("buyer_district")
+  buyerProvince     String?       @map("buyer_province")
+  buyerPostalCode   String?       @map("buyer_postal_code")
   // ผู้ขาย = กิจการเรา (Setting.company_profile แถวเดียวทั้งระบบ แก้ทับได้ไม่มี history)
-  sellerName    String? @map("seller_name")
-  sellerAddress String? @map("seller_address")
-  sellerTaxId   String? @map("seller_tax_id")
-  sellerBranch  String? @map("seller_branch")
-  sellerPhone   String? @map("seller_phone")
-  sellerEmail   String? @map("seller_email")
+  sellerName        String?       @map("seller_name")
+  sellerAddress     String?       @map("seller_address")
+  sellerTaxId       String?       @map("seller_tax_id")
+  sellerBranch      String?       @map("seller_branch")
+  sellerPhone       String?       @map("seller_phone")
+  sellerEmail       String?       @map("seller_email")
 
-  createdAt     DateTime      @default(now()) @map("created_at")
-  updatedAt     DateTime      @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
   order            Order             @relation(fields: [orderId], references: [id])
@@ -1420,18 +2079,18 @@ model Invoice {
 }
 
 model Payment {
-  id            String   @id @default(cuid())
-  invoiceId     String   @map("invoice_id")
-  amount        Decimal  @db.Decimal(12, 2)
+  id          String   @id @default(cuid())
+  invoiceId   String   @map("invoice_id")
+  amount      Decimal  @db.Decimal(12, 2)
   // ลูกค้านิติบุคคลหัก ณ ที่จ่าย 3% ค่าจ้างทำของ — รับเงินสด 97% + เครดิตภาษี 3%
   // ยอดที่ "เคลียร์บิล" = amount + whtAmount (กันบิลค้างผี/โดน overdue sweep ปลอม)
   // ส่วนยอดเงินสดจริง (สถิติรับเงิน) ใช้ amount อย่างเดียวเสมอ
-  whtAmount     Decimal  @default(0) @map("wht_amount") @db.Decimal(12, 2)
-  method        String   // CASH, TRANSFER, CARD, QR
-  reference     String?
-  evidenceUrl   String?  @map("evidence_url")
-  notes         String?
-  createdAt     DateTime @default(now()) @map("created_at")
+  whtAmount   Decimal  @default(0) @map("wht_amount") @db.Decimal(12, 2)
+  method      String // CASH, TRANSFER, CARD, QR
+  reference   String?
+  evidenceUrl String?  @map("evidence_url")
+  notes       String?
+  createdAt   DateTime @default(now()) @map("created_at")
 
   // Relations
   invoice        Invoice         @relation(fields: [invoiceId], references: [id])
@@ -1447,21 +2106,21 @@ model Payment {
 // เกิดอัตโนมัติเมื่อบันทึกรับเงินที่มี whtAmount > 0 · ตามทวงใบจริงจากลูกค้า
 // (เครดิตภาษีปลายปี — ไม่มีใบ = เงิน 3% หายฟรี) · export CSV ให้นักบัญชี
 model WhtCertificate {
-  id          String    @id @default(cuid())
-  paymentId   String    @unique @map("payment_id")
-  invoiceId   String    @map("invoice_id") // denorm — ทะเบียน/export ไม่ต้อง join ลึก
-  customerId  String    @map("customer_id")
-  baseAmount  Decimal   @map("base_amount") @db.Decimal(12, 2) // ฐานก่อน VAT ที่ลูกค้าใช้หัก
-  ratePct     Decimal   @default(3) @map("rate_pct") @db.Decimal(5, 2)
-  amount      Decimal   @db.Decimal(12, 2) // ยอดภาษีที่ถูกหัก
-  certNumber  String?   @map("cert_number") // เลขที่หนังสือรับรอง (ลูกค้าออก — กรอกตอนได้ใบ)
-  certDate    DateTime? @map("cert_date")
-  received    Boolean   @default(false) // ได้ใบจริง/สแกนจากลูกค้าแล้ว
-  receivedAt  DateTime? @map("received_at")
-  fileUrl     String?   @map("file_url") // สแกนหนังสือรับรอง
-  notes       String?
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
+  id         String    @id @default(cuid())
+  paymentId  String    @unique @map("payment_id")
+  invoiceId  String    @map("invoice_id") // denorm — ทะเบียน/export ไม่ต้อง join ลึก
+  customerId String    @map("customer_id")
+  baseAmount Decimal   @map("base_amount") @db.Decimal(12, 2) // ฐานก่อน VAT ที่ลูกค้าใช้หัก
+  ratePct    Decimal   @default(3) @map("rate_pct") @db.Decimal(5, 2)
+  amount     Decimal   @db.Decimal(12, 2) // ยอดภาษีที่ถูกหัก
+  certNumber String?   @map("cert_number") // เลขที่หนังสือรับรอง (ลูกค้าออก — กรอกตอนได้ใบ)
+  certDate   DateTime? @map("cert_date")
+  received   Boolean   @default(false) // ได้ใบจริง/สแกนจากลูกค้าแล้ว
+  receivedAt DateTime? @map("received_at")
+  fileUrl    String?   @map("file_url") // สแกนหนังสือรับรอง
+  notes      String?
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
 
   payment  Payment  @relation(fields: [paymentId], references: [id])
   invoice  Invoice  @relation(fields: [invoiceId], references: [id])
@@ -1486,7 +2145,9 @@ model BillingNote {
   voidedReason      String?   @map("voided_reason")
   notes             String?
 
-  /* สำเนาคู่สัญญา ณ วันวางบิล — ดูคำอธิบายเต็มที่ model Invoice */
+  /**
+   * สำเนาคู่สัญญา ณ วันวางบิล — ดูคำอธิบายเต็มที่ model Invoice
+   */
   buyerName         String? @map("buyer_name")
   buyerCompany      String? @map("buyer_company")
   buyerTaxId        String? @map("buyer_tax_id")
@@ -1497,15 +2158,15 @@ model BillingNote {
   buyerDistrict     String? @map("buyer_district")
   buyerProvince     String? @map("buyer_province")
   buyerPostalCode   String? @map("buyer_postal_code")
-  sellerName    String? @map("seller_name")
-  sellerAddress String? @map("seller_address")
-  sellerTaxId   String? @map("seller_tax_id")
-  sellerBranch  String? @map("seller_branch")
-  sellerPhone   String? @map("seller_phone")
-  sellerEmail   String? @map("seller_email")
+  sellerName        String? @map("seller_name")
+  sellerAddress     String? @map("seller_address")
+  sellerTaxId       String? @map("seller_tax_id")
+  sellerBranch      String? @map("seller_branch")
+  sellerPhone       String? @map("seller_phone")
+  sellerEmail       String? @map("seller_email")
 
-  createdAt         DateTime  @default(now()) @map("created_at")
-  updatedAt         DateTime  @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
   customer Customer          @relation(fields: [customerId], references: [id])
@@ -1579,7 +2240,7 @@ model PackagingOption {
 model Setting {
   id        String   @id @default(cuid())
   key       String   @unique
-  value     String   // JSON string
+  value     String // JSON string
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -1593,7 +2254,7 @@ model Setting {
 model DocumentSequence {
   id         String   @id @default(cuid())
   docType    String   @map("doc_type") // ORDER, QUOTATION, DEPOSIT_INVOICE, FINAL_INVOICE, RECEIPT, CREDIT_NOTE, DEBIT_NOTE
-  period     String   // YYMM เช่น "2606" — เลขรีเซ็ตต่อเดือนตาม format เลขเอกสารเดิม
+  period     String // YYMM เช่น "2606" — เลขรีเซ็ตต่อเดือนตาม format เลขเอกสารเดิม
   lastNumber Int      @default(0) @map("last_number")
   updatedAt  DateTime @updatedAt @map("updated_at")
 

@@ -77,6 +77,7 @@ function makeCreateHarness(
       }),
     },
     production: {
+      findFirst: vi.fn().mockResolvedValue(null),
       create: vi.fn(async (args: { data: { steps: { create: unknown[] } } }) => {
         events.push("production-insert");
         createdSteps = (args.data.steps.create as Array<Record<string, unknown>>).map(
@@ -148,6 +149,30 @@ function makeCreateHarness(
 }
 
 describe("production.create topology reconciliation", () => {
+  it("ปฏิเสธเปิดใบผลิต legacy เมื่อออเดอร์มี Work Order V2 แล้ว", async () => {
+    const harness = makeCreateHarness([
+      {
+        id: "stock-order-product-1",
+        productType: "TSHIRT",
+        productId: "stock-1",
+        itemSource: "FROM_STOCK",
+        receivedInspected: false,
+        variants: [{ size: "M", color: null, quantity: 5 }],
+      },
+    ]);
+    harness.tx.production.findFirst.mockResolvedValue({
+      workOrderNumber: "MO-2608-0001",
+    });
+
+    await expect(
+      productionRouter.createCaller(harness.ctx).create({
+        orderId: "order-1",
+        steps: [{ stepType: "GARMENT_PICK", sortOrder: 1 }],
+      }),
+    ).rejects.toThrow("เปิดใบผลิตแบบเดิมไม่ได้");
+    expect(harness.tx.production.create).not.toHaveBeenCalled();
+  });
+
   it("อ่าน receipt evidence สดหลัง topology lock และก่อน insert ใบผลิต", async () => {
     const harness = makeCreateHarness([
       {

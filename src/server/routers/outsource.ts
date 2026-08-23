@@ -1,7 +1,16 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
+import type {
+  InternalStatus,
+  OperationState,
+  OutsourceStatus,
+  ReworkState,
+  WorkOrderState,
+  WorkResourceState,
+} from "@prisma/client";
 import { router, protectedProcedure, requirePermission } from "../trpc";
 import { hasPermission } from "@/lib/permissions";
+import type { OutsourceAvailableCommand } from "@/lib/outsource-ui";
 import { firstPendingStepIdsByLane } from "@/lib/production-step-actions";
 import { isOutsourceStep } from "@/lib/production-steps";
 import type { PrismaTx } from "@/lib/prisma";
@@ -11,10 +20,242 @@ import { moneyInput, round2 } from "@/server/services/money";
 import { finalizeProductionIfComplete } from "@/server/services/order-status";
 import { lockOrderRow, recalcOrderCost } from "@/server/services/order-cost";
 import { lockProductionTopology } from "@/server/services/production-topology-lock";
+import {
+  cancelV2OutsourceOrder,
+  createV2OutsourceOrder,
+  transitionV2OutsourceOrder,
+} from "@/server/services/manufacturing-outsource";
+import { specializedExecutionScopeBlockedReason } from "@/server/services/manufacturing-operation-adapter";
+import { assertProductionV2ApiEnabled } from "@/server/services/production-v2-gate";
 
-// PERM3: ทะเบียนร้านนอก = ข้อมูลหลัก (default OWNER/MANAGER) · ใบงานนอก = งานผลิต
-const managerUp = requirePermission("manage_settings");
+// ทะเบียนร้านนอกเป็นข้อมูลหลัก แต่ lifecycle ใบงานนอกอยู่ใต้ Production/Supervisor
+// ห้ามผูกการส่ง/ยกเลิกงานร้านนอกกับสิทธิ์ตั้งค่าระบบ
+const settingsAdmin = requirePermission("manage_settings");
+const productionSupervisor = requirePermission("supervise_operations");
 const productionUp = requirePermission("manage_production");
+
+const OUTSOURCE_RECEIVE_STATUSES = new Set<OutsourceStatus>([
+  "SENT",
+  "IN_PROGRESS",
+  "COMPLETED",
+]);
+const OUTSOURCE_DONE_STATUSES = new Set<OutsourceStatus>([
+  "QC_PASSED",
+  "QC_FAILED",
+]);
+const OUTSOURCE_OPERATION_STATES = new Set<OperationState>([
+  "READY",
+  "RUNNING",
+]);
+
+type OutsourceListAccess = {
+  actorId: string;
+  canHandleGoods: boolean;
+  canSupervise: boolean;
+};
+
+type OutsourceListOperation = {
+  executionEnabled: boolean;
+  operationState: OperationState;
+  assignedToId: string | null;
+  workCenterId: string | null;
+  workCenter: {
+    code: string;
+    isActive: boolean;
+    members: Array<{ id: string }>;
+  } | null;
+  workResource: {
+    isActive: boolean;
+    state: WorkResourceState;
+  } | null;
+  predecessorLinks: Array<{
+    predecessorStep: { operationState: OperationState };
+  }>;
+  exceptions: Array<{ id: string }>;
+  reworkCase: { state: ReworkState } | null;
+  production: {
+    workOrderState: WorkOrderState;
+    order: { internalStatus: InternalStatus };
+  };
+};
+
+type OutsourceListPolicyOrder = {
+  status: OutsourceStatus;
+  quantity: number;
+  allocations: Array<{ operationQuantityId: string; qty: number }>;
+  productionStep: OutsourceListOperation;
+};
+
+function progressionBlockedReason(
+  operation: OutsourceListOperation,
+  access: OutsourceListAccess,
+) {
+  if (operation.workCenter?.code !== "OUTSOURCE") {
+    return "ใบงานนี้ผูกกับจุดงานร้านนอกไม่ถูกต้อง ให้หัวหน้าตรวจใบผลิตก่อน";
+  }
+  const executionScopeBlock =
+    specializedExecutionScopeBlockedReason(operation);
+  if (executionScopeBlock) return executionScopeBlock;
+  if (!access.canSupervise) {
+    if (!operation.workCenterId || operation.workCenter.members.length === 0) {
+      return "บัญชีนี้ไม่ได้อยู่ในทีมของจุดงานร้านนอก";
+    }
+    if (
+      operation.assignedToId &&
+      operation.assignedToId !== access.actorId
+    ) {
+      return "ขั้นงานนี้มีผู้รับผิดชอบคนอื่นอยู่";
+    }
+  }
+  if (operation.exceptions.length > 0) {
+    return "ขั้นงานนี้มีปัญหาที่ต้องแก้ก่อน";
+  }
+  if (
+    operation.predecessorLinks.some(
+      (link) => link.predecessorStep.operationState !== "COMPLETED",
+    )
+  ) {
+    return "งานก่อนหน้ายังไม่เสร็จ จึงทำขั้นนี้ต่อไม่ได้";
+  }
+  if (!OUTSOURCE_OPERATION_STATES.has(operation.operationState)) {
+    return "ขั้นงานนี้ยังไม่พร้อมทำต่อ";
+  }
+  return null;
+}
+
+function cancelDraftBlockedReason(operation: OutsourceListOperation) {
+  if (operation.workCenter?.code !== "OUTSOURCE") {
+    return "ใบงานนี้ผูกกับจุดงานร้านนอกไม่ถูกต้อง ให้หัวหน้าตรวจใบผลิตก่อน";
+  }
+  if (operation.exceptions.length > 0) {
+    return "ขั้นงานนี้มีปัญหาที่ต้องแก้ก่อน";
+  }
+  if (
+    operation.predecessorLinks.some(
+      (link) => link.predecessorStep.operationState !== "COMPLETED",
+    )
+  ) {
+    return "งานก่อนหน้ายังไม่เสร็จ จึงยกเลิกร่างนี้ไม่ได้";
+  }
+  if (!OUTSOURCE_OPERATION_STATES.has(operation.operationState)) {
+    return "ขั้นงานนี้ยังไม่พร้อมให้ยกเลิกร่าง";
+  }
+  return null;
+}
+
+function hasCompleteQuantityAllocations(order: OutsourceListPolicyOrder) {
+  return (
+    order.allocations.length > 0 &&
+    new Set(order.allocations.map((line) => line.operationQuantityId)).size ===
+      order.allocations.length &&
+    order.allocations.reduce((sum, line) => sum + line.qty, 0) ===
+      order.quantity
+  );
+}
+
+function outsourceOrderCommands(
+  order: OutsourceListPolicyOrder,
+  access: OutsourceListAccess,
+): {
+  availableCommands: OutsourceAvailableCommand[];
+  blockedReason: string | null;
+} {
+  const availableCommands: OutsourceAvailableCommand[] = [];
+  if (
+    access.canHandleGoods &&
+    !OUTSOURCE_DONE_STATUSES.has(order.status)
+  ) {
+    availableCommands.push("share");
+  }
+
+  if (!order.productionStep.executionEnabled) {
+    if (access.canHandleGoods && order.status === "DRAFT") {
+      availableCommands.push("markSent");
+    }
+    if (
+      access.canHandleGoods &&
+      OUTSOURCE_RECEIVE_STATUSES.has(order.status)
+    ) {
+      availableCommands.push("receiveBack");
+    }
+    if (
+      access.canHandleGoods &&
+      access.canSupervise &&
+      order.status === "RECEIVED_BACK"
+    ) {
+      availableCommands.push("passQc", "failQc");
+    }
+    if (access.canSupervise && order.status === "DRAFT") {
+      availableCommands.push("cancelDraft");
+    }
+    return {
+      availableCommands,
+      blockedReason:
+        availableCommands.length === 0 &&
+        !OUTSOURCE_DONE_STATUSES.has(order.status)
+          ? "บัญชีนี้ดูใบงานได้อย่างเดียว"
+          : null,
+    };
+  }
+
+  const operation = order.productionStep;
+  const progressionBlock = progressionBlockedReason(operation, access);
+  if (
+    order.status === "DRAFT" &&
+    access.canSupervise &&
+    !cancelDraftBlockedReason(operation)
+  ) {
+    // ยกเลิกร่างเป็นคำสั่งเก็บกวาด จึงยังใช้ได้เมื่อออเดอร์ถูกพัก/ยกเลิก
+    // หรือจุดงาน/เครื่องถูกปิด ตรงกับคำสั่งฝั่งเขียน.
+    availableCommands.push("cancelDraft");
+  }
+
+  let blockedReason = progressionBlock;
+  if (!blockedReason && order.status === "DRAFT" && operation.reworkCase) {
+    if (operation.reworkCase.state !== "RELEASED") {
+      blockedReason = "งานแก้ยังไม่พร้อมส่งร้าน";
+    }
+  }
+  if (
+    !blockedReason &&
+    order.status === "RECEIVED_BACK" &&
+    !hasCompleteQuantityAllocations(order)
+  ) {
+    blockedReason = "จำนวนแยกตามรายการของใบงานนี้ยังไม่ครบ ให้หัวหน้าตรวจใบงานก่อน";
+  }
+  if (
+    !blockedReason &&
+    order.status === "RECEIVED_BACK" &&
+    operation.reworkCase &&
+    operation.reworkCase.state !== "IN_PROGRESS"
+  ) {
+    blockedReason = "งานแก้ยังไม่พร้อมตรวจซ้ำ";
+  }
+  if (!blockedReason && !access.canHandleGoods) {
+    blockedReason = "บัญชีนี้ไม่มีสิทธิ์ส่งหรือรับงานร้านนอก";
+  }
+
+  if (!blockedReason && access.canHandleGoods) {
+    if (order.status === "DRAFT") availableCommands.push("markSent");
+    if (OUTSOURCE_RECEIVE_STATUSES.has(order.status)) {
+      availableCommands.push("receiveBack");
+    }
+    if (order.status === "RECEIVED_BACK") {
+      if (access.canSupervise) {
+        availableCommands.push("passQc", "failQc");
+      } else {
+        blockedReason = "การตรวจรับต้องให้หัวหน้าเป็นผู้ยืนยัน";
+      }
+    }
+  }
+
+  return {
+    availableCommands,
+    blockedReason: OUTSOURCE_DONE_STATUSES.has(order.status)
+      ? null
+      : blockedReason,
+  };
+}
 
 type OutsourceProductionReference = {
   productionStepId: string;
@@ -23,6 +264,7 @@ type OutsourceProductionReference = {
     stepType: string;
     status: string;
     qtyDone: number;
+    executionEnabled: boolean;
     production: { orderId: string };
   };
 };
@@ -35,6 +277,7 @@ const outsourceProductionReferenceSelect = {
       stepType: true,
       status: true,
       qtyDone: true,
+      executionEnabled: true,
       production: { select: { orderId: true } },
     },
   },
@@ -49,6 +292,14 @@ function sameOutsourceProductionReference(
     left.productionStep.productionId === right.productionStep.productionId &&
     left.productionStep.production.orderId === right.productionStep.production.orderId
   );
+}
+
+function assertLegacyOutsourceStep(executionEnabled: boolean) {
+  if (executionEnabled) {
+    badRequest(
+      "ขั้นงาน Production V2 ต้องจัดการงานร้านนอกจากคำสั่ง Manufacturing เท่านั้น",
+    );
+  }
 }
 
 /**
@@ -98,6 +349,8 @@ async function lockOutsourceProductionChain(tx: PrismaTx, id: string) {
     orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
   });
 
+  assertLegacyOutsourceStep(current.productionStep.executionEnabled);
+
   return { current, productionId, orderId, order, siblings };
 }
 
@@ -126,6 +379,7 @@ async function lockOutsourceStepChain(tx: PrismaTx, stepId: string) {
       status: true,
       sortOrder: true,
       qtyDone: true,
+      executionEnabled: true,
     },
   });
   const production = await tx.production.findUniqueOrThrow({
@@ -138,6 +392,7 @@ async function lockOutsourceStepChain(tx: PrismaTx, stepId: string) {
   ) {
     conflict("โครงใบผลิตเปลี่ยนจากอีกหน้าจอแล้ว — กรุณาโหลดใหม่");
   }
+  assertLegacyOutsourceStep(step.executionEnabled);
 
   const [order, siblings] = await Promise.all([
     tx.order.findUniqueOrThrow({
@@ -228,7 +483,7 @@ export const outsourceRouter = router({
     }),
 
   createVendor: protectedProcedure
-    .use(managerUp)
+    .use(settingsAdmin)
     .input(
       z.object({
         name: z.string().min(1),
@@ -256,7 +511,7 @@ export const outsourceRouter = router({
     }),
 
   updateVendor: protectedProcedure
-    .use(managerUp)
+    .use(settingsAdmin)
     .input(
       z.object({
         id: z.string(),
@@ -298,17 +553,132 @@ export const outsourceRouter = router({
       const where: Record<string, unknown> = {};
       if (input.status) where.status = input.status;
       if (input.vendorId) where.vendorId = input.vendorId;
+      const access: OutsourceListAccess = {
+        actorId: ctx.userId,
+        canHandleGoods: hasPermission(
+          ctx.userRole,
+          ctx.permissionOverrides,
+          "manage_production",
+        ),
+        canSupervise: hasPermission(
+          ctx.userRole,
+          ctx.permissionOverrides,
+          "supervise_operations",
+        ),
+      };
 
-      return ctx.prisma.outsourceOrder.findMany({
+      const orders = await ctx.prisma.outsourceOrder.findMany({
         where,
-        include: {
+        select: {
+          id: true,
+          productionStepId: true,
+          vendorId: true,
+          status: true,
+          description: true,
+          quantity: true,
+          sentAt: true,
+          expectedBackAt: true,
+          receivedAt: true,
+          qcPassed: true,
+          qcNotes: true,
+          notes: true,
+          createdAt: true,
+          updatedAt: true,
           vendor: { select: { name: true } },
+          allocations: {
+            orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+            select: {
+              id: true,
+              operationQuantityId: true,
+              qty: true,
+              operationQuantity: {
+                select: {
+                  description: true,
+                  size: true,
+                  color: true,
+                  printPosition: true,
+                },
+              },
+            },
+          },
           productionStep: {
-            include: {
+            select: {
+              id: true,
+              productionId: true,
+              stepType: true,
+              customStepName: true,
+              status: true,
+              operationCode: true,
+              operationName: true,
+              operationState: true,
+              executionMode: true,
+              workCenterId: true,
+              assignedToId: true,
+              reworkCaseId: true,
+              qtyPlanned: true,
+              qtyGood: true,
+              qtyScrap: true,
+              qtyRework: true,
+              revision: true,
+              executionEnabled: true,
+              workCenter: {
+                select: {
+                  code: true,
+                  isActive: true,
+                  members: {
+                    where: { userId: ctx.userId, isActive: true },
+                    take: 1,
+                    select: { id: true },
+                  },
+                },
+              },
+              workResource: {
+                select: { isActive: true, state: true },
+              },
+              predecessorLinks: {
+                select: {
+                  predecessorStep: {
+                    select: { operationState: true },
+                  },
+                },
+              },
+              exceptions: {
+                where: {
+                  state: { in: ["OPEN", "ACKNOWLEDGED"] },
+                  blocksJob: true,
+                },
+                select: { id: true },
+              },
+              reworkCase: { select: { state: true } },
+              quantities: {
+                orderBy: [{ scopeKey: "asc" }, { id: "asc" }],
+                select: {
+                  id: true,
+                  description: true,
+                  size: true,
+                  color: true,
+                  printPosition: true,
+                  qtyPlanned: true,
+                  qtyGood: true,
+                  qtyScrap: true,
+                  qtyRework: true,
+                  revision: true,
+                },
+              },
               production: {
-                include: {
+                select: {
+                  id: true,
+                  orderId: true,
+                  workOrderNumber: true,
+                  workOrderState: true,
+                  revision: true,
                   order: {
-                    select: { orderNumber: true, title: true, customer: { select: { name: true } } },
+                    select: {
+                      orderNumber: true,
+                      title: true,
+                      internalStatus: true,
+                      customer: { select: { name: true } },
+                    },
                   },
                 },
               },
@@ -317,24 +687,149 @@ export const outsourceRouter = router({
         },
         orderBy: { createdAt: "desc" },
       });
+      return orders.map((order) => {
+        const operationJobId = order.productionStep.executionEnabled
+          ? order.productionStepId
+          : null;
+        const operationRevision = order.productionStep.executionEnabled
+          ? order.productionStep.revision
+          : null;
+        const quantityLines = order.productionStep.executionEnabled
+          ? order.productionStep.quantities
+          : [];
+        const quantityAllocations = order.productionStep.executionEnabled
+          ? order.allocations.map((allocation) => ({
+              id: allocation.id,
+              quantityLineId: allocation.operationQuantityId,
+              qty: allocation.qty,
+              ...allocation.operationQuantity,
+            }))
+          : [];
+        const { availableCommands, blockedReason } = outsourceOrderCommands(
+          order,
+          access,
+        );
+        const sourceOrder = order.productionStep.production.order;
+        return {
+          id: order.id,
+          productionStepId: order.productionStepId,
+          vendorId: order.vendorId,
+          status: order.status,
+          description: order.description,
+          quantity: order.quantity,
+          sentAt: order.sentAt,
+          expectedBackAt: order.expectedBackAt,
+          receivedAt: order.receivedAt,
+          qcPassed: order.qcPassed,
+          qcNotes: order.qcNotes,
+          notes: order.notes,
+          createdAt: order.createdAt,
+          updatedAt: order.updatedAt,
+          vendor: order.vendor,
+          allocations: order.allocations,
+          executionEnabled: order.productionStep.executionEnabled,
+          revision: operationRevision,
+          operationJobId,
+          operationRevision,
+          quantityLines,
+          quantityAllocations,
+          availableCommands,
+          blockedReason,
+          productionStep: {
+            id: order.productionStep.id,
+            productionId: order.productionStep.productionId,
+            stepType: order.productionStep.stepType,
+            customStepName: order.productionStep.customStepName,
+            status: order.productionStep.status,
+            operationCode: order.productionStep.operationCode,
+            operationName: order.productionStep.operationName,
+            operationState: order.productionStep.operationState,
+            executionMode: order.productionStep.executionMode,
+            workCenterId: order.productionStep.workCenterId,
+            reworkCaseId: order.productionStep.reworkCaseId,
+            qtyPlanned: order.productionStep.qtyPlanned,
+            qtyGood: order.productionStep.qtyGood,
+            qtyScrap: order.productionStep.qtyScrap,
+            qtyRework: order.productionStep.qtyRework,
+            revision: order.productionStep.revision,
+            executionEnabled: order.productionStep.executionEnabled,
+            quantities: order.productionStep.quantities,
+            production: {
+              id: order.productionStep.production.id,
+              orderId: order.productionStep.production.orderId,
+              workOrderNumber:
+                order.productionStep.production.workOrderNumber,
+              workOrderState: order.productionStep.production.workOrderState,
+              revision: order.productionStep.production.revision,
+              order: {
+                orderNumber: sourceOrder.orderNumber,
+                title: sourceOrder.title,
+                customer: sourceOrder.customer,
+              },
+            },
+            operationJobId,
+            quantityLines,
+            quantityAllocations,
+          },
+        };
+      });
     }),
 
   createOrder: protectedProcedure
-    .use(managerUp)
+    .use(productionSupervisor)
     .input(
       z.object({
         productionStepId: z.string(),
         vendorId: z.string(),
         description: z.string(),
         quantity: z.number().min(1),
+        quantityLines: z
+          .array(
+            z.object({
+              quantityLineId: z.string().min(1),
+              qty: z.number().int().positive(),
+            }),
+          )
+          .optional(),
         // ค่าจ้างไม่บังคับ (เบสเคาะ 2026-06-12: ไม่คิดต้นทุนต่องานในระบบนี้ —
         // กำไรขาดทุนคิดรายเดือนในระบบบัญชี) — กรอกได้ถ้าอยากจดไว้ดูเอง
         unitCost: z.number().min(0).default(0),
         expectedBackAt: z.string().optional(),
         notes: z.string().optional(),
+        commandId: z.string().min(1).optional(),
+        expectedRevision: z.number().int().min(0).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
+      const target = await ctx.prisma.productionStep.findUnique({
+        where: { id: input.productionStepId },
+        select: { executionEnabled: true },
+      });
+      if (target?.executionEnabled) {
+        assertProductionV2ApiEnabled();
+        if (!input.commandId || input.expectedRevision === undefined) {
+          badRequest("Production V2 ต้องระบุ commandId และ expectedRevision");
+        }
+        if (!input.quantityLines?.length) {
+          badRequest(
+            "Production V2 ต้องระบุจำนวนส่งร้านตามสินค้า สี ไซซ์ และจุดพิมพ์",
+          );
+        }
+        return createV2OutsourceOrder(ctx.prisma, {
+          productionStepId: input.productionStepId,
+          vendorId: input.vendorId,
+          description: input.description,
+          quantity: input.quantity,
+          quantityLines: input.quantityLines,
+          unitCost: input.unitCost,
+          expectedBackAt: input.expectedBackAt,
+          notes: input.notes,
+          commandId: input.commandId,
+          expectedRevision: input.expectedRevision,
+          actorId: ctx.userId,
+          canSupervise: true,
+        });
+      }
       // สร้างใบ + ดันสถานะ step + audit = ก้อนเดียวกัน · validate ใต้ transaction
       return ctx.prisma.$transaction(async (tx) => {
         const locked = await lockOutsourceStepChain(tx, input.productionStepId);
@@ -347,7 +842,11 @@ export const outsourceRouter = router({
         const unitCost = moneyInput(input.unitCost);
         const order = await tx.outsourceOrder.create({
           data: {
-            ...input,
+            productionStepId: input.productionStepId,
+            vendorId: input.vendorId,
+            description: input.description,
+            quantity: input.quantity,
+            notes: input.notes,
             unitCost: unitCost.toNumber(),
             totalCost: round2(unitCost.times(input.quantity)).toNumber(),
             expectedBackAt: input.expectedBackAt ? new Date(input.expectedBackAt) : null,
@@ -374,9 +873,34 @@ export const outsourceRouter = router({
   // ยกเลิกได้เฉพาะใบร่างที่ยังไม่ส่งของจริง — ใบที่เปิดผิด/ร้านไม่รับงานก่อนส่ง
   // (ส่งแล้วให้เดิน รับกลับ → QC ไม่ผ่าน ตามจริง — ประวัติงานร้านห้ามหาย)
   cancelDraftOrder: protectedProcedure
-    .use(managerUp)
-    .input(z.object({ id: z.string() }))
+    .use(productionSupervisor)
+    .input(
+      z.object({
+        id: z.string(),
+        commandId: z.string().min(1).optional(),
+        expectedRevision: z.number().int().min(0).optional(),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
+      const target = await ctx.prisma.outsourceOrder.findUnique({
+        where: { id: input.id },
+        select: {
+          productionStep: { select: { executionEnabled: true } },
+        },
+      });
+      if (target?.productionStep.executionEnabled) {
+        assertProductionV2ApiEnabled();
+        if (!input.commandId || input.expectedRevision === undefined) {
+          badRequest("Production V2 ต้องระบุ commandId และ expectedRevision");
+        }
+        return cancelV2OutsourceOrder(ctx.prisma, {
+          id: input.id,
+          commandId: input.commandId,
+          expectedRevision: input.expectedRevision,
+          actorId: ctx.userId,
+          canSupervise: true,
+        });
+      }
       return ctx.prisma.$transaction(async (tx) => {
         const lockedScope = await lockOutsourceProductionChain(tx, input.id);
         const order = await tx.outsourceOrder.findUniqueOrThrow({
@@ -438,10 +962,24 @@ export const outsourceRouter = router({
         id: z.string(),
         status: z.enum(["SENT", "IN_PROGRESS", "COMPLETED", "RECEIVED_BACK", "QC_PASSED", "QC_FAILED"]),
         qcNotes: z.string().optional(),
+        disposition: z.enum(["REWORK", "SCRAP"]).optional(),
+        commandId: z.string().min(1).optional(),
+        expectedRevision: z.number().int().min(0).optional(),
+        quantityLines: z
+          .array(
+            z.object({
+              quantityLineId: z.string(),
+              qtyGood: z.number().int().min(0),
+              qtyScrap: z.number().int().min(0),
+              qtyRework: z.number().int().min(0),
+            }),
+          )
+          .optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const { id, ...data } = input;
+      const { id } = input;
+      const data = { status: input.status, qcNotes: input.qcNotes };
 
       // ตัดสิน QC (ซึ่งปิด production step อัตโนมัติ) = อำนาจหัวหน้า
       // staff อัปเดตได้แค่สถานะรับ-ส่งของ (SENT/RECEIVED_BACK ฯลฯ)
@@ -452,6 +990,34 @@ export const outsourceRouter = router({
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "การตัดสิน QC งานนอกต้องเป็นผู้จัดการขึ้นไป",
+        });
+      }
+
+      const target = await ctx.prisma.outsourceOrder.findUnique({
+        where: { id },
+        select: {
+          productionStep: { select: { executionEnabled: true } },
+        },
+      });
+      if (target?.productionStep.executionEnabled) {
+        assertProductionV2ApiEnabled();
+        if (!input.commandId || input.expectedRevision === undefined) {
+          badRequest("Production V2 ต้องระบุ commandId และ expectedRevision");
+        }
+        return transitionV2OutsourceOrder(ctx.prisma, {
+          id,
+          status: input.status,
+          qcNotes: input.qcNotes,
+          disposition: input.disposition,
+          quantityLines: input.quantityLines,
+          commandId: input.commandId,
+          expectedRevision: input.expectedRevision,
+          actorId: ctx.userId,
+          canSupervise: hasPermission(
+            ctx.userRole,
+            ctx.permissionOverrides,
+            "supervise_operations",
+          ),
         });
       }
 
@@ -478,10 +1044,17 @@ export const outsourceRouter = router({
             : null;
         const current = lockedScope
           ? lockedScope.current
-          : await tx.outsourceOrder.findUniqueOrThrow({
+            : await tx.outsourceOrder.findUniqueOrThrow({
               where: { id },
-              select: { status: true, productionStepId: true },
+              select: {
+                status: true,
+                productionStepId: true,
+                productionStep: { select: { executionEnabled: true } },
+              },
             });
+        assertLegacyOutsourceStep(
+          current.productionStep?.executionEnabled === true,
+        );
         const allowed = OUTSOURCE_TRANSITIONS[current.status] ?? [];
         if (!allowed.includes(data.status)) {
           throw new TRPCError({

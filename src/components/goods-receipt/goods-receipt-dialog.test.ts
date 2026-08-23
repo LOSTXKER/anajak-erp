@@ -17,4 +17,10 @@ describe("GoodsReceiptDialog Station evidence contract", () => {
     expect(source).toContain("!isStationInspection &&");
     expect(source).toContain('"\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01\u0e1c\u0e25\u0e15\u0e23\u0e27\u0e08: \u0e44\u0e21\u0e48\u0e1e\u0e1a\u0e02\u0e2d\u0e07"');
   });
+
+  it("ใบคืน V2 ใช้ยอดคืนได้จาก server และไม่ยอมสร้างใบนับศูนย์", () => {
+    expect(source).toContain("props.operationJobId ? l.qtyReturnable : l.qtyReceivedNet");
+    expect(source).toContain('(receiptType === "CUSTOMER_RETURN" && !!operationJobId)');
+    expect(source).toContain("isReturn\n              ? totalCounted <= 0");
+  });
 });

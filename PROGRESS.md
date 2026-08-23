@@ -4,6 +4,43 @@
 
 ## ตอนนี้
 
+> **✅ รวม PRODUCTION V2 + VERCEL VISUAL SYSTEM เข้า LOCAL MAIN (2026-08-23)**
+> merge `origin/main` ที่มี Production V2 เข้ากับงาน visual language ทั้งเว็บแล้ว โดยเก็บ business logic, permission, route flag, legacy fallback และ migration ของ Production V2 ไว้ครบ พร้อมปรับ surface ใหม่ให้ใช้ panel มุม 8px ไม่มี decorative shadow และเพิ่ม guard ครอบหน้า Production V2, Factory V2 และ legacy fallback ด้วย
+>
+> conflict ที่ route `/production`, `/production/films` และ `/outsource` จบด้วย wrapper ของ Production V2 เพื่อให้ flag/redirect เดิมทำงาน ส่วน Goods Receipt/QC เก็บ quantity-line และ workflow V2 จาก `main` แล้วครอบ visual token ชุดกลาง · ไม่ apply migration, ไม่ reseed ฐาน, ไม่ push และไม่ deploy ในรอบนี้
+>
+> **ด่านส่งมอบ:** full unit **1632/1632**, typecheck, lint 0 error (26 warning เดิม), `verify:ui`, Prisma validate, production build (41 static pages) และ `git diff --check` ผ่าน
+>
+> **ไฟล์นอกขอบเขตที่รักษาไว้:** `scripts/verify-artwork.ts`, `.cursor/` และ `public/` ไม่ถูกนำเข้า commit
+>
+> **ต่อที่นี่:** ก่อนเปิด `PRODUCTION_V2_ENABLED` บน environment จริง ต้องเลือกฐานเป้าหมาย, backup, apply migration และทำ walkthrough จริงตาม checklist PV2.8; source บน local `main` พร้อมแล้ว แต่ remote `main` ยังไม่ได้รับ commit รอบนี้
+
+> **✅ PRODUCTION V2 — ปรับรายการควบคุมงานตาม UAT (2026-08-22)**
+> หน้า `/production` ใช้ช่องค้นหาเป็นจุดนำและยุบตัวกรองสถานะ/ศูนย์งาน/ปัญหาไว้ในปุ่มเดียวที่บอกจำนวนตัวกรองค้าง โดยยังให้การเรียงลำดับอยู่บนผิวหลัก · ตารางรวมสถานะใบผลิตเข้ากับตัวตนงาน ลดคอลัมน์ที่แย่งสายตา รวมชื่อขั้น+สถานะ+ศูนย์งานให้จบเป็นกลุ่ม และเพิ่มเส้นคั่นบางเพื่อไล่แถวกว้างได้โดยไม่หลุด
+>
+> มือถือเรียงตัวตนงาน → ขั้นตอนปัจจุบัน → ความคืบหน้า+กำหนดส่งในแถวเดียว จึงเห็นงานถัดไปเร็วขึ้นแต่ยังคงปัญหาและสถานะด้วยข้อความร่วมกับสี · query, URL state, polling, permission และ deep link เดิมไม่เปลี่ยน
+>
+> **หลักฐาน:** `npm run typecheck`, `npm run verify:ui`, ESLint เฉพาะไฟล์, production V2 UI boundary test, Impeccable detector และ `git diff --check` ผ่าน · browser จริงที่ 1440×900 และ 390×844 เปิดรายการ/ตัวกรอง/งานหลายขั้นพร้อมปัญหาแล้ว ไม่มี horizontal overflow หรือ app console error
+>
+> **ต่อที่นี่:** ให้เบสรีเฟรช `/production` แล้วลองสแกนจากงาน → ขั้นตอน → ความคืบหน้า → กำหนดส่ง; ถ้าทิศนี้ผ่านจึงค่อยใช้ rhythm เดียวกันกับมุมมองปัญหาและศูนย์งาน
+
+> **✅ PRODUCTION V2 พร้อมให้เบสทำ UAT บน feature branch (2026-08-22)**
+> รื้อแกนข้อมูลและ UX การผลิตเป็น contract เดียวแล้ว: `Production`/`ProductionStep` ทำหน้าที่ Manufacturing Order/Operation Job โดยคง ID และความสัมพันธ์เดิม; routing เก็บ version+snapshot, quantity แยกรายการ, event เป็น append-only, exception/rework มี lifecycle และ command ทุกตัวใช้ `commandId` กับ `expectedRevision` · schema/migration เป็น additive และทำงานบน worktree/ฐานทดสอบแยก ไม่ apply/reset ฐาน shared หรือ remote
+>
+> บ้านงานปัจจุบันคือ `/production` รายการทุกงาน → `/production/[id]` Control Record ของหัวหน้า, `/factory/station` สำหรับลงมือ+handoff ออเดอร์เดิม, `/factory` TV อ่านอย่างเดียว และ Outsource เป็นมุมมองใน Production · Order/My Tasks เหลือ summary/deep link ตามบทบาท; route เก่า redirect เข้าบ้านใหม่ · generic Order status ถูกปิดไม่ให้เขียนสถานะที่ Release/Station/QC/Pack/Delivery เป็นเจ้าของ เพื่อไม่ให้มีปุ่ม “แพ็คเสร็จ” ซ้ำกับ Final Pack Station
+>
+> ด่านรอบปิดบังคับให้ออเดอร์หนึ่งใช้ topology การผลิตชนิดเดียว, ทุก routing lane ต้องรวมที่ Final Pack ซึ่งเป็นจุดจบเดียว และ “พร้อมส่ง” เกิดเมื่อทุก operation จบจริงเท่านั้น · เมื่อสร้างใบสั่งผลิตแล้ว Order/Change Order แก้สินค้า สี ไซซ์ จุดพิมพ์ หรือหลักฐานรับเสื้อทับ snapshot ไม่ได้; legacy PREP/QC/ready-to-ship writers ปฏิเสธ V2 record หลัง lock และ Station ตัดงานที่ถูกพัก ยกเลิก หรือปิดออกจากคิวพร้อมปฏิเสธ start/report/complete ฝั่ง server
+>
+> **หลักฐานอัตโนมัติ:** `npm test`, `npm run typecheck`, `npm run lint`, `npm run verify:ui`, `npm run build`, `npx prisma validate`, `scripts/verify-production-v2-migration.sql` และ `scripts/verify-manufacturing-v2.ts` ผ่านบนฐาน disposable หลัง reset/seed · fixture ครอบหลายสินค้า/สี/ไซซ์, parallel operation, DTF batch, partial output, defect/rework, outsource และ partial pack
+>
+> **หลักฐาน browser จริง (ก่อนปิด guard รอบสุดท้าย):** ตรวจ Production/Control Record ที่ desktop+tablet+mobile, Station ที่ mobile, TV ที่ Full HD, role OWNER และ PRODUCTION_STAFF, loading/error/retry/empty/success, refresh/deep link/Back/Escape/focus/overflow/console · สแกนเปิดบริบทโดยไม่เริ่มงาน, DTF เห็น film good/scrap/reprint, QC มี Hold/Rework/Scrap, Pack ไม่มี action ส่ง, Delivery อยู่แท็บออฟฟิศ และทดสอบ Heat Press จบจริงแล้ว Station คงออเดอร์เดิมพร้อมพาไป Final QC · ไม่มี horizontal overflow, hydration หรือ app console error
+>
+> **delta หลัง browser:** ปิด bypass ของ parent/work center/resource, ให้ทุกหน้ารับ `availableCommands` จาก server, ใช้แบบ snapshot ที่ Release บน Station, รองรับ Prep รับเกิน→คืนและตำหนิ→คืน→รับทดแทน, และคง `SHIPPED → COMPLETED` ผ่านกฎปิดงานเดิม · ผ่าน regression/full tests, typecheck, lint, UI contract, schema validate และ build แล้ว; checklist walkthrough PV2.8 ยังคงเป็นด่านก่อนเปิด flag และเปลี่ยนฐาน production
+>
+> **source ขึ้น `main` แล้ว:** เบสสั่ง `commit push main` หลังตรวจหน้ารายการจริง; remote `main` รับก้อน Production V2 แบบ fast-forward แล้ว · สถานะ deployment, migration ฐานจริง และการเปิด `PRODUCTION_V2_ENABLED` ยังไม่ได้ยืนยัน; ค่าเริ่มต้นของ flag ยังปิด และ old UI ยังคงอยู่หนึ่ง rollout window สำหรับ rollback
+>
+> **ต่อที่นี่:** ระบุ deployment/ฐานเป้าหมายและ backup ให้ชัดก่อน apply migration หรือเปิด flag จากนั้น walkthrough `Production → Control Record → Station → QC/Rework → Final Pack → Delivery` บน environment นั้นก่อนตัด old UI
+
 > **✅ VERCEL PUBLIC + PRINT — ปิด visual island ฝั่งลูกค้าและเอกสาร 2026-08-23**
 > public token ทั้ง status/upload/quote/approve/job และหน้า error ใช้ masthead neutral แบบไอคอนเส้น, panel 8px ไร้เงา, semantic text/divider/hover ชุดเดียวกันแล้ว · ถอดแถบสี, icon tile สี, มุม 14px และสีตกแต่ง โดยคง primary/focus/status, noindex, token boundary, action และ blind-ship เดิม
 >

@@ -31,19 +31,22 @@ describe("navigation registry", () => {
     expect(dashboard.label).toBe("แดชบอร์ด");
     expect(dashboard.aliases).toContain("dashboard");
 
-    const outsource = NAVIGATION_ITEMS.find((item) => item.id === "outsource")!;
-    expect(outsource.label).toBe("จ้างร้านนอก");
-    expect(outsource.aliases).toContain("outsource");
+    const station = NAVIGATION_ITEMS.find((item) => item.id === "station")!;
+    expect(station.label).toBe("โหมดสถานี");
+    expect(station.aliases).toContain("station");
   });
 
   it("กรอง surface และ permission จาก registry เดียว", () => {
     const noPermissions = navigationItemsForSurface("sidebar", []);
     expect(noPermissions.some((item) => item.id === "billing")).toBe(false);
-    expect(noPermissions.some((item) => item.id === "factory")).toBe(false);
+    expect(noPermissions.some((item) => item.id === "station")).toBe(false);
     expect(noPermissions.some((item) => item.id === "notifications")).toBe(false);
 
     const supervisor = navigationItemsForSurface("sidebar", ["supervise_operations"]);
-    expect(supervisor.some((item) => item.id === "factory")).toBe(true);
+    expect(supervisor.some((item) => item.id === "station")).toBe(false);
+
+    const operator = navigationItemsForSurface("sidebar", ["manage_production"]);
+    expect(operator.some((item) => item.id === "station")).toBe(true);
   });
 
   it("จัด Sidebar เป็นหมวดครบและเรียงงานผลิตตามทางเดินจริง", () => {
@@ -69,7 +72,7 @@ describe("navigation registry", () => {
     ]);
     expect(
       groups.find((group) => group.id === "production")?.items.map((item) => item.id),
-    ).toEqual(["production", "print-runs", "films", "outsource", "factory"]);
+    ).toEqual(["production"]);
   });
 
   it("ซ่อนเฉพาะหมวดที่ไม่มีสิทธิ์ ไม่ซ่อนเมนูที่มีสิทธิ์ไว้หลัง disclosure", () => {
@@ -78,9 +81,11 @@ describe("navigation registry", () => {
     expect(groups.some((group) => group.id === "finance")).toBe(false);
     expect(groups.find((group) => group.id === "production")?.items.map((item) => item.id)).toEqual([
       "production",
-      "print-runs",
-      "films",
-      "outsource",
     ]);
+
+    const operatorGroups = groupedNavigationItems("sidebar", ["manage_production"]);
+    expect(
+      operatorGroups.find((group) => group.id === "production")?.items.map((item) => item.id),
+    ).toEqual(["production", "station"]);
   });
 });
