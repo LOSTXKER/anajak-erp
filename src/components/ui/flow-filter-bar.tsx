@@ -1,7 +1,13 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { ACTIVE_UNDERLINE, FOCUS_BUTTON } from "@/components/ui/tokens";
+import {
+  ACTIVE_UNDERLINE,
+  FOCUS_BUTTON,
+  INTERACTIVE_HOVER,
+  INTERACTIVE_PRESSED,
+  RADIUS,
+} from "@/components/ui/tokens";
 
 /* ============================================================
    แถบเส้นทางงาน + ตัวกรอง — ภาษาเดียวใช้ได้ทุกหน้าที่มี "งานกองอยู่ช่วงไหน"
@@ -37,6 +43,11 @@ function displayCount(count: number) {
   return count === 0 ? "—" : count;
 }
 
+function filterActionLabel(fullLabel: string, count: number, isOn: boolean) {
+  const action = isOn ? "เลือกอยู่ · กดซ้ำเพื่อล้างตัวกรอง" : "กดเพื่อกรอง";
+  return `${fullLabel} · ${count} งาน · ${action}`;
+}
+
 function AlertBadge({ value, isOn }: { value: number; isOn: boolean }) {
   if (value <= 0) return null;
   return (
@@ -61,17 +72,21 @@ function MobileItemButton({
   onPress: () => void;
 }) {
   const fullLabel = item.fullLabel ?? item.label;
+  const actionLabel = filterActionLabel(fullLabel, item.count, isOn);
   return (
     <button
       type="button"
-      aria-label={`${fullLabel} · ${item.count} งาน`}
+      aria-label={actionLabel}
       aria-pressed={isOn}
-      title={`${fullLabel} · ${item.count} งาน`}
+      title={actionLabel}
       onClick={onPress}
       className={cn(
-        "flex min-h-11 items-center justify-between gap-2 border-b-2 bg-transparent px-1 py-2 text-left transition-colors",
+        RADIUS.item,
+        "flex min-h-11 cursor-pointer items-center justify-between gap-2 border-b-2 bg-transparent px-1 py-2 text-left transition-colors",
         FOCUS_BUTTON,
-        isOn ? ACTIVE_UNDERLINE : "border-transparent",
+        isOn
+          ? cn(ACTIVE_UNDERLINE, "hover:bg-interactive-hover active:bg-interactive-pressed")
+          : cn("border-transparent", INTERACTIVE_HOVER, INTERACTIVE_PRESSED),
       )}
     >
       <span
@@ -131,20 +146,22 @@ function DesktopItemButton({
   onPress: () => void;
 }) {
   const fullLabel = item.fullLabel ?? item.label;
+  const actionLabel = filterActionLabel(fullLabel, item.count, isOn);
 
   return (
     <button
       type="button"
-      aria-label={`${fullLabel} · ${item.count} งาน`}
+      aria-label={actionLabel}
       aria-pressed={isOn}
-      title={`${fullLabel} · ${item.count} งาน`}
+      title={actionLabel}
       onClick={onPress}
       className={cn(
-        "group border-b-2 px-1 py-1.5 text-center transition-colors",
+        RADIUS.item,
+        "group cursor-pointer border-b-2 px-1 py-1.5 text-center transition-colors",
         FOCUS_BUTTON,
         isOn
-          ? ACTIVE_UNDERLINE
-          : "border-transparent hover:text-strong active:text-strong",
+          ? cn(ACTIVE_UNDERLINE, "hover:bg-interactive-hover active:bg-interactive-pressed")
+          : cn("border-transparent", INTERACTIVE_HOVER, INTERACTIVE_PRESSED),
       )}
     >
       <span
@@ -211,6 +228,10 @@ export function FlowFilterBar({
 
   return (
     <div className={cn("@container transition-opacity duration-200", isLoading && "opacity-60")}>
+      <p className="mb-2 px-1 text-2xs text-muted @4xl:text-right">
+        กดสถานะเพื่อกรอง · กดซ้ำเพื่อล้างตัวกรอง
+      </p>
+
       {/* ── เส้นทางงาน (พื้นที่กว้างพอ) ── */}
       <div role="group" aria-label={ariaLabel} className="hidden @4xl:block">
         <div className="flex gap-5">
@@ -221,7 +242,7 @@ export function FlowFilterBar({
                   <p
                     key={group.label}
                     style={{ gridColumn: `span ${group.keys.length}` }}
-                    className="pb-1 text-center text-2xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400"
+                    className="border-b border-divider pb-1 text-center text-2xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400"
                   >
                     {group.label}
                   </p>
@@ -247,7 +268,7 @@ export function FlowFilterBar({
               aria-label={aside.ariaLabel}
               className="w-44 shrink-0"
             >
-              <p className="pb-1 text-center text-2xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              <p className="border-b border-divider pb-1 text-center text-2xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 {aside.label}
               </p>
               <div className="mt-2 grid grid-cols-2 gap-1.5">

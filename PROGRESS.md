@@ -4,6 +4,19 @@
 
 ## ตอนนี้
 
+> **✅ STATUS FLOW AFFORDANCE — มองออกว่ากดได้และกดซ้ำเพื่อล้าง (2026-08-23)**
+> คืน hairline 1px เฉพาะใต้หัวช่วง รับงาน/ออกแบบ/ผลิต/ส่งของ/ปิดงาน/นอกเส้นทาง เพื่อช่วยจัดกลุ่มโดยไม่คืนเส้นบนล่างด้านใน เส้นตั้ง หรือ progress track · ปุ่มสถานะทุกตัวมี cursor, neutral hover/pressed และ focus เดิม จึงเห็นพื้นที่กดชัดเมื่อใช้เมาส์
+>
+> เพิ่มคำแนะนำตรงบนแถบว่า “กดสถานะเพื่อกรอง · กดซ้ำเพื่อล้างตัวกรอง” และปรับ `aria-label`/`title`: สถานะพักบอก “กดเพื่อกรอง” ส่วนสถานะที่เลือกบอก “เลือกอยู่ · กดซ้ำเพื่อล้างตัวกรอง” · เส้น/ข้อความ selected ยังคง Anajak Blue และ logic toggle เดิมไม่เปลี่ยน
+>
+> **หลักฐานจอจริง:** `/orders` desktop 1280 Light/Dark มี group hairline 1px, hover surface+pointer และไม่มี overflow · กด “สอบถาม” แล้ว URL เป็น `?status=INQUIRY` พร้อม 1 ออเดอร์; กดซ้ำ URL กลับ `/orders` พร้อม 15 ออเดอร์ · mobile 390 เปิดทุกสถานะแล้วเห็นคำแนะนำ, ปุ่มสูง 44px, เลือกแล้ว details ปิด และกดซ้ำเพื่อล้างได้ · console 0 warning/error
+>
+> **ด่านส่งมอบ:** full unit **1641/1641**, typecheck, lint 0 error (26 warning เดิม), `verify:ui`, Prisma validate, production build (41 static pages), `git diff --check` และ Impeccable detector รอบเดียวผ่าน; detector `[]`
+>
+> **ขอบเขต:** presentation, accessibility label, test และ docs เท่านั้น · query, mutation, permission, route, status transition, schema, seed และ business flow ไม่เปลี่ยน · ไฟล์ค้างของเบส `scripts/verify-artwork.ts`, `.cursor/`, `public/` ยังอยู่นอก scope
+>
+> **ต่อที่นี่:** ให้เบสลองเอาเมาส์ชี้และกดสถานะเดิมซ้ำบน `/orders`; ถ้ายังอยากให้ดูเป็น control กว่านี้ ควรเพิ่มเฉพาะ resting hover cue ไม่ควรคืนกรอบแยก 14 ปุ่ม
+
 > **✅ STATUS FLOW DISTILL — ลดเส้นซ้ำในแถบสถานะ Orders (2026-08-23)**
 > แถบสถานะ desktop เหลือกรอบ panel ชั้นเดียว: ถอดเส้นบนล่างด้านใน, เส้นใต้หัวช่วง และเส้นตั้งคั่น “นอกเส้นทาง” · progress track ใต้ทุกสถานะถูกแทนด้วยจุดสี semantic ข้างชื่อ เพราะจำนวนงานด้านบนบอกปริมาณอยู่แล้ว จึงยังสแกนประเภทงานได้โดยไม่มีเส้นแข่งกันหลายชั้น
 >

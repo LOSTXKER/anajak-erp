@@ -46,6 +46,14 @@
 - [x] ล็อก regression guard ว่าไม่มีเส้นซ้ำ/track กลับมา และ selected state ยังใช้ `ACTIVE_UNDERLINE`
 - [x] ตรวจ `/orders` desktop/mobile Light/Dark, touch target/overflow/error overlay แล้วรัน final gates โดยไม่เปลี่ยน business flow
 
+### 🎯 STATUS-FLOW-AFFORDANCE — ให้รู้ว่ากดกรองและกดซ้ำเพื่อล้างได้ (เบสสั่ง 2026-08-23)
+> feedback หลังลดเส้น: โครงต้องยังอ่านเป็น control ไม่ใช่สถิติอ่านอย่างเดียว · เพิ่ม cue เท่าที่จำเป็นโดยไม่คืน progress track หรือเส้นคั่นทุกสถานะ
+
+- [x] คืน hairline เฉพาะใต้หัวช่วงเพื่อช่วยจัดกลุ่ม โดยไม่เพิ่มเส้นบนล่าง/เส้นตั้ง/track ซ้ำ
+- [x] เพิ่ม hover/pressed และ cursor บนพื้นที่กด พร้อมคำแนะนำ “กดสถานะเพื่อกรอง · กดซ้ำเพื่อล้างตัวกรอง”
+- [x] aria-label/title แยก action ของสถานะพักกับสถานะที่เลือก เพื่อให้ screen reader รู้ว่ากดซ้ำแล้วล้าง
+- [x] ตรวจ interaction เลือก→กดซ้ำ→URL/จำนวนกลับทั้งหมด ทั้ง Light/Dark และ desktop/mobile ก่อนรัน final gates
+
 ## 🏭 PRODUCTION-V2 — หนึ่งข้อมูลจริง หนึ่งบ้านต่อหนึ่งงาน (เบสเคาะ 2026-08-22)
 
 > เป้าหมาย: รื้อแกนการผลิตและ UX เป็นโครงการเดียวตามบทบาท ERP/MES — ERP ใช้วางแผน/ควบคุม/ตรวจย้อนหลัง, Station ใช้ลงมือ, Factory TV อ่านอย่างเดียว · ทำบน branch/worktree แยกจาก checkpoint `5972e65` · schema เพิ่มแบบ additive และห้าม apply/reset ฐาน shared หรือ remote ระหว่างสร้าง

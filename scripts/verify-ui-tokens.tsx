@@ -1435,13 +1435,15 @@ check(
     ordersStatusSource.includes("ratioMax") ||
     ordersStatusSource.includes("style={{ width:") ||
     ordersStatusSource.includes("card-surface") ||
+    !ordersStatusSource.includes("border-b border-divider pb-1") ||
+    !ordersStatusSource.includes("กดสถานะเพื่อกรอง · กดซ้ำเพื่อล้างตัวกรอง") ||
     !detailStatusSource.includes("border-y border-divider") ||
     detailStatusSource.includes("card-surface")
   ) {
     failed++;
-    console.log("❌ status rail ต้องมีขอบเขตชั้นเดียวและห้ามวาด divider/progress track ซ้ำ");
+    console.log("❌ status rail ต้องใช้ hairline เฉพาะจัดกลุ่มและห้ามคืน divider/progress track ซ้ำ");
   } else {
-    console.log("✅ status rail ใช้ขอบเขตชั้นเดียวและไม่มี divider/progress track ซ้ำ");
+    console.log("✅ status rail ใช้ hairline เฉพาะจัดกลุ่มและบอกวิธีกดโดยไม่มี track ซ้ำ");
   }
 
   const orderStatusFilterSource = readFileSync(
@@ -1466,7 +1468,8 @@ check(
     !desktopStatusSource.includes("border-b-2") ||
     !desktopStatusSource.includes("ACTIVE_UNDERLINE") ||
     !desktopStatusSource.includes("border-transparent") ||
-    !desktopStatusSource.includes("hover:text-strong") ||
+    !desktopStatusSource.includes("INTERACTIVE_HOVER") ||
+    !desktopStatusSource.includes("cursor-pointer") ||
     desktopStatusSource.includes("border-slate-900") ||
     desktopStatusSource.includes("dark:border-white")
   ) {
