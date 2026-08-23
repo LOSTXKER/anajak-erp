@@ -4,6 +4,19 @@
 
 ## ตอนนี้
 
+> **✅ PRODUCTION TOP DISTILL — ถอด tab row และสรุปซ้ำออก (2026-08-23)**
+> เบสตรวจส่วนบน `/production` แล้วชี้ว่าซ้ำซ้อนรก จึงตัด meta `11 ออเดอร์ · 5 รายการต้องจัดการ`, summary `เลยกำหนด/ครบกำหนดวันนี้/กำลังลงมือ` และแถบลิงก์ `คิวผลิต/รอบพิมพ์ DTF/คลังฟิล์ม/งานร้านนอก` ออกจากผิวหน้า · หัวหน้าเหลือชื่อ+คำอธิบาย+ปุ่ม `งานผลิต` หนึ่งจุด แล้วเข้าสู่ตัวกรองและรายการทันที
+>
+> ปุ่ม `งานผลิต` รวม 6 ทางเข้าของเดิมไว้หลังการกด—คิวผลิต, รอบพิมพ์ DTF, คลังฟิล์ม, งานร้านนอก, โหมดสถานี และจอโรงงาน—เพื่อไม่ตัดฟังก์ชัน แต่ไม่มี visible tab row อีก · ใช้ pattern เดียวกันบนคิวผลิต/รอบพิมพ์/คลังฟิล์ม/ร้านนอก, current route ในเมนูยังใช้ Anajak Blue และ Escape คืน focus ไป trigger · ลบ summary read-model/test ที่ไม่มีผู้ใช้แล้วแทนการซ่อนด้วย CSS
+>
+> **หลักฐานจอจริง:** `/production` 1440×900 Light/Dark — filter เริ่ม y≈182, แถวแรก y≈330 (ก่อนรอบนี้ ≈460), visible module nav 0, overflow 0 · 390×844 Light — filter y≈230, card แรก y≈405 (ก่อนรอบนี้ ≈486), control ทุกตัว 44px และ overflow 0 · `/production/print-runs`, `/production/films`, `/outsource` ที่ 1024×768 มีเมนูเดียว ไม่มี tab row/overflow และไม่พบ runtime error
+>
+> **ด่านส่งมอบ:** full unit **1643/1643**, typecheck, targeted lint 0 warning/error, `verify:ui`, production build (41 static pages), `git diff --check` และ Impeccable detectorรอบเดียวผ่าน; detector `[]`
+>
+> **ขอบเขต:** presentation/accessibility/dead read-model/tests/docs/verifier เท่านั้น · query, mutation, permission, URL values, status transition, schema, seed และ business flow ไม่เปลี่ยน · ไฟล์ของเบส `scripts/verify-artwork.ts`, `.cursor/`, `public/` ยังอยู่นอก scope
+>
+> **ต่อที่นี่:** ให้เบสรีเฟรช `/production`; งานควรเริ่มใกล้หัวหน้าขึ้นชัด และทางเข้ารองทั้งหมดอยู่หลังปุ่ม `งานผลิต` จุดเดียว
+
 > **✅ PRODUCTION CONTROL TRIAGE — หนึ่งแถวตอบเหตุและเจ้าของถัดไป (2026-08-23)**
 > `/production` แสดงคำตอบเชิงปฏิบัติการในทุกแถว/การ์ดว่า **ต้องทำอะไรต่อ + เจ้าของถัดไปคือใคร** จาก board truth เดิม: ขั้นที่มีผู้รับงานใช้ชื่อผู้รับจริง, งานรอ/ล้มเหลวใช้เหตุจาก readiness หรือ production problem note เมื่อมี, QC/แพ็ก/จัดส่งชี้ functional owner ตรงขั้น · งานผลิตครบแต่เลยกำหนดยังคงอยู่ใน “ต้องจัดการ” และระบุฝ่ายจัดส่ง ไม่ถูกโยนกลับฝ่ายผลิต
 >

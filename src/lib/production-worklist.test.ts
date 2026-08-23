@@ -5,7 +5,6 @@ import {
   productionWorklistAction,
   productionWorklistProgress,
   productionWorklistCounts,
-  productionWorklistDaySummary,
   productionWorklistHref,
   resolveProductionWorklistSort,
   sortProductionWorklist,
@@ -119,27 +118,6 @@ describe("production worklist", () => {
       production: 3,
       qc: 1,
       packing: 2,
-    });
-  });
-
-  it("สรุปวันนี้นับเลยกำหนด/ครบวันนี้/กำลังลงมือแยกกัน", () => {
-    const withToday = job({ id: "today", status: "PRODUCING", stationKey: "lane:DTF" });
-    withToday.bucket = "today";
-    const working = job({ id: "working", status: "PRODUCING", stationKey: "lane:DTF" });
-    working.spots[0]!.step = { status: "IN_PROGRESS" } as BoardStepLike;
-
-    expect(productionWorklistDaySummary([...jobs, withToday, working])).toEqual({
-      late: 1,
-      today: 1,
-      inProgress: 1,
-    });
-  });
-
-  it("สรุปวันนี้ของคิวว่างเป็นศูนย์หมด ไม่ใช่ NaN", () => {
-    expect(productionWorklistDaySummary([])).toEqual({
-      late: 0,
-      today: 0,
-      inProgress: 0,
     });
   });
 

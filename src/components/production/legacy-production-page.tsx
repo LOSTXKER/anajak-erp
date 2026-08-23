@@ -20,7 +20,6 @@ import {
   DEFAULT_PRODUCTION_WORKLIST_SORT,
   filterProductionWorklist,
   isProductionWorklistLens,
-  productionWorklistCounts,
   resolveProductionWorklistSort,
   sortProductionWorklist,
 } from "@/lib/production-worklist";
@@ -86,7 +85,6 @@ function ProductionWorkspace() {
     () => sortProductionWorklist(board, lensJobs, sort),
     [board, lensJobs, sort],
   );
-  const worklistCounts = useMemo(() => productionWorklistCounts(board), [board]);
   const hasStaleData =
     (isError && Boolean(orders)) || (meQuery.isError && Boolean(me));
   const canCreateProduction =
@@ -96,12 +94,7 @@ function ProductionWorkspace() {
     <>
       <PageShell
         title="ควบคุมการผลิต"
-        meta={
-          orders
-            ? `${board.totalJobs.toLocaleString("th-TH")} ออเดอร์ · ${worklistCounts.attention.toLocaleString("th-TH")} รายการต้องจัดการ`
-            : "ติดตามงานตั้งแต่เปิดใบผลิตจนพร้อมส่ง"
-        }
-        headerChildren={<ProductionModuleNav />}
+        action={<ProductionModuleNav />}
         loading={isLoading || meQuery.isLoading}
         skeleton={
           <>

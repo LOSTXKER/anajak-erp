@@ -75,8 +75,8 @@ function FilmStockPageContent() {
       <PageHeader
         title="คลังฟิล์มพร้อมรีด"
         description="ค้นหาฟิล์มที่เหลือและตรวจจำนวนก่อนเปิดรอบพิมพ์ใหม่"
+        action={<ProductionModuleNav />}
       />
-      <ProductionModuleNav />
 
       {meQuery.isError && (
         <Alert variant="warning">

@@ -2048,14 +2048,16 @@ check(
   }
 
   if (
-    !productionModuleNavSource.includes('className={cn("border-b border-divider"') ||
-    !productionModuleNavSource.includes("no-scrollbar -mb-px") ||
     !productionModuleNavSource.includes("<DropdownMenu.Root>") ||
+    !productionModuleNavSource.includes('aria-label="เมนูงานผลิต"') ||
+    !productionModuleNavSource.includes("MODULE_ITEMS.map") ||
     !productionModuleNavSource.includes("WORKSPACE_ITEMS.map") ||
-    !productionModuleNavSource.includes("พื้นที่หน้างาน")
+    productionModuleNavSource.includes("data-production-module-nav") ||
+    productionModuleNavSource.includes("no-scrollbar -mb-px") ||
+    !productionBoardSource.includes("action={<ProductionModuleNav />}")
   ) {
     problems.push(
-      "local navigation ของงานผลิตต้องวางเส้น active ทับ divider เดียวกัน และยุบทางเข้าหน้างานไว้ในเมนูเดียว",
+      "โมดูลผลิตต้องไม่มี visible tab row และรวมทางเข้าสลับพื้นที่ไว้ในเมนูเดียวข้างหัวหน้า",
     );
   }
 
@@ -2466,10 +2468,10 @@ check(
   if (
     printRunsControllerSource.includes("breadcrumb=") ||
     !printRunsControllerSource.includes(
-      'headerChildren={surface === "erp" ? <ProductionModuleNav /> : undefined}',
+      'action={surface === "erp" ? <ProductionModuleNav /> : undefined}',
     )
   ) {
-    problems.push("หน้ารอบพิมพ์ต้องใช้ local navigation โดยไม่มี breadcrumb ซ้ำ");
+    problems.push("หน้ารอบพิมพ์ต้องใช้เมนูงานผลิตข้างหัวหน้าโดยไม่มี breadcrumb ซ้ำ");
   }
 
   if (

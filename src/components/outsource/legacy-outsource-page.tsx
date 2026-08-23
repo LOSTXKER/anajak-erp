@@ -264,17 +264,19 @@ export function LegacyOutsourcePage({
             title="งานร้านนอก"
             description="ติดตามกำหนดรับ ตรวจรับจากร้าน และส่งต่อเข้า QC ขั้นสุดท้าย"
             action={
-              canManageSettings ? (
-                <Button asChild variant="outline" size="sm">
-                  <Link href="/settings/vendors">
-                    <Settings2 />
-                    จัดการร้าน
-                  </Link>
-                </Button>
-              ) : undefined
+              <div className="flex flex-wrap items-center gap-2">
+                {canManageSettings ? (
+                  <Button asChild variant="outline" size="sm">
+                    <Link href="/settings/vendors">
+                      <Settings2 />
+                      จัดการร้าน
+                    </Link>
+                  </Button>
+                ) : null}
+                <ProductionModuleNav />
+              </div>
             }
           />
-          <ProductionModuleNav />
         </>
       ) : canManageSettings ? (
         <div className="flex justify-end">

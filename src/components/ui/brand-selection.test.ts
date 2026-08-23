@@ -51,8 +51,9 @@ describe("Anajak selected-state contract", () => {
     );
     expect(shellSource).toContain('? "text-interactive-selected-text"');
     expect(productionNavSource).toContain(
-      "border-blue-600 font-semibold text-blue-700",
+      'active && "bg-interactive-selected font-medium text-interactive-selected-text"',
     );
+    expect(productionNavSource).not.toContain("data-production-module-nav");
     expect(ordersSource).toContain(
       "border-b-2 border-blue-600",
     );

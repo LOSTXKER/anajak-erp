@@ -39,10 +39,8 @@ import {
   productionWorklistAction,
   productionWorklistProgress,
   productionWorklistCounts,
-  productionWorklistDaySummary,
   productionWorklistHref,
   resolveProductionWorklistSort,
-  type ProductionWorklistDaySummary,
   type ProductionWorklistLens,
   type ProductionWorklistSort,
   type ProductionWorklistSortColumn,
@@ -347,39 +345,6 @@ function MobileRows<S extends BoardStepLike, O extends BoardOrderLike<S>>({
   );
 }
 
-/**
- * สรุปวันนี้ 3 ตัวเลข — เลยกำหนด / ครบวันนี้ / กำลังลงมือ
- *
- * เลือกสามตัวนี้เพราะเป็นคำถามที่หัวหน้าถามก่อนเปิดคิวเสมอ · จงใจไม่ใส่ยอดเงินหรือ
- * ยอดสะสมรายเดือน — หน้านี้ตัดสินลำดับงานวันนี้ ไม่ใช่รายงานผู้บริหาร
- */
-function DaySummaryBar({ summary }: { summary: ProductionWorklistDaySummary }) {
-  const cells = [
-    { key: "late", label: "เลยกำหนด", value: summary.late, tone: "text-red-700 dark:text-red-300" },
-    { key: "today", label: "ครบกำหนดวันนี้", value: summary.today, tone: "text-amber-700 dark:text-amber-300" },
-    { key: "inProgress", label: "กำลังลงมือ", value: summary.inProgress, tone: "text-strong" },
-  ] as const;
-
-  return (
-    <dl
-      className="flex flex-wrap items-center gap-x-5 gap-y-1 border-b border-divider pb-3"
-      aria-label="สรุปงานวันนี้"
-    >
-      {cells.map((cell) => (
-        <div
-          key={cell.key}
-          className="flex items-baseline gap-2"
-        >
-          <dt className="text-xs text-muted">{cell.label}</dt>
-          <dd className={cn("text-base font-semibold tabular-nums", cell.tone)}>
-            {cell.value.toLocaleString("th-TH")}
-          </dd>
-        </div>
-      ))}
-    </dl>
-  );
-}
-
 export function ProductionControlWorklist<
   S extends BoardStepLike,
   O extends BoardOrderLike<S>,
@@ -407,9 +372,6 @@ export function ProductionControlWorklist<
   canCreateProduction: boolean;
 }) {
   const counts = productionWorklistCounts(board);
-  // สรุปนับจากทั้งบอร์ด ไม่ใช่ jobs ที่กรองแล้ว — "วันนี้มีอะไรต้องห่วง" ต้องไม่เปลี่ยน
-  // ตามชิปที่เพิ่งกด ไม่งั้นตัวเลขที่ใช้ตัดสินใจขยับใต้มือทุกครั้งที่เปลี่ยนมุมมอง
-  const daySummary = productionWorklistDaySummary(board.jobs);
   const exceptionByOrderId = new Map(board.exceptions.map((item) => [item.orderId, item]));
   const desktopSortValue = sort === "attention" || sort === "urgent"
     ? sort
@@ -439,8 +401,6 @@ export function ProductionControlWorklist<
 
   return (
     <div className="space-y-4" data-production-worklist>
-      <DaySummaryBar summary={daySummary} />
-
       <section aria-label="กรองรายการงาน" className="no-scrollbar overflow-x-auto pb-1">
         <div className="flex w-max min-w-full items-center gap-2">
           <div role="group" aria-label="มุมควบคุมงาน" className="flex items-center gap-2">
