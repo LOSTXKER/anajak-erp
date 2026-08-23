@@ -11,8 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { SearchInput } from "@/components/ui/search-input";
-import { FilterChip } from "@/components/ui/filter-chip";
-import { FilterPopover } from "@/components/ui/filter-popover";
+import { FilterPopover, FilterPopoverField } from "@/components/ui/filter-popover";
 import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
 import { OrderStatusFilter } from "@/components/orders/order-status-filter";
 import { TablePagination } from "@/components/ui/table-pagination";
@@ -529,32 +528,38 @@ function OrdersPageContent() {
             onClear={clearFilters}
             resultLabel={`ดูผลลัพธ์ ${data?.total ?? 0} รายการ`}
           >
-            <FilterRow label="ช่องทาง">
-              {CHANNEL_FILTERS.map((f) => (
-                <FilterChip
-                  key={f.value}
-                  selected={channel === f.value}
-                  onClick={() =>
-                    replaceListState({ channel: f.value || null, page: null })
-                  }
-                >
-                  {f.label}
-                </FilterChip>
-              ))}
-            </FilterRow>
-            <FilterRow label="ประเภท">
-              {TYPE_FILTERS.map((f) => (
-                <FilterChip
-                  key={f.value}
-                  selected={orderType === f.value}
-                  onClick={() =>
-                    replaceListState({ type: f.value || null, page: null })
-                  }
-                >
-                  {f.label}
-                </FilterChip>
-              ))}
-            </FilterRow>
+            <FilterPopoverField label="ช่องทาง" htmlFor="order-channel-filter">
+              <Select
+                id="order-channel-filter"
+                aria-label="กรองช่องทางออเดอร์"
+                value={channel}
+                onChange={(event) =>
+                  replaceListState({ channel: event.target.value || null, page: null })
+                }
+              >
+                {CHANNEL_FILTERS.map((filter) => (
+                  <option key={filter.value} value={filter.value}>
+                    {filter.label}
+                  </option>
+                ))}
+              </Select>
+            </FilterPopoverField>
+            <FilterPopoverField label="ประเภทออเดอร์" htmlFor="order-type-filter">
+              <Select
+                id="order-type-filter"
+                aria-label="กรองประเภทออเดอร์"
+                value={orderType}
+                onChange={(event) =>
+                  replaceListState({ type: event.target.value || null, page: null })
+                }
+              >
+                {TYPE_FILTERS.map((filter) => (
+                  <option key={filter.value} value={filter.value}>
+                    {filter.label}
+                  </option>
+                ))}
+              </Select>
+            </FilterPopoverField>
           </FilterPopover>
 
           {/* แถวชิปความเร่งด่วนถูกถอดออกแล้ว (เบสสั่ง 2026-07-31 — ย้ายไปเป็นคอลัมน์
@@ -846,23 +851,6 @@ function OrdersPageContent() {
         }
       />
       </div>
-    </div>
-  );
-}
-
-function FilterRow({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      <span className="mr-1 w-20 shrink-0 text-xs font-medium text-slate-500 dark:text-slate-400">
-        {label}
-      </span>
-      {children}
     </div>
   );
 }

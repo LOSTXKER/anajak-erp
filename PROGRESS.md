@@ -4,6 +4,21 @@
 
 ## ตอนนี้
 
+> **✅ FILTER POPOVER POLISH — เก็บตัวกรองหลายเงื่อนไขทั้งระบบ (2026-08-23)**
+> `FilterPopover` กลางกลับมาเป็น panel งานขนาดกะทัดรัด: หัวกล่อง/ปุ่มปิด/พื้นที่ฟิลด์/footer แยกชั้นด้วย divider เดียว, เปิดแล้ว focus เข้า panel โดยไม่ขึ้นวงสีน้ำเงินที่ปุ่มปิดเอง และ footer ลด “ล้างทั้งหมด” เป็น action รองแทนปุ่มคู่ที่หนักเท่ากัน · trigger ที่มีตัวกรองค้างยังใช้ Anajak Blue พร้อมจำนวนตามระบบสีที่เคาะไว้
+>
+> `/orders` เปลี่ยนช่องทาง 8 ตัวและประเภทออเดอร์จากข้อความเส้นใต้หลายแถวเป็น `Select` ที่มี label ชัดตาม contract “เกิน 5 ใช้ Select”; แถบสถานะออเดอร์เดิมไม่เปลี่ยน · Production V2 ที่เปิดด้วย flag ใช้ `FilterPopoverField` ชุดเดียวกันครบ 3 ฟิลด์ ส่วน `/production` ที่กำลังเปิดใช้งานจริงยังคง quick filter 5 ตัวแบบเดิม
+>
+> **ตรวจทั้งเว็บ:** inventory + browser จริงครอบ `/orders`, `/production`, `/products`, `/notifications`, `/billing/wht`, `/production/films`, `/outsource`, `/billing`, `/customers`, `/quotations` — ทุก route ไม่มี horizontal overflow และชนิด control ตรงจำนวนตัวเลือก · Quick filter ≤5 ใน Products/Notifications/WHT/ร้านนอก/คลังฟิล์ม/คิวผลิตยังใช้ `FilterChip` เดิมโดยไม่ patch รายหน้า
+>
+> **หลักฐานจอจริง:** `/orders` 1440 Light และ 390 Light/Dark — panel กว้าง 400/366px, control สูง 36/44px, มือถือ panel จบที่ y=754 ก่อน bottom nav y=771 และ overflow 0 · เลือก LINE แล้ว URL เป็น `?channel=LINE`, รายการเหลือ 8, trigger ขึ้นเลข 1; ล้างกลับ 15 และ Escape คืน focus ไปปุ่ม “ตัวกรอง” · ไม่พบ Next error overlay
+>
+> **ด่านส่งมอบ:** full unit **1644/1644**, typecheck, lint 0 error (26 warning เดิม), `verify:ui`, Prisma validate, production build (41 static pages), `git diff --check` และ Impeccable detector รอบเดียวผ่าน; detector `[]`
+>
+> **ขอบเขต:** presentation/accessibility/test/docs เท่านั้น · query, mutation, permission, URL contract, status transition, schema, seed และ business flow ไม่เปลี่ยน · ไฟล์ค้างของเบส `scripts/verify-artwork.ts`, `.cursor/`, `public/` ยังอยู่นอก scope
+>
+> **ต่อที่นี่:** ให้เบสรีเฟรช `/orders` แล้วลองเปิด “ตัวกรอง”; ช่องทางและประเภทจะอ่านเป็นฟิลด์เลือก ไม่เป็นแท็บหลายแถว และแถบสถานะด้านบนยังเหมือนเดิม
+
 > **✅ STATUS FLOW COPY CLEANUP — ถอดข้อความแนะนำที่แสดงค้าง (2026-08-23)**
 > เอา “กดสถานะเพื่อกรอง · กดซ้ำเพื่อล้างตัวกรอง” ออกจากผิวหน้าแล้วตาม feedback · hairline ใต้หัวช่วง, hover/pressed, cursor, focus และ Anajak Blue selected ยังอยู่ครบ จึงยังมองออกว่ากดได้โดยไม่เพิ่มข้อความรบกวนสายตา
 >

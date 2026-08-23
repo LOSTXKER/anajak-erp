@@ -20,7 +20,7 @@ import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
-import { FilterPopover } from "@/components/ui/filter-popover";
+import { FilterPopover, FilterPopoverField } from "@/components/ui/filter-popover";
 import { QueryError } from "@/components/ui/query-error";
 import { ResponsiveList } from "@/components/ui/responsive-list";
 import { SearchInput } from "@/components/ui/search-input";
@@ -368,10 +368,7 @@ function WorkOrderList() {
             align="end"
             triggerClassName="flex-1 @2xl:flex-none"
           >
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted" htmlFor="production-state-filter">
-                สถานะงาน
-              </label>
+            <FilterPopoverField label="สถานะงาน" htmlFor="production-state-filter">
               <Select
                 id="production-state-filter"
                 aria-label="กรองสถานะใบสั่งผลิต"
@@ -383,11 +380,8 @@ function WorkOrderList() {
                   <option key={value} value={value}>{workOrderStatusMeta(value).label}</option>
                 ))}
               </Select>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted" htmlFor="production-center-filter">
-                ศูนย์งาน
-              </label>
+            </FilterPopoverField>
+            <FilterPopoverField label="ศูนย์งาน" htmlFor="production-center-filter">
               <Select
                 id="production-center-filter"
                 aria-label="กรองศูนย์งาน"
@@ -400,11 +394,8 @@ function WorkOrderList() {
                   <option key={item.workCenter.id} value={item.workCenter.code}>{item.workCenter.name}</option>
                 ))}
               </Select>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted" htmlFor="production-exception-filter">
-                สถานะปัญหา
-              </label>
+            </FilterPopoverField>
+            <FilterPopoverField label="สถานะปัญหา" htmlFor="production-exception-filter">
               <Select
                 id="production-exception-filter"
                 aria-label="กรองปัญหา"
@@ -416,7 +407,7 @@ function WorkOrderList() {
                   <option key={value} value={value}>{exceptionStatusMeta(value).label}</option>
                 ))}
               </Select>
-            </div>
+            </FilterPopoverField>
           </FilterPopover>
         </ToolbarGroup>
       </Toolbar>

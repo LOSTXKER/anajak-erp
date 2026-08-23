@@ -40,6 +40,7 @@ export function FilterPopover({
   triggerClassName?: string;
 }) {
   const [open, setOpen] = React.useState(false);
+  const contentRef = React.useRef<HTMLDivElement>(null);
   const hasFilters = activeCount > 0;
 
   return (
@@ -58,7 +59,7 @@ export function FilterPopover({
           <Filter />
           ตัวกรอง
           {hasFilters && (
-            <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-slate-700 px-1 text-2xs font-medium text-white dark:bg-slate-300 dark:text-slate-950">
+            <span className="flex h-5 min-w-5 items-center justify-center rounded-md bg-blue-600 px-1.5 text-2xs font-semibold tabular-nums text-white dark:bg-blue-500">
               {activeCount}
             </span>
           )}
@@ -67,35 +68,41 @@ export function FilterPopover({
 
       <PopoverPrimitive.Portal>
         <PopoverPrimitive.Content
+          ref={contentRef}
           align={align}
           sideOffset={8}
           collisionPadding={12}
+          tabIndex={-1}
+          onOpenAutoFocus={(event) => {
+            event.preventDefault();
+            contentRef.current?.focus({ preventScroll: true });
+          }}
           className={cn(
             OVERLAY_PANEL,
-            "z-50 w-[min(28rem,calc(100vw-1.5rem))] p-4",
-            "max-h-[min(32rem,calc(100dvh-8rem))] overflow-y-auto overscroll-contain",
+            "z-50 w-[min(25rem,calc(100vw-1.5rem))] overflow-hidden p-0 outline-none",
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
             "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
             "motion-reduce:animate-none",
           )}
         >
-          <div className="mb-3 flex items-center justify-between">
-            <p className="text-base font-semibold">ตัวกรอง</p>
+          <div className="flex items-center justify-between border-b border-divider px-4 py-2">
+            <h2 className="text-sm font-semibold text-strong">ตัวกรอง</h2>
             <PopoverPrimitive.Close asChild>
-              <ControlIconButton aria-label="ปิดตัวกรอง">
+              <ControlIconButton aria-label="ปิดตัวกรอง" className="rounded-lg">
                 <X className="h-4 w-4" />
               </ControlIconButton>
             </PopoverPrimitive.Close>
           </div>
 
-          <div className="space-y-3">{children}</div>
+          <div className="max-h-[min(28rem,calc(100dvh-13rem))] overflow-y-auto overscroll-contain px-4 py-3">
+            <div className="space-y-4">{children}</div>
+          </div>
 
-          <div className="mt-4 flex gap-2 border-t border-slate-200 pt-3 dark:border-slate-800">
+          <div className="flex items-center justify-end gap-2 border-t border-divider px-4 py-2">
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
-              className="flex-1"
               onClick={onClear}
               disabled={!hasFilters}
             >
@@ -103,7 +110,6 @@ export function FilterPopover({
             </Button>
             <Button
               size="sm"
-              className="flex-1"
               onClick={() => setOpen(false)}
             >
               {resultLabel}
@@ -112,5 +118,24 @@ export function FilterPopover({
         </PopoverPrimitive.Content>
       </PopoverPrimitive.Portal>
     </PopoverPrimitive.Root>
+  );
+}
+
+export function FilterPopoverField({
+  label,
+  htmlFor,
+  children,
+}: {
+  label: string;
+  htmlFor: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <label className="block text-xs font-semibold text-secondary" htmlFor={htmlFor}>
+        {label}
+      </label>
+      {children}
+    </div>
   );
 }

@@ -528,6 +528,15 @@ PDF ครบชุด (ใบเสนอ/แจ้งหนี้/เสร็
 - [x] ใช้สถานะเลือกด้วยเส้นใต้/น้ำหนักข้อความร่วมกับ `aria-pressed`; ไม่มีพื้น กรอบกล่อง เงา radius หรือช่อง Check ล่องหน
 - [x] ตรวจหน้าสินค้าเป็นตัวแทน desktop/mobile Light/Dark, รัน regression guard + Impeccable detector และไม่แตะ business flow
 
+### P1.0-FILTER-POPOVER-POLISH — เก็บกล่องตัวกรองหลายเงื่อนไขทั้งระบบ (เบสสั่ง 2026-08-23)
+
+> ปรับเฉพาะ presentation/interaction ของ `FilterPopover` กลางและ caller ที่ใช้จริง (`/orders`, `/production`) หลังจอจริงชี้ว่าตัวเลือกหลายรายการถูกวาดเหมือนแท็บจนสแกนยาก · คง query, URL, count, permission และ business flow เดิมทั้งหมด · แถบสถานะออเดอร์ที่เบสชอบไม่เปลี่ยน
+
+- [x] **โครง overlay อ่านเป็นงานเดียว** — หัวกล่อง/ปุ่มปิด/กลุ่มฟิลด์/footer มี hierarchy และระยะเดียวกัน; เปิดแล้ว focus เข้า panel โดยไม่ทำวง focus ที่ปุ่มปิดเด่นขึ้นมาเอง
+- [x] **ชนิด control ตรงกับจำนวนตัวเลือก** — ตัวเลือกเกิน 5 ใช้ `Select` ตาม contract กลาง; กลุ่มหลายเงื่อนไขมี label ชัดและไม่ใช้เส้นใต้แบบแท็บซ้อนใน popover
+- [x] **สถานะกรองค้างและ action ชัด** — trigger แสดง active count ด้วย Anajak Blue, ล้างทั้งหมด disabled เมื่อไม่มีค่า และปุ่มดูรายการไม่แข่งน้ำหนักกัน
+- [x] **ตรวจทั้งเว็บและจอจริง** — inventory filter surface ทั้งระบบ; เดินกรอง→เปิดซ้ำ→ล้าง, Escape/focus, overflow และ console บน `/orders` + `/production` ที่ desktop/mobile Light/Dark พร้อมรัน regression/final gates ก่อน commit
+
 **เพิ่มเข้า P1 (เบสอนุมัติ 2026-06-11 จากผล audit flow ทั้งระบบ):** แพ็คเก็บตกหน้างาน — ขั้นตอนผลิต DTF/DTG จริง (เดิม enum เป็นชุดโรงเย็บ) + โชว์ลายอนุมัติบน order detail/Job Ticket + แจ้งกระดิ่งเมื่อลูกค้าตัดสินแบบ + ด่านปิดงานต้องวางบิลครบ · **Outsource UI ทั้งก้อนดึงจาก P2 มาทำเลย** (silkscreen ส่งร้านนอก 100% แต่ระบบใช้ไม่ได้จริง) — ส่วน AP vendor/WHT ขาจ่าย ยังอยู่ P2 ตามเดิม
 ## 🏭 FLOW-REDESIGN — รื้อทั้งระบบตามผังใหม่ (เบสเคาะครบ 2026-06-12 · แบบเต็ม: `docs/flow-redesign-2026-06-12.html`)
 > เบสสั่ง: "มองมุมโรงงาน วาด flow ก่อน" → ศึกษา 5 มุม + ตอบคำถาม 10 ข้อ → เคาะครบ · **งานชุดนี้มาก่อน P1 ที่เหลือ** (WHT เลื่อนไปทำพร้อมก้อน 3 ขาเงิน)
