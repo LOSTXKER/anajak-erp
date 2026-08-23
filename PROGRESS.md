@@ -4,6 +4,11 @@
 
 ## ตอนนี้
 
+> **✅ กู้หน้าออเดอร์บนฐาน DEMO หลังรวม PRODUCTION V2 (2026-08-23)**
+> `/orders` เคยตอบ 500 เพราะ local `anajak_erp_demo` ยังไม่มีคอลัมน์ `orders.production_completion_owner_id` จาก migration ใหม่ ทั้งที่ข้อมูล seed ยังอยู่ครบ 15 ออเดอร์ · สำรองฐานก่อน แล้ว apply `20260822120000_add_production_v2_core` และ `20260822184500_add_outsource_order_lines` กับฐาน demo เท่านั้น โดยไม่ reset/reseed และไม่แตะฐาน shared/remote
+>
+> **หลักฐานหลังแก้:** browser จริงเปิด `/orders` ได้, แสดง `15 ออเดอร์`, `order.list` ตอบ 200, ไม่มีข้อความโหลดไม่สำเร็จ, error overlay, console error หรือ horizontal overflow · dev server เปิดต่อที่ `localhost:3000`
+
 > **✅ รวม PRODUCTION V2 + VERCEL VISUAL SYSTEM เข้า LOCAL MAIN (2026-08-23)**
 > merge `origin/main` ที่มี Production V2 เข้ากับงาน visual language ทั้งเว็บแล้ว โดยเก็บ business logic, permission, route flag, legacy fallback และ migration ของ Production V2 ไว้ครบ พร้อมปรับ surface ใหม่ให้ใช้ panel มุม 8px ไม่มี decorative shadow และเพิ่ม guard ครอบหน้า Production V2, Factory V2 และ legacy fallback ด้วย
 >
