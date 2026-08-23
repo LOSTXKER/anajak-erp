@@ -5,10 +5,7 @@ import Link from "next/link";
 import {
   AlertTriangle,
   ChevronRight,
-  ClipboardCheck,
   Factory,
-  LayoutList,
-  PackageCheck,
   SearchX,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -32,9 +29,8 @@ import {
   type ProductionBoard,
 } from "@/lib/production-board";
 import {
+  PRODUCTION_WORKLIST_LENSES,
   PRODUCTION_WORKLIST_SORT_COLUMNS,
-  PRODUCTION_WORKLIST_QUEUE_LENSES,
-  PRODUCTION_WORKLIST_STAGE_LENSES,
   PRODUCTION_WORKLIST_SORT_OPTIONS,
   productionWorklistAction,
   productionWorklistProgress,
@@ -45,14 +41,6 @@ import {
   type ProductionWorklistSort,
   type ProductionWorklistSortColumn,
 } from "@/lib/production-worklist";
-
-const WORKLIST_LENS_ICONS = {
-  all: LayoutList,
-  attention: AlertTriangle,
-  production: Factory,
-  qc: ClipboardCheck,
-  packing: PackageCheck,
-} as const;
 
 const WORKLIST_FOCUS_STORAGE_KEY = "anajak:production-worklist:last-focus";
 
@@ -402,57 +390,22 @@ export function ProductionControlWorklist<
   return (
     <div className="space-y-4" data-production-worklist>
       <section aria-label="กรองรายการงาน" className="no-scrollbar overflow-x-auto pb-1">
-        <div className="flex w-max min-w-full items-center gap-2">
-          <div role="group" aria-label="มุมควบคุมงาน" className="flex items-center gap-2">
-            {PRODUCTION_WORKLIST_QUEUE_LENSES.map((item) => {
-              const LensIcon = WORKLIST_LENS_ICONS[item.key];
-              return (
-                <FilterChip
-                  key={item.key}
-                  selected={lens === item.key}
-                  onClick={() => onSelectLens(item.key)}
-                  surface="raised"
-                  icon={
-                    <LensIcon
-                      aria-hidden="true"
-                      className="h-4 w-4"
-                      strokeWidth={1.75}
-                    />
-                  }
-                >
-                  {item.label}
-                  <span className="tabular-nums opacity-70">{counts[item.key]}</span>
-                </FilterChip>
-              );
-            })}
-          </div>
-
-          <span aria-hidden="true" className="mx-1 h-6 w-px shrink-0 bg-divider" />
-
-          <div role="group" aria-label="กรองตามขั้นงาน" className="flex items-center gap-2">
-            <span className="shrink-0 text-xs font-medium text-muted">ขั้นงาน</span>
-            {PRODUCTION_WORKLIST_STAGE_LENSES.map((item) => {
-              const LensIcon = WORKLIST_LENS_ICONS[item.key];
-              return (
-                <FilterChip
-                  key={item.key}
-                  selected={lens === item.key}
-                  onClick={() => onSelectLens(item.key)}
-                  surface="raised"
-                  icon={
-                    <LensIcon
-                      aria-hidden="true"
-                      className="h-4 w-4"
-                      strokeWidth={1.75}
-                    />
-                  }
-                >
-                  {item.label}
-                  <span className="tabular-nums opacity-70">{counts[item.key]}</span>
-                </FilterChip>
-              );
-            })}
-          </div>
+        <div
+          role="group"
+          aria-label="มุมรายการงาน"
+          className="flex w-max min-w-full items-center gap-2"
+        >
+          {PRODUCTION_WORKLIST_LENSES.map((item) => (
+            <FilterChip
+              key={item.key}
+              selected={lens === item.key}
+              onClick={() => onSelectLens(item.key)}
+              surface="raised"
+            >
+              {item.label}
+              <span className="tabular-nums opacity-70">{counts[item.key]}</span>
+            </FilterChip>
+          ))}
         </div>
       </section>
 

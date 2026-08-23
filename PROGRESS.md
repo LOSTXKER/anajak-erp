@@ -4,6 +4,19 @@
 
 ## ตอนนี้
 
+> **✅ PRODUCTION FILTER ALIGNMENT — ใช้ตัวกรองมาตรฐานทั้งเว็บ (2026-08-23)**
+> เบสตรวจ `/production` แล้วไม่รับแถบตัวกรองเฉพาะกิจที่มีไอคอนทุกตัว, เส้นคั่น และคำว่า `ขั้นงาน` เพราะดูเป็น navigation อีกชั้น · ยุบเป็น `FilterChip` มาตรฐานแถวเดียวเหมือน Products/Notifications/WHT เหลือชื่อ+จำนวน และใช้ Anajak Blue เฉพาะตัวเลือกที่ active
+>
+> ลบ icon map และการแบ่ง queue/stage ที่มีไว้เพื่องานภาพนี้ออกจริง ไม่ซ่อนด้วย CSS · 5 ค่า `view`, count, URL, search, sort, query, permission, status transition และ business flow เดิมไม่เปลี่ยน
+>
+> **หลักฐานจอจริง:** `/production` 1440×900 + 390×844 Light/Dark — มีตัวกรอง 5 ปุ่ม, SVG 0, divider 0, ไม่มีคำว่า `ขั้นงาน`, desktop control สูง 36px, mobile สูง 44px, page overflow 0 · active ใช้ `#3973b2` ใน Light / `#6b9cca` ใน Dark · กด `ต้องจัดการ` แล้ว URL เป็น `?view=attention` และตารางเหลือ 5 แถว · ไม่มี error overlay หรือ console warning/error จากแอป
+>
+> **ด่านส่งมอบ:** full unit **1643/1643**, targeted unit 8/8, typecheck, targeted lint 0 warning/error, `verify:ui`, production build (41 static pages), `git diff --check` และ Impeccable detectorรอบเดียวผ่าน; detector `[]`
+>
+> **ขอบเขต:** presentation/accessibility/dead UI constants/docs เท่านั้น · schema, seed และข้อมูลไม่เปลี่ยน · ไฟล์ของเบส `scripts/verify-artwork.ts`, `.cursor/`, `public/` ยังอยู่นอก scope
+>
+> **ต่อที่นี่:** ให้เบสรีเฟรช `/production`; แถบตัวกรองควรอ่านเหมือนหน้าอื่นทันที โดยไม่มีไอคอนหรือหัวแบ่งเฉพาะหน้าผลิต
+
 > **✅ PRODUCTION TOP DISTILL — ถอด tab row และสรุปซ้ำออก (2026-08-23)**
 > เบสตรวจส่วนบน `/production` แล้วชี้ว่าซ้ำซ้อนรก จึงตัด meta `11 ออเดอร์ · 5 รายการต้องจัดการ`, summary `เลยกำหนด/ครบกำหนดวันนี้/กำลังลงมือ` และแถบลิงก์ `คิวผลิต/รอบพิมพ์ DTF/คลังฟิล์ม/งานร้านนอก` ออกจากผิวหน้า · หัวหน้าเหลือชื่อ+คำอธิบาย+ปุ่ม `งานผลิต` หนึ่งจุด แล้วเข้าสู่ตัวกรองและรายการทันที
 >

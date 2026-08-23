@@ -16,20 +16,12 @@ import { currentProductionProblemReason } from "@/lib/production-problem";
    แต่ยังเก็บทุกจุดงานไว้ในแถวเดียวเพื่อไม่ซ่อนงานที่เดินพร้อมกันหลายสาย
    ============================================================ */
 
-export const PRODUCTION_WORKLIST_QUEUE_LENSES = [
+export const PRODUCTION_WORKLIST_LENSES = [
   { key: "all", label: "ทั้งหมด" },
   { key: "attention", label: "ต้องจัดการ" },
-] as const;
-
-export const PRODUCTION_WORKLIST_STAGE_LENSES = [
   { key: "production", label: "กำลังผลิต" },
   { key: "qc", label: "รอ QC" },
   { key: "packing", label: "แพ็ก / พร้อมส่ง" },
-] as const;
-
-export const PRODUCTION_WORKLIST_LENSES = [
-  ...PRODUCTION_WORKLIST_QUEUE_LENSES,
-  ...PRODUCTION_WORKLIST_STAGE_LENSES,
 ] as const;
 
 export type ProductionWorklistLens =
