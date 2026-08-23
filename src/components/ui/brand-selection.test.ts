@@ -38,7 +38,8 @@ describe("Anajak selected-state contract", () => {
     expect(flowFilterSource).not.toContain("style={{ width:");
     expect(flowFilterSource).toContain("border-b border-divider pb-1");
     expect(flowFilterSource).toContain("INTERACTIVE_HOVER");
-    expect(flowFilterSource).toContain("กดสถานะเพื่อกรอง · กดซ้ำเพื่อล้างตัวกรอง");
+    expect(flowFilterSource).not.toContain("กดสถานะเพื่อกรอง · กดซ้ำเพื่อล้างตัวกรอง");
+    expect(flowFilterSource).toContain('"กดเพื่อกรอง"');
     expect(flowFilterSource).toContain("เลือกอยู่ · กดซ้ำเพื่อล้างตัวกรอง");
     expect(flowFilterSource).toContain("item.dotClass");
     expect(flowFilterSource).toContain("ACTIVE_UNDERLINE");

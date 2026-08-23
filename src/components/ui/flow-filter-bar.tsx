@@ -228,10 +228,6 @@ export function FlowFilterBar({
 
   return (
     <div className={cn("@container transition-opacity duration-200", isLoading && "opacity-60")}>
-      <p className="mb-2 px-1 text-2xs text-muted @4xl:text-right">
-        กดสถานะเพื่อกรอง · กดซ้ำเพื่อล้างตัวกรอง
-      </p>
-
       {/* ── เส้นทางงาน (พื้นที่กว้างพอ) ── */}
       <div role="group" aria-label={ariaLabel} className="hidden @4xl:block">
         <div className="flex gap-5">

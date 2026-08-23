@@ -4,6 +4,19 @@
 
 ## ตอนนี้
 
+> **✅ STATUS FLOW COPY CLEANUP — ถอดข้อความแนะนำที่แสดงค้าง (2026-08-23)**
+> เอา “กดสถานะเพื่อกรอง · กดซ้ำเพื่อล้างตัวกรอง” ออกจากผิวหน้าแล้วตาม feedback · hairline ใต้หัวช่วง, hover/pressed, cursor, focus และ Anajak Blue selected ยังอยู่ครบ จึงยังมองออกว่ากดได้โดยไม่เพิ่มข้อความรบกวนสายตา
+>
+> `aria-label`/`title` ยังคงบอก “กดเพื่อกรอง” และ “เลือกอยู่ · กดซ้ำเพื่อล้างตัวกรอง” สำหรับ accessibility โดย logic toggle, URL, จำนวน และ mobile disclosure ไม่เปลี่ยน
+>
+> **หลักฐานจอจริง:** `/orders` desktop 1280 Dark และ mobile 390 ไม่พบข้อความที่แสดงค้าง, horizontal overflow 0, mobile control 44px และ console 0 warning/error · กด “สอบถาม” ได้ `?status=INQUIRY` พร้อม 1 ออเดอร์ และกดซ้ำกลับ `/orders` พร้อม 15 ออเดอร์
+>
+> **ด่านส่งมอบ:** full unit **1641/1641**, typecheck, lint 0 error (26 warning เดิม), `verify:ui`, Prisma validate, production build (41 static pages), `git diff --check` และ Impeccable detector รอบเดียวผ่าน; detector `[]`
+>
+> **ขอบเขต:** presentation/test/docs เท่านั้น · business flow และข้อมูลไม่เปลี่ยน · ไฟล์ค้างของเบสยังอยู่นอก scope
+>
+> **ต่อที่นี่:** ให้เบสรีเฟรช `/orders`; แถบสถานะจะกลับมากระชับเท่าเดิมแต่ยังมีเส้นกลุ่มและ hover cue อยู่
+
 > **✅ STATUS FLOW AFFORDANCE — มองออกว่ากดได้และกดซ้ำเพื่อล้าง (2026-08-23)**
 > คืน hairline 1px เฉพาะใต้หัวช่วง รับงาน/ออกแบบ/ผลิต/ส่งของ/ปิดงาน/นอกเส้นทาง เพื่อช่วยจัดกลุ่มโดยไม่คืนเส้นบนล่างด้านใน เส้นตั้ง หรือ progress track · ปุ่มสถานะทุกตัวมี cursor, neutral hover/pressed และ focus เดิม จึงเห็นพื้นที่กดชัดเมื่อใช้เมาส์
 >
