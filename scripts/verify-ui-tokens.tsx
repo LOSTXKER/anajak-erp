@@ -24,6 +24,7 @@ import { DataTable } from "../src/components/ui/data-table";
 import { FilterChip } from "../src/components/ui/filter-chip";
 import {
   ACTIVE_FILTER,
+  ACTIVE_UNDERLINE,
   DASHED,
   DASHED_INTERACTIVE,
   FOCUS_BUTTON,
@@ -406,9 +407,9 @@ check(
   );
   const dateTrigger = dateHtml.match(/<button[^>]*aria-label="ช่วงวันที่:[^"]*"[^>]*>/)?.[0] ?? "";
   check(
-    "ช่วงวันที่ active คงรูปทรง neutral",
+    "ช่วงวันที่ active คงรูปทรงเรียบและใช้ Anajak Blue",
     dateTrigger,
-    ["border-border-strong", "bg-transparent", "shadow-none"],
+    ["border-blue-600", "text-blue-700", "bg-transparent", "shadow-none"],
     ["bg-interactive-selected", "shadow-sm"],
   );
 }
@@ -424,9 +425,9 @@ check(
   );
   const filterTrigger = filterHtml.match(/<button[^>]*aria-haspopup="dialog"[^>]*>/)?.[0] ?? "";
   check(
-    "ปุ่มตัวกรอง active คงรูปทรง neutral",
+    "ปุ่มตัวกรอง active คงรูปทรงเรียบและใช้ Anajak Blue",
     filterTrigger,
-    ["border-border-strong", "bg-transparent", "shadow-none"],
+    ["border-blue-600", "text-blue-700", "bg-transparent", "shadow-none"],
     ["bg-interactive-selected", "shadow-sm"],
   );
 }
@@ -510,8 +511,8 @@ check(
   ["dark:bg-red-600", "dark:hover:bg-red-500"],
 );
 
-// ตัวกรองเป็นข้อความสี neutral + เส้นใต้ ไม่วาดพื้น กรอบกล่อง เงา หรือ Check ล่องหน
-// สถานะเลือกใช้เส้น + font weight ร่วมกัน และ aria-pressed บอก assistive tech
+// ตัวกรองพักเป็น neutral; สถานะเลือกใช้เส้น+ข้อความ Anajak Blue โดยไม่วาดพื้น/กล่อง/เงา
+// และ aria-pressed บอก assistive tech
 {
   const selected = renderToStaticMarkup(
     <FilterChip selected onClick={() => {}}>เลือกแล้ว</FilterChip>,
@@ -540,8 +541,10 @@ check(
   if (
     !selected.includes('aria-pressed="true"') ||
     !selected.includes("border-b-2") ||
-    !selected.includes("border-slate-900") ||
-    !selected.includes("dark:border-white") ||
+    !selected.includes("border-blue-600") ||
+    !selected.includes("text-blue-700") ||
+    !selected.includes("dark:border-blue-400") ||
+    !selected.includes("dark:text-blue-400") ||
     !selected.includes("font-semibold") ||
     !selected.includes("bg-transparent") ||
     selected.includes("rounded-lg") ||
@@ -549,7 +552,8 @@ check(
     selected.includes("shadow-sm") ||
     selected.includes("bg-interactive-selected") ||
     selected.includes("text-interactive-selected-text") ||
-    selected.includes("border-blue") ||
+    selected.includes("border-slate-900") ||
+    selected.includes("dark:border-white") ||
     selected.includes("lucide-check") ||
     !idle.includes('aria-pressed="false"') ||
     idle.includes("invisible") ||
@@ -560,9 +564,9 @@ check(
     idleWithIcon.includes("lucide-check")
   ) {
     failed++;
-    console.log("❌ ตัวกรองต้องเป็นข้อความ neutral + เส้นใต้ ไม่มีพื้น/กล่อง/เงา/สี selected และมี aria-pressed");
+    console.log("❌ ตัวกรองต้องพักเป็น neutral และใช้เส้น+ข้อความ Anajak Blue เมื่อเลือก โดยไม่มีพื้น/กล่อง/เงา");
   } else {
-    console.log("✅ ตัวกรองเป็นข้อความ neutral + เส้นใต้ และคง aria-pressed/icon");
+    console.log("✅ ตัวกรองพักเป็น neutral และใช้ Anajak Blue เมื่อเลือก พร้อม aria-pressed/icon");
   }
 }
 
@@ -852,8 +856,9 @@ check(
     navigationHelperSource.includes("INTERACTIVE_CHROME_HOVER") &&
     navigationHelperSource.includes("INTERACTIVE_HOVER") &&
     navigationHelperSource.includes("INTERACTIVE_CHROME_PRESSED") &&
-    navigationHelperSource.includes("bg-interactive-chrome-hover") &&
-    navigationHelperSource.includes("font-medium text-strong") &&
+    navigationHelperSource.includes("bg-interactive-selected") &&
+    navigationHelperSource.includes("font-medium text-interactive-selected-text") &&
+    navigationHelperSource.includes('active\n    ? "text-interactive-selected-text"') &&
     !navigationHelperSource.includes("before:bg-blue-600") &&
     navigationHelperSource.includes("FOCUS_INSET") &&
     navigationHelperSource.includes("group-hover/sidebar-item:text-secondary") &&
@@ -897,12 +902,19 @@ check(
   });
   const focusStaysBlue = [FOCUS_FIELD, FOCUS_BUTTON, FOCUS_INSET]
     .every((token) => token.includes("blue-"));
-  const activeFilterStaysNeutral =
-    ACTIVE_FILTER.includes("border-border-strong") &&
+  const activeFilterStaysBranded =
+    ACTIVE_FILTER.includes("border-blue-600") &&
+    ACTIVE_FILTER.includes("text-blue-700") &&
+    ACTIVE_FILTER.includes("dark:border-blue-400") &&
+    ACTIVE_FILTER.includes("dark:text-blue-400") &&
     ACTIVE_FILTER.includes("bg-transparent") &&
     ACTIVE_FILTER.includes("hover:bg-interactive-hover") &&
     ACTIVE_FILTER.includes("active:bg-interactive-pressed") &&
-    !ACTIVE_FILTER.includes("bg-interactive-selected");
+    !ACTIVE_FILTER.includes("bg-interactive-selected") &&
+    ACTIVE_UNDERLINE.includes("border-blue-600") &&
+    ACTIVE_UNDERLINE.includes("text-blue-700") &&
+    ACTIVE_UNDERLINE.includes("dark:border-blue-400") &&
+    ACTIVE_UNDERLINE.includes("dark:text-blue-400");
   if (
     offenders.length ||
     blueHoverOffenders.length ||
@@ -919,7 +931,7 @@ check(
     !brandBlueIsLocked ||
     !selectedStaysBlue ||
     !focusStaysBlue ||
-    !activeFilterStaysNeutral ||
+    !activeFilterStaysBranded ||
     !sunkIsStructural ||
     !raisedControlIsSeparate
   ) {
@@ -951,8 +963,8 @@ check(
     if (!brandBlueIsLocked || !selectedStaysBlue || !focusStaysBlue) {
       console.log("   น้ำเงิน #3973b2 ต้องสงวนอยู่ที่ primary/selected/focus");
     }
-    if (!activeFilterStaysNeutral) {
-      console.log(`   active filter ต้องเป็น neutral control: ${ACTIVE_FILTER}`);
+    if (!activeFilterStaysBranded) {
+      console.log(`   active filter/current ต้องใช้ Anajak Blue: ${ACTIVE_FILTER} / ${ACTIVE_UNDERLINE}`);
     }
     if (!sunkIsStructural) {
       console.log(`   SUNK_PANEL ต้องไม่มี interaction state: ${SUNK_PANEL}`);
@@ -1435,28 +1447,31 @@ check(
     "utf8",
   );
   if (
-    !orderStatusFilterSource.includes("PopoverPrimitive.Content") ||
-    !orderStatusFilterSource.includes("OVERLAY_PANEL") ||
-    !orderStatusFilterSource.includes("border-b-2 bg-transparent")
+    !orderStatusFilterSource.includes('className="hidden xl:block"') ||
+    !orderStatusFilterSource.includes("<details") ||
+    !orderStatusFilterSource.includes("ACTIVE_UNDERLINE") ||
+    orderStatusFilterSource.includes("PopoverPrimitive.Content")
   ) {
     failed++;
-    console.log("❌ ตัวกรองสถานะ desktop ต้องเป็นแถบเรียบ และย้ายสถานะเต็มเข้า overlay panel");
+    console.log("❌ ตัวกรองสถานะ Orders ต้องคืน flow เต็มบน desktop และ quick+details บนจอแคบ");
   } else {
-    console.log("✅ ตัวกรองสถานะ desktop เป็นแถบเรียบ และสถานะเต็มอยู่ใน overlay panel");
+    console.log("✅ ตัวกรองสถานะ Orders ใช้ flow เต็มบน desktop และ quick+details บนจอแคบ");
   }
 
   const desktopStatusSource =
     ordersStatusSource.match(/function DesktopItemButton[\s\S]*?\n}\n\nexport function/)?.[0] ?? "";
   if (
     !desktopStatusSource.includes("border-b-2") ||
-    !desktopStatusSource.includes("border-slate-900") ||
+    !desktopStatusSource.includes("ACTIVE_UNDERLINE") ||
     !desktopStatusSource.includes("border-transparent") ||
-    !desktopStatusSource.includes("hover:text-strong")
+    !desktopStatusSource.includes("hover:text-strong") ||
+    desktopStatusSource.includes("border-slate-900") ||
+    desktopStatusSource.includes("dark:border-white")
   ) {
     failed++;
-    console.log("❌ ขั้นสถานะ desktop ต้องใช้ข้อความ neutral และเส้นใต้สถานะเลือก");
+    console.log("❌ ขั้นสถานะ desktop ต้องพักเป็น neutral และใช้ Anajak Blue เมื่อเลือก");
   } else {
-    console.log("✅ ขั้นสถานะ desktop ใช้ข้อความ neutral และเส้นใต้สถานะเลือก");
+    console.log("✅ ขั้นสถานะ desktop พักเป็น neutral และใช้ Anajak Blue เมื่อเลือก");
   }
 }
 

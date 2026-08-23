@@ -1,9 +1,11 @@
 # มาตรฐาน UI Anajak ERP (P1.0)
 
-## Visual identity contract — Vercel Panel System (2026-08-23)
+## Visual identity contract — Anajak Operational Panel System (2026-08-23)
+
+> ใช้ความเรียบและ panel geometry แบบ Vercel เป็น reference เชิงโครงสร้างเท่านั้น ไม่ใช่ตัวตนสีขาวดำของผลิตภัณฑ์ · current/selected/focus ต้องยังจำได้ว่าเป็น Anajak
 
 - ทุก `PageHeader` มาตรฐานมี module marker จาก Lucide แบบเส้น neutral ขนาดเล็ก โดยไม่มีพื้น กรอบ เงา หรือสีประจำหมวด; `<h1>` ต้องมีข้อความจริงเพียงชุดเดียวและ marker เป็นของตกแต่งที่ `aria-hidden` พร้อมชื่อหน้าเดิมเป็น accessible name
-- ความแตกต่างของโมดูลมาจาก icon, scale, composition, ภาพงานจริง และลำดับข้อมูล ไม่ใช้สีเป็นโครงหน้า; น้ำเงิน Anajak สงวนให้ primary action, link และ focus ส่วน active navigation ใช้ neutral fill และสีสถานะใช้เฉพาะความหมายจริง
+- ความแตกต่างของโมดูลมาจาก icon, scale, composition, ภาพงานจริง และลำดับข้อมูล ไม่ใช้สีเป็นโครงหน้า; น้ำเงิน Anajak สงวนให้ primary action, link, focus และ current/selected ทั้งข้อความ เส้น หรือพื้น tint อ่อน ส่วนสีสถานะใช้เฉพาะความหมายจริง
 - registry table/list ใช้ข้อความเป็นหลักและไม่วาด object icon หรือ initials ซ้ำกับชื่อ; รายการออเดอร์ใช้เฉพาะม็อกอัพจริงล่าสุด และเว้นว่างเมื่อไม่มีรูปโดยไม่ถอยไปใช้ artwork, initials หรือ placeholder icon; ช่องจำนวน เงิน วันที่ และสถานะไม่ต้องมี icon
 - ทุก `PageHeader`/`PageShell` มี `description` สั้นหนึ่งประโยคใต้หัวข้อโดยอัตโนมัติจาก `pageDescriptionForLabel`; หน้าเฉพาะ override ได้เมื่อบริบทต่างกัน · `description` บอกว่าหน้านี้ใช้ทำอะไร, `meta` เป็นข้อเท็จจริงเฉพาะรายการ/สถานะ และ `help` ใช้เฉพาะสูตร กติกา หรือรายละเอียดเสริมที่ยาว · `Section` ไม่รับ `description` เพื่อไม่ให้ทุกกล่องมีข้อความซ้ำจนรก
 - `HelpTip` ใช้ Radix Popover เปิดด้วย click/tap/Enter/Space ปิดด้วย Escape/คลิกนอกและคืน focus; เนื้อหาไม่เกิน 2–3 ประโยค ส่วน error, validation, permission denial, blocker, กฎหมาย และผลกระทบจาก action ต้องเห็นตรงหน้า
@@ -27,10 +29,10 @@
 
 ## สี — semantic system (`src/app/globals.css`)
 
-Vercel Panel System ใช้ workspace เป็นฉากหลังและ panel เป็นขอบเขตข้อมูล: Light workspace off-white `#fafafa`
+Anajak Operational Panel System ใช้ workspace เป็นฉากหลังและ panel เป็นขอบเขตข้อมูล: Light workspace off-white `#fafafa`
 กับ chrome/panel ขาว; Dark workspace ดำ `#000` กับ panel `#0a0a0a` · `Section` ที่มีขอบและ `DataTable`
 รวมเนื้อหาที่สัมพันธ์กันใน panel เส้น 1px มุม 8px โดยไม่มีเงาตกแต่ง · menu/dialog เป็นชั้นลอยสูงสุด ·
-น้ำเงิน Anajak `#3973b2` สงวนให้ primary, link และ focus; active navigation ใช้ neutral fill
+น้ำเงิน Anajak `#3973b2` สงวนให้ primary, link, focus และ current/selected; active navigation ใช้พื้นฟ้า tint อ่อนกับข้อความ/ไอคอนน้ำเงิน
 
 | บทบาท | Light | Dark | utility |
 |---|---|---|---|
@@ -75,7 +77,7 @@ Vercel Panel System ใช้ workspace เป็นฉากหลังแล�
 
 กติกา interaction:
 
-- navigation, control, menu option, row และ clickable card ใช้ neutral hover/pressed ครอบ hit area จริง; active navigation ใช้ neutral filled row ไม่ใช้แถบน้ำเงิน
+- navigation, control, menu option, row และ clickable card ใช้ neutral hover/pressed ครอบ hit area จริง; current/selected ใช้น้ำเงิน Anajak โดย control แบบเส้นใต้เปลี่ยนทั้งเส้นและข้อความ ส่วน navigation ใช้ selected tint อ่อน
 - clickable card compose `card-surface-hover` เพื่อเปลี่ยน neutral fill/เส้นขอบโดยไม่ขยับตำแหน่งและไม่มีเงา; ห้ามเขียนสี/เงาซ้ำที่ caller
 - ของที่กดได้จริง compose `INTERACTIVE_PRESSED` ให้ตอนกดเข้มกว่า hover; selected/current คงพื้นฟ้า
 - ของที่ถูกเลือกใช้ `INTERACTIVE_SELECTED` — ห้ามใช้ hover เป็น selected เพราะความหมายคนละอย่าง
@@ -169,7 +171,7 @@ mobile input ต้อง 16px กัน browser zoom; desktop control/body 14px
 | ช่องกรอกทรงเหลี่ยม | `RADIUS.field` = 8px |
 | **ปุ่ม / ช่องค้นหา / compatibility `pill`** | 8px |
 | **สวิตช์** | `RADIUS.pill` = มนเต็ม |
-| **ตัวกรองไม่เกิน 5 ตัวเลือก** | ไม่มีกรอบ/พื้น/radius · ข้อความสี neutral + เส้นใต้สถานะเลือก |
+| **ตัวกรองไม่เกิน 5 ตัวเลือก** | ไม่มีกรอบ/พื้น/radius · สถานะพักเป็น neutral; สถานะเลือกใช้ข้อความ+เส้นใต้ Anajak Blue |
 
 **ขนาดตัวอักษร** ใช้บันได 8 ขั้นใน `globals.css` (`text-2xs` … `text-3xl`) — **ห้ามสั่งเป็น px ดิบ มีด่าน lint ดักไว้**
 หัวเรื่องหน้า = `PageHeader` (`text-2xl` = 24px · แก้ข้อมูลผิด 2026-08-02: เอกสารเคยเขียน `text-[26px]` ซึ่ง**ด่าน lint ตีตกทันที**ทั้งที่ทำตามเอกสารเป๊ะ) — ทุกหน้าใช้ผ่าน component นี้ **ห้ามเขียน `<h1>` เอง** · หัว section ภายในหน้า = `Section`

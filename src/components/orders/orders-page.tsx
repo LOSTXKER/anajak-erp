@@ -562,7 +562,7 @@ function OrdersPageContent() {
               ถ้าไม่มีอะไรบอกเลย คนกดมาจากแดชบอร์ดจะเห็นรายการถูกกรองอยู่โดยไม่รู้ว่ากรองอะไร
               และล้างไม่ได้ — จึงโชว์ป้ายเดียวเฉพาะตอนกรองค้างอยู่ กดกากบาทเพื่อล้าง */}
           {attention && (
-            <span className="inline-flex items-center gap-1.5 border-b-2 border-slate-900 py-1 pl-1 text-xs font-semibold text-strong dark:border-white">
+            <span className="inline-flex items-center gap-1.5 border-b-2 border-blue-600 py-1 pl-1 text-xs font-semibold text-blue-700 dark:border-blue-400 dark:text-blue-400">
               {ATTENTION_FILTERS.find((f) => f.value === attention)?.label}
               <Button
                 variant="ghost"

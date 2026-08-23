@@ -4,6 +4,21 @@
 
 ## ตอนนี้
 
+> **✅ ANAJAK BLUE SELECTION — คืนสีแบรนด์ให้ current/selected ทั้งระบบ (2026-08-23)**
+> แก้การตีความ Vercel ที่ลดสีแบรนด์เกินไป: workspace, panel, hover และ pressed ยังคง neutral เพื่อให้เนื้อหาสงบ แต่ทุก current/selected/focus กลับมาใช้ Anajak Blue ชุดเดียว · active underline เปลี่ยนทั้งเส้นและข้อความ, Sidebar ใช้ selected tint อ่อนกับข้อความ/ไอคอนน้ำเงิน และ toolbar filter ที่เปิดอยู่ใช้เส้น/ข้อความน้ำเงินโดยไม่ทำพื้นทั้งก้อนเป็นสี
+>
+> Primitive กลาง `Tabs`, `FilterChip`, `FlowFilterBar`, `ACTIVE_FILTER`, navigation และ production module nav ถูกแก้ที่เจ้าของ component จึงครอบ Orders detail, Production, Products, Billing/WHT, Notifications และหน้าที่ใช้ชุดเดียวกันโดยไม่ไล่ patch รายหน้า · `docs/DESIGN.md` เปลี่ยนชื่อ contract เป็น Anajak Operational Panel System และระบุชัดว่า Vercel เป็น reference เชิงโครงสร้าง ไม่ใช่ตัวตนขาวดำ
+>
+> `/orders` คืน status filter แบบเดิมแล้ว: desktop เห็น flow ทุกขั้นใน panel; จอแคบใช้ quick set และ `<details>` กาง flow เพิ่ม · เลือกสถานะแล้ว URL เปลี่ยน, ปิดรายการเอง และ focus กลับ summary; ส่วนชื่องาน, deadline เดียว, mobile card, CSV scope และตาราง 1280 จากรอบก่อนยังอยู่ครบ
+>
+> **หลักฐานจอจริง:** ตรวจ `/`, `/orders`, order detail, `/production`, `/products`, `/billing/wht`, `/settings`, `/notifications` ที่ 1440 Light และตัวแทน 5 โมดูลใน Dark · selected Light ใช้เส้น `#3973b2` + ข้อความ `#305f93`; Dark ใช้ `#6b9cca`; Sidebar ใช้ selected surface/text คู่ Light/Dark · Orders 1280 table overflow 0, 390 Light/Dark และ 320 ไม่มี page/main overflow, control ที่เห็นไม่น้อยกว่า 44px, ไม่มี Next error overlay
+>
+> **ด่านส่งมอบ:** full unit **1640/1640**, typecheck, lint 0 error (26 warning เดิม), `verify:ui`, Prisma validate, production build (41 static pages), `git diff --check` และ Impeccable detector รอบเดียวผ่าน; detector `[]`
+>
+> **ขอบเขต:** design token, presentation, accessibility state, UI contract/test และเอกสารเท่านั้น · query, mutation, permission, route, status transition, schema, seed และ business flow ไม่เปลี่ยน · ไฟล์ค้างของเบส `scripts/verify-artwork.ts`, `.cursor/`, `public/` ยังอยู่นอก scope
+>
+> **ต่อที่นี่:** ให้เบสลองสลับแท็บ/ตัวกรองใน Orders, Production และหน้าบิลจริง; ภาษาสีที่ล็อกแล้วคือ neutral ตอนพัก + Anajak Blue ตอนเลือก ไม่ย้อนกลับไปขาวดำแบบ Vercel เต็มตัว
+
 > **✅ ORDERS REGISTRY — ปิดจุดสแกนยากบน desktop/mobile (2026-08-23)**
 > `/orders` แสดงชื่องานใต้ลูกค้า, รวมวันที่ส่งกับ countdown เป็นคอลัมน์เดียว และระบุสถานะภายในด้วยคำว่า `ภายใน:` เมื่อป้ายลูกค้ากับ workflow ต่างกัน · ที่จอ 1280 ซ่อนเฉพาะคอลัมน์รองช่องทาง/วันที่เปิดเพื่อให้ตารางหลักไม่ต้องเลื่อนแนวนอน ส่วนจอ 1360 ขึ้นไปยังเห็นครบ
 >

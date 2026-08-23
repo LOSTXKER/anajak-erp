@@ -30,11 +30,11 @@ describe("Orders scan-first registry contract", () => {
     expect(pageSource).not.toContain("formatCurrency");
   });
 
-  it("ลด status rail เป็น quick set และกางรายการเต็มแบบ overlay", () => {
-    expect(statusSource).toContain("const QUICK_STATUS_LIMIT = 4");
-    expect(statusSource).toContain("<PopoverPrimitive.Content");
-    expect(statusSource).not.toContain('className="hidden xl:block"');
-    expect(statusSource).not.toContain("<details");
+  it("คืน status flow เต็มบน desktop และใช้ quick set แบบเดิมบนจอแคบ", () => {
+    expect(statusSource).toContain('className="hidden xl:block"');
+    expect(statusSource).toContain("<details");
+    expect(statusSource).toContain("ACTIVE_UNDERLINE");
+    expect(statusSource).not.toContain("<PopoverPrimitive.Content");
   });
 
   it("บอกขอบเขต CSV ตรงและย้าย action รองเข้าเมนู mobile", () => {

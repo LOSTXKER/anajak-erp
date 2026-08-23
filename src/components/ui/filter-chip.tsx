@@ -1,6 +1,6 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { FOCUS_INSET } from "./tokens";
+import { ACTIVE_UNDERLINE, FOCUS_INSET } from "./tokens";
 import { CONTROL_MIN_H } from "./control-size";
 
 interface FilterChipProps {
@@ -31,7 +31,7 @@ export function FilterChip({
         "-mb-px inline-flex touch-manipulation items-center gap-1.5 whitespace-nowrap border-0 border-b-2 bg-transparent px-1 py-1 text-xs transition-colors",
         FOCUS_INSET,
         selected
-          ? "border-slate-900 font-semibold text-strong dark:border-white"
+          ? ACTIVE_UNDERLINE
           : "border-transparent font-medium text-muted hover:text-secondary active:text-strong",
         className,
       )}

@@ -128,9 +128,14 @@ export const INTERACTIVE_CHROME_HOVER =
 export const INTERACTIVE_CHROME_PRESSED =
   "active:bg-interactive-chrome-pressed active:text-strong dark:active:bg-interactive-chrome-pressed dark:active:text-strong";
 
-/** ของที่กำลังถูกเลือก — เข้มกว่า hover แต่ยังไม่แย่งปุ่ม action หลัก */
+/** ของที่กำลังถูกเลือก — พื้นฟ้าอ่อน + ข้อความน้ำเงิน เพื่อคงตัวตน Anajak
+ *  โดยไม่ใช้สีแบรนด์กับ hover/pressed ที่ยังไม่ถูกเลือก */
 export const INTERACTIVE_SELECTED =
   "bg-interactive-selected text-interactive-selected-text";
+
+/** selected/current แบบแถบเส้นใต้ — ใช้ร่วมกันใน tab, filter และ flow rail */
+export const ACTIVE_UNDERLINE =
+  "border-blue-600 font-semibold text-blue-700 dark:border-blue-400 dark:text-blue-400";
 
 /** กล่องที่ลอยขึ้นมาทับเนื้อหา — เมนู · ปฏิทิน · ตัวกรอง · กล่องเด้ง
  *  .overlay-surface (globals.css) ให้ทั้งพื้นและเงามาแล้ว — ห้ามใส่ bg-white/border ซ้ำ
@@ -195,7 +200,7 @@ export const TINT = {
    · ดรอปดาวน์ (บิล · ลูกค้า) · ปุ่มตัวกรองลอย (ออเดอร์) · สวิตช์ (คลังฟิล์ม)
    → คนใช้ต้องเรียนรู้ใหม่ทุกหน้าว่า "หน้านี้กรองยังไง"
 
-     ตัวเลือก ≤5     → <FilterChip>   ข้อความสี neutral + เส้นใต้ เห็นทุกตัวเลือกพร้อมกัน กดทีเดียว
+     ตัวเลือก ≤5     → <FilterChip>   พักเป็น neutral; เลือกแล้วข้อความ+เส้นเป็น Anajak Blue
      ตัวเลือก >5     → <Select shape="pill">  ชิปเกิน 5 ตัวจะล้นแถวบนมือถือ
      เปิด/ปิดอย่างเดียว → <FilterChip> ตัวเดียว (ไม่ใช่สวิตช์ — สวิตช์คือ "ตั้งค่า" ไม่ใช่ "กรอง")
      กรองหลายเงื่อนไขพร้อมกัน → <FilterPopover> (หน้าออเดอร์)
@@ -222,4 +227,4 @@ export const FIELD_LABEL =
  *  (blue-400/blue-900) ทั้งที่หมายถึงเรื่องเดียวกัน — คนอ่านหน้าจอเห็นว่า
  *  "กรองอยู่" ด้วยสีที่ไม่เท่ากันในแต่ละหน้า */
 export const ACTIVE_FILTER =
-  "border-border-strong bg-transparent text-strong hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed active:text-strong";
+  "border-blue-600 bg-transparent text-blue-700 hover:bg-interactive-hover hover:text-blue-700 active:bg-interactive-pressed active:text-blue-700 dark:border-blue-400 dark:text-blue-400 dark:hover:text-blue-400 dark:active:text-blue-400";

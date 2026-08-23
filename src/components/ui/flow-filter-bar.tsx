@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { FOCUS_BUTTON } from "@/components/ui/tokens";
+import { ACTIVE_UNDERLINE, FOCUS_BUTTON } from "@/components/ui/tokens";
 
 /* ============================================================
    แถบเส้นทางงาน + ตัวกรอง — ภาษาเดียวใช้ได้ทุกหน้าที่มี "งานกองอยู่ช่วงไหน"
@@ -71,14 +71,14 @@ function MobileItemButton({
       className={cn(
         "flex min-h-11 items-center justify-between gap-2 border-b-2 bg-transparent px-1 py-2 text-left transition-colors",
         FOCUS_BUTTON,
-        isOn ? "border-slate-900 text-strong dark:border-white" : "border-transparent",
+        isOn ? ACTIVE_UNDERLINE : "border-transparent",
       )}
     >
       <span
         className={cn(
           "flex min-w-0 items-center gap-1.5 text-xs leading-tight",
           isOn
-            ? "font-semibold text-strong"
+            ? "font-semibold text-blue-700 dark:text-blue-400"
             : item.count === 0
               ? "text-slate-500 dark:text-slate-400"
               : "text-slate-600 dark:text-slate-400",
@@ -94,7 +94,7 @@ function MobileItemButton({
             item.count === 0
               ? "font-normal text-slate-500 dark:text-slate-400"
               : isOn
-                ? "text-strong"
+                ? "text-blue-700 dark:text-blue-400"
                 : "text-slate-900 dark:text-white",
           )}
         >
@@ -108,7 +108,7 @@ function MobileItemButton({
               item.count === 0
                 ? "font-normal text-slate-500 dark:text-slate-400"
                 : isOn
-                  ? "text-strong"
+                  ? "text-blue-700 dark:text-blue-400"
                   : "text-slate-900 dark:text-white",
             )}
           >
@@ -148,7 +148,7 @@ function DesktopItemButton({
         "group border-b-2 px-1 py-1.5 text-center transition-colors",
         FOCUS_BUTTON,
         isOn
-          ? "border-slate-900 text-strong dark:border-white"
+          ? ACTIVE_UNDERLINE
           : "border-transparent hover:text-strong active:text-strong",
       )}
     >
@@ -162,7 +162,7 @@ function DesktopItemButton({
                   "group-hover:text-secondary group-active:text-secondary dark:group-hover:text-secondary dark:group-active:text-secondary",
               )
             : isOn
-              ? "text-strong"
+              ? "text-blue-700 dark:text-blue-400"
               : "text-slate-900 dark:text-white",
         )}
       >
@@ -173,7 +173,7 @@ function DesktopItemButton({
           "mt-1 max-w-full text-2xs leading-tight",
           inFlow ? "block truncate" : "inline-flex items-center gap-1",
           isOn
-            ? "font-semibold text-strong"
+            ? "font-semibold text-blue-700 dark:text-blue-400"
             : "text-slate-500 group-hover:text-secondary group-active:text-secondary dark:text-slate-400 dark:group-hover:text-secondary dark:group-active:text-secondary",
         )}
       >

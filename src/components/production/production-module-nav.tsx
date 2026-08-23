@@ -63,7 +63,7 @@ export function ProductionModuleNav({ className }: { className?: string }) {
                   FOCUS_INSET,
                   "inline-flex shrink-0 items-center border-b-2 px-2 text-sm transition-colors",
                   active
-                    ? "border-blue-600 font-semibold text-strong dark:border-blue-400"
+                    ? "border-blue-600 font-semibold text-blue-700 dark:border-blue-400 dark:text-blue-400"
                     : "border-transparent font-medium text-muted hover:text-secondary",
                 )}
               >

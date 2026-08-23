@@ -29,6 +29,15 @@
 - [x] CSV ระบุขอบเขตว่าเป็นหน้าปัจจุบัน และย้ายออกจาก action หลักบน mobile โดยยังเข้าถึงได้
 - [x] Verify: targeted test + full unit/typecheck/lint/`verify:ui`/build · browser 1440/1280/390/320 Light+Dark, search→open→Back, filter expand/select/clear, keyboard/focus, overflow, console
 
+### 🎯 BRAND-SELECTION — คืน Anajak Blue ให้ current/selected ทั้งระบบ (เบสสั่ง 2026-08-23)
+> แก้การตีความ Vercel ที่ลดสีแบรนด์มากเกินไป: canvas/panel/hover ยัง neutral แต่ current, selected, active underline/text/icon ต้องใช้ Anajak Blue `#3973b2` และมีคู่ Dark ที่อ่านผ่าน AA
+
+- [x] Primitive กลาง `Tabs`, `FilterChip`, `FlowFilterBar`, toolbar active filter, segmented/menu selected และ navigation ใช้ selected role สีน้ำเงินชุดเดียว โดย hover/pressed ที่ยังไม่เลือกคง neutral
+- [x] `/orders` คืน status filter แบบเดิม: desktop เห็น flow ครบใน panel และจอแคบใช้ quick set + กาง flow เพิ่ม โดย URL state/clear/focus/touch target เดิมยังทำงาน
+- [x] กวาด source ทั้ง dashboard เพื่อไม่เหลือ selected underline/text สีดำหรือขาวตรง ๆ; ยกเว้น print grayscale และข้อความปกติที่ไม่ใช่ state
+- [x] อัปเดต `docs/DESIGN.md`, UI contract และ regression test ให้ล็อก Anajak Blue เป็น active/selected/focus โดยไม่ทำทั้งเว็บกลายเป็นสีฟ้า
+- [x] Verify: full unit/typecheck/lint/`verify:ui`/Prisma/build + browser ตัวแทน dashboard/orders/order detail/production/products/billing/settings ที่ desktop/mobile Light+Dark, keyboard/focus/overflow/error overlay
+
 ## 🏭 PRODUCTION-V2 — หนึ่งข้อมูลจริง หนึ่งบ้านต่อหนึ่งงาน (เบสเคาะ 2026-08-22)
 
 > เป้าหมาย: รื้อแกนการผลิตและ UX เป็นโครงการเดียวตามบทบาท ERP/MES — ERP ใช้วางแผน/ควบคุม/ตรวจย้อนหลัง, Station ใช้ลงมือ, Factory TV อ่านอย่างเดียว · ทำบน branch/worktree แยกจาก checkpoint `5972e65` · schema เพิ่มแบบ additive และห้าม apply/reset ฐาน shared หรือ remote ระหว่างสร้าง

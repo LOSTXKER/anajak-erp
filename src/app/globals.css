@@ -182,7 +182,7 @@
   --color-module-system-border: #d7dde3;
 
   /* ============================================================
-     Vercel Panel System 2026-08-23 — พื้นฉาก + panel ขอบบาง
+     Anajak Operational Panel System 2026-08-23 — พื้นฉาก + panel ขอบบาง
 
        page            #fafafa  ฉากหลัง workspace
        chrome/surface  #ffffff  navigation / panel / card
@@ -303,7 +303,7 @@
   --color-muted: #a4a4aa;
 }
 
-/* Vercel Panel System — workspace เป็นฉาก ส่วน chrome/panel ยกด้วยสีและเส้นบาง */
+/* Anajak Panel System — workspace เป็นฉาก ส่วน chrome/panel ยกด้วยสีและเส้นบาง */
 .app-workspace {
   --color-bg: #fafafa;
 }

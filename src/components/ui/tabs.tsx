@@ -103,7 +103,7 @@ export const TabsTrigger = React.forwardRef<
         FOCUS_INSET,
         "inline-flex min-w-11 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap text-sm font-medium text-muted transition-colors",
         "hover:text-secondary",
-        "-mb-px border-b-2 border-transparent px-1 data-[state=active]:border-slate-900 data-[state=active]:font-semibold data-[state=active]:text-strong dark:data-[state=active]:border-white",
+        "-mb-px border-b-2 border-transparent px-1 data-[state=active]:border-blue-600 data-[state=active]:font-semibold data-[state=active]:text-blue-700 dark:data-[state=active]:border-blue-400 dark:data-[state=active]:text-blue-400",
         className,
       )}
       onClick={(event) => {

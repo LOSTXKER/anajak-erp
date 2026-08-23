@@ -56,7 +56,7 @@ function sidebarNavItemClass({
     RADIUS.item,
     "group/sidebar-item flex scroll-m-4 items-center gap-3 px-3 py-2 text-sm transition-colors",
     active
-      ? "bg-interactive-chrome-hover font-medium text-strong"
+      ? "bg-interactive-selected font-medium text-interactive-selected-text"
       : cn(
           "font-normal",
           "text-secondary",
@@ -80,7 +80,7 @@ function SidebarGroupLabel({
 
 function sidebarNavIconClass(active: boolean) {
   return active
-    ? "text-strong"
+    ? "text-interactive-selected-text"
     : "text-muted group-hover/sidebar-item:text-secondary group-active/sidebar-item:text-strong";
 }
 
