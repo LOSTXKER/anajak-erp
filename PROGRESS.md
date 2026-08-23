@@ -4,6 +4,19 @@
 
 ## ตอนนี้
 
+> **✅ PRODUCTION STATUS FLOW — ใช้แถบเดียวกับหน้าออเดอร์จริง (2026-08-23)**
+> เบสตรวจตัวกรองข้อความแถวเดียวบน `/production` แล้วขอให้ทำแบบหน้าออเดอร์ทั้งหมด จึงเปลี่ยนจาก `FilterChip` เฉพาะหน้าไปใช้ `FlowFilterBar` กลางตัวเดียวกับ `/orders` โดยตรง: desktop แสดงจำนวนด้านบนและชื่อพร้อมจุดสีด้านล่าง, มี hairline แบ่ง `ภาพรวม/สถานะงาน` ใน panel ชั้นเดียว และ active ใช้ Anajak Blue
+>
+> Mobile ใช้ responsive layout ของ primitive เดียวกันเป็นกริด 2 คอลัมน์ ปุ่มสูง 44px; `ทั้งหมด/ต้องจัดการ/กำลังผลิต/รอ QC/แพ็ก-พร้อมส่ง` และ count เดิมอยู่ครบ · กดตัวที่เลือกซ้ำกลับทั้งหมดพร้อมคง focus และล้าง `view` จาก URL แบบเดียวกับหน้าออเดอร์ · query, search, sort, permission, status transition และ business flow ไม่เปลี่ยน
+>
+> **หลักฐานจอจริง:** `/production` 1440×900 Dark/Light — panel สูง 108px, 5 ปุ่มกว้างเท่ากัน, active `#6b9cca`/`#3973b2`, แถวแรก y≈399 และ page overflow 0 · 390×844 Dark/Light — ปุ่มสูง 44px, grid 2 คอลัมน์, card แรก y≈506, page/section overflow 0 · กด `ต้องจัดการ` ได้ `?view=attention` กับ 5 การ์ด และกดซ้ำกลับ `/production`/ทั้งหมดพร้อม focus อยู่ที่ปุ่มเดิม · `/orders` desktop ยังมี 14 สถานะใน panel สูง 116px, overflow 0 และไม่มี app warning/error
+>
+> **ด่านส่งมอบ:** full unit **1644/1644**, targeted 13/13, typecheck, targeted lint 0 warning/error, `verify:ui`, production build (41 static pages), `git diff --check` และ Impeccable detectorรอบเดียวผ่าน; detector `[]`
+>
+> **ขอบเขต:** presentation/accessibility/test/docs เท่านั้น · schema, seed และข้อมูลไม่เปลี่ยน · ไฟล์ของเบส `scripts/verify-artwork.ts`, `.cursor/`, `public/` ยังอยู่นอก scope
+>
+> **ต่อที่นี่:** ให้เบสรีเฟรช `/production`; แถบด้านบนควรเป็นครอบครัวเดียวกับหน้าออเดอร์ทั้ง desktop และ mobile โดยไม่ต้องเรียนรู้ control ใหม่
+
 > **✅ PRODUCTION FILTER ALIGNMENT — ใช้ตัวกรองมาตรฐานทั้งเว็บ (2026-08-23)**
 > เบสตรวจ `/production` แล้วไม่รับแถบตัวกรองเฉพาะกิจที่มีไอคอนทุกตัว, เส้นคั่น และคำว่า `ขั้นงาน` เพราะดูเป็น navigation อีกชั้น · ยุบเป็น `FilterChip` มาตรฐานแถวเดียวเหมือน Products/Notifications/WHT เหลือชื่อ+จำนวน และใช้ Anajak Blue เฉพาะตัวเลือกที่ active
 >

@@ -10,6 +10,7 @@ const filterChipSource = read("./filter-chip.tsx");
 const flowFilterSource = read("./flow-filter-bar.tsx");
 const shellSource = read("../layout/app-shell.tsx");
 const productionNavSource = read("../production/production-module-nav.tsx");
+const productionWorklistSource = read("../production/production-control-worklist.tsx");
 const ordersSource = read("../orders/orders-page.tsx");
 
 describe("Anajak selected-state contract", () => {
@@ -57,5 +58,11 @@ describe("Anajak selected-state contract", () => {
     expect(ordersSource).toContain(
       "border-b-2 border-blue-600",
     );
+  });
+
+  it("Production ใช้ FlowFilterBar ชุดเดียวกับหน้าออเดอร์", () => {
+    expect(productionWorklistSource).toContain("<FlowFilterBar");
+    expect(productionWorklistSource).toContain("WORKLIST_LENS_GROUPS");
+    expect(productionWorklistSource).not.toContain("<FilterChip");
   });
 });

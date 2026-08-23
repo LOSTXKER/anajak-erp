@@ -11,7 +11,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
-import { FilterChip } from "@/components/ui/filter-chip";
+import {
+  FlowFilterBar,
+  type FlowFilterGroup,
+  type FlowFilterItem,
+} from "@/components/ui/flow-filter-bar";
 import { ResponsiveList } from "@/components/ui/responsive-list";
 import { SearchInput } from "@/components/ui/search-input";
 import { Select } from "@/components/ui/select";
@@ -32,6 +36,7 @@ import {
   PRODUCTION_WORKLIST_LENSES,
   PRODUCTION_WORKLIST_SORT_COLUMNS,
   PRODUCTION_WORKLIST_SORT_OPTIONS,
+  isProductionWorklistLens,
   productionWorklistAction,
   productionWorklistProgress,
   productionWorklistCounts,
@@ -41,6 +46,19 @@ import {
   type ProductionWorklistSort,
   type ProductionWorklistSortColumn,
 } from "@/lib/production-worklist";
+
+const WORKLIST_LENS_DOTS: Record<ProductionWorklistLens, string> = {
+  all: "bg-slate-400",
+  attention: "bg-red-500",
+  production: "bg-amber-500",
+  qc: "bg-amber-500",
+  packing: "bg-amber-500",
+};
+
+const WORKLIST_LENS_GROUPS = [
+  { label: "ภาพรวม", keys: ["all", "attention"] },
+  { label: "สถานะงาน", keys: ["production", "qc", "packing"] },
+] satisfies readonly FlowFilterGroup[];
 
 const WORKLIST_FOCUS_STORAGE_KEY = "anajak:production-worklist:last-focus";
 
@@ -364,6 +382,11 @@ export function ProductionControlWorklist<
   const desktopSortValue = sort === "attention" || sort === "urgent"
     ? sort
     : "__column__";
+  const lensItems: FlowFilterItem[] = PRODUCTION_WORKLIST_LENSES.map((item) => ({
+    ...item,
+    count: counts[item.key],
+    dotClass: WORKLIST_LENS_DOTS[item.key],
+  }));
 
   useEffect(() => {
     let orderId: string | null = null;
@@ -389,24 +412,20 @@ export function ProductionControlWorklist<
 
   return (
     <div className="space-y-4" data-production-worklist>
-      <section aria-label="กรองรายการงาน" className="no-scrollbar overflow-x-auto pb-1">
-        <div
-          role="group"
-          aria-label="มุมรายการงาน"
-          className="flex w-max min-w-full items-center gap-2"
-        >
-          {PRODUCTION_WORKLIST_LENSES.map((item) => (
-            <FilterChip
-              key={item.key}
-              selected={lens === item.key}
-              onClick={() => onSelectLens(item.key)}
-              surface="raised"
-            >
-              {item.label}
-              <span className="tabular-nums opacity-70">{counts[item.key]}</span>
-            </FilterChip>
-          ))}
-        </div>
+      <section
+        aria-label="กรองรายการงาน"
+        className="space-y-2 xl:overflow-hidden xl:rounded-lg xl:border xl:border-border xl:bg-surface xl:px-5 xl:py-3"
+      >
+        <FlowFilterBar
+          ariaLabel="กรองตามมุมงานผลิต"
+          mobileAriaLabel="กรองรายการงานผลิต"
+          items={lensItems}
+          groups={WORKLIST_LENS_GROUPS}
+          selected={lens}
+          onSelect={(nextLens) =>
+            onSelectLens(isProductionWorklistLens(nextLens) ? nextLens : "all")
+          }
+        />
       </section>
 
       <Toolbar>
