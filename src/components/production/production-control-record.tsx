@@ -1,5 +1,6 @@
 "use client";
 
+import type { RefObject } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -9,12 +10,14 @@ import {
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
+import { MockupThumbnail } from "@/components/mockup/mockup-thumbnail";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TINT } from "@/components/ui/tokens";
+import { FOCUS_BUTTON, RADIUS, TINT } from "@/components/ui/tokens";
 import {
   PRODUCTION_REFRESH_INTERVAL_MS,
   ProductionFreshness,
 } from "@/components/production/production-freshness";
+import { ProductionRouteRail } from "@/components/production/production-route-rail";
 import type { ProductionDetail, ProductionStep } from "@/components/production/types";
 import {
   buildProductionControlView,
@@ -22,6 +25,7 @@ import {
   type GarmentControlEvidence,
   type ProductionControlTone,
 } from "@/lib/production-control";
+import { mockupCoverImage, mockupImageCount } from "@/lib/mockup";
 import { productionWorkflowSteps } from "@/lib/production-steps";
 import { cn, formatDate, formatDateTime } from "@/lib/utils";
 
@@ -82,6 +86,8 @@ export function ProductionControlRecord({
   dataUpdatedAt,
   isFetching,
   onManageStep,
+  onOpenMockup,
+  mockupButtonRef,
 }: {
   production: ProductionDetail;
   canSupervise: boolean;
@@ -89,6 +95,8 @@ export function ProductionControlRecord({
   dataUpdatedAt: number;
   isFetching: boolean;
   onManageStep: (step: ProductionStep) => void;
+  onOpenMockup: () => void;
+  mockupButtonRef: RefObject<HTMLButtonElement | null>;
 }) {
   const order = production.order;
   const workflowSteps = productionWorkflowSteps(production.steps);
@@ -152,6 +160,8 @@ export function ProductionControlRecord({
       ? { label: "กำลังตรวจข้อมูล", tone: "neutral" as const }
       : { label: control.overallLabel, tone: control.overallTone };
   const totalQty = order.items.reduce((sum, item) => sum + item.totalQuantity, 0);
+  const latestMockup = order.designs[0] ?? null;
+  const mockupCount = latestMockup ? mockupImageCount(latestMockup) : 0;
   const progressPercent = workflowSteps.length > 0
     ? Math.round((completedSteps.length / workflowSteps.length) * 100)
     : 0;
@@ -240,7 +250,7 @@ export function ProductionControlRecord({
               />
             </div>
 
-            <header className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <header className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
                 {allStepsCompleted ? (
                   <>
@@ -273,21 +283,58 @@ export function ProductionControlRecord({
                 ) : null}
               </div>
 
-              {!attention && canSupervise && manageTarget ? (
-                <Button
+              <div className="flex w-full flex-col gap-3 sm:w-auto sm:items-end">
+                <button
+                  ref={mockupButtonRef}
                   type="button"
-                  variant="outline"
-                  size="sm"
-                  className="w-full sm:w-auto"
-                  disabled={writeDataStale}
-                  onClick={() => onManageStep(manageTarget)}
+                  onClick={onOpenMockup}
+                  className={cn(
+                    "flex min-h-20 w-full items-center gap-3 px-2 py-2 text-left transition-colors hover:bg-interactive-hover sm:w-auto sm:min-w-64",
+                    RADIUS.item,
+                    FOCUS_BUTTON,
+                  )}
+                  aria-label={
+                    latestMockup
+                      ? `เปิดม็อกอัพที่อนุมัติ เวอร์ชัน ${latestMockup.versionNumber} จำนวน ${mockupCount} รูป`
+                      : "เปิดข้อมูลแบบและม็อกอัพ งานนี้ยังไม่มีม็อกอัพที่อนุมัติ"
+                  }
                 >
-                  <UserRound />
-                  {manageTarget.assignedTo ? "เปลี่ยนผู้รับผิดชอบ" : "มอบหมายผู้รับผิดชอบ"}
-                </Button>
-              ) : null}
+                  <MockupThumbnail
+                    cover={latestMockup ? mockupCoverImage(latestMockup) : null}
+                    alt={latestMockup ? `ม็อกอัพที่อนุมัติ v${latestMockup.versionNumber}` : "ม็อกอัพ"}
+                    count={mockupCount}
+                    size="lg"
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-2xs font-medium text-muted">แบบที่ใช้ผลิต</span>
+                    <span className="mt-0.5 block text-sm font-semibold text-strong">
+                      {latestMockup ? `ม็อกอัพอนุมัติ v${latestMockup.versionNumber}` : "ยังไม่มีม็อกอัพอนุมัติ"}
+                    </span>
+                    <span className="mt-0.5 block text-xs text-secondary">
+                      {latestMockup ? `${mockupCount} รูป · เปิดดูทุกด้าน` : "เปิดดูแบบและสเปกที่มี"}
+                    </span>
+                  </span>
+                  <ArrowRight className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
+                </button>
+
+                {!attention && canSupervise && manageTarget ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full sm:w-auto"
+                    disabled={writeDataStale}
+                    onClick={() => onManageStep(manageTarget)}
+                  >
+                    <UserRound />
+                    {manageTarget.assignedTo ? "เปลี่ยนผู้รับผิดชอบ" : "มอบหมายผู้รับผิดชอบ"}
+                  </Button>
+                ) : null}
+              </div>
             </header>
           </div>
+
+          <ProductionRouteRail steps={workflowSteps} />
 
           {allStepsCompleted ? (
             <dl

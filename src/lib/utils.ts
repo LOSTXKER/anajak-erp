@@ -70,6 +70,11 @@ export function formatTime(date: Date | string | number): string {
 // ใช้กันรูปแตกในหน้า approve ลูกค้า / Job Ticket / thumbnail ลายพิมพ์
 export function isImageUrl(url: string | null | undefined): boolean {
   if (!url) return false;
+  // demo/local preview และภาพที่สร้างใน browser อาจเป็น data URL ที่เปิดใน <img> ได้จริง
+  // รับเฉพาะ MIME รูปที่ระบบรองรับ ไม่เหมารวม data:* ชนิดอื่นเป็นรูป
+  if (/^data:image\/(?:png|jpe?g|webp|gif|svg\+xml|avif)(?:;[^,]*)?,/i.test(url)) {
+    return true;
+  }
   try {
     const pathname = new URL(url, "http://x").pathname;
     return /\.(png|jpe?g|webp|gif|svg|avif)$/i.test(pathname);

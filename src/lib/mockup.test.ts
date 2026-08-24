@@ -38,6 +38,12 @@ describe("mockupPreviewUrl", () => {
       }),
     ).toBe("/api/files/designs/a.png");
   });
+
+  it("ภาพ data URL ที่ browser แสดงได้ใช้เป็นม็อกอัพได้", () => {
+    const svg = "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns='http://www.w3.org/2000/svg'/%3E";
+
+    expect(mockupPreviewUrl({ fileUrl: svg })).toBe(svg);
+  });
 });
 
 describe("mockupImages", () => {

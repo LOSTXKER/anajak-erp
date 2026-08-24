@@ -20,6 +20,14 @@
    - สีตัวหนังสือ = `text-strong` / `text-secondary` / `text-muted` (สลับธีมในตัว — ห้ามเขียนคู่ `dark:` เองสำหรับ 3 ระดับนี้ · ด่านใน `verify:ui`) · ช่องตัวเลข/เงิน = `NumberInput` / `MoneyInput` · ติ๊ก = `Checkbox`
    - สถานะ→สี/ป้าย ประกาศที่ `lib/status-config.ts` (+ `*_LABELS_CUSTOMER` สำหรับหน้า public) · วิธีส่ง `lib/shipping-methods.ts` · ช่องทางจ่าย `lib/payment-methods.ts` — ห้ามประกาศ map ซ้ำในหน้า
 
+### 🎯 PRODUCTION-MOCKUP-ROUTE — เห็นแบบและตำแหน่งงานจากหัวใบผลิต (เบสสั่ง 2026-08-25)
+> เก็บเฉพาะ first-view ของ `/production/[id]`: ใช้ข้อมูลม็อกอัพอนุมัติและขั้นผลิตจริงที่ query เดิมส่งมา · ไม่เปลี่ยน query, mutation, permission, status transition, polling, route หรือ no-money boundary
+
+- [x] แสดงม็อกอัพที่อนุมัติล่าสุดบนหัวใบแบบอ่านอย่างเดียว พร้อมเวอร์ชัน/จำนวนภาพ และเปิด inspector เดิมเพื่อดูครบทุกด้าน; ถ้าไม่มีต้องบอกตรง ๆ ไม่สร้างภาพจำลอง
+- [x] เพิ่มราง node ขั้นผลิตแบบหน้าออเดอร์จาก `productionWorkflowSteps` จริง โดยสีแยกเสร็จ/กำลังทำ/มีปัญหา/พัก/รอ และห้ามกดเปลี่ยนสถานะ
+- [x] รางรองรับขั้นยาวและหลายเลนโดยไม่บีบคำไทยหรือทำหน้า overflow; ตารางเส้นทางเดิมยังเป็นหลักฐานละเอียดและ action เดิมไม่ย้าย
+- [x] Verify targeted/full test, typecheck/lint/`verify:ui`/build, detectorรอบเดียว และ browser 1280/390 Light+Dark รวมเปิดม็อกอัพ→Escape/focus return, overflow และ console ✅ 2026-08-25
+
 ### 🎯 PRODUCTION-TWO-SURFACE-LAYOUT — คิวเลือกงาน + ใบปิดงานที่พาไปต่อ (เบส feedback 2026-08-25)
 > ปรับ hierarchy ของ `/production` และใบผลิตที่จบครบทุกขั้นจากภาพจริง · คง card filter, semantic color, URL/search/sort, query/mutation/permission/status transition และ route เดิม
 

@@ -1145,6 +1145,8 @@ export function ProductionDetailScreen({
                 dataUpdatedAt={productionQuery.dataUpdatedAt}
                 isFetching={productionQuery.isFetching && !productionQuery.isLoading}
                 onManageStep={openManagerStep}
+                onOpenMockup={() => setInspectorSection("mockup")}
+                mockupButtonRef={inspectorButtonRef}
               />
               {inspectorSection ? (
                 <ProductionJobInspector

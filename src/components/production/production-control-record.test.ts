@@ -1,4 +1,4 @@
-import { createElement } from "react";
+import { createElement, createRef } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProductionDetail } from "./types";
@@ -31,7 +31,31 @@ function production({ legacy = false }: { legacy?: boolean } = {}) {
       priority: "NORMAL",
       internalStatus: "PRODUCING",
       customer: { id: "customer-1", name: "ลูกค้าทดสอบ" },
-      designs: [],
+      designs: [
+        {
+          id: "design-2",
+          versionNumber: 2,
+          fileUrl: "/mockups/order-1-front.png",
+          thumbnailUrl: null,
+          approvedAt: new Date("2026-08-19T10:00:00+07:00"),
+          customerComment: null,
+          designerNotes: null,
+          files: [
+            {
+              fileUrl: "/mockups/order-1-front.png",
+              thumbnailUrl: null,
+              position: "FRONT",
+              caption: null,
+            },
+            {
+              fileUrl: "/mockups/order-1-back.png",
+              thumbnailUrl: null,
+              position: "BACK",
+              caption: null,
+            },
+          ],
+        },
+      ],
       items: [
         {
           id: "item-1",
@@ -114,6 +138,8 @@ function renderRecord(detail = production()) {
       dataUpdatedAt: new Date("2026-08-24T23:48:00+07:00").getTime(),
       isFetching: false,
       onManageStep: vi.fn(),
+      onOpenMockup: vi.fn(),
+      mockupButtonRef: createRef<HTMLButtonElement>(),
     }),
   );
 }
@@ -150,6 +176,13 @@ describe("ProductionControlRecord Direction A contract", () => {
 
     expect(html).toContain("data-production-control-record");
     expect(html).toContain("ORD-2606-0021");
+    expect(html).toContain("แบบที่ใช้ผลิต");
+    expect(html).toContain("ม็อกอัพอนุมัติ v2");
+    expect(html).toContain("2 รูป · เปิดดูทุกด้าน");
+    expect(html).toContain("/mockups/order-1-front.png");
+    expect(html).toContain("เส้นทางการผลิต");
+    expect(html).toContain("เบิกเสื้อจากสต๊อค: รอดำเนินการ");
+    expect(html).toContain("พิมพ์ฟิล์ม DTF: เสร็จแล้ว");
     expect(html).not.toContain("ยังไม่กำหนด");
     expect(html).toContain("นามิ");
     expect(html.match(/มอบหมายผู้รับผิดชอบ/g)).toHaveLength(1);
@@ -161,6 +194,17 @@ describe("ProductionControlRecord Direction A contract", () => {
     expect(html).toContain("หลักฐานที่ระบบบันทึกตอนนี้");
     expect(html).not.toContain("ข้อมูลที่ต้องเพิ่ม");
     expect(html).not.toContain("border-dashed");
+  });
+
+  it("ไม่มีม็อกอัพอนุมัติแล้วบอกตรง ๆ แต่ยังเปิด inspector เพื่อดูแบบและสเปกได้", () => {
+    const detail = production();
+    detail.order.designs = [];
+
+    const html = renderRecord(detail);
+
+    expect(html).toContain("ยังไม่มีม็อกอัพอนุมัติ");
+    expect(html).toContain("เปิดดูแบบและสเปกที่มี");
+    expect(html).toContain('data-mockup-thumbnail="empty"');
   });
 
   it("ขั้นที่มีผู้รับผิดชอบแล้วใช้คำว่าเปลี่ยน ไม่หลอกว่าเป็นงานที่ยังไม่มีเจ้าของ", () => {
