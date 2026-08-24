@@ -240,15 +240,31 @@ export function ProductionControlRecord({
               />
             </div>
 
-            <header className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <header className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="text-2xl font-semibold text-strong">{order.orderNumber}</h1>
-                  <StatusPill tone={overallDisplay.tone}>{overallDisplay.label}</StatusPill>
-                </div>
-                <p className="mt-1 break-words text-sm text-secondary">
-                  {[order.title, order.customer?.name].filter(Boolean).join(" · ") || "ไม่ระบุชื่องาน"}
-                </p>
+                {allStepsCompleted ? (
+                  <>
+                    <div className="flex items-center gap-2 text-green-700 dark:text-green-300">
+                      <CheckCircle2 className="h-6 w-6 shrink-0" aria-hidden="true" />
+                      <h1 className="text-2xl font-semibold text-strong">ผลิตเสร็จแล้ว</h1>
+                    </div>
+                    <p className="mt-1 break-words text-sm text-secondary">
+                      <span className="font-semibold tabular-nums text-strong">{order.orderNumber}</span>
+                      {order.title ? ` · ${order.title}` : ""}
+                      {order.customer?.name ? ` · ${order.customer.name}` : ""}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h1 className="text-2xl font-semibold text-strong">{order.orderNumber}</h1>
+                      <StatusPill tone={overallDisplay.tone}>{overallDisplay.label}</StatusPill>
+                    </div>
+                    <p className="mt-1 break-words text-sm text-secondary">
+                      {[order.title, order.customer?.name].filter(Boolean).join(" · ") || "ไม่ระบุชื่องาน"}
+                    </p>
+                  </>
+                )}
                 {!attention && !allStepsCompleted ? (
                   <p className="mt-2 flex items-center gap-1.5 text-xs font-medium text-green-700 dark:text-green-300">
                     <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
@@ -279,7 +295,7 @@ export function ProductionControlRecord({
               className="grid border-t border-divider md:grid-cols-[minmax(0,1.2fr)_minmax(8rem,0.55fr)_minmax(0,1fr)]"
             >
               <div className="px-4 py-4 sm:px-5">
-                <dt className="text-2xs font-medium text-muted">ผลิตเสร็จ</dt>
+                <dt className="text-2xs font-medium text-muted">ปิดงานเมื่อ</dt>
                 <dd className="mt-1 font-semibold text-strong">
                   {finalStep?.completedAt ? formatDateTime(finalStep.completedAt) : "เวลาไม่ถูกบันทึก"}
                 </dd>
@@ -294,18 +310,16 @@ export function ProductionControlRecord({
                   {totalQty.toLocaleString("th-TH")} ตัว
                 </dd>
               </div>
-              <div className="border-t border-divider px-4 py-4 md:border-l md:border-t-0 sm:px-5">
-                <dt className="text-2xs font-medium text-muted">ขั้นต่อไป</dt>
-                <dd className="mt-1">
-                  <Link
-                    href={completionHandoffHref}
-                    className="inline-flex min-h-11 items-center gap-1.5 font-semibold text-blue-700 hover:underline dark:text-blue-300"
-                  >
-                    {handoff.label}
-                    <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              <div className="border-t border-divider bg-blue-50/45 px-4 py-4 dark:bg-blue-950/20 md:border-l md:border-t-0 sm:px-5">
+                <dt className="text-2xs font-medium text-blue-700 dark:text-blue-300">ส่งต่องาน</dt>
+                <dd className="mt-1 font-semibold text-strong">{handoff.label}</dd>
+                <p className="mt-0.5 text-xs text-secondary">เจ้าของถัดไป: {handoff.owner}</p>
+                <Button asChild size="sm" className="mt-3 w-full sm:w-auto">
+                  <Link href={completionHandoffHref}>
+                    เปิดขั้นตอนถัดไป
+                    <ArrowRight aria-hidden="true" />
                   </Link>
-                </dd>
-                <p className="text-xs text-muted">เจ้าของถัดไป: {handoff.owner}</p>
+                </Button>
               </div>
             </dl>
           ) : (
@@ -446,39 +460,48 @@ export function ProductionControlRecord({
         <div
           className={cn(
             "grid items-start gap-5",
-            allStepsCompleted
-              ? "min-[1500px]:grid-cols-[minmax(19rem,0.75fr)_minmax(0,1.75fr)]"
-              : "min-[1500px]:grid-cols-[minmax(0,1.75fr)_minmax(19rem,0.75fr)]",
+            !allStepsCompleted &&
+              "min-[1500px]:grid-cols-[minmax(0,1.75fr)_minmax(19rem,0.75fr)]",
           )}
         >
           <section
-            className={cn("card-surface overflow-hidden rounded-lg", allStepsCompleted && "order-2")}
+            className="card-surface overflow-hidden rounded-lg"
             aria-labelledby="production-ledger-title"
           >
             <header className="border-b border-divider px-4 py-4 sm:px-5">
-              <h2 id="production-ledger-title" className="font-semibold text-strong">เส้นทางงาน</h2>
+              <h2 id="production-ledger-title" className="font-semibold text-strong">
+                {allStepsCompleted ? "บันทึกเส้นทางการผลิต" : "เส้นทางงาน"}
+              </h2>
               <p className="mt-0.5 text-xs text-muted">
                 {allStepsCompleted
-                  ? "ผลจริงและผู้รับผิดชอบของทุกขั้นสำหรับตรวจย้อนหลัง"
+                  ? "ผลจริง ผู้รับผิดชอบ และเวลาปิดของทุกขั้นสำหรับตรวจย้อนหลัง"
                   : "ผลจริง ผู้รับผิดชอบ และสิ่งที่ต้องรอในแต่ละขั้น"}
               </p>
             </header>
             <div
-              className="hidden grid-cols-[minmax(12rem,1.3fr)_7rem_7rem_minmax(9rem,0.85fr)_minmax(10rem,1fr)] gap-3 border-b border-divider bg-surface-muted px-5 py-2.5 text-2xs font-medium text-muted min-[1200px]:grid"
+              className={cn(
+                "hidden gap-3 border-b border-divider bg-surface-muted px-5 py-2.5 text-2xs font-medium text-muted min-[1200px]:grid",
+                allStepsCompleted
+                  ? "grid-cols-[minmax(12rem,1.3fr)_7rem_minmax(9rem,0.85fr)_minmax(11rem,1fr)]"
+                  : "grid-cols-[minmax(12rem,1.3fr)_7rem_7rem_minmax(9rem,0.85fr)_minmax(10rem,1fr)]",
+              )}
               aria-hidden="true"
             >
               <span>ขั้นตอน / จุดทำงาน</span>
-              <span>สถานะ</span>
+              {!allStepsCompleted ? <span>สถานะ</span> : null}
               <span>ผลจริง</span>
               <span>ผู้รับผิดชอบ</span>
-              <span>เงื่อนไข / ปัญหา</span>
+              <span>{allStepsCompleted ? "เสร็จเมื่อ" : "เงื่อนไข / ปัญหา"}</span>
             </div>
             <ol className="divide-y divide-divider">
               {control.rows.map((row, index) => (
                 <li
                   key={row.step.id}
                   className={cn(
-                    "grid grid-cols-2 gap-x-4 gap-y-3 px-4 py-4 sm:px-5 min-[1200px]:grid-cols-[minmax(12rem,1.3fr)_7rem_7rem_minmax(9rem,0.85fr)_minmax(10rem,1fr)] min-[1200px]:items-center min-[1200px]:gap-3",
+                    "grid grid-cols-2 gap-x-4 gap-y-3 px-4 py-4 sm:px-5 min-[1200px]:items-center min-[1200px]:gap-3",
+                    allStepsCompleted
+                      ? "min-[1200px]:grid-cols-[minmax(12rem,1.3fr)_7rem_minmax(9rem,0.85fr)_minmax(11rem,1fr)]"
+                      : "min-[1200px]:grid-cols-[minmax(12rem,1.3fr)_7rem_7rem_minmax(9rem,0.85fr)_minmax(10rem,1fr)]",
                     row.tone === "danger"
                       ? "bg-red-50/60 dark:bg-red-950/20"
                       : row.requiresAttention
@@ -498,10 +521,12 @@ export function ProductionControlRecord({
                     </div>
                   </div>
                   <dl className="contents">
-                    <div>
-                      <dt className="mb-1 text-2xs font-medium text-muted min-[1200px]:sr-only">สถานะ</dt>
-                      <dd><StatusPill tone={row.tone}>{row.statusLabel}</StatusPill></dd>
-                    </div>
+                    {!allStepsCompleted ? (
+                      <div>
+                        <dt className="mb-1 text-2xs font-medium text-muted min-[1200px]:sr-only">สถานะ</dt>
+                        <dd><StatusPill tone={row.tone}>{row.statusLabel}</StatusPill></dd>
+                      </div>
+                    ) : null}
                     <div>
                       <dt className="mb-1 text-2xs font-medium text-muted min-[1200px]:sr-only">ผลจริง</dt>
                       <dd className="whitespace-nowrap font-semibold tabular-nums text-secondary">{row.actualLabel}</dd>
@@ -511,29 +536,42 @@ export function ProductionControlRecord({
                       <dd className={row.step.assignedTo ? "text-secondary" : "text-muted"}>{row.ownerLabel}</dd>
                     </div>
                     <div className="col-span-2 min-[1200px]:col-span-1">
-                      <dt className="mb-1 text-2xs font-medium text-muted min-[1200px]:sr-only">เงื่อนไข / ปัญหา</dt>
-                      <dd
-                        className={cn(
-                          row.tone === "danger"
-                            ? "font-medium text-red-700 dark:text-red-300"
-                            : row.requiresAttention
-                              ? "font-medium text-amber-800 dark:text-amber-200"
-                              : row.blocker
-                                ? "text-secondary"
-                                : "text-muted",
-                        )}
-                      >
-                        {row.blocker || "ไม่มีปัญหา"}
-                      </dd>
+                      <dt className="mb-1 text-2xs font-medium text-muted min-[1200px]:sr-only">
+                        {allStepsCompleted ? "เสร็จเมื่อ" : "เงื่อนไข / ปัญหา"}
+                      </dt>
+                      {allStepsCompleted ? (
+                        <dd className="text-secondary">
+                          {row.step.completedAt ? formatDateTime(row.step.completedAt) : "เวลาไม่ถูกบันทึก"}
+                        </dd>
+                      ) : (
+                        <dd
+                          className={cn(
+                            row.tone === "danger"
+                              ? "font-medium text-red-700 dark:text-red-300"
+                              : row.requiresAttention
+                                ? "font-medium text-amber-800 dark:text-amber-200"
+                                : row.blocker
+                                  ? "text-secondary"
+                                  : "text-muted",
+                          )}
+                        >
+                          {row.blocker || "ไม่มีปัญหา"}
+                        </dd>
+                      )}
                     </div>
                   </dl>
                 </li>
               ))}
             </ol>
+            {allStepsCompleted ? (
+              <footer className="border-t border-divider px-4 py-3 text-2xs text-muted sm:px-5">
+                ระบบบันทึกเวลาเสร็จและผู้รับผิดชอบของแต่ละขั้น · ยังไม่รวมผู้กด ต้นทาง และเหตุผลแก้ไข
+              </footer>
+            ) : null}
           </section>
 
-          <div className={cn("grid gap-4", allStepsCompleted && "order-1")}>
-            {!allStepsCompleted ? (
+          {!allStepsCompleted ? (
+            <div className="grid gap-4">
               <section className="card-surface overflow-hidden rounded-lg" aria-labelledby="production-readiness-title">
               <header className="border-b border-divider px-4 py-3.5">
                 <h2 id="production-readiness-title" className="font-semibold text-strong">ความพร้อม</h2>
@@ -576,41 +614,40 @@ export function ProductionControlRecord({
                 </div>
               ) : null}
               </section>
-            ) : null}
 
-            <section className="card-surface overflow-hidden rounded-lg" aria-labelledby="production-activity-title">
-              <header className="border-b border-divider px-4 py-3.5">
-                <h2 id="production-activity-title" className="font-semibold text-strong">
-                  {allStepsCompleted ? "หลักฐานปิดงาน" : "กิจกรรมและหลักฐาน"}
-                </h2>
-                <p className="mt-0.5 text-xs text-muted">เหตุการณ์ล่าสุดของใบผลิตนี้</p>
-              </header>
-              <div className="space-y-3 px-4 py-4">
-                {completedActivity.map((step) => (
-                  <div key={step.id} className="grid grid-cols-[0.75rem_minmax(0,1fr)] gap-2">
-                    <span className="mt-1.5 h-2.5 w-2.5 rounded-full border-2 border-blue-600 bg-surface" aria-hidden="true" />
-                    <div>
-                      <p className="text-sm font-medium text-strong">
-                        {step.customStepName || control.rows.find((row) => row.step.id === step.id)?.label}
-                        {allStepsCompleted ? "" : " เสร็จแล้ว"}
-                      </p>
-                      <p className="mt-0.5 text-2xs text-muted">
-                        {step.completedAt ? formatDateTime(step.completedAt) : "เวลาไม่ถูกบันทึก"}
-                        {step.assignedTo ? ` · ผู้รับผิดชอบ ${step.assignedTo.name}` : " · ไม่พบผู้รับผิดชอบ"}
-                      </p>
+              <section className="card-surface overflow-hidden rounded-lg" aria-labelledby="production-activity-title">
+                <header className="border-b border-divider px-4 py-3.5">
+                  <h2 id="production-activity-title" className="font-semibold text-strong">
+                    กิจกรรมและหลักฐาน
+                  </h2>
+                  <p className="mt-0.5 text-xs text-muted">เหตุการณ์ล่าสุดของใบผลิตนี้</p>
+                </header>
+                <div className="space-y-3 px-4 py-4">
+                  {completedActivity.map((step) => (
+                    <div key={step.id} className="grid grid-cols-[0.75rem_minmax(0,1fr)] gap-2">
+                      <span className="mt-1.5 h-2.5 w-2.5 rounded-full border-2 border-blue-600 bg-surface" aria-hidden="true" />
+                      <div>
+                        <p className="text-sm font-medium text-strong">
+                          {step.customStepName || control.rows.find((row) => row.step.id === step.id)?.label} เสร็จแล้ว
+                        </p>
+                        <p className="mt-0.5 text-2xs text-muted">
+                          {step.completedAt ? formatDateTime(step.completedAt) : "เวลาไม่ถูกบันทึก"}
+                          {step.assignedTo ? ` · ผู้รับผิดชอบ ${step.assignedTo.name}` : " · ไม่พบผู้รับผิดชอบ"}
+                        </p>
+                      </div>
                     </div>
+                  ))}
+                  {completedActivity.length === 0 ? (
+                    <p className="text-sm text-muted">ยังไม่มีกิจกรรมเสร็จงานของใบผลิตนี้</p>
+                  ) : null}
+                  <div className="border-t border-divider pt-3 text-2xs text-muted">
+                    <p className="font-medium text-secondary">หลักฐานที่ระบบบันทึกตอนนี้</p>
+                    <p className="mt-0.5">เวลาเสร็จและผู้รับผิดชอบ · ยังไม่รวมผู้กด ต้นทาง และเหตุผลแก้ไข</p>
                   </div>
-                ))}
-                {completedActivity.length === 0 ? (
-                  <p className="text-sm text-muted">ยังไม่มีกิจกรรมเสร็จงานของใบผลิตนี้</p>
-                ) : null}
-                <div className="border-t border-divider pt-3 text-2xs text-muted">
-                  <p className="font-medium text-secondary">หลักฐานที่ระบบบันทึกตอนนี้</p>
-                  <p className="mt-0.5">เวลาเสร็จและผู้รับผิดชอบ · ยังไม่รวมผู้กด ต้นทาง และเหตุผลแก้ไข</p>
                 </div>
-              </div>
-            </section>
-          </div>
+              </section>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

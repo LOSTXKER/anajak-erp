@@ -4,6 +4,19 @@
 
 ## ตอนนี้
 
+> **✅ PRODUCTION TWO-SURFACE LAYOUT — คิวเป็น workspace และใบปิดงานพาไปส่งต่อ (2026-08-25)**
+> `/production` รวม search, sort, สถานะอัปเดต และรายการให้อยู่ใน panel เดียว จึงไม่มีแถว utility ลอยคั่นระหว่าง card filter กับงานจริง · desktop ใช้ตารางไร้กรอบซ้อน ส่วน mobile ยก “ทั้งหมด” เป็น card baseline เต็มแถวแล้ววาง 4 สถานะงานแบบ 2×2; ข้อความ `ต้องทำต่อ` รองรับสองบรรทัดโดยไม่ตัดสาระสำคัญ
+>
+> ใบผลิตที่จบครบทุกขั้นเปลี่ยนหัวเป็น `ผลิตเสร็จแล้ว` พร้อมเลขออเดอร์/ชื่องานเป็นข้อมูลรอง · summary แยกเวลาปิด, จำนวน และ `ส่งต่องาน` โดยมีปุ่ม `เปิดขั้นตอนถัดไป` ชัดเจน · ยุบการ์ดหลักฐานที่ซ้ำเข้ากับ `บันทึกเส้นทางการผลิต` ซึ่งแสดงผลจริง ผู้รับผิดชอบ และเวลาเสร็จครบทุกขั้น พร้อมบอกตรง ๆ ว่าระบบยังไม่เก็บผู้กด ต้นทาง และเหตุผลแก้ไข
+>
+> **หลักฐานจอจริง:** `/production` และ `/production/demo-production-ready-to-ship` ผ่าน 1280×720 + 390×844 ทั้ง Light/Dark, horizontal overflow 0 · filter `ต้องจัดการ` กดได้ `?view=attention` และกดซ้ำกลับทั้งหมด · handoff ไป `/orders/demo-order-ready-to-ship?tab=delivery` · ใบ blocked ยังมี attention/readiness เดิม และ browser log ไม่มี warning/error ของแอป
+>
+> **ด่านส่งมอบ:** targeted unit **13/13**, full unit **1649/1649**, typecheck, lint 0 error (26 warning เดิมนอก scope), `verify:ui`, production build 41 หน้า, `git diff --check` และ Impeccable detectorรอบเดียว `[]` ผ่าน
+>
+> **ขอบเขต:** presentation/accessibility/test/docs เท่านั้น · query, mutation, permission, status transition, polling, route และข้อมูลเดิมไม่เปลี่ยน · ไฟล์ของเบส `scripts/verify-artwork.ts`, `.cursor/`, `public/` ยังอยู่นอก scope
+>
+> **ต่อที่นี่:** ให้เบสรีเฟรช `/production` แล้วเปิดใบที่เสร็จ; หน้าคิวต้องไหลจากตัวกรอง→เครื่องมือ→งาน และหน้าปิดงานต้องตอบทันทีว่าเสร็จแล้วและส่งต่อที่ไหน
+
 > **✅ PRODUCTION LIVE SIGNAL CLARITY — บอกก่อนว่าระบบกำลังทำอะไร (2026-08-25)**
 > แก้ feedback “UI ไม่สื่อ” ที่ freshness เดิมเป็นเพียงจุดสี+เวลาเล็ก ๆ: component กลางตอนปกติขึ้นหัว `ระบบอัปเดตข้อมูลอัตโนมัติ` แล้วใช้บรรทัดรองบอก `ตรวจล่าสุด … · ทุก 30 วินาที`; ตอน background fetch เปลี่ยนเป็น `กำลังตรวจข้อมูลล่าสุด` และตอนพังบอก `อัปเดตข้อมูลไม่สำเร็จ` พร้อมเวลาข้อมูลเดิมและการลองใหม่
 >

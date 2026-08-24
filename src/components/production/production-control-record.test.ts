@@ -305,11 +305,17 @@ describe("ProductionControlRecord Direction A contract", () => {
       expect.objectContaining({ enabled: false }),
     );
     expect(html).toContain("สรุปการปิดงานผลิต");
-    expect(html).toContain("ผลิตเสร็จ");
+    expect(html).toContain("ผลิตเสร็จแล้ว");
+    expect(html).toContain("ปิดงานเมื่อ");
+    expect(html).toContain("ส่งต่องาน");
     expect(html).toContain("ส่งมอบให้ลูกค้า");
     expect(html).toContain("เจ้าของถัดไป: ฝ่ายจัดส่ง");
+    expect(html).toContain("เปิดขั้นตอนถัดไป");
     expect(html).toContain(`/orders/order-1?tab=delivery`);
-    expect(html).toContain("หลักฐานปิดงาน");
+    expect(html).toContain("บันทึกเส้นทางการผลิต");
+    expect(html).toContain("เสร็จเมื่อ");
+    expect(html).toContain("ยังไม่รวมผู้กด ต้นทาง และเหตุผลแก้ไข");
+    expect(html).not.toContain("หลักฐานปิดงาน");
     expect(html).not.toContain('aria-label="ความคืบหน้าการผลิต"');
     expect(html).not.toContain("ไม่มีปัญหาที่เปิดอยู่");
     expect(html).not.toContain("ความพร้อม</h2>");

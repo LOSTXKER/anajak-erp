@@ -20,6 +20,15 @@
    - สีตัวหนังสือ = `text-strong` / `text-secondary` / `text-muted` (สลับธีมในตัว — ห้ามเขียนคู่ `dark:` เองสำหรับ 3 ระดับนี้ · ด่านใน `verify:ui`) · ช่องตัวเลข/เงิน = `NumberInput` / `MoneyInput` · ติ๊ก = `Checkbox`
    - สถานะ→สี/ป้าย ประกาศที่ `lib/status-config.ts` (+ `*_LABELS_CUSTOMER` สำหรับหน้า public) · วิธีส่ง `lib/shipping-methods.ts` · ช่องทางจ่าย `lib/payment-methods.ts` — ห้ามประกาศ map ซ้ำในหน้า
 
+### 🎯 PRODUCTION-TWO-SURFACE-LAYOUT — คิวเลือกงาน + ใบปิดงานที่พาไปต่อ (เบส feedback 2026-08-25)
+> ปรับ hierarchy ของ `/production` และใบผลิตที่จบครบทุกขั้นจากภาพจริง · คง card filter, semantic color, URL/search/sort, query/mutation/permission/status transition และ route เดิม
+
+- [x] หน้าคิวย้าย freshness + search + sort เข้า workspace เดียวกับรายการ ลดแถวลอยและเส้นทางสายตาที่แตก โดย mobile ยังเรียง freshness → search → sort → งาน
+- [x] ใบปิดงานยก “ผลิตเสร็จแล้ว” และ handoff เป็นผลลัพธ์/primary action ชัด แยกจากเลขออเดอร์และ metadata รอง
+- [x] ยุบหลักฐานปิดงานที่ซ้ำเข้ากับเส้นทางงาน: ทุกขั้นเห็นผลจริง ผู้รับผิดชอบ และเวลาเสร็จ โดยไม่เคลม actor/source ที่ระบบยังไม่เก็บ
+- [x] Active/blocked detail, card filter behavior, stale fail-closed, Back/focus และ destination เดิมไม่เปลี่ยน
+- [x] Verify targeted/full test, typecheck/lint/`verify:ui`/build, detector รอบเดียว และ browser 1280/390 Light+Dark ไม่มี overflow/console error
+
 ### 🎯 PRODUCTION-LIVE-SIGNAL — ทำให้ผู้ใช้เข้าใจว่าเกิดอะไรขึ้น (เบส feedback 2026-08-25 “UI ไม่สื่อ”)
 > เก็บ hierarchy/copy ของ freshness component กลางเท่านั้น · ไม่เปลี่ยนรอบ polling, query, mutation, permission หรือ workflow
 

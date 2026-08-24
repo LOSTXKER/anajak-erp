@@ -179,7 +179,7 @@ function WorkAction<S extends BoardStepLike, O extends BoardOrderLike<S>>({
         {action.attention ? (
           <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
         ) : null}
-        <span className="truncate">{action.reason}</span>
+        <span className="line-clamp-2">{action.reason}</span>
       </p>
       <p className="mt-0.5 truncate text-xs text-muted">
         เจ้าของถัดไป: <span className="text-secondary">{action.owner}</span>
@@ -214,7 +214,7 @@ function DesktopRows<S extends BoardStepLike, O extends BoardOrderLike<S>>({
   };
 
   return (
-    <DataTable.Root>
+    <DataTable.Root bordered={false}>
       <DataTable.Head>
         <tr>
           <DataTable.SortableTh {...sortColumn("orderNumber")}>
@@ -458,7 +458,7 @@ export function ProductionControlWorklist<
               className={cn(
                 FOCUS_BUTTON,
                 "card-surface card-surface-hover flex min-h-20 w-full flex-col justify-between rounded-lg p-4 text-left",
-                item.key === "packing" && "col-span-2 md:col-span-1",
+                item.key === "all" && "col-span-2 md:col-span-1",
                 isOn && cn("bg-surface", presentation.selectedBorder),
               )}
             >
@@ -496,78 +496,83 @@ export function ProductionControlWorklist<
         })}
       </section>
 
-      {freshness ? <div className="flex justify-end px-1">{freshness}</div> : null}
+      <div className="space-y-3 lg:space-y-0 lg:overflow-hidden lg:rounded-lg lg:border lg:border-border lg:bg-surface">
+        <Toolbar className="lg:border-b lg:border-divider lg:px-4 lg:py-3">
+          {freshness ? (
+            <div className="order-1 flex justify-end @2xl:order-3 @2xl:ml-auto">
+              {freshness}
+            </div>
+          ) : null}
+          <SearchInput
+            ref={searchInputRef}
+            defaultValue={searchDefault}
+            onChange={(event) => onSearchChange(event.target.value)}
+            placeholder="ค้นหาเลขออเดอร์ ลูกค้า หรืองาน"
+            surface="raised"
+            containerClassName="order-2 w-full @2xl:order-1 @2xl:max-w-md"
+          />
+          <ToolbarGroup className="order-3 w-full @2xl:order-2 @2xl:w-auto">
+            {/* มือถือไม่มีหัวตาราง จึงต้องเข้าถึงทุกวิธีเรียงจาก Select */}
+            <Select
+              value={sort}
+              onChange={(event) =>
+                onSelectSort(resolveProductionWorklistSort(event.target.value))
+              }
+              aria-label="เรียงรายการงาน"
+              shape="pill"
+              surface="raised"
+              className="w-full @2xl:hidden"
+            >
+              {PRODUCTION_WORKLIST_SORT_OPTIONS.map((item) => (
+                <option key={item.value} value={item.value}>{item.label}</option>
+              ))}
+            </Select>
+            {/* desktop ใช้หัวตารางกับ column sort และเหลือเฉพาะ preset ข้ามคอลัมน์ */}
+            <Select
+              value={desktopSortValue}
+              onChange={(event) =>
+                onSelectSort(resolveProductionWorklistSort(event.target.value))
+              }
+              aria-label="ลำดับพิเศษ"
+              shape="pill"
+              surface="raised"
+              className="hidden @2xl:flex @2xl:w-52"
+            >
+              <option value="__column__" disabled>เรียงจากหัวตาราง</option>
+              <option value="attention">ต้องจัดการก่อน</option>
+              <option value="urgent">ด่วนก่อน</option>
+            </Select>
+          </ToolbarGroup>
+        </Toolbar>
 
-      <Toolbar>
-        <SearchInput
-          ref={searchInputRef}
-          defaultValue={searchDefault}
-          onChange={(event) => onSearchChange(event.target.value)}
-          placeholder="ค้นหาเลขออเดอร์ ลูกค้า หรืองาน"
-          surface="raised"
-          containerClassName="w-full @2xl:max-w-md"
+        <ResponsiveList
+          items={jobs}
+          label="งานผลิต"
+          emptyState={
+            <EmptyState
+              icon={lens === "all" ? Factory : SearchX}
+              title={lens === "all" ? "ยังไม่มีงานในสายการผลิต" : "ไม่มีงานในมุมนี้"}
+              description={lens === "all" ? "ออเดอร์พร้อมผลิตจะปรากฏที่นี่" : "ลองเลือกมุมอื่นหรือค้นหาด้วยเลขออเดอร์"}
+            />
+          }
+          renderDesktop={(items) => (
+            <DesktopRows
+              jobs={items}
+              exceptionByOrderId={exceptionByOrderId}
+              canCreateProduction={canCreateProduction}
+              sort={sort}
+              onSelectSort={onSelectSort}
+            />
+          )}
+          renderMobile={(items) => (
+            <MobileRows
+              jobs={items}
+              exceptionByOrderId={exceptionByOrderId}
+              canCreateProduction={canCreateProduction}
+            />
+          )}
         />
-        <ToolbarGroup align="end" className="w-full @2xl:w-auto">
-          {/* มือถือไม่มีหัวตาราง จึงต้องเข้าถึงทุกวิธีเรียงจาก Select */}
-          <Select
-            value={sort}
-            onChange={(event) =>
-              onSelectSort(resolveProductionWorklistSort(event.target.value))
-            }
-            aria-label="เรียงรายการงาน"
-            shape="pill"
-            surface="raised"
-            className="w-full @2xl:hidden"
-          >
-            {PRODUCTION_WORKLIST_SORT_OPTIONS.map((item) => (
-              <option key={item.value} value={item.value}>{item.label}</option>
-            ))}
-          </Select>
-          {/* desktop ใช้หัวตารางกับ column sort และเหลือเฉพาะ preset ข้ามคอลัมน์ */}
-          <Select
-            value={desktopSortValue}
-            onChange={(event) =>
-              onSelectSort(resolveProductionWorklistSort(event.target.value))
-            }
-            aria-label="ลำดับพิเศษ"
-            shape="pill"
-            surface="raised"
-            className="hidden @2xl:flex @2xl:w-52"
-          >
-            <option value="__column__" disabled>เรียงจากหัวตาราง</option>
-            <option value="attention">ต้องจัดการก่อน</option>
-            <option value="urgent">ด่วนก่อน</option>
-          </Select>
-        </ToolbarGroup>
-      </Toolbar>
-
-      <ResponsiveList
-        items={jobs}
-        label="งานผลิต"
-        emptyState={
-          <EmptyState
-            icon={lens === "all" ? Factory : SearchX}
-            title={lens === "all" ? "ยังไม่มีงานในสายการผลิต" : "ไม่มีงานในมุมนี้"}
-            description={lens === "all" ? "ออเดอร์พร้อมผลิตจะปรากฏที่นี่" : "ลองเลือกมุมอื่นหรือค้นหาด้วยเลขออเดอร์"}
-          />
-        }
-        renderDesktop={(items) => (
-          <DesktopRows
-            jobs={items}
-            exceptionByOrderId={exceptionByOrderId}
-            canCreateProduction={canCreateProduction}
-            sort={sort}
-            onSelectSort={onSelectSort}
-          />
-        )}
-        renderMobile={(items) => (
-          <MobileRows
-            jobs={items}
-            exceptionByOrderId={exceptionByOrderId}
-            canCreateProduction={canCreateProduction}
-          />
-        )}
-      />
+      </div>
     </div>
   );
 }
