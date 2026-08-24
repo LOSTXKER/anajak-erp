@@ -4,6 +4,19 @@
 
 ## ตอนนี้
 
+> **✅ PRODUCTION FILTER CARDS — การ์ดธรรมดา 5 ใบ (2026-08-24)**
+> เบสตรวจ `FlowFilterBar` บน `/production` แล้วไม่รับเพราะหัวกลุ่ม, hairline, จุดสี และเส้น selected ทำให้ดูแต่งเกินไป จึงเปลี่ยนเฉพาะหน้านี้เป็นการ์ดกดได้ 5 ใบวางตรงบน workspace: แต่ละใบเหลือชื่อ+จำนวน, resting เป็น neutral card และ active ใช้ Anajak Blue tint อ่อนทั้งใบโดยไม่มีกรอบครอบซ้ำ
+>
+> Desktop/tablet วาง 5 ใบแถวเดียว ส่วน mobile เป็น 2 คอลัมน์และใบ `แพ็ก / พร้อมส่ง` เต็มแถวสุดท้าย · กดตัวที่เลือกซ้ำกลับ `ทั้งหมด`, URL `view`, count, search, sort, query, permission, status transition และ business flow เดิมไม่เปลี่ยน · `FlowFilterBar` ของ `/orders` ไม่ถูกแก้
+>
+> **หลักฐานจอจริง:** `/production` 1440×900 Light/Dark — การ์ด 5 ใบสูง ≈87px, แถวแรก y≈378, selected Light `#d2e4f6`/`#3973b2`, Dark `#173c61`/`#6b9cca`, horizontal overflow 0 · 390×844 Light/Dark — กริด 2+2+1, ใบสุดท้ายเต็ม 348px, control สูง ≈87px, การ์ดงานแรก y≈634 และ overflow 0 · กด `ต้องจัดการ` ได้ `?view=attention` กับ 6 งาน, กดซ้ำกลับ `/production` พร้อม focus คงอยู่ · `/orders` desktop ยังมี 14 สถานะใน panel เดิม, overflow 0 และไม่มี app warning/error
+>
+> **ด่านส่งมอบ:** full unit **1644/1644**, targeted 13/13, typecheck, targeted lint 0 warning/error, `verify:ui`, production build (41 static pages), `git diff --check` และ Impeccable detectorรอบเดียวผ่าน; detector `[]`
+>
+> **ขอบเขต:** presentation/accessibility/test/docs เท่านั้น · schema, seed และข้อมูลไม่เปลี่ยน · ไฟล์ของเบส `scripts/verify-artwork.ts`, `.cursor/`, `public/` ยังอยู่นอก scope
+>
+> **ต่อที่นี่:** ให้เบสรีเฟรช `/production`; ตัวกรองควรเป็นการ์ดธรรมดา อ่านจำนวนได้ทันที และมีสีน้ำเงินเฉพาะใบที่เลือก
+
 > **✅ PRODUCTION STATUS FLOW — ใช้แถบเดียวกับหน้าออเดอร์จริง (2026-08-23)**
 > เบสตรวจตัวกรองข้อความแถวเดียวบน `/production` แล้วขอให้ทำแบบหน้าออเดอร์ทั้งหมด จึงเปลี่ยนจาก `FilterChip` เฉพาะหน้าไปใช้ `FlowFilterBar` กลางตัวเดียวกับ `/orders` โดยตรง: desktop แสดงจำนวนด้านบนและชื่อพร้อมจุดสีด้านล่าง, มี hairline แบ่ง `ภาพรวม/สถานะงาน` ใน panel ชั้นเดียว และ active ใช้ Anajak Blue
 >

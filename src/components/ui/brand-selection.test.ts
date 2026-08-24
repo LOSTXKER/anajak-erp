@@ -60,9 +60,10 @@ describe("Anajak selected-state contract", () => {
     );
   });
 
-  it("Production ใช้ FlowFilterBar ชุดเดียวกับหน้าออเดอร์", () => {
-    expect(productionWorklistSource).toContain("<FlowFilterBar");
-    expect(productionWorklistSource).toContain("WORKLIST_LENS_GROUPS");
-    expect(productionWorklistSource).not.toContain("<FilterChip");
+  it("Production ใช้การ์ดตัวกรองเรียบและ selected role สีน้ำเงิน", () => {
+    expect(productionWorklistSource).toContain("card-surface card-surface-hover");
+    expect(productionWorklistSource).toContain("INTERACTIVE_SELECTED");
+    expect(productionWorklistSource).toContain("aria-pressed={isOn}");
+    expect(productionWorklistSource).not.toContain("<FlowFilterBar");
   });
 });

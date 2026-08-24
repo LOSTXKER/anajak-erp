@@ -11,16 +11,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
-import {
-  FlowFilterBar,
-  type FlowFilterGroup,
-  type FlowFilterItem,
-} from "@/components/ui/flow-filter-bar";
 import { ResponsiveList } from "@/components/ui/responsive-list";
 import { SearchInput } from "@/components/ui/search-input";
 import { Select } from "@/components/ui/select";
 import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
-import { FOCUS_BUTTON } from "@/components/ui/tokens";
+import { FOCUS_BUTTON, INTERACTIVE_SELECTED } from "@/components/ui/tokens";
 import { MockupThumbnail } from "@/components/mockup/mockup-thumbnail";
 import { orderMockupCover } from "@/lib/mockup";
 import { cn, formatDateShort } from "@/lib/utils";
@@ -36,7 +31,6 @@ import {
   PRODUCTION_WORKLIST_LENSES,
   PRODUCTION_WORKLIST_SORT_COLUMNS,
   PRODUCTION_WORKLIST_SORT_OPTIONS,
-  isProductionWorklistLens,
   productionWorklistAction,
   productionWorklistProgress,
   productionWorklistCounts,
@@ -46,19 +40,6 @@ import {
   type ProductionWorklistSort,
   type ProductionWorklistSortColumn,
 } from "@/lib/production-worklist";
-
-const WORKLIST_LENS_DOTS: Record<ProductionWorklistLens, string> = {
-  all: "bg-slate-400",
-  attention: "bg-red-500",
-  production: "bg-amber-500",
-  qc: "bg-amber-500",
-  packing: "bg-amber-500",
-};
-
-const WORKLIST_LENS_GROUPS = [
-  { label: "ภาพรวม", keys: ["all", "attention"] },
-  { label: "สถานะงาน", keys: ["production", "qc", "packing"] },
-] satisfies readonly FlowFilterGroup[];
 
 const WORKLIST_FOCUS_STORAGE_KEY = "anajak:production-worklist:last-focus";
 
@@ -382,11 +363,6 @@ export function ProductionControlWorklist<
   const desktopSortValue = sort === "attention" || sort === "urgent"
     ? sort
     : "__column__";
-  const lensItems: FlowFilterItem[] = PRODUCTION_WORKLIST_LENSES.map((item) => ({
-    ...item,
-    count: counts[item.key],
-    dotClass: WORKLIST_LENS_DOTS[item.key],
-  }));
 
   useEffect(() => {
     let orderId: string | null = null;
@@ -414,18 +390,51 @@ export function ProductionControlWorklist<
     <div className="space-y-4" data-production-worklist>
       <section
         aria-label="กรองรายการงาน"
-        className="space-y-2 xl:overflow-hidden xl:rounded-lg xl:border xl:border-border xl:bg-surface xl:px-5 xl:py-3"
+        className="grid grid-cols-2 gap-2 md:grid-cols-5"
       >
-        <FlowFilterBar
-          ariaLabel="กรองตามมุมงานผลิต"
-          mobileAriaLabel="กรองรายการงานผลิต"
-          items={lensItems}
-          groups={WORKLIST_LENS_GROUPS}
-          selected={lens}
-          onSelect={(nextLens) =>
-            onSelectLens(isProductionWorklistLens(nextLens) ? nextLens : "all")
-          }
-        />
+        {PRODUCTION_WORKLIST_LENSES.map((item) => {
+          const isOn = lens === item.key;
+          const action = item.key === "all" && isOn
+            ? "กำลังแสดงทั้งหมด"
+            : isOn
+              ? "เลือกอยู่ · กดซ้ำเพื่อล้างตัวกรอง"
+              : "กดเพื่อกรอง";
+          const actionLabel = `${item.label} · ${counts[item.key]} งาน · ${action}`;
+
+          return (
+            <button
+              key={item.key}
+              type="button"
+              aria-label={actionLabel}
+              aria-pressed={isOn}
+              title={actionLabel}
+              onClick={() => onSelectLens(isOn ? "all" : item.key)}
+              className={cn(
+                FOCUS_BUTTON,
+                "card-surface card-surface-hover flex min-h-20 w-full flex-col justify-between rounded-lg p-4 text-left",
+                item.key === "packing" && "col-span-2 md:col-span-1",
+                isOn && cn(INTERACTIVE_SELECTED, "border-blue-600 dark:border-blue-400"),
+              )}
+            >
+              <span
+                className={cn(
+                  "text-xs font-medium",
+                  isOn ? "text-interactive-selected-text" : "text-muted",
+                )}
+              >
+                {item.label}
+              </span>
+              <span
+                className={cn(
+                  "mt-2 text-2xl font-semibold tabular-nums",
+                  isOn ? "text-interactive-selected-text" : "text-strong",
+                )}
+              >
+                {counts[item.key]}
+              </span>
+            </button>
+          );
+        })}
       </section>
 
       <Toolbar>
