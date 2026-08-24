@@ -60,15 +60,20 @@ describe("Anajak selected-state contract", () => {
     );
   });
 
-  it("Production ใช้การ์ดตัวกรองเรียบและ selected role สีน้ำเงิน", () => {
+  it("Production ใช้การ์ดตัวกรองเรียบและ selected คงสีประจำสถานะ", () => {
     expect(productionWorklistSource).toContain("card-surface card-surface-hover");
-    expect(productionWorklistSource).toContain("INTERACTIVE_SELECTED");
+    expect(productionWorklistSource).not.toContain("INTERACTIVE_SELECTED");
     expect(productionWorklistSource).toContain("WORKLIST_LENS_PRESENTATION");
     expect(productionWorklistSource).toContain("text-module-production-text");
     expect(productionWorklistSource).toContain("PackageCheck");
     expect(productionWorklistSource).not.toContain("bg-module-production-surface");
     expect(productionWorklistSource).not.toContain("bg-module-brand-surface");
-    expect(productionWorklistSource).toContain("border-blue-600 bg-surface");
+    expect(productionWorklistSource).toContain("selectedBorder");
+    expect(productionWorklistSource).toContain("border-red-600 dark:border-red-400");
+    expect(productionWorklistSource).toContain("border-module-production-solid");
+    expect(productionWorklistSource).toContain("border-amber-600 dark:border-amber-400");
+    expect(productionWorklistSource).toContain("border-green-600 dark:border-green-400");
+    expect(productionWorklistSource).toContain('isOn ? presentation.iconColor : "text-muted"');
     expect(productionWorklistSource).not.toContain("bg-blue-600 text-white");
     expect(productionWorklistSource).toContain("aria-pressed={isOn}");
     expect(productionWorklistSource).not.toContain("<FlowFilterBar");

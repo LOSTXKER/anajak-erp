@@ -19,7 +19,7 @@ import { ResponsiveList } from "@/components/ui/responsive-list";
 import { SearchInput } from "@/components/ui/search-input";
 import { Select } from "@/components/ui/select";
 import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
-import { FOCUS_BUTTON, INTERACTIVE_SELECTED } from "@/components/ui/tokens";
+import { FOCUS_BUTTON } from "@/components/ui/tokens";
 import { MockupThumbnail } from "@/components/mockup/mockup-thumbnail";
 import { orderMockupCover } from "@/lib/mockup";
 import { cn, formatDateShort } from "@/lib/utils";
@@ -50,30 +50,35 @@ const WORKLIST_LENS_PRESENTATION = {
     icon: ListFilter,
     iconColor: "text-module-brand-text",
     count: "text-module-brand-text",
+    selectedBorder: "border-blue-600 dark:border-blue-400",
   },
   attention: {
     icon: AlertTriangle,
     iconColor: "text-red-600 dark:text-red-300",
     count: "text-red-600 dark:text-red-300",
+    selectedBorder: "border-red-600 dark:border-red-400",
   },
   production: {
     icon: Factory,
     iconColor: "text-module-production-text",
     count: "text-module-production-text",
+    selectedBorder: "border-module-production-solid",
   },
   qc: {
     icon: ClipboardCheck,
     iconColor: "text-amber-700 dark:text-amber-300",
     count: "text-amber-700 dark:text-amber-300",
+    selectedBorder: "border-amber-600 dark:border-amber-400",
   },
   packing: {
     icon: PackageCheck,
     iconColor: "text-green-700 dark:text-green-300",
     count: "text-green-700 dark:text-green-300",
+    selectedBorder: "border-green-600 dark:border-green-400",
   },
 } satisfies Record<
   ProductionWorklistLens,
-  { icon: LucideIcon; iconColor: string; count: string }
+  { icon: LucideIcon; iconColor: string; count: string; selectedBorder: string }
 >;
 
 const WORKLIST_FOCUS_STORAGE_KEY = "anajak:production-worklist:last-focus";
@@ -452,10 +457,7 @@ export function ProductionControlWorklist<
                 FOCUS_BUTTON,
                 "card-surface card-surface-hover flex min-h-20 w-full flex-col justify-between rounded-lg p-4 text-left",
                 item.key === "packing" && "col-span-2 md:col-span-1",
-                isOn && cn(
-                  INTERACTIVE_SELECTED,
-                  "border-blue-600 bg-surface dark:border-blue-400",
-                ),
+                isOn && cn("bg-surface", presentation.selectedBorder),
               )}
             >
               <span className="flex w-full items-center justify-between gap-3">
@@ -463,7 +465,7 @@ export function ProductionControlWorklist<
                   <span
                     className={cn(
                       "block text-xs font-medium",
-                      isOn ? "text-interactive-selected-text" : "text-muted",
+                      isOn ? presentation.iconColor : "text-muted",
                     )}
                   >
                     {item.label}
@@ -471,7 +473,7 @@ export function ProductionControlWorklist<
                   <span
                     className={cn(
                       "mt-1 block text-2xl font-semibold tabular-nums",
-                      isOn ? "text-interactive-selected-text" : presentation.count,
+                      presentation.count,
                     )}
                   >
                     {counts[item.key]}
@@ -481,9 +483,7 @@ export function ProductionControlWorklist<
                   aria-hidden="true"
                   className={cn(
                     "flex h-9 w-9 shrink-0 items-center justify-center",
-                    isOn
-                      ? "text-interactive-selected-text"
-                      : presentation.iconColor,
+                    presentation.iconColor,
                   )}
                 >
                   <Icon className="h-5 w-5" strokeWidth={1.8} />

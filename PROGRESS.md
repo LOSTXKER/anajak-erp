@@ -4,6 +4,19 @@
 
 ## ตอนนี้
 
+> **✅ PRODUCTION FILTER SEMANTIC SELECTED — เลือกแล้วยังคงสีประจำการ์ด (2026-08-24)**
+> ตัวกรอง `/production` เคยมี semantic color เฉพาะตอนพัก แต่เมื่อเลือกถูก `INTERACTIVE_SELECTED` บังคับขอบ/ชื่อ/ตัวเลข/ไอคอนกลับเป็น Anajak Blue ทุกใบ · เปลี่ยน contract ให้ selected ใช้สีเดิมของประเภทนั้น: `ทั้งหมด` น้ำเงินแบรนด์, `ต้องจัดการ` แดง, `กำลังผลิต` teal, `รอ QC` amber และ `แพ็ก / พร้อมส่ง` เขียว
+>
+> สีอยู่เฉพาะขอบ 1px, ไอคอนเส้น, ชื่อ และตัวเลข; พื้นการ์ดยังคง neutral ทั้ง Light/Dark ไม่มีพื้นหลังไอคอน ไม่มีเงา และไม่ทาสีทั้งใบ · focus ring จากคีย์บอร์ดยังคง Anajak Blue เพื่อแยกตำแหน่งโฟกัสจากสถานะที่เลือก · `aria-pressed`, กดซ้ำล้าง `view`, count, search, sort, query, permission, status transition และ business flow เดิมไม่เปลี่ยน
+>
+> **หลักฐานจอจริง:** Light/Dark desktop ตรวจ computed color ครบทั้ง 5 ใบ; text contrast ต่ำสุด 4.83:1 และ selected border ต่ำสุด 3.62:1 · 390×844 Light/Dark คงกริด 2+2+1, ใบปกติกว้าง 170px/ใบสุดท้าย 348px, สูง 83px, horizontal overflow 0 · กด `ต้องจัดการ` ได้ `?view=attention`, กดซ้ำกลับ `/production`/ทั้งหมด และ console warning/error 0
+>
+> **ด่านส่งมอบ:** targeted unit **13/13**, full unit **1644/1644**, typecheck, targeted lint 0 warning/error, full lint 0 error (26 warning เดิมนอก scope), `verify:ui`, production build 41 หน้า, `git diff --check` และ Impeccable detector `[]` ผ่าน
+>
+> **ขอบเขต:** presentation/accessibility/test/docs เท่านั้น · schema, seed และข้อมูลไม่เปลี่ยน · ไฟล์ของเบส `scripts/verify-artwork.ts`, `.cursor/`, `public/` ยังอยู่นอก scope
+>
+> **ต่อที่นี่:** ให้เบสรีเฟรช `/production` แล้วเลือกการ์ดแต่ละใบ; สี selected ต้องตรงกับประเภทโดยไม่กลายเป็นพื้นสีหนัก
+
 > **✅ PRODUCTION WORKLIST ROUTING — เปิดใบผลิตโดยไม่เด้งไปออเดอร์ (2026-08-24)**
 > แถว `/production` ที่อยู่ QC, แพ็ก หรือพร้อมส่งเคยถูก resolver ส่งไปแท็บของ `/orders` ก่อนตรวจใบผลิตที่มีอยู่จริง · เปลี่ยนให้เปิดใบผลิตของจุดงานปัจจุบันก่อน และย้อนใช้ใบล่าสุดของออเดอร์เมื่อเป็นช่วงหลังผลิต; relation ใน kanban เรียง `createdAt desc` เพื่อให้ผลแน่นอน · งานคิวยังใช้ `?create=` เดิม ส่วนข้อมูล legacy ที่ไม่มีใบผลิตและผู้ไม่มีสิทธิ์เปิดใบคงอยู่ `/production` โดยไม่สร้างงานหรือเด้งข้ามโมดูล
 >
