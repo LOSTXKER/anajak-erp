@@ -434,6 +434,7 @@ export const productionRouter = router({
         blindShip: true, // ธงแดงบนการ์ดเลนแพ็ค (ก้อน 3)
         customer: { select: { name: true } },
         productions: {
+          orderBy: { createdAt: "desc" },
           select: {
             id: true,
             status: true,

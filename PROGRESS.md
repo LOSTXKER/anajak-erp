@@ -4,6 +4,19 @@
 
 ## ตอนนี้
 
+> **✅ PRODUCTION WORKLIST ROUTING — เปิดใบผลิตโดยไม่เด้งไปออเดอร์ (2026-08-24)**
+> แถว `/production` ที่อยู่ QC, แพ็ก หรือพร้อมส่งเคยถูก resolver ส่งไปแท็บของ `/orders` ก่อนตรวจใบผลิตที่มีอยู่จริง · เปลี่ยนให้เปิดใบผลิตของจุดงานปัจจุบันก่อน และย้อนใช้ใบล่าสุดของออเดอร์เมื่อเป็นช่วงหลังผลิต; relation ใน kanban เรียง `createdAt desc` เพื่อให้ผลแน่นอน · งานคิวยังใช้ `?create=` เดิม ส่วนข้อมูล legacy ที่ไม่มีใบผลิตและผู้ไม่มีสิทธิ์เปิดใบคงอยู่ `/production` โดยไม่สร้างงานหรือเด้งข้ามโมดูล
+>
+> เก็บ Back/focus ที่เกี่ยวกันด้วย: desktop table และ mobile card เคยมี DOM `id` ซ้ำ ทำให้มือถือโฟกัสลิงก์ที่ซ่อนอยู่ · เปลี่ยนเป็น data marker แล้วเลือก target ที่มองเห็นจริง จึงคืนโฟกัสไปออเดอร์เดิมได้ทั้งสอง viewport โดยไม่เปลี่ยนหน้าตา, query mutation, permission, status transition หรือข้อมูล
+>
+> **หลักฐานจอจริง:** `/production` 1440×900 และ 390×844 แสดง 11 งาน; ลิงก์ที่มองเห็น 11/11 เป็น `/production/[id]` หรือ `?create=` และมีลิงก์ `/orders` 0 · เปิด QC `ORD-2608-0010` และพร้อมส่ง `ORD-2608-0015` ได้หน้ารายละเอียดใบผลิตจริง จากนั้น Back คืน focus แถวเดิม · duplicate DOM id 0, horizontal overflow 0 และ console warning/error 0
+>
+> **ด่านส่งมอบ:** targeted unit **8/8**, full unit **1644/1644**, typecheck, targeted lint 0 warning/error, full lint 0 error (26 warning เดิมนอก scope), `verify:ui`, production build 41 หน้า และ `git diff --check` ผ่าน
+>
+> **ขอบเขต:** navigation read-model, focus accessibility, test และ docs เท่านั้น · schema, seed, mutation, permission และ status flow ไม่เปลี่ยน · ไฟล์ของเบส `scripts/verify-artwork.ts`, `.cursor/`, `public/` ยังอยู่นอก scope
+>
+> **ต่อที่นี่:** ให้เบสรีเฟรช `/production` แล้วลองกดงาน QC/แพ็ก/พร้อมส่ง; ทุกงานที่มีใบผลิตต้องอยู่ในโมดูล Production และ Back กลับแถวเดิม
+
 > **✅ PRODUCTION FILTER BARE ICONS — ไอคอนเส้นล้วนไม่มีพื้นหลัง (2026-08-24)**
 > เบสตรวจ icon tile บนการ์ดตัวกรอง `/production` แล้วไม่รับพื้น tint ที่ยังอยู่ · ถอด background, border และ corner ของ icon container ออกทั้งหมดทั้ง resting และ selected เหลือ Lucide icon เส้น 20px วางตรงบนพื้นการ์ด; semantic red/teal/amber/green ยังอยู่ผ่านสี glyph กับตัวเลข และ selected ใช้ Anajak Blue ผ่าน glyph/ข้อความ/ขอบการ์ดเท่านั้น
 >

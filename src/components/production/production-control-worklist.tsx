@@ -78,10 +78,6 @@ const WORKLIST_LENS_PRESENTATION = {
 
 const WORKLIST_FOCUS_STORAGE_KEY = "anajak:production-worklist:last-focus";
 
-function worklistFocusId(orderId: string) {
-  return `production-worklist-order-${orderId}`;
-}
-
 function rememberWorklistFocus(orderId: string) {
   try {
     window.sessionStorage.setItem(WORKLIST_FOCUS_STORAGE_KEY, orderId);
@@ -249,7 +245,7 @@ function DesktopRows<S extends BoardStepLike, O extends BoardOrderLike<S>>({
             >
               <DataTable.Td className="min-w-44 py-2">
                 <Link
-                  id={worklistFocusId(job.order.id)}
+                  data-production-worklist-order={job.order.id}
                   href={href}
                   onClick={() => rememberWorklistFocus(job.order.id)}
                   className={cn(
@@ -320,7 +316,7 @@ function MobileRows<S extends BoardStepLike, O extends BoardOrderLike<S>>({
         return (
           <Link
             key={job.key}
-            id={worklistFocusId(job.order.id)}
+            data-production-worklist-order={job.order.id}
             href={href}
             onClick={() => rememberWorklistFocus(job.order.id)}
             className={cn(
@@ -408,7 +404,13 @@ export function ProductionControlWorklist<
     }
     if (!orderId) return;
 
-    const target = document.getElementById(worklistFocusId(orderId));
+    const target = [...document.querySelectorAll<HTMLElement>(
+      "[data-production-worklist-order]",
+    )].find(
+      (candidate) =>
+        candidate.dataset.productionWorklistOrder === orderId &&
+        candidate.getClientRects().length > 0,
+    );
     if (!target) return;
     const frame = window.requestAnimationFrame(() => {
       target.focus({ preventScroll: true });

@@ -395,7 +395,11 @@ export function sortProductionWorklist<
   });
 }
 
-/** ไปยังจอที่ลงมือได้จริง โดยแถวคิวเปิดใบผลิตผ่าน deep-link เดิม */
+/**
+ * เปิดงานในบริบท Production เสมอ โดยแถวคิวยังคง deep-link เปิดใบผลิตเดิม
+ * จุดงานปัจจุบันชนะใบอื่นในออเดอร์; ช่วงหลังผลิตที่ spot ไม่มี productionId
+ * ย้อนใช้ใบล่าสุดจาก kanban query ซึ่งเรียง createdAt desc ไว้แล้ว
+ */
 export function productionWorklistHref<
   S extends BoardStepLike,
   O extends BoardOrderLike<S>,
@@ -403,27 +407,19 @@ export function productionWorklistHref<
   if (job.spots.some((spot) => spot.kind === "queue")) {
     return canCreateProduction
       ? `/production?create=${encodeURIComponent(job.order.id)}`
-      : `/orders/${encodeURIComponent(job.order.id)}?tab=production`;
+      : "/production";
   }
 
-  if (job.order.internalStatus === "PACKING" || job.order.internalStatus === "READY_TO_SHIP") {
-    return `/orders/${encodeURIComponent(job.order.id)}?tab=delivery`;
+  const currentProductionId = job.spots.find(
+    (spot): spot is typeof spot & { productionId: string } =>
+      Boolean(spot.productionId),
+  )?.productionId;
+  const targetProductionId = currentProductionId ?? job.order.productions[0]?.id;
+  if (targetProductionId) {
+    return `/production/${encodeURIComponent(targetProductionId)}`;
   }
 
-  if (job.order.internalStatus === "QUALITY_CHECK") {
-    return `/orders/${encodeURIComponent(job.order.id)}?tab=production`;
-  }
-
-  const productionIds = [
-    ...new Set(
-      job.spots
-        .map((spot) => spot.productionId)
-        .filter((id): id is string => Boolean(id)),
-    ),
-  ];
-  if (productionIds.length === 1) {
-    return `/production/${encodeURIComponent(productionIds[0]!)}`;
-  }
-
-  return `/orders/${encodeURIComponent(job.order.id)}?tab=production`;
+  // ข้อมูล legacy ที่ผ่านด่านผลิตมาแล้วแต่ไม่มีใบผลิต: อย่าเด้งข้ามโมดูล
+  // หรือสร้างใบใหม่โดยไม่ตั้งใจ ให้หัวหน้าคงอยู่ที่ worklist เพื่อแก้ข้อมูลแทน
+  return "/production";
 }

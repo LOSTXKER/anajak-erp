@@ -48,7 +48,9 @@ function job({
     priority,
     totalQuantity,
     internalStatus: status,
-    productions: [],
+    productions: productionId
+      ? [{ id: productionId, status: "COMPLETED", steps: [] }]
+      : [],
   };
   return {
     key: id,
@@ -311,14 +313,30 @@ describe("production worklist", () => {
     expect(resolveProductionWorklistSort("urgent")).toBe("urgent");
   });
 
-  it("พาไปจอที่ลงมือได้จริง และเปิด dialog จากคิวเมื่อมีสิทธิ์", () => {
+  it("เปิดรายการในบริบท Production และเปิด dialog จากคิวเมื่อมีสิทธิ์", () => {
     expect(productionWorklistHref(jobs[0]!, true)).toBe("/production/prod-normal");
-    expect(productionWorklistHref(jobs[2]!, true)).toBe("/orders/qc?tab=production");
-    expect(productionWorklistHref(jobs[3]!, true)).toBe("/orders/pack?tab=delivery");
-    expect(productionWorklistHref(jobs[4]!, true)).toBe("/orders/ready?tab=delivery");
+    jobs[2]!.order.productions = [{ id: "prod-qc", status: "COMPLETED", steps: [] }];
+    jobs[3]!.order.productions = [{ id: "prod-pack", status: "COMPLETED", steps: [] }];
+    jobs[4]!.order.productions = [{ id: "prod-ready", status: "COMPLETED", steps: [] }];
+    expect(productionWorklistHref(jobs[2]!, true)).toBe("/production/prod-qc");
+    expect(productionWorklistHref(jobs[3]!, true)).toBe("/production/prod-pack");
+    expect(productionWorklistHref(jobs[4]!, true)).toBe("/production/prod-ready");
     expect(productionWorklistHref(jobs[5]!, true)).toBe("/production?create=queue");
-    expect(productionWorklistHref(jobs[5]!, false)).toBe(
-      "/orders/queue?tab=production",
-    );
+    expect(productionWorklistHref(jobs[5]!, false)).toBe("/production");
+
+    const mixed = job({
+      id: "mixed",
+      status: "PRODUCING",
+      stationKey: "lane:DTF",
+      productionId: "prod-active",
+    });
+    mixed.order.productions = [
+      { id: "prod-latest", status: "PENDING", steps: [] },
+      { id: "prod-active", status: "IN_PROGRESS", steps: [] },
+    ];
+    expect(productionWorklistHref(mixed, true)).toBe("/production/prod-active");
+
+    const legacyQc = job({ id: "legacy-qc", status: "QUALITY_CHECK", stationKey: "post:qc" });
+    expect(productionWorklistHref(legacyQc, true)).toBe("/production");
   });
 });
