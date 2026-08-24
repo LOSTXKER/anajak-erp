@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle } from "lucide-react";
+import { RefreshCw, WifiOff } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { cn, formatTime } from "@/lib/utils";
 
@@ -29,46 +29,53 @@ export function ProductionFreshness({
   const hasTimestamp = updatedAt > 0;
   const timestamp = hasTimestamp ? formatTime(updatedAt) : null;
   const intervalSeconds = Math.round(intervalMs / 1_000);
-  const label = stale
-    ? timestamp
-      ? `ข้อมูลค้าง · ล่าสุด ${timestamp}`
-      : "ข้อมูลค้าง · กำลังเชื่อมต่อใหม่"
+  const title = stale
+    ? "อัปเดตข้อมูลไม่สำเร็จ"
     : isFetching
-      ? "กำลังซิงก์ข้อมูล…"
+      ? "กำลังตรวจข้อมูลล่าสุด"
+      : "ระบบอัปเดตข้อมูลอัตโนมัติ";
+  const detail = stale
+    ? timestamp
+      ? `ข้อมูลล่าสุด ${timestamp} · ระบบจะลองอีกครั้ง`
+      : "กำลังลองเชื่อมต่อใหม่"
+    : isFetching
+      ? timestamp
+        ? `ข้อมูลก่อนหน้า ${timestamp}`
+        : "รอสักครู่"
       : timestamp
-        ? `ซิงก์ล่าสุด ${timestamp}`
-        : "กำลังเชื่อมต่อข้อมูล…";
+        ? `ตรวจล่าสุด ${timestamp} · ทุก ${intervalSeconds.toLocaleString("th-TH")} วินาที`
+        : "กำลังเชื่อมต่อข้อมูล";
 
   return (
     <div
       data-production-freshness={stale ? "stale" : isFetching ? "fetching" : "fresh"}
       aria-busy={isFetching || undefined}
       className={cn(
-        "inline-flex min-h-5 items-center gap-1.5 text-xs tabular-nums",
-        stale ? "text-amber-700 dark:text-amber-300" : "text-muted",
+        "inline-grid min-h-9 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2 text-left tabular-nums",
+        stale ? "text-amber-700 dark:text-amber-300" : "text-secondary",
         className,
       )}
     >
       {stale ? (
-        <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+        <WifiOff className="row-span-2 h-4 w-4 shrink-0" aria-hidden="true" />
       ) : isFetching ? (
-        <Spinner size="sm" className="text-blue-600 dark:text-blue-400" />
+        <Spinner size="sm" className="row-span-2 text-blue-600 dark:text-blue-400" />
       ) : (
-        <span
+        <RefreshCw
           aria-hidden="true"
           className={cn(
-            "h-2 w-2 shrink-0 rounded-full",
-            liveSurface ? "bg-green-500" : "bg-blue-600 dark:bg-blue-400",
+            "row-span-2 h-4 w-4 shrink-0",
+            liveSurface
+              ? "text-green-600 dark:text-green-400"
+              : "text-blue-600 dark:text-blue-400",
           )}
         />
       )}
-      <span>{label}</span>
-      {!stale && !isFetching && hasTimestamp ? (
-        <span className="text-muted">· ทุก {intervalSeconds.toLocaleString("th-TH")} วิ</span>
-      ) : null}
+      <span className="text-xs font-medium leading-4 text-current">{title}</span>
+      <span className={cn("text-2xs leading-4", stale ? "text-current" : "text-muted")}>{detail}</span>
       {stale ? (
         <span className="sr-only" role="status">
-          {label} ระบบจะลองเชื่อมต่อใหม่อัตโนมัติ
+          {title} {detail}
         </span>
       ) : null}
     </div>

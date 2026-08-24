@@ -4,6 +4,19 @@
 
 ## ตอนนี้
 
+> **✅ PRODUCTION LIVE SIGNAL CLARITY — บอกก่อนว่าระบบกำลังทำอะไร (2026-08-25)**
+> แก้ feedback “UI ไม่สื่อ” ที่ freshness เดิมเป็นเพียงจุดสี+เวลาเล็ก ๆ: component กลางตอนปกติขึ้นหัว `ระบบอัปเดตข้อมูลอัตโนมัติ` แล้วใช้บรรทัดรองบอก `ตรวจล่าสุด … · ทุก 30 วินาที`; ตอน background fetch เปลี่ยนเป็น `กำลังตรวจข้อมูลล่าสุด` และตอนพังบอก `อัปเดตข้อมูลไม่สำเร็จ` พร้อมเวลาข้อมูลเดิมและการลองใหม่
+>
+> ใช้ Refresh/WifiOff icon เส้นล้วนไม่มีพื้นหรือกรอบ และ spinner แสดงเฉพาะตอน fetch จริง · ไม่ทำเป็นปุ่ม/การ์ดปลอม, ไม่กะพริบตอนปกติ, ไม่ใช้คำว่า LIVE/realtime และยังประกาศ screen reader เฉพาะภาวะข้อมูลค้างที่ต้องรู้
+>
+> **หลักฐานจอจริง:** `/production` ที่ 1280 Dark และ 390×844 Light/Dark แสดง signal สูง 36px กว้างประมาณ 180–194px โดยไม่ล้นหน้า; `/factory` 1280 Dark อยู่ใน header โดยไม่เบียดตัวเลขงาน · browser console warning/error 0
+>
+> **ด่านส่งมอบ:** targeted unit **13/13**, full unit **1649/1649**, typecheck, lint 0 error (26 warning เดิมนอก scope), `verify:ui`, production build 41 หน้า, `git diff --check` และ Impeccable detector `[]` ผ่าน
+>
+> **ขอบเขต:** visual hierarchy/copy/test/docs เท่านั้น · รอบ polling 30 วินาที, query, mutation, permission, status transition และข้อมูลไม่เปลี่ยน · ไฟล์ของเบส `scripts/verify-artwork.ts`, `.cursor/`, `public/` ยังอยู่นอก scope
+>
+> **ต่อที่นี่:** ให้เบสรีเฟรช `/production`; บรรทัดแรกต้องตอบทันทีว่าระบบอัปเดตให้อัตโนมัติ ส่วนเวลาเป็นข้อมูลรอง
+
 > **✅ PRODUCTION HONEST LIVE + COMPLETED HANDOFF — เห็นความสดจริงและรู้ว่างานไปไหนต่อ (2026-08-25)**
 > ทุกผิวการผลิตหลักใช้สถานะความสดชุดเดียวกันแล้ว: `/production`, `/production/[id]`, `/production/print-runs`, Station และ Factory TV แสดงเวลาซิงก์ล่าสุด, ภาวะกำลังซิงก์ และข้อมูลค้างจาก query จริง พร้อมรอบดึงข้อมูล 30 วินาที · ไม่ใช้คำว่า LIVE, ไฟกะพริบ หรือ animation ที่ทำให้ดู realtime เกินความจริง และเพิ่ม polling ให้หลักฐานเบิกเสื้อที่เดิมอาจค้างอยู่ในหน้ารายละเอียด
 >

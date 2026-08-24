@@ -20,6 +20,14 @@
    - สีตัวหนังสือ = `text-strong` / `text-secondary` / `text-muted` (สลับธีมในตัว — ห้ามเขียนคู่ `dark:` เองสำหรับ 3 ระดับนี้ · ด่านใน `verify:ui`) · ช่องตัวเลข/เงิน = `NumberInput` / `MoneyInput` · ติ๊ก = `Checkbox`
    - สถานะ→สี/ป้าย ประกาศที่ `lib/status-config.ts` (+ `*_LABELS_CUSTOMER` สำหรับหน้า public) · วิธีส่ง `lib/shipping-methods.ts` · ช่องทางจ่าย `lib/payment-methods.ts` — ห้ามประกาศ map ซ้ำในหน้า
 
+### 🎯 PRODUCTION-LIVE-SIGNAL — ทำให้ผู้ใช้เข้าใจว่าเกิดอะไรขึ้น (เบส feedback 2026-08-25 “UI ไม่สื่อ”)
+> เก็บ hierarchy/copy ของ freshness component กลางเท่านั้น · ไม่เปลี่ยนรอบ polling, query, mutation, permission หรือ workflow
+
+- [x] Fresh state บอกชัดว่าระบบอัปเดตข้อมูลให้อัตโนมัติ พร้อมเวลาตรวจล่าสุดและรอบ 30 วินาที
+- [x] Fetching บอกว่ากำลังตรวจข้อมูลล่าสุด; stale บอกว่าอัปเดตไม่สำเร็จและระบบจะลองใหม่ โดยไม่พึ่งสีหรือไอคอนอย่างเดียว
+- [x] ใช้ไอคอนเส้นไม่มีพื้นหลัง, ไม่ทำเป็นปุ่ม/การ์ดปลอม และต้องอ่านได้ใน header แคบทั้ง desktop/mobile/Factory TV
+- [x] Verify targeted/full test, typecheck/lint/`verify:ui`/build, detector รอบเดียว และ browser จริง Light/Dark + 390px
+
 ### 🎯 PRODUCTION-LIVE — ความสดที่ซื่อสัตย์ + ใบผลิตปิดงานแบบส่งต่อได้ (เบสสั่ง 2026-08-24 “ทำหมดเลย”)
 > ขอบเขต presentation + query feedback ของ `/production`, `/production/[id]`, `/production/print-runs`, `/factory/station` และ `/factory` · คง polling, query, mutation, permission, status transition, no-money DTO และ route เดิมทั้งหมด · ไม่เพิ่ม schema/endpoint/dependency/config
 
