@@ -4,6 +4,19 @@
 
 ## ตอนนี้
 
+> **✅ PRODUCTION FOCUSED STEP FLOW — ข้อมูลงานก้อนเดียวและดูทีละขั้น (2026-08-25)**
+> `/production/[id]` เปลี่ยนจากตารางทุกขั้นพร้อมกันเป็น flow ที่เปิดเฉพาะขั้นมีปัญหา/กำลังทำ/ขั้นแรกที่รอตามข้อมูลจริง · node เป็นแผนที่อ่านอย่างเดียว ไม่เป็นปุ่มและไม่เปลี่ยน workflow status; ผู้ใช้เปลี่ยนสิ่งที่ดูได้เฉพาะ `ขั้นก่อนหน้า` / `ขั้นถัดไป` ซึ่งย้ายขึ้นหัวขั้นให้เห็นก่อนรายละเอียด
+>
+> รื้อหัวใบให้ข้อมูลออเดอร์อยู่บ้านเดียว: เลขออเดอร์ สถานะ ชื่องาน ลูกค้า จำนวน กำหนดส่ง และม็อกอัพอนุมัติรวมในการ์ดข้อมูลงาน · ถอด progress bar ที่ซ้ำกับ node ออก และย้าย action จัดการผู้รับผิดชอบ/ปัญหาลงมาอยู่กับผลจริงของขั้น โดยคง Station handoff, permission, stale fail-closed และ mutation เดิม
+>
+> **หลักฐานจอจริง:** `/production/demo-production-dtf-printed` ค่าเริ่มต้นเปิด `พิมพ์ฟิล์ม DTF`; กดถัดไปเป็น `รีดร้อน` และย้อนกลับได้โดย URL คงเดิม · node button 0, progressbar 0, console warning/error 0 · 1280×720 และ 390×844 Light/Dark horizontal overflow 0; คืนธีมมืดและ viewport เดิมแล้ว
+>
+> **ด่านส่งมอบ:** targeted **16/16**, full unit **1651/1651**, typecheck, targeted lint 0 warning/error, full lint 0 error (26 warning เดิมนอก scope), `verify:ui`, production build 41 หน้า, `git diff --check` และ Impeccable detectorสุดท้าย `[]` ผ่าน
+>
+> **ขอบเขต:** presentation/accessibility/test/docs เท่านั้น · query, mutation, permission, status transition, polling, route และข้อมูลเดิมไม่เปลี่ยน · ไฟล์ของเบส `scripts/verify-artwork.ts`, `.cursor/`, `public/` ยังอยู่นอก scope
+>
+> **ต่อที่นี่:** ให้เบสลองกดก่อนหน้า/ถัดไปในแท็บที่เปิดไว้; หัวใบต้องอ่านเป็นข้อมูลงานก้อนเดียว และพื้นที่ล่างต้องตอบเฉพาะขั้นที่กำลังดูโดย node กดไม่ได้
+
 > **✅ PRODUCTION MOCKUP + ROUTE NODES — เห็นแบบและตำแหน่งงานจากหัวใบ (2026-08-25)**
 > `/production/[id]` แสดงม็อกอัพอนุมัติล่าสุดบนหัวใบแล้ว พร้อมเวอร์ชัน/จำนวนภาพและทางเปิด inspector เดิมเพื่อดูครบทุกด้าน · ถ้าไม่มีม็อกอัพจะบอกตรง ๆ และยังเปิดดูแบบ/สเปกที่มีได้ โดยการจัดการไฟล์ยังอยู่หน้าออเดอร์บ้านเดียว
 >

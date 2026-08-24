@@ -28,6 +28,16 @@
 - [x] รางรองรับขั้นยาวและหลายเลนโดยไม่บีบคำไทยหรือทำหน้า overflow; ตารางเส้นทางเดิมยังเป็นหลักฐานละเอียดและ action เดิมไม่ย้าย
 - [x] Verify targeted/full test, typecheck/lint/`verify:ui`/build, detectorรอบเดียว และ browser 1280/390 Light+Dark รวมเปิดม็อกอัพ→Escape/focus return, overflow และ console ✅ 2026-08-25
 
+### 🎯 PRODUCTION-STEP-FLOW — เลือกดูและจัดการทีละขั้น (เบส follow-up 2026-08-25)
+> เปลี่ยน node จากภาพรวมเป็นแผนที่บอกตำแหน่ง · ย้อนกลับ/ถัดไปเปลี่ยนเฉพาะขั้นที่กำลังดู ไม่เปลี่ยน workflow status และไม่ข้าม server gate
+
+- [x] Node ไม่เป็นปุ่มและแยก current-view state ออกจากสี workflow; ค่าเริ่มต้นเปิดขั้นมีปัญหา/กำลังทำ/ขั้นแรกที่รอ ตามข้อมูลจริง
+- [x] แสดงรายละเอียดเพียงขั้นที่เลือก: สถานะ ผลจริง ผู้รับผิดชอบ เงื่อนไข/หลักฐาน และยอดเสื้อเมื่อเป็นขั้นเตรียมเสื้อ โดยยุบตารางและการ์ดทุกขั้นที่ซ้ำออกจากหน้าหลัก
+- [x] มี `ขั้นก่อนหน้า` และ CTA `ขั้นถัดไป` ที่เปลี่ยน view เท่านั้น; ปุ่มจัดการผู้รับผิดชอบ/ปัญหาและทางไป Station คงสิทธิ์/ปลายทางเดิม
+- [x] รวมเลขออเดอร์ งาน ลูกค้า จำนวน กำหนดส่ง สถานะ และม็อกอัพไว้ในการ์ดข้อมูลงานเดียว; ตัด progress bar ซ้ำกับ node และย้าย CTA ก่อนหน้า/ถัดไปขึ้นหัวขั้นที่กำลังดู
+- [x] รองรับ completed/failed/hold/loading/error/stale, ขั้นยาวและหลายเลนที่ 1280/390 Light+Dark; keyboard/focus/overflow และไม่มี mutation จากการนำทาง
+- [x] Verify targeted/full test, typecheck/lint/`verify:ui`/build, detector และ browser flow จริง ✅ 2026-08-25
+
 ### 🎯 PRODUCTION-TWO-SURFACE-LAYOUT — คิวเลือกงาน + ใบปิดงานที่พาไปต่อ (เบส feedback 2026-08-25)
 > ปรับ hierarchy ของ `/production` และใบผลิตที่จบครบทุกขั้นจากภาพจริง · คง card filter, semantic color, URL/search/sort, query/mutation/permission/status transition และ route เดิม
 

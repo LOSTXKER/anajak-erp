@@ -171,7 +171,7 @@ describe("ProductionControlRecord Direction A contract", () => {
     });
   });
 
-  it("แสดงข้อมูลจริงและเหลือ managerial action เดียวโดยไม่มีปุ่ม execution/utility เกิน mockup", () => {
+  it("แสดงขั้นที่ต้องจัดการเพียงขั้นเดียวและนำทางได้ด้วยก่อนหน้า/ถัดไป", () => {
     const html = renderRecord();
 
     expect(html).toContain("data-production-control-record");
@@ -184,14 +184,25 @@ describe("ProductionControlRecord Direction A contract", () => {
     expect(html).toContain("เบิกเสื้อจากสต๊อค: รอดำเนินการ");
     expect(html).toContain("พิมพ์ฟิล์ม DTF: เสร็จแล้ว");
     expect(html).not.toContain("ยังไม่กำหนด");
-    expect(html).toContain("นามิ");
+    expect(html).not.toContain("นามิ");
     expect(html.match(/มอบหมายผู้รับผิดชอบ/g)).toHaveLength(1);
     expect(html).not.toContain("จัดการข้อยกเว้น");
     expect(html).not.toContain("ใบสั่งงาน");
     expect(html).not.toContain("ดูออเดอร์");
     expect(html).not.toContain("กลับหน้าควบคุมการผลิต");
     expect(html).toContain("<ol");
-    expect(html).toContain("หลักฐานที่ระบบบันทึกตอนนี้");
+    expect(html).toContain('aria-current="step"');
+    expect(html).not.toContain("aria-pressed");
+    expect(html).toContain("data-production-step-flow");
+    expect(html).toContain("ขั้น 1 จาก 3");
+    expect(html).toContain("ขั้นก่อนหน้า");
+    expect(html).toContain("ขั้นถัดไป");
+    expect(html.indexOf("ขั้นถัดไป")).toBeLessThan(html.indexOf("เส้นทางการผลิต"));
+    expect(html.match(/จำนวนผลิต/g)).toHaveLength(1);
+    expect(html.match(/กำหนดส่ง/g)).toHaveLength(1);
+    expect(html).not.toContain('aria-label="ความคืบหน้าการผลิต"');
+    expect(html).toContain("ระบบบันทึกเวลาเสร็จและผู้รับผิดชอบ");
+    expect(html).not.toContain("บันทึกเส้นทางการผลิต");
     expect(html).not.toContain("ข้อมูลที่ต้องเพิ่ม");
     expect(html).not.toContain("border-dashed");
   });
@@ -288,7 +299,6 @@ describe("ProductionControlRecord Direction A contract", () => {
     );
     expect(html).toContain("ยังยืนยันความพร้อมเสื้อไม่ได้");
     expect(html).toContain("ใบเก่านี้ไม่มีขั้นเตรียมเสื้อ");
-    expect(html).toContain("ยังไม่ทราบ");
     expect(html).not.toContain("ยังไม่ได้เบิกเสื้อ 1 ตัว");
     expect(html).not.toContain(">ขาด 1<");
   });
@@ -356,8 +366,12 @@ describe("ProductionControlRecord Direction A contract", () => {
     expect(html).toContain("เจ้าของถัดไป: ฝ่ายจัดส่ง");
     expect(html).toContain("เปิดขั้นตอนถัดไป");
     expect(html).toContain(`/orders/order-1?tab=delivery`);
-    expect(html).toContain("บันทึกเส้นทางการผลิต");
-    expect(html).toContain("เสร็จเมื่อ");
+    expect(html).toContain("data-production-step-flow");
+    expect(html).toContain("ขั้น 3 จาก 3");
+    expect(html).toContain("รีดร้อน");
+    expect(html).toContain("หลักฐานการปิดขั้น");
+    expect(html).toContain("ขั้นก่อนหน้า");
+    expect(html).not.toContain("บันทึกเส้นทางการผลิต");
     expect(html).toContain("ยังไม่รวมผู้กด ต้นทาง และเหตุผลแก้ไข");
     expect(html).not.toContain("หลักฐานปิดงาน");
     expect(html).not.toContain('aria-label="ความคืบหน้าการผลิต"');

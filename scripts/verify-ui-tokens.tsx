@@ -1881,6 +1881,10 @@ check(
     "src/components/production/production-control-record.tsx",
     "utf8",
   );
+  const productionRouteRailSource = readFileSync(
+    "src/components/production/production-route-rail.tsx",
+    "utf8",
+  );
   const productionControlProjectionSource = readFileSync(
     "src/lib/production-control.ts",
     "utf8",
@@ -2107,12 +2111,15 @@ check(
     !productionDetailSource.includes("onRetry: () => productionQuery.refetch()") ||
     !productionDetailSource.includes("<RecordNotFound") ||
     !productionControlSource.includes('data-production-control-record=""') ||
-    !productionControlSource.includes("เส้นทางงาน") ||
-    !productionControlSource.includes("กิจกรรมและหลักฐาน") ||
-    !productionControlSource.includes("หลักฐานที่ระบบบันทึกตอนนี้") ||
-    !productionControlSource.includes('min-[1500px]:grid-cols') ||
-    !productionControlSource.includes('<dl className="contents">') ||
-    productionControlSource.includes('min-[1380px]:grid-cols') ||
+    !productionControlSource.includes('data-production-step-flow=""') ||
+    !productionControlSource.includes("selectedStepId={selectedStep.id}") ||
+    !productionControlSource.includes("ขั้นก่อนหน้า") ||
+    !productionControlSource.includes("ขั้นถัดไป") ||
+    !productionRouteRailSource.includes('aria-current={selected ? "step" : undefined}') ||
+    productionRouteRailSource.includes("<button") ||
+    productionRouteRailSource.includes("onSelectStep") ||
+    productionControlSource.includes("บันทึกเส้นทางการผลิต") ||
+    productionControlSource.includes("กิจกรรมและหลักฐาน") ||
     productionControlSource.includes("border-dashed") ||
     productionControlSource.includes("ข้อมูลที่ต้องเพิ่ม")
   ) {
