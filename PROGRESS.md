@@ -4,6 +4,19 @@
 
 ## ตอนนี้
 
+> **✅ PRODUCTION FILTER QUIET SELECTED — เลือกแล้วไม่ทาสีทั้งการ์ด (2026-08-24)**
+> เบสตรวจ selected state ของการ์ดตัวกรอง `/production` แล้วชี้ว่ายังไม่ minimal เพราะ full-card blue tint และ icon tile สีน้ำเงินทึบ · ลดให้พื้นการ์ดคง neutral เหมือนตอนพักทั้ง Light/Dark, ใช้ Anajak Blue เฉพาะขอบ 1px, ชื่อ/ตัวเลข และ icon tile แบบ tint อ่อน; semantic red/teal/amber/green ยังอยู่บนการ์ดที่ไม่ได้เลือก
+>
+> Keyboard focus ring ยังคงแยกจาก selected state เพื่อให้มองเห็นตำแหน่งโฟกัสจริง · `aria-pressed`, กดซ้ำล้างตัวกรอง, focus retention, URL `view`, count, search, sort, query, permission, status transition และ business flow เดิมไม่เปลี่ยน · `/orders` ไม่ถูกแก้
+>
+> **หลักฐานจอจริง:** `/production` 1440×900 Light — selected พื้น `#fff`, ขอบ `#3973b2`, icon `#e4edf6/#305f93`; Dark — พื้น `#0a0a0a`, ขอบ `#6b9cca`, icon `#173c61/#c6daed`; การ์ดสูง 83px และ overflow 0 · 390×844 Light — selected `ต้องจัดการ` กว้าง 170px สูง 83px, URL `?view=attention`, กดซ้ำกลับ `/production`, focus คงอยู่และ page/section overflow 0 · console ไม่มี warning/error
+>
+> **ด่านส่งมอบ:** full unit **1644/1644**, targeted 13/13, typecheck, targeted lint 0 warning/error, `verify:ui`, production build (41 static pages), `git diff --check` และ Impeccable detectorรอบเดียวผ่าน; detector `[]`
+>
+> **ขอบเขต:** presentation/accessibility/test/docs เท่านั้น · schema, seed และข้อมูลไม่เปลี่ยน · ไฟล์ของเบส `scripts/verify-artwork.ts`, `.cursor/`, `public/` ยังอยู่นอก scope
+>
+> **ต่อที่นี่:** ให้เบสรีเฟรช `/production` แล้วลองเลือก `ต้องจัดการ`; selected ควรดูเป็นการ์ดปกติที่มี accent น้ำเงินบาง ไม่เป็นแผ่นสี
+
 > **✅ PRODUCTION FILTER COLOR CUES — ไอคอนเส้นและสีเชิงความหมาย (2026-08-24)**
 > เบสตรวจการ์ดตัวกรองธรรมดาบน `/production` แล้วขอให้มีไอคอนและสีเพิ่ม จึงคงการ์ด 5 ใบ/spacing/responsive/behavior เดิมและเติม Lucide icon พร้อม accent เฉพาะ icon tile กับตัวเลข: `ทั้งหมด` brand blue, `ต้องจัดการ` red, `กำลังผลิต` production teal, `รอ QC` amber และ `แพ็ก / พร้อมส่ง` green · สีไม่เป็นข้อมูลเพียงอย่างเดียวเพราะชื่อ, จำนวน, ไอคอน และ `aria-pressed` ยังอยู่ครบ
 >

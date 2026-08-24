@@ -66,6 +66,8 @@ describe("Anajak selected-state contract", () => {
     expect(productionWorklistSource).toContain("WORKLIST_LENS_PRESENTATION");
     expect(productionWorklistSource).toContain("bg-module-production-surface");
     expect(productionWorklistSource).toContain("PackageCheck");
+    expect(productionWorklistSource).toContain("border-blue-600 bg-surface");
+    expect(productionWorklistSource).not.toContain("bg-blue-600 text-white");
     expect(productionWorklistSource).toContain("aria-pressed={isOn}");
     expect(productionWorklistSource).not.toContain("<FlowFilterBar");
   });

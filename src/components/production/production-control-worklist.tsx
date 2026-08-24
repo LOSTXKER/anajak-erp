@@ -450,7 +450,10 @@ export function ProductionControlWorklist<
                 FOCUS_BUTTON,
                 "card-surface card-surface-hover flex min-h-20 w-full flex-col justify-between rounded-lg p-4 text-left",
                 item.key === "packing" && "col-span-2 md:col-span-1",
-                isOn && cn(INTERACTIVE_SELECTED, "border-blue-600 dark:border-blue-400"),
+                isOn && cn(
+                  INTERACTIVE_SELECTED,
+                  "border-blue-600 bg-surface dark:border-blue-400",
+                ),
               )}
             >
               <span className="flex w-full items-center justify-between gap-3">
@@ -477,7 +480,7 @@ export function ProductionControlWorklist<
                   className={cn(
                     "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
                     isOn
-                      ? "bg-blue-600 text-white dark:bg-blue-500"
+                      ? "bg-module-brand-surface text-module-brand-text"
                       : presentation.accent,
                   )}
                 >
