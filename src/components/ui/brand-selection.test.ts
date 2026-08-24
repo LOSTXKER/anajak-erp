@@ -63,6 +63,9 @@ describe("Anajak selected-state contract", () => {
   it("Production ใช้การ์ดตัวกรองเรียบและ selected role สีน้ำเงิน", () => {
     expect(productionWorklistSource).toContain("card-surface card-surface-hover");
     expect(productionWorklistSource).toContain("INTERACTIVE_SELECTED");
+    expect(productionWorklistSource).toContain("WORKLIST_LENS_PRESENTATION");
+    expect(productionWorklistSource).toContain("bg-module-production-surface");
+    expect(productionWorklistSource).toContain("PackageCheck");
     expect(productionWorklistSource).toContain("aria-pressed={isOn}");
     expect(productionWorklistSource).not.toContain("<FlowFilterBar");
   });

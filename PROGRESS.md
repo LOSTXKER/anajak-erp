@@ -4,6 +4,19 @@
 
 ## ตอนนี้
 
+> **✅ PRODUCTION FILTER COLOR CUES — ไอคอนเส้นและสีเชิงความหมาย (2026-08-24)**
+> เบสตรวจการ์ดตัวกรองธรรมดาบน `/production` แล้วขอให้มีไอคอนและสีเพิ่ม จึงคงการ์ด 5 ใบ/spacing/responsive/behavior เดิมและเติม Lucide icon พร้อม accent เฉพาะ icon tile กับตัวเลข: `ทั้งหมด` brand blue, `ต้องจัดการ` red, `กำลังผลิต` production teal, `รอ QC` amber และ `แพ็ก / พร้อมส่ง` green · สีไม่เป็นข้อมูลเพียงอย่างเดียวเพราะชื่อ, จำนวน, ไอคอน และ `aria-pressed` ยังอยู่ครบ
+>
+> เมื่อเลือก การ์ดและไอคอนรวมกลับเป็น Anajak Blue เพื่อแยก “ตัวกรองที่เลือก” จาก semantic status ตอนพัก · ไม่มีสีทาพื้นการ์ดที่ไม่ได้เลือก, ไม่มีเงา/กรอบซ้อน และ `FlowFilterBar` ของ `/orders` ไม่ถูกแก้ · URL `view`, count, search, sort, query, permission, status transition และ business flow เดิมไม่เปลี่ยน
+>
+> **หลักฐานจอจริง:** `/production` 1440×900 Light/Dark — 5 ใบสูง 83px, Light accent red/teal/amber/green อ่านชัดบนพื้น tint อ่อน, Dark ใช้คู่สีของ token เดิม, selected เป็น `#d2e4f6`/`#3973b2` และ `#173c61`/`#6b9cca`, overflow 0 · 390×844 Light/Dark — กริด 2+2+1 กว้าง 170/348px สูง 83px, overflow 0 · กด `ต้องจัดการ` ได้ `?view=attention`, กดซ้ำกลับ `/production` และ focus คงอยู่ · console มีเฉพาะ HMR/React DevTools info ไม่มี warning/error
+>
+> **ด่านส่งมอบ:** full unit **1644/1644**, targeted 13/13, typecheck, targeted lint 0 warning/error, `verify:ui`, production build (41 static pages), `git diff --check` และ Impeccable detectorรอบเดียวผ่าน; detector `[]`
+>
+> **ขอบเขต:** presentation/accessibility/test/docs เท่านั้น · schema, seed และข้อมูลไม่เปลี่ยน · ไฟล์ของเบส `scripts/verify-artwork.ts`, `.cursor/`, `public/` ยังอยู่นอก scope
+>
+> **ต่อที่นี่:** ให้เบสรีเฟรช `/production`; การ์ดควรแยกความหมายด้วยไอคอน+สีได้เร็วขึ้น แต่ยังอ่านเป็นชุดเรียบและ selected ใช้น้ำเงินแบรนด์ชุดเดียว
+
 > **✅ PRODUCTION FILTER CARDS — การ์ดธรรมดา 5 ใบ (2026-08-24)**
 > เบสตรวจ `FlowFilterBar` บน `/production` แล้วไม่รับเพราะหัวกลุ่ม, hairline, จุดสี และเส้น selected ทำให้ดูแต่งเกินไป จึงเปลี่ยนเฉพาะหน้านี้เป็นการ์ดกดได้ 5 ใบวางตรงบน workspace: แต่ละใบเหลือชื่อ+จำนวน, resting เป็น neutral card และ active ใช้ Anajak Blue tint อ่อนทั้งใบโดยไม่มีกรอบครอบซ้ำ
 >

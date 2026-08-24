@@ -5,8 +5,12 @@ import Link from "next/link";
 import {
   AlertTriangle,
   ChevronRight,
+  ClipboardCheck,
   Factory,
+  ListFilter,
+  PackageCheck,
   SearchX,
+  type LucideIcon,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/ui/data-table";
@@ -40,6 +44,37 @@ import {
   type ProductionWorklistSort,
   type ProductionWorklistSortColumn,
 } from "@/lib/production-worklist";
+
+const WORKLIST_LENS_PRESENTATION = {
+  all: {
+    icon: ListFilter,
+    accent: "bg-module-brand-surface text-module-brand-text",
+    count: "text-module-brand-text",
+  },
+  attention: {
+    icon: AlertTriangle,
+    accent: "bg-red-50 text-red-600 dark:bg-red-950/50 dark:text-red-300",
+    count: "text-red-600 dark:text-red-300",
+  },
+  production: {
+    icon: Factory,
+    accent: "bg-module-production-surface text-module-production-text",
+    count: "text-module-production-text",
+  },
+  qc: {
+    icon: ClipboardCheck,
+    accent: "bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300",
+    count: "text-amber-700 dark:text-amber-300",
+  },
+  packing: {
+    icon: PackageCheck,
+    accent: "bg-green-50 text-green-700 dark:bg-green-950/50 dark:text-green-300",
+    count: "text-green-700 dark:text-green-300",
+  },
+} satisfies Record<
+  ProductionWorklistLens,
+  { icon: LucideIcon; accent: string; count: string }
+>;
 
 const WORKLIST_FOCUS_STORAGE_KEY = "anajak:production-worklist:last-focus";
 
@@ -394,6 +429,8 @@ export function ProductionControlWorklist<
       >
         {PRODUCTION_WORKLIST_LENSES.map((item) => {
           const isOn = lens === item.key;
+          const presentation = WORKLIST_LENS_PRESENTATION[item.key];
+          const Icon = presentation.icon;
           const action = item.key === "all" && isOn
             ? "กำลังแสดงทั้งหมด"
             : isOn
@@ -416,21 +453,36 @@ export function ProductionControlWorklist<
                 isOn && cn(INTERACTIVE_SELECTED, "border-blue-600 dark:border-blue-400"),
               )}
             >
-              <span
-                className={cn(
-                  "text-xs font-medium",
-                  isOn ? "text-interactive-selected-text" : "text-muted",
-                )}
-              >
-                {item.label}
-              </span>
-              <span
-                className={cn(
-                  "mt-2 text-2xl font-semibold tabular-nums",
-                  isOn ? "text-interactive-selected-text" : "text-strong",
-                )}
-              >
-                {counts[item.key]}
+              <span className="flex w-full items-center justify-between gap-3">
+                <span className="min-w-0">
+                  <span
+                    className={cn(
+                      "block text-xs font-medium",
+                      isOn ? "text-interactive-selected-text" : "text-muted",
+                    )}
+                  >
+                    {item.label}
+                  </span>
+                  <span
+                    className={cn(
+                      "mt-1 block text-2xl font-semibold tabular-nums",
+                      isOn ? "text-interactive-selected-text" : presentation.count,
+                    )}
+                  >
+                    {counts[item.key]}
+                  </span>
+                </span>
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
+                    isOn
+                      ? "bg-blue-600 text-white dark:bg-blue-500"
+                      : presentation.accent,
+                  )}
+                >
+                  <Icon className="h-4 w-4" strokeWidth={1.8} />
+                </span>
               </span>
             </button>
           );
