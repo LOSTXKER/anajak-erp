@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PageShell } from "@/components/page-shell";
 import { CreateProductionDialog } from "@/components/production/create-production-dialog";
 import { ProductionControlWorklist } from "@/components/production/production-control-worklist";
+import { ProductionFreshness } from "@/components/production/production-freshness";
 import { ProductionModuleNav } from "@/components/production/production-module-nav";
 import {
   buildProductionBoard,
@@ -48,6 +49,7 @@ function ProductionWorkspace() {
     data: orders,
     isLoading,
     isError,
+    isFetching,
     refetch,
     dataUpdatedAt,
   } = trpc.production.kanban.useQuery(undefined, {
@@ -154,6 +156,13 @@ function ProductionWorkspace() {
             })
           }
           canCreateProduction={canCreateProduction}
+          freshness={
+            <ProductionFreshness
+              updatedAt={dataUpdatedAt}
+              isFetching={isFetching && !isLoading}
+              stale={hasStaleData}
+            />
+          }
         />
       </PageShell>
 

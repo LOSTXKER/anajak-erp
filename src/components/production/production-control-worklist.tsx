@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, type Ref } from "react";
+import { useEffect, type ReactNode, type Ref } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -382,6 +382,7 @@ export function ProductionControlWorklist<
   onSelectSort,
   onSearchChange,
   canCreateProduction,
+  freshness,
 }: {
   board: ProductionBoard<O, S>;
   jobs: readonly BoardJob<O, S>[];
@@ -393,6 +394,7 @@ export function ProductionControlWorklist<
   onSelectSort: (sort: ProductionWorklistSort) => void;
   onSearchChange: (value: string) => void;
   canCreateProduction: boolean;
+  freshness?: ReactNode;
 }) {
   const counts = productionWorklistCounts(board);
   const exceptionByOrderId = new Map(board.exceptions.map((item) => [item.orderId, item]));
@@ -493,6 +495,8 @@ export function ProductionControlWorklist<
           );
         })}
       </section>
+
+      {freshness ? <div className="flex justify-end px-1">{freshness}</div> : null}
 
       <Toolbar>
         <SearchInput

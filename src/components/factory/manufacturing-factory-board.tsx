@@ -15,6 +15,7 @@ import { Alert } from "@/components/ui/alert";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusLabel } from "@/components/ui/status-label";
+import { ProductionFreshness } from "@/components/production/production-freshness";
 import {
   FACTORY_CENTER_PAGE_INTERVAL_MS,
   factoryCenterPage,
@@ -120,10 +121,14 @@ export function ManufacturingFactoryBoard() {
           </div>
         </div>
         <div className="flex items-center gap-3 text-right">
-          {stale ? <StatusLabel label="ข้อมูลอาจไม่สด" tone="warning" emphasize /> : <StatusLabel label="เชื่อมต่อแล้ว" tone="success" />}
+          <ProductionFreshness
+            updatedAt={loads.dataUpdatedAt}
+            isFetching={loads.isFetching && !loads.isLoading}
+            stale={stale}
+            liveSurface
+          />
           <div>
             <p className="text-2xl font-semibold tabular-nums">{now ? formatTime(new Date(now)) : "--:--"}</p>
-            <p className="text-xs text-muted">อัปเดตอัตโนมัติทุก 30 วินาที</p>
             {pagedCenters.pageCount > 1 ? (
               <p className="text-xs text-muted" aria-live="polite">
                 ศูนย์งานหน้า {pagedCenters.page + 1}/{pagedCenters.pageCount} · เปลี่ยนอัตโนมัติ

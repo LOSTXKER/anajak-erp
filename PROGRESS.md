@@ -4,6 +4,19 @@
 
 ## ตอนนี้
 
+> **✅ PRODUCTION HONEST LIVE + COMPLETED HANDOFF — เห็นความสดจริงและรู้ว่างานไปไหนต่อ (2026-08-25)**
+> ทุกผิวการผลิตหลักใช้สถานะความสดชุดเดียวกันแล้ว: `/production`, `/production/[id]`, `/production/print-runs`, Station และ Factory TV แสดงเวลาซิงก์ล่าสุด, ภาวะกำลังซิงก์ และข้อมูลค้างจาก query จริง พร้อมรอบดึงข้อมูล 30 วินาที · ไม่ใช้คำว่า LIVE, ไฟกะพริบ หรือ animation ที่ทำให้ดู realtime เกินความจริง และเพิ่ม polling ให้หลักฐานเบิกเสื้อที่เดิมอาจค้างอยู่ในหน้ารายละเอียด
+>
+> ใบผลิตที่จบครบทุกขั้นเปลี่ยนจาก progress 100% ซ้ำ ๆ เป็นสรุปปิดงาน: เวลาเสร็จจริง, จำนวน, ขั้นถัดไปและเจ้าของงานถัดไปอยู่ด้านบน · หลักฐานปิดงานมาก่อนเส้นทางย้อนหลังบนจอแคบ, ซ่อนการ์ดความพร้อมที่หมดหน้าที่แล้ว และยังเก็บผลจริง/ผู้รับผิดชอบครบทุกขั้นสำหรับตรวจย้อนหลัง · ใบ active/blocked, action หัวหน้า, permission, stale fail-closed, mutation และ status transition เดิมไม่เปลี่ยน
+>
+> **หลักฐานจอจริง:** เปิด `/production`, `/production/print-runs`, `/factory/station?station=prep`, `/factory` และ `/production/demo-production-ready-to-ship` ที่ 1280 โดยไม่มี horizontal overflow · ใบปิดงานที่ 390×844 ไม่มี page overflow, เห็นปิดงาน→ขั้นต่อไป→หลักฐานในลำดับที่ใช้งานได้ และ Dark theme อ่านชัด; Light/Dark contract ผ่าน `verify:ui`
+>
+> **ด่านส่งมอบ:** targeted unit **12/12**, full unit **1648/1648**, typecheck, lint 0 error (26 warning เดิมนอก scope), `verify:ui`, production build 41 หน้า, `git diff --check` และ Impeccable detector `[]` ผ่าน
+>
+> **ขอบเขต:** presentation/query feedback/test/docs เท่านั้น · ไม่เพิ่ม schema, endpoint, dependency หรือ config และยังไม่เปลี่ยนเป็น WebSocket realtime · ไฟล์ของเบส `scripts/verify-artwork.ts`, `.cursor/`, `public/` ยังอยู่นอก scope
+>
+> **ต่อที่นี่:** ให้เบสรีเฟรช `/production` และเปิดใบที่ผลิตเสร็จ; ถ้าต้องการ push แบบทันทีจริง ค่อยวาง event contract/connection แยกจาก UI รอบนี้
+
 > **✅ PRODUCTION FILTER SEMANTIC SELECTED — เลือกแล้วยังคงสีประจำการ์ด (2026-08-24)**
 > ตัวกรอง `/production` เคยมี semantic color เฉพาะตอนพัก แต่เมื่อเลือกถูก `INTERACTIVE_SELECTED` บังคับขอบ/ชื่อ/ตัวเลข/ไอคอนกลับเป็น Anajak Blue ทุกใบ · เปลี่ยน contract ให้ selected ใช้สีเดิมของประเภทนั้น: `ทั้งหมด` น้ำเงินแบรนด์, `ต้องจัดการ` แดง, `กำลังผลิต` teal, `รอ QC` amber และ `แพ็ก / พร้อมส่ง` เขียว
 >

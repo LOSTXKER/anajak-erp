@@ -1142,6 +1142,8 @@ export function ProductionDetailScreen({
                 production={production}
                 canSupervise={canSuperviseOperations && hasProductionPermission}
                 writeDataStale={writeDataStale}
+                dataUpdatedAt={productionQuery.dataUpdatedAt}
+                isFetching={productionQuery.isFetching && !productionQuery.isLoading}
                 onManageStep={openManagerStep}
               />
               {inspectorSection ? (

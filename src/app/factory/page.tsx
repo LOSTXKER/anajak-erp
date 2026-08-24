@@ -14,8 +14,9 @@ import {
 } from "lucide-react";
 import { trpc, type RouterOutput } from "@/lib/trpc";
 import { ManufacturingFactoryBoard } from "@/components/factory/manufacturing-factory-board";
+import { ProductionFreshness } from "@/components/production/production-freshness";
 import { useProductionV2Enabled } from "@/components/factory/production-v2-context";
-import { cn, formatDateShort, formatTime } from "@/lib/utils";
+import { cn, formatDateShort } from "@/lib/utils";
 
 // Factory TV — read-only pulse ของสายงานจริง 5 ด่าน
 // endpoint factory.board ไม่มี field เงินโดยโครงสร้าง และหน้านี้ไม่มี action ใด ๆ
@@ -77,7 +78,12 @@ function LegacyFactoryBoardPage() {
 
   return (
     <main className="flex h-dvh min-h-[640px] flex-col gap-3 overflow-hidden p-4">
-      <BoardHeader board={board} stale={stale} updatedAt={query.dataUpdatedAt} />
+      <BoardHeader
+        board={board}
+        stale={stale}
+        updatedAt={query.dataUpdatedAt}
+        isFetching={query.isFetching && !query.isLoading}
+      />
 
       <section aria-label="สายการผลิต 5 ด่าน" className="grid min-h-0 flex-1 grid-cols-5 gap-2.5">
         <StagePanel
@@ -206,10 +212,12 @@ function BoardHeader({
   board,
   stale,
   updatedAt,
+  isFetching,
 }: {
   board: Board;
   stale: boolean;
   updatedAt: number;
+  isFetching: boolean;
 }) {
   const workInProcess =
     board.stageTotals.prep.total +
@@ -224,18 +232,7 @@ function BoardHeader({
         <Factory className="h-5 w-5" />
       </span>
       <div className="min-w-0">
-        <div className="flex items-center gap-2.5">
-          <span
-            className={cn(
-              "h-2.5 w-2.5 rounded-full",
-              stale
-                ? "bg-yellow-300"
-                : "bg-green-400 shadow-[0_0_14px_rgba(74,222,128,0.7)]",
-            )}
-            aria-hidden="true"
-          />
-          <h1 className="truncate text-2xl font-semibold text-strong">สถานะการผลิต · สดทั้งโรงงาน</h1>
-        </div>
+        <h1 className="truncate text-2xl font-semibold text-strong">สถานะการผลิตทั้งโรงงาน</h1>
         <p className="mt-0.5 text-sm text-muted">เตรียมเสื้อ → พิมพ์ DTF → รีดร้อน → QC → แพ็กสุดท้าย</p>
       </div>
 
@@ -247,13 +244,14 @@ function BoardHeader({
         <div className="h-9 w-px bg-divider" />
         <div className="text-right tabular-nums">
           <p className="text-base font-medium text-strong">{formatDateShort(board.generatedAt)}</p>
-          <p className={cn("text-xs", stale ? "text-yellow-300" : "text-muted")}>
-            {stale
-              ? `ข้อมูลค้างตั้งแต่ ${formatTime(updatedAt)}`
-              : `อัปเดต ${formatTime(board.generatedAt)} · ทุก 30 วิ`}
-          </p>
+          <ProductionFreshness
+            updatedAt={updatedAt}
+            isFetching={isFetching}
+            stale={stale}
+            liveSurface
+            className="justify-end"
+          />
         </div>
-        {stale && <AlertTriangle className="h-6 w-6 text-yellow-300" aria-label="ข้อมูลค้าง" />}
       </div>
     </header>
   );

@@ -111,6 +111,8 @@ function renderRecord(detail = production()) {
       production: detail,
       canSupervise: true,
       writeDataStale: false,
+      dataUpdatedAt: new Date("2026-08-24T23:48:00+07:00").getTime(),
+      isFetching: false,
       onManageStep: vi.fn(),
     }),
   );
@@ -233,7 +235,12 @@ describe("ProductionControlRecord Direction A contract", () => {
 
     expect(mocks.useGarmentQuery).toHaveBeenCalledWith(
       { productionId: "production-1" },
-      { enabled: false },
+      {
+        enabled: false,
+        refetchInterval: 30_000,
+        refetchOnWindowFocus: true,
+        refetchOnReconnect: true,
+      },
     );
     expect(html).toContain("ยังยืนยันความพร้อมเสื้อไม่ได้");
     expect(html).toContain("ใบเก่านี้ไม่มีขั้นเตรียมเสื้อ");
@@ -277,5 +284,34 @@ describe("ProductionControlRecord Direction A contract", () => {
     expect(html).toContain("ระบบจะยังไม่สรุปว่างานพร้อม");
     expect(html).toContain("ลองโหลดข้อมูลล่าสุด");
     expect(html).not.toContain(">พร้อม<");
+  });
+
+  it("ใบที่ผลิตครบยกเวลาปิดงานและผู้รับช่วงต่อขึ้นแทน progress ซ้ำ", () => {
+    const detail = production();
+    detail.order.internalStatus = "READY_TO_SHIP";
+    detail.steps.forEach((step, index) => {
+      step.status = "COMPLETED";
+      step.qtyDone = step.qtyTotal ?? 0;
+      step.completedAt = new Date(`2026-08-2${index + 1}T09:00:00+07:00`);
+    });
+    const queryState = mocks.useGarmentQuery();
+    queryState.data.lines[0].issued = 1;
+    mocks.useGarmentQuery.mockReturnValue(queryState);
+
+    const html = renderRecord(detail);
+
+    expect(mocks.useGarmentQuery).toHaveBeenCalledWith(
+      { productionId: detail.id },
+      expect.objectContaining({ enabled: false }),
+    );
+    expect(html).toContain("สรุปการปิดงานผลิต");
+    expect(html).toContain("ผลิตเสร็จ");
+    expect(html).toContain("ส่งมอบให้ลูกค้า");
+    expect(html).toContain("เจ้าของถัดไป: ฝ่ายจัดส่ง");
+    expect(html).toContain(`/orders/order-1?tab=delivery`);
+    expect(html).toContain("หลักฐานปิดงาน");
+    expect(html).not.toContain('aria-label="ความคืบหน้าการผลิต"');
+    expect(html).not.toContain("ไม่มีปัญหาที่เปิดอยู่");
+    expect(html).not.toContain("ความพร้อม</h2>");
   });
 });

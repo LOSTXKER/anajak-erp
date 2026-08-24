@@ -20,6 +20,10 @@ import {
 import type { RouterOutput } from "@/lib/trpc";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
+import {
+  oldestSuccessfulUpdate,
+  ProductionFreshness,
+} from "@/components/production/production-freshness";
 import { PageShell } from "@/components/page-shell";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -770,6 +774,19 @@ export function ProductionV2ControlRecord({
         />
       ) : workOrder ? (
         <div className="space-y-5">
+          <div className="flex justify-end">
+            <ProductionFreshness
+              updatedAt={oldestSuccessfulUpdate(
+                query.dataUpdatedAt,
+                centersQuery.dataUpdatedAt,
+              )}
+              isFetching={
+                (query.isFetching && !query.isLoading) ||
+                (centersQuery.isFetching && !centersQuery.isLoading)
+              }
+              stale={stale || (centersQuery.isError && Boolean(centersQuery.data))}
+            />
+          </div>
           {stale ? (
             <Alert variant="warning" title="ข้อมูลล่าสุดอาจยังไม่ครบ">
               <span className="flex flex-wrap items-center justify-between gap-2">

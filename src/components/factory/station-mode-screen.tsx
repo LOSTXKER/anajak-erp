@@ -33,6 +33,7 @@ import {
 import { StationCurrentLayout } from "@/components/factory/station-current-layout";
 import { StationOrderWorkspace } from "@/components/factory/station-order-workspace";
 import { ProductionDetailScreen } from "@/components/production/production-detail-screen";
+import { ProductionFreshness } from "@/components/production/production-freshness";
 import { PrintRunsScreen } from "@/components/production/print-runs-screen";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -1006,6 +1007,15 @@ export function StationModeScreen() {
         </section>
       ) : (
         <div className="space-y-6">
+          <div className="flex justify-end">
+            <ProductionFreshness
+              updatedAt={stationQueueQuery.dataUpdatedAt}
+              isFetching={stationQueueQuery.isFetching && !stationQueueQuery.isLoading}
+              stale={stationQueueQuery.isError && Boolean(stationQueueQuery.data)}
+              liveSurface
+            />
+          </div>
+
           {loadingInitial ? (
             <div className="space-y-4">
               <Skeleton className="h-20 rounded-lg" />
@@ -1087,15 +1097,6 @@ export function StationModeScreen() {
           ) : null}
 
           {!productionId && !orderId ? renderScanPanel(false) : null}
-
-          {stationQueueQuery.isError && stationQueueQuery.data && (
-            <p
-              role="status"
-              className="text-sm text-amber-700 dark:text-amber-300"
-            >
-              คิวล่าสุดอาจยังไม่สด — ระบบกำลังลองเชื่อมต่อใหม่
-            </p>
-          )}
         </div>
       )}
     </StationModeShell>

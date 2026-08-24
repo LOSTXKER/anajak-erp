@@ -20,6 +20,15 @@
    - สีตัวหนังสือ = `text-strong` / `text-secondary` / `text-muted` (สลับธีมในตัว — ห้ามเขียนคู่ `dark:` เองสำหรับ 3 ระดับนี้ · ด่านใน `verify:ui`) · ช่องตัวเลข/เงิน = `NumberInput` / `MoneyInput` · ติ๊ก = `Checkbox`
    - สถานะ→สี/ป้าย ประกาศที่ `lib/status-config.ts` (+ `*_LABELS_CUSTOMER` สำหรับหน้า public) · วิธีส่ง `lib/shipping-methods.ts` · ช่องทางจ่าย `lib/payment-methods.ts` — ห้ามประกาศ map ซ้ำในหน้า
 
+### 🎯 PRODUCTION-LIVE — ความสดที่ซื่อสัตย์ + ใบผลิตปิดงานแบบส่งต่อได้ (เบสสั่ง 2026-08-24 “ทำหมดเลย”)
+> ขอบเขต presentation + query feedback ของ `/production`, `/production/[id]`, `/production/print-runs`, `/factory/station` และ `/factory` · คง polling, query, mutation, permission, status transition, no-money DTO และ route เดิมทั้งหมด · ไม่เพิ่ม schema/endpoint/dependency/config
+
+- [x] มี freshness component กลางที่บอก `ซิงก์ล่าสุด`, `กำลังอัปเดต` และ `ข้อมูลค้าง` จาก query จริง โดยไม่ใช้ badge LIVE หรือ animation วนหลอก และประกาศ screen reader เฉพาะ state ที่มีความหมาย
+- [x] `/production`, รอบพิมพ์ และ Station แสดง freshness ใกล้พื้นที่คิว; `/factory` ใช้ภาษา/semantics ชุดเดียวและยัง refresh เบื้องหลังทุก 30 วินาที
+- [x] ใบผลิตที่จบทุกขั้นยกเวลาเสร็จจริง จำนวน และขั้นถัดไปขึ้น first viewport; ลด `เสร็จ/100%/ไม่มีปัญหา` ที่ซ้ำ และทำเส้นทางเต็มเป็นข้อมูลรองโดยไม่ซ่อน audit evidence
+- [x] ใบผลิต active/blocked คง hierarchy และ action เดิม; stale data ปิด mutation แบบ fail-closed พร้อม retry ตามเดิม
+- [x] Verify: targeted/full test + typecheck/lint/`verify:ui`/build + detector รอบเดียว · browser จริง 1280 ครบ 5 surface และใบปิดงาน 390, ตรวจ overflow/copy/hierarchy; Light/Dark contract ผ่าน token verifier และ unit test ครบ
+
 ### 🎯 ORDERS-POLISH — registry scan-first หลังรวม visual system (เบสสั่ง 2026-08-23)
 > ขอบเขต targeted UI refinement ของ `/orders`: คง query, URL state, permission, status contract, route และข้อมูล server เดิม · ไม่แตะ mutation หรือ schema
 

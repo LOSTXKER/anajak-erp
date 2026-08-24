@@ -17,6 +17,10 @@ import {
 import { toast } from "sonner";
 import { trpc, type RouterOutput } from "@/lib/trpc";
 import {
+  oldestSuccessfulUpdate,
+  ProductionFreshness,
+} from "@/components/production/production-freshness";
+import {
   nextSameOrderJob,
   primaryStationCommand,
   workCenterCodeFromStationParam,
@@ -451,16 +455,30 @@ export function ManufacturingStationScreen() {
               <h1 className="text-2xl font-semibold">โหมดสถานี</h1>
               <p className="mt-1 text-sm text-secondary">เลือกจุดทำงาน แล้วทำงานปัจจุบันให้จบทีละงาน</p>
             </div>
-            <Button
-              variant="outline"
-              onClick={() => {
-                void workCenters.refetch();
-                void dispatch.refetch();
-              }}
-            >
-              <RefreshCw />
-              โหลดใหม่
-            </Button>
+            <div className="flex flex-wrap items-center justify-end gap-3">
+              <ProductionFreshness
+                updatedAt={oldestSuccessfulUpdate(
+                  workCenters.dataUpdatedAt,
+                  dispatch.dataUpdatedAt,
+                )}
+                isFetching={
+                  (workCenters.isFetching && !workCenters.isLoading) ||
+                  (dispatch.isFetching && !dispatch.isLoading)
+                }
+                stale={stale}
+                liveSurface
+              />
+              <Button
+                variant="outline"
+                onClick={() => {
+                  void workCenters.refetch();
+                  void dispatch.refetch();
+                }}
+              >
+                <RefreshCw />
+                โหลดใหม่
+              </Button>
+            </div>
           </div>
 
           <nav aria-label="เลือกจุดทำงาน" className="flex gap-2 overflow-x-auto pb-1">

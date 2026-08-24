@@ -44,6 +44,7 @@ import {
 } from "./manufacturing-presenter";
 import { CreateWorkOrderDialog } from "./create-work-order-dialog";
 import { LegacyOutsourcePage } from "@/components/outsource/legacy-outsource-page";
+import { ProductionFreshness } from "@/components/production/production-freshness";
 
 type ControlItem = RouterOutput["manufacturing"]["controlList"]["items"][number];
 type WorkCenterLoad = RouterOutput["manufacturing"]["workCenterLoad"][number];
@@ -340,6 +341,14 @@ function WorkOrderList() {
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-end px-1">
+        <ProductionFreshness
+          updatedAt={query.dataUpdatedAt}
+          isFetching={query.isFetching && !query.isLoading && !query.isFetchingNextPage}
+          stale={stale}
+        />
+      </div>
+
       <Toolbar>
         <SearchInput
           surface="raised"
@@ -576,6 +585,13 @@ function WorkCentersView({ selectedCode }: { selectedCode: string }) {
   }
   return (
     <div className="space-y-4">
+      <div className="flex justify-end px-1">
+        <ProductionFreshness
+          updatedAt={query.dataUpdatedAt}
+          isFetching={query.isFetching && !query.isLoading}
+          stale={query.isError && Boolean(query.data)}
+        />
+      </div>
       {query.isError ? (
         <Alert variant="warning">ข้อมูลศูนย์งานล่าสุดอาจยังไม่ครบ</Alert>
       ) : null}
@@ -731,6 +747,13 @@ function ExceptionsView() {
   }
   return (
     <div className="space-y-4">
+      <div className="flex justify-end px-1">
+        <ProductionFreshness
+          updatedAt={query.dataUpdatedAt}
+          isFetching={query.isFetching && !query.isLoading && !query.isFetchingNextPage}
+          stale={query.isError && Boolean(items?.length)}
+        />
+      </div>
       <Toolbar>
         <ToolbarGroup className="flex-wrap">
           <Select

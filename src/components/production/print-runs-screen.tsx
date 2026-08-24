@@ -26,6 +26,10 @@ import {
   type QueueEntry,
 } from "@/components/production/print-runs-page-view";
 import { ProductionModuleNav } from "@/components/production/production-module-nav";
+import {
+  oldestSuccessfulUpdate,
+  ProductionFreshness,
+} from "@/components/production/production-freshness";
 import { cn } from "@/lib/utils";
 import { permAllows } from "@/lib/permissions";
 import { splitPrintRunsByStage } from "@/lib/print-run-workspace";
@@ -219,6 +223,23 @@ export function PrintRunsScreen({
         </div>
       }
     >
+      <div className="flex justify-end">
+        <ProductionFreshness
+          updatedAt={oldestSuccessfulUpdate(
+            queueQuery.dataUpdatedAt,
+            listQuery.dataUpdatedAt,
+          )}
+          isFetching={
+            (queueQuery.isFetching && !queueQuery.isLoading) ||
+            (listQuery.isFetching && !listQuery.isLoading)
+          }
+          stale={
+            (queueQuery.isError && Boolean(queueQuery.data)) ||
+            (listQuery.isError && Boolean(listQuery.data))
+          }
+        />
+      </div>
+
       {permissionStale && (
         <Alert variant="warning">
           <span className="flex flex-wrap items-center justify-between gap-2">
