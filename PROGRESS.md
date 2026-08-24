@@ -4,6 +4,19 @@
 
 ## ตอนนี้
 
+> **✅ PRODUCTION FILTER BARE ICONS — ไอคอนเส้นล้วนไม่มีพื้นหลัง (2026-08-24)**
+> เบสตรวจ icon tile บนการ์ดตัวกรอง `/production` แล้วไม่รับพื้น tint ที่ยังอยู่ · ถอด background, border และ corner ของ icon container ออกทั้งหมดทั้ง resting และ selected เหลือ Lucide icon เส้น 20px วางตรงบนพื้นการ์ด; semantic red/teal/amber/green ยังอยู่ผ่านสี glyph กับตัวเลข และ selected ใช้ Anajak Blue ผ่าน glyph/ข้อความ/ขอบการ์ดเท่านั้น
+>
+> ไอคอนยังเป็น decorative `aria-hidden` เพราะชื่อ, จำนวน และสถานะเลือกอยู่ใน label ปุ่มครบ · layout 5 ใบ/2+2+1, touch target, keyboard focus, `aria-pressed`, กดซ้ำล้างตัวกรอง, URL `view`, count, search, sort, query, permission, status transition และ business flow เดิมไม่เปลี่ยน · `/orders` ไม่ถูกแก้
+>
+> **หลักฐานจอจริง:** `/production` 1440×900 Light — icon ทุกใบ `background: transparent`, border 0px, glyph 20px และการ์ดสูง 83px; 390×844 Dark — selected `ต้องจัดการ` กว้าง 170px สูง 83px, icon โปร่งและใช้ `#c6daed`, URL `?view=attention`, page/section overflow 0 · กดซ้ำกลับ `/production` พร้อม focus คงอยู่ · console ไม่มี warning/error
+>
+> **ด่านส่งมอบ:** full unit **1644/1644**, targeted 13/13, typecheck, targeted lint 0 warning/error, `verify:ui`, production build (41 static pages), `git diff --check` และ Impeccable detectorรอบเดียวผ่าน; detector `[]`
+>
+> **ขอบเขต:** presentation/accessibility/test/docs เท่านั้น · schema, seed และข้อมูลไม่เปลี่ยน · ไฟล์ของเบส `scripts/verify-artwork.ts`, `.cursor/`, `public/` ยังอยู่นอก scope
+>
+> **ต่อที่นี่:** ให้เบสรีเฟรช `/production`; ไอคอนควรเป็นเส้นสีล้วนบนการ์ดโดยไม่มี tile เหลืออยู่
+
 > **✅ PRODUCTION FILTER QUIET SELECTED — เลือกแล้วไม่ทาสีทั้งการ์ด (2026-08-24)**
 > เบสตรวจ selected state ของการ์ดตัวกรอง `/production` แล้วชี้ว่ายังไม่ minimal เพราะ full-card blue tint และ icon tile สีน้ำเงินทึบ · ลดให้พื้นการ์ดคง neutral เหมือนตอนพักทั้ง Light/Dark, ใช้ Anajak Blue เฉพาะขอบ 1px, ชื่อ/ตัวเลข และ icon tile แบบ tint อ่อน; semantic red/teal/amber/green ยังอยู่บนการ์ดที่ไม่ได้เลือก
 >

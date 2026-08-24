@@ -48,32 +48,32 @@ import {
 const WORKLIST_LENS_PRESENTATION = {
   all: {
     icon: ListFilter,
-    accent: "bg-module-brand-surface text-module-brand-text",
+    iconColor: "text-module-brand-text",
     count: "text-module-brand-text",
   },
   attention: {
     icon: AlertTriangle,
-    accent: "bg-red-50 text-red-600 dark:bg-red-950/50 dark:text-red-300",
+    iconColor: "text-red-600 dark:text-red-300",
     count: "text-red-600 dark:text-red-300",
   },
   production: {
     icon: Factory,
-    accent: "bg-module-production-surface text-module-production-text",
+    iconColor: "text-module-production-text",
     count: "text-module-production-text",
   },
   qc: {
     icon: ClipboardCheck,
-    accent: "bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300",
+    iconColor: "text-amber-700 dark:text-amber-300",
     count: "text-amber-700 dark:text-amber-300",
   },
   packing: {
     icon: PackageCheck,
-    accent: "bg-green-50 text-green-700 dark:bg-green-950/50 dark:text-green-300",
+    iconColor: "text-green-700 dark:text-green-300",
     count: "text-green-700 dark:text-green-300",
   },
 } satisfies Record<
   ProductionWorklistLens,
-  { icon: LucideIcon; accent: string; count: string }
+  { icon: LucideIcon; iconColor: string; count: string }
 >;
 
 const WORKLIST_FOCUS_STORAGE_KEY = "anajak:production-worklist:last-focus";
@@ -478,13 +478,13 @@ export function ProductionControlWorklist<
                 <span
                   aria-hidden="true"
                   className={cn(
-                    "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
+                    "flex h-9 w-9 shrink-0 items-center justify-center",
                     isOn
-                      ? "bg-module-brand-surface text-module-brand-text"
-                      : presentation.accent,
+                      ? "text-interactive-selected-text"
+                      : presentation.iconColor,
                   )}
                 >
-                  <Icon className="h-4 w-4" strokeWidth={1.8} />
+                  <Icon className="h-5 w-5" strokeWidth={1.8} />
                 </span>
               </span>
             </button>

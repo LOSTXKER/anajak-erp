@@ -64,8 +64,10 @@ describe("Anajak selected-state contract", () => {
     expect(productionWorklistSource).toContain("card-surface card-surface-hover");
     expect(productionWorklistSource).toContain("INTERACTIVE_SELECTED");
     expect(productionWorklistSource).toContain("WORKLIST_LENS_PRESENTATION");
-    expect(productionWorklistSource).toContain("bg-module-production-surface");
+    expect(productionWorklistSource).toContain("text-module-production-text");
     expect(productionWorklistSource).toContain("PackageCheck");
+    expect(productionWorklistSource).not.toContain("bg-module-production-surface");
+    expect(productionWorklistSource).not.toContain("bg-module-brand-surface");
     expect(productionWorklistSource).toContain("border-blue-600 bg-surface");
     expect(productionWorklistSource).not.toContain("bg-blue-600 text-white");
     expect(productionWorklistSource).toContain("aria-pressed={isOn}");
