@@ -198,10 +198,10 @@ export default function VendorsSettingsPage() {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <h2 className="break-words text-sm font-medium text-slate-900 dark:text-white">
+                    <h2 className="break-words text-sm font-medium text-strong">
                       {vendor.name}
                     </h2>
-                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    <p className="mt-1 text-xs text-muted">
                       {vendor.phone || "ยังไม่มีเบอร์โทร"} · {vendor._count.outsourceOrders} งาน
                     </p>
                   </div>
@@ -223,7 +223,7 @@ export default function VendorsSettingsPage() {
                       </Badge>
                     ))
                   ) : (
-                    <span className="text-xs text-slate-500 dark:text-slate-400">
+                    <span className="text-xs text-muted">
                       ยังไม่ระบุประเภทงาน
                     </span>
                   )}

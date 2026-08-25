@@ -35,7 +35,7 @@ export function AddCard({
         <span className="block text-sm font-medium text-slate-700 dark:text-slate-200">
           {label}
         </span>
-        <span className="block text-xs text-slate-500 dark:text-slate-400">
+        <span className="block text-xs text-muted">
           {desc}
         </span>
       </span>

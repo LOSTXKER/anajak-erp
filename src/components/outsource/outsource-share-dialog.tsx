@@ -129,7 +129,7 @@ export function OutsourceShareDialog({ job, onClose }: OutsourceShareDialogProps
           {/* ไฟล์ลาย */}
           <div>
             <div className="mb-2 flex items-center justify-between">
-              <p className="text-sm font-medium text-slate-800 dark:text-slate-200">
+              <p className="text-sm font-medium text-secondary">
                 ไฟล์ลาย ({attachments?.length ?? 0})
               </p>
               <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowUpload((v) => !v)}
@@ -174,7 +174,7 @@ export function OutsourceShareDialog({ job, onClose }: OutsourceShareDialogProps
                 {attachments.map((a) => (
                   <li
                     key={a.id}
-                    className="flex items-center gap-2 rounded-lg border border-slate-200 p-2 text-sm dark:border-slate-700"
+                    className="flex items-center gap-2 rounded-lg border border-border p-2 text-sm"
                   >
                     {isImageUrl(a.fileUrl) ? (
                       <img
@@ -211,7 +211,7 @@ export function OutsourceShareDialog({ job, onClose }: OutsourceShareDialogProps
 
           {/* ลิงก์แชร์ */}
           <div className="space-y-2">
-            <p className="text-sm font-medium text-slate-800 dark:text-slate-200">
+            <p className="text-sm font-medium text-secondary">
               ลิงก์ใบงาน
             </p>
             {loadingLink ? (

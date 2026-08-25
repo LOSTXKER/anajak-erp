@@ -257,7 +257,7 @@ export function MaterialUsage({
                     className="group flex min-h-11 w-full items-center justify-between rounded-lg px-2 py-1.5 text-left text-xs transition-colors hover:bg-interactive-hover active:bg-interactive-pressed dark:hover:bg-interactive-hover dark:active:bg-interactive-pressed"
                   >
                     <div>
-                      <span className="font-medium text-slate-900 dark:text-white">
+                      <span className="font-medium text-strong">
                         {product.name}
                       </span>
                       <span className="ml-2 text-muted group-hover:text-secondary group-active:text-secondary">{product.sku}</span>
@@ -331,14 +331,14 @@ export function MaterialUsage({
                 <div className="flex min-w-0 items-center gap-2">
                   <Check className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
                   <div>
-                    <span className="text-xs font-medium text-slate-900 dark:text-white">
+                    <span className="text-xs font-medium text-strong">
                       {m.name}
                     </span>
                     <span className="ml-1.5 text-xs text-muted">{m.sku}</span>
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center justify-end gap-2">
-                  <span className="text-xs tabular-nums text-slate-600 dark:text-slate-300">
+                  <span className="text-xs tabular-nums text-secondary">
                     {m.quantity} {m.unit}
                   </span>
                   {showCosts && (
@@ -372,7 +372,7 @@ export function MaterialUsage({
                 {/* Material info */}
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
-                    <span className="truncate text-xs font-medium text-slate-900 dark:text-white">
+                    <span className="truncate text-xs font-medium text-strong">
                       {m.name}
                     </span>
                     <span className="shrink-0 text-2xs text-muted">{m.sku}</span>
@@ -454,7 +454,7 @@ export function MaterialUsage({
                         placeholder="ต้นทุน/หน่วย"
                       />
                     </div>
-                    <span className="w-16 text-right text-xs tabular-nums text-slate-600 dark:text-slate-300">
+                    <span className="w-16 text-right text-xs tabular-nums text-secondary">
                       {formatCurrency(m.quantity * m.unitCost)}
                     </span>
                   </>
@@ -474,13 +474,13 @@ export function MaterialUsage({
             ))}
 
             {/* Total + Issue button */}
-            <div className="flex items-center justify-between border-t border-slate-100 pt-2 dark:border-slate-800">
+            <div className="flex items-center justify-between border-t border-divider pt-2">
               <div className="text-xs text-muted">
                 รวม {localMaterials.length} รายการ
                 {showCosts && (
                   <>
                     {" · "}
-                    <span className="font-medium text-slate-900 dark:text-white">
+                    <span className="font-medium text-strong">
                       {formatCurrency(totalCost)}
                     </span>
                   </>

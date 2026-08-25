@@ -59,7 +59,7 @@ export function SizeMatrix({
         <h4 className="mb-3 text-sm font-semibold text-strong">{title}</h4>
       )}
       <div className="mb-2 flex items-center gap-2">
-        <label htmlFor={`${idPrefix}-color`} className="text-xs font-medium text-slate-600 dark:text-slate-300">สี (ใช้ทุกไซส์)</label>
+        <label htmlFor={`${idPrefix}-color`} className="text-xs font-medium text-secondary">สี (ใช้ทุกไซส์)</label>
         <Input
           id={`${idPrefix}-color`}
           value={color}

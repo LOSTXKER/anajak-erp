@@ -67,20 +67,20 @@ function AuditLogContent() {
               <li key={log.id} className="card-surface rounded-lg p-4">
                 <div className="flex items-center justify-between gap-2">
                   <Badge size="sm">{log.action}</Badge>
-                  <time className="text-xs text-slate-500 dark:text-slate-400">
+                  <time className="text-xs text-muted">
                     {formatDateTime(log.createdAt)}
                   </time>
                 </div>
-                <p className="mt-2 text-sm font-medium text-slate-900 dark:text-white">
+                <p className="mt-2 text-sm font-medium text-strong">
                   {log.entityType}
                 </p>
-                <p className="text-xs text-slate-600 dark:text-slate-300">โดย {log.user.name}</p>
+                <p className="text-xs text-secondary">โดย {log.user.name}</p>
               </li>
             ))}
           </ul>
         )}
         renderDesktop={(logs) => (
-          <DataTable.Root>
+          <DataTable.Root bordered={false} flush>
             <DataTable.Head>
               <tr>
                 <DataTable.Th>การทำงาน</DataTable.Th>
@@ -95,7 +95,7 @@ function AuditLogContent() {
                   <DataTable.Td><Badge size="sm">{log.action}</Badge></DataTable.Td>
                   <DataTable.Td>{log.entityType}</DataTable.Td>
                   <DataTable.Td>{log.user.name}</DataTable.Td>
-                  <DataTable.Td className="text-xs text-slate-500 dark:text-slate-400">
+                  <DataTable.Td className="text-xs text-muted">
                     {formatDateTime(log.createdAt)}
                   </DataTable.Td>
                 </DataTable.Row>

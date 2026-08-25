@@ -37,7 +37,7 @@ export function ProductCardMobile({
     productLabel, variantLabel,
   } = useProductRow(product, prodIdx, itemIdx, onSetItems);
 
-  const fieldLabel = "mb-1 block text-xs text-slate-500 dark:text-slate-400";
+  const fieldLabel = "mb-1 block text-xs text-muted";
 
   return (
     <div className="space-y-2.5 rounded-lg border border-border p-3">
@@ -73,9 +73,9 @@ export function ProductCardMobile({
         <div className="flex items-center gap-2">
           {product.productImageUrl ? (
             /* eslint-disable-next-line @next/next/no-img-element */
-            <img src={product.productImageUrl} alt="" className="h-10 w-10 flex-shrink-0 rounded-lg border border-slate-200 object-cover dark:border-slate-700" />
+            <img src={product.productImageUrl} alt="" className="h-10 w-10 flex-shrink-0 rounded-lg border border-border object-cover" />
           ) : (
-            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-white/[0.06]">
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border border-border bg-surface-muted">
               <ImageIcon className="h-4 w-4 text-slate-300 dark:text-slate-600" />
             </div>
           )}

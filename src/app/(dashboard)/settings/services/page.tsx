@@ -351,12 +351,12 @@ export default function ServicesPage() {
                               }
                             />
                           ) : (
-                            <span className="text-sm font-medium text-slate-900 dark:text-white">
+                            <span className="text-sm font-medium text-strong">
                               {item.name}
                             </span>
                           )}
                         </DataTable.Td>
-                        <DataTable.Td className="text-slate-500 dark:text-slate-400">
+                        <DataTable.Td className="text-muted">
                           {item.type}
                         </DataTable.Td>
                         <DataTable.Td align="right">
@@ -377,7 +377,7 @@ export default function ServicesPage() {
                               className="ml-auto h-7 w-28 text-right text-sm"
                             />
                           ) : (
-                            <span className="text-sm tabular-nums font-medium text-slate-900 dark:text-white">
+                            <span className="text-sm tabular-nums font-medium text-strong">
                               {formatCurrency(item.defaultPrice)}
                             </span>
                           )}

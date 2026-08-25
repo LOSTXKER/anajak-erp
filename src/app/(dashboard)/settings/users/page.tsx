@@ -166,7 +166,7 @@ export default function UsersSettingsPage() {
               className="card-surface mb-4 grid grid-cols-1 items-end gap-3 rounded-lg p-4 sm:grid-cols-2 lg:grid-cols-5"
             >
               <div>
-                <label htmlFor="new-user-name" className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
+                <label htmlFor="new-user-name" className="mb-1 block text-xs font-medium text-muted">
                   ชื่อ *
                 </label>
                 <Input
@@ -179,7 +179,7 @@ export default function UsersSettingsPage() {
                 />
               </div>
               <div>
-                <label htmlFor="new-user-email" className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
+                <label htmlFor="new-user-email" className="mb-1 block text-xs font-medium text-muted">
                   อีเมล *
                 </label>
                 <Input
@@ -193,7 +193,7 @@ export default function UsersSettingsPage() {
                 />
               </div>
               <div>
-                <label htmlFor="new-user-role" className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
+                <label htmlFor="new-user-role" className="mb-1 block text-xs font-medium text-muted">
                   บทบาท *
                 </label>
                 <Select
@@ -211,7 +211,7 @@ export default function UsersSettingsPage() {
                 </Select>
               </div>
               <div>
-                <label htmlFor="new-user-password" className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
+                <label htmlFor="new-user-password" className="mb-1 block text-xs font-medium text-muted">
                   รหัสผ่านเริ่มต้น * (8+ ตัว)
                 </label>
                 <Input
@@ -280,7 +280,7 @@ export default function UsersSettingsPage() {
                       >
                         <DataTable.Td>
                           <div>
-                            <span className="text-sm font-medium text-slate-900 dark:text-white">
+                            <span className="text-sm font-medium text-strong">
                               {user.name}
                             </span>
                             {isSelf && (
@@ -290,12 +290,12 @@ export default function UsersSettingsPage() {
                             )}
                           </div>
                         </DataTable.Td>
-                        <DataTable.Td className="text-slate-500 dark:text-slate-400">
+                        <DataTable.Td className="text-muted">
                           {user.email}
                         </DataTable.Td>
                         <DataTable.Td>
                           {isSelf ? (
-                            <span className="text-sm text-slate-700 dark:text-slate-300">
+                            <span className="text-sm text-secondary">
                               {ROLE_LABELS[user.role]}
                             </span>
                           ) : (
@@ -398,7 +398,7 @@ export default function UsersSettingsPage() {
           </DialogHeader>
           <form onSubmit={handleResetPassword} className="space-y-4">
             <div>
-              <label htmlFor="reset-user-password" className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
+              <label htmlFor="reset-user-password" className="mb-1 block text-xs font-medium text-muted">
                 รหัสผ่านใหม่ (8+ ตัว)
               </label>
               <Input
@@ -459,7 +459,7 @@ export default function UsersSettingsPage() {
             <div className="space-y-4">
               {[...new Set(PERMISSION_DEFS.map((d) => d.group))].map((group) => (
                 <div key={group}>
-                  <p className="mb-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400">
+                  <p className="mb-1.5 text-xs font-semibold text-muted">
                     {group}
                   </p>
                   <div className="space-y-1">

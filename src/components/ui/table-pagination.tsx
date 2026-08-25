@@ -23,8 +23,11 @@ export function TablePagination({
   const from = limit ? (page - 1) * limit + 1 : null;
   const to = limit ? Math.min(page * limit, total) : null;
 
+  // ไม่มีระยะขอบซ้าย-ขวา — หน้ารายการทุกหน้าเป็นตารางที่วางบนผืนหน้าโดยไม่มีกล่องครอบ
+  // (UI-2026 เฟส 3) แถบนี้จึงต้องเสมอขอบเดียวกับเซลล์แรก/สุดท้ายของตาราง
+  // ถ้าวันหนึ่งมีคนเอาไปใส่ในพาเนล ให้ห่อ div แล้วสั่ง padding ที่ตัวห่อ
   return (
-    <nav aria-label="การแบ่งหน้า" className="flex items-center justify-between border-t border-divider px-4 py-3">
+    <nav aria-label="การแบ่งหน้า" className="flex items-center justify-between border-t border-divider py-3">
       <p className="text-xs tabular-nums text-muted">
         {from != null ? `แสดง ${from}–${to} จาก ${total} ${label}` : `ทั้งหมด ${total} ${label}`}
       </p>

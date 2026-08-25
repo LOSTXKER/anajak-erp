@@ -277,7 +277,7 @@ function AgingPageContent() {
         onRetry={() => refetch()}
         label="ลูกหนี้"
         renderDesktop={(rows) => (
-          <DataTable.Root>
+          <DataTable.Root bordered={false} flush>
             <DataTable.Head>
               <tr>
                 <DataTable.Th>ลูกค้า</DataTable.Th>
@@ -321,12 +321,17 @@ function AgingPageContent() {
                     <DataTable.Td
                       key={bucket.key}
                       align="right"
+                      // หัวคอลัมน์บอกช่วงอายุหนี้อยู่แล้ว — ย้อมแดงทุกช่องที่ไม่ใช่
+                      // "ยังไม่ครบกำหนด" ทำให้ทั้งตารางแดงจนของที่เจ็บจริงแข่งไม่ขึ้น
+                      // เก็บแดงไว้ช่วงเกิน 90 วันช่องเดียว ที่เหลือไล่ด้วยน้ำหนักแทน
                       className={`tabular-nums ${
                         row.buckets[bucket.key] === 0
                           ? "text-muted"
                           : bucket.key === "current"
                             ? ""
-                            : "font-medium text-red-700 dark:text-red-300"
+                            : bucket.key === "d90plus"
+                              ? "font-medium text-red-700 dark:text-red-300"
+                              : "font-medium text-secondary"
                       }`}
                     >
                       {row.buckets[bucket.key] === 0
@@ -336,7 +341,7 @@ function AgingPageContent() {
                   ))}
                   <DataTable.Td
                     align="right"
-                    className="font-semibold tabular-nums text-slate-900 dark:text-white"
+                    className="font-semibold tabular-nums text-strong"
                   >
                     {formatCurrency(row.total)}
                   </DataTable.Td>
@@ -371,27 +376,27 @@ function AgingPageContent() {
                       {row.company || row.name}
                     </Link>
                     {row.company && (
-                      <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                      <p className="mt-0.5 text-xs text-muted">
                         ผู้ติดต่อ {row.name}
                       </p>
                     )}
                   </div>
                   <p className="shrink-0 text-right">
-                    <span className="block text-xs text-slate-500 dark:text-slate-400">ค้างรวม</span>
-                    <span className="font-semibold tabular-nums text-slate-900 dark:text-white">
+                    <span className="block text-xs text-muted">ค้างรวม</span>
+                    <span className="font-semibold tabular-nums text-strong">
                       {formatCurrency(row.total)}
                     </span>
                   </p>
                 </div>
 
-                <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-slate-100 pt-3 text-xs dark:border-slate-800">
+                <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-divider pt-3 text-xs">
                   {BUCKETS.filter((bucket) => row.buckets[bucket.key] > 0).map((bucket) => (
                     <div key={bucket.key} className="flex items-center justify-between gap-2">
-                      <dt className="text-slate-500 dark:text-slate-400">{bucket.label}</dt>
+                      <dt className="text-muted">{bucket.label}</dt>
                       <dd
                         className={`font-medium tabular-nums ${
                           bucket.key === "current"
-                            ? "text-slate-900 dark:text-white"
+                            ? "text-strong"
                             : "text-red-700 dark:text-red-300"
                         }`}
                       >

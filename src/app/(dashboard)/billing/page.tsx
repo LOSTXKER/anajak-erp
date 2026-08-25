@@ -241,7 +241,7 @@ function BillingPageContent() {
                         <p className="font-semibold text-blue-700 dark:text-blue-300">
                           {inv.invoiceNumber}
                         </p>
-                        <p className="mt-1 truncate text-xs text-slate-500 dark:text-slate-400">
+                        <p className="mt-1 truncate text-xs text-muted">
                           {INVOICE_TYPE_LABELS[inv.type] ?? inv.type}
                         </p>
                       </div>
@@ -252,34 +252,34 @@ function BillingPageContent() {
                         className="shrink-0"
                       />
                     </div>
-                    <div className="mt-3 grid grid-cols-2 gap-3 border-t border-slate-100 pt-3 dark:border-slate-800">
+                    <div className="mt-3 grid grid-cols-2 gap-3 border-t border-divider pt-3">
                       <div className="min-w-0">
-                        <p className="text-xs text-slate-500 dark:text-slate-400">ลูกค้า</p>
-                        <p className="mt-1 truncate text-sm font-medium text-slate-900 dark:text-white">
+                        <p className="text-xs text-muted">ลูกค้า</p>
+                        <p className="mt-1 truncate text-sm font-medium text-strong">
                           {inv.customer.name}
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-xs text-slate-500 dark:text-slate-400">ยอดบิล</p>
-                        <p className="mt-1 tabular-nums font-semibold text-slate-900 dark:text-white">
+                        <p className="text-xs text-muted">ยอดบิล</p>
+                        <p className="mt-1 tabular-nums font-semibold text-strong">
                           {formatCurrency(inv.totalAmount)}
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">ออเดอร์</p>
+                        <p className="text-xs text-muted">ออเดอร์</p>
                         <p className="mt-1 text-sm text-blue-700 dark:text-blue-300">
                           {inv.order.orderNumber}
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-xs text-slate-500 dark:text-slate-400">ครบกำหนด</p>
-                        <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+                        <p className="text-xs text-muted">ครบกำหนด</p>
+                        <p className="mt-1 text-sm text-secondary">
                           {inv.dueDate ? formatDate(inv.dueDate) : "—"}
                         </p>
                       </div>
                     </div>
                   </Link>
-                  <div className="mt-3 grid grid-cols-2 gap-2 border-t border-slate-100 pt-3 dark:border-slate-800">
+                  <div className="mt-3 grid grid-cols-2 gap-2 border-t border-divider pt-3">
                     <Button variant="outline" size="sm" asChild>
                       <Link
                         href={`/print/invoice/${inv.id}`}
@@ -304,7 +304,7 @@ function BillingPageContent() {
           </div>
         )}
         renderDesktop={(invoices) => (
-          <DataTable.Root>
+          <DataTable.Root bordered={false} flush>
             <DataTable.Head>
               <tr>
                 <DataTable.Th>เลขบิล</DataTable.Th>
@@ -323,12 +323,12 @@ function BillingPageContent() {
                 const moneyHref = `/orders/${inv.orderId}?tab=money`;
                 return (
                   <DataTable.Row key={inv.id}>
-                    <DataTable.Td className="p-0 font-medium text-slate-900 dark:text-white">
-                      <Link href={moneyHref} className="block px-5 py-3 text-blue-700 dark:text-blue-300">
+                    <DataTable.Td className="p-0 font-medium text-strong">
+                      <Link href={moneyHref} className="block px-5 py-3 font-medium text-strong">
                         {inv.invoiceNumber}
                       </Link>
                     </DataTable.Td>
-                    <DataTable.Td className="p-0 text-xs text-slate-500 dark:text-slate-400">
+                    <DataTable.Td className="p-0 text-xs text-muted">
                       <Link href={moneyHref} className="block px-5 py-3">
                         {INVOICE_TYPE_LABELS[inv.type] ?? inv.type}
                       </Link>
@@ -336,12 +336,12 @@ function BillingPageContent() {
                     <DataTable.Td className="p-0">
                       <Link href={moneyHref} className="block px-5 py-3">{inv.customer.name}</Link>
                     </DataTable.Td>
-                    <DataTable.Td className="p-0 text-blue-600 dark:text-blue-400">
+                    <DataTable.Td className="p-0">
                       <Link href={moneyHref} className="block px-5 py-3">{inv.order.orderNumber}</Link>
                     </DataTable.Td>
                     <DataTable.Td
                       align="right"
-                      className="p-0 font-medium tabular-nums text-slate-900 dark:text-white"
+                      className="p-0 font-medium tabular-nums text-strong"
                     >
                       <Link href={moneyHref} className="block px-5 py-3 text-right">
                         {formatCurrency(inv.totalAmount)}
@@ -356,7 +356,7 @@ function BillingPageContent() {
                         />
                       </Link>
                     </DataTable.Td>
-                    <DataTable.Td className="p-0 text-xs text-slate-500 dark:text-slate-400">
+                    <DataTable.Td className="p-0 text-xs text-muted">
                       <Link href={moneyHref} className="block px-5 py-3">
                         {inv.dueDate ? formatDate(inv.dueDate) : "—"}
                       </Link>

@@ -173,7 +173,7 @@ export default function NotificationsPage() {
       {/* List */}
       <div className="card-surface overflow-hidden rounded-lg">
         {isLoading && (
-          <div className="divide-y divide-slate-100 dark:divide-slate-800">
+          <div className="divide-y divide-divider">
             {[...Array(5)].map((_, i) => (
               <div key={i} className="flex gap-3 px-5 py-3.5">
                 <Skeleton className="h-8 w-8 shrink-0 rounded-full" />
@@ -205,10 +205,10 @@ export default function NotificationsPage() {
               if (items.length === 0) return null;
               return (
                 <div key={bucket}>
-                  <div className="border-b border-slate-100 bg-slate-50/50 px-5 py-1.5 text-2xs font-semibold text-slate-500 dark:border-slate-800 dark:bg-slate-800/30 dark:text-slate-400">
+                  <div className="border-b border-divider bg-slate-50/50 px-5 py-1.5 text-2xs font-semibold text-slate-500 dark:bg-slate-800/30 dark:text-slate-400">
                     {BUCKET_LABELS[bucket]}
                   </div>
-                  <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+                  <ul className="divide-y divide-divider">
                     {items.map((notif) => (
                       <li key={notif.id}>
                         <button
@@ -235,8 +235,8 @@ export default function NotificationsPage() {
                                 className={cn(
                                   "text-sm",
                                   !notif.isRead
-                                    ? "font-semibold text-slate-900 dark:text-white"
-                                    : "font-medium text-slate-700 dark:text-slate-300"
+                                    ? "font-semibold text-strong"
+                                    : "font-medium text-secondary"
                                 )}
                               >
                                 {notif.title}

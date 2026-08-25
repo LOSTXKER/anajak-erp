@@ -143,7 +143,7 @@ function OrderCountdown({
           : {
               label: `เหลือ ${days} วัน`,
               dot: "bg-slate-300 dark:bg-slate-600",
-              text: "text-slate-600 dark:text-slate-400",
+              text: "text-secondary",
             };
   return (
     <span
@@ -845,8 +845,6 @@ function OrdersPageContent() {
         }
         pagination={
           data && data.orders.length > 0 ? (
-            // ตารางเป็น flush แล้ว แถบแบ่งหน้าจึงต้องเสมอขอบซ้าย/ขวาเดียวกัน
-            <div className="[&>nav]:px-0">
             <TablePagination
               page={page}
               totalPages={data.pages}
@@ -856,7 +854,6 @@ function OrdersPageContent() {
                 replaceListState({ page: String(nextPage) })
               }
             />
-            </div>
           ) : undefined
         }
       />

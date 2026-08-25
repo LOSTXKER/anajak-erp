@@ -75,9 +75,9 @@ export function ProductTableRow({
               {product.productImageUrl ? (
                 /* Signed URLs มาจาก Stock หลาย host จึงใช้รูปเดิมโดยไม่ผ่าน Next image optimizer */
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={product.productImageUrl} alt={productLabel} className="h-9 w-9 flex-shrink-0 rounded-lg border border-slate-200 object-cover dark:border-slate-700" />
+                <img src={product.productImageUrl} alt={productLabel} className="h-9 w-9 flex-shrink-0 rounded-lg border border-border object-cover" />
               ) : (
-                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-white/[0.06]">
+                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-border bg-surface-muted">
                   <ImageIcon className="h-4 w-4 text-slate-300 dark:text-slate-600" />
                 </div>
               )}

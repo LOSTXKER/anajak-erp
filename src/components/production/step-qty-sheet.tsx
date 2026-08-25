@@ -118,7 +118,7 @@ export function StepQtySheet({
           )}
           <p className="text-center text-sm text-muted">
             รวมเป็น{" "}
-            <span className="font-semibold tabular-nums text-slate-900 dark:text-white">
+            <span className="font-semibold tabular-nums text-strong">
               {newDone}/{total}
             </span>
             {willComplete && (

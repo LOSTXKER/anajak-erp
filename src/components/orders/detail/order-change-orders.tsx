@@ -44,9 +44,9 @@ export function OrderChangeOrders({ orderId }: OrderChangeOrdersProps) {
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <p className="text-sm text-slate-500 dark:text-slate-400">กำลังโหลดประวัติ...</p>
+          <p className="text-sm text-muted">กำลังโหลดประวัติ...</p>
         ) : !data || data.length === 0 ? (
-          <p className="text-sm text-slate-500 dark:text-slate-400">ยังไม่มีใบแก้ไขออเดอร์</p>
+          <p className="text-sm text-muted">ยังไม่มีใบแก้ไขออเดอร์</p>
         ) : (
         <div className="space-y-3">
           {data.map((co) => {
@@ -59,7 +59,7 @@ export function OrderChangeOrders({ orderId }: OrderChangeOrdersProps) {
                 className="rounded-lg border border-border p-3"
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="font-mono text-sm font-medium text-slate-900 dark:text-white">
+                  <span className="font-mono text-sm font-medium text-strong">
                     {co.changeNumber}
                   </span>
                   {co.invoicedWarning && (
@@ -70,7 +70,7 @@ export function OrderChangeOrders({ orderId }: OrderChangeOrdersProps) {
                   )}
                 </div>
 
-                <p className="mt-1 text-sm text-slate-900 dark:text-white">{co.reason}</p>
+                <p className="mt-1 text-sm text-strong">{co.reason}</p>
                 {co.summary && <p className="text-xs text-slate-400">{co.summary}</p>}
 
                 {showMoney && (
@@ -79,11 +79,11 @@ export function OrderChangeOrders({ orderId }: OrderChangeOrdersProps) {
                       {formatCurrency(co.oldTotal ?? 0)}
                     </span>
                     <ArrowRight className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-                    <span className="font-medium text-slate-900 dark:text-white">
+                    <span className="font-medium text-strong">
                       {formatCurrency(co.newTotal ?? 0)}
                     </span>
                     {diff !== 0 && (
-                      <span className="text-slate-500 dark:text-slate-400">
+                      <span className="text-muted">
                         ({diff > 0 ? "+" : "−"}
                         {formatCurrency(Math.abs(diff))})
                       </span>

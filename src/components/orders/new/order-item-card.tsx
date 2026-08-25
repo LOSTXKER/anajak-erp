@@ -90,12 +90,12 @@ function OrderItemRow({
           กลายเป็นขีดลอยสองอันบนหัวรายการที่ไม่ได้บอกอะไร (เบสถามเอง 2026-08-05
           "ขีดนี้คืออะไร" = สัญญาณว่ามันสื่อความไม่ได้) */}
       {!empty && totalQty > 0 && (
-        <span className="flex-shrink-0 text-right text-xs tabular-nums text-slate-500 dark:text-slate-400">
+        <span className="flex-shrink-0 text-right text-xs tabular-nums text-muted">
           {totalQty} ตัว
         </span>
       )}
       {!empty && subtotal > 0 && (
-        <span className="flex-shrink-0 text-right text-sm font-semibold tabular-nums text-slate-900 dark:text-white">
+        <span className="flex-shrink-0 text-right text-sm font-semibold tabular-nums text-strong">
           {formatCurrency(subtotal)}
         </span>
       )}
@@ -478,7 +478,7 @@ export function OrderItemCard({
           {item.addons.map((addon, addonIdx) => (
             <div key={addonIdx} className={cn("space-y-3 rounded-lg p-3", SUNK_PANEL)}>
               <div className="flex items-center justify-between gap-2">
-                <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                <p className="text-xs font-medium text-muted">
                   ส่วนเสริม #{addonIdx + 1}
                 </p>
                 <Button type="button" variant="ghost" size="icon-sm" aria-label={`ลบส่วนเสริม ${addonIdx + 1}`} className="text-muted hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400" onClick={() => onRemoveAddon(itemIdx, addonIdx)}><Trash2 /></Button>
@@ -524,10 +524,10 @@ export function OrderItemCard({
 
   // ── section: สรุปราคาต่อรายการ (เฉพาะโหมดปกติ — compact ใช้สรุปรวมที่ sidebar) ──
   const priceSummary = totalQty > 0 ? (
-    <div className="border-t border-slate-200/70 pt-3 dark:border-slate-700/60">
+    <div className="border-t border-border/70 pt-3/60">
       <p className={cn(groupHeadingClass, "mb-2")}>สรุปราคารายการ</p>
       <table className="w-full text-xs">
-        <tbody className="text-slate-600 dark:text-slate-300">
+        <tbody className="text-secondary">
           {itemPriceSummary.lines.map((line) => {
             return (
               <tr key={line.key}>
@@ -550,14 +550,14 @@ export function OrderItemCard({
           })}
         </tbody>
         <tfoot>
-          <tr className="border-t border-slate-200/70 dark:border-slate-700/60">
-            <td colSpan={2} className="pt-2 text-sm font-semibold text-slate-900 dark:text-white">
+          <tr className="border-t border-border/70/60">
+            <td colSpan={2} className="pt-2 text-sm font-semibold text-strong">
               รวมทั้งหมด
             </td>
             <td className="px-2 pt-2 text-right text-xs tabular-nums text-slate-400">
               {totalQty} ตัว
             </td>
-            <td className="pt-2 text-right text-sm font-semibold tabular-nums text-slate-900 dark:text-white">
+            <td className="pt-2 text-right text-sm font-semibold tabular-nums text-strong">
               {formatCurrency(subtotal)}
             </td>
           </tr>

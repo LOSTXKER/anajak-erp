@@ -34,7 +34,7 @@ export function ChatLink({
 
   if (!safe) {
     return (
-      <p className={cn(clamp, "text-xs text-slate-500 dark:text-slate-400", className)}>
+      <p className={cn(clamp, "text-xs text-muted", className)}>
         {label}
       </p>
     );

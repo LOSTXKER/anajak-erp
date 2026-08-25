@@ -66,7 +66,7 @@ export function ProductionSummaryCard({
       <CardContent>
         {!hasProduction ? (
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-slate-500 dark:text-slate-400">
+            <p className="text-sm text-muted">
               ยังไม่มีใบผลิต
               {canCreate && " — เปิดได้ที่หน้าการผลิต"}
             </p>
@@ -103,10 +103,10 @@ export function ProductionSummaryCard({
                 <div key={prod.id} className="space-y-2.5">
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-slate-500 dark:text-slate-400">
+                      <span className="text-muted">
                         ความคืบหน้า
                       </span>
-                      <span className="font-medium tabular-nums text-slate-900 dark:text-white">
+                      <span className="font-medium tabular-nums text-strong">
                         {completed}/{total} ขั้นตอน ({pct}%)
                       </span>
                     </div>
@@ -118,7 +118,7 @@ export function ProductionSummaryCard({
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
                     {legacyReadyForQc ? (
                       <span className="font-medium text-amber-700 dark:text-amber-300">
                         ขั้นผลิตจริงครบแล้ว · รอส่งเข้า QC จากใบผลิต

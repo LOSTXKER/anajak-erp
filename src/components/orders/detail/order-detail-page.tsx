@@ -98,7 +98,7 @@ function OrderDetailSkeleton() {
       </div>
       <Skeleton className="h-20 rounded-lg" />
       {/* โครงต้องตรงกับของจริง (แถบแท็บ + เนื้อหาเต็มความกว้าง) ไม่งั้นจอกระโดดตอนโหลดเสร็จ */}
-      <div className="flex h-11 items-center gap-6 overflow-hidden border-b border-slate-200/70 dark:border-white/10">
+      <div className="flex h-11 items-center gap-6 overflow-hidden border-b border-border">
         <Skeleton className="h-4 w-16 rounded" />
         <Skeleton className="h-4 w-20 rounded" />
         <Skeleton className="h-4 w-16 rounded" />
@@ -581,7 +581,7 @@ function OrderDetailContent({
 
   const channelColor = CHANNEL_COLORS[order.channel] ?? {
     bg: "bg-slate-100 dark:bg-slate-800",
-    text: "text-slate-700 dark:text-slate-300",
+    text: "text-secondary",
   };
 
   // COMPLETED: ไม่มีปุ่มหลัก — ทางถอย (เปิดงานกลับ) ทั้งหมดอยู่ใน dropdown

@@ -231,7 +231,7 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
               return (
                 <div
                   key={a.id}
-                  className={`flex gap-3 rounded-lg border border-slate-200 p-3 dark:border-slate-700 ${
+                  className={`flex gap-3 rounded-lg border border-border p-3 ${
                     a.isActive ? "" : "opacity-50"
                   }`}
                 >
@@ -240,17 +240,17 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
                       <img
                         src={a.imageUrl}
                         alt={a.name}
-                        className="h-16 w-16 shrink-0 rounded-lg border border-slate-200 object-cover dark:border-slate-700"
+                        className="h-16 w-16 shrink-0 rounded-lg border border-border object-cover"
                       />
                     </a>
                   ) : (
-                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800">
+                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg border border-border bg-slate-50 dark:bg-slate-800">
                       <ImageIcon className="h-6 w-6 text-slate-300 dark:text-slate-600" />
                     </div>
                   )}
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <p className="truncate text-sm font-medium text-slate-900 dark:text-white">
+                      <p className="truncate text-sm font-medium text-strong">
                         {a.name}
                       </p>
                       {!a.isActive && (
@@ -433,7 +433,7 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
                   <img
                     src={addImageUrl}
                     alt="ลายใหม่"
-                    className="h-16 w-16 rounded-lg border border-slate-200 object-cover dark:border-slate-700"
+                    className="h-16 w-16 rounded-lg border border-border object-cover"
                   />
                   <Button variant="ghost" size="sm" onClick={() => setAddImageUrl("")}
                   >

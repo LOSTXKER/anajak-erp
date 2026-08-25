@@ -85,7 +85,7 @@ export function Field({
       </div>
       {control}
       {description && (
-        <p id={descriptionId} className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+        <p id={descriptionId} className="text-xs leading-relaxed text-muted">
           {description}
         </p>
       )}

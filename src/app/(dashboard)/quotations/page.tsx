@@ -183,7 +183,7 @@ function QuotationsPageContent() {
                     <p className="font-semibold text-blue-700 dark:text-blue-300">
                       {q.quotationNumber}
                     </p>
-                    <p className="mt-1 truncate text-sm font-medium text-slate-900 dark:text-white">
+                    <p className="mt-1 truncate text-sm font-medium text-strong">
                       {q.title}
                     </p>
                   </div>
@@ -191,9 +191,9 @@ function QuotationsPageContent() {
                     <QuotationStatusLabel status={q.status} />
                   </div>
                 </div>
-                <div className="mt-3 flex items-end justify-between gap-3 border-t border-slate-100 pt-3 dark:border-slate-800">
+                <div className="mt-3 flex items-end justify-between gap-3 border-t border-divider pt-3">
                   <div className="min-w-0">
-                    <p className="truncate text-sm text-slate-700 dark:text-slate-300">
+                    <p className="truncate text-sm text-secondary">
                       {q.customer.name}
                     </p>
                     <p className="mt-0.5 text-xs text-slate-500 group-hover:text-secondary group-active:text-secondary dark:text-slate-400 dark:group-hover:text-secondary dark:group-active:text-secondary">
@@ -201,7 +201,7 @@ function QuotationsPageContent() {
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
-                    <span className="tabular-nums font-semibold text-slate-900 dark:text-white">
+                    <span className="tabular-nums font-semibold text-strong">
                       {formatCurrency(q.totalAmount)}
                     </span>
                     <ChevronRight className="h-4 w-4 text-slate-400" aria-hidden="true" />
@@ -212,7 +212,7 @@ function QuotationsPageContent() {
           </div>
         )}
         renderDesktop={(quotations) => (
-          <DataTable.Root>
+          <DataTable.Root bordered={false} flush>
             <DataTable.Head>
               <tr>
                 <DataTable.Th>เลขที่</DataTable.Th>
@@ -225,36 +225,36 @@ function QuotationsPageContent() {
             </DataTable.Head>
             <DataTable.Body>
               {quotations.map((q) => (
-                <DataTable.Row key={q.id}>
+                <DataTable.Row key={q.id} href={`/quotations/${q.id}`}>
                   <DataTable.Td>
                     <Link
                       href={`/quotations/${q.id}`}
-                      className="text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
+                      className="text-sm font-medium tabular-nums text-strong hover:underline"
                     >
                       {q.quotationNumber}
                     </Link>
                   </DataTable.Td>
-                  <DataTable.Td className="text-slate-900 dark:text-white">
+                  <DataTable.Td className="text-strong">
                     {q.title}
                   </DataTable.Td>
                   <DataTable.Td>
-                    <p className="text-sm text-slate-900 dark:text-white">{q.customer.name}</p>
+                    <p className="text-sm text-strong">{q.customer.name}</p>
                     {q.customer.company && (
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                      <p className="text-xs text-muted">
                         {q.customer.company}
                       </p>
                     )}
                   </DataTable.Td>
                   <DataTable.Td
                     align="right"
-                    className="font-medium tabular-nums text-slate-900 dark:text-white"
+                    className="font-medium tabular-nums text-strong"
                   >
                     {formatCurrency(q.totalAmount)}
                   </DataTable.Td>
                   <DataTable.Td>
                     <QuotationStatusLabel status={q.status} />
                   </DataTable.Td>
-                  <DataTable.Td className="text-xs text-slate-500 dark:text-slate-400">
+                  <DataTable.Td className="text-xs text-muted">
                     {formatDate(q.createdAt)}
                   </DataTable.Td>
                 </DataTable.Row>

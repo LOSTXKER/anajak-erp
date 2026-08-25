@@ -64,7 +64,7 @@ export function PrintTableRow({
               <img
                 src={imageUrl}
                 alt={`ลาย ${printIdx + 1}`}
-                className={cn(RADIUS.item, "h-11 w-11 border border-slate-200 object-cover dark:border-slate-700")}
+                className={cn(RADIUS.item, "h-11 w-11 border border-border object-cover")}
               />
             </button>
             <ImageRemoveButton
@@ -173,7 +173,7 @@ export function PrintTableRow({
             />
           </div>
         ) : (
-          <div className="flex h-9 items-center justify-center text-xs tabular-nums text-slate-500 dark:text-slate-400">
+          <div className="flex h-9 items-center justify-center text-xs tabular-nums text-muted">
             {sizePreset ? `${sizePreset.width} × ${sizePreset.height}` : dash}
           </div>
         )}

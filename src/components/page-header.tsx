@@ -78,7 +78,7 @@ export function PageHeader({
         return crumbs && crumbs.length > 0 ? (
         <nav
           aria-label="Breadcrumb"
-          className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400"
+          className="flex flex-wrap items-center gap-1.5 text-xs text-muted"
         >
           {crumbs.map((item, idx) => {
             const isLast = idx === crumbs.length - 1;
@@ -97,8 +97,8 @@ export function PageHeader({
                     aria-current={isLast && !deduped ? "page" : undefined}
                     className={
                       isLast
-                        ? "text-slate-700 dark:text-slate-300"
-                        : "text-slate-500 dark:text-slate-400"
+                        ? "text-secondary"
+                        : "text-muted"
                     }
                   >
                     {item.label}

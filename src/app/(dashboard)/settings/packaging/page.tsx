@@ -133,7 +133,7 @@ export default function PackagingSettingsPage() {
               className="card-surface mb-4 flex items-end gap-3 rounded-lg p-4"
             >
               <div className="flex-1">
-                <label htmlFor="new-packaging-name" className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
+                <label htmlFor="new-packaging-name" className="mb-1 block text-xs font-medium text-muted">
                   ชื่อแพ็คเกจ *
                 </label>
                 <Input
@@ -210,7 +210,7 @@ export default function PackagingSettingsPage() {
                             }}
                           />
                         ) : (
-                          <span className="text-sm font-medium text-slate-900 dark:text-white">
+                          <span className="text-sm font-medium text-strong">
                             {opt.name}
                           </span>
                         )}

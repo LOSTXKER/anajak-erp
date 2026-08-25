@@ -34,11 +34,15 @@ import { Plus, Users, UserPlus, Crown, UserX, ChevronRight } from "lucide-react"
 import { FOCUS_BUTTON } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
 
+/* กลุ่มลูกค้าไม่ใช่ "สถานะ" — ไม่มีอันไหนดีหรือร้าย (UI-2026 เฟส 3)
+   ของเดิมยืมจานสีสถานะมาย้อมจนคอลัมน์เดียวมี 4 สี (VIP=เขียว ขาประจำ=น้ำเงิน
+   ไม่เคลื่อนไหว=เหลือง) ทำให้สีที่ควรแปลว่า "ต้องทำอะไรสักอย่าง" หมดความหมาย
+   ตอนนี้เป็น neutral ทั้งชุด — ความต่างอ่านจากคำ ไม่ใช่จากสี */
 const segmentConfig: Record<string, { label: string; variant: "default" | "accent" | "success" | "warning" | "destructive" }> = {
-  VIP: { label: "VIP", variant: "success" },
-  REGULAR: { label: "ขาประจำ", variant: "accent" },
-  NEW: { label: "ใหม่", variant: "accent" },
-  INACTIVE: { label: "ไม่เคลื่อนไหว", variant: "warning" },
+  VIP: { label: "VIP", variant: "default" },
+  REGULAR: { label: "ขาประจำ", variant: "default" },
+  NEW: { label: "ใหม่", variant: "default" },
+  INACTIVE: { label: "ไม่เคลื่อนไหว", variant: "default" },
   WHOLESALE: { label: "ค้าส่ง", variant: "default" },
   RETAIL: { label: "ค้าปลีก", variant: "default" },
 };
@@ -218,7 +222,7 @@ function CustomersPageContent() {
         onRetry={() => refetch()}
         label="ลูกค้า"
         renderDesktop={(customers) => (
-          <DataTable.Root>
+          <DataTable.Root bordered={false} flush>
             <DataTable.Head>
               <tr>
                 <DataTable.Th>ลูกค้า</DataTable.Th>
@@ -236,17 +240,17 @@ function CustomersPageContent() {
                   variant: "default" as const,
                 };
                 return (
-                  <DataTable.Row key={customer.id}>
+                  <DataTable.Row key={customer.id} href={`/customers/${customer.id}`}>
                     <DataTable.Td>
                       <div className="min-w-0">
                         <Link
                           href={`/customers/${customer.id}`}
-                          className="font-medium text-blue-600 hover:underline dark:text-blue-400"
+                          className="font-medium text-strong hover:underline"
                         >
                           {customer.name}
                         </Link>
                         {customer.company && (
-                          <p className="truncate text-xs text-slate-500 dark:text-slate-400">
+                          <p className="truncate text-xs text-muted">
                             {customer.company}
                           </p>
                         )}
@@ -254,24 +258,24 @@ function CustomersPageContent() {
                     </DataTable.Td>
                     <DataTable.Td>
                       {customer.customerType === "CORPORATE" ? (
-                        <span className="text-xs text-slate-600 dark:text-slate-400">นิติบุคคล</span>
+                        <span className="text-xs text-secondary">นิติบุคคล</span>
                       ) : (
-                        <span className="text-xs text-slate-500 dark:text-slate-400">บุคคล</span>
+                        <span className="text-xs text-muted">บุคคล</span>
                       )}
                     </DataTable.Td>
-                    <DataTable.Td className="text-xs text-slate-500 dark:text-slate-400">
+                    <DataTable.Td className="text-xs text-muted">
                       {customer.phone || customer.email || "—"}
                     </DataTable.Td>
                     <DataTable.Td>
                       <Badge variant={seg.variant}>{seg.label}</Badge>
                     </DataTable.Td>
-                    <DataTable.Td align="right" className="tabular-nums text-slate-900 dark:text-white">
+                    <DataTable.Td align="right" className="tabular-nums text-strong">
                       {customer._count.orders}
                     </DataTable.Td>
                     {canSeeMoney && (
                       <DataTable.Td
                         align="right"
-                        className="font-medium tabular-nums text-slate-900 dark:text-white"
+                        className="font-medium tabular-nums text-strong"
                       >
                         {formatCurrency(customer.totalSpent ?? 0)}
                       </DataTable.Td>

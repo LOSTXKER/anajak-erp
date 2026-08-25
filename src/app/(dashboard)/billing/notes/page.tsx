@@ -186,7 +186,7 @@ function BillingNotesPageContent() {
         onRetry={() => refetch()}
         label="ใบวางบิล"
         renderDesktop={(notesList) => (
-          <DataTable.Root>
+          <DataTable.Root bordered={false} flush>
             <DataTable.Head>
               <tr>
                 <DataTable.Th>เลขที่</DataTable.Th>
@@ -203,7 +203,7 @@ function BillingNotesPageContent() {
             <DataTable.Body>
               {notesList.map((note) => (
                 <DataTable.Row key={note.id}>
-                  <DataTable.Td className="font-medium text-slate-900 dark:text-white">
+                  <DataTable.Td className="font-medium text-strong">
                     {note.billingNoteNumber}
                   </DataTable.Td>
                   <DataTable.Td>
@@ -211,16 +211,16 @@ function BillingNotesPageContent() {
                       ? `${note.customer.company} (${note.customer.name})`
                       : note.customer.name}
                   </DataTable.Td>
-                  <DataTable.Td className="text-xs text-slate-500 dark:text-slate-400">
+                  <DataTable.Td className="text-xs text-muted">
                     {formatDate(note.billingDate)}
                   </DataTable.Td>
-                  <DataTable.Td className="text-xs text-slate-500 dark:text-slate-400">
+                  <DataTable.Td className="text-xs text-muted">
                     {note.dueDate ? formatDate(note.dueDate) : "—"}
                   </DataTable.Td>
                   <DataTable.Td align="right" className="tabular-nums">
                     {note._count.items}
                   </DataTable.Td>
-                  <DataTable.Td align="right" className="font-medium tabular-nums text-slate-900 dark:text-white">
+                  <DataTable.Td align="right" className="font-medium tabular-nums text-strong">
                     {formatCurrency(note.totalAmount)}
                   </DataTable.Td>
                   <DataTable.Td align="right" className="tabular-nums">
@@ -271,10 +271,10 @@ function BillingNotesPageContent() {
               <article key={note.id} role="listitem" className="card-surface rounded-lg p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="font-semibold text-slate-900 dark:text-white">
+                    <p className="font-semibold text-strong">
                       {note.billingNoteNumber}
                     </p>
-                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    <p className="mt-1 text-xs text-muted">
                       {note.customer.company || note.customer.name}
                     </p>
                   </div>
@@ -285,26 +285,26 @@ function BillingNotesPageContent() {
                   />
                 </div>
 
-                <dl className="mt-3 grid grid-cols-2 gap-3 border-t border-slate-100 pt-3 text-xs dark:border-slate-800">
+                <dl className="mt-3 grid grid-cols-2 gap-3 border-t border-divider pt-3 text-xs">
                   <div>
-                    <dt className="text-slate-500 dark:text-slate-400">วันที่วางบิล</dt>
-                    <dd className="mt-0.5 text-slate-800 dark:text-slate-200">{formatDate(note.billingDate)}</dd>
+                    <dt className="text-muted">วันที่วางบิล</dt>
+                    <dd className="mt-0.5 text-secondary">{formatDate(note.billingDate)}</dd>
                   </div>
                   <div>
-                    <dt className="text-slate-500 dark:text-slate-400">นัดรับชำระ</dt>
-                    <dd className="mt-0.5 text-slate-800 dark:text-slate-200">
+                    <dt className="text-muted">นัดรับชำระ</dt>
+                    <dd className="mt-0.5 text-secondary">
                       {note.dueDate ? formatDate(note.dueDate) : "ยังไม่กำหนด"}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-slate-500 dark:text-slate-400">ยอดเรียกเก็บ · {note._count.items} ใบ</dt>
-                    <dd className="mt-0.5 font-medium tabular-nums text-slate-900 dark:text-white">
+                    <dt className="text-muted">ยอดเรียกเก็บ · {note._count.items} ใบ</dt>
+                    <dd className="mt-0.5 font-medium tabular-nums text-strong">
                       {formatCurrency(note.totalAmount)}
                     </dd>
                   </div>
                   <div className="text-right">
-                    <dt className="text-slate-500 dark:text-slate-400">คงเหลือจริง</dt>
-                    <dd className="mt-0.5 font-semibold tabular-nums text-slate-900 dark:text-white">
+                    <dt className="text-muted">คงเหลือจริง</dt>
+                    <dd className="mt-0.5 font-semibold tabular-nums text-strong">
                       {note.isVoided ? "—" : formatCurrency(note.currentOutstanding)}
                     </dd>
                   </div>
@@ -406,7 +406,7 @@ function BillingNotesPageContent() {
               // fieldset/legend ไม่ใช่ <Field> — ตัวถูกติดป้ายเป็น "กลุ่ม checkbox" ไม่ใช่ช่องเดี่ยว
               // (label htmlFor ชี้กลุ่มไม่ได้ · เดิมเป็น <p> โปรแกรมอ่านหน้าจอจับคู่ไม่ได้เลย)
               <fieldset>
-                <legend className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                <legend className="mb-1 block text-sm font-medium text-secondary">
                   ใบแจ้งหนี้ค้างชำระ
                 </legend>
                 {/* isError มาก่อน — query พังแล้วโชว์ "ไม่มีใบค้าง" = เลขโกหก คนข้ามใบจริง */}
@@ -422,8 +422,8 @@ function BillingNotesPageContent() {
                     ลูกค้ารายนี้ไม่มีใบแจ้งหนี้ค้างชำระที่วางบิลได้
                   </p>
                 ) : (
-                  <div className="max-h-56 space-y-1.5 overflow-y-auto rounded-lg border border-slate-200 p-2 dark:border-slate-700">
-                    <label className="flex cursor-pointer items-center gap-2 border-b border-slate-100 px-2 pb-1.5 text-sm font-medium dark:border-slate-800">
+                  <div className="max-h-56 space-y-1.5 overflow-y-auto rounded-lg border border-border p-2">
+                    <label className="flex cursor-pointer items-center gap-2 border-b border-divider px-2 pb-1.5 text-sm font-medium">
                       <Checkbox
                         checked={allSelected}
                         onChange={() =>
@@ -447,7 +447,7 @@ function BillingNotesPageContent() {
                             onChange={() => toggleInvoice(inv.id)}
                           />
                           <span>
-                            <span className="font-medium text-slate-900 dark:text-white">
+                            <span className="font-medium text-strong">
                               {inv.invoiceNumber}
                             </span>
                             <span className="ml-1.5 text-xs text-muted group-hover:text-secondary group-active:text-secondary">

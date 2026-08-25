@@ -95,8 +95,8 @@ function MobileItemButton({
           isOn
             ? "font-semibold text-blue-700 dark:text-blue-400"
             : item.count === 0
-              ? "text-slate-500 dark:text-slate-400"
-              : "text-slate-600 dark:text-slate-400",
+              ? "text-muted"
+              : "text-secondary",
         )}
       >
         <span aria-hidden className={cn("h-1.5 w-1.5 shrink-0 rounded-full", item.dotClass)} />
@@ -107,10 +107,10 @@ function MobileItemButton({
           className={cn(
             "shrink-0 text-base font-semibold leading-none tabular-nums",
             item.count === 0
-              ? "font-normal text-slate-500 dark:text-slate-400"
+              ? "font-normal text-muted"
               : isOn
                 ? "text-blue-700 dark:text-blue-400"
-                : "text-slate-900 dark:text-white",
+                : "text-strong",
           )}
         >
           {displayCount(item.count)}
@@ -121,10 +121,10 @@ function MobileItemButton({
             className={cn(
               "text-base font-semibold leading-none tabular-nums",
               item.count === 0
-                ? "font-normal text-slate-500 dark:text-slate-400"
+                ? "font-normal text-muted"
                 : isOn
                   ? "text-blue-700 dark:text-blue-400"
-                  : "text-slate-900 dark:text-white",
+                  : "text-strong",
             )}
           >
             {displayCount(item.count)}
@@ -169,13 +169,13 @@ function DesktopItemButton({
           "block text-lg font-semibold leading-none tabular-nums",
           item.count === 0
             ? cn(
-                "font-normal text-slate-500 dark:text-slate-400",
+                "font-normal text-muted",
                 !isOn &&
                   "group-hover:text-secondary group-active:text-secondary dark:group-hover:text-secondary dark:group-active:text-secondary",
               )
             : isOn
               ? "text-blue-700 dark:text-blue-400"
-              : "text-slate-900 dark:text-white",
+              : "text-strong",
         )}
       >
         {displayCount(item.count)}
@@ -238,7 +238,7 @@ export function FlowFilterBar({
                   <p
                     key={group.label}
                     style={{ gridColumn: `span ${group.keys.length}` }}
-                    className="border-b border-divider pb-1 text-center text-2xs font-semibold text-slate-500 dark:text-slate-400"
+                    className="border-b border-divider pb-1 text-center text-2xs font-semibold text-muted"
                   >
                     {group.label}
                   </p>
@@ -264,7 +264,7 @@ export function FlowFilterBar({
               aria-label={aside.ariaLabel}
               className="w-44 shrink-0"
             >
-              <p className="border-b border-divider pb-1 text-center text-2xs font-semibold text-slate-500 dark:text-slate-400">
+              <p className="border-b border-divider pb-1 text-center text-2xs font-semibold text-muted">
                 {aside.label}
               </p>
               <div className="mt-2 grid grid-cols-2 gap-1.5">
@@ -296,7 +296,7 @@ export function FlowFilterBar({
         </div>
         {aside && aside.items.length > 0 && (
           <div role="group" aria-label={aside.ariaLabel}>
-            <p className="mb-2 px-1 text-2xs font-medium text-slate-500 dark:text-slate-400">
+            <p className="mb-2 px-1 text-2xs font-medium text-muted">
               {aside.label}
             </p>
             <div className="grid grid-cols-2 gap-2">

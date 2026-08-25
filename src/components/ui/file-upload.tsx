@@ -96,7 +96,7 @@ export function FileUpload({
           <img
             src={preview}
             alt="Preview"
-            className="h-32 w-auto rounded-lg border border-slate-200 object-contain dark:border-slate-700"
+            className="h-32 w-auto rounded-lg border border-border object-contain"
           />
           <button
             type="button"
@@ -132,7 +132,7 @@ export function FileUpload({
       )}
 
       {fileName && !preview && (
-        <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+        <div className="flex items-center gap-2 text-sm text-secondary">
           <FileImage className="h-4 w-4" />
           {fileName}
           {uploading && <Spinner size="sm" />}

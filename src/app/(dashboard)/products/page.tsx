@@ -132,7 +132,7 @@ function ProductsPageContent() {
           <span>สต๊อกทดสอบในเครื่อง · ไม่เชื่อม Anajak Stock</span>
         </div>
       ) : syncStatus?.lastSyncAt ? (
-        <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+        <div className="flex items-center gap-2 text-xs text-muted">
           <Cloud className="h-3.5 w-3.5" />
           <span>Sync ล่าสุด: {formatDateTime(syncStatus.lastSyncAt)}</span>
           <span className="text-slate-300 dark:text-slate-600">·</span>
@@ -277,17 +277,17 @@ function ProductsPageContent() {
                   <div className="space-y-1.5 p-3">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
-                        <h3 className="truncate text-sm font-medium text-slate-900 group-hover:text-strong dark:text-white dark:group-hover:text-strong">
+                        <h3 className="truncate text-sm font-medium text-strong">
                           {product.name}
                         </h3>
-                        <p className="truncate text-2xs text-slate-500 dark:text-slate-400">
+                        <p className="truncate text-2xs text-muted">
                           {product.sku} · {typ.label}
                         </p>
                       </div>
                     </div>
 
                     <div className="flex items-center justify-between pt-0.5">
-                      <span className="text-sm font-semibold tabular-nums text-slate-900 dark:text-white">
+                      <span className="text-sm font-semibold tabular-nums text-strong">
                         {(() => {
                           const prices = product.variants
                             ?.map((v) => v.sellingPrice)
@@ -302,9 +302,9 @@ function ProductsPageContent() {
                           return formatCurrency(product.basePrice);
                         })()}
                       </span>
-                      <span className="text-2xs text-slate-500 dark:text-slate-400">
+                      <span className="text-2xs text-muted">
                         สต็อก{" "}
-                        <span className="tabular-nums font-medium text-slate-700 dark:text-slate-300">
+                        <span className="tabular-nums font-medium text-secondary">
                           {product.totalStock ?? 0}
                         </span>
                       </span>

@@ -155,7 +155,7 @@ function DueAndException({ item }: { item: ControlItem }) {
 
 function WorkOrderDesktopRows({ items }: { items: readonly ControlItem[] }) {
   return (
-    <DataTable.Root>
+    <DataTable.Root bordered={false} flush>
       <DataTable.Head>
         <DataTable.Row>
           <DataTable.Th>งานผลิต</DataTable.Th>
@@ -610,7 +610,7 @@ function WorkCentersView({ selectedCode }: { selectedCode: string }) {
 
 function ExceptionDesktopRows({ items }: { items: readonly ExceptionItem[] }) {
   return (
-    <DataTable.Root>
+    <DataTable.Root bordered={false} flush>
       <DataTable.Head>
         <DataTable.Row>
           <DataTable.Th>ปัญหา</DataTable.Th>

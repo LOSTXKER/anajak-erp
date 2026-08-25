@@ -107,16 +107,16 @@ export function OrderGoodsReceiptSection({
             return (
               <div
                 key={r.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-100 px-3 py-2 dark:border-slate-800"
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-divider px-3 py-2"
               >
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-slate-900 dark:text-white">
+                  <p className="text-sm font-medium text-strong">
                     {RECEIPT_TYPE_LABELS[r.receiptType as ReceiptType] ?? r.receiptType}
                     <span className="ml-2 text-xs font-normal tabular-nums text-muted">
                       {counted} ตัว
                     </span>
                   </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                  <p className="text-xs text-muted">
                     {formatDate(r.receivedAt)} · {r.receivedBy.name}
                     {r.notes ? ` · ${r.notes}` : ""}
                   </p>

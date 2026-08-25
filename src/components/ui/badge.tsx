@@ -9,39 +9,35 @@ import { cn } from "@/lib/utils";
  * working but they all map to muted neutral / semantic tones — no rainbow.
  */
 const badgeVariants = cva(
-  "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full font-medium transition-colors",
+  // ป้ายเป็น "วงแหวนบาง + ตัวหนังสือสี" ไม่ใช่แคปซูลพื้นสี (UI-2026 เฟส 3 · เบสเคาะจาก mockup)
+  //
+  // ทำไม: ป้ายถูกเรียกใช้ 99 จุดทั่วเว็บ ในตารางเดียวจึงมีแคปซูลพื้นสีเรียงกันหลายใบ
+  // จนกลายเป็นพรมสี — พอทุกอย่างมีสี ก็ไม่มีอะไรเด่น และของที่ควรสะดุดตาจริง
+  // (เลยกำหนด/ค้างชำระ) แข่งไม่ขึ้น · เอาพื้นออกเหลือวงแหวน สีเลยกลับมาทำงาน
+  //
+  // ใช้ ring แทน border เพื่อไม่ให้ขนาดป้ายขยับ (border กินพื้นที่ layout)
+  // มุม 6px ตามบันไดของชิ้นเล็ก — rounded-full สงวนไว้ให้ชิปกรองเท่านั้น
+  "inline-flex items-center gap-1.5 whitespace-nowrap rounded-md font-medium ring-1 ring-inset transition-colors",
   {
     variants: {
       variant: {
-        default:
-          "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
-        accent:
-          "bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300",
-        success:
-          "bg-green-50 text-green-700 dark:bg-green-950/50 dark:text-green-300",
-        warning:
-          "bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300",
-        destructive:
-          "bg-red-50 text-red-700 dark:bg-red-950/50 dark:text-red-300",
-        outline:
-          "border border-slate-200 bg-transparent text-slate-700 dark:border-slate-700 dark:text-slate-300",
-        // Aliases — same as default to keep palette small
-        secondary:
-          "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
-        purple:
-          "bg-module-finance-surface text-module-finance-text",
-        indigo:
-          "bg-module-finance-surface text-module-finance-text",
-        orange:
-          "bg-module-product-surface text-module-product-text",
-        teal:
-          "bg-module-production-surface text-module-production-text",
-        cyan:
-          "bg-module-production-surface text-module-production-text",
+        default: "bg-transparent text-secondary ring-border",
+        accent: "bg-transparent text-blue-700 ring-blue-600/30 dark:text-blue-300 dark:ring-blue-400/30",
+        success: "bg-transparent text-green-700 ring-green-600/30 dark:text-green-300 dark:ring-green-400/30",
+        warning: "bg-transparent text-amber-700 ring-amber-600/35 dark:text-amber-300 dark:ring-amber-400/30",
+        destructive: "bg-transparent text-red-700 ring-red-600/30 dark:text-red-300 dark:ring-red-400/30",
+        outline: "bg-transparent text-secondary ring-border",
+        // Aliases — คงชื่อไว้ให้หน้าเดิมไม่พัง แต่ยุบให้เหลือความหมายเดียว
+        secondary: "bg-transparent text-secondary ring-border",
+        purple: "bg-transparent text-module-finance-text ring-module-finance-border",
+        indigo: "bg-transparent text-module-finance-text ring-module-finance-border",
+        orange: "bg-transparent text-module-product-text ring-module-product-border",
+        teal: "bg-transparent text-module-production-text ring-module-production-border",
+        cyan: "bg-transparent text-module-production-text ring-module-production-border",
       },
       size: {
         sm: "px-2 py-0 text-xs",
-        md: "px-2.5 py-0.5 text-xs",
+        md: "px-2 py-0.5 text-xs",
       },
     },
     defaultVariants: {

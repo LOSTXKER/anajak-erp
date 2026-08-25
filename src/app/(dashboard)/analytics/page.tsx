@@ -85,7 +85,7 @@ export default function AnalyticsPage() {
                       <span className="text-xs text-muted">
                         {item.month}
                       </span>
-                      <span className="font-medium tabular-nums text-slate-900 dark:text-white">
+                      <span className="font-medium tabular-nums text-strong">
                         {formatCurrency(item.revenue)}
                         <span className="ml-1 text-xs font-normal text-slate-400">
                           ({item.orders} ออเดอร์)

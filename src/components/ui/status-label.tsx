@@ -55,15 +55,15 @@ export function StatusLabel({
         className={cn(
           "inline-flex items-center gap-1.5 whitespace-nowrap text-xs font-medium",
           emphasize
-            ? (EMPHASIS_TEXT[tone] ?? "text-slate-800 dark:text-slate-200")
-            : "text-slate-800 dark:text-slate-200",
+            ? (EMPHASIS_TEXT[tone] ?? "text-secondary")
+            : "text-secondary",
         )}
       >
         <span aria-hidden className={cn("h-2 w-2 shrink-0 rounded-full", DOT[tone])} />
         {label}
       </span>
       {showSub && (
-        <span className={cn("pl-3 text-2xs text-slate-500 dark:text-slate-400", subClassName)}>
+        <span className={cn("pl-3 text-2xs text-muted", subClassName)}>
           {sub}
         </span>
       )}

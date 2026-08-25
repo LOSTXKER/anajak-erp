@@ -17,6 +17,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
 import { QUOTATION_STATUS_LABELS, QUOTATION_STATUS_VARIANTS } from "@/lib/status-config";
 import type { QuotationStatus } from "@/lib/quotation-status";
+import { DISPLAY_AMOUNT } from "@/components/ui/tokens";
 import { PageHeader } from "@/components/page-header";
 import {
   Share2,
@@ -437,7 +438,7 @@ export default function QuotationDetailPage({
                           {index + 1}
                         </DataTable.Td>
                         <DataTable.Td>
-                          <p className="text-sm font-medium text-slate-900 dark:text-white">
+                          <p className="text-sm font-medium text-strong">
                             {item.name}
                           </p>
                           {item.description && (
@@ -446,16 +447,16 @@ export default function QuotationDetailPage({
                             </p>
                           )}
                         </DataTable.Td>
-                        <DataTable.Td align="right" className="tabular-nums text-slate-900 dark:text-white">
+                        <DataTable.Td align="right" className="tabular-nums text-strong">
                           {item.quantity}
                         </DataTable.Td>
                         <DataTable.Td className="text-muted">
                           {item.unit}
                         </DataTable.Td>
-                        <DataTable.Td align="right" className="tabular-nums text-slate-900 dark:text-white">
+                        <DataTable.Td align="right" className="tabular-nums text-strong">
                           {formatCurrency(item.unitPrice)}
                         </DataTable.Td>
-                        <DataTable.Td align="right" className="tabular-nums font-medium text-slate-900 dark:text-white">
+                        <DataTable.Td align="right" className="tabular-nums font-medium text-strong">
                           {formatCurrency(item.totalPrice)}
                         </DataTable.Td>
                       </DataTable.Row>
@@ -465,10 +466,10 @@ export default function QuotationDetailPage({
               </DataTable.Root>
 
               {/* Price breakdown */}
-              <div className="mt-4 space-y-2 border-t border-slate-100 pt-4 dark:border-slate-800">
+              <div className="mt-4 space-y-2 border-t border-divider pt-4">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted">ยอดรวมสินค้า</span>
-                  <span className="tabular-nums text-slate-900 dark:text-white">
+                  <span className="tabular-nums text-strong">
                     {formatCurrency(subtotal)}
                   </span>
                 </div>
@@ -483,16 +484,16 @@ export default function QuotationDetailPage({
                 {taxAmount > 0 && (
                   <div className="flex justify-between text-sm">
                     <span className="text-muted">ภาษี</span>
-                    <span className="tabular-nums text-slate-900 dark:text-white">
+                    <span className="tabular-nums text-strong">
                       +{formatCurrency(taxAmount)}
                     </span>
                   </div>
                 )}
-                <div className="flex justify-between border-t border-slate-200 pt-3 dark:border-slate-700">
-                  <span className="text-base font-semibold text-slate-900 dark:text-white">
+                <div className="flex justify-between border-t border-border pt-3">
+                  <span className="text-base font-semibold text-strong">
                     ยอดรวมทั้งหมด
                   </span>
-                  <span className="tabular-nums text-lg font-semibold text-blue-600 dark:text-blue-400">
+                  <span className={DISPLAY_AMOUNT}>
                     {formatCurrency(totalAmount)}
                   </span>
                 </div>
@@ -514,7 +515,7 @@ export default function QuotationDetailPage({
                     <p className="mb-1 text-xs font-medium text-slate-400">
                       รายละเอียด
                     </p>
-                    <p className="whitespace-pre-wrap text-slate-700 dark:text-slate-300">
+                    <p className="whitespace-pre-wrap text-secondary">
                       {quotation.description}
                     </p>
                   </div>
@@ -524,7 +525,7 @@ export default function QuotationDetailPage({
                     <p className="mb-1 text-xs font-medium text-slate-400">
                       เงื่อนไข
                     </p>
-                    <p className="whitespace-pre-wrap text-slate-700 dark:text-slate-300">
+                    <p className="whitespace-pre-wrap text-secondary">
                       {quotation.terms}
                     </p>
                   </div>
@@ -534,7 +535,7 @@ export default function QuotationDetailPage({
                     <p className="mb-1 text-xs font-medium text-slate-400">
                       หมายเหตุ
                     </p>
-                    <p className="whitespace-pre-wrap text-slate-700 dark:text-slate-300">
+                    <p className="whitespace-pre-wrap text-secondary">
                       {quotation.notes}
                     </p>
                   </div>
@@ -608,14 +609,14 @@ export default function QuotationDetailPage({
               </div>
               <div className="flex justify-between">
                 <span className="text-muted">วันที่สร้าง</span>
-                <span className="text-slate-900 dark:text-white">
+                <span className="text-strong">
                   {formatDate(quotation.createdAt)}
                 </span>
               </div>
               {quotation.validUntil && (
                 <div className="flex justify-between">
                   <span className="text-muted">ใช้ได้ถึง</span>
-                  <span className="font-medium text-slate-900 dark:text-white">
+                  <span className="font-medium text-strong">
                     {formatDate(quotation.validUntil)}
                   </span>
                 </div>
@@ -623,7 +624,7 @@ export default function QuotationDetailPage({
               {quotation.sentAt && (
                 <div className="flex justify-between">
                   <span className="text-muted">ส่งเมื่อ</span>
-                  <span className="text-slate-900 dark:text-white">
+                  <span className="text-strong">
                     {formatDateTime(quotation.sentAt)}
                   </span>
                 </div>
@@ -631,7 +632,7 @@ export default function QuotationDetailPage({
               {quotation.acceptedAt && (
                 <div className="flex justify-between">
                   <span className="text-muted">อนุมัติเมื่อ</span>
-                  <span className="text-slate-900 dark:text-white">
+                  <span className="text-strong">
                     {formatDateTime(quotation.acceptedAt)}
                   </span>
                 </div>
@@ -639,13 +640,13 @@ export default function QuotationDetailPage({
               {quotation.rejectedAt && (
                 <div className="flex justify-between">
                   <span className="text-muted">ปฏิเสธเมื่อ</span>
-                  <span className="text-slate-900 dark:text-white">
+                  <span className="text-strong">
                     {formatDateTime(quotation.rejectedAt)}
                   </span>
                 </div>
               )}
               {quotation.rejectedReason && (
-                <div className="border-t border-slate-100 pt-3 dark:border-slate-800">
+                <div className="border-t border-divider pt-3">
                   <p className="mb-1 text-xs text-slate-400">เหตุผลที่ปฏิเสธ</p>
                   <p className="text-muted">{quotation.rejectedReason}</p>
                 </div>
@@ -653,7 +654,7 @@ export default function QuotationDetailPage({
               {quotation.createdBy && (
                 <div className="flex justify-between">
                   <span className="text-muted">สร้างโดย</span>
-                  <span className="text-slate-900 dark:text-white">
+                  <span className="text-strong">
                     {quotation.createdBy.name}
                   </span>
                 </div>
@@ -661,7 +662,7 @@ export default function QuotationDetailPage({
               {quotation.updatedAt && (
                 <div className="flex justify-between">
                   <span className="text-muted">แก้ไขล่าสุด</span>
-                  <span className="text-slate-900 dark:text-white">
+                  <span className="text-strong">
                     {formatDateTime(quotation.updatedAt)}
                   </span>
                 </div>

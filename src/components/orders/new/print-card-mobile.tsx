@@ -53,7 +53,7 @@ export function PrintCardMobile({
   } = usePrintRow(print, onUpdate);
 
   return (
-    <div className={cn(RADIUS.inner, "space-y-3 border border-slate-200 p-3 dark:border-slate-700/60")}>
+    <div className={cn(RADIUS.inner, "space-y-3 border border-border p-3/60")}>
       <div className="flex items-center gap-2">
         <input
           ref={inputRef}
@@ -75,7 +75,7 @@ export function PrintCardMobile({
               <img
                 src={imageUrl}
                 alt={`ลาย ${printIdx + 1}`}
-                className={cn(RADIUS.item, "h-11 w-11 border border-slate-200 object-cover dark:border-slate-700")}
+                className={cn(RADIUS.item, "h-11 w-11 border border-border object-cover")}
               />
             </button>
             <ImageRemoveButton
@@ -206,10 +206,10 @@ export function PrintCardMobile({
           </Field>
         ) : (
           <div className="space-y-2">
-            <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+            <p className="text-sm font-medium text-secondary">
               กว้าง × สูง (ซม.)
             </p>
-            <p className={cn(CONTROL_H, "flex items-center text-sm tabular-nums text-slate-500 dark:text-slate-400")}>
+            <p className={cn(CONTROL_H, "flex items-center text-sm tabular-nums text-muted")}>
               {sizePreset ? `${sizePreset.width} × ${sizePreset.height}` : "—"}
             </p>
           </div>

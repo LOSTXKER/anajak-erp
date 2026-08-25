@@ -189,7 +189,7 @@ export default function SalesTaxReportPage() {
         renderDesktop={(items) => (
           // พื้นที่หลังหัก sidebar ที่ช่วง tablet ไม่พอสำหรับ 9 คอลัมน์ —
           // ล็อกความกว้างขั้นต่ำให้ตารางเลื่อนข้างแทนการบีบคอลัมน์
-          <DataTable.Root className="[&_table]:min-w-[880px]">
+          <DataTable.Root bordered={false} flush className="[&_table]:min-w-[880px]">
             <DataTable.Head>
               <tr>
                 <DataTable.Th>#</DataTable.Th>
@@ -269,7 +269,7 @@ export default function SalesTaxReportPage() {
             </DataTable.Body>
             {summary && (
               <tfoot>
-                <tr className="border-t border-slate-200 font-semibold dark:border-slate-700">
+                <tr className="border-t border-border font-semibold">
                   <DataTable.Td colSpan={6} align="right">
                     รวมงวด {periodLabel} ({summary.docCount} ฉบับ
                     {summary.voidedCount > 0 ? ` · ยกเลิก ${summary.voidedCount}` : ""})
@@ -299,7 +299,7 @@ export default function SalesTaxReportPage() {
                       className={`font-medium ${
                         r.isVoided
                           ? "text-slate-400 line-through"
-                          : "text-slate-900 dark:text-white"
+                          : "text-strong"
                       }`}
                     >
                       {r.invoiceNumber}
@@ -310,37 +310,37 @@ export default function SalesTaxReportPage() {
                       </Badge>
                     )}
                   </div>
-                  <p className="mt-1 text-xs tabular-nums text-slate-500 dark:text-slate-400">
+                  <p className="mt-1 text-xs tabular-nums text-muted">
                     {formatThaiDateBE(r.date)} · {SALES_TAX_DOC_LABELS[r.docType]}
                   </p>
                 </div>
 
                 <div className={`mt-3 ${r.isVoided ? "text-slate-400 line-through" : ""}`}>
                   <p className="text-sm font-medium">{r.customerName}</p>
-                  <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                  <p className="mt-0.5 text-xs text-muted">
                     เลขผู้เสียภาษี {r.taxId || "—"}
                     {r.branch && ` · ${r.branch}`}
                   </p>
                   {r.note && (
-                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{r.note}</p>
+                    <p className="mt-1 text-xs text-muted">{r.note}</p>
                   )}
                 </div>
 
                 <dl
-                  className={`mt-3 grid grid-cols-3 gap-2 border-t border-slate-100 pt-3 text-right dark:border-slate-800 ${
+                  className={`mt-3 grid grid-cols-3 gap-2 border-t border-divider pt-3 text-right ${
                     r.isVoided ? "text-slate-400 line-through" : ""
                   }`}
                 >
                   <div className="min-w-0">
-                    <dt className="text-xs text-slate-500 dark:text-slate-400">ฐานภาษี</dt>
+                    <dt className="text-xs text-muted">ฐานภาษี</dt>
                     <dd className="mt-0.5 text-sm tabular-nums">{r.base.toFixed(2)}</dd>
                   </div>
                   <div className="min-w-0">
-                    <dt className="text-xs text-slate-500 dark:text-slate-400">VAT</dt>
+                    <dt className="text-xs text-muted">VAT</dt>
                     <dd className="mt-0.5 text-sm tabular-nums">{r.vat.toFixed(2)}</dd>
                   </div>
                   <div className="min-w-0">
-                    <dt className="text-xs text-slate-500 dark:text-slate-400">รวม</dt>
+                    <dt className="text-xs text-muted">รวม</dt>
                     <dd className="mt-0.5 text-sm font-medium tabular-nums">{r.total.toFixed(2)}</dd>
                   </div>
                 </dl>

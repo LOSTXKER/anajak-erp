@@ -294,7 +294,7 @@ function TaskRow({ item, urgent }: { item: TaskListItem; urgent?: boolean }) {
       >
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="min-w-0 truncate text-sm font-medium text-slate-900 dark:text-white">
+            <p className="min-w-0 truncate text-sm font-medium text-strong">
               {item.title}
             </p>
             {attention && (
@@ -306,11 +306,11 @@ function TaskRow({ item, urgent }: { item: TaskListItem; urgent?: boolean }) {
             )}
           </div>
           {item.description && (
-            <p className="truncate text-xs text-slate-600 dark:text-slate-300">
+            <p className="truncate text-xs text-secondary">
               {item.description}
             </p>
           )}
-          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-600 dark:text-slate-300">
+          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-secondary">
             {/* ป้ายสถานะของงานอยู่ในแถว meta (flex-wrap) เพื่อให้เห็นทุกขนาดจอ — ห้ามซ่อนบนมือถือ */}
             {item.badge && (
               <StatusLabel
@@ -356,7 +356,7 @@ function TaskGroupCard({ group }: { group: TaskGroup }) {
         group.id === "attention" && "border border-red-200 dark:border-red-900"
       )}
     >
-      <div className="flex items-start gap-3 border-b border-slate-100 px-4 py-3 dark:border-slate-800">
+      <div className="flex items-start gap-3 border-b border-divider px-4 py-3">
         <div
           className={cn(
             "mt-0.5 rounded-lg p-2",
@@ -369,23 +369,23 @@ function TaskGroupCard({ group }: { group: TaskGroup }) {
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold text-slate-900 dark:text-white">{group.title}</h2>
+            <h2 className="text-sm font-semibold text-strong">{group.title}</h2>
             <Badge variant={group.id === "attention" ? "destructive" : "default"} size="sm">
               {group.items.length}
             </Badge>
           </div>
           {group.description && (
-            <p className="text-xs text-slate-600 dark:text-slate-300">{group.description}</p>
+            <p className="text-xs text-secondary">{group.description}</p>
           )}
         </div>
       </div>
-      <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+      <ul className="divide-y divide-divider">
         {visible.map((item) => (
           <TaskRow key={item.key} item={item} urgent={group.id === "attention"} />
         ))}
       </ul>
       {group.items.length > 5 && (
-        <div className="border-t border-slate-100 p-2 dark:border-slate-800">
+        <div className="border-t border-divider p-2">
           <Button
             type="button"
             variant="ghost"

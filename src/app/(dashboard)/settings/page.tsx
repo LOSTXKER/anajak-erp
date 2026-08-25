@@ -201,10 +201,10 @@ export default function SettingsPage() {
                     <link.icon className="h-4 w-4" strokeWidth={1.75} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-slate-900 dark:text-white">
+                    <p className="truncate text-sm font-medium text-strong">
                       {link.title}
                     </p>
-                    <p className="truncate text-xs text-slate-500 dark:text-slate-400">
+                    <p className="truncate text-xs text-muted">
                       {link.meta}
                     </p>
                   </div>

@@ -95,7 +95,7 @@ export default function BackupSettingsPage() {
           {last && (
             <p className="text-sm text-muted">
               สำรองครั้งล่าสุด:{" "}
-              <span className="font-medium text-slate-900 dark:text-white">
+              <span className="font-medium text-strong">
                 {formatDateTime(last.createdAt)}
               </span>{" "}
               โดย {last.user?.name ?? "-"}

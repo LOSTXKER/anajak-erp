@@ -301,7 +301,7 @@ function WhtRegisterPageContent() {
           )
         }
         renderDesktop={(items) => (
-          <DataTable.Root>
+          <DataTable.Root bordered={false} flush>
             <DataTable.Head>
               <tr>
                 <DataTable.Th>วันที่รับเงิน</DataTable.Th>
@@ -319,15 +319,15 @@ function WhtRegisterPageContent() {
             <DataTable.Body>
               {items.map((row) => (
                 <DataTable.Row key={row.id}>
-                  <DataTable.Td className="text-xs tabular-nums text-slate-500 dark:text-slate-400">
+                  <DataTable.Td className="text-xs tabular-nums text-muted">
                     {formatDate(row.payment.createdAt)}
                   </DataTable.Td>
                   <DataTable.Td>
-                    <p className="font-medium text-slate-900 dark:text-white">
+                    <p className="font-medium text-strong">
                       {row.customer.name}
                     </p>
                     {row.customer.taxId && (
-                      <p className="text-xs tabular-nums text-slate-500 dark:text-slate-400">
+                      <p className="text-xs tabular-nums text-muted">
                         {row.customer.taxId}
                       </p>
                     )}
@@ -354,7 +354,7 @@ function WhtRegisterPageContent() {
                   </DataTable.Td>
                   <DataTable.Td
                     align="right"
-                    className="font-semibold tabular-nums text-slate-900 dark:text-white"
+                    className="font-semibold tabular-nums text-strong"
                   >
                     {formatCurrency(row.amount)}
                   </DataTable.Td>
@@ -418,11 +418,11 @@ function WhtRegisterPageContent() {
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">
+                    <p className="truncate text-sm font-semibold text-strong">
                       {row.customer.name}
                     </p>
                     {row.customer.taxId && (
-                      <p className="text-xs tabular-nums text-slate-500 dark:text-slate-400">
+                      <p className="text-xs tabular-nums text-muted">
                         {row.customer.taxId}
                       </p>
                     )}
@@ -452,19 +452,19 @@ function WhtRegisterPageContent() {
                       <StatusLabel label="บิลยกเลิก" tone="danger" emphasize />
                     )}
                   </div>
-                  <span className="shrink-0 text-xs tabular-nums text-slate-500 dark:text-slate-400">
+                  <span className="shrink-0 text-xs tabular-nums text-muted">
                     รับเงิน {formatDate(row.payment.createdAt)}
                   </span>
                 </div>
 
-                <p className="mt-1.5 text-sm tabular-nums text-slate-600 dark:text-slate-300">
+                <p className="mt-1.5 text-sm tabular-nums text-secondary">
                   ฐาน {formatCurrency(row.baseAmount)} × {row.ratePct}% = หัก{" "}
-                  <span className="font-semibold text-slate-900 dark:text-white">
+                  <span className="font-semibold text-strong">
                     {formatCurrency(row.amount)}
                   </span>
                 </p>
                 {row.received && row.certNumber && (
-                  <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                  <p className="mt-0.5 text-xs text-muted">
                     เลขใบ {row.certNumber}
                   </p>
                 )}
@@ -527,7 +527,7 @@ function WhtRegisterPageContent() {
             </div>
 
             <div className="space-y-2">
-              <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+              <p className="text-sm font-medium text-secondary">
                 แนบสแกนหนังสือรับรอง (ถ้ามี)
               </p>
               {fileUrl && (

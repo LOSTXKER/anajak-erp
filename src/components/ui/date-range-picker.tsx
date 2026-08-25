@@ -268,7 +268,7 @@ export function DateRangePicker({
             })}
           </div>
 
-          <div className="mb-2 flex items-center justify-between border-t border-slate-200 pt-3 dark:border-slate-800">
+          <div className="mb-2 flex items-center justify-between border-t border-border pt-3">
             <button
               type="button"
               aria-label="เดือนก่อนหน้า"

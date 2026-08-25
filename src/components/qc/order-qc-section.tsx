@@ -118,7 +118,7 @@ export function OrderQcSection({ orderId, internalStatus, canCount }: OrderQcSec
             ))}
         </div>
         {rounds.length > 0 && (
-          <p className="text-xs text-slate-500 dark:text-slate-400">
+          <p className="text-xs text-muted">
             ตรวจแล้ว {rounds.length} รอบ · ดี {totalGood} ตัว · เสีย {totalDefect} ตัว
             {latestReasons ? ` · รอบล่าสุดเสีย: ${latestReasons}` : ""}
           </p>
@@ -134,19 +134,19 @@ export function OrderQcSection({ orderId, internalStatus, canCount }: OrderQcSec
             return (
               <div
                 key={r.id}
-                className="rounded-lg border border-slate-100 dark:border-slate-800"
+                className="rounded-lg border border-divider"
               >
                 <div
                   className="flex min-h-11 w-full flex-wrap items-center justify-between gap-2 px-3 py-2 text-left"
                 >
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-slate-900 dark:text-white">
+                    <p className="text-sm font-medium text-strong">
                       ตรวจรอบที่ {rounds.length - idx}
                       <span className="ml-2 text-xs font-normal tabular-nums text-muted">
                         ดี {r.qtyGood} · เสีย {r.qtyDefect}
                       </span>
                     </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                    <p className="text-xs text-muted">
                       {formatDate(r.checkedAt)} · {r.checkedBy.name}
                       {r.notes ? ` · ${r.notes}` : ""}
                     </p>
@@ -163,7 +163,7 @@ export function OrderQcSection({ orderId, internalStatus, canCount }: OrderQcSec
                     )}
                   </div>
                 </div>
-                  <div className="space-y-2 border-t border-slate-100 px-3 py-2 dark:border-slate-800">
+                  <div className="space-y-2 border-t border-divider px-3 py-2">
                     {r.defects.length === 0 ? (
                       <p className="text-xs text-slate-400">ไม่มีของเสียในรอบนี้</p>
                     ) : (
@@ -188,7 +188,7 @@ export function OrderQcSection({ orderId, internalStatus, canCount }: OrderQcSec
                             )}
                           </p>
                           {d.note && (
-                            <p className="text-xs text-slate-500 dark:text-slate-400">{d.note}</p>
+                            <p className="text-xs text-muted">{d.note}</p>
                           )}
                           {d.photoUrls.length > 0 && (
                             <div className="flex flex-wrap gap-1.5">
@@ -643,8 +643,8 @@ function QcCountForm({
           ) : (
             <div className="flex items-center justify-between gap-3 rounded-lg border border-border p-3">
               <div className="min-w-0">
-                <p className="text-sm font-medium text-slate-900 dark:text-white">ของดี (ตัว)</p>
-                <p id="qc-good-remaining" className="text-xs tabular-nums text-slate-500 dark:text-slate-400">
+                <p className="text-sm font-medium text-strong">ของดี (ตัว)</p>
+                <p id="qc-good-remaining" className="text-xs tabular-nums text-muted">
                   {qtyGoodOverLimit
                     ? `กรอกเกินยอดที่เหลือ — นับของดีได้ไม่เกิน ${remaining} ตัว`
                     : `เหลือที่ยังไม่ผ่านตรวจ ${remaining} ตัว`}
@@ -676,7 +676,7 @@ function QcCountForm({
               className={cn(TINT.warning, "space-y-2 rounded-lg border p-3")}
             >
               <div className="flex items-center justify-between gap-2">
-                <p className="text-sm font-medium text-slate-900 dark:text-white">
+                <p className="text-sm font-medium text-strong">
                   ของเสีย #{idx + 1}
                 </p>
                 <Button

@@ -372,7 +372,7 @@ export function LegacyOutsourcePage({
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                      <h3 className="break-words text-sm font-medium text-slate-900 dark:text-white">
+                      <h3 className="break-words text-sm font-medium text-strong">
                         <Link
                           href={`/orders/${o.productionStep.production.orderId}`}
                           className="inline-flex min-h-11 touch-manipulation items-center text-blue-700 hover:underline sm:min-h-0 dark:text-blue-300"
@@ -381,7 +381,7 @@ export function LegacyOutsourcePage({
                         </Link>{" "}
                         — {o.description}
                       </h3>
-                      <p className="mt-1 text-xs leading-relaxed text-slate-600 dark:text-slate-300">
+                      <p className="mt-1 text-xs leading-relaxed text-secondary">
                         {o.vendor.name} · {o.quantity} ชิ้น · {order.customer.name}
                       </p>
                     </div>
@@ -396,7 +396,7 @@ export function LegacyOutsourcePage({
                     />
                   </div>
 
-                  <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+                  <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
                     {o.sentAt && <span>ส่ง {formatDate(o.sentAt)}</span>}
                     {o.expectedBackAt && (
                       <span
@@ -413,7 +413,7 @@ export function LegacyOutsourcePage({
                     {o.receivedAt && <span>รับกลับ {formatDate(o.receivedAt)}</span>}
                   </div>
                   {o.qcNotes && (
-                    <p className="mt-2 break-words text-xs text-slate-600 dark:text-slate-300">
+                    <p className="mt-2 break-words text-xs text-secondary">
                       <span className="font-medium">ผลตรวจรับ:</span> {o.qcNotes}
                     </p>
                   )}
@@ -428,7 +428,7 @@ export function LegacyOutsourcePage({
                   )}
 
                   {hasActions && (
-                    <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-3 dark:border-slate-800">
+                    <div className="mt-4 flex flex-wrap gap-2 border-t border-divider pt-3">
                       {actions.canMarkSent && (
                         <Button
                           size="sm"

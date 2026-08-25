@@ -181,7 +181,7 @@ export function CustomMadeDetail({
                   <img
                     src={selectedPattern.thumbnailUrl}
                     alt={selectedPattern.name}
-                    className="h-16 w-16 flex-shrink-0 rounded border border-slate-200 object-cover dark:border-slate-700"
+                    className="h-16 w-16 flex-shrink-0 rounded border border-border object-cover"
                   />
                 )}
                 <div className="min-w-0 text-xs">
@@ -190,9 +190,9 @@ export function CustomMadeDetail({
                     <span className="block text-muted">{selectedPattern.description}</span>
                   )}
                   <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-slate-400">
-                    {selectedPattern.collarType && <span>คอ: <span className="text-slate-600 dark:text-slate-300">{COLLAR_TYPES[selectedPattern.collarType] || selectedPattern.collarType}</span></span>}
-                    {selectedPattern.sleeveType && <span>แขน: <span className="text-slate-600 dark:text-slate-300">{SLEEVE_TYPES[selectedPattern.sleeveType] || selectedPattern.sleeveType}</span></span>}
-                    {selectedPattern.bodyFit && <span>ทรง: <span className="text-slate-600 dark:text-slate-300">{BODY_FITS[selectedPattern.bodyFit] || selectedPattern.bodyFit}</span></span>}
+                    {selectedPattern.collarType && <span>คอ: <span className="text-secondary">{COLLAR_TYPES[selectedPattern.collarType] || selectedPattern.collarType}</span></span>}
+                    {selectedPattern.sleeveType && <span>แขน: <span className="text-secondary">{SLEEVE_TYPES[selectedPattern.sleeveType] || selectedPattern.sleeveType}</span></span>}
+                    {selectedPattern.bodyFit && <span>ทรง: <span className="text-secondary">{BODY_FITS[selectedPattern.bodyFit] || selectedPattern.bodyFit}</span></span>}
                   </div>
                 </div>
               </div>

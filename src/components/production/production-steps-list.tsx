@@ -114,7 +114,7 @@ export function ProductionStepsList({
                   : "flex items-center gap-2 px-0.5"
               }
             >
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+              <span className="text-xs font-semibold text-muted">
                 {LANE_LABELS[lane]}
               </span>
               {OUTSOURCE_LANES.has(lane) && (
@@ -122,7 +122,7 @@ export function ProductionStepsList({
                   ร้านนอก
                 </Badge>
               )}
-              <span className="ml-auto text-xs tabular-nums text-slate-500 dark:text-slate-400">
+              <span className="ml-auto text-xs tabular-nums text-muted">
                 {done}/{laneSteps.length}
               </span>
             </div>
@@ -297,7 +297,7 @@ function StepRow({
         // ขั้นที่ถึงคิว = กรอบ accent จางๆ นำสายตาโดยไม่ต้องอ่านทีละแถว
         !readOnly && isLaneNext && step.status !== "COMPLETED"
           ? "border-blue-200 dark:border-blue-900"
-          : "border-slate-200 dark:border-slate-700"
+          : "border-border"
       }`}
     >
       <div
@@ -323,7 +323,7 @@ function StepRow({
       </div>
 
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium text-slate-900 dark:text-white">
+        <p className="text-sm font-medium text-strong">
           {step.customStepName || STEP_TYPE_LABELS[step.stepType] || step.stepType}
           {/* บอก "บางส่วน" ได้ — ทำแล้ว/ทั้งหมด (โชว์เมื่อขั้นนับจำนวน) */}
           {step.qtyTotal !== null && step.qtyTotal > 0 && (
@@ -331,7 +331,7 @@ function StepRow({
               className={`ml-2 text-xs font-normal tabular-nums ${
                 step.qtyDone >= step.qtyTotal
                   ? "text-green-600 dark:text-green-400"
-                  : "text-slate-500 dark:text-slate-400"
+                  : "text-muted"
               }`}
             >
               {step.qtyDone}/{step.qtyTotal}

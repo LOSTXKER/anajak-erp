@@ -256,12 +256,12 @@ function Group({
     <div
       className={cn(
         "space-y-3",
-        divided && "border-t border-slate-100 pt-4 dark:border-slate-800",
+        divided && "border-t border-divider pt-4",
         className,
       )}
     >
       {label && (
-        <p className="text-2xs font-semibold text-slate-500 dark:text-slate-400">
+        <p className="text-2xs font-semibold text-muted">
           {label}
         </p>
       )}

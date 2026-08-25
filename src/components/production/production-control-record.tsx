@@ -26,29 +26,36 @@ import {
   type GarmentControlEvidence,
   type ProductionControlTone,
 } from "@/lib/production-control";
+import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { mockupCoverImage, mockupImageCount } from "@/lib/mockup";
 import { productionWorkflowSteps } from "@/lib/production-steps";
 import { cn, formatDate, formatDateTime } from "@/lib/utils";
 
-const TONE_CLASS: Record<ProductionControlTone, string> = {
-  danger: "bg-red-50 text-red-700 dark:bg-red-950/45 dark:text-red-300",
-  warning: "bg-amber-50 text-amber-800 dark:bg-amber-950/45 dark:text-amber-200",
-  active: "bg-blue-50 text-blue-700 dark:bg-blue-950/45 dark:text-blue-300",
-  success: "bg-green-50 text-green-700 dark:bg-green-950/45 dark:text-green-300",
-  neutral: "bg-surface-muted text-secondary",
+/* ป้ายสถานะของหน้าผลิตเคยเป็นแคปซูลพื้นสีที่เขียนสูตรเองในไฟล์นี้ — ทำให้ทั้งเว็บ
+   พูดสถานะ 3 ภาษาพร้อมกัน (จุดสี+ข้อความ · <Badge> · แคปซูลตัวนี้)
+   ตอนนี้ยืมภาษาเดียวกับที่เหลือ: วงแหวนบาง + จุดสี ไม่มีพื้นสี (UI-2026 เฟส 3) */
+const TONE_VARIANT: Record<ProductionControlTone, BadgeProps["variant"]> = {
+  danger: "destructive",
+  warning: "warning",
+  active: "accent",
+  success: "success",
+  neutral: "default",
+};
+
+const TONE_DOT: Record<ProductionControlTone, string> = {
+  danger: "bg-red-500",
+  warning: "bg-amber-500",
+  active: "bg-blue-500",
+  success: "bg-green-600 dark:bg-green-400",
+  neutral: "bg-slate-500 dark:bg-slate-400",
 };
 
 function StatusPill({ tone, children }: { tone: ProductionControlTone; children: string }) {
   return (
-    <span
-      className={cn(
-        "inline-flex min-h-7 w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium",
-        TONE_CLASS[tone],
-      )}
-    >
-      <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true" />
+    <Badge variant={TONE_VARIANT[tone]} className="min-h-7 w-fit px-2 py-1">
+      <span className={cn("h-1.5 w-1.5 rounded-full", TONE_DOT[tone])} aria-hidden="true" />
       {children}
-    </span>
+    </Badge>
   );
 }
 
