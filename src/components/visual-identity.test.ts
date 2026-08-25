@@ -118,7 +118,9 @@ describe("system visual identity", () => {
     );
     expect(publicHtml).not.toContain("Powered by Anajak Print ERP");
     expect(publicHtml).toContain("แบรนด์ลูกค้า");
+    // blind ship = ไอคอนหัวเป็นเทา ไม่มีตราน้ำเงิน (hideBrandMark ตามหลัง hideFooter เอง)
     expect(publicHtml).toContain("text-secondary");
+    expect(publicHtml).not.toContain("bg-blue-600");
     expect(publicHtml).not.toContain("bg-module-");
     expect(publicHtml).not.toContain("shadow-sm");
     expect(publicHtml).not.toContain("rounded-[14px]");

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="Anajak Print">
+  <rect width="32" height="32" rx="7" fill="#3973b2"/>
+  <g fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M11 12V7h10v5"/>
+    <path d="M11 22H9.5A2.5 2.5 0 0 1 7 19.5v-4A2.5 2.5 0 0 1 9.5 13h13a2.5 2.5 0 0 1 2.5 2.5v4a2.5 2.5 0 0 1-2.5 2.5H21"/>
+    <rect x="11" y="18.5" width="10" height="6.5" rx="1"/>
+  </g>
+</svg>

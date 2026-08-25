@@ -336,7 +336,7 @@ function WhtRegisterPageContent() {
                     <div className="flex items-center gap-2">
                       <Link
                         href={`/orders/${row.invoice.orderId}`}
-                        className="text-blue-600 hover:underline dark:text-blue-400"
+                        className="text-strong hover:underline"
                       >
                         {row.invoice.invoiceNumber}
                       </Link>
@@ -444,7 +444,7 @@ function WhtRegisterPageContent() {
                   <div className="flex min-w-0 items-center gap-2">
                     <Link
                       href={`/orders/${row.invoice.orderId}`}
-                      className="text-blue-600 hover:underline dark:text-blue-400"
+                      className="text-strong hover:underline"
                     >
                       {row.invoice.invoiceNumber}
                     </Link>

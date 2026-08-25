@@ -44,9 +44,11 @@ export function DocumentStamp({
   const resolvedCode = code ?? DOCUMENT_CODE.find(([pattern]) => pattern.test(title))?.[1] ?? "AP";
   return (
     <div className="flex items-center gap-2" data-document-stamp={resolvedCode}>
-      {/* เดิมเป็นสี่เหลี่ยมดำทึบ — บนกระดาษอ่านเป็นแถบหมึกหนักที่ไม่ได้บอกอะไร
-          และเป็นสิ่งแรกที่ทำให้เอกสารดูเหมือนใบเสร็จยุคก่อน (UI-2026 · เบสสั่ง 2026-08-26) */}
-      <span className="inline-flex h-6 items-center rounded border border-slate-400 px-1.5 text-[10px] font-semibold tracking-[0.06em] text-slate-600" aria-hidden="true">
+      {/* เดิมเป็นสี่เหลี่ยมดำทึบ (อ่านเป็นแถบหมึกหนักที่ไม่ได้บอกอะไร) แล้วรอบแรกของ
+          UI-2026 ทำให้เบาเป็นกล่องขอบเทา — ซึ่งทำให้ทั้งใบไม่มีอะไรบอกว่าเป็นของใครเลย
+          ใบเสนอราคา/ใบกำกับภาษีไปนั่งในแฟ้มลูกค้า B2B เป็นปี นี่คือที่ที่แบรนด์อยู่ได้นานที่สุด
+          (เบสทัก 2026-08-26 "อย่าลืมสีฟ้าที่เป็น asset เรา") */}
+      <span className="inline-flex h-7 w-7 items-center justify-center rounded bg-blue-600 text-[11px] font-bold text-white" aria-hidden="true">
         {resolvedCode}
       </span>
       <span className="text-[10px] text-slate-500">{label}</span>
@@ -97,7 +99,7 @@ export function DocHeader({
   refLines?: { label: string; value: string }[];
 }) {
   return (
-    <div className="flex items-start justify-between gap-6 border-b border-slate-400 pb-4">
+    <div className="flex items-start justify-between gap-6 border-b-2 border-blue-600 pb-4">
       <div className="min-w-0">
         <div className="mb-2"><DocumentStamp title={title} label="Anajak document" /></div>
         <p className="text-[17px] font-bold leading-snug">{company.name || "(ยังไม่ตั้งค่าข้อมูลกิจการ — Settings → ข้อมูลกิจการ)"}</p>

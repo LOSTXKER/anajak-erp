@@ -60,6 +60,36 @@ describe("Anajak selected-state contract", () => {
     );
   });
 
+  /* ตราสัญลักษณ์ไม่ได้ถูกล็อกไว้เลย จึงหลุดไปเงียบ ๆ ระหว่างรื้อ UI-2026:
+     กติกา "สงวนน้ำเงินให้ปุ่มหลัก/สิ่งที่เลือก/โฟกัส" ไม่มีช่องสำหรับคำว่า "ตัวตน"
+     พอโลโก้ไม่ใช่ปุ่มและไม่ใช่สถานะ มันเลยถูกทำเป็นเทาโดยไม่มีอะไรร้อง
+     (เบสทัก 2026-08-26 "อย่าลืมสีฟ้าที่เป็น asset เรา") */
+  it("ตราสัญลักษณ์เป็นสีแบรนด์เสมอ — ไม่อยู่ใต้กติกาสงวนสี", () => {
+    expect(shellSource).toContain("bg-blue-600 text-white");
+    expect(shellSource).not.toContain("bg-surface text-secondary ring-1 ring-border");
+    // หน้า login คือจอแรกที่คนเห็น ตราต้องเป็นสีแบรนด์เหมือนกัน
+    expect(read("../../app/(auth)/login/page.tsx")).toContain("bg-blue-600");
+  });
+
+  /* กระดาษคือที่ที่แบรนด์อยู่ได้นานที่สุด — ลูกค้า B2B เก็บใบกำกับภาษีเป็นปี
+     grayscale lock ใน globals.css มีไว้กัน slate ของ app shell ไหลลงกระดาษ
+     ไม่ได้มีไว้ห้ามแบรนด์ · ตราหัวใบกับเส้นคาดหนึ่งเส้นเท่านั้นที่ได้สี ที่เหลือคงเทา */
+  it("เอกสารพิมพ์มีตราสีแบรนด์และพิมพ์ออกมาแล้วสีติดจริง", () => {
+    const printSource = read("../print/print-document.tsx");
+    expect(printSource).toContain("bg-blue-600");
+    expect(printSource).toContain("border-b-2 border-blue-600");
+    expect(read("../../app/globals.css")).toContain("print-color-adjust: exact");
+  });
+
+  /* หน้าที่ลูกค้าเห็นคือจอเดียวที่คนนอกเจอแบรนด์เรา — หัวการ์ดเคยเป็นเทาล้วน
+     ยกเว้นออเดอร์ blind ship ที่ต้องปิดตราตามสัญญากับลูกค้า */
+  it("หัวหน้าลูกค้ามีตราสีแบรนด์ และปิดได้ตอน blind ship", () => {
+    const publicSource = read("../public/public-page.tsx");
+    expect(publicSource).toContain("bg-blue-600 text-white");
+    // blind ship ต้องปิดตราเองโดยไม่ต้องรอให้ caller จำ
+    expect(publicSource).toContain("hideBrandMark = hideFooter");
+  });
+
   it("Production ใช้การ์ดตัวกรองเรียบและ selected คงสีประจำสถานะ", () => {
     expect(productionWorklistSource).toContain("card-surface card-surface-hover");
     expect(productionWorklistSource).not.toContain("INTERACTIVE_SELECTED");

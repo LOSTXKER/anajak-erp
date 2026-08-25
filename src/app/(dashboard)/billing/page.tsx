@@ -238,7 +238,7 @@ function BillingPageContent() {
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="font-semibold text-blue-700 dark:text-blue-300">
+                        <p className="font-semibold text-strong">
                           {inv.invoiceNumber}
                         </p>
                         <p className="mt-1 truncate text-xs text-muted">
@@ -267,7 +267,7 @@ function BillingPageContent() {
                       </div>
                       <div>
                         <p className="text-xs text-muted">ออเดอร์</p>
-                        <p className="mt-1 text-sm text-blue-700 dark:text-blue-300">
+                        <p className="mt-1 text-sm text-secondary">
                           {inv.order.orderNumber}
                         </p>
                       </div>
@@ -374,7 +374,7 @@ function BillingPageContent() {
                             <Printer />
                           </Link>
                         </Button>
-                        <Button variant="outline" size="sm" asChild>
+                        <Button size="sm" asChild>
                           <Link href={moneyHref}>
                             {paymentActionLabel(inv.paymentStatus, inv.type)}
                           </Link>

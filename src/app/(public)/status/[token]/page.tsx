@@ -116,7 +116,7 @@ export default function OrderStatusPage({
                           done
                             ? "bg-green-500 text-white"
                             : current
-                              ? "bg-blue-600 text-white"
+                              ? "bg-blue-600 text-white ring-4 ring-blue-100 dark:ring-blue-900"
                               : "bg-surface-muted text-muted"
                         }`}
                       >
@@ -125,7 +125,7 @@ export default function OrderStatusPage({
                       <span
                         className={`text-sm ${
                           current
-                            ? "font-semibold text-strong"
+                            ? "font-semibold text-blue-700 dark:text-blue-300"
                             : done
                               ? "text-secondary"
                               : "text-muted"

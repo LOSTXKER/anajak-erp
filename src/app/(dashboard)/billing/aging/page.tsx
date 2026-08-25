@@ -296,7 +296,7 @@ function AgingPageContent() {
                     <div className="flex items-center gap-2">
                       <Link
                         href={`/customers/${row.customerId}`}
-                        className="font-medium text-blue-600 hover:underline dark:text-blue-400"
+                        className="font-medium text-strong hover:underline"
                       >
                         {row.company ? `${row.company} (${row.name})` : row.name}
                       </Link>
@@ -371,7 +371,7 @@ function AgingPageContent() {
                   <div className="min-w-0">
                     <Link
                       href={`/customers/${row.customerId}`}
-                      className="font-semibold text-blue-700 hover:underline dark:text-blue-300"
+                      className="font-semibold text-strong hover:underline"
                     >
                       {row.company || row.name}
                     </Link>

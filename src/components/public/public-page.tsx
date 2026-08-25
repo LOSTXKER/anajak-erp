@@ -12,6 +12,9 @@ export function PublicPageShell({
   subtitle,
   footer,
   hideFooter = false,
+  // ค่าปริยายตามหลัง hideFooter — blind ship แปลว่า "ห้ามโผล่ตัวตนร้าน" ทั้งชุด
+  // ถ้าปล่อยให้ default เป็น false ใครลืมส่ง prop ก็ทำแบรนด์หลุดได้เงียบ ๆ
+  hideBrandMark = hideFooter,
   children,
 }: {
   /** ไอคอนหัวหน้า — ส่ง Lucide มาโดยไม่ใส่สี; shell กำหนดขนาดและ neutral tone */
@@ -23,6 +26,10 @@ export function PublicPageShell({
   footer?: React.ReactNode;
   /** ซ่อน footer ทั้งแถบ (blind ship — ห้ามโผล่ชื่อร้าน) */
   hideFooter?: boolean;
+  /** ซ่อนตราสัญลักษณ์ด้วย — ใช้คู่กับ hideFooter ตอน blind ship
+   *  ปกติหัวการ์ดใส่ตราน้ำเงินไว้ เพราะหน้าพวกนี้คือที่เดียวที่ลูกค้าเห็นแบรนด์เรา
+   *  (เบสทัก 2026-08-26 "อย่าลืมสีฟ้าที่เป็น asset เรา" — หัวหน้าลูกค้าเคยเป็นเทาล้วน) */
+  hideBrandMark?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -30,7 +37,14 @@ export function PublicPageShell({
       <div className="mx-auto max-w-2xl space-y-5">
         <header className="card-surface rounded-lg p-5 sm:p-6">
           <div className="flex items-start gap-3">
-            <span className="mt-1 shrink-0 text-secondary [&_svg]:h-5 [&_svg]:w-5" aria-hidden="true">
+            <span
+              className={
+                hideBrandMark
+                  ? "mt-1 shrink-0 text-secondary [&_svg]:h-5 [&_svg]:w-5"
+                  : "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-blue-600 text-white [&_svg]:h-5 [&_svg]:w-5"
+              }
+              aria-hidden="true"
+            >
               {icon}
             </span>
             <div className="min-w-0">

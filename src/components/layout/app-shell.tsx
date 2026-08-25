@@ -286,7 +286,11 @@ function AppShellContent({ children }: { children: ReactNode }) {
           <div
             className={cn(
               RADIUS.inner,
-              "flex h-7 w-7 items-center justify-center bg-surface text-secondary ring-1 ring-border",
+              // ⚠️ ตราสัญลักษณ์คือที่ที่สีแบรนด์ควรอยู่โดยธรรมชาติ — เคยเปลี่ยนเป็นเทา
+              // ตอนเก็บ "สงวนน้ำเงินให้ปุ่มหลัก/สิ่งที่เลือก/โฟกัส" ซึ่งคิดผิด
+              // กติกานั้นมีไว้กันสีลิงก์โรยทั่วตาราง ไม่ได้มีไว้ถอดแบรนด์ออกจากตราของตัวเอง
+              // (เบสทัก 2026-08-26 "อย่าลืมสีฟ้าที่เป็น asset เรา")
+              "flex h-7 w-7 items-center justify-center bg-blue-600 text-white",
             )}
           >
             <Printer className="h-3.5 w-3.5" strokeWidth={1.75} />
