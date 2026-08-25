@@ -144,7 +144,7 @@ export function PageHeader({
           </span>
           <div className="min-w-0 space-y-1 pt-0.5">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-[1.65rem] font-semibold leading-tight tracking-[-0.025em] text-slate-900 dark:text-white">
+              <h1 className="text-2xl font-semibold text-strong">
                 {title}
               </h1>
               {titleBadge}

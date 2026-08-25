@@ -114,7 +114,7 @@ export function ProductionStepsList({
                   : "flex items-center gap-2 px-0.5"
               }
             >
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                 {LANE_LABELS[lane]}
               </span>
               {OUTSOURCE_LANES.has(lane) && (

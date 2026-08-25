@@ -83,7 +83,7 @@ export const Section = React.forwardRef<HTMLDivElement, SectionProps>(
               {title &&
                 (compact ? (
                   <div className="flex items-center gap-1">
-                    <Heading className="text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    <Heading className="text-xs font-medium text-slate-500 dark:text-slate-400">
                       {title}
                     </Heading>
                     {help && <HelpTip label={typeof title === "string" ? title : "หัวข้อนี้"}>{help}</HelpTip>}

@@ -142,7 +142,9 @@ const Th = React.forwardRef<HTMLTableCellElement, ThProps>(
       ref={ref}
       scope={scope}
       className={cn(
-        "px-5 py-3 text-xs font-semibold text-secondary",
+        // หัวคอลัมน์ไม่ตัดกลางวลี — "กำหนดส่ง" ที่ขึ้นบรรทัดใหม่กลางคำอ่านสะดุด
+        // และทำให้หัวตารางสูงไม่เท่ากันทีละคอลัมน์ · ตารางมี overflow-x อยู่แล้ว
+        "whitespace-nowrap px-5 py-3 text-xs font-semibold text-secondary",
         align === "right" && "text-right",
         align === "center" && "text-center",
         align === "left" && "text-left",
@@ -210,7 +212,7 @@ const SortableTh = React.forwardRef<HTMLTableCellElement, SortableThProps>(
             // ไม่ย้อมพื้นตอนเอาเมาส์ชี้ (เบสสั่ง 2026-08-02 "ไม่ชอบหัวตารางเปลี่ยนสีตอนชี้") —
             // แถบเทาโผล่เฉพาะช่องที่ชี้อยู่ ทำให้หัวตารางดูขาดเป็นท่อนๆ
             // บอกว่า "กดได้" ด้วยตัวหนังสือกับลูกศรที่เข้มขึ้นแทน — เบากว่าและไม่ทำให้แถวขาด
-            "group flex w-full cursor-pointer touch-manipulation items-center gap-1.5 px-5 py-3 text-xs font-semibold transition-colors [@media(pointer:coarse)]:min-h-11",
+            "group flex w-full cursor-pointer touch-manipulation items-center gap-1.5 whitespace-nowrap px-5 py-3 text-xs font-semibold transition-colors [@media(pointer:coarse)]:min-h-11",
             FOCUS_INSET,
             active
               ? "font-semibold text-blue-700 dark:text-blue-300"

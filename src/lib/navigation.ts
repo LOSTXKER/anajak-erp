@@ -41,13 +41,20 @@ export type NavigationGroup = {
   label: string | null;
 };
 
+/* หัวกลุ่มเหลือ 4 จาก 6 (UI-2026 เฟส 2 · เบสสั่ง 2026-08-26 "ทำ UXUI ให้หมดทุกหน้า")
+   เมนูของสิทธิ์เต็มมี 17 รายการ + 6 หัวกลุ่ม × 44px ≈ 1,150px ซึ่งยาวเกินจอโรงงาน
+   (768-800px) แล้วเมนูขาดกลางคันโดยไม่มีสัญญาณว่าเลื่อนได้
+
+   กลุ่มที่มีแค่ 2 รายการถอด "หัวข้อ" ออก แต่ **ยังเป็นกลุ่มเดิม ไม่ย้ายรายการ** —
+   ระยะห่างระหว่างกลุ่มทำหน้าที่แบ่งแทน · จงใจไม่รวบกลุ่มใหม่เพราะการย้ายว่า
+   "สินค้าอยู่ใต้อะไร" เป็นการตัดสินใจเรื่องการจัดหมวดของเจ้าของ ไม่ใช่เรื่องหน้าตา */
 export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
   { id: "main", label: "ภาพรวม" },
   { id: "sales", label: "งานขาย" },
   { id: "production", label: "การผลิต" },
-  { id: "products", label: "สินค้า" },
+  { id: "products", label: null },
   { id: "finance", label: "การเงิน" },
-  { id: "system", label: "ระบบ" },
+  { id: "system", label: null },
 ];
 
 const BOTH = ["sidebar", "palette"] as const;

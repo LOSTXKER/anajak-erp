@@ -306,7 +306,7 @@ export function ProductionNowCard({
           {stepLabel(nowSteps[0]!.step)}
         </h2>
       ) : !embedded ? (
-        <h2 id="production-now" className="text-xs font-semibold uppercase tracking-wide text-muted">
+        <h2 id="production-now" className="text-xs font-semibold text-muted">
           ทำตอนนี้
         </h2>
       ) : currentSteps.length > 0 ? (

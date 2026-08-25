@@ -47,7 +47,7 @@ export function DocumentStamp({
       <span className="inline-flex h-8 w-8 items-center justify-center rounded bg-slate-900 text-[11px] font-bold tracking-tight text-white" aria-hidden="true">
         {resolvedCode}
       </span>
-      <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">{label}</span>
+      <span className="text-[10px] font-semibold text-slate-500">{label}</span>
     </div>
   );
 }
@@ -160,7 +160,7 @@ export function PartyBlock({
 }) {
   return (
     <div className="mt-4 rounded border border-slate-300 px-4 py-3">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{label}</p>
+      <p className="text-[11px] font-semibold text-slate-500">{label}</p>
       <p className="font-semibold">
         {company ? `${company} (${name})` : name}
       </p>

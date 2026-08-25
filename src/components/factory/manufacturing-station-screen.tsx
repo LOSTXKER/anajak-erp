@@ -449,7 +449,7 @@ export function ManufacturingStationScreen() {
         <div className="mx-auto flex max-w-[1500px] flex-col gap-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-300">
+              <p className="text-xs font-semibold text-blue-300">
                 Station
               </p>
               <h1 className="text-2xl font-semibold">โหมดสถานี</h1>

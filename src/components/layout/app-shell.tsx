@@ -237,7 +237,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
 
   return (
     <div
-      className="app-workspace grid h-dvh grid-cols-1 grid-rows-[4rem_minmax(0,1fr)] overflow-hidden bg-bg lg:grid-cols-[15rem_minmax(0,1fr)]"
+      className="app-workspace grid h-dvh grid-cols-1 grid-rows-[3rem_minmax(0,1fr)] overflow-hidden bg-bg lg:grid-cols-[15rem_minmax(0,1fr)]"
       style={
         {
           "--app-bottom-nav-offset":
@@ -257,29 +257,29 @@ function AppShellContent({ children }: { children: ReactNode }) {
         ข้ามไปเนื้อหาหลัก
       </a>
 
-      <header className="relative z-30 col-span-full row-start-1 flex h-16 min-w-0 items-center border-b border-divider bg-chrome">
+      <header className="relative z-30 col-span-full row-start-1 flex h-12 min-w-0 items-center border-b border-divider bg-chrome">
         <Link
           href="/"
           aria-label="ภาพรวม"
           className={cn(
             FOCUS_BUTTON,
-            "flex h-full w-16 shrink-0 items-center justify-center lg:w-60 lg:justify-start lg:gap-3 lg:border-r lg:border-divider lg:px-5",
+            "flex h-full w-14 shrink-0 items-center justify-center lg:w-60 lg:justify-start lg:gap-2 lg:px-3",
           )}
         >
           <div
             className={cn(
               RADIUS.inner,
-              "flex h-9 w-9 items-center justify-center bg-blue-600 text-white",
+              "flex h-7 w-7 items-center justify-center bg-surface text-secondary ring-1 ring-border",
             )}
           >
-            <Printer className="h-4 w-4" strokeWidth={1.75} />
+            <Printer className="h-3.5 w-3.5" strokeWidth={1.75} />
           </div>
           <span className="hidden truncate text-sm font-semibold text-strong lg:block">
             Anajak Print
           </span>
         </Link>
 
-        <div className="flex min-w-0 flex-1 items-center gap-2 px-3 sm:px-5">
+        <div className="flex min-w-0 flex-1 items-center gap-2 px-3 lg:px-4">
           <button
             ref={searchTriggerRef}
             type="button"
@@ -330,7 +330,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
       </header>
 
       <aside className="hidden min-h-0 border-r border-divider bg-chrome lg:col-start-1 lg:row-start-2 lg:flex lg:flex-col">
-        <nav aria-label="เมนูหลัก" className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
+        <nav aria-label="เมนูหลัก" className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
           <div className="space-y-4">
             {sidebarGroups.map((group) => (
               <div key={group.id}>

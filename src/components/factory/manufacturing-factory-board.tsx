@@ -210,7 +210,7 @@ function WorkCenterPanel({ center }: { center: WorkCenterLoad }) {
     <article className="flex min-h-0 flex-col overflow-hidden rounded-lg bg-surface p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-blue-300">{center.workCenter.code}</p>
+          <p className="text-xs font-semibold text-blue-300">{center.workCenter.code}</p>
           <h2 className="truncate text-xl font-semibold">{center.workCenter.name}</h2>
         </div>
         <StatusLabel label={hasAttention ? "ต้องดู" : "ปกติ"} tone={hasAttention ? "warning" : "success"} />

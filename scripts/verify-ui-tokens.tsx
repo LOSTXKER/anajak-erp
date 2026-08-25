@@ -325,14 +325,14 @@ const FIELD = [
 ];
 // ห้าม field กลับไปยืมพื้น structural หรือปล่อย boundary โปร่งใส
 const FIELD_NO = ["border-transparent", "border-border", "bg-surface-muted", "bg-[var(--field-bg)]"];
-check("ช่องกรอก (Input)", renderToStaticMarkup(<Input />), [...h, ...FIELD, "rounded-lg"], [...FIELD_NO, "rounded-2xl"]);
+check("ช่องกรอก (Input)", renderToStaticMarkup(<Input />), [...h, ...FIELD, "rounded-md"], [...FIELD_NO, "rounded-2xl", "rounded-lg"]);
 check(
   "ช่องเลือก (Select)",
   renderToStaticMarkup(<Select value="" onChange={() => {}}><option value="">ก</option></Select>),
-  [...h, ...FIELD, "rounded-lg"],
+  [...h, ...FIELD, "rounded-md"],
   [...FIELD_NO, "rounded-2xl"],
 );
-check("กล่องข้อความ (Textarea)", renderToStaticMarkup(<Textarea />), [...FIELD, "rounded-lg", "min-h-24"], [...FIELD_NO, "rounded-2xl"]);
+check("กล่องข้อความ (Textarea)", renderToStaticMarkup(<Textarea />), [...FIELD, "rounded-md", "min-h-24"], [...FIELD_NO, "rounded-2xl", "rounded-lg"]);
 {
   const dateHtml = renderToStaticMarkup(
     <DatePicker
@@ -370,11 +370,11 @@ check(
 );
 
 // ② compatibility shape เดิมต้องถูกยุบเป็น control ทรงธรรมดา
-check("ช่องกรอก compatibility pill ใช้ทรงธรรมดา", renderToStaticMarkup(<Input shape="pill" />), ["rounded-lg"], ["rounded-full"]);
+check("ช่องกรอก compatibility pill ใช้ทรงธรรมดา", renderToStaticMarkup(<Input shape="pill" />), ["rounded-md"], ["rounded-full"]);
 check(
   "ช่องเลือก compatibility pill ใช้ทรงธรรมดา",
   renderToStaticMarkup(<Select shape="pill" value="" onChange={() => {}}><option value="">ก</option></Select>),
-  ["rounded-lg"],
+  ["rounded-md"],
   ["rounded-full"],
 );
 check(
@@ -463,7 +463,7 @@ check("สั่งความสูงทับเองได้", renderToSt
 // ⑤ ปุ่ม = วงแหวนโฟกัสคนละสูตรกับช่องกรอก (ชัดกว่า + เว้นขอบ)
 check("ปุ่ม", renderToStaticMarkup(<Button>ก</Button>), [
   ...h,
-  "rounded-lg",
+  "rounded-md",
   "focus-visible:ring-2",
   "focus-visible:ring-blue-500",
   "focus-visible:ring-offset-2",

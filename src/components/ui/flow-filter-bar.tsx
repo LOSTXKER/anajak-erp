@@ -238,7 +238,7 @@ export function FlowFilterBar({
                   <p
                     key={group.label}
                     style={{ gridColumn: `span ${group.keys.length}` }}
-                    className="border-b border-divider pb-1 text-center text-2xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400"
+                    className="border-b border-divider pb-1 text-center text-2xs font-semibold text-slate-500 dark:text-slate-400"
                   >
                     {group.label}
                   </p>
@@ -264,7 +264,7 @@ export function FlowFilterBar({
               aria-label={aside.ariaLabel}
               className="w-44 shrink-0"
             >
-              <p className="border-b border-divider pb-1 text-center text-2xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              <p className="border-b border-divider pb-1 text-center text-2xs font-semibold text-slate-500 dark:text-slate-400">
                 {aside.label}
               </p>
               <div className="mt-2 grid grid-cols-2 gap-1.5">

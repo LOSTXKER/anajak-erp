@@ -57,13 +57,24 @@ describe("navigation registry", () => {
       "see_finance",
     ]);
 
+    // หัวกลุ่มเหลือ 4 จาก 6 (UI-2026 เฟส 2) — กลุ่มที่มี 2 รายการถอดหัวข้อออก
+    // แต่ยังเป็นกลุ่มเดิม ไม่ย้ายรายการ · ระยะห่างระหว่างกลุ่มแบ่งแทน
     expect(groups.map(({ id, label }) => ({ id, label }))).toEqual([
       { id: "main", label: "ภาพรวม" },
       { id: "sales", label: "งานขาย" },
       { id: "production", label: "การผลิต" },
-      { id: "products", label: "สินค้า" },
+      { id: "products", label: null },
       { id: "finance", label: "การเงิน" },
-      { id: "system", label: "ระบบ" },
+      { id: "system", label: null },
+    ]);
+    // ลำดับและสมาชิกของทุกกลุ่มต้องไม่ขยับ — ที่เปลี่ยนคือหัวข้อเท่านั้น
+    expect(groups.map((group) => group.id)).toEqual([
+      "main",
+      "sales",
+      "production",
+      "products",
+      "finance",
+      "system",
     ]);
     expect(groups.find((group) => group.id === "sales")?.items.map((item) => item.id)).toEqual([
       "orders",

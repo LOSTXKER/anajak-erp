@@ -459,7 +459,7 @@ export default function UsersSettingsPage() {
             <div className="space-y-4">
               {[...new Set(PERMISSION_DEFS.map((d) => d.group))].map((group) => (
                 <div key={group}>
-                  <p className="mb-1.5 text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">
+                  <p className="mb-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400">
                     {group}
                   </p>
                   <div className="space-y-1">
