@@ -256,8 +256,8 @@ export default function UsersSettingsPage() {
             />
           ) : !users || users.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12">
-              <Users className="h-10 w-10 text-slate-300 dark:text-slate-600" />
-              <p className="mt-3 text-sm text-slate-400">ยังไม่มีผู้ใช้</p>
+              <Users className="h-10 w-10 text-muted" />
+              <p className="mt-3 text-sm text-muted">ยังไม่มีผู้ใช้</p>
             </div>
           ) : (
             <DataTable.Root bordered={false}>
@@ -494,7 +494,7 @@ export default function UsersSettingsPage() {
                               </span>
                             )}
                             {locked && (
-                              <span className="text-2xs text-slate-400">เจ้าของเท่านั้น</span>
+                              <span className="text-2xs text-muted">เจ้าของเท่านั้น</span>
                             )}
                           </span>
                         </label>

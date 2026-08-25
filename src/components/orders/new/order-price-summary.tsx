@@ -97,7 +97,7 @@ export function MarginEstimateBlock({ estimate }: { estimate: MarginEstimate }) 
       <p className="text-xs text-muted">
         <Link
           href="/settings/cost-rates"
-          className="underline underline-offset-2 hover:text-slate-600 dark:hover:text-slate-300"
+          className="underline underline-offset-2 hover:text-strong"
         >
           ตั้งเรตต้นทุนกลาง
         </Link>
@@ -186,7 +186,7 @@ function Row({
         className={
           muted
             ? "text-muted"
-            : "text-slate-700 dark:text-slate-200"
+            : "text-secondary"
         }
       >
         {label}

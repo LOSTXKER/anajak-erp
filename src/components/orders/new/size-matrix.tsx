@@ -119,7 +119,7 @@ export function SizeMatrix({
       </div>
 
       <p className="mt-2 text-xs text-muted">
-        รวม <span className="font-semibold text-slate-700 dark:text-slate-200">{total}</span> ตัว
+        รวม <span className="font-semibold text-secondary">{total}</span> ตัว
       </p>
     </div>
   );

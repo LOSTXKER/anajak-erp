@@ -115,7 +115,7 @@ export default function QuoteConfirmPage({
             {q.discount > 0 && (
               <div className="flex justify-between">
                 <span className="text-muted">ส่วนลด</span>
-                <span className="tabular-nums text-red-600">-{baht(q.discount)}</span>
+                <span className="tabular-nums text-red-700 dark:text-red-300">-{baht(q.discount)}</span>
               </div>
             )}
             {q.tax > 0 && (
@@ -146,9 +146,9 @@ export default function QuoteConfirmPage({
       {decided === "ACCEPTED" ? (
         <Card>
           <CardContent className="flex items-center gap-3 p-5">
-            <CheckCircle2 className="h-8 w-8 shrink-0 text-green-500" />
+            <CheckCircle2 className="h-8 w-8 shrink-0 text-green-600 dark:text-green-400" />
             <div>
-              <p className="font-semibold text-green-700">ยืนยันใบเสนอแล้ว</p>
+              <p className="font-semibold text-green-700 dark:text-green-300">ยืนยันใบเสนอแล้ว</p>
               <p className="text-sm text-muted">ขอบคุณค่ะ ทีมงานจะติดต่อกลับเพื่อดำเนินการต่อ</p>
             </div>
           </CardContent>
@@ -166,9 +166,9 @@ export default function QuoteConfirmPage({
       ) : q.isExpired || q.status === "EXPIRED" ? (
         <Card>
           <CardContent className="flex items-center gap-3 p-5">
-            <Clock className="h-8 w-8 shrink-0 text-amber-600" />
+            <Clock className="h-8 w-8 shrink-0 text-amber-700 dark:text-amber-400" />
             <div>
-              <p className="font-semibold text-amber-700">ใบเสนอนี้หมดอายุแล้ว</p>
+              <p className="font-semibold text-amber-700 dark:text-amber-400">ใบเสนอนี้หมดอายุแล้ว</p>
               <p className="text-sm text-muted">กรุณาติดต่อร้านเพื่อขอใบเสนอราคาฉบับใหม่</p>
             </div>
           </CardContent>

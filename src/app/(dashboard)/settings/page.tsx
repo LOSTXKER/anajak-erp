@@ -208,7 +208,7 @@ export default function SettingsPage() {
                       {link.meta}
                     </p>
                   </div>
-                  <ChevronRight className="h-4 w-4 shrink-0 text-slate-300 transition-transform group-hover:translate-x-0.5 dark:text-slate-600" />
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted transition-transform group-hover:translate-x-0.5" />
                 </Link>
               ))}
             </div>

@@ -308,7 +308,7 @@ function StepRow({
               ? "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
               : step.status === "FAILED"
                 ? "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300"
-                : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
+                : "bg-slate-100 text-muted dark:bg-slate-800"
         }`}
       >
         {step.status === "COMPLETED" ? (
@@ -434,7 +434,7 @@ function StepRow({
             </div>
           ) : step.status === "PENDING" && !isLaneNext ? (
             // ยังไม่ถึงคิวของเลนนี้ — ชี้ให้ไปทำขั้นแรกที่ค้างก่อน (mirror ปรัชญา pressGate)
-            <p className="flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-medium text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+            <p className="flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-medium text-muted dark:bg-slate-800">
               <Clock className="h-3.5 w-3.5 shrink-0" />
               รอขั้นก่อนหน้า
             </p>

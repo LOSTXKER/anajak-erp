@@ -586,7 +586,7 @@ function OrdersPageContent() {
           <p
             aria-busy={isFetching}
             aria-live="polite"
-            className="self-end whitespace-nowrap text-xs tabular-nums text-slate-500 @2xl:ml-auto @2xl:self-auto dark:text-slate-400"
+            className="self-end whitespace-nowrap text-xs tabular-nums text-muted @2xl:ml-auto @2xl:self-auto"
           >
             {isFetching
               ? "กำลังอัปเดต…"

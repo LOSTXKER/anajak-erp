@@ -104,7 +104,7 @@ export function OrderQcSection({ orderId, internalStatus, canCount }: OrderQcSec
       <CardHeader className="pb-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-            <ShieldCheck className="h-4 w-4 text-slate-400" />
+            <ShieldCheck className="h-4 w-4 text-muted" />
             ตรวจนับ QC
           </CardTitle>
           {isQualityCheck &&
@@ -114,7 +114,7 @@ export function OrderQcSection({ orderId, internalStatus, canCount }: OrderQcSec
                 ตรวจนับ
               </Button>
             ) : (
-              <span className="text-xs text-slate-400">รอทีมผลิตนับของ</span>
+              <span className="text-xs text-muted">รอทีมผลิตนับของ</span>
             ))}
         </div>
         {rounds.length > 0 && (
@@ -126,7 +126,7 @@ export function OrderQcSection({ orderId, internalStatus, canCount }: OrderQcSec
       </CardHeader>
       <CardContent className="space-y-2">
         {rounds.length === 0 ? (
-          <p className="py-2 text-center text-sm text-slate-400">
+          <p className="py-2 text-center text-sm text-muted">
             ยังไม่มีผลตรวจ — นับจริงก่อนแพ็ค: ดีกี่ตัว เสียกี่ตัว
           </p>
         ) : (
@@ -165,7 +165,7 @@ export function OrderQcSection({ orderId, internalStatus, canCount }: OrderQcSec
                 </div>
                   <div className="space-y-2 border-t border-divider px-3 py-2">
                     {r.defects.length === 0 ? (
-                      <p className="text-xs text-slate-400">ไม่มีของเสียในรอบนี้</p>
+                      <p className="text-xs text-muted">ไม่มีของเสียในรอบนี้</p>
                     ) : (
                       r.defects.map((d) => (
                         <div

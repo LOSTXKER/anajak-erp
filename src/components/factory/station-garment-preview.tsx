@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -131,7 +130,7 @@ function GarmentPlacementDiagram({
   return (
     <figure className="flex h-full flex-col rounded-lg border border-divider bg-surface-muted p-3">
       <div
-        className="relative mx-auto aspect-[4/3] w-full max-w-44 text-slate-500 dark:text-slate-300"
+        className="relative mx-auto aspect-[4/3] w-full max-w-44 text-secondary"
         role="img"
         aria-label={
           side
@@ -165,7 +164,7 @@ function GarmentPlacementDiagram({
             data-station-side-diagram={position}
             className={cn(
               TINT.info,
-              "absolute inset-x-5 top-1/2 -translate-y-1/2 rounded-lg border px-3 py-2 text-center text-sm font-semibold shadow-sm",
+              "absolute inset-x-5 top-1/2 -translate-y-1/2 rounded-md border px-3 py-2 text-center text-sm font-semibold",
             )}
             aria-hidden="true"
           >
@@ -233,9 +232,10 @@ function ApprovedDesignReference({
           >
             ม็อกอัพอนุมัติสำหรับเปิดเทียบ
           </h4>
-          <Badge variant="success" size="sm">
+          {/* เลขเวอร์ชันเป็นค่าอ่านอย่างเดียว ไม่ใช่สถานะ — ชิปสงวนให้สถานะ (UI-2026) */}
+          <span className="text-sm font-medium tabular-nums text-muted">
             v{design.versionNumber}
-          </Badge>
+          </span>
         </div>
         {design.approvedAt ? (
           <p className="text-xs text-muted">
@@ -385,7 +385,7 @@ function StationPrintRow({
           {heatLabel ? (
             <p
               data-station-heat-spec=""
-              className="mt-1.5 inline-block rounded-lg bg-blue-100 px-3 py-1.5 text-sm font-semibold tabular-nums text-blue-700 dark:bg-blue-950/60 dark:text-blue-300"
+              className="mt-1.5 text-sm font-semibold tabular-nums text-secondary"
             >
               {heatLabel}
             </p>

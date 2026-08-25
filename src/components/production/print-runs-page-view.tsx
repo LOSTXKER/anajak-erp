@@ -47,7 +47,7 @@ function DeadlineChip({ deadline }: { deadline: Date | string | null }) {
         "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium",
         overdue
           ? "bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300"
-          : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
+          : "bg-slate-100 text-secondary dark:bg-slate-800",
       )}
     >
       {overdue ? <AlertTriangle className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
@@ -89,7 +89,7 @@ function DesignThumb({
           className={cn(box, "bg-white object-contain")}
         />
       ) : (
-        <div className={cn(box, "flex items-center justify-center bg-slate-50 text-slate-300 dark:bg-slate-800")}>
+        <div className={cn(box, "flex items-center justify-center bg-slate-50 text-muted dark:bg-slate-800")}>
           <ImageOff className="h-4 w-4" />
         </div>
       )}

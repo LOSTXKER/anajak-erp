@@ -100,7 +100,7 @@ export function StationCurrentLayout({
         </summary>
 
         <div className="space-y-3 border-t border-divider p-3 sm:p-4">
-          <section className="rounded-lg border border-border bg-surface-muted/35">
+          <section className="rounded-lg border border-border bg-surface-muted">
             <header className="border-b border-divider px-4 py-3">
               <h2 className="text-base font-semibold text-strong">คิวสถานี</h2>
               <p className="mt-0.5 text-xs text-muted">

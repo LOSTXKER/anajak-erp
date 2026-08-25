@@ -136,7 +136,7 @@ export function OrderAttachmentsSection({
                   />
                 ) : (
                   <div className="flex h-24 w-24 items-center justify-center rounded-lg border border-border bg-surface-muted">
-                    <ImageIcon className="h-8 w-8 text-slate-300 dark:text-slate-600" />
+                    <ImageIcon className="h-8 w-8 text-muted" />
                   </div>
                 )}
                 {img.canEdit !== false && (

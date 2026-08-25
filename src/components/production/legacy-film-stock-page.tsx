@@ -183,7 +183,7 @@ function FilmStockPageContent() {
                           {item.order.orderNumber}
                         </Link>
                       ) : (
-                        <span className="text-slate-400">ไม่ระบุออเดอร์</span>
+                        <span className="text-muted">ไม่ระบุออเดอร์</span>
                       )}
                     </p>
                     <p className="mt-1 text-xs tabular-nums text-muted">
@@ -195,7 +195,7 @@ function FilmStockPageContent() {
                     {item.qty > 0 ? (
                       <span className="tabular-nums font-medium text-strong">
                         {item.qty}
-                        <span className="font-normal text-slate-400">
+                        <span className="font-normal text-muted">
                           /{item.initialQty} ชิ้น
                         </span>
                       </span>

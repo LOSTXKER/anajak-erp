@@ -386,7 +386,7 @@ export function DashboardHome() {
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="text-sm font-semibold tabular-nums text-strong">{order.orderNumber}</p>
                     {order.printLabel && (
-                      <Badge variant="accent" size="sm">{order.printLabel}</Badge>
+                      <Badge variant="default" size="sm">{order.printLabel}</Badge>
                     )}
                   </div>
                   <p className="mt-1 truncate text-xs text-muted group-hover:text-secondary group-active:text-secondary">

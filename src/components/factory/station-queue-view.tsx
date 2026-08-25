@@ -3,7 +3,7 @@
 import type { ComponentType } from "react";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { FOCUS_BUTTON, TINT } from "@/components/ui/tokens";
+import { FOCUS_BUTTON, TINT, INTERACTIVE_HOVER } from "@/components/ui/tokens";
 import { cn, formatDateShort } from "@/lib/utils";
 import {
   AlertTriangle,
@@ -132,7 +132,7 @@ function QueueCard({
         "group flex min-h-20 w-full touch-manipulation items-center gap-3 rounded-lg border text-left transition-colors",
         compact ? "p-3" : "p-4",
         item.status === "active"
-          ? "border-blue-800/70 bg-blue-950/25 hover:border-blue-700 hover:bg-blue-950/40"
+          ? cn(TINT.info, INTERACTIVE_HOVER)
           : item.status === "blocked"
             ? cn(TINT.warning, "hover:border-amber-700 hover:bg-amber-950/55")
             : "border-border bg-surface hover:border-border-strong hover:bg-interactive-hover",
@@ -246,9 +246,9 @@ function QueueGroup({
           </h2>
           <p className="mt-0.5 text-sm text-muted">{hint}</p>
         </div>
-        <span className="rounded-full bg-surface-muted px-2.5 py-1 text-sm font-medium tabular-nums text-secondary">
+        <Badge variant="default" size="sm" className="tabular-nums">
           {items.length.toLocaleString("th-TH")}
-        </span>
+        </Badge>
       </div>
       {items.length === 0 ? (
         <div className="mt-4 rounded-lg bg-surface-muted">

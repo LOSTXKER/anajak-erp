@@ -136,7 +136,7 @@ function ProductsPageContent() {
         <div className="flex items-center gap-2 text-xs text-muted">
           <Cloud className="h-3.5 w-3.5" />
           <span>Sync ล่าสุด: {formatDateTime(syncStatus.lastSyncAt)}</span>
-          <span className="text-slate-300 dark:text-slate-600">·</span>
+          <span className="text-muted">·</span>
           <span>ทั้งหมด {syncStatus.totalProducts} รายการ</span>
         </div>
       ) : null}
@@ -260,7 +260,7 @@ function ProductsPageContent() {
                       />
                     ) : (
                       <Package
-                        className="h-10 w-10 text-slate-300 dark:text-slate-600"
+                        className="h-10 w-10 text-muted"
                         strokeWidth={1.25}
                       />
                     )}
@@ -356,7 +356,7 @@ function ProductsPageContent() {
                   p === "..." ? (
                     <span
                       key={`ellipsis-${i}`}
-                      className="px-2 text-sm text-slate-400"
+                      className="px-2 text-sm text-muted"
                     >
                       ...
                     </span>
@@ -386,7 +386,7 @@ function ProductsPageContent() {
               </Button>
             </div>
           )}
-          <p className="text-center text-xs text-slate-400">
+          <p className="text-center text-xs text-muted">
             แสดง {data.products.length} จาก {data.total} รายการ
           </p>
         </div>

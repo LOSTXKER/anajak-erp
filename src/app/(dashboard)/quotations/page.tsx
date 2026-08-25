@@ -196,7 +196,7 @@ function QuotationsPageContent() {
                     <p className="truncate text-sm text-secondary">
                       {q.customer.name}
                     </p>
-                    <p className="mt-0.5 text-xs text-slate-500 group-hover:text-secondary group-active:text-secondary dark:text-slate-400 dark:group-hover:text-secondary dark:group-active:text-secondary">
+                    <p className="mt-0.5 text-xs text-muted group-hover:text-secondary group-active:text-secondary dark:group-hover:text-secondary dark:group-active:text-secondary">
                       {formatDate(q.createdAt)}
                     </p>
                   </div>
@@ -204,7 +204,7 @@ function QuotationsPageContent() {
                     <span className="tabular-nums font-semibold text-strong">
                       {formatCurrency(q.totalAmount)}
                     </span>
-                    <ChevronRight className="h-4 w-4 text-slate-400" aria-hidden="true" />
+                    <ChevronRight className="h-4 w-4 text-muted" aria-hidden="true" />
                   </div>
                 </div>
               </Link>

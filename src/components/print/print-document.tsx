@@ -44,10 +44,12 @@ export function DocumentStamp({
   const resolvedCode = code ?? DOCUMENT_CODE.find(([pattern]) => pattern.test(title))?.[1] ?? "AP";
   return (
     <div className="flex items-center gap-2" data-document-stamp={resolvedCode}>
-      <span className="inline-flex h-8 w-8 items-center justify-center rounded bg-slate-900 text-[11px] font-bold tracking-tight text-white" aria-hidden="true">
+      {/* เดิมเป็นสี่เหลี่ยมดำทึบ — บนกระดาษอ่านเป็นแถบหมึกหนักที่ไม่ได้บอกอะไร
+          และเป็นสิ่งแรกที่ทำให้เอกสารดูเหมือนใบเสร็จยุคก่อน (UI-2026 · เบสสั่ง 2026-08-26) */}
+      <span className="inline-flex h-6 items-center rounded border border-slate-400 px-1.5 text-[10px] font-semibold tracking-[0.06em] text-slate-600" aria-hidden="true">
         {resolvedCode}
       </span>
-      <span className="text-[10px] font-semibold text-slate-500">{label}</span>
+      <span className="text-[10px] text-slate-500">{label}</span>
     </div>
   );
 }
@@ -95,7 +97,7 @@ export function DocHeader({
   refLines?: { label: string; value: string }[];
 }) {
   return (
-    <div className="flex items-start justify-between gap-6 border-b-2 border-slate-900 pb-4">
+    <div className="flex items-start justify-between gap-6 border-b border-slate-400 pb-4">
       <div className="min-w-0">
         <div className="mb-2"><DocumentStamp title={title} label="Anajak document" /></div>
         <p className="text-[17px] font-bold leading-snug">{company.name || "(ยังไม่ตั้งค่าข้อมูลกิจการ — Settings → ข้อมูลกิจการ)"}</p>
@@ -112,11 +114,11 @@ export function DocHeader({
 
       <div className="shrink-0 text-right">
         {copyLabel && (
-          <p className="mb-1 inline-block rounded border border-slate-400 px-2 py-0.5 text-[11px] text-slate-600">
-            {copyLabel}
-          </p>
+          <p className="mb-1 text-[11px] tracking-[0.06em] text-slate-500">{copyLabel}</p>
         )}
-        <p className="inline-block bg-slate-900 px-2.5 py-1 text-[19px] font-bold leading-tight text-white">{title}</p>
+        {/* ชื่อเอกสารเคยเป็นแถบดำกลับสี — ตัวหนังสือใหญ่บนขาวอ่านง่ายกว่าและ
+            ประหยัดหมึกกว่ามาก · ลำดับชั้นมาจากขนาดกับน้ำหนัก ไม่ใช่จากพื้นทึบ */}
+        <p className="text-[21px] font-semibold leading-tight tracking-tight">{title}</p>
         {subtitle && <p className="text-[12px] text-slate-600">{subtitle}</p>}
         <table className="mt-2 ml-auto text-[12.5px]">
           <tbody>
@@ -159,8 +161,8 @@ export function PartyBlock({
   phone?: string | null;
 }) {
   return (
-    <div className="mt-4 rounded border border-slate-300 px-4 py-3">
-      <p className="text-[11px] font-semibold text-slate-500">{label}</p>
+    <div className="mt-4">
+      <p className="mb-0.5 text-[11px] text-slate-500">{label}</p>
       <p className="font-semibold">
         {company ? `${company} (${name})` : name}
       </p>
@@ -189,7 +191,7 @@ export function ItemsTable({ rows }: { rows: PrintItemRow[] }) {
   return (
     <table className="mt-4 w-full border-collapse text-[12.5px]">
       <thead>
-        <tr className="border-y border-slate-900 text-left">
+        <tr className="border-y border-slate-400 text-left">
           <th className="w-8 py-1.5 pr-2 text-center font-semibold">#</th>
           <th className="py-1.5 pr-2 font-semibold">รายการ</th>
           <th className="w-16 py-1.5 pr-2 text-right font-semibold">จำนวน</th>
@@ -239,7 +241,7 @@ export function TotalsBlock({
                 <td className="py-0.5 text-right tabular-nums">{formatMoney(row.amount)}</td>
               </tr>
             ))}
-          <tr className="border-t-2 border-slate-900 text-[14px] font-bold">
+          <tr className="border-t border-slate-400 text-[14px] font-semibold">
             <td className="py-1.5 pr-4 text-right">{grandLabel}</td>
             <td className="py-1.5 text-right tabular-nums">{formatMoney(grandAmount)}</td>
           </tr>
@@ -251,9 +253,7 @@ export function TotalsBlock({
 
 export function BahtTextBox({ amount }: { amount: number }) {
   return (
-    <div className="mt-2 rounded border border-slate-300 bg-slate-50 px-4 py-2 text-center text-[12.5px]">
-      ({bahtText(amount)})
-    </div>
+    <div className="mt-2 text-right text-[12.5px] text-slate-700">({bahtText(amount)})</div>
   );
 }
 
@@ -271,9 +271,9 @@ export function SignatureRow({ labels }: { labels: string[] }) {
     <div className="mt-12 flex justify-between gap-8">
       {labels.map((label) => (
         <div key={label} className="flex-1 text-center text-[12px]">
-          <div className="mx-auto mb-1.5 h-10 w-48 border-b border-dotted border-slate-400" />
+          <div className="mx-auto mb-1.5 h-10 w-48 border-b border-slate-400" />
           <p className="text-slate-700">{label}</p>
-          <p className="mt-1 text-slate-500">วันที่ ............................</p>
+          <p className="mt-1 text-slate-500">วันที่</p>
         </div>
       ))}
     </div>

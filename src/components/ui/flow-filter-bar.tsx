@@ -185,7 +185,7 @@ function DesktopItemButton({
           "mt-1 inline-flex max-w-full items-center justify-center gap-1.5 text-2xs leading-tight",
           isOn
             ? "font-semibold text-blue-700 dark:text-blue-400"
-            : "text-slate-500 group-hover:text-secondary group-active:text-secondary dark:text-slate-400 dark:group-hover:text-secondary dark:group-active:text-secondary",
+            : "text-muted group-hover:text-secondary group-active:text-secondary dark:group-hover:text-secondary dark:group-active:text-secondary",
         )}
       >
         <span aria-hidden className={cn("h-1.5 w-1.5 shrink-0 rounded-full", item.dotClass)} />

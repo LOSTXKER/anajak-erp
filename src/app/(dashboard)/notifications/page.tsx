@@ -171,7 +171,7 @@ export default function NotificationsPage() {
       </div>
 
       {/* List */}
-      <div className="card-surface overflow-hidden rounded-lg">
+      <div>
         {isLoading && (
           <div className="divide-y divide-divider">
             {[...Array(5)].map((_, i) => (
@@ -205,7 +205,7 @@ export default function NotificationsPage() {
               if (items.length === 0) return null;
               return (
                 <div key={bucket}>
-                  <div className="border-b border-divider bg-slate-50/50 px-5 py-1.5 text-2xs font-semibold text-slate-500 dark:bg-slate-800/30 dark:text-slate-400">
+                  <div className="border-b border-divider bg-slate-50/50 px-5 py-1.5 text-2xs font-semibold text-muted dark:bg-slate-800/30">
                     {BUCKET_LABELS[bucket]}
                   </div>
                   <ul className="divide-y divide-divider">
@@ -221,10 +221,10 @@ export default function NotificationsPage() {
                           }}
                           className={cn(
                             "group flex w-full gap-3 px-5 py-3.5 text-left transition-colors hover:bg-interactive-hover active:bg-interactive-pressed dark:hover:bg-interactive-hover dark:active:bg-interactive-pressed",
-                            !notif.isRead && "bg-blue-50/40 dark:bg-blue-950/20"
+                            !notif.isRead && "bg-surface-muted"
                           )}
                         >
-                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-muted dark:bg-slate-800">
                             {TYPE_ICONS[notif.type] ?? (
                               <Bell className="h-4 w-4" strokeWidth={1.75} />
                             )}
@@ -246,11 +246,11 @@ export default function NotificationsPage() {
                               )}
                             </div>
                             {notif.message && (
-                              <p className="mt-0.5 line-clamp-2 text-sm text-slate-500 group-hover:text-secondary group-active:text-secondary dark:text-slate-400 dark:group-hover:text-secondary dark:group-active:text-secondary">
+                              <p className="mt-0.5 line-clamp-2 text-sm text-muted group-hover:text-secondary group-active:text-secondary dark:group-hover:text-secondary dark:group-active:text-secondary">
                                 {notif.message}
                               </p>
                             )}
-                            <p className="mt-1 text-xs text-slate-500 group-hover:text-secondary group-active:text-secondary dark:text-slate-400 dark:group-hover:text-secondary dark:group-active:text-secondary">
+                            <p className="mt-1 text-xs text-muted group-hover:text-secondary group-active:text-secondary dark:group-hover:text-secondary dark:group-active:text-secondary">
                               {timeAgo(notif.createdAt)}
                             </p>
                           </div>

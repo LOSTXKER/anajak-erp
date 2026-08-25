@@ -26,7 +26,7 @@ import { PageShell } from "@/components/page-shell";
 const SAMPLE_PRINT = { widthCm: 30, heightCm: 20 };
 const SAMPLE_QTY = 100;
 const READ_ONLY_INPUT_CLASS =
-  "read-only:cursor-default read-only:bg-slate-50 read-only:text-slate-600 dark:read-only:bg-slate-900 dark:read-only:text-slate-300";
+  "read-only:cursor-default read-only:bg-surface-muted read-only:text-secondary";
 
 // เก็บค่าในฟอร์มเป็น string เพื่อให้พิมพ์เลขทศนิยม/ลบค่าได้ลื่น แล้วแปลงตอน submit
 type FormState = Record<keyof CostRates, string>;
@@ -258,7 +258,7 @@ export default function CostRatesSettingsPage() {
                     ค่าแรง/โสหุ้ย {formatBaht(sampleLaborOverhead)} บาท
                   </p>
                 ) : (
-                  <p className="mt-1 text-sm text-slate-400">
+                  <p className="mt-1 text-sm text-muted">
                     ยังไม่ได้ตั้งเรต — กรอกเรตด้านบนเพื่อดูตัวอย่าง
                   </p>
                 )}

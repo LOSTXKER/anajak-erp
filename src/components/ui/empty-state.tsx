@@ -27,7 +27,7 @@ export function EmptyState({
     >
       <div
         className={cn(
-          "flex items-center justify-center rounded-full bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500",
+          "flex items-center justify-center rounded-full bg-slate-100 text-muted dark:bg-slate-800",
           compact ? "h-10 w-10" : "h-12 w-12",
         )}
       >
@@ -35,7 +35,7 @@ export function EmptyState({
       </div>
       <p
         className={cn(
-          "text-sm font-medium text-slate-800 dark:text-slate-100",
+          "text-sm font-medium text-strong",
           compact ? "mt-3" : "mt-4",
         )}
       >

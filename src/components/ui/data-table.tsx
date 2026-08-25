@@ -121,7 +121,7 @@ const Row = React.forwardRef<HTMLTableRowElement, RowProps>(
         className={cn(
           // ชี้แถวไหนต้องรู้ทันที — ตารางกว้างแล้วกดผิดแถวคือกดผิดออเดอร์
           INTERACTIVE_HOVER,
-          "group transition-colors hover:[&_.text-muted]:text-secondary hover:[&_.text-slate-500]:text-secondary dark:hover:[&_.text-muted]:text-secondary dark:hover:[&_.text-slate-500]:text-secondary",
+          "group transition-colors hover:[&_.text-muted]:text-secondary hover:[&_.text-muted]:text-secondary dark:hover:[&_.text-muted]:text-secondary dark:hover:[&_.text-muted]:text-secondary",
           href && cn("cursor-pointer", INTERACTIVE_PRESSED),
           className
         )}
@@ -228,7 +228,7 @@ const SortableTh = React.forwardRef<HTMLTableCellElement, SortableThProps>(
               "h-3 w-3 shrink-0 transition-colors",
               active
                 ? "text-blue-600 dark:text-blue-400"
-                : "text-slate-300 group-hover:text-slate-500 dark:text-slate-600 dark:group-hover:text-slate-400"
+                : "text-muted group-hover:text-secondary"
             )}
           />
         </button>

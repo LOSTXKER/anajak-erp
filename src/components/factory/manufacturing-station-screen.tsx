@@ -26,6 +26,7 @@ import {
   workCenterCodeFromStationParam,
 } from "@/lib/manufacturing-station";
 import { formatDateShort } from "@/lib/utils";
+import { ListSkeleton } from "@/components/ui/page-skeleton";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -449,7 +450,7 @@ export function ManufacturingStationScreen() {
         <div className="mx-auto flex max-w-[1500px] flex-col gap-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold text-blue-300">
+              <p className="text-xs font-semibold text-muted">
                 Station
               </p>
               <h1 className="text-2xl font-semibold">โหมดสถานี</h1>
@@ -511,8 +512,8 @@ export function ManufacturingStationScreen() {
           />
         ) : loading ? (
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
-            <Skeleton className="h-[32rem] rounded-lg" />
-            <Skeleton className="h-[32rem] rounded-lg" />
+            <div className="card-surface rounded-lg p-4"><ListSkeleton rows={5} /></div>
+            <div className="card-surface rounded-lg p-4"><ListSkeleton rows={4} /></div>
           </div>
         ) : !effectiveWorkCenter ? (
           <div className="card-surface rounded-lg">
@@ -620,7 +621,7 @@ export function ManufacturingStationScreen() {
               />
               <section className="card-surface rounded-lg p-4" aria-labelledby="station-scan-title">
                 <div className="flex items-center gap-2">
-                  <QrCode className="h-5 w-5 text-blue-300" aria-hidden="true" />
+                  <QrCode className="h-5 w-5 text-muted" aria-hidden="true" />
                   <h2 id="station-scan-title" className="font-semibold">สแกนหรือพิมพ์เลขงาน</h2>
                 </div>
                 <p className="mt-1 text-xs text-muted">เปิดบริบทเท่านั้น ไม่เริ่มงานอัตโนมัติ</p>
@@ -1052,7 +1053,7 @@ function StationJobPanel({
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm font-semibold text-blue-300">{job.order.orderNumber}</span>
+              <span className="text-sm font-semibold text-strong">{job.order.orderNumber}</span>
               <StatusLabel label={meta.label} tone={meta.tone} emphasize={operation.state === "BLOCKED"} />
             </div>
             <h2 className="mt-2 text-2xl font-semibold sm:text-3xl">{operation.name}</h2>

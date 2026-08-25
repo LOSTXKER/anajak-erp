@@ -16,7 +16,7 @@ const menuItemClass = cn(
   CONTROL_MIN_H,
   // โหมดมืด: แถบไฮไลต์เคยเป็น slate-800 ซึ่ง **เข้มกว่า** พื้นเมนู = ทำผิดทิศ
   // ไล่ลูกศรบนคีย์บอร์ดแล้วมองไม่ออกว่าค้างบรรทัดไหน (audit สี 2026-08-02)
-  "flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-700 outline-none transition-colors data-[highlighted]:bg-interactive-hover data-[highlighted]:text-strong dark:text-slate-300",
+  "flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-secondary outline-none transition-colors data-[highlighted]:bg-interactive-hover data-[highlighted]:text-strong",
 );
 
 export function UserMenu() {
@@ -85,7 +85,7 @@ export function UserMenu() {
             <DropdownMenu.SubTrigger className={menuItemClass}>
               {themeIcon}
               ธีม
-              <span className="ml-auto text-xs text-slate-400">
+              <span className="ml-auto text-xs text-muted">
                 {theme === "system" ? "ระบบ" : theme === "dark" ? "มืด" : "สว่าง"}
               </span>
             </DropdownMenu.SubTrigger>

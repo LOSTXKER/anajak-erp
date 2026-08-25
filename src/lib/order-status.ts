@@ -113,6 +113,21 @@ export const CUSTOMER_STATUS_COLORS: Record<
   CANCELLED: DANGER,
 };
 
+/** โทนของสถานะฝั่งลูกค้าสำหรับ <StatusLabel> — ให้หน้า public พูดภาษาเดียวกับหลังบ้าน
+ *  (UI-2026 · เดิมหน้า status ใช้แคปซูลพื้นสีที่เขียนเอง) */
+export const CUSTOMER_STATUS_TONES: Record<
+  CustomerStatus,
+  "neutral" | "accent" | "success" | "warning" | "danger"
+> = {
+  ORDER_RECEIVED: "accent",
+  PREPARING: "accent",
+  IN_PRODUCTION: "warning",
+  READY_TO_SHIP: "warning",
+  SHIPPED: "accent",
+  COMPLETED: "success",
+  CANCELLED: "danger",
+};
+
 export const INTERNAL_STATUS_COLORS: Record<
   InternalStatus,
   { bg: string; text: string }

@@ -517,7 +517,7 @@ export function MaterialUsage({
             </div>
           ) : (
             <div className="py-4 text-center">
-              <Package className="mx-auto h-8 w-8 text-slate-200 dark:text-slate-700" />
+              <Package className="mx-auto h-8 w-8 text-muted" />
               <p className="mt-1.5 text-xs text-muted">ยังไม่มีวัตถุดิบ</p>
               {!readOnly && (
                 <p className="text-2xs text-muted">

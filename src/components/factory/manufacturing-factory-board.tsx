@@ -10,7 +10,8 @@ import {
   Factory,
 } from "lucide-react";
 import { trpc, type RouterOutput } from "@/lib/trpc";
-import { formatTime } from "@/lib/utils";
+import { cn, formatTime } from "@/lib/utils";
+import { TINT } from "@/components/ui/tokens";
 import { Alert } from "@/components/ui/alert";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -192,7 +193,7 @@ export function ManufacturingFactoryBoard() {
                 ))}
               </ul>
             ) : (
-              <div className="mt-4 rounded-lg bg-green-500/10 p-4 text-center">
+              <div className={cn(TINT.success, "mt-4 rounded-lg border p-4 text-center")}>
                 <CheckCircle2 className="mx-auto h-7 w-7 text-green-300" aria-hidden="true" />
                 <p className="mt-2 font-medium">ไม่มีปัญหาเปิดอยู่</p>
               </div>
@@ -210,7 +211,7 @@ function WorkCenterPanel({ center }: { center: WorkCenterLoad }) {
     <article className="flex min-h-0 flex-col overflow-hidden rounded-lg bg-surface p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-semibold text-blue-300">{center.workCenter.code}</p>
+          <p className="text-xs font-semibold text-muted">{center.workCenter.code}</p>
           <h2 className="truncate text-xl font-semibold">{center.workCenter.name}</h2>
         </div>
         <StatusLabel label={hasAttention ? "ต้องดู" : "ปกติ"} tone={hasAttention ? "warning" : "success"} />

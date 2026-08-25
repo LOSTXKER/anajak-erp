@@ -252,7 +252,7 @@ export function DtfBatchDialog({
             <div className="space-y-6">
               <section aria-labelledby="dtf-active-title">
                 <div className="flex items-center gap-2">
-                  <Printer className="h-5 w-5 text-blue-600" />
+                  <Printer className="h-5 w-5 text-muted" />
                   <h3 id="dtf-active-title" className="font-semibold">
                     รอบที่กำลังทำ
                   </h3>
@@ -282,7 +282,7 @@ export function DtfBatchDialog({
                               {run.items.length} งาน · {run.items.reduce((sum, item) => sum + item.qty, 0)} ชิ้น · {run.status === "PRINTING" ? "กำลังพิมพ์" : "รอตัดแยก"}
                             </p>
                             {run.blockedReason ? (
-                              <p role="status" className="mt-1 text-sm text-amber-700">
+                              <p role="status" className="mt-1 text-sm text-amber-700 dark:text-amber-300">
                                 {run.blockedReason}
                               </p>
                             ) : null}
@@ -353,7 +353,7 @@ export function DtfBatchDialog({
 
               <section aria-labelledby="dtf-queue-title">
                 <div className="flex items-center gap-2">
-                  <Film className="h-5 w-5 text-blue-600" />
+                  <Film className="h-5 w-5 text-muted" />
                   <h3 id="dtf-queue-title" className="font-semibold">
                     เปิดรอบใหม่จากคิว
                   </h3>
@@ -670,7 +670,7 @@ function CompleteDtfRunDialog({
           })}
         </div>
         {missingRevision ? (
-          <p role="alert" className="text-sm text-red-600">
+          <p role="alert" className="text-sm text-red-700 dark:text-red-300">
             โหลด revision ของ Operation Job ไม่ครบ กรุณาปิดแล้วเปิดรอบนี้ใหม่
           </p>
         ) : null}

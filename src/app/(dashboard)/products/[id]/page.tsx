@@ -242,7 +242,7 @@ export default function ProductDetailPage({
         <div className="space-y-6">
           {/* Image */}
           <Card className="overflow-hidden">
-            <div className="flex h-56 items-center justify-center bg-gradient-to-br from-blue-500 to-blue-700">
+            <div className="flex h-56 items-center justify-center bg-surface-muted">
               {product.imageUrl ? (
                 <img
                   src={product.imageUrl}
@@ -343,7 +343,7 @@ export default function ProductDetailPage({
                 )}
                 {product.lastSyncAt && (
                   <div className="border-t border-divider pt-3">
-                    <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                    <div className="flex items-center gap-1.5 text-xs text-muted">
                       <Cloud className="h-3 w-3" />
                       Sync ล่าสุด: {formatDateTime(product.lastSyncAt)}
                     </div>
@@ -373,7 +373,7 @@ export default function ProductDetailPage({
               {/* Variants table */}
               {product.variants.length === 0 ? (
                 <div className="flex flex-col items-center py-8">
-                  <p className="text-sm text-slate-400">
+                  <p className="text-sm text-muted">
                     ยังไม่มีตัวเลือก — Sync จาก Anajak Stock เพื่อดึงข้อมูล
                   </p>
                 </div>

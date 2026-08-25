@@ -335,8 +335,8 @@ function QuotationFormPage() {
                 <legend className={sectionLabelClass}>ลูกค้า *</legend>
                 {fromOrderId || editId ? (
                   // ลูกค้าล็อกตามออเดอร์/ใบเดิม — เปลี่ยนลูกค้า = เปิดใบใหม่
-                  <div className="flex h-10 items-center gap-2 rounded-lg border border-border bg-slate-50 px-3 text-sm text-slate-700 dark:bg-slate-800/50 dark:text-slate-300">
-                    <User className="h-4 w-4 text-slate-400" />
+                  <div className="flex h-10 items-center gap-2 rounded-lg border border-border bg-slate-50 px-3 text-sm text-secondary dark:bg-slate-800/50">
+                    <User className="h-4 w-4 text-muted" />
                     {customerLabel || "..."}
                   </div>
                 ) : (

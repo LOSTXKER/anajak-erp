@@ -159,7 +159,7 @@ export default function QuotationDetailPage({
         <PageHeader
           title="ใบเสนอราคา"
         />
-        <p className="text-sm text-slate-400">
+        <p className="text-sm text-muted">
           หน้านี้เปิดเฉพาะทีมขาย ผู้จัดการ และบัญชี
         </p>
       </div>
@@ -434,7 +434,7 @@ export default function QuotationDetailPage({
                       index: number,
                     ) => (
                       <DataTable.Row key={item.id}>
-                        <DataTable.Td className="text-slate-400">
+                        <DataTable.Td className="text-muted">
                           {index + 1}
                         </DataTable.Td>
                         <DataTable.Td>
@@ -442,7 +442,7 @@ export default function QuotationDetailPage({
                             {item.name}
                           </p>
                           {item.description && (
-                            <p className="text-xs text-slate-400">
+                            <p className="text-xs text-muted">
                               {item.description}
                             </p>
                           )}
@@ -512,7 +512,7 @@ export default function QuotationDetailPage({
               <CardContent className="space-y-4 text-sm">
                 {quotation.description && (
                   <div>
-                    <p className="mb-1 text-xs font-medium text-slate-400">
+                    <p className="mb-1 text-xs font-medium text-muted">
                       รายละเอียด
                     </p>
                     <p className="whitespace-pre-wrap text-secondary">
@@ -522,7 +522,7 @@ export default function QuotationDetailPage({
                 )}
                 {quotation.terms && (
                   <div>
-                    <p className="mb-1 text-xs font-medium text-slate-400">
+                    <p className="mb-1 text-xs font-medium text-muted">
                       เงื่อนไข
                     </p>
                     <p className="whitespace-pre-wrap text-secondary">
@@ -532,7 +532,7 @@ export default function QuotationDetailPage({
                 )}
                 {quotation.notes && (
                   <div>
-                    <p className="mb-1 text-xs font-medium text-slate-400">
+                    <p className="mb-1 text-xs font-medium text-muted">
                       หมายเหตุ
                     </p>
                     <p className="whitespace-pre-wrap text-secondary">
@@ -647,7 +647,7 @@ export default function QuotationDetailPage({
               )}
               {quotation.rejectedReason && (
                 <div className="border-t border-divider pt-3">
-                  <p className="mb-1 text-xs text-slate-400">เหตุผลที่ปฏิเสธ</p>
+                  <p className="mb-1 text-xs text-muted">เหตุผลที่ปฏิเสธ</p>
                   <p className="text-muted">{quotation.rejectedReason}</p>
                 </div>
               )}

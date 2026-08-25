@@ -185,11 +185,11 @@ export function CustomMadeDetail({
                   />
                 )}
                 <div className="min-w-0 text-xs">
-                  <span className="block font-medium text-slate-700 dark:text-slate-200">{selectedPattern.name}</span>
+                  <span className="block font-medium text-secondary">{selectedPattern.name}</span>
                   {selectedPattern.description && (
                     <span className="block text-muted">{selectedPattern.description}</span>
                   )}
-                  <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-slate-400">
+                  <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted">
                     {selectedPattern.collarType && <span>คอ: <span className="text-secondary">{COLLAR_TYPES[selectedPattern.collarType] || selectedPattern.collarType}</span></span>}
                     {selectedPattern.sleeveType && <span>แขน: <span className="text-secondary">{SLEEVE_TYPES[selectedPattern.sleeveType] || selectedPattern.sleeveType}</span></span>}
                     {selectedPattern.bodyFit && <span>ทรง: <span className="text-secondary">{BODY_FITS[selectedPattern.bodyFit] || selectedPattern.bodyFit}</span></span>}

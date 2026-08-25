@@ -73,7 +73,7 @@ function ReceiveTrackingInline({ product, onSuccess, readOnly }: {
             {product.receiveNote && <span className="text-muted">({product.receiveNote})</span>}
           </>
         ) : (
-          <span className="text-slate-400">ยังไม่มีหลักฐานใบตรวจรับ</span>
+          <span className="text-muted">ยังไม่มีหลักฐานใบตรวจรับ</span>
         )}
         {!readOnly ? (
           <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(true)} className="ml-auto h-6 gap-1.5 px-2 text-2xs text-yellow-700 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-300">
@@ -285,7 +285,7 @@ export function OrderItemsDisplay({
                                 <div className="min-w-0 space-y-1">
                                   <div className="flex flex-wrap items-center gap-2">
                                     {item.products.length > 1 && (
-                                      <span className="text-xs font-medium text-slate-400">{prodIdx + 1}.</span>
+                                      <span className="text-xs font-medium text-muted">{prodIdx + 1}.</span>
                                     )}
                                     {prod.product?.imageUrl && (
                                       <img src={prod.product.imageUrl} alt="" className="h-8 w-8 rounded border object-cover" />
@@ -294,7 +294,7 @@ export function OrderItemsDisplay({
                                       {prod.product?.name || prod.description || "สินค้า"}
                                     </span>
                                     {prod.product?.sku && (
-                                      <span className="font-mono text-xs text-slate-400">{prod.product.sku}</span>
+                                      <span className="font-mono text-xs text-muted">{prod.product.sku}</span>
                                     )}
                                     {source && <Badge variant={source.variant}>{source.label}</Badge>}
                                     {prod.productType && (
@@ -551,7 +551,7 @@ export function OrderItemsDisplay({
                               return (
                                 <tr key={`${line.kind}-${line.index}`}>
                                   <td className="py-1 pr-2 [overflow-wrap:anywhere]">
-                                    <span className="text-slate-700 dark:text-slate-200">{label}</span>
+                                    <span className="text-secondary">{label}</span>
                                     {detail && <span className="ml-1 text-muted">({detail})</span>}
                                   </td>
                                   <td className="px-2 py-1 text-right tabular-nums text-muted">{formatCurrency(line.unitPrice)}</td>

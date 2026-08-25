@@ -164,9 +164,9 @@ export function OutsourceShareDialog({ job, onClose }: OutsourceShareDialogProps
             )}
 
             {loadingFiles ? (
-              <p className="text-xs text-slate-400">กำลังโหลด...</p>
+              <p className="text-xs text-muted">กำลังโหลด...</p>
             ) : !attachments || attachments.length === 0 ? (
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-muted">
                 ยังไม่มีไฟล์ — แนบไฟล์ลายให้ร้านโหลดไปทำงานได้จากลิงก์
               </p>
             ) : (
@@ -183,7 +183,7 @@ export function OutsourceShareDialog({ job, onClose }: OutsourceShareDialogProps
                         className="h-9 w-9 shrink-0 rounded object-cover"
                       />
                     ) : (
-                      <Paperclip className="h-4 w-4 shrink-0 text-slate-400" />
+                      <Paperclip className="h-4 w-4 shrink-0 text-muted" />
                     )}
                     <a
                       href={a.fileUrl}
@@ -196,7 +196,7 @@ export function OutsourceShareDialog({ job, onClose }: OutsourceShareDialogProps
                     <Button
                       variant="ghost"
                       size="icon-sm"
-                      className="shrink-0 text-slate-400 hover:text-red-500 dark:hover:text-red-400"
+                      className="shrink-0 text-muted hover:text-red-500 dark:hover:text-red-400"
                       disabled={deleteAttachment.isPending}
                       onClick={() => deleteAttachment.mutate({ id: a.id })}
                       title="ลบไฟล์"
@@ -215,11 +215,11 @@ export function OutsourceShareDialog({ job, onClose }: OutsourceShareDialogProps
               ลิงก์ใบงาน
             </p>
             {loadingLink ? (
-              <p className="text-xs text-slate-400">กำลังโหลด...</p>
+              <p className="text-xs text-muted">กำลังโหลด...</p>
             ) : shareUrl ? (
               <>
                 <div className="flex items-center gap-2">
-                  <code className="min-w-0 flex-1 truncate rounded-lg bg-slate-100 px-2.5 py-2 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                  <code className="min-w-0 flex-1 truncate rounded-lg bg-slate-100 px-2.5 py-2 text-xs text-secondary dark:bg-slate-800">
                     {shareUrl}
                   </code>
                 </div>
@@ -245,7 +245,7 @@ export function OutsourceShareDialog({ job, onClose }: OutsourceShareDialogProps
                   </Button>
                 </div>
                 {link?.expiresAt && (
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-muted">
                     ลิงก์ใช้ได้ถึง {formatDate(link.expiresAt)} · ร้านเปิดได้โดยไม่ต้อง login —
                     เห็นเฉพาะ งาน/จำนวน/ตารางไซซ์/ลาย/กำหนดส่งคืน (ไม่มีราคา/ชื่อลูกค้า)
                   </p>

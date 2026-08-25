@@ -12,9 +12,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { RADIUS, TINT } from "@/components/ui/tokens";
 import { Badge } from "@/components/ui/badge";
 import { QueryError } from "@/components/ui/query-error";
-import { formatDateTime } from "@/lib/utils";
+import { cn, formatDateTime } from "@/lib/utils";
 import {
   Cloud,
   RefreshCw,
@@ -313,7 +314,7 @@ export default function StockSettingsPage() {
                             aria-label={
                               showApiKey ? "ซ่อน API Key" : "แสดง API Key"
                             }
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted hover:text-strong"
                       >
                             {showApiKey ? <EyeOff /> : <Eye />}
                       </Button>
@@ -372,11 +373,11 @@ export default function StockSettingsPage() {
                 {/* Connection result */}
                 {connectionResult && (
                   <div
-                    className={`flex items-center gap-2 rounded-lg p-3 text-sm ${
-                      connectionResult.connected
-                        ? "bg-green-50 text-green-700 dark:bg-green-950/50 dark:text-green-400"
-                        : "bg-red-50 text-red-700 dark:bg-red-950/50 dark:text-red-400"
-                    }`}
+                    className={cn(
+                      RADIUS.inner,
+                      "flex items-center gap-2 border p-3 text-sm",
+                      connectionResult.connected ? TINT.success : TINT.error,
+                    )}
                   >
                     {connectionResult.connected ? (
                       <>
@@ -546,7 +547,7 @@ export default function StockSettingsPage() {
                     <DataTable.Td
                       aria-hidden="true"
                       align="center"
-                      className="text-slate-400"
+                      className="text-muted"
                     >
                       →
                     </DataTable.Td>

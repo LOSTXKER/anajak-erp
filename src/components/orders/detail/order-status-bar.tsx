@@ -254,7 +254,7 @@ export function OrderStatusBar({
             {blockers.map((b) => (
               <li
                 key={b}
-                className="flex items-start gap-1.5 text-slate-600 [overflow-wrap:anywhere] dark:text-slate-300"
+                className="flex items-start gap-1.5 text-secondary [overflow-wrap:anywhere]"
               >
                 <span
                   aria-hidden="true"

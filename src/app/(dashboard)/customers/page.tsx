@@ -311,7 +311,7 @@ function CustomersPageContent() {
                           </p>
                         )}
                       </div>
-                      <ChevronRight aria-hidden="true" className="mt-1 h-5 w-5 shrink-0 text-slate-400" />
+                      <ChevronRight aria-hidden="true" className="mt-1 h-5 w-5 shrink-0 text-muted" />
                     </div>
                     <div className="mt-3 flex flex-wrap items-center gap-2">
                       <Badge variant={seg.variant}>{seg.label}</Badge>

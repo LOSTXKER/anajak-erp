@@ -207,13 +207,13 @@ export default function SalesTaxReportPage() {
               {items.map((r) => (
                 <DataTable.Row
                   key={r.invoiceNumber}
-                  className={r.isVoided ? "text-slate-400 line-through" : undefined}
+                  className={r.isVoided ? "text-muted line-through" : undefined}
                 >
-                  <DataTable.Td className="tabular-nums text-slate-400">{r.seq}</DataTable.Td>
+                  <DataTable.Td className="tabular-nums text-muted">{r.seq}</DataTable.Td>
                   <DataTable.Td
                     className={cn(
                       "whitespace-nowrap tabular-nums",
-                      r.isVoided && "text-slate-400"
+                      r.isVoided && "text-muted"
                     )}
                   >
                     {formatThaiDateBE(r.date)}
@@ -221,7 +221,7 @@ export default function SalesTaxReportPage() {
                   <DataTable.Td
                     className={cn(
                       "whitespace-nowrap font-medium",
-                      r.isVoided && "text-slate-400"
+                      r.isVoided && "text-muted"
                     )}
                   >
                     {r.invoiceNumber}
@@ -232,15 +232,15 @@ export default function SalesTaxReportPage() {
                     )}
                   </DataTable.Td>
                   <DataTable.Td
-                    className={cn("whitespace-nowrap", r.isVoided && "text-slate-400")}
+                    className={cn("whitespace-nowrap", r.isVoided && "text-muted")}
                   >
                     {SALES_TAX_DOC_LABELS[r.docType]}
                   </DataTable.Td>
                   <DataTable.Td
-                    className={cn("max-w-[220px]", r.isVoided && "text-slate-400")}
+                    className={cn("max-w-[220px]", r.isVoided && "text-muted")}
                   >
                     <p className="truncate">{r.customerName}</p>
-                    {r.note && <p className="truncate text-xs text-slate-400">{r.note}</p>}
+                    {r.note && <p className="truncate text-xs text-muted">{r.note}</p>}
                   </DataTable.Td>
                   <DataTable.Td className="text-xs text-muted">
                     {r.taxId || "—"}
@@ -248,19 +248,19 @@ export default function SalesTaxReportPage() {
                   </DataTable.Td>
                   <DataTable.Td
                     align="right"
-                    className={cn("tabular-nums", r.isVoided && "text-slate-400")}
+                    className={cn("tabular-nums", r.isVoided && "text-muted")}
                   >
                     {r.base.toFixed(2)}
                   </DataTable.Td>
                   <DataTable.Td
                     align="right"
-                    className={cn("tabular-nums", r.isVoided && "text-slate-400")}
+                    className={cn("tabular-nums", r.isVoided && "text-muted")}
                   >
                     {r.vat.toFixed(2)}
                   </DataTable.Td>
                   <DataTable.Td
                     align="right"
-                    className={cn("font-medium tabular-nums", r.isVoided && "text-slate-400")}
+                    className={cn("font-medium tabular-nums", r.isVoided && "text-muted")}
                   >
                     {r.total.toFixed(2)}
                   </DataTable.Td>
@@ -294,11 +294,11 @@ export default function SalesTaxReportPage() {
               <div key={r.invoiceNumber} className="card-surface rounded-lg p-4">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-xs tabular-nums text-slate-400">#{r.seq}</span>
+                    <span className="text-xs tabular-nums text-muted">#{r.seq}</span>
                     <p
                       className={`font-medium ${
                         r.isVoided
-                          ? "text-slate-400 line-through"
+                          ? "text-muted line-through"
                           : "text-strong"
                       }`}
                     >
@@ -315,7 +315,7 @@ export default function SalesTaxReportPage() {
                   </p>
                 </div>
 
-                <div className={`mt-3 ${r.isVoided ? "text-slate-400 line-through" : ""}`}>
+                <div className={`mt-3 ${r.isVoided ? "text-muted line-through" : ""}`}>
                   <p className="text-sm font-medium">{r.customerName}</p>
                   <p className="mt-0.5 text-xs text-muted">
                     เลขผู้เสียภาษี {r.taxId || "—"}
@@ -328,7 +328,7 @@ export default function SalesTaxReportPage() {
 
                 <dl
                   className={`mt-3 grid grid-cols-3 gap-2 border-t border-divider pt-3 text-right ${
-                    r.isVoided ? "text-slate-400 line-through" : ""
+                    r.isVoided ? "text-muted line-through" : ""
                   }`}
                 >
                   <div className="min-w-0">

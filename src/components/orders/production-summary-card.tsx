@@ -126,7 +126,7 @@ export function ProductionSummaryCard({
                     ) : currentStep ? (
                       <span>
                         ขั้นปัจจุบัน:{" "}
-                        <span className="font-medium text-slate-700 dark:text-slate-200">
+                        <span className="font-medium text-secondary">
                           {currentStep.customStepName ||
                             STEP_TYPE_LABELS[currentStep.stepType] ||
                             currentStep.stepType}

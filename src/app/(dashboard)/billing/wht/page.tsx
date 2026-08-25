@@ -378,7 +378,7 @@ function WhtRegisterPageContent() {
                           asChild
                           variant="ghost"
                           size="icon-sm"
-                          className="text-slate-400 hover:text-strong dark:hover:text-strong"
+                          className="text-muted hover:text-strong dark:hover:text-strong"
                         >
                           <a
                             href={row.fileUrl}
@@ -546,7 +546,7 @@ function WhtRegisterPageContent() {
                     variant="ghost"
                     size="icon-sm"
                     onClick={() => setFileUrl("")}
-                    className="shrink-0 text-slate-400 hover:text-red-600 dark:hover:text-red-400"
+                    className="shrink-0 text-muted hover:text-red-600 dark:hover:text-red-400"
                     title="เอาไฟล์ออก"
                   >
                     <X />

@@ -93,7 +93,7 @@ export function PrintCardMobile({
               DASHED_INTERACTIVE,
               RADIUS.item,
               FOCUS_BUTTON,
-              "flex h-11 w-11 shrink-0 items-center justify-center text-slate-400 transition-colors hover:text-strong dark:hover:text-strong"
+              "flex h-11 w-11 shrink-0 items-center justify-center text-muted transition-colors hover:text-strong dark:hover:text-strong"
             )}
           >
             {uploading ? <Spinner size="md" /> : <Plus />}
@@ -189,7 +189,7 @@ export function PrintCardMobile({
                 placeholder="กว้าง"
                 className="w-full text-center"
               />
-              <span className="text-xs text-slate-400">×</span>
+              <span className="text-xs text-muted">×</span>
               <Input
                 aria-label={`ความสูงลาย จุดที่ ${printIdx + 1} (ซม.)`}
                 type="number"

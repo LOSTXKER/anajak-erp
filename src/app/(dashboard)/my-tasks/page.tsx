@@ -12,11 +12,11 @@ import {
   UsersRound,
 } from "lucide-react";
 import { trpc, type RouterOutput } from "@/lib/trpc";
+import { ListSkeleton } from "@/components/ui/page-skeleton";
 import { PageShell } from "@/components/page-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Skeleton } from "@/components/ui/skeleton";
 import { StatusLabel, toneFromBadgeVariant } from "@/components/ui/status-label";
 import { STEP_TYPE_LABELS } from "@/lib/production-steps";
 import { manufacturingTaskHref } from "@/lib/manufacturing-task";
@@ -336,7 +336,7 @@ function TaskRow({ item, urgent }: { item: TaskListItem; urgent?: boolean }) {
             {item.meta && <span className="tabular-nums">{item.meta}</span>}
           </div>
         </div>
-        <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" />
+        <ChevronRight className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
       </Link>
     </li>
   );
@@ -362,7 +362,7 @@ function TaskGroupCard({ group }: { group: TaskGroup }) {
             "mt-0.5 rounded-lg p-2",
             group.id === "attention"
               ? "bg-red-50 text-red-700 dark:bg-red-950/50 dark:text-red-300"
-              : "bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300"
+              : "bg-surface-muted text-secondary"
           )}
         >
           <Icon className="h-4 w-4" aria-hidden="true" />
@@ -425,13 +425,7 @@ export default function MyTasksPage() {
             : "เคลียร์หมดแล้ว — ไม่มีงานค้าง"
       }
       loading={isLoading}
-      skeleton={
-        <>
-          {[0, 1, 2].map((index) => (
-            <Skeleton key={index} className="h-44 rounded-lg" />
-          ))}
-        </>
-      }
+      skeleton={<ListSkeleton rows={5} />}
       error={
         isError || (!isLoading && !data)
           ? { message: "เกิดข้อผิดพลาดในการโหลดข้อมูล", onRetry: () => refetch() }

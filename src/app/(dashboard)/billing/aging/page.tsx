@@ -501,7 +501,7 @@ function AgingPageContent() {
                 </DialogFooter>
               </>
             ) : (
-              <p className="py-8 text-center text-sm text-slate-400">
+              <p className="py-8 text-center text-sm text-muted">
                 ลูกค้ารายนี้ไม่มียอดค้าง — ไม่มีอะไรต้องทวง
               </p>
             )}

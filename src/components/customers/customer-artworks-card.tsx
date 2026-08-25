@@ -219,9 +219,9 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
       </CardHeader>
       <CardContent>
         {artworks.isLoading ? (
-          <p className="text-sm text-slate-400">กำลังโหลด...</p>
+          <p className="text-sm text-muted">กำลังโหลด...</p>
         ) : rows.length === 0 ? (
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-muted">
             ยังไม่มีลายในคลัง — ลายจะเข้าคลังเองเมื่องานพิมพ์ผ่าน QC หรือกด &quot;เพิ่มลาย&quot;
           </p>
         ) : (
@@ -245,7 +245,7 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
                     </a>
                   ) : (
                     <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg border border-border bg-slate-50 dark:bg-slate-800">
-                      <ImageIcon className="h-6 w-6 text-slate-300 dark:text-slate-600" />
+                      <ImageIcon className="h-6 w-6 text-muted" />
                     </div>
                   )}
                   <div className="min-w-0 flex-1">
@@ -450,7 +450,7 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
                 />
               )}
             </div>
-            <p className="text-2xs text-slate-400">
+            <p className="text-2xs text-muted">
               สเปก (ขนาด/อุณหภูมิ/แรงกด) เติมทีหลังได้จากปุ่มแก้ไข
             </p>
           </div>

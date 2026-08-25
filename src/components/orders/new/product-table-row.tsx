@@ -78,13 +78,13 @@ export function ProductTableRow({
                 <img src={product.productImageUrl} alt={productLabel} className="h-9 w-9 flex-shrink-0 rounded-lg border border-border object-cover" />
               ) : (
                 <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-border bg-surface-muted">
-                  <ImageIcon className="h-4 w-4 text-slate-300 dark:text-slate-600" />
+                  <ImageIcon className="h-4 w-4 text-muted" />
                 </div>
               )}
               <div className="min-w-0">
-                <span className="block truncate text-sm font-medium text-slate-800 dark:text-slate-100">{productLabel}</span>
+                <span className="block truncate text-sm font-medium text-strong">{productLabel}</span>
                 {variantLabel && <span className="block text-xs text-muted">{variantLabel}</span>}
-                <div className="mt-0.5 flex items-center gap-2 text-xs text-slate-400">
+                <div className="mt-0.5 flex items-center gap-2 text-xs text-muted">
                   {product.productSku && <span>{product.productSku}</span>}
                   {product.stockAvailable != null && (
                     <span className={product.stockAvailable > 0 ? "text-green-600 dark:text-green-400" : "text-red-700 dark:text-red-300"}>คลัง {product.stockAvailable}</span>
@@ -167,7 +167,7 @@ export function ProductTableRow({
         {/* จำนวน */}
         <td className="px-2 py-2 align-top">
           {multi ? (
-            <div className="flex h-9 items-center justify-center text-sm font-medium text-slate-700 dark:text-slate-200">{totalQty}</div>
+            <div className="flex h-9 items-center justify-center text-sm font-medium text-secondary">{totalQty}</div>
           ) : (
             <NumberInput integer aria-label={`จำนวนสินค้า ${prodIdx + 1}`} min={0} value={qty} onValueChange={(v) => updateVariantField("quantity", v)} placeholder="0" size="dense" className="w-full text-center" />
           )}
@@ -176,7 +176,7 @@ export function ProductTableRow({
         {/* รวม — กึ่งกลางตรงหัวคอลัมน์ (เบสเคาะ 2026-08-04) */}
         <td className="px-2 py-2 text-center align-top">
           {isCustomerProvided ? dash : (
-            <div className="flex h-9 items-center justify-center text-sm font-semibold tabular-nums text-slate-800 dark:text-slate-100">{formatCurrency(lineTotal)}</div>
+            <div className="flex h-9 items-center justify-center text-sm font-semibold tabular-nums text-strong">{formatCurrency(lineTotal)}</div>
           )}
         </td>
 
