@@ -20,7 +20,7 @@ const DOT: Record<StatusTone, string> = {
   neutral: "bg-slate-500 dark:bg-slate-400",
   accent: "bg-blue-500",
   success: "bg-green-600 dark:bg-green-400",
-  warning: "bg-amber-700 dark:bg-amber-500",
+  warning: "bg-amber-500",
   danger: "bg-red-500",
 };
 

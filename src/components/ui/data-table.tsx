@@ -31,14 +31,25 @@ import {
 
 interface RootProps extends React.HTMLAttributes<HTMLDivElement> {
   bordered?: boolean;
+  /** ตารางที่วางบนผืนหน้าโดยไม่มีกล่องครอบ (เบสเคาะ 2026-08-25 · UI-2026 เฟส 1)
+   *  — ขอบซ้าย/ขวาของเซลล์แรก-สุดท้ายต้องเสมอกับขอบเนื้อหาของหน้า ไม่งั้นตาราง
+   *  จะดูเยื้องเข้ามา 20px โดยไม่มีกรอบอะไรอธิบายว่าทำไม
+   *  และหัวตารางเลิกใช้แถบพื้น เพราะบนผืนหน้ามันต่างกันไม่ถึง 1% ในธีมมืด
+   *  (กลืนหาย) — ใช้เส้นล่างที่หนักกว่า divider เป็นขอบเขตบนของตารางแทน */
+  flush?: boolean;
 }
 
 const Root = React.forwardRef<HTMLDivElement, RootProps>(
-  ({ className, bordered = true, children, ...props }, ref) => (
+  ({ className, bordered = true, flush = false, children, ...props }, ref) => (
     <div
       ref={ref}
       className={cn(
         bordered && "card-surface overflow-hidden rounded-lg",
+        flush && [
+          "[&_thead]:border-b [&_thead]:border-border [&_thead]:bg-transparent",
+          "[&_th:first-child]:pl-0 [&_td:first-child]:pl-0",
+          "[&_th:last-child]:pr-0 [&_td:last-child]:pr-0",
+        ],
         className
       )}
       {...props}
@@ -110,7 +121,7 @@ const Row = React.forwardRef<HTMLTableRowElement, RowProps>(
         className={cn(
           // ชี้แถวไหนต้องรู้ทันที — ตารางกว้างแล้วกดผิดแถวคือกดผิดออเดอร์
           INTERACTIVE_HOVER,
-          "group transition-colors duration-150 hover:[&_.text-muted]:text-secondary hover:[&_.text-slate-500]:text-secondary dark:hover:[&_.text-muted]:text-secondary dark:hover:[&_.text-slate-500]:text-secondary",
+          "group transition-colors hover:[&_.text-muted]:text-secondary hover:[&_.text-slate-500]:text-secondary dark:hover:[&_.text-muted]:text-secondary dark:hover:[&_.text-slate-500]:text-secondary",
           href && cn("cursor-pointer", INTERACTIVE_PRESSED),
           className
         )}

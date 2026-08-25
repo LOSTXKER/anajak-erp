@@ -364,7 +364,7 @@ export function OrderBillingSection({
                             <Button
                               variant="outline"
                               size="sm"
-                              className="gap-1.5 text-xs text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300"
+                              className="gap-1.5 text-xs text-amber-700 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setShowRefundDialog(inv.id);

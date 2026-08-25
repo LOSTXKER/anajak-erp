@@ -158,7 +158,7 @@ export function MarginEstimateBlock({ estimate }: { estimate: MarginEstimate }) 
       {warnings.length > 0 && (
         <div className="space-y-0.5">
           {warnings.map((w) => (
-            <p key={w} className="text-xs text-amber-600 dark:text-amber-400">
+            <p key={w} className="text-xs text-amber-700 dark:text-amber-400">
               {w}
             </p>
           ))}

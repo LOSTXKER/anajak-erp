@@ -346,7 +346,7 @@ export function MaterialUsage({
                       {formatCurrency(m.totalCost)}
                     </span>
                   )}
-                  <Badge variant="success" className="h-5 text-2xs">
+                  <Badge variant="success" size="sm" className="text-2xs">
                     เบิกแล้ว
                   </Badge>
                   {m.stockMovementRef && (
@@ -384,14 +384,14 @@ export function MaterialUsage({
                         m.currentStock <= 0
                           ? "text-red-500"
                           : m.currentStock < m.quantity
-                            ? "text-amber-500"
+                            ? "text-amber-700 dark:text-amber-400"
                             : "text-muted"
                       )}
                     >
                       คงเหลือ: {m.currentStock}
                     </span>
                     {m.currentStock < m.quantity && m.currentStock > 0 && (
-                      <span className="flex items-center gap-0.5 text-amber-500">
+                      <span className="flex items-center gap-0.5 text-amber-700 dark:text-amber-400">
                         <AlertCircle className="h-2.5 w-2.5" />
                         สต็อกไม่พอ
                       </span>

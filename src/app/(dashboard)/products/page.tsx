@@ -249,7 +249,7 @@ function ProductsPageContent() {
                 href={`/products/${product.id}`}
                 className={cn("block rounded-lg", FOCUS_BUTTON)}
               >
-                <div className="card-surface card-surface-hover group h-full overflow-hidden rounded-lg transition-all">
+                <div className="card-surface card-surface-hover group h-full overflow-hidden rounded-lg">
                   <div className="relative flex h-44 items-center justify-center bg-slate-100 dark:bg-slate-800">
                     {product.imageUrl ? (
                       <img

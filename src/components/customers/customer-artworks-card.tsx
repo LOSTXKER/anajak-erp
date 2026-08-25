@@ -270,14 +270,14 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
                       ใช้ไป {a.usedOrderCount} ออเดอร์
                       {a.latestOrder ? ` · ล่าสุด ${a.latestOrder.orderNumber}` : ""}
                       {a.filmQty > 0 ? (
-                        <span className="font-medium text-amber-600 dark:text-amber-400">
+                        <span className="font-medium text-amber-700 dark:text-amber-400">
                           {" "}
                           · ฟิล์มค้าง {a.filmQty} ชิ้น
                         </span>
                       ) : null}
                     </p>
                     {gaps.length > 0 && (
-                      <p className="mt-0.5 text-2xs text-amber-600 dark:text-amber-400">
+                      <p className="mt-0.5 text-2xs text-amber-700 dark:text-amber-400">
                         สเปกยังไม่ครบ: {gaps.join(" · ")}
                       </p>
                     )}

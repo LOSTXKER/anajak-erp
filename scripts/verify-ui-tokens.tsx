@@ -835,12 +835,26 @@ check(
     return Math.max(...channels) - Math.min(...channels) <= 6;
   });
   const surface = colorValues("surface");
-  const stateContrastIsBalanced = tokenCountsValid && surface.length === 2 && hover.every((value, index) => {
-    const hoverFromSurface = contrast(hexRgb(value), hexRgb(surface[index]!));
-    const pressedFromHover = contrast(hexRgb(pressed[index]!), hexRgb(value));
-    const hoverCeiling = index === 0 ? 1.13 : 1.25;
-    return hoverFromSurface >= 1.1 && hoverFromSurface <= hoverCeiling && pressedFromHover >= 1.05;
-  });
+  const page = colorValues("bg");
+  // hover ต้องอ่านออกบน "ทุกพื้นที่แถวจริงไปยืน" ไม่ใช่แค่ surface (UI-2026 เฟส 1):
+  // ตั้งแต่ทะเบียนออเดอร์ถอดกล่องครอบ แถวจึงนั่งบน --color-bg ตรงๆ
+  // ถ้าวัดแต่ surface จะปล่อยค่าที่ได้ 1.07:1 บนผืนหน้าผ่านไปได้ (เคยหลุดมาแล้ว)
+  // เพดานขยับจาก 1.13 เป็น 1.16 ในธีมสว่างเพื่อให้มีที่พอทำทั้งสองพื้น — ห้ามเกินกว่านี้
+  // เพราะ hover ที่หนักกว่านั้นจะอ่านเป็น "ถูกเลือกอยู่" แข่งกับ interactive-selected
+  const stateContrastIsBalanced =
+    tokenCountsValid && surface.length === 2 && page.length >= 2 &&
+    hover.every((value, index) => {
+      const hoverFromSurface = contrast(hexRgb(value), hexRgb(surface[index]!));
+      const hoverFromPage = contrast(hexRgb(value), hexRgb(page[index]!));
+      const pressedFromHover = contrast(hexRgb(pressed[index]!), hexRgb(value));
+      const hoverCeiling = index === 0 ? 1.16 : 1.25;
+      return (
+        hoverFromSurface >= 1.1 &&
+        hoverFromSurface <= hoverCeiling &&
+        hoverFromPage >= 1.1 &&
+        pressedFromHover >= 1.05
+      );
+    });
   const chromeStateContrastIsBalanced = chromeTokenCountsValid && chromeHover.every((value, index) => {
     const hoverFromChrome = contrast(hexRgb(value), hexRgb(chrome[index]!));
     const pressedFromHover = contrast(hexRgb(chromePressed[index]!), hexRgb(value));
@@ -1008,7 +1022,11 @@ check(
 // ⑨ ด่านสีจริง — class ถูกไม่ได้แปลว่าสีอ่านออก จึงคำนวณ WCAG จาก token กลาง
 {
   const themes = [0, 1] as const;
-  const surfaces = ["bg", "surface", "surface-muted", "interactive-hover", "interactive-pressed", "interactive-selected"] as const;
+  // chrome + chrome-hover เข้ามาในลิสต์ตั้งแต่ chrome เป็นเทา (UI-2026 เฟส 1) —
+  // ก่อนหน้านี้ chrome เป็นขาว/ดำสนิทจึงไม่มีใครคิดว่าต้องเช็ก
+  // chrome-pressed จงใจไม่อยู่ในลิสต์: ทุกจุดที่ใช้ต้องมากับ INTERACTIVE_CHROME_PRESSED
+  // ซึ่งพ่วง active:text-strong มาแล้ว (มีด่านแยกด้านล่างห้ามเขียน active:bg-... เอง)
+  const surfaces = ["bg", "surface", "surface-muted", "interactive-hover", "interactive-pressed", "interactive-selected", "chrome", "interactive-chrome-hover"] as const;
   const texts = ["strong", "secondary", "muted"] as const;
   const fields = colorValues("field");
   const fieldBorders = colorValues("field-border");
@@ -1110,7 +1128,11 @@ check(
       4.5,
     );
   }
-  for (const shade of ["blue-500", "red-500", "amber-500", "green-500"]) {
+  // amber-500 ถูกถอดออกจากชุดนี้ตั้งใจ (UI-2026 เฟส 1 · เบสเคาะ 2026-08-25):
+  // บทบาทใหม่คือ "สัญญาณล้วน" (จุดสถานะ/แท่ง/วงแหวน) ที่มีข้อความกำกับเสมอ
+  // เหลืองอำพันจริงบนขาวได้แค่ ~2.1:1 จะบังคับ 4.5:1 ไม่ได้โดยไม่ทุบให้เป็นน้ำตาล
+  // (ซึ่งคือปัญหาเดิม) · แทนที่ด้วยด่านห้ามใช้เป็นตัวหนังสือด้านล่าง + amber-600 ที่ 3:1
+  for (const shade of ["blue-500", "red-500", "green-500"]) {
     checkContrast(
       `${shade} legacy text บน light surface`,
       hexRgb(colorValues(shade)[0]!),
@@ -1129,8 +1151,37 @@ check(
   }
 
   const lightSurface = hexRgb(colorValues("surface")[0]!);
-  for (const shade of ["blue-600", "red-600", "amber-600", "green-600"]) {
+  for (const shade of ["blue-600", "red-600", "green-600"]) {
     checkContrast(`${shade} บน surface`, hexRgb(colorValues(shade)[0]!), lightSurface, 4.5);
+  }
+  // amber-600 = ไอคอน/สัญญาณ non-text (WCAG 1.4.11 = 3:1) ไม่ใช่ตัวหนังสือ
+  // ตัวหนังสือเหลืองใช้ amber-700 ซึ่งถูกเช็กที่ 4.5:1 ผ่าน lightTints ด้านล่าง
+  checkContrast("amber-600 ไอคอน บน surface", hexRgb(colorValues("amber-600")[0]!), lightSurface, 3);
+  checkContrast("amber-700 ตัวหนังสือ บน surface", hexRgb(colorValues("amber-700")[0]!), lightSurface, 4.5);
+  checkContrast("amber-700 ตัวหนังสือ บน bg", hexRgb(colorValues("amber-700")[0]!), hexRgb(colorValues("bg")[0]!), 4.5);
+
+  // ด่านแทนการเช็ก contrast ของ amber-500: ห้ามเอา "สัญญาณ" ไปใช้เป็นตัวหนังสือ/ไอคอนเดี่ยว
+  {
+    const offenders: string[] = [];
+    const walkSource = (dir: string) => {
+      for (const entry of readdirSync(dir)) {
+        const full = join(dir, entry);
+        if (statSync(full).isDirectory()) { walkSource(full); continue; }
+        if (!/\.tsx?$/.test(entry)) continue;
+        readFileSync(full, "utf8").split("\n").forEach((line, index) => {
+          if (/(?:^|[\s"'`:])(?:dark:)?text-(?:amber|yellow)-500\b/.test(line)) {
+            offenders.push(`${full}:${index + 1}`);
+          }
+        });
+      }
+    };
+    walkSource("src");
+    if (offenders.length) {
+      failed++;
+      console.log(`❌ amber/yellow-500 เป็นสีสัญญาณ ห้ามใช้เป็นตัวหนังสือ (ใช้ 700 คู่ dark:400) — ${offenders.slice(0, 8).join(", ")}`);
+    } else {
+      console.log("✅ สีเตือน: 500 เป็นสัญญาณ · 600 ไอคอน · 700 ตัวหนังสือ");
+    }
   }
 
   const lightTints = [
@@ -1701,15 +1752,35 @@ check(
   ) {
     problems.push("shared header ต้องมี CTA mobile เต็มแถวและพา focus ไป card ใหม่");
   }
-  const pageColors = colorValues("bg");
-  if (
-    pageColors[0] !== "#fafafa" ||
-    pageColors[1] !== "#000000" ||
-    !appShellSource.includes("app-workspace") ||
-    !globalsSource.includes(".app-workspace") ||
-    !globalsSource.includes("--color-bg: #fafafa")
-  ) {
-    problems.push("AppShell workspace ต้องเป็น off-white และ Dark ดำตาม Vercel panel system");
+  // บันไดความลึกต้องอ่านทิศเดียวกันทั้งสองธีม (UI-2026 เฟส 1 · เบสเคาะ 2026-08-25):
+  // chrome (กรอบเว็บ) จมสุด < bg (ผืนเนื้อหา) < surface (การ์ด)
+  // เดิมล็อกไว้ว่า light = #fafafa / dark = #000000 ซึ่งเป็นทิศตรงข้ามกันสองธีม
+  {
+    const relLum = (value: string) => luminance(hexRgb(value));
+    const chromeColors = colorValues("chrome");
+    const pageColors = colorValues("bg");
+    const surfaceColors = colorValues("surface");
+    // --color-bg ถูกประกาศซ้ำใน .app-workspace ด้วย จึงมีมากกว่า 2 ค่า —
+    // index 0/1 ยังเป็นคู่ light/dark ของ @theme ตามลำดับการประกาศในไฟล์
+    const ladderIsConsistent =
+      chromeColors.length >= 2 &&
+      pageColors.length >= 2 &&
+      surfaceColors.length >= 2 &&
+      [0, 1].every((theme) =>
+        relLum(chromeColors[theme]!) < relLum(pageColors[theme]!) &&
+        relLum(pageColors[theme]!) < relLum(surfaceColors[theme]!),
+      );
+    if (
+      !ladderIsConsistent ||
+      pageColors[1] === "#000000" ||
+      !appShellSource.includes("app-workspace") ||
+      !globalsSource.includes(".app-workspace") ||
+      !globalsSource.includes(`--color-bg: ${pageColors[0]}`)
+    ) {
+      problems.push(
+        "บันไดความลึกต้องเป็น chrome < bg < surface ทั้ง Light และ Dark, ห้าม Dark เป็นดำสนิท และ .app-workspace ต้องผูกกับค่า --color-bg เดียวกัน",
+      );
+    }
   }
 
   if (problems.length) {

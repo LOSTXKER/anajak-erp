@@ -94,7 +94,7 @@ export default function AnalyticsPage() {
                     </div>
                     <div className="h-1.5 overflow-hidden rounded-full bg-slate-200 dark:bg-white/10">
                       <div
-                        className="h-full rounded-full bg-blue-600 transition-all dark:bg-blue-500"
+                        className="h-full rounded-full bg-blue-600 transition-[width] duration-[var(--duration-base)] ease-out dark:bg-blue-500"
                         style={{ width: `${width}%` }}
                       />
                     </div>

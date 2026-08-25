@@ -76,7 +76,7 @@ export default function DesignApprovalPage({
               </>
             ) : (
               <>
-                <AlertCircle className="mx-auto mb-4 h-16 w-16 text-amber-500" />
+                <AlertCircle className="mx-auto mb-4 h-16 w-16 text-amber-600" />
                 <h2 className="mb-2 text-xl font-semibold text-strong">
                   รับทราบแล้ว!
                 </h2>
@@ -230,7 +230,7 @@ export default function DesignApprovalPage({
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <AlertCircle className="mx-auto h-10 w-10 text-amber-500" />
+                  <AlertCircle className="mx-auto h-10 w-10 text-amber-600" />
                   <p className="font-medium text-amber-700">
                     ขอแก้ไขแล้ว -- รอแบบใหม่จากทีมงาน
                   </p>

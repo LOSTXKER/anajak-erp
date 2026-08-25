@@ -104,7 +104,7 @@ export function OrderMoneyTab({
                         profitMargin >= 30
                           ? "text-green-600 dark:text-green-400"
                           : profitMargin >= 15
-                            ? "text-amber-600 dark:text-amber-400"
+                            ? "text-amber-700 dark:text-amber-400"
                             : "text-red-600 dark:text-red-400"
                       }`}
                     >

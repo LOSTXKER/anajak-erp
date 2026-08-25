@@ -77,7 +77,7 @@ function LegacyFactoryBoardPage() {
   const stale = query.isError || (now > 0 && now - query.dataUpdatedAt > STALE_MS);
 
   return (
-    <main className="flex h-dvh min-h-[640px] flex-col gap-3 overflow-hidden p-4">
+    <main className="factory-board flex h-dvh min-h-[640px] flex-col gap-3 overflow-hidden p-4">
       <BoardHeader
         board={board}
         stale={stale}

@@ -111,7 +111,7 @@ export function OrderCustomerSection({
             </div>
           )}
           {profileGaps.length > 0 && (
-            <p className="text-xs text-amber-600 dark:text-amber-400">
+            <p className="text-xs text-amber-700 dark:text-amber-400">
               โปรไฟล์ยังไม่ครบ: {profileGaps.map((g) => g.label).join(" · ")} — เติมที่หน้าลูกค้า
             </p>
           )}
@@ -164,7 +164,7 @@ export function OrderCustomerSection({
               </p>
             )}
           {selectedCustomer && filmCount > 0 && (
-            <p className="text-xs font-medium text-amber-600 dark:text-amber-400">
+            <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
               🎞️ ลูกค้ามีฟิล์มพร้อมรีดค้าง {filmCount} รายการ — เช็คที่{" "}
               <a
                 href={`/production/films?search=${encodeURIComponent(selectedCustomer.name)}`}

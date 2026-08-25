@@ -75,7 +75,7 @@ export function ManufacturingFactoryBoard() {
 
   if (loads.isLoading && !loads.data) {
     return (
-      <main className="flex h-dvh min-h-[720px] flex-col gap-4 overflow-hidden p-5">
+      <main className="factory-board flex h-dvh min-h-[720px] flex-col gap-4 overflow-hidden p-5">
         <Skeleton className="h-16 rounded-lg" />
         <div className="grid min-h-0 flex-1 grid-cols-3 grid-rows-2 gap-4">
           {Array.from({ length: 6 }, (_, index) => (
@@ -109,7 +109,7 @@ export function ManufacturingFactoryBoard() {
   );
 
   return (
-    <main className="flex h-dvh min-h-[720px] flex-col gap-4 overflow-hidden p-5">
+    <main className="factory-board flex h-dvh min-h-[720px] flex-col gap-4 overflow-hidden p-5">
       <header className="flex min-h-16 items-center justify-between gap-5 border-b border-divider pb-4">
         <div className="flex items-center gap-4">
           <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-500/15 text-blue-300">

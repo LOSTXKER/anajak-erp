@@ -31,41 +31,49 @@
      น้ำหนักใช้ 3 ระดับพอ: 400 ตัวหนังสือ · 500 ชื่อรายการ/ป้าย · 600 หัวข้อ+ตัวเลขเด่น
      (700 เลิกใช้ — Prompt ที่ 700 หนาจนแย่งสายตากับหัวข้อ)
 
-     ความสูงบรรทัด: ขั้น 2xs..xl คงค่าเดิมของ Tailwind — จงใจ ไม่ให้ความสูงแถว/ตาราง
-     ขยับ · ขั้น display (2xl/3xl = ชื่อหน้า/ตัวเลขเด่น ไม่อยู่ในแถวตาราง) ฝัง lh แน่น
-     ในตัว (1.2/1.15) แทนที่จะให้จุดใช้ patch leading-tight เอง — audit 2026-08-04 พบ
-     4 จุด patch เอง อีก 6 จุดลืม ได้ lh คนละค่าบน object ความหมายเดียวกัน
-     (3xl ห้ามต่ำกว่า 1.15 — วรรณยุกต์ชั้นบนของ Prompt จะชนบรรทัด)
+     ความสูงบรรทัด: ทุกขั้นที่ใช้เป็นเนื้อหาจริงถูกคลายขึ้นแล้ว (UI-2026 เฟส 1) —
+     ดูเหตุผลเต็มในย่อหน้า "ความสูงบรรทัดคลายขึ้น" ท้ายบล็อกนี้ · ขั้น display (2xl/3xl
+     = ชื่อหน้า/ตัวเลขเด่น) ยังฝัง lh ในตัวเหมือนเดิม แทนที่จะให้จุดใช้ patch
+     leading-tight เอง — audit 2026-08-04 พบ 4 จุด patch เอง อีก 6 จุดลืม
+     ได้ lh คนละค่าบน object ความหมายเดียวกัน
 
-     ช่องไฟตัวอักษร (letter-spacing) เป็นบันไดตามขนาด ฝังในคู่ต่อขั้นเช่นกัน
-     (audit 2026-08-04: เดิม tracking-tight ค่าเดียวโรยมือ 11 จุด — หัว 16px กับ
-     ตัวเลข 28px ได้ -0.025em เท่ากัน ส่วนตัวเล็ก 11px โดนบีบจาก body เหมาอีกชั้น):
-     ยิ่งใหญ่ยิ่งบีบ ยิ่งเล็กยิ่งปล่อย — 2xl/3xl:-0.02em · sm..xl:-0.01em · 2xs/xs:0
+     ⚠️ ช่องไฟ (letter-spacing) = 0 ทุกขั้น (UI-2026 เฟส 1 · เบสเคาะ 2026-08-25)
+     ของเดิมบีบติดลบไล่ตามขนาด (2xl/3xl:-0.02em · sm..xl:-0.01em) ตามสูตรฟอนต์ Latin
+     แต่ Prompt วางสระบน/ล่างและวรรณยุกต์ห่างพยัญชนะมาแล้วในตัวฟอนต์ — บีบเพิ่ม
+     ทำให้ไม้เอก/ไม้โท/สระอิ เบียดพยัญชนะตัวข้างเคียง · ต้องการ "หัวข้อแน่น"
+     ให้ลดขนาดหรือเพิ่มน้ำหนักแทน · ติดลบใช้ได้เฉพาะ element ที่เป็นตัวเลข/Latin ล้วน
+     (เลขเอกสาร ยอดเงิน) ที่ -0.01em โดยสั่งที่จุดนั้นเอง
+
+     ⚠️ ความสูงบรรทัดคลายขึ้นทุกขั้นที่ใช้เป็นเนื้อหาจริง (UI-2026 เฟส 1)
+     Prompt มีกล่องบรรทัดธรรมชาติ 1.512em (ascent 1090 + descent 422 / upm 1000 —
+     ตรวจจาก node_modules/next/dist/docs ของ capsize) เทียบกับ Inter 1.21em
+     = ต้องการที่สูงกว่า Latin ราว 25% ที่ขนาดเท่ากัน · ห้ามยืมค่าของ Geist/Linear
+     (13/16, 14/20) มาใช้ · display ไทยห้ามต่ำกว่า 1.15
      ============================================================ */
   --text-2xs: 11px;
-  --text-2xs--line-height: 1rem;
+  --text-2xs--line-height: 1.125rem;
   --text-2xs--letter-spacing: 0em;
   --text-xs: 12px;
-  --text-xs--line-height: 1rem;
+  --text-xs--line-height: 1.125rem;
   --text-xs--letter-spacing: 0em;
   --text-sm: 14px;
-  --text-sm--line-height: 1.25rem;
-  --text-sm--letter-spacing: -0.01em;
+  --text-sm--line-height: 1.375rem;
+  --text-sm--letter-spacing: 0em;
   --text-base: 16px;
   --text-base--line-height: 1.5rem;
-  --text-base--letter-spacing: -0.01em;
+  --text-base--letter-spacing: 0em;
   --text-lg: 18px;
   --text-lg--line-height: 1.75rem;
-  --text-lg--letter-spacing: -0.01em;
+  --text-lg--letter-spacing: 0em;
   --text-xl: 20px;
-  --text-xl--line-height: 1.75rem;
-  --text-xl--letter-spacing: -0.01em;
+  --text-xl--line-height: 1.875rem;
+  --text-xl--letter-spacing: 0em;
   --text-2xl: 24px;
-  --text-2xl--line-height: 1.2;
-  --text-2xl--letter-spacing: -0.02em;
+  --text-2xl--line-height: 1.3;
+  --text-2xl--letter-spacing: 0em;
   --text-3xl: 28px;
-  --text-3xl--line-height: 1.15;
-  --text-3xl--letter-spacing: -0.02em;
+  --text-3xl--line-height: 1.25;
+  --text-3xl--letter-spacing: 0em;
 
   /* ============================================================
      ชั้น PRIMITIVE — สีแบรนด์ Anajak (P1.0)
@@ -109,9 +117,9 @@
   --color-yellow-200: #fde68a;
   --color-yellow-300: #fcd34d;
   --color-yellow-400: #fbbf24;
-  --color-yellow-500: #a15c07;
-  --color-yellow-600: #a15c07;
-  --color-yellow-700: #854d0e;
+  --color-yellow-500: #f59e0b;
+  --color-yellow-600: #d97706;
+  --color-yellow-700: #9a5808;
   --color-yellow-800: #713f12;
   --color-yellow-900: #5f370e;
   --color-yellow-950: #451a03;
@@ -121,9 +129,16 @@
   --color-amber-200: #fde68a;
   --color-amber-300: #fcd34d;
   --color-amber-400: #fbbf24;
-  --color-amber-500: #a15c07;
-  --color-amber-600: #a15c07;
-  --color-amber-700: #854d0e;
+  /* ⚠️ บทบาทของ 3 ขั้นนี้ไม่เหมือนกัน (UI-2026 เฟส 1 · เบสเคาะ 2026-08-25)
+     ของเดิมทุบทั้ง ramp ให้เข้มเพื่อให้ตัวหนังสือผ่าน 4.5:1 → ได้น้ำตาลอมส้ม
+     ทั้งที่ธีมมืดพลิกกลับเป็นเหลืองจริง = เรื่องเดียวกันคนละสีสองธีม
+       500 #f59e0b  สัญญาณล้วน — จุดสถานะ/แท่ง/วงแหวน ที่มีข้อความกำกับเสมอ
+                    (ห้ามใช้เป็นตัวหนังสือหรือไอคอนเดี่ยว: บนขาวได้แค่ ~2.1:1)
+       600 #d97706  ไอคอนและ non-text ที่ต้องผ่าน WCAG 1.4.11 (3:1 บนขาว)
+       700 #9a5808  ตัวหนังสือบนธีมสว่าง (>4.5:1) — คู่กับ dark:text-amber-400 */
+  --color-amber-500: #f59e0b;
+  --color-amber-600: #d97706;
+  --color-amber-700: #9a5808;
   --color-amber-800: #713f12;
   --color-amber-900: #5f370e;
   --color-amber-950: #451a03;
@@ -182,42 +197,59 @@
   --color-module-system-border: #d7dde3;
 
   /* ============================================================
-     Anajak Operational Panel System 2026-08-23 — พื้นฉาก + panel ขอบบาง
+     Anajak Operational Panel System — ปรับบันไดใหม่ 2026-08-25 (UI-2026 เฟส 1)
 
-       page            #fafafa  ฉากหลัง workspace
-       chrome/surface  #ffffff  navigation / panel / card
-       sunk            #fafafa  กลุ่มย่อยเชิงโครงสร้าง/หัวตาราง
+       chrome          #f2f3f5  navigation (จมสุด — ดูเหตุผลที่ --color-chrome)
+       page            #fbfbfc  ฉากหลัง workspace
+       sunk            #f4f5f6  กลุ่มย่อยเชิงโครงสร้าง/หัวตาราง
+       surface         #ffffff  panel / card (ลอยสุด)
        field           #ffffff  ช่องกรอก (แยกด้วย functional boundary)
        elevated        #ffffff  menu / dialog
-       hover/pressed   เทาอ่อน — บอกว่ากำลังโต้ตอบโดยไม่เป็นแถบเทาหนัก
+       hover/pressed   เทาอ่อน — ต้องอ่านออกทั้งบน surface ขาวและบน page
+                       จึงเข้มกว่ารอบก่อนเล็กน้อย (ดูคอมเมนต์ที่ตัวแปร)
 
      น้ำเงินแบรนด์ #3973b2 คงเดิมและสงวนให้ primary/selected/focus
      ============================================================ */
-  --color-bg: #fafafa;
+  --color-bg: #fbfbfc;
   --color-surface: #ffffff;
-  --color-surface-muted: #fafafa;
+  --color-surface-muted: #f4f5f6;
   --color-surface-elevated: #ffffff;
   /* field เป็นพื้นที่กรอก ไม่ใช่กล่องจม: Light ใช้ขาวและเส้น resting ที่เบา
      พอให้เห็นรูปทรงโดยไม่แข่งกับ label; focus/error ค่อยใช้ contrast สูง */
   --color-field: #ffffff;
-  --color-border: #e5e5e5;
-  --color-field-border: #d4d4d4;
+  --color-border: #e5e6e9;
+  --color-field-border: #d4d4d8;
   --color-placeholder: #65717f;
   --color-border-strong: #818b97;
-  --color-divider: #ededed;
-  --color-skeleton: #e5e5e5;
-  --color-interactive-hover: #f3f3f3;
-  --color-interactive-pressed: #ebebeb;
-  --color-interactive-chrome-hover: #ebebeb;
-  --color-interactive-chrome-pressed: #e1e1e1;
+  --color-divider: #ececee;
+  --color-skeleton: #e5e6e9;
+  /* ⚠️ เข้มขึ้นจาก #f3f3f3/#ebebeb (UI-2026 เฟส 1) — ตั้งแต่ทะเบียนออเดอร์ถอด
+     กล่องครอบออก แถวจึงยืนบน --color-bg ไม่ใช่ --color-surface อีกต่อไป
+     ค่าเดิมได้แค่ 1.07:1 บนผืนหน้า (เกณฑ์ของระบบเองคือ ≥1.1) = ชี้แล้วแทบไม่ขยับ
+     ค่าใหม่ผ่านทั้งสองพื้น: 1.148:1 บนการ์ดขาว · 1.110:1 บนผืนหน้า */
+  --color-interactive-hover: #efeff1;
+  --color-interactive-pressed: #e7e7e9;
+  /* chrome เป็นเทาแล้ว hover/pressed ของมันจึงต้องเข้มกว่าชุดที่ใช้บนการ์ดขาว
+     ไม่งั้นจะได้ hover ที่สว่างกว่าพื้นตัวเอง = มองไม่เห็นว่ากำลังชี้อะไรอยู่
+     เพดานบน: text-muted ต้องยังอ่านออกบน chrome-hover (4.71:1) · ส่วน chrome-pressed
+     จงใจปล่อยให้ต่ำกว่า 4.5 ได้ เพราะทุกจุดที่ใช้ต้องมากับ INTERACTIVE_CHROME_PRESSED
+     ซึ่งพ่วง active:text-strong ให้แล้ว (ห้ามเขียน active:bg-... เองมือเปล่า) */
+  --color-interactive-chrome-hover: #e5e5e8;
+  --color-interactive-chrome-pressed: #dcdce0;
   --color-interactive-selected: #d2e4f6;
   --color-interactive-selected-text: #305f93;
   --color-backdrop: rgb(15 23 42 / 0.28);
 
-  /* กรอบของเว็บ (แถบเมนูซ้าย · แถบบน) — ขาวบนพื้นหน้าเทา
-     เบสเคาะ 2026-08-03 ให้ Navbar/Sidebar เป็นขาวและย้ายเทาไปอยู่ผืนเนื้อหา
-     (โหมดมืดใช้ทางกลับกัน — กรอบเข้มกว่าเนื้อหา แบบเดียวกับ Slack/VS Code) */
-  --color-chrome: #ffffff;
+  /* กรอบของเว็บ (แถบเมนูซ้าย · แถบบน) — เทาอ่อน "จมลง" ใต้ผืนเนื้อหาที่เกือบขาว
+     เบสเคาะ 2026-08-25 จาก mockup รอบสอง (UI-2026 เฟส 1) — กลับทิศจาก 2026-08-03
+
+     ทำไมกลับทิศ: ธีมมืดทำ "กรอบเข้มสุด เนื้อหาสว่างกว่า" อยู่แล้ว (แบบ Slack/VS Code)
+     ตาจึงไปตกที่งานก่อน · แต่ธีมสว่างเดิมทำกลับทาง (กรอบขาว เนื้อหาเทา)
+     พอสลับธีมจึงรู้สึกเหมือนคนละแอป · ตอนนี้บันไดอ่านทิศเดียวกันทั้งสองธีม:
+       chrome  <  bg  <  surface        (สว่าง: #f2f3f5 < #fbfbfc < #ffffff)
+       chrome  <  bg  <  surface        (มืด:  #0a0a0b < #0e0e10 < #161618)
+     ผลพลอยได้: ช่องค้นหาบนแถบบนแยกออกจากพื้นแถบได้เป็นครั้งแรก */
+  --color-chrome: #f2f3f5;
 
   /* สีตัวหนังสือหลักของ <body> — ที่เหลือทั้งเว็บใช้ ramp slate ตรงๆ
      (สี semantic อีก 17 ตัวลบทิ้ง 2026-08-02: ไม่มีใครใช้เลย และค่าที่ตั้งไว้ขัดกับสีจริง) */
@@ -239,6 +271,30 @@
   --color-strong: #181b20;
   --color-secondary: #454b55;
   --color-muted: #5b6572;
+
+  /* ring-ring ถูกเรียกใช้อยู่ 5 จุดในจอผลิต/จอสถานี แต่ไม่เคยมีตัวแปรนี้เลย
+     → Tailwind สร้างคลาสจากสีที่ไม่มีไม่ได้ วงแหวนจึงตกไปใช้ currentColor
+     (= สีข้อความ) บนจอทัชที่ต้องเห็นโฟกัสชัดที่สุด */
+  --color-ring: #3973b2;
+
+  /* ============================================================
+     จังหวะการเคลื่อนไหว — บันไดเดียวของระบบ (UI-2026 เฟส 1)
+     ก่อนหน้านี้ทั้ง globals.css มีคำว่า transition แค่ 2 บรรทัด และไม่มี
+     token เวลา/เส้นโค้งเลย ทุก state จึงเปลี่ยนด้วยค่า default ของ Tailwind
+     (150ms · cubic-bezier(.4,0,.2,1)) เท่ากันหมดแบบ "ติ๊ก"
+
+     ทับ default ของ Tailwind ที่นี่ครั้งเดียว = ทุก transition-* ทั้งเว็บ
+     ที่ไม่ได้สั่ง duration/easing เองได้จังหวะใหม่ทันที ไม่ต้องไล่แก้รายจุด
+
+     ห้าม transition: all · ห้าม stagger ในตาราง (แถวโผล่ทีละแถว = สแกนช้าลง)
+     reduced-motion กันไว้สองชั้นด้านล่างแล้ว จึงเพิ่มได้ปลอดภัย
+     ============================================================ */
+  --default-transition-duration: 180ms;
+  --default-transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --duration-fast: 120ms;
+  --duration-base: 180ms;
 }
 
 .dark {
@@ -277,22 +333,30 @@
   --color-module-system-surface: #292e35;
   --color-module-system-text: #d5dae0;
   --color-module-system-border: #47505b;
-  --color-bg: #000000;
-  --color-surface: #0a0a0a;
-  --color-surface-muted: #111111;
-  --color-surface-elevated: #171717;
-  --color-field: #0a0a0a;
-  --color-chrome: #000000;
-  --color-border: #2e2e2e;
-  --color-field-border: #3a3a3a;
+  /* ⚠️ เลิกดำสนิท (UI-2026 เฟส 1 · เบสเคาะ 2026-08-25)
+     ของเดิม bg #000000 กับ surface #0a0a0a ต่างกัน 4/255 และ chrome เท่ากับ bg เป๊ะ
+     → การ์ดหายไปกับพื้น เหลือแต่กรอบ #2e2e2e ลอยทั้งจอ และขัดกับคอมเมนต์ตัวเอง
+     ข้างบนที่เขียนว่า "โหมดมืดกรอบเข้มกว่าเนื้อหา"
+     ตอนนี้ห่างกันจริงชั้นละ ~+0.03 lightness: chrome < bg < sunk < card < ลอย */
+  --color-bg: #0e0e10;
+  --color-surface: #161618;
+  --color-surface-muted: #101013;
+  --color-surface-elevated: #1c1c20;
+  --color-field: #101013;
+  --color-chrome: #0a0a0b;
+  --color-border: #2b2b2f;
+  /* เส้น resting ของช่องกรอกจงใจเบา — ด่าน verify:ui ล็อกหน้าต่างไว้ที่ 1.35–1.8:1
+     บน surface (ดูคอมเมนต์ FIELD_SURFACE ใน tokens.ts: เส้นมีไว้ช่วยเห็นรูปทรง
+     ไม่ใช่สร้างตาราง · focus/error ค่อยเปลี่ยนเป็น contrast สูง) ห้ามดันขึ้นเฉยๆ */
+  --color-field-border: #3a3a3f;
   --color-placeholder: #9a9aa1;
   --color-border-strong: #74747c;
-  --color-divider: #262626;
-  --color-skeleton: #2e2e2e;
-  --color-interactive-hover: #1a1a1a;
-  --color-interactive-pressed: #242424;
-  --color-interactive-chrome-hover: #1a1a1a;
-  --color-interactive-chrome-pressed: #242424;
+  --color-divider: #242428;
+  --color-skeleton: #2b2b2f;
+  --color-interactive-hover: #232326;
+  --color-interactive-pressed: #2a2a2e;
+  --color-interactive-chrome-hover: #1b1b1d;
+  --color-interactive-chrome-pressed: #222225;
   --color-interactive-selected: #173c61;
   --color-interactive-selected-text: #c6daed;
   --color-backdrop: rgb(0 0 0 / 0.62);
@@ -301,14 +365,15 @@
   --color-strong: #f5f5f7;
   --color-secondary: #cbcbd0;
   --color-muted: #a4a4aa;
+  --color-ring: #6b9cca;
 }
 
 /* Anajak Panel System — workspace เป็นฉาก ส่วน chrome/panel ยกด้วยสีและเส้นบาง */
 .app-workspace {
-  --color-bg: #fafafa;
+  --color-bg: #fbfbfc;
 }
 .dark .app-workspace {
-  --color-bg: #000000;
+  --color-bg: #0e0e10;
 }
 
 html,
@@ -324,7 +389,9 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  letter-spacing: -0.01em;
+  /* ห้ามใส่ letter-spacing ติดลบที่ body — จะไปบีบข้อความไทยทั้งเว็บอีกชั้น
+     ทับบันไดที่ตั้งไว้ต่อขั้นแล้ว (UI-2026 เฟส 1) */
+  letter-spacing: normal;
 }
 
 button,
@@ -392,6 +459,19 @@ input[type="number"] {
   background-clip: padding-box;
 }
 
+/* จอทัช/จอสถานีไม่มีสถานะ hover — แถบเลื่อนที่โผล่เฉพาะตอนชี้จึงไม่เคยมีใครเห็น
+   ทั้งที่เมนูซ้ายของสิทธิ์เต็มยาวเกินจอโรงงานแน่นอน (UI-2026 เฟส 1) */
+@media (pointer: coarse) {
+  ::-webkit-scrollbar-thumb {
+    background: rgba(24, 27, 32, 0.22);
+    background-clip: padding-box;
+  }
+  .dark ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.22);
+    background-clip: padding-box;
+  }
+}
+
 .dark ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.32);
   background-clip: padding-box;
@@ -429,7 +509,9 @@ input[type="number"] {
 }
 /* clickable panel เปลี่ยน fill/เส้นเท่านั้น ไม่ลอยหรือขยับหนี pointer */
 .card-surface-hover {
-  transition: background-color 150ms ease, border-color 150ms ease;
+  transition:
+    background-color var(--duration-base) var(--ease-out),
+    border-color var(--duration-base) var(--ease-out);
 }
 .card-surface-hover:hover {
   background-color: var(--color-interactive-hover);
@@ -486,6 +568,29 @@ input[type="number"] {
 } /* ปิด @layer components */
 
 /* ============================================================
+   จอ TV ในโรงงาน (/factory) — สูงเท่าหน้าจอพอดีและตัด overflow ทิ้ง
+   จำนวนบรรทัดที่โชว์ได้จึงผูกกับความสูงบรรทัดตรงๆ ไม่ใช่เรื่องความสวย
+
+   บันไดใหม่ (UI-2026 เฟส 1) คลายความสูงบรรทัดขึ้น 2px ต่อขั้นเพื่อให้ไทยหายใจ
+   ผลข้างเคียงคือที่ 1280×720 บรรทัด "+ อีก N งานในคิว" ตกขอบหายทั้งบรรทัด
+   และกระดานรุ่น V2 โชว์ใบปัญหาได้น้อยลงหนึ่งใบ
+
+   จอนี้ดูจากระยะ 2-3 เมตร ตัวหนังสือใหญ่กว่าหน้าจอทำงานอยู่แล้ว การคลายบรรทัด
+   จึงไม่ได้ช่วยอ่าน แต่ทำให้เห็นงานน้อยลง — คืนค่าเดิมเฉพาะที่นี่
+   (เหตุผลเดียวกับที่ eslint ยกเว้นให้เขียนขนาด px ดิบได้ในโฟลเดอร์ factory)
+   ⚠️ ใช้กับกระดาน TV เท่านั้น — จอสถานี (/factory/station) ที่ช่างยืนกดใกล้ ๆ
+   ต้องได้บันไดใหม่ตามปกติ ห้ามเอาคลาสนี้ไปครอบทั้ง route
+   ============================================================ */
+.factory-board {
+  --text-2xs--line-height: 1rem;
+  --text-xs--line-height: 1rem;
+  --text-sm--line-height: 1.25rem;
+  --text-base--line-height: 1.5rem;
+  --text-lg--line-height: 1.75rem;
+  --text-xl--line-height: 1.75rem;
+}
+
+/* ============================================================
    เอกสารพิมพ์ A4 (P1 — ใบเสนอราคา/แจ้งหนี้/เสร็จ/ใบกำกับภาษี)
    ============================================================ */
 .print-page {
@@ -502,6 +607,10 @@ input[type="number"] {
   --color-slate-800: #2a2a2e;
   --color-slate-900: #1d1d1f;
   --color-slate-950: #101012;
+  /* body เลิกบีบช่องไฟแล้ว (UI-2026 เฟส 1) แต่หน้ากระดาษถูกจัดหน้าบนค่า -0.01em
+     ปล่อยให้สืบค่าใหม่ = ทุกบรรทัดกว้างขึ้น ~1.9% แล้วเนื้อหาล้นหน้า A4 ได้
+     กระดาษเป็นค่าตายตัวเหมือนที่ล็อก grayscale ไว้ข้างบน จึงล็อกช่องไฟด้วย */
+  letter-spacing: -0.01em;
   width: 210mm;
   min-height: 296mm;
   margin: 0 auto;

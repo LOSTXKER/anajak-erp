@@ -373,7 +373,7 @@ export function CreateDeliveryDialog({
             <span>
               เติมเป็นที่อยู่ผู้ติดต่อของลูกค้า (เติมเบอร์นี้ให้โปรไฟล์ด้วยถ้ายังว่าง)
               {canSaveAsCustomerAddress ? (
-                <span className="block text-xs text-amber-600 dark:text-amber-400">
+                <span className="block text-xs text-amber-700 dark:text-amber-400">
                   ลูกค้ารายนี้ยังไม่มีที่อยู่ในระบบ — เติมไว้แล้วใช้บนเอกสารได้เลย
                 </span>
               ) : (

@@ -364,7 +364,7 @@ export default function StockSettingsPage() {
 
                 {/* Unsaved changes indicator */}
                 {!isSaved && (
-                  <p className="text-xs text-amber-600 dark:text-amber-400">
+                  <p className="text-xs text-amber-700 dark:text-amber-400">
                     * มีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก
                   </p>
                 )}

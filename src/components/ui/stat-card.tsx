@@ -35,7 +35,7 @@ interface StatCardProps {
 const TONE_CLASSES: Record<NonNullable<StatCardProps["tone"]>, string> = {
   default: "text-slate-900 dark:text-white",
   danger: "text-red-600 dark:text-red-400",
-  warning: "text-amber-600 dark:text-amber-400",
+  warning: "text-amber-700 dark:text-amber-400",
   success: "text-green-600 dark:text-green-400",
   muted: "text-slate-500 dark:text-slate-400",
 };

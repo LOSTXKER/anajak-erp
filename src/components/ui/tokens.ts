@@ -71,6 +71,16 @@ export const FOCUS_BUTTON =
 export const FOCUS_INSET =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 dark:focus-visible:ring-blue-300";
 
+/** โฟกัสบนพื้นที่ที่ล็อกเป็นสีขาวเสมอ ไม่ว่าธีมไหน — กล่องรูปลายบนจอสถานี
+ *  ซึ่งอยู่ใต้ `.dark` ทั้งจอ (factory/layout.tsx) แต่ตัวกล่องเป็น `bg-white`
+ *  เพราะต้องเป็นพื้นรองลายพิมพ์
+ *
+ *  ใช้ FOCUS_INSET ปกติไม่ได้: คู่ `dark:ring-blue-300` จะทำงาน (เพราะอยู่ใต้ .dark)
+ *  แล้วได้วงแหวนฟ้าอ่อนบนพื้นขาว = 2.2:1 ช่างที่ไล่ Tab บนจอสถานีไม่เห็นว่าโฟกัสอยู่ไหน
+ *  ตัวนี้จึงล็อกสีเข้มค่าเดียวทั้งสองธีม (blue-700 บนขาว = 6.6:1) */
+export const FOCUS_INSET_ON_LIGHT =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-700";
+
 /** ช่องที่กรอกผิด — วงแหวนแดงแทนน้ำเงิน (ใช้คู่กับ border-red-* บนตัวช่อง)
  *  ของเดิมเขียนเอง 4 แบบไม่ตรงกัน: ring-red-400 · ring-red-500 · ring-red-500/40 · ring-amber-400
  *  ทั้งที่หมายถึงเรื่องเดียวกัน — ความเข้มต่างกันทำให้ "ผิดแรงไม่เท่ากัน" โดยไม่มีเหตุผล */
@@ -120,8 +130,13 @@ export const INTERACTIVE_HOVER =
 export const INTERACTIVE_PRESSED =
   "active:bg-interactive-pressed active:text-strong dark:active:bg-interactive-pressed dark:active:text-strong";
 
-/** interaction ที่วางบน navbar/sidebar — Light ใช้ hover ขาวนวลชุดเดียวกับ surface;
- *  Dark เบาลงหนึ่งชั้นเพราะ chrome เข้มกว่า card ไม่เช่นนั้น hover จะเกือบเท่า selected */
+/** interaction ที่วางบน navbar/sidebar — คนละชุดกับที่ใช้บนการ์ด
+ *  ตั้งแต่ 2026-08-25 (UI-2026 เฟส 1) chrome เป็นเทาอ่อนในธีมสว่างและเข้มกว่าเนื้อหา
+ *  ในธีมมืด hover/pressed ของมันจึงต้องเข้มกว่าชุดปกติหนึ่งขั้นทั้งสองธีม
+ *  ไม่งั้นจะได้ hover ที่เกือบเท่าพื้นตัวเอง = ชี้แล้วจอไม่ขยับ
+ *  ⚠️ ของที่ยืนบน chrome ต้องใช้คู่นี้เสมอ (รวมปุ่ม ghost บนแถบบน) และห้ามเขียน
+ *  active:bg-interactive-chrome-pressed เองมือเปล่า เพราะจะไม่ได้ active:text-strong
+ *  ที่พ่วงมาด้วย แล้วตัวหนังสือจะตกเกณฑ์ตอนกดค้าง */
 export const INTERACTIVE_CHROME_HOVER =
   "hover:bg-interactive-chrome-hover hover:text-strong dark:hover:bg-interactive-chrome-hover dark:hover:text-strong";
 

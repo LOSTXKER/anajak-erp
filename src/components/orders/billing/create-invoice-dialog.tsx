@@ -248,7 +248,7 @@ export function CreateInvoiceDialog({
               </p>
             )}
             {suggestion.data && suggestion.data.creditNoteTotal > 0 && (
-              <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+              <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">
                 มีใบลดหนี้ที่ยังไม่ผูกใบเดิมรวม{" "}
                 {formatCurrency(suggestion.data.creditNoteTotal)} — ระบบหักให้อัตโนมัติไม่ได้
                 ตรวจยอดก่อนสร้างบิล (ใบลดหนี้ที่ผูกใบเดิมถูกหักจากยอดค้างแล้ว)
@@ -305,7 +305,7 @@ export function CreateInvoiceDialog({
               customerProfileGaps(billCustomer.data).some(
                 (g) => g.key === "address" || g.key === "taxInfo"
               ) && (
-                <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+                <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">
                   เอกสารภาษีต้องมีชื่อ-ที่อยู่ลูกค้า — รายนี้ยัง{" "}
                   {customerProfileGaps(billCustomer.data)
                     .filter((g) => g.key === "address" || g.key === "taxInfo")

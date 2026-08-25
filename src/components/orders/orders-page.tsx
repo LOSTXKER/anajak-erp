@@ -73,7 +73,7 @@ function OrderMockupMark({
 const PAYMENT_DOT: Record<string, { label: string; dot: string; text: string }> = {
   paid: { label: "ชำระแล้ว", dot: "bg-green-500", text: "text-green-700 dark:text-green-300" },
   unpaid: { label: "ค้างชำระ", dot: "bg-red-500", text: "text-red-700 dark:text-red-300" },
-  partial: { label: "บางส่วน", dot: "bg-amber-700 dark:bg-amber-500", text: "text-amber-700 dark:text-amber-300" },
+  partial: { label: "บางส่วน", dot: "bg-amber-500", text: "text-amber-700 dark:text-amber-300" },
 };
 
 // ────────────────────────────────────────────────────────────
@@ -131,13 +131,13 @@ function OrderCountdown({
       : days === 0
         ? {
             label: "วันนี้",
-            dot: "bg-amber-700 dark:bg-amber-500",
+            dot: "bg-amber-500",
             text: "font-medium text-amber-700 dark:text-amber-400",
           }
         : days <= 2
           ? {
               label: `เหลือ ${days} วัน`,
-              dot: "bg-amber-700 dark:bg-amber-500",
+              dot: "bg-amber-500",
               text: "text-amber-700 dark:text-amber-400",
             }
           : {
@@ -477,8 +477,8 @@ function OrdersPageContent() {
         isLoading={isLoading}
       />
 
-      <div className="space-y-3 lg:space-y-0 lg:overflow-hidden lg:rounded-lg lg:border lg:border-border lg:bg-surface">
-      <Toolbar className="lg:border-b lg:border-divider lg:px-4 lg:py-3">
+      <div className="space-y-3 lg:space-y-0">
+      <Toolbar className="lg:pb-3">
         <SearchInput
           ref={searchInputRef}
           containerClassName="@2xl:max-w-sm @2xl:flex-1"
@@ -612,7 +612,7 @@ function OrdersPageContent() {
           // ไม่ให้ control ที่เพิ่งกดหายไปกลางการใช้งาน
           const showDeadline = hasDeadline || sortBy === "deadline";
           return (
-          <DataTable.Root bordered={false}>
+          <DataTable.Root bordered={false} flush>
             <DataTable.Head>
               <tr>
                 {/* การเรียงย้ายมาอยู่ที่หัวคอลัมน์แล้ว (เบสสั่ง 2026-07-31) — กดซ้ำสลับทิศ
@@ -620,7 +620,7 @@ function OrdersPageContent() {
                 <DataTable.SortableTh {...sortColumn("orderNumber")}>
                   เลขออเดอร์
                 </DataTable.SortableTh>
-                <DataTable.Th>ลูกค้า / งาน</DataTable.Th>
+                <DataTable.Th>งาน / ลูกค้า</DataTable.Th>
                 <DataTable.Th className="hidden min-[1360px]:table-cell">
                   ช่องทาง
                 </DataTable.Th>
@@ -659,7 +659,7 @@ function OrdersPageContent() {
                       />
                       <Link
                         href={`/orders/${order.id}`}
-                        className="font-medium text-blue-600 hover:underline dark:text-blue-400"
+                        className="font-medium tabular-nums text-strong hover:underline"
                       >
                         {order.orderNumber}
                       </Link>
@@ -667,17 +667,22 @@ function OrdersPageContent() {
                   </DataTable.Td>
                   <DataTable.Td>
                     <div className="min-w-0">
-                      <p className="truncate text-slate-900 dark:text-white">
-                        {order.customer?.name ?? "—"}
+                      {/* ชื่องานเป็นบรรทัดหลักและเป็นตัวหนังสือที่ใหญ่ที่สุดในแถว
+                          ตาจึงไปตกที่ "งานอะไร" ก่อนเสมอ ส่วนลูกค้าเป็นบรรทัดรอง
+                          งานที่ยังไม่ตั้งชื่อ ให้ชื่อลูกค้าขึ้นมาแทน ไม่ปล่อยบรรทัดว่าง */}
+                      <p className="max-w-80 truncate text-base font-medium text-strong">
+                        {order.title?.trim() || order.customer?.name || "—"}
                         {order.orderType === "CUSTOM" && (
                           <Badge variant="accent" size="sm" className="ml-1.5">
                             {ORDER_TYPE_UI_LABELS[order.orderType]}
                           </Badge>
                         )}
                       </p>
-                      <p className="mt-0.5 max-w-64 truncate text-xs text-muted">
-                        {order.title}
-                      </p>
+                      {order.title?.trim() && (
+                        <p className="mt-0.5 max-w-80 truncate text-xs text-muted">
+                          {order.customer?.name ?? "—"}
+                        </p>
+                      )}
                       <ChatLink
                         stopPropagation
                         name={order.customer?.chatName}
@@ -686,7 +691,7 @@ function OrdersPageContent() {
                       />
                     </div>
                   </DataTable.Td>
-                  <DataTable.Td className="hidden text-xs text-slate-600 min-[1360px]:table-cell dark:text-slate-400">
+                  <DataTable.Td className="hidden text-xs text-secondary min-[1360px]:table-cell">
                     {CHANNEL_LABELS[order.channel] ?? order.channel}
                   </DataTable.Td>
                   <DataTable.Td>
@@ -694,7 +699,7 @@ function OrdersPageContent() {
                       customerStatus={order.customerStatus}
                       internalStatus={order.internalStatus}
                       compact
-                      labelInternalStatus
+                      showInternalStatus={false}
                     />
                   </DataTable.Td>
                   {canSeeMoney && (
@@ -702,7 +707,7 @@ function OrdersPageContent() {
                       align="right"
                       // เงินในคอลัมน์ = ทศนิยม 2 ตำแหน่งเสมอ ให้หลักสตางค์เรียงแนวดิ่ง
                       // น้ำหนักปกติ — คอลัมน์นำของแถวคือเลขออเดอร์ตัวเดียว (benchmark 2026-08-04)
-                      className="tabular-nums text-slate-900 dark:text-white"
+                      className="tabular-nums text-strong"
                     >
                       {formatBaht(order.totalAmount ?? 0)}
                     </DataTable.Td>
@@ -713,7 +718,7 @@ function OrdersPageContent() {
                     </DataTable.Td>
                   )}
                   {/* วันที่เปิดออเดอร์ — วางติดกำหนดส่งให้อ่านเป็นคู่ ต้นทาง–ปลายทาง */}
-                  <DataTable.Td className="hidden whitespace-nowrap text-xs tabular-nums text-slate-500 min-[1360px]:table-cell dark:text-slate-400">
+                  <DataTable.Td className="hidden whitespace-nowrap text-xs tabular-nums text-muted min-[1360px]:table-cell">
                     {formatDate(order.createdAt)}
                   </DataTable.Td>
                   {showDeadline && (
@@ -742,7 +747,7 @@ function OrdersPageContent() {
                 <Link
                   href={`/orders/${order.id}`}
                   className={cn("block min-h-11 rounded-lg p-3", FOCUS_BUTTON)}
-                  aria-label={`เปิดออเดอร์ ${order.orderNumber} ${order.customer?.name ?? ""}`}
+                  aria-label={`เปิดออเดอร์ ${order.orderNumber} ${order.title?.trim() || ""} ${order.customer?.name ?? ""}`.replace(/\s+/g, " ").trim()}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex min-w-0 items-start gap-3">
@@ -751,18 +756,20 @@ function OrdersPageContent() {
                         orderNumber={order.orderNumber}
                       />
                       <div className="min-w-0">
-                        <p className="font-semibold text-blue-700 dark:text-blue-300">
+                        <p className="font-medium tabular-nums text-secondary">
                           {order.orderNumber}
                         </p>
-                        <p className="mt-0.5 truncate font-medium text-slate-900 dark:text-white">
-                          {order.customer?.name ?? "—"}
+                        <p className="mt-0.5 truncate text-base font-medium text-strong">
+                          {order.title?.trim() || order.customer?.name || "—"}
                         </p>
-                        <p className="truncate text-xs text-slate-500 dark:text-slate-400">
-                          {order.title}
-                        </p>
+                        {order.title?.trim() && (
+                          <p className="truncate text-xs text-muted">
+                            {order.customer?.name ?? "—"}
+                          </p>
+                        )}
                       </div>
                     </div>
-                    <ChevronRight aria-hidden="true" className="mt-1 h-5 w-5 shrink-0 text-slate-400" />
+                    <ChevronRight aria-hidden="true" className="mt-1 h-5 w-5 shrink-0 text-muted" />
                   </div>
 
                   <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -770,7 +777,7 @@ function OrdersPageContent() {
                       customerStatus={order.customerStatus}
                       internalStatus={order.internalStatus}
                       compact
-                      labelInternalStatus
+                      showInternalStatus={false}
                     />
                     {order.orderType === "CUSTOM" && (
                       <Badge variant="accent" size="sm">
@@ -838,6 +845,8 @@ function OrdersPageContent() {
         }
         pagination={
           data && data.orders.length > 0 ? (
+            // ตารางเป็น flush แล้ว แถบแบ่งหน้าจึงต้องเสมอขอบซ้าย/ขวาเดียวกัน
+            <div className="[&>nav]:px-0">
             <TablePagination
               page={page}
               totalPages={data.pages}
@@ -847,6 +856,7 @@ function OrdersPageContent() {
                 replaceListState({ page: String(nextPage) })
               }
             />
+            </div>
           ) : undefined
         }
       />

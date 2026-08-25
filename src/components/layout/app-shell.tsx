@@ -35,7 +35,6 @@ import {
   INTERACTIVE_HOVER,
   INTERACTIVE_PRESSED,
   RADIUS,
-  SUNK_PANEL,
 } from "@/components/ui/tokens";
 import { CommandPalette } from "@/components/layout/command-palette";
 import { UserMenu } from "@/components/layout/user-menu";
@@ -291,7 +290,9 @@ function AppShellContent({ children }: { children: ReactNode }) {
               CONTROL_H,
               FOCUS_BUTTON,
               RADIUS.field,
-              SUNK_PANEL,
+              // chrome เป็นเทาอ่อนแล้ว (UI-2026 เฟส 1) — ถ้ายังใช้ SUNK_PANEL
+              // พื้นช่องจะเกือบเท่าพื้นแถบจนมองไม่เห็นว่าเป็นช่องค้นหา
+              "border border-border bg-surface",
               INTERACTIVE_HOVER,
               INTERACTIVE_PRESSED,
               "group flex min-w-0 flex-1 items-center gap-2 px-3 text-sm text-muted transition-colors sm:max-w-lg sm:px-4",
@@ -303,7 +304,14 @@ function AppShellContent({ children }: { children: ReactNode }) {
           </button>
 
           <div className="ml-auto flex shrink-0 items-center gap-2">
-            <Button asChild variant="ghost" size="icon" className="relative shrink-0">
+            {/* ปุ่มบนแถบบนยืนบน chrome (เทา) ไม่ใช่ surface (ขาว) — hover ชุดปกติ
+                จึงเกือบเท่าพื้นตัวเอง ต้องใช้ชุด chrome ที่เข้มกว่าหนึ่งขั้น */}
+            <Button
+              asChild
+              variant="ghost"
+              size="icon"
+              className={cn(INTERACTIVE_CHROME_HOVER, INTERACTIVE_CHROME_PRESSED, "relative shrink-0")}
+            >
               <Link
                 href="/notifications"
                 aria-label={count > 0 ? `การแจ้งเตือน ยังไม่อ่าน ${count} รายการ` : "การแจ้งเตือน"}
@@ -385,7 +393,8 @@ function AppShellContent({ children }: { children: ReactNode }) {
                   CONTROL_MIN_H,
                   FOCUS_INSET,
                   RADIUS.item,
-                  "flex flex-col items-center justify-center gap-1 px-1 py-2 text-2xs transition-colors active:bg-interactive-chrome-pressed",
+                  INTERACTIVE_CHROME_PRESSED,
+                  "flex flex-col items-center justify-center gap-1 px-1 py-2 text-2xs transition-colors",
                   active
                     ? "font-semibold text-interactive-selected-text"
                     : "font-medium text-muted",
@@ -413,7 +422,8 @@ function AppShellContent({ children }: { children: ReactNode }) {
               CONTROL_MIN_H,
               FOCUS_INSET,
               RADIUS.item,
-              "flex flex-col items-center justify-center gap-1 px-1 py-2 text-2xs transition-colors active:bg-interactive-chrome-pressed",
+              INTERACTIVE_CHROME_PRESSED,
+                  "flex flex-col items-center justify-center gap-1 px-1 py-2 text-2xs transition-colors",
               mobileMoreActive
                 ? "font-semibold text-interactive-selected-text"
                 : "font-medium text-muted",

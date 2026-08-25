@@ -106,7 +106,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
         }
       >
         {customerProfileGaps(customer).length > 0 && (
-          <p className="text-xs text-amber-600 dark:text-amber-400">
+          <p className="text-xs text-amber-700 dark:text-amber-400">
             โปรไฟล์ยังไม่ครบ: {customerProfileGaps(customer).map((g) => g.label).join(" · ")}
           </p>
         )}

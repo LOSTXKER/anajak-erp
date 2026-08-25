@@ -112,7 +112,7 @@ export function ProductionSummaryCard({
                     </div>
                     <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-white/10">
                       <div
-                        className="h-full rounded-full bg-blue-500 transition-all"
+                        className="h-full rounded-full bg-blue-500 transition-[width] duration-[var(--duration-base)] ease-out"
                         style={{ width: `${pct}%` }}
                       />
                     </div>
@@ -144,7 +144,7 @@ export function ProductionSummaryCard({
                       </span>
                     )}
                     {hasActiveOutsource && (
-                      <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
+                      <span className="flex items-center gap-1.5 text-amber-700 dark:text-amber-400">
                         <Truck className="h-3 w-3" />
                         มีงานอยู่ร้านนอก
                       </span>

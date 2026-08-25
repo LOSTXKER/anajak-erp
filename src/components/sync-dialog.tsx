@@ -296,7 +296,7 @@ function SyncDialogSession({ onClose }: Pick<SyncDialogProps, "onClose">) {
                     aria-valuenow={progressPct}
                   >
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-blue-500 to-blue-400 transition-all duration-500"
+                      className="h-full rounded-full bg-gradient-to-r from-blue-500 to-blue-400 transition-[width] duration-[var(--duration-base)] ease-out"
                       style={{ width: `${progressPct}%` }}
                     />
                   </div>
@@ -448,7 +448,7 @@ function SyncDialogSession({ onClose }: Pick<SyncDialogProps, "onClose">) {
                   }`}
                 >
                   {isCancelled ? (
-                    <Ban className="h-8 w-8 text-amber-500" />
+                    <Ban className="h-8 w-8 text-amber-600" />
                   ) : (
                     <CheckCircle2 className="h-8 w-8 text-green-500" />
                   )}
@@ -499,15 +499,15 @@ function SyncDialogSession({ onClose }: Pick<SyncDialogProps, "onClose">) {
                     aria-controls="sync-error-list"
                   >
                     <div className="flex items-center gap-2">
-                      <AlertTriangle className="h-4 w-4 text-amber-500" />
+                      <AlertTriangle className="h-4 w-4 text-amber-700 dark:text-amber-400" />
                       <span className="text-sm font-medium text-amber-700 dark:text-amber-300">
                         {totals.errors.length} ข้อผิดพลาด
                       </span>
                     </div>
                     {showErrors ? (
-                      <ChevronUp className="h-4 w-4 text-amber-500" />
+                      <ChevronUp className="h-4 w-4 text-amber-700 dark:text-amber-400" />
                     ) : (
-                      <ChevronDown className="h-4 w-4 text-amber-500" />
+                      <ChevronDown className="h-4 w-4 text-amber-700 dark:text-amber-400" />
                     )}
                   </button>
                   {showErrors && (

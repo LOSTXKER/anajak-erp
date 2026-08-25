@@ -29,27 +29,29 @@
 
 ## สี — semantic system (`src/app/globals.css`)
 
-Anajak Operational Panel System ใช้ workspace เป็นฉากหลังและ panel เป็นขอบเขตข้อมูล: Light workspace off-white `#fafafa`
-กับ chrome/panel ขาว; Dark workspace ดำ `#000` กับ panel `#0a0a0a` · `Section` ที่มีขอบและ `DataTable`
-รวมเนื้อหาที่สัมพันธ์กันใน panel เส้น 1px มุม 8px โดยไม่มีเงาตกแต่ง · menu/dialog เป็นชั้นลอยสูงสุด ·
+Anajak Operational Panel System — บันไดความลึกอ่านทิศเดียวกันทั้งสองธีม (UI-2026 เฟส 1 · เบสเคาะ 2026-08-25):
+**chrome (กรอบเว็บ) จมสุด < bg (ผืนเนื้อหา) < surface (การ์ด)** · Light `#f2f3f5` < `#fbfbfc` < `#ffffff` ·
+Dark `#0a0a0b` < `#0e0e10` < `#161618` (เลิกดำสนิท) · `Section` ที่มีขอบและ `DataTable` รวมเนื้อหาที่สัมพันธ์กัน
+ใน panel เส้น 1px มุม 8px โดยไม่มีเงาตกแต่ง — **ยกเว้นหน้ารายการที่ตั้งใจไม่มีกล่องครอบ** (ทะเบียนออเดอร์ ใช้
+`<DataTable.Root bordered={false} flush>` วางบนผืนหน้าตรง ๆ) · menu/dialog เป็นชั้นลอยสูงสุด ·
 น้ำเงิน Anajak `#3973b2` สงวนให้ primary, link, focus และ current/selected; active navigation ใช้พื้นฟ้า tint อ่อนกับข้อความ/ไอคอนน้ำเงิน
 
 | บทบาท | Light | Dark | utility |
 |---|---|---|---|
-| พื้น workspace/fallback หลังบ้าน | `#fafafa` | `#000` | `.app-workspace` + `bg-bg` |
-| navbar/sidebar | `#fff` | `#000` | `bg-chrome` |
-| panel/card | `#fff` + ขอบ `#e5e5e5` | `#0a0a0a` + ขอบ `#2e2e2e` | `bg-surface` / `card-surface` |
-| menu/dialog | `#fff` | `#171717` | `bg-surface-elevated` / `overlay-surface` |
-| กล่องจมเชิงโครงสร้าง/disabled/หัวตาราง | `#fafafa` | `#111` | `bg-surface-muted` / `SUNK_PANEL` / `TABLE_HEAD_SURFACE` |
-| ช่องกรอก | `#fff` + ขอบ `#d4d4d4` | `#0a0a0a` + ขอบ `#3a3a3a` | `FIELD_SURFACE` |
+| พื้น workspace/fallback หลังบ้าน | `#fbfbfc` | `#0e0e10` | `.app-workspace` + `bg-bg` |
+| navbar/sidebar (จมสุด) | `#f2f3f5` | `#0a0a0b` | `bg-chrome` |
+| panel/card | `#fff` + ขอบ `#e5e6e9` | `#161618` + ขอบ `#2b2b2f` | `bg-surface` / `card-surface` |
+| menu/dialog | `#fff` | `#1c1c20` | `bg-surface-elevated` / `overlay-surface` |
+| กล่องจมเชิงโครงสร้าง/disabled/หัวตาราง | `#f4f5f6` | `#101013` | `bg-surface-muted` / `SUNK_PANEL` / `TABLE_HEAD_SURFACE` |
+| ช่องกรอก | `#fff` + ขอบ `#d4d4d8` | `#101013` + ขอบ `#3a3a3f` | `FIELD_SURFACE` |
 | พื้นที่เพิ่ม/อัปโหลด | ขอบประ `slate-300` | ขอบประ `slate-700` | `DASHED` / `DASHED_INTERACTIVE` — resting เบา; hover/focus ค่อยเน้น |
 | control บน toolbar | ขาว + ขอบบาง | panel dark + ขอบบาง | prop `surface="raised"` → `RAISED_CONTROL_SURFACE` |
 | ปุ่มรอง | ขาว + ขอบบาง | panel dark + ขอบบาง | `Button outline/secondary/subtle` |
-| ขอบทั่วไป / เส้นคั่น | `#e5e5e5` / `#ededed` | `#2e2e2e` / `#262626` | `border-border` / `border-divider` |
-| Hover | `#f3f3f3` | `#1a1a1a` | `bg-interactive-hover` / `INTERACTIVE_HOVER` |
-| Pressed | `#ebebeb` | `#242424` | `bg-interactive-pressed` / `INTERACTIVE_PRESSED` |
-| Hover บน navbar/sidebar | `#ebebeb` | `#1a1a1a` | `bg-interactive-chrome-hover` / `INTERACTIVE_CHROME_HOVER` |
-| Pressed บน navbar/sidebar | `#e1e1e1` | `#242424` | `bg-interactive-chrome-pressed` / `INTERACTIVE_CHROME_PRESSED` |
+| ขอบทั่วไป / เส้นคั่น | `#e5e6e9` / `#ececee` | `#2b2b2f` / `#242428` | `border-border` / `border-divider` |
+| Hover | `#efeff1` | `#232326` | `bg-interactive-hover` / `INTERACTIVE_HOVER` |
+| Pressed | `#e7e7e9` | `#2a2a2e` | `bg-interactive-pressed` / `INTERACTIVE_PRESSED` |
+| Hover บน navbar/sidebar | `#e5e5e8` | `#1b1b1d` | `bg-interactive-chrome-hover` / `INTERACTIVE_CHROME_HOVER` |
+| Pressed บน navbar/sidebar | `#dcdce0` | `#222225` | `bg-interactive-chrome-pressed` / `INTERACTIVE_CHROME_PRESSED` |
 | Selected | `#d2e4f6` | `#173c61` | `bg-interactive-selected text-interactive-selected-text` |
 
 สีบริบททุกตัวประกาศที่ token กลางและต้องผ่านคู่ `solid/surface/text/border` ทั้ง Light/Dark:
@@ -82,7 +84,7 @@ Anajak Operational Panel System ใช้ workspace เป็นฉากหล�
 - ของที่กดได้จริง compose `INTERACTIVE_PRESSED` ให้ตอนกดเข้มกว่า hover; selected/current คงพื้นฟ้า
 - ของที่ถูกเลือกใช้ `INTERACTIVE_SELECTED` — ห้ามใช้ hover เป็น selected เพราะความหมายคนละอย่าง
 - Primary action ใช้ `blue-600` → hover `blue-700` → pressed `blue-800`; น้ำเงิน 600 ต้องคง `#3973b2`
-- Minimal = workspace เป็นฉากเรียบและใช้ panel เฉพาะกลุ่มเนื้อหาที่อ่านเป็นหน่วยเดียว: `Section` ที่มีขอบและ `DataTable` ใช้ `card-surface`; หัว/แถวคั่นด้วย divider · panel ไม่มีเงา · field/toolbar/secondary action ใช้พื้น panel+ขอบบาง · overlay ลอยสูงสุด
+- Minimal = workspace เป็นฉากเรียบและใช้ panel เฉพาะกลุ่มเนื้อหาที่อ่านเป็นหน่วยเดียว: `Section` ที่มีขอบและ `DataTable` ใช้ `card-surface` — **ยกเว้นหน้ารายการที่เคาะว่าไม่มีกล่องครอบ** ซึ่งใช้ `bordered={false} flush` ให้เซลล์แรก/สุดท้ายเสมอขอบเนื้อหาและหัวตารางเลิกใช้แถบพื้น; หัว/แถวคั่นด้วย divider · panel ไม่มีเงา · field/toolbar/secondary action ใช้พื้น panel+ขอบบาง · overlay ลอยสูงสุด
 - `FlowFilterBar` อยู่ใน panel ของ caller จึงใช้กรอบนอกเพียงชั้นเดียว: hairline 1px ใช้เฉพาะใต้หัวช่วงเพื่อจัดกลุ่ม, “นอกเส้นทาง” ไม่มีเส้นตั้ง และห้ามคืน progress track ใต้ทุกสถานะเพราะจำนวนงานบอกปริมาณอยู่แล้ว · ทุกสถานะต้องมี cursor+neutral hover/pressed และ aria/title action ที่ตรงกับ selected state โดยไม่แสดงข้อความแนะนำค้างบนหน้า; ตัวที่เลือกยังใช้เส้นใต้ Anajak Blue
 - รายการงานในฟอร์มใช้หนึ่ง `card-surface` ต่อหนึ่งรายการโดยตรงบน workspace · ห้ามวาง card ใหญ่ครอบ list แล้วเติม card รอบรายการซ้ำ · CTA “เพิ่มรายการ” อยู่ก่อน list ทั้งหน้าเปิดงานและหน้าแก้ไข
 - ช่องกรอกใช้ `FIELD_SURFACE` เสมอ — `border-field-border bg-field` ไม่มีเงา; resting boundary ต้องอยู่ในช่วงที่ guard ล็อกไว้ไม่ให้จางจนกลืนหรือเข้มจนเป็นตาราง · focus/error ใช้เส้น contrast สูงและเปลี่ยนสีเส้นเดิมโดยความสูงไม่ขยับ · ห้าม ancestor เปลี่ยนสี field ตามตำแหน่ง

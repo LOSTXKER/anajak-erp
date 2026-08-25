@@ -166,7 +166,7 @@ export default function QuoteConfirmPage({
       ) : q.isExpired || q.status === "EXPIRED" ? (
         <Card>
           <CardContent className="flex items-center gap-3 p-5">
-            <Clock className="h-8 w-8 shrink-0 text-amber-500" />
+            <Clock className="h-8 w-8 shrink-0 text-amber-600" />
             <div>
               <p className="font-semibold text-amber-700">ใบเสนอนี้หมดอายุแล้ว</p>
               <p className="text-sm text-muted">กรุณาติดต่อร้านเพื่อขอใบเสนอราคาฉบับใหม่</p>

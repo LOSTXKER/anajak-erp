@@ -297,7 +297,7 @@ export function ProductPickerDialog({
                                   totalStock > 10
                                     ? "text-green-600 dark:text-green-400"
                                     : totalStock > 0
-                                      ? "text-amber-600 dark:text-amber-400"
+                                      ? "text-amber-700 dark:text-amber-400"
                                       : "text-red-700 dark:text-red-300",
                                 )}
                               >
@@ -448,7 +448,7 @@ export function ProductPickerDialog({
                                         </button>
                                       </div>
                                       {exceedsStock && (
-                                        <p className="text-center text-2xs text-amber-600 dark:text-amber-400">
+                                        <p className="text-center text-2xs text-amber-700 dark:text-amber-400">
                                           เกินสต็อก (ต้องสั่งเพิ่ม)
                                         </p>
                                       )}

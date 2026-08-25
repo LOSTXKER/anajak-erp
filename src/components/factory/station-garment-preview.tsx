@@ -8,7 +8,7 @@ import {
   DialogContent,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { RADIUS, TINT } from "@/components/ui/tokens";
+import { FOCUS_INSET_ON_LIGHT, RADIUS, TINT } from "@/components/ui/tokens";
 import { formatDate, isImageUrl } from "@/lib/utils";
 import { PRINT_POSITIONS, PRINT_TYPES } from "@/types/order-form";
 import { cn } from "@/lib/utils";
@@ -258,7 +258,7 @@ function ApprovedDesignReference({
           type="button"
           data-station-approved-reference-image=""
           onClick={() => onZoom({ src: image, label })}
-          className="group flex min-h-48 w-full items-center justify-center bg-white p-3 outline-none ring-inset focus-visible:ring-2 focus-visible:ring-ring sm:min-h-56 sm:p-4"
+          className={cn(FOCUS_INSET_ON_LIGHT, "group flex min-h-48 w-full items-center justify-center bg-white p-3 sm:min-h-56 sm:p-4")}
           aria-label={`ขยาย${label}`}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -304,7 +304,7 @@ function ApprovedDesignReference({
                     label: item.sideLabel ? `${label} — ${item.sideLabel}` : label,
                   })
                 }
-                className="block overflow-hidden rounded-lg border border-border bg-white outline-none ring-inset focus-visible:ring-2 focus-visible:ring-ring"
+                className={cn(FOCUS_INSET_ON_LIGHT, "block overflow-hidden rounded-lg border border-border bg-white")}
                 aria-label={`ขยาย${label}${item.sideLabel ? ` ${item.sideLabel}` : ""}`}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -424,7 +424,7 @@ function StationPrintRow({
                     label: `รูปลายแยก · ${positionLabel} · ${workLabel}`,
                   })
                 }
-                className="flex min-h-36 flex-1 items-center justify-center bg-white p-3 outline-none ring-inset focus-visible:ring-2 focus-visible:ring-ring"
+                className={cn(FOCUS_INSET_ON_LIGHT, "flex min-h-36 flex-1 items-center justify-center bg-white p-3")}
                 aria-label={`ขยายรูปลายแยก ${positionLabel} สำหรับ ${workLabel}`}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
