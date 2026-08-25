@@ -40,7 +40,8 @@
 - [x] อัปเดตเอกสารที่กลายเป็นเท็จในคอมมิตเดียวกัน — `docs/DESIGN.md` ตารางสี+กฎ DataTable · `SPEC.md` ข้อสี/พื้นผิว · คอมเมนต์ใน `globals.css` และ `tokens.ts`
 - [x] ขยายด่าน `verify:ui` ให้จับสิ่งที่เพิ่งหลุด — hover วัดเทียบ `bg` ด้วยไม่ใช่แค่ `surface` · เพิ่ม `chrome`/`chrome-hover` เข้าด่านสีข้อความ · ด่านห้ามใช้ amber/yellow-500 เป็นตัวหนังสือ · บันไดความลึกเช็กเป็น chrome < bg < surface แทนการล็อก hex ตายตัว
 - [x] Verify: `verify:ui` ผ่านครบ · unit 1654/1654 · typecheck · lint 0 error (26 warning เดิมนอก scope) · production build 41 หน้า · เปิดจอจริงด้วย CSS ที่ build ออกมาแล้วทั้ง Light/Dark
-- [ ] **ค้าง: ให้เบสเปิดหน้าที่ต้อง login ดูของจริง** — session นี้ล็อกอินแทนไม่ได้ (ห้ามกรอกรหัสผ่านแทนเจ้าของ) จึงยืนยันได้ถึงชั้น token/CSS ที่ build จริง + หน้า `/login` เท่านั้น
+- [x] ตรวจบนจอจริงหลังเบสสร้างบัญชีทดสอบ (2026-08-26) — `/orders` 1280 Light+Dark + 390 Dark · `/production` · `/factory` 1280×720 · overflow 0 · console error 0 · สถานะเหลือบรรทัดเดียวจริง
+- [ ] **บล็อกก่อน deploy (ไม่ใช่งาน UI): ฐานข้อมูลคลาวด์ตามโค้ดไม่ทัน** — `orders.production_completion_owner_id` ไม่มีในคลาวด์ ทำให้ `order.list` พัง 500 · ต้องรัน migration กับคลาวด์ ต้องเบสเคาะเพราะเป็นของจริง
 
 
 **เฟส 2 — โครงเว็บ + ตัวอักษร** (ยังไม่เริ่ม)
