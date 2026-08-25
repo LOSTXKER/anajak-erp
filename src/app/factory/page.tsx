@@ -10,7 +10,6 @@ import {
   ShieldCheck,
   Shirt,
   Truck,
-  Factory,
 } from "lucide-react";
 import { trpc, type RouterOutput } from "@/lib/trpc";
 import { ManufacturingFactoryBoard } from "@/components/factory/manufacturing-factory-board";
@@ -228,12 +227,14 @@ function BoardHeader({
 
   return (
     <header className="flex min-h-14 items-center gap-4 border-b border-divider pb-3">
-      <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center text-module-production-text" aria-hidden="true">
-        <Factory className="h-5 w-5" />
+      {/* ตรา Anajak — จอโรงงานไม่มี sidebar/topbar ตราจึงต้องอยู่ในหัวจอเอง
+          (เบสทัก 2026-08-26 "อย่าลืมสีฟ้าที่เป็น asset เรา") */}
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-white" aria-hidden="true">
+        <Printer className="h-5 w-5" strokeWidth={1.75} />
       </span>
       <div className="min-w-0">
         <h1 className="truncate text-2xl font-semibold text-strong">สถานะการผลิตทั้งโรงงาน</h1>
-        <p className="mt-0.5 text-sm text-muted">เตรียมเสื้อ → พิมพ์ DTF → รีดร้อน → QC → แพ็กสุดท้าย</p>
+        <p className="mt-0.5 truncate text-sm text-muted">Anajak Print · เตรียมเสื้อ → พิมพ์ DTF → รีดร้อน → QC → แพ็กสุดท้าย</p>
       </div>
 
       <div className="ml-auto flex shrink-0 items-center gap-5">

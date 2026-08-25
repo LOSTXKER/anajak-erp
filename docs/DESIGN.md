@@ -34,7 +34,8 @@ Anajak Operational Panel System — บันไดความลึกอ่�
 Dark `#0a0a0b` < `#0e0e10` < `#161618` (เลิกดำสนิท) · `Section` ที่มีขอบและ `DataTable` รวมเนื้อหาที่สัมพันธ์กัน
 ใน panel เส้น 1px มุม 8px โดยไม่มีเงาตกแต่ง — **ยกเว้นหน้ารายการที่ตั้งใจไม่มีกล่องครอบ** (ทะเบียนออเดอร์ ใช้
 `<DataTable.Root bordered={false} flush>` วางบนผืนหน้าตรง ๆ) · menu/dialog เป็นชั้นลอยสูงสุด ·
-น้ำเงิน Anajak `#3973b2` สงวนให้ primary, link, focus และ current/selected; active navigation ใช้พื้นฟ้า tint อ่อนกับข้อความ/ไอคอนน้ำเงิน
+น้ำเงิน Anajak `#3973b2` สงวนให้ primary, link, focus, current/selected และ **ตัวตนของแบรนด์** (ตราสัญลักษณ์ · หัวเอกสารพิมพ์ · หัวหน้าที่ลูกค้าเห็น · หัวจอโรงงาน) ซึ่งไม่อยู่ใต้กติกาสงวนสี
+**ยกเว้นแถบเมนูหลักของ app shell** (เบสเคาะแบบ ก · 2026-08-26): เมนูที่กำลังเปิดอยู่ใช้ **พื้นเทากลาง ๆ + ขีดแบรนด์ 2px ริมแถบ + ตัวหนังสือเข้ม** ไม่ใช่พื้นฟ้า tint — เพราะพิลฟ้าเต็มแถบไปแย่งสายตากับปุ่มหลักที่ใช้น้ำเงินเหมือนกัน · เมนูโมดูลในหน้าผลิต แถบ segmented และจอสถานี ยังใช้ `INTERACTIVE_SELECTED` พื้นฟ้าตามเดิม
 
 | บทบาท | Light | Dark | utility |
 |---|---|---|---|
@@ -79,9 +80,9 @@ Dark `#0a0a0b` < `#0e0e10` < `#161618` (เลิกดำสนิท) · `Sect
 
 กติกา interaction:
 
-- navigation, control, menu option, row และ clickable card ใช้ neutral hover/pressed ครอบ hit area จริง; current/selected ใช้น้ำเงิน Anajak โดย control แบบเส้นใต้เปลี่ยนทั้งเส้นและข้อความ ส่วน navigation ใช้ selected tint อ่อน
+- navigation, control, menu option, row และ clickable card ใช้ neutral hover/pressed ครอบ hit area จริง; current/selected ใช้น้ำเงิน Anajak โดย control แบบเส้นใต้เปลี่ยนทั้งเส้นและข้อความ ส่วน **แถบเมนูหลักของ app shell ใช้พื้นเทากลาง + ขีดแบรนด์ริมแถบ** (แบบ ก) ไม่ใช่ selected tint
 - clickable card compose `card-surface-hover` เพื่อเปลี่ยน neutral fill/เส้นขอบโดยไม่ขยับตำแหน่งและไม่มีเงา; ห้ามเขียนสี/เงาซ้ำที่ caller
-- ของที่กดได้จริง compose `INTERACTIVE_PRESSED` ให้ตอนกดเข้มกว่า hover; selected/current คงพื้นฟ้า
+- ของที่กดได้จริง compose `INTERACTIVE_PRESSED` ให้ตอนกดเข้มกว่า hover; selected/current คงพื้นฟ้า ยกเว้นแถบเมนูหลักตามข้อบน
 - ของที่ถูกเลือกใช้ `INTERACTIVE_SELECTED` — ห้ามใช้ hover เป็น selected เพราะความหมายคนละอย่าง
 - Primary action ใช้ `blue-600` → hover `blue-700` → pressed `blue-800`; น้ำเงิน 600 ต้องคง `#3973b2`
 - Minimal = workspace เป็นฉากเรียบและใช้ panel เฉพาะกลุ่มเนื้อหาที่อ่านเป็นหน่วยเดียว: `Section` ที่มีขอบและ `DataTable` ใช้ `card-surface` — **ยกเว้นหน้ารายการที่เคาะว่าไม่มีกล่องครอบ** ซึ่งใช้ `bordered={false} flush` ให้เซลล์แรก/สุดท้ายเสมอขอบเนื้อหาและหัวตารางเลิกใช้แถบพื้น; หัว/แถวคั่นด้วย divider · panel ไม่มีเงา · field/toolbar/secondary action ใช้พื้น panel+ขอบบาง · overlay ลอยสูงสุด

@@ -198,22 +198,37 @@ const hSm = CONTROL_H_SM.split(" ");
 }
 
 {
-  const customHeaderSources = [
-    readFileSync("src/components/factory/station-mode-shell.tsx", "utf8"),
+  /* หัวจอสองตัวนี้เคยถูกล็อกด้วยกฎเดียวกัน ("ไอคอนเส้นล้วน ไม่มีพื้น") แต่บทบาทของมันคนละอย่าง
+     - จอสถานี: ไอคอนคือ "สถานีไหน" — เปลี่ยนตามสถานีจริง จึงเป็นไอคอนโมดูลและต้องเป็นเส้นล้วนต่อไป
+     - Factory TV: ไอคอนเดิมเป็นรูปโรงงานประดับเฉย ๆ ไม่ได้บอกอะไร · ตั้งแต่ 2026-08-26 ที่ตรงนั้น
+       คือ "ตราสัญลักษณ์" เพราะจอนี้ไม่มี sidebar/topbar ทั้งจอจึงไม่เคยมีคำว่า Anajak อยู่เลย
+       ตราไม่อยู่ใต้กติกาสงวนสี (เหตุผลเดียวกับที่โลโก้บนแถบบนหลุดไปเป็นเทาแล้วต้องคืน)
+     ข้อห้ามพื้นโมดูลทึบกับเงายังใช้กับทั้งคู่เหมือนเดิม */
+  const stationShellSource = readFileSync(
+    "src/components/factory/station-mode-shell.tsx",
+    "utf8",
+  );
+  const factoryBoardSources = [
     readFileSync("src/app/factory/page.tsx", "utf8"),
+    readFileSync("src/components/factory/manufacturing-factory-board.tsx", "utf8"),
   ];
+  const noSolidModuleFill = [stationShellSource, ...factoryBoardSources].every(
+    (source) =>
+      !source.includes("bg-module-production-solid") && !source.includes("shadow-sm"),
+  );
   if (
-    customHeaderSources.some(
-      (source) =>
-        !source.includes("text-module-production-text") ||
-        source.includes("bg-module-production-solid") ||
-        source.includes("shadow-sm"),
+    !noSolidModuleFill ||
+    !stationShellSource.includes("text-module-production-text") ||
+    !factoryBoardSources.every(
+      (source) => source.includes("bg-blue-600 text-white") && source.includes("Anajak Print"),
     )
   ) {
     failed++;
-    console.log("❌ หัว Station/Factory TV ต้องเป็นไอคอนเส้นล้วน ไม่มีพื้นหรือเงา");
+    console.log(
+      "❌ หัวจอสถานีต้องเป็นไอคอนเส้นล้วน · หัว Factory TV ต้องมีตรา Anajak · ห้ามพื้นโมดูลทึบหรือเงา",
+    );
   } else {
-    console.log("✅ หัว Station/Factory TV เป็นไอคอนเส้นล้วน ไม่มีพื้นหรือเงา");
+    console.log("✅ หัวจอสถานีเป็นไอคอนเส้นล้วน · หัว Factory TV มีตรา Anajak");
   }
 }
 
@@ -870,10 +885,17 @@ check(
     navigationHelperSource.includes("INTERACTIVE_CHROME_HOVER") &&
     navigationHelperSource.includes("INTERACTIVE_HOVER") &&
     navigationHelperSource.includes("INTERACTIVE_CHROME_PRESSED") &&
-    navigationHelperSource.includes("bg-interactive-selected") &&
-    navigationHelperSource.includes("font-medium text-interactive-selected-text") &&
-    navigationHelperSource.includes('active\n    ? "text-interactive-selected-text"') &&
-    !navigationHelperSource.includes("before:bg-blue-600") &&
+    // แบบ ก (เบสเคาะ 2026-08-26) — เมนูที่กำลังเปิดอยู่ต้องเป็น "เทากลาง + ขีดแบรนด์"
+    // ไม่ใช่พิลฟ้าแบบเดิม · สัญญานี้กลับด้านจากของเดิมทั้งสองฝั่ง จงใจ ไม่ใช่ของหลุด
+    navigationHelperSource.includes(
+      'onChrome ? "bg-interactive-chrome-pressed" : "bg-interactive-pressed"',
+    ) &&
+    !navigationHelperSource.includes("bg-interactive-selected") &&
+    navigationHelperSource.includes("font-medium text-strong") &&
+    navigationHelperSource.includes('active\n    ? "text-strong"') &&
+    // เทาล้วนอย่างเดียวไม่พอ — ถ้าขีดแบรนด์หาย แถบเมนูจะไม่เหลือ Anajak เลย
+    navigationHelperSource.includes("before:bg-blue-600") &&
+    navigationHelperSource.includes("dark:before:bg-blue-400") &&
     navigationHelperSource.includes("FOCUS_INSET") &&
     navigationHelperSource.includes("group-hover/sidebar-item:text-secondary") &&
     !navigationHelperSource.includes("hover:bg-");

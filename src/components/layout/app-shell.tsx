@@ -55,9 +55,18 @@ function sidebarNavItemClass({
     CONTROL_MIN_H,
     FOCUS_INSET,
     RADIUS.item,
-    "group/sidebar-item flex scroll-m-4 items-center gap-3 px-3 py-2 text-sm transition-colors",
+    "group/sidebar-item relative flex scroll-m-4 items-center gap-3 px-3 py-2 text-sm transition-colors",
     active
-      ? "bg-interactive-selected font-medium text-interactive-selected-text"
+      ? // แบบ ก (เบสเคาะ 2026-08-26) — เมนูที่กำลังเปิดอยู่เลิกเป็นพิลฟ้า
+        // เหลือพื้นเทากลาง ๆ + ขีดสีแบรนด์บาง ๆ ริมซ้ายของแถบ + ตัวหนังสือเข้มขึ้น
+        // น้ำเงินจึงเหลือหน้าที่เดียวในแถบเมนูคือบอกว่า "อยู่ตรงนี้"
+        // ไม่แย่งสายตากับปุ่มหลักที่ใช้น้ำเงินเหมือนกัน
+        // ขีดวางที่ -left-3 = ชิดขอบ nav พอดี เพราะทั้งสองแถบเมนูใช้ px-3
+        cn(
+          "font-medium text-strong",
+          onChrome ? "bg-interactive-chrome-pressed" : "bg-interactive-pressed",
+          "before:absolute before:inset-y-1.5 before:-left-3 before:w-0.5 before:rounded-r-full before:bg-blue-600 before:content-[''] dark:before:bg-blue-400",
+        )
       : cn(
           "font-normal",
           "text-secondary",
@@ -96,7 +105,7 @@ function NavPendingMark() {
 
 function sidebarNavIconClass(active: boolean) {
   return active
-    ? "text-interactive-selected-text"
+    ? "text-strong"
     : "text-muted group-hover/sidebar-item:text-secondary group-active/sidebar-item:text-strong";
 }
 
@@ -418,7 +427,10 @@ function AppShellContent({ children }: { children: ReactNode }) {
                   INTERACTIVE_CHROME_PRESSED,
                   "flex flex-col items-center justify-center gap-1 px-1 py-2 text-2xs transition-colors",
                   active
-                    ? "font-semibold text-interactive-selected-text"
+                    ? cn(
+                        "relative bg-interactive-chrome-pressed font-semibold text-strong",
+                        "before:absolute before:inset-x-3 before:top-0 before:h-0.5 before:rounded-b-full before:bg-blue-600 before:content-[''] dark:before:bg-blue-400",
+                      )
                     : "font-medium text-muted",
                 )}
               >
@@ -445,9 +457,12 @@ function AppShellContent({ children }: { children: ReactNode }) {
               FOCUS_INSET,
               RADIUS.item,
               INTERACTIVE_CHROME_PRESSED,
-                  "flex flex-col items-center justify-center gap-1 px-1 py-2 text-2xs transition-colors",
+              "flex flex-col items-center justify-center gap-1 px-1 py-2 text-2xs transition-colors",
               mobileMoreActive
-                ? "font-semibold text-interactive-selected-text"
+                ? cn(
+                    "relative bg-interactive-chrome-pressed font-semibold text-strong",
+                    "before:absolute before:inset-x-3 before:top-0 before:h-0.5 before:rounded-b-full before:bg-blue-600 before:content-[''] dark:before:bg-blue-400",
+                  )
                 : "font-medium text-muted",
             )}
           >

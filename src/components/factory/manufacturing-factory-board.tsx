@@ -7,7 +7,7 @@ import {
   CalendarClock,
   CheckCircle2,
   CircleGauge,
-  Factory,
+  Printer,
 } from "lucide-react";
 import { trpc, type RouterOutput } from "@/lib/trpc";
 import { cn, formatTime } from "@/lib/utils";
@@ -113,12 +113,15 @@ export function ManufacturingFactoryBoard() {
     <main className="factory-board flex h-dvh min-h-[720px] flex-col gap-4 overflow-hidden p-5">
       <header className="flex min-h-16 items-center justify-between gap-5 border-b border-divider pb-4">
         <div className="flex items-center gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-500/15 text-blue-300">
-            <Factory className="h-7 w-7" aria-hidden="true" />
+          {/* จอนี้แขวนอยู่หน้าโรงงานทั้งวันและไม่มี sidebar/topbar เหมือนหน้าอื่น
+              ถ้าไม่มีตราตรงนี้ ทั้งจอจะไม่มีคำว่า Anajak อยู่เลยสักที่
+              (เบสทัก 2026-08-26 "อย่าลืมสีฟ้าที่เป็น asset เรา") */}
+          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-600 text-white">
+            <Printer className="h-6 w-6" strokeWidth={1.75} aria-hidden="true" />
           </div>
           <div>
             <h1 className="text-3xl font-semibold">สถานะโรงงาน</h1>
-            <p className="text-base text-secondary">ภาพรวมอ่านอย่างเดียว · ข้อมูลเดียวกับ ERP และ Station</p>
+            <p className="text-base text-secondary">Anajak Print · ภาพรวมอ่านอย่างเดียว · ข้อมูลเดียวกับ ERP และ Station</p>
           </div>
         </div>
         <div className="flex items-center gap-3 text-right">

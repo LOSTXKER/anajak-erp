@@ -46,11 +46,16 @@ describe("Anajak selected-state contract", () => {
     expect(flowFilterSource).toContain("ACTIVE_UNDERLINE");
   });
 
-  it("navigation และ active filter เฉพาะหน้าใช้ selected role สีน้ำเงิน", () => {
+  /* แถบเมนูของ app shell ถอยจากพิลฟ้ามาเป็น "เทากลาง + ขีดแบรนด์" (แบบ ก · เบสเคาะ 2026-08-26)
+     เพราะพิลฟ้าเต็มแถบไปแย่งสายตากับปุ่มหลักที่ใช้น้ำเงินเหมือนกัน
+     ส่วนเมนูโมดูลในหน้าผลิตยังใช้ selected role เดิม — คนละระดับกัน จงใจให้ต่าง */
+  it("navigation ใช้เทากลาง + ขีดแบรนด์ · active filter เฉพาะหน้ายังใช้ selected role สีน้ำเงิน", () => {
     expect(shellSource).toContain(
-      "bg-interactive-selected font-medium text-interactive-selected-text",
+      'onChrome ? "bg-interactive-chrome-pressed" : "bg-interactive-pressed"',
     );
-    expect(shellSource).toContain('? "text-interactive-selected-text"');
+    expect(shellSource).toContain("before:bg-blue-600");
+    expect(shellSource).toContain("dark:before:bg-blue-400");
+    expect(shellSource).not.toContain("text-interactive-selected-text");
     expect(productionNavSource).toContain(
       'active && "bg-interactive-selected font-medium text-interactive-selected-text"',
     );
@@ -88,6 +93,18 @@ describe("Anajak selected-state contract", () => {
     expect(publicSource).toContain("bg-blue-600 text-white");
     // blind ship ต้องปิดตราเองโดยไม่ต้องรอให้ caller จำ
     expect(publicSource).toContain("hideBrandMark = hideFooter");
+  });
+
+  /* จอโรงงาน /factory ไม่มี sidebar/topbar เลย — ตราจึงไม่มีที่อยู่โดยอัตโนมัติ
+     ก่อน 2026-08-26 ทั้งจอไม่มีคำว่า Anajak อยู่สักที่ ทั้งที่แขวนหน้าโรงงานทั้งวัน */
+  it("จอโรงงานทั้งสองรุ่นมีตรา Anajak สีแบรนด์ในหัวจอ", () => {
+    for (const source of [
+      read("../../app/factory/page.tsx"),
+      read("../factory/manufacturing-factory-board.tsx"),
+    ]) {
+      expect(source).toContain("bg-blue-600 text-white");
+      expect(source).toContain("Anajak Print");
+    }
   });
 
   it("Production ใช้การ์ดตัวกรองเรียบและ selected คงสีประจำสถานะ", () => {
