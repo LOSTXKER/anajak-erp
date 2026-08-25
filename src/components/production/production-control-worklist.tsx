@@ -129,7 +129,7 @@ function WorkProgress({
         aria-label={`ผ่านแล้ว ${completed} จาก ${total} ช่วง`}
         className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-muted"
       >
-        <div className="h-full rounded-full bg-blue-600" style={{ width: `${percent}%` }} />
+        <div className="h-full rounded-full bg-blue-600 transition-[width] duration-[var(--duration-base)] ease-out" style={{ width: `${percent}%` }} />
       </div>
     </div>
   );

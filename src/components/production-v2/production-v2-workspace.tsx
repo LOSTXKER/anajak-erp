@@ -27,6 +27,7 @@ import { SearchInput } from "@/components/ui/search-input";
 import { SegmentedControl } from "@/components/ui/segmented";
 import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ListPageSkeleton } from "@/components/ui/page-skeleton";
 import { StatusLabel } from "@/components/ui/status-label";
 import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
 import { formatDate, formatDateTime } from "@/lib/utils";
@@ -95,7 +96,7 @@ function Progress({ done, total }: { done: number; total: number }) {
         aria-valuenow={percent}
         className="h-1.5 overflow-hidden rounded-full bg-surface-muted"
       >
-        <div className="h-full rounded-full bg-blue-600" style={{ width: `${percent}%` }} />
+        <div className="h-full rounded-full bg-blue-600 transition-[width] duration-[var(--duration-base)] ease-out" style={{ width: `${percent}%` }} />
       </div>
     </div>
   );
@@ -935,7 +936,7 @@ function ProductionV2WorkspaceContent() {
 
 export function ProductionV2Workspace() {
   return (
-    <Suspense fallback={<Skeleton className="h-96 rounded-lg" />}>
+    <Suspense fallback={<ListPageSkeleton />}>
       <ProductionV2WorkspaceContent />
     </Suspense>
   );

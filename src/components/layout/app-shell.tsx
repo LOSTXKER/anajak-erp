@@ -3,6 +3,7 @@
 import type { CSSProperties, ReactNode, RefObject } from "react";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Bell,
@@ -36,6 +37,7 @@ import {
   INTERACTIVE_PRESSED,
   RADIUS,
 } from "@/components/ui/tokens";
+import { ListPageSkeleton } from "@/components/ui/page-skeleton";
 import { CommandPalette } from "@/components/layout/command-palette";
 import { UserMenu } from "@/components/layout/user-menu";
 
@@ -74,6 +76,21 @@ function SidebarGroupLabel({
 
   return (
     <p className="px-3 pb-1.5 text-2xs font-medium text-muted">{label}</p>
+  );
+}
+
+/* กดเมนูแล้วต้องมีอะไรขยับทันที (UI-2026 เฟส 4)
+   loading.tsx เป็นทางหลักแล้ว แต่ระหว่างที่ prefetch ยังวิ่งอยู่ หน้าใหม่ยังไม่มา
+   ตัวนี้จึงเป็นสัญญาณเสริมในเมนูเอง — ต้องอยู่ใต้ <Link> เท่านั้น (ข้อกำหนดของ hook)
+   ใช้จุดเล็กแทนวงหมุนเพื่อไม่ให้ความสูงแถวขยับ และ aria-hidden เพราะเป็นภาพล้วน */
+function NavPendingMark() {
+  const { pending } = useLinkStatus();
+  if (!pending) return null;
+  return (
+    <span
+      aria-hidden="true"
+      className="ml-auto h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-current motion-reduce:animate-none"
+    />
   );
 }
 
@@ -351,6 +368,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
                             strokeWidth={1.75}
                           />
                           <span>{item.label}</span>
+                          <NavPendingMark />
                         </Link>
                       </li>
                     );
@@ -462,11 +480,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <Suspense
       fallback={
-        <div
-          className="app-workspace h-dvh bg-bg"
-          role="status"
-          aria-label="กำลังโหลดพื้นที่ทำงาน"
-        />
+        <div className="app-workspace h-dvh overflow-hidden bg-bg px-6 pt-6">
+          <ListPageSkeleton rows={6} />
+        </div>
       }
     >
       <AppShellContent>{children}</AppShellContent>

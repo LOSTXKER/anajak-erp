@@ -14,7 +14,7 @@ import { Field } from "@/components/ui/field";
 import { SearchInput } from "@/components/ui/search-input";
 import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
 import { StatusLabel } from "@/components/ui/status-label";
-import { Skeleton } from "@/components/ui/skeleton";
+import { ListPageSkeleton } from "@/components/ui/page-skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DataTable } from "@/components/ui/data-table";
 import { ResponsiveList } from "@/components/ui/responsive-list";
@@ -41,7 +41,7 @@ type FilmStockItem = RouterOutput["filmStock"]["list"][number];
 
 export function LegacyFilmStockPage() {
   return (
-    <Suspense fallback={<Skeleton className="h-96 rounded-lg" />}>
+    <Suspense fallback={<ListPageSkeleton />}>
       <FilmStockPageContent />
     </Suspense>
   );

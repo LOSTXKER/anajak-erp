@@ -13,7 +13,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { ListPageSkeleton } from "@/components/ui/page-skeleton";
 import { formatCurrency } from "@/lib/utils";
 import { CustomerPicker } from "@/components/customers/customer-picker";
 import { permAllows } from "@/lib/permissions";
@@ -59,7 +59,7 @@ const sectionLabelClass =
 export default function NewQuotationPage() {
   // useSearchParams ต้องอยู่ใต้ Suspense (ข้อบังคับ Next.js ตอน prerender)
   return (
-    <Suspense fallback={<Skeleton className="h-96 rounded-lg" />}>
+    <Suspense fallback={<ListPageSkeleton />}>
       <QuotationFormPage />
     </Suspense>
   );
@@ -312,7 +312,7 @@ function QuotationFormPage() {
             : null
       }
       loading={redirectToCanonicalIntake}
-      skeleton={<Skeleton className="h-96 rounded-lg" />}
+      skeleton={<ListPageSkeleton />}
       denied={
         !!me &&
         !canAuthor && {

@@ -33,6 +33,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { RecordNotFound } from "@/components/ui/record-not-found";
 import { Section } from "@/components/ui/section";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ListPageSkeleton } from "@/components/ui/page-skeleton";
 import { StatusLabel } from "@/components/ui/status-label";
 import { formatDate, formatDateTime } from "@/lib/utils";
 import {
@@ -86,7 +87,7 @@ function ControlProgress({ operations }: { operations: readonly Operation[] }) {
         <p className="text-xs text-muted">{completed}/{operations.length} ขั้นเสร็จแล้ว</p>
       </div>
       <div role="progressbar" aria-label="ความคืบหน้าใบสั่งผลิต" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent} className="h-2 overflow-hidden rounded-full bg-surface-muted">
-        <div className="h-full rounded-full bg-blue-600" style={{ width: `${percent}%` }} />
+        <div className="h-full rounded-full bg-blue-600 transition-[width] duration-[var(--duration-base)] ease-out" style={{ width: `${percent}%` }} />
       </div>
     </div>
   );
@@ -754,7 +755,7 @@ export function ProductionV2ControlRecord({
       skeleton={
         <div className="space-y-4">
           <Skeleton className="h-40 rounded-lg" />
-          <Skeleton className="h-96 rounded-lg" />
+          <ListPageSkeleton />
         </div>
       }
       error={

@@ -24,12 +24,29 @@ export interface ResponsiveListProps<T>
   label?: string;
 }
 
+/* โครงร่างต้องรูปทรงเดียวกับของจริง ไม่งั้นจอกระโดดตอนข้อมูลมาถึง (UI-2026 เฟส 4)
+   ของเดิมเป็นแถบสูง 80px 4 ก้อนบนจอที่เป็นตารางแถวเตี้ยกว่านั้น
+   69px = ความสูงแถวจริงที่วัดจากทะเบียนออเดอร์หลังปรับบันไดตัวอักษร */
 function DefaultLoadingState() {
   return (
-    <div role="status" aria-label="กำลังโหลดข้อมูล" className="space-y-3 py-2">
+    <div role="status" aria-label="กำลังโหลดข้อมูล">
       <span className="sr-only">กำลังโหลดข้อมูล</span>
-      {Array.from({ length: 4 }, (_, index) => (
-        <Skeleton key={index} className="h-20 w-full rounded-lg" />
+      <div className="border-b border-border py-2">
+        <Skeleton className="h-4 w-40" />
+      </div>
+      {Array.from({ length: 6 }, (_, index) => (
+        <div
+          key={index}
+          className="flex h-[69px] items-center gap-4 border-b border-divider"
+        >
+          <Skeleton className="h-9 w-9 shrink-0" />
+          <div className="min-w-0 flex-1 space-y-2">
+            <Skeleton className="h-4 w-1/3" />
+            <Skeleton className="h-3 w-1/4" />
+          </div>
+          <Skeleton className="hidden h-4 w-24 sm:block" />
+          <Skeleton className="hidden h-4 w-20 sm:block" />
+        </div>
       ))}
     </div>
   );

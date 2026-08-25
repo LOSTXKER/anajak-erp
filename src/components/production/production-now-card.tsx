@@ -142,7 +142,7 @@ export function ProductionNowCard({
             aria-valuenow={donePct}
             className="h-2 w-full overflow-hidden rounded-full bg-surface-muted"
           >
-            <div className="h-full rounded-full bg-blue-500" style={{ width: `${donePct}%` }} />
+            <div className="h-full rounded-full bg-blue-600 transition-[width] duration-[var(--duration-base)] ease-out" style={{ width: `${donePct}%` }} />
           </div>
         )}
 

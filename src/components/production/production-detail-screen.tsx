@@ -6,6 +6,7 @@ import { permAllows } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ListPageSkeleton } from "@/components/ui/page-skeleton";
 import {
   Dialog,
   DialogContent,
@@ -89,7 +90,7 @@ function ProductionDetailSkeleton() {
           <Skeleton className="h-80 rounded-lg" />
           <Skeleton className="h-56 rounded-lg" />
         </div>
-        <Skeleton className="h-96 rounded-lg" />
+        <ListPageSkeleton />
       </div>
     </div>
   );
@@ -1101,7 +1102,7 @@ export function ProductionDetailScreen({
                   className="h-1.5 min-w-16 flex-1 overflow-hidden rounded-full bg-surface ring-1 ring-inset ring-divider"
                 >
                   <div
-                    className="h-full rounded-full bg-blue-500"
+                    className="h-full rounded-full bg-blue-600 transition-[width] duration-[var(--duration-base)] ease-out"
                     style={{ width: `${completedPct}%` }}
                   />
                 </div>

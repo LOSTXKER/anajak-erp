@@ -11,7 +11,7 @@ import { SearchInput } from "@/components/ui/search-input";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
 import { StatusLabel, toneFromBadgeVariant } from "@/components/ui/status-label";
-import { Skeleton } from "@/components/ui/skeleton";
+import { ListPageSkeleton } from "@/components/ui/page-skeleton";
 import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ResponsiveList } from "@/components/ui/responsive-list";
@@ -59,7 +59,7 @@ function QuotationStatusLabel({ status }: { status: string }) {
 
 export default function QuotationsPage() {
   return (
-    <Suspense fallback={<Skeleton className="h-96 rounded-lg" />}>
+    <Suspense fallback={<ListPageSkeleton />}>
       <QuotationsPageContent />
     </Suspense>
   );

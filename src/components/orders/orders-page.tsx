@@ -16,7 +16,7 @@ import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
 import { OrderStatusFilter } from "@/components/orders/order-status-filter";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { Select } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
+import { ListPageSkeleton } from "@/components/ui/page-skeleton";
 import { DataTable } from "@/components/ui/data-table";
 import { ResponsiveList } from "@/components/ui/responsive-list";
 import { OrderStatusBadge } from "@/components/order-status-badge";
@@ -282,7 +282,7 @@ function exportOrdersCsv(
 
 export default function OrdersPage() {
   return (
-    <Suspense fallback={<Skeleton className="h-96 rounded-lg" />}>
+    <Suspense fallback={<ListPageSkeleton />}>
       <OrdersPageContent />
     </Suspense>
   );

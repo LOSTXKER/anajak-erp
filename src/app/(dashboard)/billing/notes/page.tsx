@@ -10,6 +10,7 @@ import { StatusLabel } from "@/components/ui/status-label";
 import { SearchInput } from "@/components/ui/search-input";
 import { Toolbar } from "@/components/ui/toolbar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ListPageSkeleton } from "@/components/ui/page-skeleton";
 import { QueryError } from "@/components/ui/query-error";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { DataTable } from "@/components/ui/data-table";
@@ -39,7 +40,7 @@ import { cn } from "@/lib/utils";
 
 export default function BillingNotesPage() {
   return (
-    <Suspense fallback={<Skeleton className="h-96 rounded-lg" />}>
+    <Suspense fallback={<ListPageSkeleton />}>
       <BillingNotesPageContent />
     </Suspense>
   );
