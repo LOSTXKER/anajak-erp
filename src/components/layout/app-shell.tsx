@@ -100,17 +100,21 @@ function sidebarNavItemClass({
     FOCUS_INSET,
     RADIUS.item,
     "group/sidebar-item relative flex scroll-m-4 items-center gap-3 px-3 py-2 text-sm transition-colors",
-    collapsed && "justify-center gap-0 px-0",
+    // ตอนหุบเป็น "ปุ่มสี่เหลี่ยมจัตุรัส 40px วางกลางราง" ไม่ใช่แถบเต็มความกว้าง
+    // เดิมปล่อยให้ยืดตามกล่องแม่ แล้วโดนบีบเหลือกว้าง 24px สูง 36px = อ่านเป็นเม็ดยา
+    // (วัดจริง 2026-08-26 หลังเบสทัก "sidebar ตอนหุบ UI ก็ไม่ดี")
+    collapsed && "mx-auto h-10 w-10 justify-center gap-0 px-0 py-0",
     active
       ? // แบบ ก (เบสเคาะ 2026-08-26) — เมนูที่กำลังเปิดอยู่เลิกเป็นพิลฟ้า
         // เหลือพื้นเทากลาง ๆ + ขีดสีแบรนด์บาง ๆ ริมซ้ายของแถบ + ตัวหนังสือเข้มขึ้น
         // น้ำเงินจึงเหลือหน้าที่เดียวในแถบเมนูคือบอกว่า "อยู่ตรงนี้"
-        // ไม่แย่งสายตากับปุ่มหลักที่ใช้น้ำเงินเหมือนกัน
-        // ขีดวางที่ -left-3 = ชิดขอบ nav พอดี เพราะทั้งสองแถบเมนูใช้ px-3
+        // ⚠️ ตอนหุบไม่มีขีด — ขีดที่ริมรางห่างจากไอคอนจนอ่านเป็นคนละชิ้น
+        // พื้นเทาเต็มปุ่มสี่เหลี่ยมบอก "อยู่ตรงนี้" ได้ชัดกว่าบนรางแคบ 64px
         cn(
           "font-medium text-strong",
           onChrome ? "bg-interactive-chrome-pressed" : "bg-interactive-pressed",
-          "before:absolute before:inset-y-1.5 before:-left-3 before:w-0.5 before:rounded-r-full before:bg-blue-600 before:content-[''] dark:before:bg-blue-400",
+          !collapsed &&
+            "before:absolute before:inset-y-1.5 before:-left-3 before:w-0.5 before:rounded-r-full before:bg-blue-600 before:content-[''] dark:before:bg-blue-400",
         )
       : cn(
           "font-normal",
@@ -163,6 +167,8 @@ function SidebarCollapseButton({
         INTERACTIVE_CHROME_HOVER,
         INTERACTIVE_CHROME_PRESSED,
         "shrink-0 text-muted",
+        // ตอนหุบต้องขนาดเท่าปุ่มเมนู ไม่งั้นได้แกนกลางคนละเส้นกับไอคอนข้างล่าง
+        collapsed && "mx-auto h-10 w-10",
         className,
       )}
     >
@@ -420,13 +426,18 @@ function AppShellContent({ children }: { children: ReactNode }) {
           aria-label="เมนูหลัก"
           className={cn(
             "min-h-0 flex-1 overflow-y-auto px-3 py-3",
-            sidebarCollapsed && "[scrollbar-gutter:stable_both-edges]",
+            // ตอนหุบถอดระยะขอบข้างออก แล้วให้ปุ่ม 40px จัดกลางเอง
+            // (px-3 + รางแถบเลื่อนสองข้าง เหลือเนื้อที่จริงแค่ 19px ปุ่มเลยถูกบีบ)
+            sidebarCollapsed && "px-0 [scrollbar-gutter:stable_both-edges]",
             
           )}
         >
           {/* ตอนหุบ ปุ่มลงมาอยู่บนสุดของเมนู เพราะข้างตราไม่มีที่พอ */}
           {sidebarCollapsed && <SidebarCollapseButton collapsed className="mb-3" />}
-          <div className="space-y-4">
+          {/* ตอนกางมีหัวกลุ่มอธิบายช่องว่าง 16px · ตอนหุบหัวกลุ่มหายไป
+              ช่องว่างเท่าเดิมจึงอ่านเป็น "เว้นมั่ว" — ย่อเหลือ 12px ให้ยังแยกกลุ่มออก
+              แต่ไม่ห่างจนดูเหมือนลืมใส่อะไร */}
+          <div className={cn(sidebarCollapsed ? "space-y-3" : "space-y-4")}>
             {sidebarGroups.map((group) => (
               <div key={group.id}>
                 <SidebarGroupLabel label={sidebarCollapsed ? null : group.label} />

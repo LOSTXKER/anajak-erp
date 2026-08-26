@@ -197,8 +197,13 @@ const hSm = CONTROL_H_SM.split(" ");
     !appShellSource.includes("grid-rows-[3.5rem_minmax(0,1fr)]") ||
     (appShellSource.match(/flex h-14 /g)?.length ?? 0) !== 2 ||
     // ตอนหุบต้องจองรางแถบเลื่อนสองข้าง ไม่งั้นแถบเลื่อน 10px ดันไอคอนไปทางซ้าย 5px
-    // (วัดจริง: ไอคอนเมนูอยู่ 26.5 ส่วนตรากับปุ่มหุบอยู่ 31.5) — เบสเห็นแล้วทัก
-    !appShellSource.includes('sidebarCollapsed && "[scrollbar-gutter:stable_both-edges]"') ||
+    // และต้องถอดระยะขอบข้างของ nav ออกด้วย ไม่งั้นเนื้อที่จริงเหลือ 19px
+    // จนปุ่มเมนูถูกบีบเหลือกว้าง 24px สูง 36px = อ่านเป็นเม็ดยา (วัดจริง 2026-08-26)
+    !appShellSource.includes('sidebarCollapsed && "px-0 [scrollbar-gutter:stable_both-edges]"') ||
+    // ปุ่มเมนูตอนหุบต้องเป็นสี่เหลี่ยมจัตุรัส 40px วางกลางราง
+    !appShellSource.includes('collapsed && "mx-auto h-10 w-10 justify-center gap-0 px-0 py-0"') ||
+    // ปุ่มหุบต้องขนาดเท่าปุ่มเมนู ไม่งั้นแกนกลางคนละเส้นกัน
+    !appShellSource.includes('collapsed && "mx-auto h-10 w-10"') ||
     !appShellSource.includes("aria-label={sidebarCollapsed ? item.label : undefined}") ||
     // จุดกะพริบตอนกดเมนูถูกถอดออกถาวร (เบสสั่ง 2026-08-26 "ไม่ชอบเวลากดเลือกหัวข้อแล้วมีจุด")
     // loading.tsx เป็นสัญญาณ "ระบบรับรู้แล้ว" หลักอยู่แล้ว · เช็คการใช้งานจริง ไม่ใช่คำในคอมเมนต์
