@@ -182,7 +182,19 @@ const hSm = CONTROL_H_SM.split(" ");
 {
   const appShellSource = readFileSync("src/components/layout/app-shell.tsx", "utf8");
   if (
-    !appShellSource.includes('lg:grid-cols-[15rem_minmax(0,1fr)]') ||
+    // ความกว้างเมนูซ้ายมาจากตัวแปร ไม่ใช่ค่าคงที่ ตั้งแต่มีโหมดหุบ/กาง (2026-08-26)
+    // ยังล็อกไว้ว่าคอลัมน์ขวาต้อง minmax(0,1fr) และค่าทั้งสองสถานะต้องประกาศจริง
+    !appShellSource.includes('lg:grid-cols-[var(--app-sidebar-w)_minmax(0,1fr)]') ||
+    !appShellSource.includes('"--app-sidebar-w": sidebarCollapsed ? "4rem" : "15rem"') ||
+    // สถานะหุบต้องมาจาก store ภายนอก ไม่ใช่ useState+useEffect (กัน SSR/client ต่างกัน)
+    !appShellSource.includes("useSyncExternalStore") ||
+    // หุบแล้วชื่อเมนูหายจากจอ ต้องเหลือชื่อไว้ให้เมาส์และเครื่องอ่านหน้าจอ
+    !appShellSource.includes("title={sidebarCollapsed ? item.label : undefined}") ||
+    !appShellSource.includes("aria-label={sidebarCollapsed ? item.label : undefined}") ||
+    // จุดกะพริบตอนกดเมนูถูกถอดออกถาวร (เบสสั่ง 2026-08-26 "ไม่ชอบเวลากดเลือกหัวข้อแล้วมีจุด")
+    // loading.tsx เป็นสัญญาณ "ระบบรับรู้แล้ว" หลักอยู่แล้ว · เช็คการใช้งานจริง ไม่ใช่คำในคอมเมนต์
+    appShellSource.includes("<NavPendingMark") ||
+    appShellSource.includes("useLinkStatus") ||
     !appShellSource.includes("SidebarGroupLabel") ||
     appShellSource.includes("data-active-group") ||
     appShellSource.includes('groupActive && "bg-surface-muted"') ||
@@ -1779,9 +1791,17 @@ check(
   ) {
     problems.push("shared header ต้องมี CTA mobile เต็มแถวและพา focus ไป card ใหม่");
   }
-  // บันไดความลึกต้องอ่านทิศเดียวกันทั้งสองธีม (UI-2026 เฟส 1 · เบสเคาะ 2026-08-25):
-  // chrome (กรอบเว็บ) จมสุด < bg (ผืนเนื้อหา) < surface (การ์ด)
-  // เดิมล็อกไว้ว่า light = #fafafa / dark = #000000 ซึ่งเป็นทิศตรงข้ามกันสองธีม
+  // บันไดความลึก — กฎที่ยังจริงทั้งสองธีมมีสองข้อ (แก้ 2026-08-26 · UI-2026 เฟส 6):
+  //   1) ผืนงาน (bg) เป็น "พื้นจม" การ์ด (surface) ต้องลอยเหนือมันเสมอ
+  //   2) กรอบเว็บ (chrome) ต้องแยกออกจากผืนงานให้เห็น อย่างน้อย 1.1 เท่า
+  //      แต่ **ไม่บังคับทิศ** เพราะสองธีมวางตัวคนละฝั่งโดยตั้งใจ:
+  //        สว่าง  chrome ขาว = การ์ดขาว ลอยเหนือโต๊ะเทา   (เบสสั่งตรง ๆ 2026-08-26)
+  //        มืด    chrome เกือบดำ จมใต้ผืนงาน               (ของเดิม ไม่ได้ถูกทัก)
+  //
+  // ประวัติ: เฟส 1 (2026-08-25) เคยล็อกว่า chrome < bg < surface ทั้งสองธีม
+  // เพื่อให้ "อ่านทิศเดียวกัน" · เบสดูของจริงบนจอกว้างสองรอบแล้วสั่งให้ธีมสว่าง
+  // กลับไปเป็นกรอบขาว — ต่างจากปี 2026-08-03 ตรงที่คราวนี้ผืนงานเป็นเทาจริง
+  // กรอบขาวจึงมีพื้นให้ตัดกัน ไม่ใช่ขาวบนขาวเหมือนตอนนั้น
   {
     const relLum = (value: string) => luminance(hexRgb(value));
     const chromeColors = colorValues("chrome");
@@ -1789,23 +1809,34 @@ check(
     const surfaceColors = colorValues("surface");
     // --color-bg ถูกประกาศซ้ำใน .app-workspace ด้วย จึงมีมากกว่า 2 ค่า —
     // index 0/1 ยังเป็นคู่ light/dark ของ @theme ตามลำดับการประกาศในไฟล์
-    const ladderIsConsistent =
-      chromeColors.length >= 2 &&
-      pageColors.length >= 2 &&
-      surfaceColors.length >= 2 &&
-      [0, 1].every((theme) =>
-        relLum(chromeColors[theme]!) < relLum(pageColors[theme]!) &&
-        relLum(pageColors[theme]!) < relLum(surfaceColors[theme]!),
-      );
+    const hasAll =
+      chromeColors.length >= 2 && pageColors.length >= 2 && surfaceColors.length >= 2;
+    const cardFloatsAbovePage =
+      hasAll &&
+      [0, 1].every((theme) => relLum(pageColors[theme]!) < relLum(surfaceColors[theme]!));
+    // ธีมสว่างต้องแยกด้วย "สี" จริง ๆ (กรอบขาวบนโต๊ะเทา = 1.12 เท่า)
+    // ธีมมืดแยกด้วย "เส้นขอบ" มาตลอด — chrome กับ bg ต่างกันแค่ 1.02 เท่า
+    // บังคับ 1.1 กับธีมมืดด้วยจะเป็นการแต่งกฎให้ตรงกับธีมสว่างโดยไม่มีใครเคยตัดสินใจ
+    // จึงบังคับแค่ "ต้องไม่ใช่ค่าเดียวกัน" เพื่อไม่ให้ใครยุบสองชั้นนี้เป็นชั้นเดียว
+    const chromeReadsAgainstPage =
+      hasAll &&
+      contrast(hexRgb(chromeColors[0]!), hexRgb(pageColors[0]!)) >= 1.1 &&
+      chromeColors[1] !== pageColors[1];
+    // ทิศของแต่ละธีมยังล็อกไว้ เพื่อไม่ให้ใครสลับกลับเงียบ ๆ ทีละธีม
+    const lightChromeIsRaised = hasAll && relLum(chromeColors[0]!) > relLum(pageColors[0]!);
+    const darkChromeIsSunk = hasAll && relLum(chromeColors[1]!) < relLum(pageColors[1]!);
     if (
-      !ladderIsConsistent ||
+      !cardFloatsAbovePage ||
+      !chromeReadsAgainstPage ||
+      !lightChromeIsRaised ||
+      !darkChromeIsSunk ||
       pageColors[1] === "#000000" ||
       !appShellSource.includes("app-workspace") ||
       !globalsSource.includes(".app-workspace") ||
       !globalsSource.includes(`--color-bg: ${pageColors[0]}`)
     ) {
       problems.push(
-        "บันไดความลึกต้องเป็น chrome < bg < surface ทั้ง Light และ Dark, ห้าม Dark เป็นดำสนิท และ .app-workspace ต้องผูกกับค่า --color-bg เดียวกัน",
+        "บันไดความลึก: การ์ดต้องลอยเหนือผืนงานทั้งสองธีม · Light chrome ขาวอยู่เหนือผืนงาน ≥1.1 เท่า · Dark chrome ยังจมใต้ผืนงานและต้องไม่ใช่ค่าเดียวกับผืนงาน · ห้าม Dark เป็นดำสนิท · .app-workspace ต้องผูกกับค่า --color-bg เดียวกัน",
       );
     }
   }

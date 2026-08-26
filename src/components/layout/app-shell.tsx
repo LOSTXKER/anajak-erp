@@ -1,14 +1,22 @@
 "use client";
 
 import type { CSSProperties, ReactNode, RefObject } from "react";
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Suspense,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import Link from "next/link";
-import { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Bell,
   ChevronRight,
   MoreHorizontal,
+  PanelLeftClose,
+  PanelLeftOpen,
   Printer,
   Search,
 } from "lucide-react";
@@ -36,6 +44,7 @@ import {
   INTERACTIVE_HOVER,
   INTERACTIVE_PRESSED,
   RADIUS,
+  SUNK_PANEL,
 } from "@/components/ui/tokens";
 import { ListPageSkeleton } from "@/components/ui/page-skeleton";
 import { CommandPalette } from "@/components/layout/command-palette";
@@ -44,18 +53,54 @@ import { UserMenu } from "@/components/layout/user-menu";
 const MOBILE_NAV_IDS = ["dashboard", "my-tasks", "orders", "production"] as const;
 const MOBILE_EXCLUDED_IDS = new Set<string>(MOBILE_NAV_IDS);
 
+/* เมนูซ้ายจำสถานะหุบ/กางไว้ในเครื่องผู้ใช้ (เบสสั่ง 2026-08-26)
+   ใช้ useSyncExternalStore แทน useState+useEffect เพื่อไม่ให้ SSR กับ client
+   เห็นค่าคนละอย่างตอน hydrate · ค่าเริ่มต้นฝั่งเซิร์ฟเวอร์คือ "กาง" เสมอ */
+const SIDEBAR_COLLAPSED_KEY = "anajak.sidebar.collapsed";
+const SIDEBAR_EVENT = "anajak:sidebar-collapsed";
+
+function subscribeSidebarCollapsed(onChange: () => void) {
+  window.addEventListener("storage", onChange);
+  window.addEventListener(SIDEBAR_EVENT, onChange);
+  return () => {
+    window.removeEventListener("storage", onChange);
+    window.removeEventListener(SIDEBAR_EVENT, onChange);
+  };
+}
+
+function readSidebarCollapsed() {
+  try {
+    return window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "1";
+  } catch {
+    // โหมดส่วนตัวของบางเบราว์เซอร์โยน error ตอนอ่าน localStorage — ถือว่ากางไว้
+    return false;
+  }
+}
+
+function writeSidebarCollapsed(next: boolean) {
+  try {
+    window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, next ? "1" : "0");
+  } catch {
+    // เขียนไม่ได้ก็ยังต้องหุบ/กางให้ทันที แค่ไม่ถูกจำข้ามครั้ง
+  }
+  window.dispatchEvent(new Event(SIDEBAR_EVENT));
+}
+
 function sidebarNavItemClass({
   active,
   onChrome = false,
+  collapsed = false,
 }: {
   active: boolean;
   onChrome?: boolean;
+  collapsed?: boolean;
 }) {
   return cn(
     CONTROL_MIN_H,
     FOCUS_INSET,
     RADIUS.item,
     "group/sidebar-item relative flex scroll-m-4 items-center gap-3 px-3 py-2 text-sm transition-colors",
+    collapsed && "justify-center gap-0 px-0",
     active
       ? // แบบ ก (เบสเคาะ 2026-08-26) — เมนูที่กำลังเปิดอยู่เลิกเป็นพิลฟ้า
         // เหลือพื้นเทากลาง ๆ + ขีดสีแบรนด์บาง ๆ ริมซ้ายของแถบ + ตัวหนังสือเข้มขึ้น
@@ -88,20 +133,11 @@ function SidebarGroupLabel({
   );
 }
 
-/* กดเมนูแล้วต้องมีอะไรขยับทันที (UI-2026 เฟส 4)
-   loading.tsx เป็นทางหลักแล้ว แต่ระหว่างที่ prefetch ยังวิ่งอยู่ หน้าใหม่ยังไม่มา
-   ตัวนี้จึงเป็นสัญญาณเสริมในเมนูเอง — ต้องอยู่ใต้ <Link> เท่านั้น (ข้อกำหนดของ hook)
-   ใช้จุดเล็กแทนวงหมุนเพื่อไม่ให้ความสูงแถวขยับ และ aria-hidden เพราะเป็นภาพล้วน */
-function NavPendingMark() {
-  const { pending } = useLinkStatus();
-  if (!pending) return null;
-  return (
-    <span
-      aria-hidden="true"
-      className="ml-auto h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-current motion-reduce:animate-none"
-    />
-  );
-}
+/* เคยมี NavPendingMark = จุดเล็กกะพริบในเมนูระหว่างที่หน้าใหม่ยังโหลด (เฟส 4)
+   ถอดออก 2026-08-26 — เบสบอก "ไม่ชอบเวลากดเลือกหัวข้อแล้วมีจุด"
+   ไม่ได้เสียสัญญาณ "ระบบรับรู้แล้ว" ไป เพราะ src/app/(dashboard)/loading.tsx
+   ขึ้นโครงร่างหน้าใหม่ให้อยู่แล้ว ซึ่งเป็นทางหลักที่ Next แนะนำ · จุดในเมนู
+   เป็นแค่ตัวเสริมระหว่าง prefetch เท่านั้น */
 
 function sidebarNavIconClass(active: boolean) {
   return active
@@ -239,8 +275,12 @@ function AppShellContent({ children }: { children: ReactNode }) {
   }, []);
 
   const count = unreadCount ?? 0;
-  const activeNavigationItem = findActiveNavigationItem(pathname);
-  const activeNavigationId = activeNavigationItem?.id;
+  const activeNavigationId = findActiveNavigationItem(pathname)?.id;
+  const sidebarCollapsed = useSyncExternalStore(
+    subscribeSidebarCollapsed,
+    readSidebarCollapsed,
+    () => false,
+  );
   const mobileMoreActive = sidebarGroups.some(
     (group) =>
       group.items.some(
@@ -264,11 +304,13 @@ function AppShellContent({ children }: { children: ReactNode }) {
 
   return (
     <div
-      className="app-workspace grid h-dvh grid-cols-1 grid-rows-[3rem_minmax(0,1fr)] overflow-hidden bg-bg lg:grid-cols-[15rem_minmax(0,1fr)]"
+      className="app-workspace grid h-dvh grid-cols-1 grid-rows-[3rem_minmax(0,1fr)] overflow-hidden bg-bg lg:grid-cols-[var(--app-sidebar-w)_minmax(0,1fr)]"
       style={
         {
           "--app-bottom-nav-offset":
             "calc(5rem + env(safe-area-inset-bottom))",
+          // หุบ = พอให้ไอคอน 16px ยืนกลางช่องที่หัก px-3 ออกแล้ว · กาง = 240px เท่าเดิม
+          "--app-sidebar-w": sidebarCollapsed ? "4rem" : "15rem",
         } as CSSProperties
       }
     >
@@ -308,13 +350,11 @@ function AppShellContent({ children }: { children: ReactNode }) {
           </div>
         </Link>
 
+        {/* ไม่มีชื่อหมวดบนแถบแล้ว (เบสสั่ง 2026-08-26) — ตำแหน่งที่อยู่บอกด้วยเมนูซ้าย
+            ที่ไฮไลต์อยู่แล้ว เขียนซ้ำบนแถบก็เป็นคำเดียวกันสองที่
+            แถบนี้จึงเหลือหน้าที่เดียว: ของที่ใช้ได้ทุกหน้า (ค้นหา · แจ้งเตือน · บัญชี)
+            จอกว้างจึงดันไปชิดขวาทั้งชุด ไม่ต้องมีอะไรมาถ่วงฝั่งซ้าย */}
         <div className="flex min-w-0 flex-1 items-center gap-2 px-3 lg:px-4">
-          {/* ชื่อหมวดที่กำลังเปิดอยู่ — มาจากทะเบียนเมนูตัวเดียวกับ sidebar
-              ไม่ได้ดึงหัวข้อ <h1> ของหน้ามา เพราะหัวข้อเป็นของหน้า ไม่ใช่ของกรอบเว็บ */}
-          <span className="hidden min-w-0 flex-1 truncate text-sm font-semibold text-strong lg:block">
-            {activeNavigationItem?.label ?? "Anajak Print"}
-          </span>
-
           <button
             ref={searchTriggerRef}
             type="button"
@@ -325,13 +365,14 @@ function AppShellContent({ children }: { children: ReactNode }) {
               CONTROL_H,
               FOCUS_BUTTON,
               RADIUS.field,
-              // chrome เป็นเทาอ่อนแล้ว (UI-2026 เฟส 1) — ถ้ายังใช้ SUNK_PANEL
-              // พื้นช่องจะเกือบเท่าพื้นแถบจนมองไม่เห็นว่าเป็นช่องค้นหา
-              "border border-border bg-surface",
+              // chrome กลับมาเป็นขาวแล้ว (2026-08-26) ช่องค้นหาจึงต้องเป็น "ช่องจม"
+              // ไม่ใช่ขาวบนขาวที่เห็นแค่เส้นขอบ — SUNK_PANEL ให้พื้นเทาอ่อนกว่าแถบหนึ่งขั้น
+              SUNK_PANEL,
+              "border border-border",
               INTERACTIVE_HOVER,
               INTERACTIVE_PRESSED,
-              // จอแคบยังยืดเต็มที่ · จอกว้างหดเป็นชิปกว้างคงที่ ไม่ยืดกินแถบทั้งแถบ
-              "group flex min-w-0 flex-1 items-center gap-2 px-3 text-sm text-muted transition-colors sm:max-w-lg sm:px-4 lg:w-60 lg:max-w-60 lg:flex-none",
+              // จอแคบยังยืดเต็มที่ · จอกว้างหดเป็นชิปกว้างคงที่แล้วดันไปชิดขวา
+              "group flex min-w-0 flex-1 items-center gap-2 px-3 text-sm text-muted transition-colors sm:max-w-lg sm:px-4 lg:ml-auto lg:w-60 lg:max-w-60 lg:flex-none",
             )}
           >
             <Search className="h-4 w-4 shrink-0" strokeWidth={1.75} />
@@ -375,6 +416,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
           className={cn(
             FOCUS_BUTTON,
             "flex h-12 shrink-0 items-center gap-2 border-b border-divider px-3",
+            sidebarCollapsed && "justify-center gap-0 px-0",
           )}
         >
           <div
@@ -389,14 +431,16 @@ function AppShellContent({ children }: { children: ReactNode }) {
           >
             <Printer className="h-3.5 w-3.5" strokeWidth={1.75} />
           </div>
-          <span className="truncate text-sm font-semibold text-strong">Anajak Print</span>
+          {!sidebarCollapsed && (
+            <span className="truncate text-sm font-semibold text-strong">Anajak Print</span>
+          )}
         </Link>
 
         <nav aria-label="เมนูหลัก" className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
           <div className="space-y-4">
             {sidebarGroups.map((group) => (
               <div key={group.id}>
-                <SidebarGroupLabel label={group.label} />
+                <SidebarGroupLabel label={sidebarCollapsed ? null : group.label} />
                 <ul aria-label={group.label ?? undefined} className="space-y-1">
                   {group.items.map((item) => {
                     const active = activeNavigationId === item.id;
@@ -406,14 +450,21 @@ function AppShellContent({ children }: { children: ReactNode }) {
                           ref={active ? activeSidebarRef : undefined}
                           href={item.href}
                           aria-current={active ? "page" : undefined}
-                          className={sidebarNavItemClass({ active, onChrome: true })}
+                          // ตอนหุบ ชื่อเมนูหายไปจากจอ จึงต้องเหลือชื่อไว้ให้ทั้งเมาส์
+                          // (title) และเครื่องอ่านหน้าจอ (aria-label) ไม่งั้นเหลือแต่ไอคอนเปล่า
+                          title={sidebarCollapsed ? item.label : undefined}
+                          aria-label={sidebarCollapsed ? item.label : undefined}
+                          className={sidebarNavItemClass({
+                            active,
+                            onChrome: true,
+                            collapsed: sidebarCollapsed,
+                          })}
                         >
                           <item.icon
-                            className={cn("h-4 w-4", sidebarNavIconClass(active))}
+                            className={cn("h-4 w-4 shrink-0", sidebarNavIconClass(active))}
                             strokeWidth={1.75}
                           />
-                          <span>{item.label}</span>
-                          <NavPendingMark />
+                          {!sidebarCollapsed && <span>{item.label}</span>}
                         </Link>
                       </li>
                     );
@@ -423,6 +474,34 @@ function AppShellContent({ children }: { children: ReactNode }) {
             ))}
           </div>
         </nav>
+
+        {/* ปุ่มหุบ/กาง อยู่ท้ายแถบ ไม่ใช่ข้างตรา เพราะตอนหุบข้างตราไม่มีที่เหลือ
+            และตำแหน่งท้ายแถบอยู่ที่เดิมทั้งสองสถานะ หาเจอโดยไม่ต้องมองหา */}
+        <div className="shrink-0 border-t border-divider p-3">
+          <button
+            type="button"
+            onClick={() => writeSidebarCollapsed(!sidebarCollapsed)}
+            aria-pressed={sidebarCollapsed}
+            aria-label={sidebarCollapsed ? "กางเมนู" : "หุบเมนู"}
+            title={sidebarCollapsed ? "กางเมนู" : "หุบเมนู"}
+            className={cn(
+              CONTROL_MIN_H,
+              FOCUS_INSET,
+              RADIUS.item,
+              "flex w-full items-center gap-3 px-3 py-2 text-sm font-normal text-secondary transition-colors",
+              INTERACTIVE_CHROME_HOVER,
+              INTERACTIVE_CHROME_PRESSED,
+              sidebarCollapsed && "justify-center gap-0 px-0",
+            )}
+          >
+            {sidebarCollapsed ? (
+              <PanelLeftOpen className="h-4 w-4 shrink-0" strokeWidth={1.75} />
+            ) : (
+              <PanelLeftClose className="h-4 w-4 shrink-0" strokeWidth={1.75} />
+            )}
+            {!sidebarCollapsed && <span>หุบเมนู</span>}
+          </button>
+        </div>
       </aside>
 
       <main
