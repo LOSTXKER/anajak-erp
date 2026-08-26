@@ -64,7 +64,7 @@ export function UserMenu() {
              2) เลิกเป็นวงกลมน้ำเงินทึบ (เฟส 6 · เบสเคาะ 2026-08-26) — เดิมมีน้ำเงินสองก้อน
                 คนละมุมของแถบเดียวกัน ตรากับรูปคนแย่งกันเป็นตัวแทนแบรนด์
                 น้ำเงินเหลืออยู่ที่ตราชิ้นเดียว ที่นี่เป็นวงเงียบมีขอบ
-             3) เลิก hover:scale — ทั้งเว็บบอก hover ด้วยสี ไม่ใช่การขยายตัว */
+             3) เลิกขยายตัวตอนชี้ — ทั้งเว็บบอก hover ด้วยสี ไม่ใช่การเปลี่ยนขนาด */
           className={cn(CONTROL_H, "flex w-11 items-center justify-center rounded-full bg-surface text-sm font-semibold text-strong ring-1 ring-border transition-colors sm:w-9 [@media(pointer:coarse)]:w-11", INTERACTIVE_CHROME_HOVER, FOCUS_BUTTON)}
           aria-label="เมนูผู้ใช้"
         >

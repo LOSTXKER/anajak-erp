@@ -13,10 +13,11 @@ import { Skeleton } from "@/components/ui/skeleton";
    ถ้าวันหนึ่งความหนาแน่นเปลี่ยน ให้แก้ที่นี่ที่เดียว
    ============================================================ */
 
-/** แถวเดียวของตาราง — หัวข้อ + บรรทัดรอง + คอลัมน์ขวา */
+/** แถวเดียวของตาราง — หัวข้อ + บรรทัดรอง + คอลัมน์ขวา
+ *  px-5 = ระยะขอบเดียวกับเซลล์จริงของ DataTable ไม่งั้นพอข้อมูลมาถึงเนื้อหาจะเลื่อนข้าง */
 function SkeletonRow() {
   return (
-    <div className="flex h-[69px] items-center gap-4 border-b border-divider">
+    <div className="flex h-[69px] items-center gap-4 border-b border-divider px-5 last:border-b-0">
       <Skeleton className="h-9 w-9 shrink-0" />
       <div className="min-w-0 flex-1 space-y-2">
         <Skeleton className="h-4 w-1/3" />
@@ -28,12 +29,14 @@ function SkeletonRow() {
   );
 }
 
-/** เฉพาะส่วนตาราง — ใช้เป็น loadingState ของ ResponsiveList */
+/** เฉพาะส่วนตาราง — ใช้เป็น loadingState ของ ResponsiveList
+ *  ⚠️ ต้องอยู่ในการ์ดเหมือนตารางจริง (เฟส 6 คืนกล่องครอบ) ไม่งั้นตอนข้อมูลมาถึง
+ *  กล่องโผล่ขึ้นมาพร้อมกัน = จอกระโดดทุกครั้งที่เปิดหน้ารายการ */
 export function ListSkeleton({ rows = 6 }: { rows?: number }) {
   return (
-    <div role="status" aria-label="กำลังโหลดข้อมูล">
+    <div className="card-surface overflow-hidden rounded-lg" role="status" aria-label="กำลังโหลดข้อมูล">
       <span className="sr-only">กำลังโหลดข้อมูล</span>
-      <div className="border-b border-border py-2">
+      <div className="border-b border-border bg-surface-muted px-5 py-3">
         <Skeleton className="h-4 w-40" />
       </div>
       {Array.from({ length: rows }, (_, index) => (

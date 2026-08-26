@@ -70,6 +70,9 @@ describe("Anajak selected-state contract", () => {
      พอโลโก้ไม่ใช่ปุ่มและไม่ใช่สถานะ มันเลยถูกทำเป็นเทาโดยไม่มีอะไรร้อง
      (เบสทัก 2026-08-26 "อย่าลืมสีฟ้าที่เป็น asset เรา") */
   it("ตราสัญลักษณ์เป็นสีแบรนด์เสมอ — ไม่อยู่ใต้กติกาสงวนสี", () => {
+    // ตอนนี้มีตราสองก้อน (หัวเมนูซ้ายบนจอกว้าง + บนแถบบนของจอแคบ) — ต้องเป็นสีแบรนด์ทั้งคู่
+    // เช็คจำนวน ไม่ใช่แค่ toContain ไม่งั้นก้อนหนึ่งกลายเป็นเทาแล้วเทสยังเขียว
+    expect(shellSource.match(/bg-blue-600 text-white/g)).toHaveLength(2);
     expect(shellSource).toContain("bg-blue-600 text-white");
     expect(shellSource).not.toContain("bg-surface text-secondary ring-1 ring-border");
     // หน้า login คือจอแรกที่คนเห็น ตราต้องเป็นสีแบรนด์เหมือนกัน
@@ -105,6 +108,20 @@ describe("Anajak selected-state contract", () => {
       expect(source).toContain("bg-blue-600 text-white");
       expect(source).toContain("Anajak Print");
     }
+  });
+
+  /* user-menu.tsx ไม่เคยมีด่านหรือเทสแตะเลยสักบรรทัด ทั้งที่เป็นของที่อยู่บนทุกหน้า
+     บั๊กวงรี 36×44 บนจอทัชจึงอยู่มานานโดยไม่มีอะไรร้อง (เจอตอนไล่ตรวจ 2026-08-26) */
+  it("รูปผู้ใช้บนแถบบนเป็นวงกลมจริงทุกจอ และไม่แย่งความเป็นแบรนด์กับตรา", () => {
+    const userMenuSource = read("../layout/user-menu.tsx");
+    // ความกว้างต้องเดินตามความสูงทุกช่วง — CONTROL_H มี override ให้จอทัช ความกว้างก็ต้องมี
+    expect(userMenuSource).toContain("w-11");
+    expect(userMenuSource).toContain("sm:w-9");
+    expect(userMenuSource).toContain("[@media(pointer:coarse)]:w-11");
+    // น้ำเงินเหลืออยู่ที่ตราชิ้นเดียว ที่นี่เป็นวงเงียบมีขอบ
+    expect(userMenuSource).not.toContain("bg-blue-600");
+    // ทั้งเว็บบอก hover ด้วยสี ไม่ใช่การขยายตัว
+    expect(userMenuSource).not.toContain("hover:scale");
   });
 
   it("Production ใช้การ์ดตัวกรองเรียบและ selected คงสีประจำสถานะ", () => {

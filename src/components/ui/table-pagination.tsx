@@ -1,5 +1,10 @@
 import { Button } from "./button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
+import {
+  INTERACTIVE_PAGE_HOVER,
+  INTERACTIVE_PAGE_PRESSED,
+} from "@/components/ui/tokens";
 
 interface TablePaginationProps {
   page: number;
@@ -34,9 +39,12 @@ export function TablePagination({
         {from != null ? `แสดง ${from}–${to} จาก ${total} ${label}` : `ทั้งหมด ${total} ${label}`}
       </p>
       <div className="flex gap-1.5">
+        {/* ยืนบนผืนงานเทา ไม่ใช่ในการ์ด — ต้องใช้คู่ interaction ของผืนงาน
+            ไม่งั้น hover ได้แค่ 1.03 เท่า = ชี้แล้วจอไม่ขยับ */}
         <Button
           variant="ghost"
           size="sm"
+          className={cn(INTERACTIVE_PAGE_HOVER, INTERACTIVE_PAGE_PRESSED)}
           disabled={page <= 1}
           onClick={() => onPageChange(page - 1)}
           aria-label="หน้าก่อนหน้า"
@@ -49,6 +57,7 @@ export function TablePagination({
         <Button
           variant="ghost"
           size="sm"
+          className={cn(INTERACTIVE_PAGE_HOVER, INTERACTIVE_PAGE_PRESSED)}
           disabled={page >= totalPages}
           onClick={() => onPageChange(page + 1)}
           aria-label="หน้าถัดไป"

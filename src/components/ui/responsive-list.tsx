@@ -2,7 +2,7 @@ import type { HTMLAttributes, ReactNode } from "react";
 import { Inbox } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { QueryError } from "@/components/ui/query-error";
-import { Skeleton } from "@/components/ui/skeleton";
+import { ListSkeleton } from "@/components/ui/page-skeleton";
 import { cn } from "@/lib/utils";
 
 export type ResponsiveListView = "mobile" | "desktop";
@@ -24,32 +24,13 @@ export interface ResponsiveListProps<T>
   label?: string;
 }
 
-/* โครงร่างต้องรูปทรงเดียวกับของจริง ไม่งั้นจอกระโดดตอนข้อมูลมาถึง (UI-2026 เฟส 4)
-   ของเดิมเป็นแถบสูง 80px 4 ก้อนบนจอที่เป็นตารางแถวเตี้ยกว่านั้น
-   69px = ความสูงแถวจริงที่วัดจากทะเบียนออเดอร์หลังปรับบันไดตัวอักษร */
-function DefaultLoadingState() {
-  return (
-    <div role="status" aria-label="กำลังโหลดข้อมูล">
-      <span className="sr-only">กำลังโหลดข้อมูล</span>
-      <div className="border-b border-border py-2">
-        <Skeleton className="h-4 w-40" />
-      </div>
-      {Array.from({ length: 6 }, (_, index) => (
-        <div
-          key={index}
-          className="flex h-[69px] items-center gap-4 border-b border-divider"
-        >
-          <Skeleton className="h-9 w-9 shrink-0" />
-          <div className="min-w-0 flex-1 space-y-2">
-            <Skeleton className="h-4 w-1/3" />
-            <Skeleton className="h-3 w-1/4" />
-          </div>
-          <Skeleton className="hidden h-4 w-24 sm:block" />
-          <Skeleton className="hidden h-4 w-20 sm:block" />
-        </div>
-      ))}
-    </div>
-  );
+/* ทุกสถานะของหน้ารายการต้องมีกรอบเดียวกัน (แก้ 2026-08-26 หลังคืนกล่องครอบตาราง)
+   ก่อนหน้านี้ตอนมีข้อมูล = ตารางในการ์ด · ตอนโหลด/ว่าง/พัง = เนื้อหาลอยบนผืนหน้า
+   พอข้อมูลมาถึง กล่องโผล่ขึ้นมาพร้อมกัน จอจึงกระโดดทุกครั้งที่เปิดหน้ารายการ
+   โครงร่างตอนโหลดใช้ ListSkeleton ตัวเดียวกับ loading.tsx แล้ว (เดิมมีสองสูตร
+   ที่ความสูงแถวไม่ตรงกัน ซึ่งเป็นปัญหาเดียวกับที่เฟส 4 ตั้งใจแก้) */
+function ListStateFrame({ children }: { children: ReactNode }) {
+  return <div className="card-surface overflow-hidden rounded-lg">{children}</div>;
 }
 
 export function ResponsiveList<T>({
@@ -69,24 +50,31 @@ export function ResponsiveList<T>({
   ...props
 }: ResponsiveListProps<T>) {
   if (isError && (!items || items.length === 0)) {
-    return <QueryError message={errorMessage} onRetry={onRetry} />;
+    return (
+      <ListStateFrame>
+        <QueryError message={errorMessage} onRetry={onRetry} />
+      </ListStateFrame>
+    );
   }
 
+  // ListSkeleton ห่อการ์ดมาให้แล้ว จึงไม่ต้องซ้อน ListStateFrame อีกชั้น
   if (isLoading && (!items || items.length === 0)) {
-    return loadingState ?? <DefaultLoadingState />;
+    return loadingState ?? <ListSkeleton />;
   }
 
   const resolvedItems = items ?? [];
   if (resolvedItems.length === 0) {
     return (
-      emptyState ?? (
-        <EmptyState
-          icon={Inbox}
-          title={`ยังไม่มี${label}`}
-          description="ข้อมูลจะปรากฏที่นี่เมื่อมีรายการ"
-          action={emptyAction}
-        />
-      )
+      <ListStateFrame>
+        {emptyState ?? (
+          <EmptyState
+            icon={Inbox}
+            title={`ยังไม่มี${label}`}
+            description="ข้อมูลจะปรากฏที่นี่เมื่อมีรายการ"
+            action={emptyAction}
+          />
+        )}
+      </ListStateFrame>
     );
   }
 

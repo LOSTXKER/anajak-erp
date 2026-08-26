@@ -326,96 +326,24 @@ function AppShellContent({ children }: { children: ReactNode }) {
         ข้ามไปเนื้อหาหลัก
       </a>
 
-      {/* แถบบนอยู่เหนือ "เฉพาะฝั่งเนื้อหา" บนจอกว้าง ไม่พาดทับเมนูซ้ายอีกแล้ว
-          (UI-2026 เฟส 6 · เบสเคาะ 2026-08-26 "ไม่มีแถบบนแต่ขอมี navbar")
-          เดิมพาดเต็มจอโดยมีของอยู่ 3 ชิ้น เหลือที่ว่างกลางแถบราว 1,000px บนจอ 1920
-          ตอนนี้แถบสั้นลงเท่าคอลัมน์เนื้อหา และมีชื่อหมวดที่กำลังเปิดอยู่บอกตำแหน่ง
-          จอแคบไม่มีเมนูซ้าย แถบจึงยังพาดเต็มจอและถือตราไว้เหมือนเดิม */}
-      <header className="relative z-30 col-span-full row-start-1 flex h-12 min-w-0 items-center border-b border-divider bg-chrome lg:col-span-1 lg:col-start-2">
-        <Link
-          href="/"
-          aria-label="ภาพรวม"
-          className={cn(
-            FOCUS_BUTTON,
-            "flex h-full w-14 shrink-0 items-center justify-center lg:hidden",
-          )}
-        >
-          <div
-            className={cn(
-              RADIUS.inner,
-              "flex h-7 w-7 items-center justify-center bg-blue-600 text-white",
-            )}
-          >
-            <Printer className="h-3.5 w-3.5" strokeWidth={1.75} />
-          </div>
-        </Link>
-
-        {/* ไม่มีชื่อหมวดบนแถบแล้ว (เบสสั่ง 2026-08-26) — ตำแหน่งที่อยู่บอกด้วยเมนูซ้าย
-            ที่ไฮไลต์อยู่แล้ว เขียนซ้ำบนแถบก็เป็นคำเดียวกันสองที่
-            แถบนี้จึงเหลือหน้าที่เดียว: ของที่ใช้ได้ทุกหน้า (ค้นหา · แจ้งเตือน · บัญชี)
-            จอกว้างจึงดันไปชิดขวาทั้งชุด ไม่ต้องมีอะไรมาถ่วงฝั่งซ้าย */}
-        <div className="flex min-w-0 flex-1 items-center gap-2 px-3 lg:px-4">
-          <button
-            ref={searchTriggerRef}
-            type="button"
-            onClick={() => setPaletteOpen(true)}
-            aria-label="ค้นหาเมนู ออเดอร์ ลูกค้า ใบเสนอราคา หรือบิล"
-            aria-haspopup="dialog"
-            className={cn(
-              CONTROL_H,
-              FOCUS_BUTTON,
-              RADIUS.field,
-              // chrome กลับมาเป็นขาวแล้ว (2026-08-26) ช่องค้นหาจึงต้องเป็น "ช่องจม"
-              // ไม่ใช่ขาวบนขาวที่เห็นแค่เส้นขอบ — SUNK_PANEL ให้พื้นเทาอ่อนกว่าแถบหนึ่งขั้น
-              SUNK_PANEL,
-              "border border-border",
-              INTERACTIVE_HOVER,
-              INTERACTIVE_PRESSED,
-              // จอแคบยังยืดเต็มที่ · จอกว้างหดเป็นชิปกว้างคงที่แล้วดันไปชิดขวา
-              "group flex min-w-0 flex-1 items-center gap-2 px-3 text-sm text-muted transition-colors sm:max-w-lg sm:px-4 lg:ml-auto lg:w-60 lg:max-w-60 lg:flex-none",
-            )}
-          >
-            <Search className="h-4 w-4 shrink-0" strokeWidth={1.75} />
-            <span className="min-w-0 flex-1 truncate text-left">ค้นหาเลขงาน ลูกค้า หรือเมนู</span>
-            <kbd className="hidden text-2xs sm:inline">⌘K</kbd>
-          </button>
-
-          <div className="ml-auto flex shrink-0 items-center gap-2 lg:ml-0">
-            {/* ปุ่มบนแถบบนยืนบน chrome (เทา) ไม่ใช่ surface (ขาว) — hover ชุดปกติ
-                จึงเกือบเท่าพื้นตัวเอง ต้องใช้ชุด chrome ที่เข้มกว่าหนึ่งขั้น */}
-            <Button
-              asChild
-              variant="ghost"
-              size="icon"
-              className={cn(INTERACTIVE_CHROME_HOVER, INTERACTIVE_CHROME_PRESSED, "relative shrink-0")}
-            >
-              <Link
-                href="/notifications"
-                aria-label={count > 0 ? `การแจ้งเตือน ยังไม่อ่าน ${count} รายการ` : "การแจ้งเตือน"}
-              >
-                <Bell />
-                {count > 0 && (
-                  <span className="absolute right-0 top-0 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-2xs font-semibold text-white ring-2 ring-chrome">
-                    {count > 99 ? "99+" : count}
-                  </span>
-                )}
-              </Link>
-            </Button>
-            <UserMenu />
-          </div>
-        </div>
-      </header>
-
+      {/* เมนูซ้ายอยู่ก่อนแถบบนใน DOM โดยตั้งใจ (แก้ 2026-08-26)
+          บนจอกว้าง aside กินแถวที่ 1 ด้วย ตราจึงนั่งมุมซ้ายบนสุดของจอ
+          ถ้า header มาก่อนใน DOM คนกด Tab จะได้ ค้นหา → กระดิ่ง → บัญชี (มุมขวาบน)
+          แล้วเด้งข้ามจอกลับมาที่ตรา (มุมซ้ายบน) = ลำดับโฟกัสเดินขวาไปซ้าย (WCAG 2.4.3) */}
       <aside className="hidden min-h-0 border-r border-divider bg-chrome lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:flex lg:flex-col">
         {/* ตราย้ายลงมาอยู่หัวเมนูซ้าย เพราะแถบบนไม่พาดทับคอลัมน์นี้แล้ว
             ความสูง 3rem เท่าแถบบน เส้นล่างจึงต่อกันเป็นเส้นเดียวข้ามทั้งจอ
             (เดิมช่องตรากว้าง 240px แต่มีของจริงแค่ ~126px และเส้นแนวตั้งหักกลางคัน) */}
         <Link
           href="/"
-          aria-label="ภาพรวม"
+          // ตอนกาง ชื่อที่เห็นคือ "Anajak Print" — ห้ามตั้ง aria-label เป็นคำอื่น
+          // ไม่งั้นคนที่สั่งงานด้วยเสียงพูดว่า "คลิก Anajak Print" แล้วไม่โดน (WCAG 2.5.3)
+          aria-label={sidebarCollapsed ? "Anajak Print" : undefined}
           className={cn(
             FOCUS_BUTTON,
-            "flex h-12 shrink-0 items-center gap-2 border-b border-divider px-3",
+            // px-6 = ตรงแนวกับไอคอนเมนูข้างล่าง (nav px-3 + แถวเมนู px-3)
+            // เดิม px-3 ทำให้ตราล้ำออกซ้ายกว่าไอคอนทั้งแถบครึ่งช่อง
+            "flex h-12 shrink-0 items-center gap-3 border-b border-divider px-6",
             sidebarCollapsed && "justify-center gap-0 px-0",
           )}
         >
@@ -504,10 +432,94 @@ function AppShellContent({ children }: { children: ReactNode }) {
         </div>
       </aside>
 
+      {/* แถบบนอยู่เหนือ "เฉพาะฝั่งเนื้อหา" บนจอกว้าง ไม่พาดทับเมนูซ้ายอีกแล้ว
+          (UI-2026 เฟส 6 · เบสเคาะ 2026-08-26 "ไม่มีแถบบนแต่ขอมี navbar")
+          เดิมพาดเต็มจอโดยมีของอยู่ 3 ชิ้น เหลือที่ว่างกลางแถบราว 1,000px บนจอ 1920
+          จอแคบไม่มีเมนูซ้าย แถบจึงยังพาดเต็มจอและถือตราไว้เหมือนเดิม
+          ⚠️ อยู่หลัง <aside> ใน DOM โดยตั้งใจ — ดูเหตุผลที่คอมเมนต์เหนือ <aside> */}
+      <header className="relative z-30 col-span-full row-start-1 flex h-12 min-w-0 items-center border-b border-divider bg-chrome lg:col-span-1 lg:col-start-2 lg:pr-[var(--app-scrollbar-w)]">
+        <Link
+          href="/"
+          aria-label="ภาพรวม"
+          className={cn(
+            FOCUS_BUTTON,
+            "flex h-full w-14 shrink-0 items-center justify-center lg:hidden",
+          )}
+        >
+          <div
+            className={cn(
+              RADIUS.inner,
+              "flex h-7 w-7 items-center justify-center bg-blue-600 text-white",
+            )}
+          >
+            <Printer className="h-3.5 w-3.5" strokeWidth={1.75} />
+          </div>
+        </Link>
+
+        {/* ไม่มีชื่อหมวดบนแถบแล้ว (เบสสั่ง 2026-08-26) — ตำแหน่งที่อยู่บอกด้วยเมนูซ้าย
+            ที่ไฮไลต์อยู่แล้ว เขียนซ้ำบนแถบก็เป็นคำเดียวกันสองที่
+            แถบนี้จึงเหลือหน้าที่เดียว: ของที่ใช้ได้ทุกหน้า (ค้นหา · แจ้งเตือน · บัญชี)
+            จอกว้างจึงดันไปชิดขวาทั้งชุด ไม่ต้องมีอะไรมาถ่วงฝั่งซ้าย */}
+        {/* กล่องเดียวกับเนื้อหาในหน้า (mx-auto max-w-screen-2xl + ระยะขอบชุดเดียวกัน)
+            ตอนแถบบนพาดเต็มจอมันอ้างอิงขอบจอ ไม่มีใครเห็นว่าเยื้อง · พอย้ายมาวางเหนือ
+            คอลัมน์เนื้อหาพอดี ขอบขวาสองอันต้องตรงกัน ไม่งั้นรูปผู้ใช้จะล้ำขอบการ์ด 16px
+            ส่วน --app-scrollbar-w ที่ตัว <header> ชดเชยรางแถบเลื่อนที่ <main> จองไว้ */}
+        <div className="mx-auto flex w-full min-w-0 max-w-screen-2xl flex-1 items-center gap-2 px-4 sm:px-6 lg:px-8">
+          <button
+            ref={searchTriggerRef}
+            type="button"
+            onClick={() => setPaletteOpen(true)}
+            aria-label="ค้นหาเมนู ออเดอร์ ลูกค้า ใบเสนอราคา หรือบิล"
+            aria-haspopup="dialog"
+            className={cn(
+              CONTROL_H,
+              FOCUS_BUTTON,
+              RADIUS.field,
+              // chrome กลับมาเป็นขาวแล้ว (2026-08-26) ช่องค้นหาจึงต้องเป็น "ช่องจม"
+              // ไม่ใช่ขาวบนขาวที่เห็นแค่เส้นขอบ — SUNK_PANEL ให้พื้นเทาอ่อนกว่าแถบหนึ่งขั้น
+              SUNK_PANEL,
+              "border border-border",
+              INTERACTIVE_HOVER,
+              INTERACTIVE_PRESSED,
+              // จอแคบยังยืดเต็มที่ · จอกว้างหดเป็นชิปกว้างคงที่แล้วดันไปชิดขวา
+              "group flex min-w-0 flex-1 items-center gap-2 px-3 text-sm text-muted transition-colors sm:max-w-lg sm:px-4 lg:ml-auto lg:w-60 lg:max-w-60 lg:flex-none",
+            )}
+          >
+            <Search className="h-4 w-4 shrink-0" strokeWidth={1.75} />
+            <span className="min-w-0 flex-1 truncate text-left">ค้นหาเลขงาน ลูกค้า หรือเมนู</span>
+            <kbd className="hidden text-2xs sm:inline">⌘K</kbd>
+          </button>
+
+          <div className="ml-auto flex shrink-0 items-center gap-2 lg:ml-0">
+            {/* ปุ่มบนแถบบนยืนบน chrome (เทา) ไม่ใช่ surface (ขาว) — hover ชุดปกติ
+                จึงเกือบเท่าพื้นตัวเอง ต้องใช้ชุด chrome ที่เข้มกว่าหนึ่งขั้น */}
+            <Button
+              asChild
+              variant="ghost"
+              size="icon"
+              className={cn(INTERACTIVE_CHROME_HOVER, INTERACTIVE_CHROME_PRESSED, "relative shrink-0")}
+            >
+              <Link
+                href="/notifications"
+                aria-label={count > 0 ? `การแจ้งเตือน ยังไม่อ่าน ${count} รายการ` : "การแจ้งเตือน"}
+              >
+                <Bell />
+                {count > 0 && (
+                  <span className="absolute right-0 top-0 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-2xs font-semibold text-white ring-2 ring-chrome">
+                    {count > 99 ? "99+" : count}
+                  </span>
+                )}
+              </Link>
+            </Button>
+            <UserMenu />
+          </div>
+        </div>
+      </header>
+
       <main
         id="main-content"
         tabIndex={-1}
-        className="relative col-start-1 row-start-2 min-h-0 min-w-0 overflow-y-auto outline-none lg:col-start-2"
+        className="relative col-start-1 row-start-2 min-h-0 min-w-0 overflow-y-auto outline-none [scrollbar-gutter:stable] lg:col-start-2"
       >
         <div className="mx-auto w-full max-w-screen-2xl px-4 pb-[calc(var(--app-bottom-nav-offset)+2rem)] pt-6 sm:px-6 sm:pt-8 lg:px-8 lg:pb-10">
           {children}

@@ -29,9 +29,11 @@
 
 ## สี — semantic system (`src/app/globals.css`)
 
-Anajak Operational Panel System — บันไดความลึกอ่านทิศเดียวกันทั้งสองธีม (UI-2026 เฟส 1 · เบสเคาะ 2026-08-25):
-**chrome (กรอบเว็บ) จมสุด < bg (ผืนเนื้อหา) < surface (การ์ด)** · Light `#f2f3f5` < `#fbfbfc` < `#ffffff` ·
-Dark `#0a0a0b` < `#0e0e10` < `#161618` (เลิกดำสนิท) · `Section` ที่มีขอบและ `DataTable` รวมเนื้อหาที่สัมพันธ์กัน
+Anajak Operational Panel System — กฎที่จริงทั้งสองธีมคือ **ผืนงาน (bg) เป็นพื้นจม การ์ดลอยเหนือมันเสมอ**
+ส่วนกรอบเว็บวางคนละฝั่งของผืนงานในแต่ละธีมโดยตั้งใจ (ตารางค่าจริงอยู่ใต้หัวข้อนี้) ·
+`Section` ที่มีขอบและ `DataTable` รวมเนื้อหาที่สัมพันธ์กัน ·
+**ของที่กดได้มีคู่ interaction สามชุด** เลือกตามพื้นที่ของจริงไปยืน: การ์ดขาว / กรอบเว็บ / ผืนงานเทา
+ใช้ผิดคู่แล้วชี้จะไม่ขยับ — เคยเกิดจริงตอนผืนงานเปลี่ยนเป็นเทา 2026-08-26
 เมนูซ้ายมีสองสถานะ: **กาง 15rem / หุบ 4rem (เหลือแต่ไอคอน)** จำไว้ที่เครื่องผู้ใช้ ·
 ตอนหุบต้องคงชื่อเมนูไว้ใน `title` + `aria-label` เสมอ · **ห้ามใส่จุด/สปินเนอร์ในเมนูตอนกด**
 (เบสสั่ง 2026-08-26) — สัญญาณ "ระบบรับรู้แล้ว" เป็นหน้าที่ของ `loading.tsx` ที่เดียว
@@ -44,20 +46,22 @@ Dark `#0a0a0b` < `#0e0e10` < `#161618` (เลิกดำสนิท) · `Sect
 
 | บทบาท | Light | Dark | utility |
 |---|---|---|---|
-| พื้น workspace/fallback หลังบ้าน | `#fbfbfc` | `#0e0e10` | `.app-workspace` + `bg-bg` |
-| navbar/sidebar (จมสุด) | `#f2f3f5` | `#0a0a0b` | `bg-chrome` |
+| พื้น workspace (ผืนงาน · พื้นจมของทั้งระบบ) | `#f1f2f4` | `#0e0e10` | `.app-workspace` + `bg-bg` |
+| navbar/sidebar | `#ffffff` (ขาวเท่าการ์ด) | `#0a0a0b` (จมใต้ผืนงาน) | `bg-chrome` |
 | panel/card | `#fff` + ขอบ `#e5e6e9` | `#161618` + ขอบ `#2b2b2f` | `bg-surface` / `card-surface` |
 | menu/dialog | `#fff` | `#1c1c20` | `bg-surface-elevated` / `overlay-surface` |
 | กล่องจมเชิงโครงสร้าง/disabled/หัวตาราง | `#f4f5f6` | `#101013` | `bg-surface-muted` / `SUNK_PANEL` / `TABLE_HEAD_SURFACE` |
-| ช่องกรอก | `#fff` + ขอบ `#d4d4d8` | `#101013` + ขอบ `#3a3a3f` | `FIELD_SURFACE` |
+| ช่องกรอก | `#fff` + ขอบ `#cfcfd4` | `#101013` + ขอบ `#3a3a3f` | `FIELD_SURFACE` |
 | พื้นที่เพิ่ม/อัปโหลด | ขอบประ `slate-300` | ขอบประ `slate-700` | `DASHED` / `DASHED_INTERACTIVE` — resting เบา; hover/focus ค่อยเน้น |
 | control บน toolbar | ขาว + ขอบบาง | panel dark + ขอบบาง | prop `surface="raised"` → `RAISED_CONTROL_SURFACE` |
 | ปุ่มรอง | ขาว + ขอบบาง | panel dark + ขอบบาง | `Button outline/secondary/subtle` |
 | ขอบทั่วไป / เส้นคั่น | `#e5e6e9` / `#ececee` | `#2b2b2f` / `#242428` | `border-border` / `border-divider` |
 | Hover | `#efeff1` | `#232326` | `bg-interactive-hover` / `INTERACTIVE_HOVER` |
 | Pressed | `#e7e7e9` | `#2a2a2e` | `bg-interactive-pressed` / `INTERACTIVE_PRESSED` |
-| Hover บน navbar/sidebar | `#e5e5e8` | `#1b1b1d` | `bg-interactive-chrome-hover` / `INTERACTIVE_CHROME_HOVER` |
-| Pressed บน navbar/sidebar | `#dcdce0` | `#222225` | `bg-interactive-chrome-pressed` / `INTERACTIVE_CHROME_PRESSED` |
+| Hover บน navbar/sidebar | `#efeff1` (เท่าคู่การ์ด เพราะพื้นขาวเหมือนกัน) | `#1b1b1d` | `bg-interactive-chrome-hover` / `INTERACTIVE_CHROME_HOVER` |
+| Pressed บน navbar/sidebar | `#e7e7e9` | `#222225` | `bg-interactive-chrome-pressed` / `INTERACTIVE_CHROME_PRESSED` |
+| **Hover บนผืนงาน** (ปุ่มแบ่งหน้า · ปุ่มย้อนกลับ) | `#e5e6ea` | `#1a1a1d` | `bg-interactive-page-hover` / `INTERACTIVE_PAGE_HOVER` |
+| **Pressed บนผืนงาน** | `#dcdde2` | `#212125` | `bg-interactive-page-pressed` / `INTERACTIVE_PAGE_PRESSED` |
 | Selected | `#d2e4f6` | `#173c61` | `bg-interactive-selected text-interactive-selected-text` |
 
 > **บันไดพื้นผิว (แก้ 2026-08-26)** — กฎที่จริงทั้งสองธีม: *ผืนงานเป็นพื้นจม การ์ดลอยเหนือมันเสมอ*

@@ -7,6 +7,10 @@ import { CONTROL_MIN_H } from "@/components/ui/control-size";
 import { cn } from "@/lib/utils";
 import { PageIdentityIcon, pageDescriptionForLabel } from "@/lib/page-identity";
 import { HelpTip } from "@/components/ui/help-tip";
+import {
+  INTERACTIVE_PAGE_HOVER,
+  INTERACTIVE_PAGE_PRESSED,
+} from "@/components/ui/tokens";
 import type { VisualTone } from "@/lib/visual-tone";
 
 export interface BreadcrumbItem {
@@ -115,8 +119,14 @@ export function PageHeader({
       })()}
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
         <div className="flex min-w-0 items-start gap-2 sm:min-w-64 sm:flex-1">
+          {/* ปุ่มย้อนกลับยืนบนผืนงานเทา ไม่ใช่ในการ์ด — ใช้คู่ interaction ของผืนงาน */}
           {back && (
-            <Button asChild variant="ghost" size="icon" className="mt-0.5 shrink-0">
+            <Button
+              asChild
+              variant="ghost"
+              size="icon"
+              className={cn(INTERACTIVE_PAGE_HOVER, INTERACTIVE_PAGE_PRESSED, "mt-0.5 shrink-0")}
+            >
               <Link href={back.href} aria-label={back.label}>
                 <ArrowLeft />
               </Link>

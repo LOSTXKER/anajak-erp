@@ -67,7 +67,7 @@ export const FOCUS_FIELD =
  *  ② ช่องว่างรอบวงแหวนเคยล็อกเป็นขาว/ดำสนิทตายตัว — พอพื้นเว็บเปลี่ยนเป็นขาว/ดำเทา
  *     โหมดมืดเลยได้ "แถบดำคาด" รอบปุ่ม · ผูกกับสีพื้นจริงแทน จะได้เปลี่ยนตามทุกครั้ง */
 export const FOCUS_BUTTON =
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-bg dark:focus-visible:ring-blue-400";
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent dark:focus-visible:ring-blue-400";
 
 /** ของที่กดได้แต่เต็มพื้นที่จนไม่มีที่ให้เว้นขอบ — หัวคอลัมน์ตาราง · แถวในรายการ
  *  ใช้วงแหวนด้านใน เพราะ ring-offset จะโดนขอบตารางบังจนมองไม่เห็นว่าโฟกัสอยู่ไหน */
@@ -145,6 +145,20 @@ export const INTERACTIVE_CHROME_HOVER =
 
 export const INTERACTIVE_CHROME_PRESSED =
   "active:bg-interactive-chrome-pressed active:text-strong dark:active:bg-interactive-chrome-pressed dark:active:text-strong";
+
+/** ของที่กดได้แล้วยืนบน "ผืนงาน" ตรง ๆ — ไม่ได้อยู่ในการ์ด และไม่ได้อยู่บนแถบเมนู/แถบบน
+ *  เช่น ปุ่มแบ่งหน้าที่อยู่ใต้การ์ด และปุ่มย้อนกลับบนหัวหน้า
+ *
+ *  ทั้งระบบมีพื้นสามระดับ ต้องเลือกให้ตรงกับพื้นที่ของจริงไปยืน:
+ *    การ์ดขาว    → INTERACTIVE_HOVER / INTERACTIVE_PRESSED
+ *    แถบเมนู/บน  → INTERACTIVE_CHROME_HOVER / INTERACTIVE_CHROME_PRESSED
+ *    ผืนงานเทา   → คู่นี้
+ *  ใช้ผิดคู่ = ชี้แล้วจอไม่ขยับ (เคยเกิดจริงตอนผืนงานเปลี่ยนเป็นเทา 2026-08-26) */
+export const INTERACTIVE_PAGE_HOVER =
+  "hover:bg-interactive-page-hover hover:text-strong dark:hover:bg-interactive-page-hover dark:hover:text-strong";
+
+export const INTERACTIVE_PAGE_PRESSED =
+  "active:bg-interactive-page-pressed active:text-strong dark:active:bg-interactive-page-pressed dark:active:text-strong";
 
 /** ของที่กำลังถูกเลือก — พื้นฟ้าอ่อน + ข้อความน้ำเงิน เพื่อคงตัวตน Anajak
  *  โดยไม่ใช้สีแบรนด์กับ hover/pressed ที่ยังไม่ถูกเลือก */

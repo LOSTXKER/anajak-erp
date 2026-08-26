@@ -27,7 +27,9 @@ export function EmptyState({
     >
       <div
         className={cn(
-          "flex items-center justify-center rounded-full bg-slate-100 text-muted dark:bg-slate-800",
+          // เดิม bg-slate-100 (#f1f5f9) ซึ่งเกือบเท่าผืนหน้าใหม่ (#f1f2f4) = วงกลมหายไปกับพื้น
+          // ใช้ token กลางแทน และตอนนี้ empty state ยืนอยู่ในการ์ดขาวแล้ว จึงอ่านออกจริง
+          "flex items-center justify-center rounded-full bg-surface-muted text-muted",
           compact ? "h-10 w-10" : "h-12 w-12",
         )}
       >

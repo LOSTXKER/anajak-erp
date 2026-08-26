@@ -246,6 +246,14 @@
      (ห้ามเขียน active:bg-... เองมือเปล่า ไม่งั้นตัวหนังสือจะตกเกณฑ์ตอนกดค้าง) */
   --color-interactive-chrome-hover: #efeff1;
   --color-interactive-chrome-pressed: #e7e7e9;
+
+  /* พื้นที่สาม: ของที่กดได้แล้ว "ยืนบนผืนงานเทา" ตรง ๆ ไม่ได้อยู่ในการ์ดและไม่ได้อยู่บนแถบ
+     เช่น ปุ่มแบ่งหน้าใต้การ์ด และปุ่มย้อนกลับบนหัวหน้า
+     คู่ที่ใช้บนการ์ดขาวได้แค่ 1.03 เท่าบนผืนงานเทา = ชี้แล้วจอไม่ขยับเลย
+     (ปัญหานี้โผล่ตอนผืนงานเปลี่ยนเป็นเทาจริง 2026-08-26 — ก่อนหน้านั้นผืนงานเกือบขาว
+      จึงบังเอิญใช้คู่เดียวกับการ์ดได้) */
+  --color-interactive-page-hover: #e5e6ea;
+  --color-interactive-page-pressed: #dcdde2;
   --color-interactive-selected: #d2e4f6;
   --color-interactive-selected-text: #305f93;
   --color-backdrop: rgb(15 23 42 / 0.28);
@@ -371,6 +379,8 @@
   --color-interactive-pressed: #2a2a2e;
   --color-interactive-chrome-hover: #1b1b1d;
   --color-interactive-chrome-pressed: #222225;
+  --color-interactive-page-hover: #1a1a1d;
+  --color-interactive-page-pressed: #212125;
   --color-interactive-selected: #173c61;
   --color-interactive-selected-text: #c6daed;
   --color-backdrop: rgb(0 0 0 / 0.62);
@@ -385,6 +395,11 @@
 /* Anajak Panel System — workspace เป็นฉาก ส่วน chrome/panel ยกด้วยสีและเส้นบาง */
 .app-workspace {
   --color-bg: #f1f2f4;
+  /* แถบเลื่อนของโปรเจกต์นี้กินที่จริง 10px (ดู ::-webkit-scrollbar ท้ายไฟล์)
+     ไม่ใช่แบบลอยทับ · <main> จอง gutter ไว้เสมอด้วย scrollbar-gutter: stable
+     แถบบนที่อยู่เหนือคอลัมน์เดียวกันจึงต้องเผื่อระยะเท่ากัน ขอบขวาถึงจะตรงกัน
+     ไม่งั้นรูปผู้ใช้จะล้ำขอบการ์ดออกไป และเหลื่อมไม่เท่ากันระหว่างหน้าสั้น/หน้ายาว */
+  --app-scrollbar-w: 10px;
 }
 .dark .app-workspace {
   --color-bg: #0e0e10;

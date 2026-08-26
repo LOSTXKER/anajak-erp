@@ -32,6 +32,8 @@ import {
   FOCUS_INSET,
   INTERACTIVE_CHROME_HOVER,
   INTERACTIVE_CHROME_PRESSED,
+  INTERACTIVE_PAGE_HOVER,
+  INTERACTIVE_PAGE_PRESSED,
   RAISED_CONTROL_SURFACE,
   SUNK_PANEL,
 } from "../src/components/ui/tokens";
@@ -494,10 +496,13 @@ check("ปุ่ม", renderToStaticMarkup(<Button>ก</Button>), [
   "focus-visible:ring-2",
   "focus-visible:ring-blue-500",
   "focus-visible:ring-offset-2",
-  "focus-visible:ring-offset-", // ผูกช่องว่างรอบวงแหวนกับสีพื้น ไม่ล็อกเป็นขาวตายตัว
+  // ช่องว่างรอบวงแหวนต้องโปร่ง ให้โชว์พื้นที่อยู่ข้างหลังจริง ไม่ว่าปุ่มจะไปยืนบนพื้นอะไร
+  // (เคยผูกกับ ring-offset-bg แล้วปุ่มในการ์ดขาวได้แถบเทาคาด หลังผืนงานเปลี่ยนเป็นเทา)
+  "focus-visible:ring-offset-transparent",
 ], [
   "focus-visible:ring-blue-500/15",
   "focus-visible:ring-offset-white",
+  "focus-visible:ring-offset-bg",
 ]);
 check("ปุ่มขนาดเล็ก", renderToStaticMarkup(<Button size="sm">ก</Button>), hSm, ["sm:h-8", "sm:min-h-8"]);
 check(
@@ -892,6 +897,38 @@ check(
     const pressedFromHover = contrast(hexRgb(chromePressed[index]!), hexRgb(value));
     return hoverFromChrome >= 1.1 && hoverFromChrome <= 1.25 && pressedFromHover >= 1.05;
   });
+  /* พื้นที่สาม: ของที่กดได้แล้วยืนบน "ผืนงาน" ตรง ๆ (ปุ่มแบ่งหน้า · ปุ่มย้อนกลับบนหัวหน้า)
+     เพิ่มด่านนี้ 2026-08-26 หลังพบว่าตอนผืนงานเปลี่ยนเป็นเทาจริง คู่ที่ใช้บนการ์ดขาว
+     เหลือแค่ 1.03 เท่าบนผืนงาน = ชี้แล้วจอไม่ขยับ และตอนนั้นไม่มีด่านไหนจับได้เลย */
+  const pageHover = colorValues("interactive-page-hover");
+  const pagePressed = colorValues("interactive-page-pressed");
+  const pageStateContrastIsBalanced =
+    pageHover.length === 2 &&
+    pagePressed.length === 2 &&
+    page.length >= 2 &&
+    pageHover.every((value, index) => {
+      const hoverFromPage = contrast(hexRgb(value), hexRgb(page[index]!));
+      const pressedFromHover = contrast(hexRgb(pagePressed[index]!), hexRgb(value));
+      return hoverFromPage >= 1.1 && hoverFromPage <= 1.3 && pressedFromHover >= 1.05;
+    });
+  const pageTokensAreWired =
+    INTERACTIVE_PAGE_HOVER.includes("bg-interactive-page-hover") &&
+    INTERACTIVE_PAGE_PRESSED.includes("bg-interactive-page-pressed") &&
+    // คู่ของผืนงานต้องไม่ใช่ค่าเดียวกับอีกสองคู่ ไม่งั้นการแยกคู่ก็ไม่มีความหมาย
+    // (ส่วน chrome กับ surface "เท่ากันได้" ในธีมสว่าง เพราะทั้งคู่เป็นพื้นขาวจริง ๆ
+    //  ตั้งแต่เบสสั่งให้กรอบเว็บเป็นขาว 2026-08-26 — ไม่ใช่ของหลุด)
+    pageHover[0] !== hover[0] &&
+    pageHover[0] !== chromeHover[0] &&
+    pageHover[1] !== hover[1] &&
+    // ของที่ยืนบนผืนงานจริง ๆ ต้องประกาศตัวว่าใช้คู่นี้ (กันคนลบทิ้งแล้วลืม)
+    // เช็คการ "ใช้งานจริง" ไม่ใช่แค่บรรทัด import — ไม่งั้นลบออกจาก className แล้วด่านยังเขียว
+    // ปุ่มก่อนหน้า/ถัดไป ต้องได้ครบทั้งสองปุ่ม — นับจำนวน ไม่ใช่แค่ includes
+    // (includes เฉย ๆ ปล่อยให้ลบออกจากปุ่มเดียวแล้วด่านยังเขียว ทดสอบแล้วเป็นอย่างนั้นจริง)
+    (readFileSync("src/components/ui/table-pagination.tsx", "utf8").match(
+      /cn\(INTERACTIVE_PAGE_HOVER, INTERACTIVE_PAGE_PRESSED\)/g,
+    )?.length ?? 0) === 2 &&
+    readFileSync("src/components/page-header.tsx", "utf8")
+      .includes("cn(INTERACTIVE_PAGE_HOVER, INTERACTIVE_PAGE_PRESSED,");
   const chromeTokensAreWired =
     INTERACTIVE_CHROME_HOVER.includes("bg-interactive-chrome-hover") &&
     INTERACTIVE_CHROME_PRESSED.includes("bg-interactive-chrome-pressed");
@@ -975,6 +1012,8 @@ check(
     !chromeTokenCountsValid ||
     !tokenLayersValid ||
     !chromeTokenLayersValid ||
+    !pageStateContrastIsBalanced ||
+    !pageTokensAreWired ||
     !interactionIsNeutral ||
     !stateContrastIsBalanced ||
     !chromeStateContrastIsBalanced ||
