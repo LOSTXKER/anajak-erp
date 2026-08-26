@@ -55,7 +55,7 @@ export function StatCard({
   const card = (
     <div
       className={cn(
-        "card-surface rounded-lg p-5",
+        "card-surface rounded-2xl p-5",
         href && "card-surface-hover",
         !href && className
       )}

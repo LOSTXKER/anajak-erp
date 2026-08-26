@@ -57,7 +57,7 @@ export const Section = React.forwardRef<HTMLDivElement, SectionProps>(
       <section
         ref={ref}
         className={cn(
-          isCard ? "card-surface overflow-hidden rounded-lg" : bordered && "border-b border-divider pb-6",
+          isCard ? "card-surface overflow-hidden rounded-2xl" : bordered && "border-b border-divider pb-6",
           className
         )}
         {...props}

@@ -914,6 +914,14 @@ check(
       const pressedFromHover = contrast(hexRgb(pagePressed[index]!), hexRgb(value));
       return hoverFromPage >= 1.1 && hoverFromPage <= 1.3 && pressedFromHover >= 1.05;
     });
+  /* โครงร่างตอนโหลดต้องสูงเท่าแถวจริง ไม่งั้นพอข้อมูลมาถึงจอกระโดดทุกหน้ารายการ
+     ตัวเลขนี้เคยเป็น 69px แล้วขยับเป็น 75px ตอนแถวหายใจขึ้นในเฟส 10
+     ด่านนี้จับแค่ว่า "ทั้งสองที่พูดตรงกัน" — ถ้าเปลี่ยนความหนาแน่นอีกต้องวัดใหม่ */
+  const skeletonSource = readFileSync("src/components/ui/page-skeleton.tsx", "utf8");
+  const cellPaddingMatchesSkeleton =
+    skeletonSource.includes("h-[75px]") &&
+    readFileSync("src/components/ui/data-table.tsx", "utf8").includes('"px-6 py-4 text-sm text-secondary"');
+
   const pageTokensAreWired =
     INTERACTIVE_PAGE_HOVER.includes("bg-interactive-page-hover") &&
     INTERACTIVE_PAGE_PRESSED.includes("bg-interactive-page-pressed") &&
@@ -1017,6 +1025,7 @@ check(
     !chromeTokenLayersValid ||
     !pageStateContrastIsBalanced ||
     !pageTokensAreWired ||
+    !cellPaddingMatchesSkeleton ||
     !interactionIsNeutral ||
     !stateContrastIsBalanced ||
     !chromeStateContrastIsBalanced ||
@@ -1309,20 +1318,33 @@ check(
   if (failed === 0) console.log("✅ contrast ของ text/control/focus/status ผ่านทั้ง light และ dark");
 }
 
-// ⑩ Vercel-like panel ใช้ border กลาง 1px และไม่มี decorative shadow
+// ⑩ การ์ดแยกตัวด้วยเงา ไม่ใช่เส้น (เฟส 10 · เบสเคาะ "นุ่มเต็มที่" 2026-08-26)
+//
+// กติกาเดิมคือ "panel ห้ามมีเงาตกแต่ง" ซึ่งตั้งไว้ตอนที่เงาถูกใช้เป็นของประดับ
+// ให้ทุกอย่างลอยพร่ำเพรื่อ · ที่นี่เงาทำหน้าที่ต่างออกไป: มันคือ **วิธีแยกกล่อง**
+// แทนเส้น ด่านจึงเปลี่ยนจาก "ห้ามมีเงา" เป็น "ต้องมีเงาชุดกลางชุดเดียว และห้ามแรง"
+// — เพดานคือ blur ไม่เกิน 20px และ alpha ไม่เกิน 0.2 ในธีมสว่าง
+// ถ้าไม่คุมเพดาน มันจะไหลกลับไปเป็นเงาประดับแบบที่เคยรื้อทิ้งไปแล้ว
 {
   const cardBlock =
     globalsSource.match(/\.card-surface\s*\{([^}]*)\}/)?.[1] ?? "";
   const darkCardBlock =
     globalsSource.match(/\.dark\s+\.card-surface\s*\{([^}]*)\}/)?.[1] ?? "";
+  const lightShadow = globalsSource.match(/--shadow-card:\s*([^;]+);/)?.[1] ?? "";
+  const shadowAlphas = [...lightShadow.matchAll(/\/\s*([0-9.]+)\)/g)].map((m) => Number(m[1]));
+  const shadowBlurs = [...lightShadow.matchAll(/(\d+)px\s+-?\d*px?\s*rgb/g)].map((m) => Number(m[1]));
   if (
-    !cardBlock.includes("border: 1px solid var(--color-border)") ||
-    !darkCardBlock.includes("border-color: var(--color-border)") ||
-    !cardBlock.includes("box-shadow: none") ||
-    !darkCardBlock.includes("box-shadow: none")
+    // การ์ดต้องผูกกับตัวแปรกลาง ไม่ใช่เขียนเงา/เส้นเองรายที่
+    !cardBlock.includes("border: 1px solid var(--color-card-edge)") ||
+    !darkCardBlock.includes("border-color: var(--color-card-edge)") ||
+    !cardBlock.includes("box-shadow: var(--shadow-card)") ||
+    !darkCardBlock.includes("box-shadow: var(--shadow-card)") ||
+    // เพดานกันเงาไหลกลับไปเป็นของประดับ
+    shadowAlphas.some((alpha) => alpha > 0.2) ||
+    shadowBlurs.some((blur) => blur > 20)
   ) {
     failed++;
-    console.log("❌ card-surface ต้องมี border 1px และไม่มีเงาทั้ง Light/Dark");
+    console.log("❌ card-surface ต้องแยกตัวด้วยเงาชุดกลาง (--shadow-card) ที่ไม่แรงเกินเพดาน และผูกขอบกับ --color-card-edge");
   } else {
     console.log("✅ card-surface เป็น bordered panel ไม่มี decorative shadow");
   }
@@ -1391,8 +1413,12 @@ check(
     "src/components/ui/context-panel.tsx",
     "src/components/ui/add-card.tsx",
   ].map((path) => [path, readFileSync(path, "utf8")] as const);
+  /* มุมการ์ดขยับเป็น 16px (rounded-2xl) แล้ว 2026-08-26 — เฟส 10 "นุ่มเต็มที่"
+     ที่ยังห้ามเหมือนเดิมคือ **utility เงา** (shadow-sm ฯลฯ) เพราะเงาของการ์ด
+     ต้องมาจาก .card-surface ชุดเดียว ไม่ใช่ใครนึกจะใส่ก็ใส่รายที่
+     และห้าม rounded-3xl (24px) ซึ่งเลยจุดที่อ่านเป็น "การ์ด" ไปเป็น "ก้อนกลม" */
   const panelPrimitiveOffenders = panelPrimitiveSources.filter(
-    ([, source]) => /rounded-(?:xl|2xl|3xl)|shadow-sm/.test(source),
+    ([, source]) => /rounded-3xl|shadow-sm|shadow-md|shadow-lg/.test(source),
   );
   const cardPrimitiveSource = panelPrimitiveSources[0]?.[1] ?? "";
   if (
@@ -1401,10 +1427,10 @@ check(
     !cardPrimitiveSource.includes("px-5 pb-5 pt-0")
   ) {
     failed++;
-    console.log("❌ primitive panel/alert/context ต้องใช้มุม 8px ไร้เงาและจังหวะขอบ 20px ชุดเดียว");
+    console.log("❌ primitive panel/alert/context ต้องไม่ใส่ utility เงาเอง ไม่เกิน rounded-2xl และคงจังหวะขอบ 20px ชุดเดียว");
     panelPrimitiveOffenders.forEach(([path]) => console.log(`   ${path}`));
   } else {
-    console.log("✅ primitive panel/alert/context ใช้มุม 8px ไร้เงาและจังหวะขอบ 20px ชุดเดียว");
+    console.log("✅ primitive panel/alert/context ใช้มุม 16px เงามาจาก card-surface ชุดเดียว และจังหวะขอบ 20px");
   }
 
   const productionPanelSource = readFileSync(
@@ -1428,19 +1454,21 @@ check(
     "src/components/production/legacy-print-runs-page.tsx",
     "src/components/outsource/legacy-outsource-page.tsx",
   ].map((path) => [path, readFileSync(path, "utf8")] as const);
+  /* มุมการ์ดเป็น 16px (rounded-2xl) ทั้งระบบแล้ว 2026-08-26 · ที่ยังห้ามคือ utility เงา
+     เพราะเงาต้องมาจาก .card-surface ชุดเดียว และห้าม rounded-3xl ที่เลยความเป็นการ์ด */
   const stationPanelOffenders = stationPanelSources.filter(
-    ([, source]) => /rounded-(?:xl|2xl|3xl)|shadow-sm/.test(source),
+    ([, source]) => /rounded-3xl|shadow-sm|shadow-md|shadow-lg/.test(source),
   );
   if (
-    /rounded-(?:xl|2xl|3xl)|shadow-sm/.test(productionPanelSource) ||
-    !productionPanelSource.includes('className="card-surface overflow-hidden rounded-lg"') ||
+    /rounded-3xl|shadow-sm|shadow-md|shadow-lg/.test(productionPanelSource) ||
+    !productionPanelSource.includes('className="card-surface overflow-hidden rounded-2xl"') ||
     stationPanelOffenders.length > 0
   ) {
     failed++;
-    console.log("❌ Production/Station panel หลักต้องใช้มุม 8px และไม่มี decorative shadow");
+    console.log("❌ Production/Station panel หลักต้องไม่ใส่ utility เงาเอง และใช้มุมการ์ดชุดกลาง (rounded-2xl)");
     stationPanelOffenders.forEach(([path]) => console.log(`   ${path}`));
   } else {
-    console.log("✅ Production/Station panel หลักใช้มุม 8px และไม่มี decorative shadow");
+    console.log("✅ Production/Station panel หลักใช้มุมการ์ดชุดกลางและไม่ใส่ utility เงาเอง");
   }
 
   const factoryTvSource = readFileSync("src/app/factory/page.tsx", "utf8");
@@ -2691,7 +2719,7 @@ check(
     !managerHtml.slice(renderedQueueIndex, renderedHistoryIndex).includes("top-3") ||
     !managerHtml
       .slice(renderedQueueIndex, renderedHistoryIndex)
-      .includes("card-surface overflow-clip rounded-lg")
+      .includes("card-surface overflow-clip rounded-2xl")
   ) {
     problems.push("fixture คิวยาวต้องคง sticky bar ใต้ ancestor ที่ไม่เป็น scroll container");
   }
@@ -2826,7 +2854,7 @@ check(
     queueListIndex < 0 ||
     selectionIndex > queueListIndex ||
     !printRunsSource.includes('stationMode ? "top-32" : "top-3"') ||
-    !printRunsSource.includes('className="card-surface overflow-clip rounded-lg"')
+    !printRunsSource.includes('className="card-surface overflow-clip rounded-2xl"')
   ) {
     problems.push("แถบเปิดรอบต้องอยู่ในบริบทคิวและตามเห็นทันทีเมื่อเลือกงาน");
   }

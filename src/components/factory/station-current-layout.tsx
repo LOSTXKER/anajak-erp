@@ -78,7 +78,7 @@ export function StationCurrentLayout({
         onToggle={(event) => setQueueOpen(event.currentTarget.open)}
         aria-label="คิวสถานี"
         data-station-queue-rail
-        className="card-surface group min-w-0 overflow-hidden rounded-lg"
+        className="card-surface group min-w-0 overflow-hidden rounded-2xl"
       >
         <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-4 px-4 py-3 outline-none hover:bg-interactive-hover focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
           <div className="min-w-0">

@@ -130,7 +130,7 @@ export default function PackagingSettingsPage() {
           {showAddForm && (
             <form
               onSubmit={handleCreate}
-              className="card-surface mb-4 flex items-end gap-3 rounded-lg p-4"
+              className="card-surface mb-4 flex items-end gap-3 rounded-2xl p-4"
             >
               <div className="flex-1">
                 <label htmlFor="new-packaging-name" className="mb-1 block text-xs font-medium text-muted">

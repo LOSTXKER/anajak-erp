@@ -208,7 +208,7 @@ function BillingPageContent() {
         onRetry={() => refetch()}
         label="บิล"
         emptyState={
-          <div className="card-surface rounded-lg">
+          <div className="card-surface rounded-2xl">
             <EmptyState
               icon={FileText}
               title={
@@ -230,7 +230,7 @@ function BillingPageContent() {
               const status = paymentStatusProps(inv.paymentStatus);
               const moneyHref = `/orders/${inv.orderId}?tab=money`;
               return (
-                <article key={inv.id} className="card-surface rounded-lg p-4">
+                <article key={inv.id} className="card-surface rounded-2xl p-4">
                   <Link
                     href={moneyHref}
                     className={cn("block rounded-lg", FOCUS_BUTTON)}

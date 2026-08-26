@@ -141,7 +141,7 @@ function ProductionJacketSkeleton() {
           </div>
         </div>
         <div className="p-4 sm:p-6 lg:p-7">
-          <div className="card-surface mx-auto max-w-4xl space-y-5 rounded-lg p-6 sm:p-8">
+          <div className="card-surface mx-auto max-w-4xl space-y-5 rounded-2xl p-6 sm:p-8">
             <Skeleton className="h-8 w-64 max-w-full rounded-md" />
             <Skeleton className="h-24 w-full rounded-lg" />
             <Skeleton className="h-11 w-60 max-w-full rounded-full" />
@@ -803,7 +803,7 @@ export function ProductionDetailScreen({
   const stationCurrentJob = production && order ? (
     <article
       data-station-current-job=""
-      className="card-surface flex min-h-[34rem] min-w-0 flex-col rounded-lg lg:min-h-[calc(100dvh-8rem)]"
+      className="card-surface flex min-h-[34rem] min-w-0 flex-col rounded-2xl lg:min-h-[calc(100dvh-8rem)]"
     >
       <header className="flex flex-col gap-3 border-b border-divider px-5 py-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">

@@ -193,7 +193,7 @@ function ProductsPageContent() {
       ) : isLoading ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {[...Array(8)].map((_, i) => (
-            <div key={i} className="card-surface overflow-hidden rounded-lg">
+            <div key={i} className="card-surface overflow-hidden rounded-2xl">
               <Skeleton className="h-44 w-full rounded-none" />
               <div className="space-y-2 p-3">
                 <Skeleton className="h-4 w-3/4" />
@@ -204,7 +204,7 @@ function ProductsPageContent() {
           ))}
         </div>
       ) : data?.products?.length === 0 ? (
-        <div className="card-surface rounded-lg">
+        <div className="card-surface rounded-2xl">
           <EmptyState
             icon={Package}
             title="ไม่พบสินค้า"
@@ -250,7 +250,7 @@ function ProductsPageContent() {
                 href={`/products/${product.id}`}
                 className={cn("block rounded-lg", FOCUS_BUTTON)}
               >
-                <div className="card-surface card-surface-hover group h-full overflow-hidden rounded-lg">
+                <div className="card-surface card-surface-hover group h-full overflow-hidden rounded-2xl">
                   <div className="relative flex h-44 items-center justify-center bg-slate-100 dark:bg-slate-800">
                     {product.imageUrl ? (
                       <img

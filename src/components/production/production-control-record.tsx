@@ -248,7 +248,7 @@ export function ProductionControlRecord({
       className="min-h-[calc(100dvh-4rem)] bg-bg px-4 py-5 sm:px-6 lg:px-8 lg:py-6"
     >
       <div className="mx-auto max-w-[78rem] space-y-5">
-        <section className="card-surface overflow-hidden rounded-lg">
+        <section className="card-surface overflow-hidden rounded-2xl">
           <div className="px-4 py-4 sm:px-5 sm:py-5">
             <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
               <nav aria-label="ตำแหน่งปัจจุบัน" className="flex items-center gap-1.5 text-xs text-muted">
@@ -371,7 +371,7 @@ export function ProductionControlRecord({
         {selectedStep && selectedRow ? (
           <section
             data-production-step-flow=""
-            className="card-surface overflow-hidden rounded-lg"
+            className="card-surface overflow-hidden rounded-2xl"
             aria-labelledby="selected-production-step-title"
           >
             <header className="flex flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
@@ -555,7 +555,7 @@ export function ProductionControlRecord({
 
           </section>
         ) : (
-          <section className="card-surface rounded-lg px-4 py-5 text-sm text-muted sm:px-5">
+          <section className="card-surface rounded-2xl px-4 py-5 text-sm text-muted sm:px-5">
             ใบผลิตนี้ยังไม่มีขั้นตอน
           </section>
         )}

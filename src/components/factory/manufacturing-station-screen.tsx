@@ -512,11 +512,11 @@ export function ManufacturingStationScreen() {
           />
         ) : loading ? (
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
-            <div className="card-surface rounded-lg p-4"><ListSkeleton rows={5} /></div>
-            <div className="card-surface rounded-lg p-4"><ListSkeleton rows={4} /></div>
+            <div className="card-surface rounded-2xl p-4"><ListSkeleton rows={5} /></div>
+            <div className="card-surface rounded-2xl p-4"><ListSkeleton rows={4} /></div>
           </div>
         ) : !effectiveWorkCenter ? (
-          <div className="card-surface rounded-lg">
+          <div className="card-surface rounded-2xl">
             <EmptyState
               icon={ScanLine}
               title="ยังไม่มีจุดทำงาน"
@@ -524,7 +524,7 @@ export function ManufacturingStationScreen() {
             />
           </div>
         ) : !dispatch.data ? (
-          <div className="card-surface rounded-lg">
+          <div className="card-surface rounded-2xl">
             <EmptyState
               icon={AlertTriangle}
               title="ไม่พบจุดทำงานนี้"
@@ -603,7 +603,7 @@ export function ManufacturingStationScreen() {
                   onRetry={() => void deepJob.refetch()}
                 />
               ) : (
-                <div className="card-surface rounded-lg">
+                <div className="card-surface rounded-2xl">
                   <EmptyState
                     icon={ClipboardCheck}
                     title="เลือกงานจากคิว"
@@ -619,7 +619,7 @@ export function ManufacturingStationScreen() {
                 selectedOperationId={currentJob?.operation.id ?? null}
                 onSelect={(job) => selectJob(job.operation.id)}
               />
-              <section className="card-surface rounded-lg p-4" aria-labelledby="station-scan-title">
+              <section className="card-surface rounded-2xl p-4" aria-labelledby="station-scan-title">
                 <div className="flex items-center gap-2">
                   <QrCode className="h-5 w-5 text-muted" aria-hidden="true" />
                   <h2 id="station-scan-title" className="font-semibold">สแกนหรือพิมพ์เลขงาน</h2>
@@ -808,7 +808,7 @@ function StationQueue({
     ...dispatch.queue,
   ];
   return (
-    <section className="card-surface overflow-hidden rounded-lg" aria-labelledby="station-queue-title">
+    <section className="card-surface overflow-hidden rounded-2xl" aria-labelledby="station-queue-title">
       <div className="border-b border-divider px-4 py-3">
         <h2 id="station-queue-title" className="font-semibold">คิว {dispatch.workCenter.name}</h2>
         <p className="text-xs text-muted">{jobs.length.toLocaleString("th-TH")} งานที่เห็นตามสิทธิ์</p>
@@ -920,7 +920,7 @@ function StationOrderContext({
   }
   if (jobs.length === 0) {
     return (
-      <div className="card-surface rounded-lg">
+      <div className="card-surface rounded-2xl">
         <EmptyState
           icon={QrCode}
           title="ยังไม่มีงานที่ทำได้จาก QR ใบนี้"
@@ -930,7 +930,7 @@ function StationOrderContext({
     );
   }
   return (
-    <section className="card-surface rounded-lg p-4" aria-labelledby="station-order-context-title">
+    <section className="card-surface rounded-2xl p-4" aria-labelledby="station-order-context-title">
       <h2 id="station-order-context-title" className="font-semibold">
         เลือกงานของออเดอร์นี้
       </h2>
@@ -1048,7 +1048,7 @@ function StationJobPanel({
         : <ClipboardCheck />;
 
   return (
-    <article className="card-surface overflow-hidden rounded-lg">
+    <article className="card-surface overflow-hidden rounded-2xl">
       <div className="border-b border-divider p-5 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">

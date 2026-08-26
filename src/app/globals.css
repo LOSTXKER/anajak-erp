@@ -9,6 +9,21 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
+  /* ============================================================
+     บันไดมุมโค้ง — ถ่างใหม่ 2026-08-26 (UI-2026 เฟส 10 · เบสเคาะ "นุ่มเต็มที่")
+     เบสบอกว่า "เว็บมันดูแข็งๆ ไม่ค่อยโมเดิร์น อยากได้ Modern Minimal โค้งมนหน่อย"
+
+       md   6px → 10px   ชิ้นเล็ก: ปุ่ม · ช่องกรอก · ตัวเลือกในเมนู · ป้าย
+       lg   8px → 12px   กล่องทั่วไปที่ไม่ใช่การ์ดหลัก
+       2xl  16px         การ์ด/พาเนล/overlay (ค่า default ของ Tailwind อยู่แล้ว)
+
+     ⚠️ เฟส 2 เคยลด md จาก 8px มา 6px ด้วยเหตุผลว่า "8px บนของสูง 28-36px
+     อ่านเป็นเม็ดยาเบลอ" — ข้อนั้นถูกกลับแล้ว เพราะเฟสนี้ของสูงขึ้นทั้งชุด
+     (แถวตาราง 12px → 16px, เซลล์ 20px → 24px) สัดส่วนจึงคนละเรื่องกับตอนนั้น
+     ============================================================ */
+  --radius-md: 0.625rem;
+  --radius-lg: 0.75rem;
+
   --font-sans: "Prompt", -apple-system, BlinkMacSystemFont, "SF Pro Text",
     "Segoe UI", "Roboto", "Helvetica Neue", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "SF Mono", "JetBrains Mono", ui-monospace, "Menlo", monospace;
@@ -273,6 +288,10 @@
      คราวนี้ต่างจากปี 2026-08-03 ตรงที่ผืนงานเป็นเทาจริงแล้ว กรอบขาวจึงมีพื้นให้ตัดกัน */
   --color-chrome: #ffffff;
 
+  /* ขอบ/เงาของการ์ด — แยกจาก --color-border ทั่วไป เพราะการ์ดเลิกใช้เส้นเป็นตัวหลักแล้ว */
+  --color-card-edge: rgb(15 18 24 / 0.05);
+  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 6px 18px -10px rgb(15 23 42 / 0.16);
+
   /* สีตัวหนังสือหลักของ <body> — ที่เหลือทั้งเว็บใช้ ramp slate ตรงๆ
      (สี semantic อีก 17 ตัวลบทิ้ง 2026-08-02: ไม่มีใครใช้เลย และค่าที่ตั้งไว้ขัดกับสีจริง) */
   --color-text: #181b20;
@@ -366,6 +385,9 @@
   --color-surface-elevated: #1c1c20;
   --color-field: #101013;
   --color-chrome: #0a0a0b;
+  /* บนพื้นมืดเงาแทบมองไม่เห็น เส้นจึงยังเป็นตัวหลัก — เงาช่วยแค่ให้ขอบไม่แข็ง */
+  --color-card-edge: rgb(255 255 255 / 0.07);
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.5), 0 6px 18px -10px rgb(0 0 0 / 0.8);
   --color-border: #2b2b2f;
   /* เส้น resting ของช่องกรอกจงใจเบา — ด่าน verify:ui ล็อกหน้าต่างไว้ที่ 1.35–1.8:1
      บน surface (ดูคอมเมนต์ FIELD_SURFACE ใน tokens.ts: เส้นมีไว้ช่วยเห็นรูปทรง
@@ -525,16 +547,22 @@ input[type="number"] {
    พอย้ายเข้าชั้น utility ที่หน้าส่งมาจะชนะตามลำดับปกติของ Tailwind */
 @layer components {
 
-/* panel/card ใช้สีพื้นเดียวกันและขอบกลางชุดเดียว; hierarchy มาจาก grouping ไม่ใช่เงา */
+/* การ์ดแยกตัวออกจากผืนงานด้วย "เงา" ไม่ใช่ "เส้นขอบ" (เฟส 10 · เบสเคาะ 2026-08-26)
+   นี่คือการกลับคำจากกติกาเดิม "panel ไม่มีเงาตกแต่ง" ซึ่งตั้งไว้ตอนที่เงาถูกใช้
+   เป็นของประดับให้ทุกอย่างลอยพร่ำเพรื่อ · ที่นี่เงาทำหน้าที่ต่างออกไป:
+   มันคือ**วิธีแยกกล่อง**แทนเส้น จึงมีได้ชิ้นเดียวต่อการ์ดและห้ามแรงกว่านี้
+
+   ธีมสว่าง: ไม่มีเส้นเลย ใช้เงาล้วน (เส้นบางมากไว้กันขอบหายบนจอความละเอียดต่ำ)
+   ธีมมืด: เงาแทบมองไม่เห็นบนพื้นมืด จึงต้องเหลือเส้นจาง ๆ ไว้เป็นตัวหลัก */
 .card-surface {
   background-color: var(--color-surface);
-  border: 1px solid var(--color-border);
-  box-shadow: none;
+  border: 1px solid var(--color-card-edge);
+  box-shadow: var(--shadow-card);
 }
 .dark .card-surface {
   background-color: var(--color-surface);
-  border-color: var(--color-border);
-  box-shadow: none;
+  border-color: var(--color-card-edge);
+  box-shadow: var(--shadow-card);
 }
 /* clickable panel เปลี่ยน fill/เส้นเท่านั้น ไม่ลอยหรือขยับหนี pointer */
 .card-surface-hover {

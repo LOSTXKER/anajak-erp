@@ -743,7 +743,7 @@ function OrdersPageContent() {
                 ? mockupCoverImage(order.designs[0])
                 : null;
               return (
-                <article key={order.id} role="listitem" className="card-surface rounded-lg">
+                <article key={order.id} role="listitem" className="card-surface rounded-2xl">
                 <Link
                   href={`/orders/${order.id}`}
                   className={cn("block min-h-11 rounded-lg p-3", FOCUS_BUTTON)}

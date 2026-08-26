@@ -30,7 +30,7 @@ export interface ResponsiveListProps<T>
    โครงร่างตอนโหลดใช้ ListSkeleton ตัวเดียวกับ loading.tsx แล้ว (เดิมมีสองสูตร
    ที่ความสูงแถวไม่ตรงกัน ซึ่งเป็นปัญหาเดียวกับที่เฟส 4 ตั้งใจแก้) */
 function ListStateFrame({ children }: { children: ReactNode }) {
-  return <div className="card-surface overflow-hidden rounded-lg">{children}</div>;
+  return <div className="card-surface overflow-hidden rounded-2xl">{children}</div>;
 }
 
 export function ResponsiveList<T>({

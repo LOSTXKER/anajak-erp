@@ -326,7 +326,7 @@ function MobileRows<S extends BoardStepLike, O extends BoardOrderLike<S>>({
             onClick={() => rememberWorklistFocus(job.order.id)}
             className={cn(
               FOCUS_BUTTON,
-              "card-surface card-surface-hover block min-h-11 rounded-lg p-4",
+              "card-surface card-surface-hover block min-h-11 rounded-2xl p-4",
             )}
           >
             <span className="flex items-start justify-between gap-3">
@@ -457,7 +457,7 @@ export function ProductionControlWorklist<
               onClick={() => onSelectLens(isOn ? "all" : item.key)}
               className={cn(
                 FOCUS_BUTTON,
-                "card-surface card-surface-hover flex min-h-20 w-full flex-col justify-between rounded-lg p-4 text-left",
+                "card-surface card-surface-hover flex min-h-20 w-full flex-col justify-between rounded-2xl p-4 text-left",
                 item.key === "all" && "col-span-2 md:col-span-1",
                 isOn && cn("bg-surface", presentation.selectedBorder),
               )}

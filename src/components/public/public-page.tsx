@@ -35,7 +35,7 @@ export function PublicPageShell({
   return (
     <div className="min-h-screen bg-bg px-4 py-5 sm:py-10">
       <div className="mx-auto max-w-2xl space-y-5">
-        <header className="card-surface rounded-lg p-5 sm:p-6">
+        <header className="card-surface rounded-2xl p-5 sm:p-6">
           <div className="flex items-start gap-3">
             <span
               className={
@@ -74,7 +74,7 @@ export function FullScreenLoading() {
     <div className="min-h-screen bg-bg px-4 py-5 sm:py-10" role="status" aria-label="กำลังโหลด">
       <span className="sr-only">กำลังโหลด</span>
       <div className="mx-auto max-w-2xl space-y-5">
-        <div className="card-surface rounded-lg p-5 sm:p-6">
+        <div className="card-surface rounded-2xl p-5 sm:p-6">
           <div className="flex items-start gap-3">
             <Skeleton className="mt-1 h-5 w-5 shrink-0" />
             <div className="min-w-0 flex-1 space-y-2">
@@ -84,7 +84,7 @@ export function FullScreenLoading() {
           </div>
         </div>
         {[0, 1].map((index) => (
-          <div key={index} className="card-surface space-y-3 rounded-lg p-5 sm:p-6">
+          <div key={index} className="card-surface space-y-3 rounded-2xl p-5 sm:p-6">
             <Skeleton className="h-4 w-32" />
             <Skeleton className="h-4 w-full" />
             <Skeleton className="h-4 w-2/3" />

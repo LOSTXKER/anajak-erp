@@ -52,7 +52,7 @@ describe("Orders scan-first registry contract", () => {
     expect(tableSource).not.toContain("flush?: boolean");
     expect(tableSource).not.toContain("[&_th:first-child]:pl-0");
     expect(tableSource).not.toContain("[&_thead]:bg-transparent");
-    expect(tableSource).toContain('bordered && "card-surface overflow-hidden rounded-lg"');
+    expect(tableSource).toContain('bordered && "card-surface overflow-hidden rounded-2xl"');
   });
 
   it("รวมวันส่งกับ countdown ไว้ใต้หัว sortable เดียว", () => {

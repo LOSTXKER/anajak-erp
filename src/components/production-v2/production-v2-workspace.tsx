@@ -217,7 +217,7 @@ function WorkOrderMobileCards({ items }: { items: readonly ControlItem[] }) {
           <Link
             key={item.id}
             href={`/production/${item.id}`}
-            className={cn("card-surface-hover block rounded-lg p-4 sm:p-5", FOCUS_BUTTON)}
+            className={cn("card-surface-hover block rounded-2xl p-4 sm:p-5", FOCUS_BUTTON)}
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
@@ -498,7 +498,7 @@ function CenterCard({
     center.blocked > 0 || center.overdue > 0 || center.openExceptions > 0;
   return (
     <article
-      className={`card-surface rounded-lg p-5 ${selected ? "ring-2 ring-blue-500" : ""}`}
+      className={`card-surface rounded-2xl p-5 ${selected ? "ring-2 ring-blue-500" : ""}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -676,7 +676,7 @@ function ExceptionMobileCards({ items }: { items: readonly ExceptionItem[] }) {
           <Link
             key={item.id}
             href={`/production/${item.production.id}`}
-            className={cn("card-surface-hover block rounded-lg p-5", FOCUS_BUTTON)}
+            className={cn("card-surface-hover block rounded-2xl p-5", FOCUS_BUTTON)}
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
               <StatusLabel label={severity.label} tone={severity.tone} />

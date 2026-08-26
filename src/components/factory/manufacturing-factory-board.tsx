@@ -152,7 +152,7 @@ export function ManufacturingFactoryBoard() {
             <WorkCenterPanel key={center.workCenter.id} center={center} />
           ))}
           {centers.length === 0 ? (
-            <div className="col-span-full row-span-full card-surface rounded-lg">
+            <div className="col-span-full row-span-full card-surface rounded-2xl">
               <EmptyState icon={Boxes} title="ยังไม่มี Work Center" description="ตั้งจุดทำงานก่อนเปิดจอโรงงาน" />
             </div>
           ) : null}

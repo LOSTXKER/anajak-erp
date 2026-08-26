@@ -237,7 +237,7 @@ function QueueGroup({
     <section
       aria-labelledby={id}
       data-station-region={region}
-      className="card-surface rounded-lg p-4 sm:p-5"
+      className="card-surface rounded-2xl p-4 sm:p-5"
     >
       <div className="flex items-start justify-between gap-3 border-b border-divider pb-4">
         <div>

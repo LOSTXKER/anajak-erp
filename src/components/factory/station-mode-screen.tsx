@@ -767,7 +767,7 @@ export function StationModeScreen() {
     return (
       <section
         className={cn(
-          "card-surface rounded-lg",
+          "card-surface rounded-2xl",
           compact ? "p-3" : "px-4 py-3 sm:px-5",
         )}
         aria-labelledby={
@@ -1022,7 +1022,7 @@ export function StationModeScreen() {
               <Skeleton className="h-72 rounded-lg" />
             </div>
           ) : initialError ? (
-            <div className="card-surface rounded-lg">
+            <div className="card-surface rounded-2xl">
               <QueryError
                 message={
                   meQuery.isError
