@@ -139,6 +139,42 @@ function SidebarGroupLabel({
    ขึ้นโครงร่างหน้าใหม่ให้อยู่แล้ว ซึ่งเป็นทางหลักที่ Next แนะนำ · จุดในเมนู
    เป็นแค่ตัวเสริมระหว่าง prefetch เท่านั้น */
 
+/* ปุ่มหุบ/กางเมนู — ไอคอนเงียบ ๆ ไม่มีป้ายชื่อ (เบสสั่ง 2026-08-26 "ไม่ต้องเด่น")
+   ใช้ทรงเดียวกับปุ่มกระดิ่งบนแถบบน จะได้ไม่มีปุ่มทรงแปลกโผล่มาอีกทรง
+   ตอนกางยืนข้างตรา · ตอนหุบลงมาอยู่บนสุดของเมนู เพราะข้างตราไม่มีที่พอ */
+function SidebarCollapseButton({
+  collapsed,
+  className,
+}: {
+  collapsed: boolean;
+  className?: string;
+}) {
+  const label = collapsed ? "กางเมนู" : "หุบเมนู";
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon"
+      onClick={() => writeSidebarCollapsed(!collapsed)}
+      aria-pressed={collapsed}
+      aria-label={label}
+      title={label}
+      className={cn(
+        INTERACTIVE_CHROME_HOVER,
+        INTERACTIVE_CHROME_PRESSED,
+        "shrink-0 text-muted",
+        className,
+      )}
+    >
+      {collapsed ? (
+        <PanelLeftOpen strokeWidth={1.75} />
+      ) : (
+        <PanelLeftClose strokeWidth={1.75} />
+      )}
+    </Button>
+  );
+}
+
 function sidebarNavIconClass(active: boolean) {
   return active
     ? "text-strong"
@@ -334,6 +370,15 @@ function AppShellContent({ children }: { children: ReactNode }) {
         {/* ตราย้ายลงมาอยู่หัวเมนูซ้าย เพราะแถบบนไม่พาดทับคอลัมน์นี้แล้ว
             ความสูง 3rem เท่าแถบบน เส้นล่างจึงต่อกันเป็นเส้นเดียวข้ามทั้งจอ
             (เดิมช่องตรากว้าง 240px แต่มีของจริงแค่ ~126px และเส้นแนวตั้งหักกลางคัน) */}
+        {/* ปุ่มหุบอยู่แถวเดียวกับตรา และเป็นไอคอนเงียบ ๆ ไม่มีป้ายชื่อ
+            (เบสสั่ง 2026-08-26 "หุบเมนูไม่ต้องเด่น เอาไว้บนโลโก้ได้มั้ย")
+            ตอนหุบไม่มีที่พอให้ยืนข้างตรา จึงลงไปอยู่บนสุดของเมนูแทน — ยังติดตราอยู่ */}
+        <div
+          className={cn(
+            "flex h-12 shrink-0 items-center border-b border-divider",
+            sidebarCollapsed ? "justify-center" : "pl-6 pr-2",
+          )}
+        >
         <Link
           href="/"
           // ตอนกาง ชื่อที่เห็นคือ "Anajak Print" — ห้ามตั้ง aria-label เป็นคำอื่น
@@ -341,10 +386,9 @@ function AppShellContent({ children }: { children: ReactNode }) {
           aria-label={sidebarCollapsed ? "Anajak Print" : undefined}
           className={cn(
             FOCUS_BUTTON,
-            // px-6 = ตรงแนวกับไอคอนเมนูข้างล่าง (nav px-3 + แถวเมนู px-3)
-            // เดิม px-3 ทำให้ตราล้ำออกซ้ายกว่าไอคอนทั้งแถบครึ่งช่อง
-            "flex h-12 shrink-0 items-center gap-3 border-b border-divider px-6",
-            sidebarCollapsed && "justify-center gap-0 px-0",
+            RADIUS.item,
+            // ตรงแนวกับไอคอนเมนูข้างล่าง (nav px-3 + แถวเมนู px-3 = 24px)
+            "flex min-w-0 items-center gap-3",
           )}
         >
           <div
@@ -363,6 +407,8 @@ function AppShellContent({ children }: { children: ReactNode }) {
             <span className="truncate text-sm font-semibold text-strong">Anajak Print</span>
           )}
         </Link>
+          {!sidebarCollapsed && <SidebarCollapseButton collapsed={false} className="ml-auto" />}
+        </div>
 
         {/* ตอนหุบ: จองรางแถบเลื่อน "ทั้งสองข้าง" ไม่งั้นแถบเลื่อนที่กินที่จริง 10px
             (::-webkit-scrollbar ใน globals.css) จะดันไอคอนไปทางซ้าย 5px
@@ -376,32 +422,9 @@ function AppShellContent({ children }: { children: ReactNode }) {
             
           )}
         >
-          {/* ปุ่มหุบ/กาง อยู่บนสุดของเมนู (เบสสั่ง 2026-08-26) — ตำแหน่งเดียวกันทั้งสองสถานะ */}
-          <button
-            type="button"
-            onClick={() => writeSidebarCollapsed(!sidebarCollapsed)}
-            aria-pressed={sidebarCollapsed}
-            aria-label={sidebarCollapsed ? "กางเมนู" : "หุบเมนู"}
-            title={sidebarCollapsed ? "กางเมนู" : "หุบเมนู"}
-            className={cn(
-              CONTROL_MIN_H,
-              FOCUS_INSET,
-              RADIUS.item,
-              "flex w-full items-center gap-3 px-3 py-2 text-sm font-normal text-secondary transition-colors",
-              INTERACTIVE_CHROME_HOVER,
-              INTERACTIVE_CHROME_PRESSED,
-              sidebarCollapsed && "justify-center gap-0 px-0",
-            )}
-          >
-            {sidebarCollapsed ? (
-              <PanelLeftOpen className="h-4 w-4 shrink-0" strokeWidth={1.75} />
-            ) : (
-              <PanelLeftClose className="h-4 w-4 shrink-0" strokeWidth={1.75} />
-            )}
-            {!sidebarCollapsed && <span>หุบเมนู</span>}
-          </button>
-
-          <div className="mt-3 space-y-4">
+          {/* ตอนหุบ ปุ่มลงมาอยู่บนสุดของเมนู เพราะข้างตราไม่มีที่พอ */}
+          {sidebarCollapsed && <SidebarCollapseButton collapsed className="mb-3" />}
+          <div className="space-y-4">
             {sidebarGroups.map((group) => (
               <div key={group.id}>
                 <SidebarGroupLabel label={sidebarCollapsed ? null : group.label} />

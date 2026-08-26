@@ -1,9 +1,8 @@
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
-import { ArrowLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { CONTROL_MIN_H } from "@/components/ui/control-size";
 import { cn } from "@/lib/utils";
 import { PageIdentityIcon, pageDescriptionForLabel } from "@/lib/page-identity";
 import { HelpTip } from "@/components/ui/help-tip";
@@ -68,66 +67,37 @@ export function PageHeader({
     description === undefined
       ? pageDescriptionForLabel(descriptionSource)
       : description;
+  /* แถบ breadcrumb ("บิล/การเงิน › ลูกหนี้") ถูกถอดออกจากทุกหน้า 2026-08-26
+     เบสส่งภาพมาชี้ตรงนั้นแล้วบอกว่า "ทุกหน้าไม่ต้องมีหัวข้อเล็กๆแบบนี้"
+
+     prop `breadcrumb` ยังอยู่และยังมีประโยชน์สองอย่าง ห้ามลบทิ้ง:
+     ① เป็นที่มาของ identity/description ปริยายของหน้า (ดู identityLabel ข้างบน)
+     ② เป็นที่มาของ "ปุ่มย้อนกลับ" เมื่อหน้าไม่ได้ส่ง back มาเอง — 5 หน้าที่เคยมีแต่
+        breadcrumb ไม่มี back จะไม่เหลือทางกลับบนจอเลยถ้าไม่ทำตรงนี้
+        (ลูกค้ารายตัว · ภาษีขาย · แก้ออเดอร์ · เปิดออเดอร์ 2 ไฟล์) */
+  const resolvedBack =
+    back ??
+    (() => {
+      const parents = (breadcrumb ?? []).filter(
+        (item) => item.href && item.label !== identityLabel,
+      );
+      const parent = parents.at(-1);
+      return parent?.href ? { href: parent.href, label: `กลับไป${parent.label}` } : undefined;
+    })();
+
   return (
     <div className="page-header space-y-4" data-page-identity={identityLabel ?? "custom"}>
-      {(() => {
-        // ตัวสุดท้ายที่ซ้ำกับชื่อหน้า (h1 บรรทัดถัดไป) คำต่อคำ — ตัดทิ้ง เหลือ path พ่อแม่
-        // (benchmark: Stripe ใส่แค่ทางเดิน ให้หัวหน้าเป็นชื่อหน้าเอง)
-        const deduped =
-          !!breadcrumb &&
-          typeof title === "string" &&
-          breadcrumb.length > 0 &&
-          breadcrumb[breadcrumb.length - 1].label === title;
-        const crumbs = deduped ? breadcrumb!.slice(0, -1) : breadcrumb;
-        return crumbs && crumbs.length > 0 ? (
-        <nav
-          aria-label="Breadcrumb"
-          className="flex flex-wrap items-center gap-1.5 text-xs text-muted"
-        >
-          {crumbs.map((item, idx) => {
-            const isLast = idx === crumbs.length - 1;
-            return (
-              <span key={`${item.label}-${idx}`} className="flex items-center gap-1.5">
-                {item.href && !isLast ? (
-                  <Link
-                    href={item.href}
-                    className={cn(CONTROL_MIN_H, "inline-flex min-w-11 items-center justify-center rounded-lg px-1 transition-colors hover:text-strong sm:min-w-0 sm:justify-start sm:px-0 [@media(pointer:coarse)]:min-w-11 dark:hover:text-white")}
-                  >
-                    {item.label}
-                  </Link>
-                ) : (
-                  <span
-                    // ตัวสุดท้ายเป็น "หน้าปัจจุบัน" เฉพาะเมื่อไม่ได้ถูกตัดเพราะซ้ำ h1
-                    aria-current={isLast && !deduped ? "page" : undefined}
-                    className={
-                      isLast
-                        ? "text-secondary"
-                        : "text-muted"
-                    }
-                  >
-                    {item.label}
-                  </span>
-                )}
-                {!isLast && (
-                  <ChevronRight className="h-3 w-3 text-muted" />
-                )}
-              </span>
-            );
-          })}
-        </nav>
-        ) : null;
-      })()}
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
         <div className="flex min-w-0 items-start gap-2 sm:min-w-64 sm:flex-1">
           {/* ปุ่มย้อนกลับยืนบนผืนงานเทา ไม่ใช่ในการ์ด — ใช้คู่ interaction ของผืนงาน */}
-          {back && (
+          {resolvedBack && (
             <Button
               asChild
               variant="ghost"
               size="icon"
               className={cn(INTERACTIVE_PAGE_HOVER, INTERACTIVE_PAGE_PRESSED, "mt-0.5 shrink-0")}
             >
-              <Link href={back.href} aria-label={back.label}>
+              <Link href={resolvedBack.href} aria-label={resolvedBack.label}>
                 <ArrowLeft />
               </Link>
             </Button>
