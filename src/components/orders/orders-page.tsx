@@ -11,8 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { SearchInput } from "@/components/ui/search-input";
-import { FilterPopover, FilterPopoverField } from "@/components/ui/filter-popover";
-import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
+import { Toolbar } from "@/components/ui/toolbar";
 import { OrderStatusFilter } from "@/components/orders/order-status-filter";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { Select } from "@/components/ui/select";
@@ -360,11 +359,10 @@ function OrdersPageContent() {
 
   usePageClamp(page, data?.pages, replaceListState);
 
-  // attention ไม่นับในป้ายกล่องตัวกรอง — มันมีบ้านเป็นแถว chip บนผิวหน้าแล้ว
-  // นับเฉพาะตัวกรองที่ซ่อนอยู่ในกล่อง — ช่วงวันที่มีปุ่มของตัวเองบนแถบ เห็นอยู่แล้วว่าเลือกอะไร
-  const activeFilterCount = [channel, orderType].filter(Boolean).length;
-
-  const clearFilters = () => {
+  const hasToolbarFilters = Boolean(
+    channel || orderType || attention || createdAfter || createdBefore,
+  );
+  const clearToolbarFilters = () => {
     replaceListState({
       channel: null,
       type: null,
@@ -376,7 +374,6 @@ function OrdersPageContent() {
   };
 
   // empty state ตอนหาไม่เจอ: นับทั้งสถานะ/วันที่/คำค้น แล้วล้างทุกอย่างในจังหวะเดียว
-  // (คนละปุ่มกับในกล่องตัวกรองที่ล้างเฉพาะ filter)
   const hasActiveFilters = hasActiveOrderListFilters({
     search,
     channel,
@@ -488,7 +485,9 @@ function OrdersPageContent() {
           onChange={(event) => onSearchChange(event.target.value)}
         />
 
-        <ToolbarGroup className="w-full flex-wrap @2xl:w-auto @2xl:flex-nowrap">
+        {/* ตัวกรองที่ใช้ประจำต้องเห็นและเปลี่ยนได้ทันที ไม่ซ่อนหลังปุ่มรวม
+            จอแคบใช้กริดสองคอลัมน์; จอกว้างคลี่เป็นแถวเดียวโดยไม่เพิ่มความกว้างหน้า */}
+        <div className="grid w-full min-w-0 grid-cols-2 items-center gap-2 @2xl:flex @2xl:w-auto @2xl:flex-nowrap">
           {/* ช่องเรียงเหลือไว้เฉพาะจอแคบ (เบสเคาะ 2026-07-31) — จอกว้างย้ายไปกดที่หัวตารางแทน
               แต่จอแคบเป็นการ์ด ไม่มีหัวตารางให้กด ถ้าถอดทิ้งด้วยจะเรียงไม่ได้เลย */}
           <Select
@@ -502,7 +501,7 @@ function OrdersPageContent() {
                 page: null,
               })
             }
-            className="w-auto px-3 lg:hidden"
+            className="w-full min-w-0 px-3 lg:hidden"
           >
             {sortOptions.map((o) => (
               <option key={o.value} value={o.value}>
@@ -511,63 +510,55 @@ function OrdersPageContent() {
             ))}
           </Select>
 
-          {/* ช่วงวันที่ออกมาอยู่นอกกล่องตัวกรอง (เบสสั่ง 2026-08-01) — เป็นตัวกรองที่ใช้บ่อยสุด
-              ไม่ควรต้องกดเปิดกล่องก่อน · มีปุ่มทางลัด เดือนนี้/ปีนี้/สัปดาห์นี้ ในตัว */}
-          <DateRangePicker
-            from={createdAfter}
-            to={createdBefore}
-            onChange={(f, t) =>
-              replaceListState({ from: f || null, to: t || null, page: null })
-            }
-          />
+          <div className="min-w-0 [&>span]:w-full @2xl:flex-none">
+            <DateRangePicker
+              from={createdAfter}
+              to={createdBefore}
+              className="w-full min-w-0 justify-start @2xl:w-auto"
+              onChange={(f, t) =>
+                replaceListState({ from: f || null, to: t || null, page: null })
+              }
+            />
+          </div>
 
-          {/* ตัวกรองลอยใต้ปุ่ม — ตารางไม่ขยับ (เบสเคาะ 2026-07-31 แบบ ข)
-              เหลือ 2 หมวด: สถานะลูกค้าถอดตามคำสั่ง · สถานะภายในอยู่แถบด้านบน · วันที่ออกมาข้างนอก */}
-          <FilterPopover
-            activeCount={activeFilterCount}
-            onClear={clearFilters}
-            resultLabel={`ดูผลลัพธ์ ${data?.total ?? 0} รายการ`}
+          <Select
+            surface="raised"
+            aria-label="กรองช่องทางออเดอร์"
+            value={channel}
+            onChange={(event) =>
+              replaceListState({ channel: event.target.value || null, page: null })
+            }
+            className="min-w-0 @2xl:w-40"
           >
-            <FilterPopoverField label="ช่องทาง" htmlFor="order-channel-filter">
-              <Select
-                id="order-channel-filter"
-                aria-label="กรองช่องทางออเดอร์"
-                value={channel}
-                onChange={(event) =>
-                  replaceListState({ channel: event.target.value || null, page: null })
-                }
-              >
-                {CHANNEL_FILTERS.map((filter) => (
-                  <option key={filter.value} value={filter.value}>
-                    {filter.label}
-                  </option>
-                ))}
-              </Select>
-            </FilterPopoverField>
-            <FilterPopoverField label="ประเภทออเดอร์" htmlFor="order-type-filter">
-              <Select
-                id="order-type-filter"
-                aria-label="กรองประเภทออเดอร์"
-                value={orderType}
-                onChange={(event) =>
-                  replaceListState({ type: event.target.value || null, page: null })
-                }
-              >
-                {TYPE_FILTERS.map((filter) => (
-                  <option key={filter.value} value={filter.value}>
-                    {filter.label}
-                  </option>
-                ))}
-              </Select>
-            </FilterPopoverField>
-          </FilterPopover>
+            {CHANNEL_FILTERS.map((filter) => (
+              <option key={filter.value} value={filter.value}>
+                {filter.label}
+              </option>
+            ))}
+          </Select>
+
+          <Select
+            surface="raised"
+            aria-label="กรองประเภทออเดอร์"
+            value={orderType}
+            onChange={(event) =>
+              replaceListState({ type: event.target.value || null, page: null })
+            }
+            className="min-w-0 @2xl:w-40"
+          >
+            {TYPE_FILTERS.map((filter) => (
+              <option key={filter.value} value={filter.value}>
+                {filter.label}
+              </option>
+            ))}
+          </Select>
 
           {/* แถวชิปความเร่งด่วนถูกถอดออกแล้ว (เบสสั่ง 2026-07-31 — ย้ายไปเป็นคอลัมน์
               "เร่งด่วน" ที่เรียงได้แทน) · แต่แดชบอร์ดยังลิงก์มาด้วย ?attention= 3 ทาง
               ถ้าไม่มีอะไรบอกเลย คนกดมาจากแดชบอร์ดจะเห็นรายการถูกกรองอยู่โดยไม่รู้ว่ากรองอะไร
               และล้างไม่ได้ — จึงโชว์ป้ายเดียวเฉพาะตอนกรองค้างอยู่ กดกากบาทเพื่อล้าง */}
           {attention && (
-            <span className="inline-flex items-center gap-1.5 border-b-2 border-blue-600 py-1 pl-1 text-xs font-semibold text-blue-700 dark:border-blue-400 dark:text-blue-400">
+            <span className="col-span-2 inline-flex items-center gap-1.5 border-b-2 border-blue-600 py-1 pl-1 text-xs font-semibold text-blue-700 @2xl:col-span-1 dark:border-blue-400 dark:text-blue-400">
               {ATTENTION_FILTERS.find((f) => f.value === attention)?.label}
               <Button
                 variant="ghost"
@@ -580,7 +571,19 @@ function OrdersPageContent() {
               </Button>
             </span>
           )}
-        </ToolbarGroup>
+
+          {hasToolbarFilters && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearToolbarFilters}
+              className="col-span-2 justify-self-start px-2 text-secondary @2xl:col-span-1"
+            >
+              <X />
+              ล้างตัวกรอง
+            </Button>
+          )}
+        </div>
 
         {data && (
           <p
@@ -620,7 +623,7 @@ function OrdersPageContent() {
                 <DataTable.SortableTh {...sortColumn("orderNumber")}>
                   เลขออเดอร์
                 </DataTable.SortableTh>
-                <DataTable.Th>งาน / ลูกค้า</DataTable.Th>
+                <DataTable.Th>ลูกค้า / งาน</DataTable.Th>
                 <DataTable.Th className="hidden min-[1360px]:table-cell">
                   ช่องทาง
                 </DataTable.Th>
@@ -649,6 +652,13 @@ function OrdersPageContent() {
                 const mockupCover = order.designs[0]
                   ? mockupCoverImage(order.designs[0])
                   : null;
+                const customerName = order.customer?.name?.trim() ?? "";
+                const orderTitle = order.title?.trim() ?? "";
+                const primaryIdentity = customerName || orderTitle || "—";
+                const secondaryTitle =
+                  customerName && orderTitle && customerName !== orderTitle
+                    ? orderTitle
+                    : "";
                 return (
                   <DataTable.Row key={order.id} href={`/orders/${order.id}`}>
                   <DataTable.Td className="whitespace-nowrap">
@@ -667,21 +677,22 @@ function OrdersPageContent() {
                   </DataTable.Td>
                   <DataTable.Td>
                     <div className="min-w-0">
-                      {/* ชื่องานเป็นบรรทัดหลักและเป็นตัวหนังสือที่ใหญ่ที่สุดในแถว
-                          ตาจึงไปตกที่ "งานอะไร" ก่อนเสมอ ส่วนลูกค้าเป็นบรรทัดรอง
-                          งานที่ยังไม่ตั้งชื่อ ให้ชื่อลูกค้าขึ้นมาแทน ไม่ปล่อยบรรทัดว่าง */}
-                      <p className="max-w-80 truncate text-base font-medium text-strong">
-                        {order.title?.trim() || order.customer?.name || "—"}
-                        {order.orderType === "CUSTOM" && (
-                          <Badge variant="accent" size="sm" className="ml-1.5">
-                            {ORDER_TYPE_UI_LABELS[order.orderType]}
-                          </Badge>
-                        )}
+                      <p className="max-w-80 truncate text-base font-semibold text-strong">
+                        {primaryIdentity}
                       </p>
-                      {order.title?.trim() && (
-                        <p className="mt-0.5 max-w-80 truncate text-xs text-muted">
-                          {order.customer?.name ?? "—"}
-                        </p>
+                      {(secondaryTitle || order.orderType === "CUSTOM") && (
+                        <div className="mt-0.5 flex max-w-80 min-w-0 items-center gap-1.5">
+                          {secondaryTitle && (
+                            <p className="min-w-0 flex-1 truncate text-sm text-secondary">
+                              {secondaryTitle}
+                            </p>
+                          )}
+                          {order.orderType === "CUSTOM" && (
+                            <Badge variant="accent" size="sm" className="shrink-0">
+                              {ORDER_TYPE_UI_LABELS[order.orderType]}
+                            </Badge>
+                          )}
+                        </div>
                       )}
                       <ChatLink
                         stopPropagation
@@ -742,12 +753,19 @@ function OrdersPageContent() {
               const mockupCover = order.designs[0]
                 ? mockupCoverImage(order.designs[0])
                 : null;
+              const customerName = order.customer?.name?.trim() ?? "";
+              const orderTitle = order.title?.trim() ?? "";
+              const primaryIdentity = customerName || orderTitle || "—";
+              const secondaryTitle =
+                customerName && orderTitle && customerName !== orderTitle
+                  ? orderTitle
+                  : "";
               return (
                 <article key={order.id} role="listitem" className="card-surface rounded-2xl">
                 <Link
                   href={`/orders/${order.id}`}
                   className={cn("block min-h-11 rounded-lg p-3", FOCUS_BUTTON)}
-                  aria-label={`เปิดออเดอร์ ${order.orderNumber} ${order.title?.trim() || ""} ${order.customer?.name ?? ""}`.replace(/\s+/g, " ").trim()}
+                  aria-label={`เปิดออเดอร์ ${order.orderNumber} ${primaryIdentity} ${secondaryTitle}`.replace(/\s+/g, " ").trim()}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex min-w-0 items-start gap-3">
@@ -759,12 +777,12 @@ function OrdersPageContent() {
                         <p className="font-medium tabular-nums text-secondary">
                           {order.orderNumber}
                         </p>
-                        <p className="mt-0.5 truncate text-base font-medium text-strong">
-                          {order.title?.trim() || order.customer?.name || "—"}
+                        <p className="mt-0.5 truncate text-base font-semibold text-strong">
+                          {primaryIdentity}
                         </p>
-                        {order.title?.trim() && (
-                          <p className="truncate text-xs text-muted">
-                            {order.customer?.name ?? "—"}
+                        {secondaryTitle && (
+                          <p className="truncate text-sm text-secondary">
+                            {secondaryTitle}
                           </p>
                         )}
                       </div>

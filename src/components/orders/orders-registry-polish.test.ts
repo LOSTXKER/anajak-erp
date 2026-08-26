@@ -16,11 +16,16 @@ const badgeSource = readFileSync(
 );
 
 describe("Orders scan-first registry contract", () => {
-  // สัญญาเดิม (2026-08-23) คือ "ชื่องานเป็นบรรทัดรอง + มีบรรทัดสถานะภายในใต้สถานะหลัก"
-  // เบสกลับคำ 2026-08-25 จาก mockup UI-2026: ให้ตัวงานเด่นกว่าลูกค้า และไม่เอาคำอธิบายใต้สถานะ
-  it("ชื่องานเป็นบรรทัดหลักของแถว และทะเบียนไม่มีบรรทัดสถานะภายใน", () => {
-    expect(pageSource).toContain("{order.title?.trim() || order.customer?.name || \"—\"}");
-    expect(pageSource).toContain("text-base font-medium text-strong");
+  // เบสกลับ hierarchy หลังดูหน้าจริง 2026-08-27: คนใช้ต้องหา "ลูกค้าคนไหน" ก่อน
+  // แล้วค่อยอ่าน "งานอะไร"; สถานะภายในยังไม่ต้องเพิ่มกลับมาเป็นบรรทัดซ้ำ
+  it("ชื่อลูกค้าเป็นบรรทัดหลัก ชื่องานเป็นบรรทัดรอง และไม่มีบรรทัดสถานะภายใน", () => {
+    expect(pageSource.match(/const primaryIdentity = customerName \|\| orderTitle \|\| "—"/g)).toHaveLength(2);
+    expect(pageSource.match(/customerName && orderTitle && customerName !== orderTitle/g)).toHaveLength(2);
+    expect(pageSource.match(/text-base font-semibold text-strong/g)).toHaveLength(2);
+    expect(pageSource).toContain("truncate text-sm text-secondary");
+    expect(pageSource).toContain("<DataTable.Th>ลูกค้า / งาน</DataTable.Th>");
+    expect(pageSource).toContain("${primaryIdentity} ${secondaryTitle}");
+    expect(pageSource).not.toContain("${customerName} ${orderTitle}`.replace");
     expect(pageSource).toContain("showInternalStatus={false}");
     expect(pageSource).not.toContain("labelInternalStatus");
   });
@@ -43,7 +48,7 @@ describe("Orders scan-first registry contract", () => {
         สิ่งที่ตาเห็นว่าเป็นกล่องคือเส้นขอบล้วน ๆ พอถอดกล่อง เส้นหายไปด้วย
      2) prop flush สั่ง pl-0 ที่ <th> แต่ SortableTh วางระยะขอบไว้ที่ <button> ข้างใน
         หัวคอลัมน์แรกจึงเยื้องขวากว่าข้อมูล 20px — ตรงกับสิ่งที่ flush อ้างว่าจะกัน
-     ตอนนี้ผืนหน้าเป็นเทาจริง (#f1f2f4) และตารางกลับไปใช้ bordered ปริยาย */
+     ตั้งแต่เฟส 11 ผืนหน้าเป็น near-white แต่ตารางยังใช้ bordered ปริยายและแยกด้วย edge+shadow */
   it("ทะเบียนกลับมามีกล่องครอบ และ prop flush ถูกถอดออกจากระบบแล้ว", () => {
     expect(pageSource).toContain("<DataTable.Root>");
     expect(pageSource).not.toContain("bordered={false}");

@@ -92,7 +92,17 @@
 - [x] `interactive-selected` ยังเป็นน้ำเงินและไม่ถูกแตะ — เมนูโมดูลในหน้าผลิต แถบ segmented รอบพิมพ์ และจอสถานี ยังใช้ของเดิม (คนละระดับกับแถบเมนูหลัก จงใจให้ต่าง)
 - [x] Verify: `verify:ui` ผ่านครบ · unit 1658/1658 · typecheck · lint 0 error · production build ผ่าน · จอจริง `/orders` Light+Dark วัดค่าสีที่คำนวณจริง (พื้น `#dcdce0`/`#222225` · ขีด `#3973b2`/`#6b9cca` · ขีดอยู่ที่ -12px = ชิดขอบแถบพอดี) และ `/factory` เห็นตรา Anajak
 
-**เฟส 10 — Modern Minimal ทั้งเว็บ ⏳ รอเบสเคาะระดับ (เบสสั่ง 2026-08-26)**
+**เฟส 11 — Light workspace + Orders hierarchy + visible filters ✅ 2026-08-27 (เบสสั่ง)**
+> เบสสั่งจากหน้า `/orders` จริง: “พื้นหลังสีเทาของธีมสว่างให้ขาวขึ้น” · “ชื่อลูกค้าให้เด่นกว่าชื่องาน” · “ตัวกรองไม่ต้องซ่อน เอาออกมาเลยและจัดสวย ๆ”
+> ขอบเขต presentation เท่านั้น — คง query, URL state, permission, mutation, status transition, route, Dark theme, public และ print เดิม
+
+- [x] เปลี่ยนผืนงาน Light จากเทาชัดเป็น near-white โดยยังให้ตาราง/การ์ดขาวอ่านเป็นผิวแยกผ่าน edge + เงากลางเดิม; ปรับ contract/d่านที่ล็อกความต่างสีเก่าให้ตรงบทบาทใหม่ ไม่ปิดด่าน
+- [x] `/orders` ทั้ง desktop/mobile ใช้ **ชื่อลูกค้าเป็นบรรทัดหลัก** และชื่องานเป็นบรรทัดรอง พร้อม fallback ที่ไม่แสดงข้อมูลซ้ำ; หัวคอลัมน์เปลี่ยนเป็น “ลูกค้า / งาน”
+- [x] ย้ายช่วงวันที่ · ช่องทาง · ประเภทออเดอร์ออกมาเห็นบน toolbar ตลอด โดยใช้ control กลางแบบ flat/compact; คืนปุ่ม “ล้างตัวกรอง” เมื่อมีค่าค้าง · มือถือ 320–390px wrap เป็นกริด 2×2 โดยไม่ล้นและรายการแรกอยู่ `y=481` (มีปุ่มล้าง `y=533`)
+- [x] คง status rail, attention deep link, search, sort, pagination, CSV, empty/error/loading, URL state และ permission เดิมทั้งหมด
+- [x] Verify: targeted 11/11 · `verify:ui` · unit 1659/1659 · typecheck · lint 0 error เมื่อไม่นับไฟล์ทดลอง untracked เดิม `scripts/_probe-sidebar.tsx` · production build · detector `[]` · browserจริง Light 1280/1024/390/320 + Dark 1280 รวมเลือก/ล้างตัวกรอง, overflow, console และ hydration
+
+**เฟส 10 — Modern Minimal ทั้งเว็บ ✅ ลงแล้ว 2026-08-26 · เหลือ QA จอโรงงาน**
 > เบสสั่งสามเรื่องพร้อมกัน: "ทุกหน้าไม่ต้องมีหัวข้อเล็กๆแบบนี้" (ส่งภาพ breadcrumb มาชี้) · "หุบเมนูไม่ต้องเด่น เอาไว้บนโลโก้ได้มั้ย" · "เว็บมันดูแข็งๆ ไม่ค่อยโมเดิร์น อยากได้ Modern Minimal โค้งมนหน่อย ทุกหน้าทุกส่วน"
 > ตัวอย่างกดเล่นได้ (3 ระดับ × สองธีม): artifact `510dc177-7648-4c74-bcbb-127cc2ae952f`
 

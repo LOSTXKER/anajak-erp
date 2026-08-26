@@ -40,7 +40,8 @@ interface RootProps extends React.HTMLAttributes<HTMLDivElement> {
    2) คำสั่ง "ให้เซลล์แรกชิดขอบ" ไปลงที่ <th> แต่ `SortableTh` วาง p-0 ไว้ที่ <th>
       และ px-5 ไว้ที่ <button> ข้างใน คำสั่งจึงไม่โดน — หัวคอลัมน์แรกเยื้องขวากว่า
       ข้อมูล 20px ซึ่งตรงกับสิ่งที่ prop ตัวนี้เขียนคอมเมนต์ไว้เองว่าจะป้องกัน
-   ตอนนี้ตารางระดับบนสุดกลับไปใช้ `bordered` ปริยาย = การ์ดครอบ และผืนหน้าเป็นเทาจริง */
+   ตอนนี้ตารางระดับบนสุดใช้ `bordered` ปริยาย = การ์ดครอบ; ตั้งแต่ 2026-08-27
+   ผืน Light เป็น near-white และการ์ดแยกขอบเขตหลักด้วย edge+shadow กลาง */
 const Root = React.forwardRef<HTMLDivElement, RootProps>(
   ({ className, bordered = true, children, ...props }, ref) => (
     <div

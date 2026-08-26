@@ -190,8 +190,8 @@ export function DateRangePicker({
     <PopoverPrimitive.Root open={open} onOpenChange={setOpen}>
       <span className="inline-flex items-center">
         <PopoverPrimitive.Trigger asChild>
-          {/* ใช้ Button ของกลางเป็นตัวเปิด ไม่ลอกสไตล์มาเอง — มันยืนข้างปุ่ม "ตัวกรอง"
-              บนแถบเดียวกัน ถ้าลอกสไตล์จะเพี้ยนทีละนิดทุกครั้งที่ Button เปลี่ยน
+          {/* ใช้ Button ของกลางเป็นตัวเปิด ไม่ลอกสไตล์มาเอง — มันยืนร่วมกับ control กรอง
+              บน toolbar เดียวกัน ถ้าลอกสไตล์จะเพี้ยนทีละนิดทุกครั้งที่ Button เปลี่ยน
               (เบสจับได้ 2026-08-01: สูง 36 vs 32 · อักษร 12 vs 14 · น้ำหนัก 400 vs 600) */}
           <Button
             variant="outline"
@@ -201,7 +201,7 @@ export function DateRangePicker({
               label && "pr-10",
               className,
               // มีช่วงวันที่เลือกอยู่ = กรองอยู่ ต้องเห็นตั้งแต่ยังไม่กดเข้าไป
-              // ใช้สีชุดเดียวกับปุ่ม "ตัวกรอง" ที่ยืนข้างกัน (เบสทักว่าสีไม่เหมือนกัน 2026-08-01)
+              // ใช้สี active ชุดเดียวกับ control กรองที่ยืนข้างกัน (เบสทักว่าสีไม่เหมือนกัน 2026-08-01)
               label &&
                 ACTIVE_FILTER,
             )}
