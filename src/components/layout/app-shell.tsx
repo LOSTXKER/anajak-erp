@@ -364,8 +364,44 @@ function AppShellContent({ children }: { children: ReactNode }) {
           )}
         </Link>
 
-        <nav aria-label="เมนูหลัก" className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
-          <div className="space-y-4">
+        {/* ตอนหุบ: จองรางแถบเลื่อน "ทั้งสองข้าง" ไม่งั้นแถบเลื่อนที่กินที่จริง 10px
+            (::-webkit-scrollbar ใน globals.css) จะดันไอคอนไปทางซ้าย 5px
+            วัดจริงแล้ว: ไอคอนเมนูอยู่กลางที่ 26.5 ส่วนตรากับปุ่มหุบอยู่ที่ 31.5
+            ตอนกางไม่ใช้ both-edges เพราะจะกินความกว้างของชื่อเมนูไป 20px เปล่า ๆ */}
+        <nav
+          aria-label="เมนูหลัก"
+          className={cn(
+            "min-h-0 flex-1 overflow-y-auto px-3 py-3",
+            sidebarCollapsed && "[scrollbar-gutter:stable_both-edges]",
+            
+          )}
+        >
+          {/* ปุ่มหุบ/กาง อยู่บนสุดของเมนู (เบสสั่ง 2026-08-26) — ตำแหน่งเดียวกันทั้งสองสถานะ */}
+          <button
+            type="button"
+            onClick={() => writeSidebarCollapsed(!sidebarCollapsed)}
+            aria-pressed={sidebarCollapsed}
+            aria-label={sidebarCollapsed ? "กางเมนู" : "หุบเมนู"}
+            title={sidebarCollapsed ? "กางเมนู" : "หุบเมนู"}
+            className={cn(
+              CONTROL_MIN_H,
+              FOCUS_INSET,
+              RADIUS.item,
+              "flex w-full items-center gap-3 px-3 py-2 text-sm font-normal text-secondary transition-colors",
+              INTERACTIVE_CHROME_HOVER,
+              INTERACTIVE_CHROME_PRESSED,
+              sidebarCollapsed && "justify-center gap-0 px-0",
+            )}
+          >
+            {sidebarCollapsed ? (
+              <PanelLeftOpen className="h-4 w-4 shrink-0" strokeWidth={1.75} />
+            ) : (
+              <PanelLeftClose className="h-4 w-4 shrink-0" strokeWidth={1.75} />
+            )}
+            {!sidebarCollapsed && <span>หุบเมนู</span>}
+          </button>
+
+          <div className="mt-3 space-y-4">
             {sidebarGroups.map((group) => (
               <div key={group.id}>
                 <SidebarGroupLabel label={sidebarCollapsed ? null : group.label} />
@@ -403,33 +439,6 @@ function AppShellContent({ children }: { children: ReactNode }) {
           </div>
         </nav>
 
-        {/* ปุ่มหุบ/กาง อยู่ท้ายแถบ ไม่ใช่ข้างตรา เพราะตอนหุบข้างตราไม่มีที่เหลือ
-            และตำแหน่งท้ายแถบอยู่ที่เดิมทั้งสองสถานะ หาเจอโดยไม่ต้องมองหา */}
-        <div className="shrink-0 border-t border-divider p-3">
-          <button
-            type="button"
-            onClick={() => writeSidebarCollapsed(!sidebarCollapsed)}
-            aria-pressed={sidebarCollapsed}
-            aria-label={sidebarCollapsed ? "กางเมนู" : "หุบเมนู"}
-            title={sidebarCollapsed ? "กางเมนู" : "หุบเมนู"}
-            className={cn(
-              CONTROL_MIN_H,
-              FOCUS_INSET,
-              RADIUS.item,
-              "flex w-full items-center gap-3 px-3 py-2 text-sm font-normal text-secondary transition-colors",
-              INTERACTIVE_CHROME_HOVER,
-              INTERACTIVE_CHROME_PRESSED,
-              sidebarCollapsed && "justify-center gap-0 px-0",
-            )}
-          >
-            {sidebarCollapsed ? (
-              <PanelLeftOpen className="h-4 w-4 shrink-0" strokeWidth={1.75} />
-            ) : (
-              <PanelLeftClose className="h-4 w-4 shrink-0" strokeWidth={1.75} />
-            )}
-            {!sidebarCollapsed && <span>หุบเมนู</span>}
-          </button>
-        </div>
       </aside>
 
       {/* แถบบนอยู่เหนือ "เฉพาะฝั่งเนื้อหา" บนจอกว้าง ไม่พาดทับเมนูซ้ายอีกแล้ว

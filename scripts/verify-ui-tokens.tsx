@@ -192,6 +192,9 @@ const hSm = CONTROL_H_SM.split(" ");
     !appShellSource.includes("useSyncExternalStore") ||
     // หุบแล้วชื่อเมนูหายจากจอ ต้องเหลือชื่อไว้ให้เมาส์และเครื่องอ่านหน้าจอ
     !appShellSource.includes("title={sidebarCollapsed ? item.label : undefined}") ||
+    // ตอนหุบต้องจองรางแถบเลื่อนสองข้าง ไม่งั้นแถบเลื่อน 10px ดันไอคอนไปทางซ้าย 5px
+    // (วัดจริง: ไอคอนเมนูอยู่ 26.5 ส่วนตรากับปุ่มหุบอยู่ 31.5) — เบสเห็นแล้วทัก
+    !appShellSource.includes('sidebarCollapsed && "[scrollbar-gutter:stable_both-edges]"') ||
     !appShellSource.includes("aria-label={sidebarCollapsed ? item.label : undefined}") ||
     // จุดกะพริบตอนกดเมนูถูกถอดออกถาวร (เบสสั่ง 2026-08-26 "ไม่ชอบเวลากดเลือกหัวข้อแล้วมีจุด")
     // loading.tsx เป็นสัญญาณ "ระบบรับรู้แล้ว" หลักอยู่แล้ว · เช็คการใช้งานจริง ไม่ใช่คำในคอมเมนต์
