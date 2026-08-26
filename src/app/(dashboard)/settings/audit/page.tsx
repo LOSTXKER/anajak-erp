@@ -80,7 +80,7 @@ function AuditLogContent() {
           </ul>
         )}
         renderDesktop={(logs) => (
-          <DataTable.Root bordered={false} flush>
+          <DataTable.Root>
             <DataTable.Head>
               <tr>
                 <DataTable.Th>การทำงาน</DataTable.Th>

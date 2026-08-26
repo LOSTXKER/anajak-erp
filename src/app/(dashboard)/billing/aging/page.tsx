@@ -277,7 +277,7 @@ function AgingPageContent() {
         onRetry={() => refetch()}
         label="ลูกหนี้"
         renderDesktop={(rows) => (
-          <DataTable.Root bordered={false} flush>
+          <DataTable.Root>
             <DataTable.Head>
               <tr>
                 <DataTable.Th>ลูกค้า</DataTable.Th>

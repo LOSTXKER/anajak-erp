@@ -222,7 +222,7 @@ function CustomersPageContent() {
         onRetry={() => refetch()}
         label="ลูกค้า"
         renderDesktop={(customers) => (
-          <DataTable.Root bordered={false} flush>
+          <DataTable.Root>
             <DataTable.Head>
               <tr>
                 <DataTable.Th>ลูกค้า</DataTable.Th>

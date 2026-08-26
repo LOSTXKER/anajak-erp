@@ -851,22 +851,27 @@ check(
   });
   const surface = colorValues("surface");
   const page = colorValues("bg");
-  // hover ต้องอ่านออกบน "ทุกพื้นที่แถวจริงไปยืน" ไม่ใช่แค่ surface (UI-2026 เฟส 1):
-  // ตั้งแต่ทะเบียนออเดอร์ถอดกล่องครอบ แถวจึงนั่งบน --color-bg ตรงๆ
-  // ถ้าวัดแต่ surface จะปล่อยค่าที่ได้ 1.07:1 บนผืนหน้าผ่านไปได้ (เคยหลุดมาแล้ว)
-  // เพดานขยับจาก 1.13 เป็น 1.16 ในธีมสว่างเพื่อให้มีที่พอทำทั้งสองพื้น — ห้ามเกินกว่านี้
-  // เพราะ hover ที่หนักกว่านั้นจะอ่านเป็น "ถูกเลือกอยู่" แข่งกับ interactive-selected
+  // hover วัดเทียบ --color-surface = พื้นที่แถวจริงไปยืน (UI-2026 เฟส 6 · 2026-08-26)
+  //
+  // เฟส 1 เคยบังคับให้ผ่านบน --color-bg ด้วย เพราะตอนนั้นทะเบียนออเดอร์ถอดกล่องครอบ
+  // แถวจึงนั่งบนผืนหน้าตรง ๆ · เบสกลับคำตัดสินใจนั้นแล้ว ("การ์ดครอบ") แถวกลับไปอยู่
+  // บนการ์ดขาวหมด และผืนหน้ากลายเป็นเทาจริง (#f1f2f4) — เงื่อนไขเดิมจึงบังคับให้
+  // hover ต้องเข้มพอสำหรับพื้นเทา และอ่อนพอสำหรับพื้นขาวพร้อมกัน ซึ่งเป็นไปไม่ได้
+  //
+  // ⚠️ ของที่กดได้และ "ไม่ได้อยู่ในการ์ด" ต้องไม่ใช้คู่นี้ — ถ้ายืนบน chrome ใช้ชุด
+  // chrome-* ถ้ายืนบนผืนหน้าเปล่า ๆ ให้ห่อการ์ดก่อน อย่าปรับ token ให้ผ่านทั้งสองพื้น
+  //
+  // เพดาน 1.16 ในธีมสว่าง: hover ที่หนักกว่านั้นจะอ่านเป็น "ถูกเลือกอยู่"
+  // ไปแข่งกับ interactive-selected
   const stateContrastIsBalanced =
     tokenCountsValid && surface.length === 2 && page.length >= 2 &&
     hover.every((value, index) => {
       const hoverFromSurface = contrast(hexRgb(value), hexRgb(surface[index]!));
-      const hoverFromPage = contrast(hexRgb(value), hexRgb(page[index]!));
       const pressedFromHover = contrast(hexRgb(pressed[index]!), hexRgb(value));
       const hoverCeiling = index === 0 ? 1.16 : 1.25;
       return (
         hoverFromSurface >= 1.1 &&
         hoverFromSurface <= hoverCeiling &&
-        hoverFromPage >= 1.1 &&
         pressedFromHover >= 1.05
       );
     });

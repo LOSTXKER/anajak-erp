@@ -31,25 +31,22 @@ import {
 
 interface RootProps extends React.HTMLAttributes<HTMLDivElement> {
   bordered?: boolean;
-  /** ตารางที่วางบนผืนหน้าโดยไม่มีกล่องครอบ (เบสเคาะ 2026-08-25 · UI-2026 เฟส 1)
-   *  — ขอบซ้าย/ขวาของเซลล์แรก-สุดท้ายต้องเสมอกับขอบเนื้อหาของหน้า ไม่งั้นตาราง
-   *  จะดูเยื้องเข้ามา 20px โดยไม่มีกรอบอะไรอธิบายว่าทำไม
-   *  และหัวตารางเลิกใช้แถบพื้น เพราะบนผืนหน้ามันต่างกันไม่ถึง 1% ในธีมมืด
-   *  (กลืนหาย) — ใช้เส้นล่างที่หนักกว่า divider เป็นขอบเขตบนของตารางแทน */
-  flush?: boolean;
 }
 
+/* prop `flush` (ตารางวางบนผืนหน้าไม่มีกล่องครอบ) ถูกถอดออก 2026-08-26 — เบสเห็นของจริง
+   บนจอกว้างแล้วบอกว่า "ดูแปลกๆ และไม่ชอบ" · มันพังสองชั้นพร้อมกัน:
+   1) ธีมสว่างไม่เคยมีชั้นความลึกจริง (การ์ดต่างจากผืนหน้า 1.03 เท่า) สิ่งที่ตาเห็นว่า
+      เป็นกล่องคือเส้นขอบล้วน ๆ พอถอดกล่อง เส้นหายไปด้วย เลยไม่เหลือขอบเขตอะไรเลย
+   2) คำสั่ง "ให้เซลล์แรกชิดขอบ" ไปลงที่ <th> แต่ `SortableTh` วาง p-0 ไว้ที่ <th>
+      และ px-5 ไว้ที่ <button> ข้างใน คำสั่งจึงไม่โดน — หัวคอลัมน์แรกเยื้องขวากว่า
+      ข้อมูล 20px ซึ่งตรงกับสิ่งที่ prop ตัวนี้เขียนคอมเมนต์ไว้เองว่าจะป้องกัน
+   ตอนนี้ตารางระดับบนสุดกลับไปใช้ `bordered` ปริยาย = การ์ดครอบ และผืนหน้าเป็นเทาจริง */
 const Root = React.forwardRef<HTMLDivElement, RootProps>(
-  ({ className, bordered = true, flush = false, children, ...props }, ref) => (
+  ({ className, bordered = true, children, ...props }, ref) => (
     <div
       ref={ref}
       className={cn(
         bordered && "card-surface overflow-hidden rounded-lg",
-        flush && [
-          "[&_thead]:border-b [&_thead]:border-border [&_thead]:bg-transparent",
-          "[&_th:first-child]:pl-0 [&_td:first-child]:pl-0",
-          "[&_th:last-child]:pr-0 [&_td:last-child]:pr-0",
-        ],
         className
       )}
       {...props}

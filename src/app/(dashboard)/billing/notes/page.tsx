@@ -187,7 +187,7 @@ function BillingNotesPageContent() {
         onRetry={() => refetch()}
         label="ใบวางบิล"
         renderDesktop={(notesList) => (
-          <DataTable.Root bordered={false} flush>
+          <DataTable.Root>
             <DataTable.Head>
               <tr>
                 <DataTable.Th>เลขที่</DataTable.Th>

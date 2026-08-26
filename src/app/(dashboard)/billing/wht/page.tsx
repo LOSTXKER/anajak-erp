@@ -301,7 +301,7 @@ function WhtRegisterPageContent() {
           )
         }
         renderDesktop={(items) => (
-          <DataTable.Root bordered={false} flush>
+          <DataTable.Root>
             <DataTable.Head>
               <tr>
                 <DataTable.Th>วันที่รับเงิน</DataTable.Th>

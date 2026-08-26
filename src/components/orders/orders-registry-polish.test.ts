@@ -36,13 +36,23 @@ describe("Orders scan-first registry contract", () => {
     expect(pageSource).not.toContain("text-blue-600 hover:underline");
   });
 
-  it("ทะเบียนวางบนผืนหน้าโดยไม่มีกล่องครอบ", () => {
-    expect(pageSource).not.toContain("lg:rounded-lg lg:border lg:border-border lg:bg-surface");
-    expect(pageSource).toContain("<DataTable.Root bordered={false} flush>");
-    // flush = เซลล์แรก/สุดท้ายเสมอขอบเนื้อหา และหัวตารางเลิกใช้แถบพื้น
-    // (บนผืนหน้าธีมมืด แถบพื้นต่างจาก bg ไม่ถึง 1% = กลืนหาย)
-    expect(tableSource).toContain("[&_th:first-child]:pl-0");
-    expect(tableSource).toContain("[&_thead]:bg-transparent");
+  /* กลับคำตัดสินใจเดิม (2026-08-26 · UI-2026 เฟส 6) — เบสเห็นของจริงบนจอกว้างแล้วบอกว่า
+     "การที่เอาตารางวางบนพื้นเลยดูแปลกๆ และไม่ชอบ" จึงคืนกล่องครอบให้ตาราง
+     สาเหตุที่แบบไม่มีกล่องใช้ไม่ได้จริง มีสองชั้นและวัดได้ทั้งคู่:
+     1) ธีมสว่างไม่เคยมีชั้นความลึกจริง การ์ดต่างจากผืนหน้าเดิม 1.03 เท่า
+        สิ่งที่ตาเห็นว่าเป็นกล่องคือเส้นขอบล้วน ๆ พอถอดกล่อง เส้นหายไปด้วย
+     2) prop flush สั่ง pl-0 ที่ <th> แต่ SortableTh วางระยะขอบไว้ที่ <button> ข้างใน
+        หัวคอลัมน์แรกจึงเยื้องขวากว่าข้อมูล 20px — ตรงกับสิ่งที่ flush อ้างว่าจะกัน
+     ตอนนี้ผืนหน้าเป็นเทาจริง (#f1f2f4) และตารางกลับไปใช้ bordered ปริยาย */
+  it("ทะเบียนกลับมามีกล่องครอบ และ prop flush ถูกถอดออกจากระบบแล้ว", () => {
+    expect(pageSource).toContain("<DataTable.Root>");
+    expect(pageSource).not.toContain("bordered={false}");
+    expect(pageSource).not.toContain(" flush");
+    // primitive ต้องไม่เหลือทางกลับไปสู่แบบไม่มีกล่อง
+    expect(tableSource).not.toContain("flush?: boolean");
+    expect(tableSource).not.toContain("[&_th:first-child]:pl-0");
+    expect(tableSource).not.toContain("[&_thead]:bg-transparent");
+    expect(tableSource).toContain('bordered && "card-surface overflow-hidden rounded-lg"');
   });
 
   it("รวมวันส่งกับ countdown ไว้ใต้หัว sortable เดียว", () => {

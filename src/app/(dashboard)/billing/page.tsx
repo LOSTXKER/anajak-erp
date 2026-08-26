@@ -304,7 +304,7 @@ function BillingPageContent() {
           </div>
         )}
         renderDesktop={(invoices) => (
-          <DataTable.Root bordered={false} flush>
+          <DataTable.Root>
             <DataTable.Head>
               <tr>
                 <DataTable.Th>เลขบิล</DataTable.Th>

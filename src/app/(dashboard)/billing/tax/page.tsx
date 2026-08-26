@@ -189,7 +189,7 @@ export default function SalesTaxReportPage() {
         renderDesktop={(items) => (
           // พื้นที่หลังหัก sidebar ที่ช่วง tablet ไม่พอสำหรับ 9 คอลัมน์ —
           // ล็อกความกว้างขั้นต่ำให้ตารางเลื่อนข้างแทนการบีบคอลัมน์
-          <DataTable.Root bordered={false} flush className="[&_table]:min-w-[880px]">
+          <DataTable.Root className="[&_table]:min-w-[880px]">
             <DataTable.Head>
               <tr>
                 <DataTable.Th>#</DataTable.Th>

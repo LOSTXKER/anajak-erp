@@ -612,7 +612,7 @@ function OrdersPageContent() {
           // ไม่ให้ control ที่เพิ่งกดหายไปกลางการใช้งาน
           const showDeadline = hasDeadline || sortBy === "deadline";
           return (
-          <DataTable.Root bordered={false} flush>
+          <DataTable.Root>
             <DataTable.Head>
               <tr>
                 {/* การเรียงย้ายมาอยู่ที่หัวคอลัมน์แล้ว (เบสสั่ง 2026-07-31) — กดซ้ำสลับทิศ

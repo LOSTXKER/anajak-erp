@@ -145,7 +145,7 @@ function FilmStockPageContent() {
           )
         }
         renderDesktop={(items) => (
-          <DataTable.Root bordered={false} flush>
+          <DataTable.Root>
             <DataTable.Head>
               <tr>
                 <DataTable.Th>ฟิล์มพร้อมรีด</DataTable.Th>

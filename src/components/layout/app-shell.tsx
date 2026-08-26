@@ -239,7 +239,8 @@ function AppShellContent({ children }: { children: ReactNode }) {
   }, []);
 
   const count = unreadCount ?? 0;
-  const activeNavigationId = findActiveNavigationItem(pathname)?.id;
+  const activeNavigationItem = findActiveNavigationItem(pathname);
+  const activeNavigationId = activeNavigationItem?.id;
   const mobileMoreActive = sidebarGroups.some(
     (group) =>
       group.items.some(
@@ -283,33 +284,37 @@ function AppShellContent({ children }: { children: ReactNode }) {
         ข้ามไปเนื้อหาหลัก
       </a>
 
-      <header className="relative z-30 col-span-full row-start-1 flex h-12 min-w-0 items-center border-b border-divider bg-chrome">
+      {/* แถบบนอยู่เหนือ "เฉพาะฝั่งเนื้อหา" บนจอกว้าง ไม่พาดทับเมนูซ้ายอีกแล้ว
+          (UI-2026 เฟส 6 · เบสเคาะ 2026-08-26 "ไม่มีแถบบนแต่ขอมี navbar")
+          เดิมพาดเต็มจอโดยมีของอยู่ 3 ชิ้น เหลือที่ว่างกลางแถบราว 1,000px บนจอ 1920
+          ตอนนี้แถบสั้นลงเท่าคอลัมน์เนื้อหา และมีชื่อหมวดที่กำลังเปิดอยู่บอกตำแหน่ง
+          จอแคบไม่มีเมนูซ้าย แถบจึงยังพาดเต็มจอและถือตราไว้เหมือนเดิม */}
+      <header className="relative z-30 col-span-full row-start-1 flex h-12 min-w-0 items-center border-b border-divider bg-chrome lg:col-span-1 lg:col-start-2">
         <Link
           href="/"
           aria-label="ภาพรวม"
           className={cn(
             FOCUS_BUTTON,
-            "flex h-full w-14 shrink-0 items-center justify-center lg:w-60 lg:justify-start lg:gap-2 lg:px-3",
+            "flex h-full w-14 shrink-0 items-center justify-center lg:hidden",
           )}
         >
           <div
             className={cn(
               RADIUS.inner,
-              // ⚠️ ตราสัญลักษณ์คือที่ที่สีแบรนด์ควรอยู่โดยธรรมชาติ — เคยเปลี่ยนเป็นเทา
-              // ตอนเก็บ "สงวนน้ำเงินให้ปุ่มหลัก/สิ่งที่เลือก/โฟกัส" ซึ่งคิดผิด
-              // กติกานั้นมีไว้กันสีลิงก์โรยทั่วตาราง ไม่ได้มีไว้ถอดแบรนด์ออกจากตราของตัวเอง
-              // (เบสทัก 2026-08-26 "อย่าลืมสีฟ้าที่เป็น asset เรา")
               "flex h-7 w-7 items-center justify-center bg-blue-600 text-white",
             )}
           >
             <Printer className="h-3.5 w-3.5" strokeWidth={1.75} />
           </div>
-          <span className="hidden truncate text-sm font-semibold text-strong lg:block">
-            Anajak Print
-          </span>
         </Link>
 
         <div className="flex min-w-0 flex-1 items-center gap-2 px-3 lg:px-4">
+          {/* ชื่อหมวดที่กำลังเปิดอยู่ — มาจากทะเบียนเมนูตัวเดียวกับ sidebar
+              ไม่ได้ดึงหัวข้อ <h1> ของหน้ามา เพราะหัวข้อเป็นของหน้า ไม่ใช่ของกรอบเว็บ */}
+          <span className="hidden min-w-0 flex-1 truncate text-sm font-semibold text-strong lg:block">
+            {activeNavigationItem?.label ?? "Anajak Print"}
+          </span>
+
           <button
             ref={searchTriggerRef}
             type="button"
@@ -325,7 +330,8 @@ function AppShellContent({ children }: { children: ReactNode }) {
               "border border-border bg-surface",
               INTERACTIVE_HOVER,
               INTERACTIVE_PRESSED,
-              "group flex min-w-0 flex-1 items-center gap-2 px-3 text-sm text-muted transition-colors sm:max-w-lg sm:px-4",
+              // จอแคบยังยืดเต็มที่ · จอกว้างหดเป็นชิปกว้างคงที่ ไม่ยืดกินแถบทั้งแถบ
+              "group flex min-w-0 flex-1 items-center gap-2 px-3 text-sm text-muted transition-colors sm:max-w-lg sm:px-4 lg:w-60 lg:max-w-60 lg:flex-none",
             )}
           >
             <Search className="h-4 w-4 shrink-0" strokeWidth={1.75} />
@@ -333,7 +339,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
             <kbd className="hidden text-2xs sm:inline">⌘K</kbd>
           </button>
 
-          <div className="ml-auto flex shrink-0 items-center gap-2">
+          <div className="ml-auto flex shrink-0 items-center gap-2 lg:ml-0">
             {/* ปุ่มบนแถบบนยืนบน chrome (เทา) ไม่ใช่ surface (ขาว) — hover ชุดปกติ
                 จึงเกือบเท่าพื้นตัวเอง ต้องใช้ชุด chrome ที่เข้มกว่าหนึ่งขั้น */}
             <Button
@@ -359,7 +365,33 @@ function AppShellContent({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <aside className="hidden min-h-0 border-r border-divider bg-chrome lg:col-start-1 lg:row-start-2 lg:flex lg:flex-col">
+      <aside className="hidden min-h-0 border-r border-divider bg-chrome lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:flex lg:flex-col">
+        {/* ตราย้ายลงมาอยู่หัวเมนูซ้าย เพราะแถบบนไม่พาดทับคอลัมน์นี้แล้ว
+            ความสูง 3rem เท่าแถบบน เส้นล่างจึงต่อกันเป็นเส้นเดียวข้ามทั้งจอ
+            (เดิมช่องตรากว้าง 240px แต่มีของจริงแค่ ~126px และเส้นแนวตั้งหักกลางคัน) */}
+        <Link
+          href="/"
+          aria-label="ภาพรวม"
+          className={cn(
+            FOCUS_BUTTON,
+            "flex h-12 shrink-0 items-center gap-2 border-b border-divider px-3",
+          )}
+        >
+          <div
+            className={cn(
+              RADIUS.inner,
+              // ⚠️ ตราสัญลักษณ์คือที่ที่สีแบรนด์ควรอยู่โดยธรรมชาติ — เคยเปลี่ยนเป็นเทา
+              // ตอนเก็บ "สงวนน้ำเงินให้ปุ่มหลัก/สิ่งที่เลือก/โฟกัส" ซึ่งคิดผิด
+              // กติกานั้นมีไว้กันสีลิงก์โรยทั่วตาราง ไม่ได้มีไว้ถอดแบรนด์ออกจากตราของตัวเอง
+              // (เบสทัก 2026-08-26 "อย่าลืมสีฟ้าที่เป็น asset เรา")
+              "flex h-7 w-7 shrink-0 items-center justify-center bg-blue-600 text-white",
+            )}
+          >
+            <Printer className="h-3.5 w-3.5" strokeWidth={1.75} />
+          </div>
+          <span className="truncate text-sm font-semibold text-strong">Anajak Print</span>
+        </Link>
+
         <nav aria-label="เมนูหลัก" className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
           <div className="space-y-4">
             {sidebarGroups.map((group) => (
