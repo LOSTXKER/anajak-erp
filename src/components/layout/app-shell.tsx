@@ -340,7 +340,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
 
   return (
     <div
-      className="app-workspace grid h-dvh grid-cols-1 grid-rows-[3rem_minmax(0,1fr)] overflow-hidden bg-bg lg:grid-cols-[var(--app-sidebar-w)_minmax(0,1fr)]"
+      className="app-workspace grid h-dvh grid-cols-1 grid-rows-[3.5rem_minmax(0,1fr)] overflow-hidden bg-bg lg:grid-cols-[var(--app-sidebar-w)_minmax(0,1fr)]"
       style={
         {
           "--app-bottom-nav-offset":
@@ -375,7 +375,9 @@ function AppShellContent({ children }: { children: ReactNode }) {
             ตอนหุบไม่มีที่พอให้ยืนข้างตรา จึงลงไปอยู่บนสุดของเมนูแทน — ยังติดตราอยู่ */}
         <div
           className={cn(
-            "flex h-12 shrink-0 items-center border-b border-divider",
+            // ⚠️ ความสูงต้องเท่าแถบบนเสมอ (h-14 = 56px = แถวแรกของกริด 3.5rem)
+            // ไม่งั้นเส้นล่างของตรากับของแถบบนจะไม่ต่อกันเป็นเส้นเดียวข้ามจอ
+            "flex h-14 shrink-0 items-center border-b border-divider",
             sidebarCollapsed ? "justify-center" : "pl-6 pr-2",
           )}
         >
@@ -467,9 +469,11 @@ function AppShellContent({ children }: { children: ReactNode }) {
       {/* แถบบนอยู่เหนือ "เฉพาะฝั่งเนื้อหา" บนจอกว้าง ไม่พาดทับเมนูซ้ายอีกแล้ว
           (UI-2026 เฟส 6 · เบสเคาะ 2026-08-26 "ไม่มีแถบบนแต่ขอมี navbar")
           เดิมพาดเต็มจอโดยมีของอยู่ 3 ชิ้น เหลือที่ว่างกลางแถบราว 1,000px บนจอ 1920
+          ความสูง 64 → 48 (เฟส 2) → 56px (เฟส 10 · เบสบอก "ดูต่ำไป" หลังทั้งเว็บโค้งมนขึ้น
+          ของในหน้าสูงขึ้นทั้งชุด แถบ 48px จึงกลายเป็นแถบที่แน่นกว่าเนื้อหาที่มันครอบอยู่)
           จอแคบไม่มีเมนูซ้าย แถบจึงยังพาดเต็มจอและถือตราไว้เหมือนเดิม
           ⚠️ อยู่หลัง <aside> ใน DOM โดยตั้งใจ — ดูเหตุผลที่คอมเมนต์เหนือ <aside> */}
-      <header className="relative z-30 col-span-full row-start-1 flex h-12 min-w-0 items-center border-b border-divider bg-chrome lg:col-span-1 lg:col-start-2 lg:pr-[var(--app-scrollbar-w)]">
+      <header className="relative z-30 col-span-full row-start-1 flex h-14 min-w-0 items-center border-b border-divider bg-chrome lg:col-span-1 lg:col-start-2 lg:pr-[var(--app-scrollbar-w)]">
         <Link
           href="/"
           aria-label="ภาพรวม"

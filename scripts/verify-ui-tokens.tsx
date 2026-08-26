@@ -192,6 +192,10 @@ const hSm = CONTROL_H_SM.split(" ");
     !appShellSource.includes("useSyncExternalStore") ||
     // หุบแล้วชื่อเมนูหายจากจอ ต้องเหลือชื่อไว้ให้เมาส์และเครื่องอ่านหน้าจอ
     !appShellSource.includes("title={sidebarCollapsed ? item.label : undefined}") ||
+    // แถบบน หัวเมนูซ้าย และแถวแรกของกริด ต้องสูงเท่ากันทั้งสามที่เสมอ
+    // ไม่งั้นเส้นล่างของตรากับของแถบบนจะไม่ต่อกันเป็นเส้นเดียวข้ามจอ (เคยพลาดมาแล้ว)
+    !appShellSource.includes("grid-rows-[3.5rem_minmax(0,1fr)]") ||
+    (appShellSource.match(/flex h-14 /g)?.length ?? 0) !== 2 ||
     // ตอนหุบต้องจองรางแถบเลื่อนสองข้าง ไม่งั้นแถบเลื่อน 10px ดันไอคอนไปทางซ้าย 5px
     // (วัดจริง: ไอคอนเมนูอยู่ 26.5 ส่วนตรากับปุ่มหุบอยู่ 31.5) — เบสเห็นแล้วทัก
     !appShellSource.includes('sidebarCollapsed && "[scrollbar-gutter:stable_both-edges]"') ||
