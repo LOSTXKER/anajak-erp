@@ -4,7 +4,14 @@
 
 ## ตอนนี้
 
-> **✅ Sidebar follow-up รอบห้า — ปุ่ม ghost อยู่ใน topbar ไม่มีส่วนยื่น (2026-08-27)**
+> **✅ Sidebar follow-up รอบหก — trigger แบบ app shell มาตรฐาน (2026-08-27)**
+> ภาพจริงชี้ว่า chevron 14px ในปุ่ม 32px ยังอ่านคล้าย Back และลอยเดี่ยว: แม้ตัวปุ่มเริ่มที่ gutter 32px แต่จุดกึ่งกลางห่างขอบ sidebar ถึง 48px · เปลี่ยนเป็น `PanelLeftClose/PanelLeftOpen` 16px ที่สื่อการหุบ/กางแผงซ้ายตรง ๆ และคืนขนาดให้ `Button size="icon"` มาตรฐาน **36×36px** บน desktop / **44×44px** บน coarse pointer
+> ปุ่มอยู่กลาง action slot **56px** ที่ต่อจากขอบ sidebar โดยไม่คาบเส้น ไม่มีกรอบ/เงา/สีแบรนด์ค้าง และยังอยู่ใน DOM ระหว่างลิงก์ตรากับ `<nav>` เพื่อคงลำดับ Tab · ปุ่ม node เดิม, localStorage, focus, `aria-expanded`, `aria-controls` และชื่อ “หุบเมนู–กางเมนู” ไม่เปลี่ยนสัญญา
+> **ตรวจ browser จริง:** Light/Dark 1512×776 และ Light 1024×768 ทั้งกาง/หุบ · ตอนกาง sidebar right=240, slot x=239–295, ปุ่ม x=249–285; ตอนหุบ sidebar right=64, slot x=63–119, ปุ่ม x=73–109 · logo/search overlap 0, horizontal overflow 0, focus คงหลังสลับ, icon/ARIA ตรงสถานะ · mobile 390×844 ซ่อน slot พร้อม sidebar, bottom navigation ยังอยู่, console warning/error 0 และไม่มี error overlay
+> **ด่าน:** unit **1660/1660** · `verify:ui` · typecheck · targeted lint 0 error · full lint (ยกเว้นไฟล์ทดลองเดิม `scripts/_probe-sidebar.tsx`) 0 error/26 warning เดิม · production build 42 static pages · Impeccable detector `[]` · `git diff --check`
+> **ขอบเขต:** presentation/accessibility + regression guard + docs เท่านั้น · mobile shell/navigation/query/mutation/permission/status/schema/dependency ไม่เปลี่ยน · ไฟล์ของเบส `scripts/verify-artwork.ts`, `.cursor/`, `public/`, `scripts/_probe-sidebar.tsx` ไม่ได้แตะ
+>
+> **✅ Sidebar follow-up รอบห้า — ปุ่ม ghost อยู่ใน topbar ไม่มีส่วนยื่น (ประวัติ · ถูกแทนที่รอบหก 2026-08-27)**
 > เบสยืนยันว่าไม่ชอบ control ที่โผล่จากเส้น sidebar ไม่ว่าทรงใด · ถอน edge tab/วง/ขอบ/เงาทั้งหมด แล้ววาง chevron 14px ในปุ่ม ghost **32×32px** ที่ gutter ซ้ายของ topbar ห่างขอบ sidebar ตามระยะ `lg:px-8`; coarse pointer ยังได้เป้าขั้นต่ำ 44px จาก Button primitive
 > ปุ่มยังอยู่ใน DOM ระหว่างลิงก์โลโก้กับ `<nav>` แล้ว absolute ไปยัง topbar จึงรักษาลำดับ Tab `Link → toggle → nav` โดยไม่ใช้ tabindex · ลบ `FOCUS_BUTTON_PROXY` และ interaction สูตรเฉพาะ edge handle ที่ไม่จำเป็น เหลือ focus/hover/pressed token มาตรฐาน
 > **ตรวจ browser จริง:** Light/Dark 1512×776 ทั้งกาง/หุบ · ตอนกาง sidebar right=240 และปุ่ม x=271–303; ตอนหุบ right=64 และปุ่ม x=95–127 · logo/search overlap 0, horizontal overflow 0 · Tab เห็น focus ring บนปุ่ม, Enter สลับสถานะและรักษา focus, `aria-expanded`/ชื่อ “หุบเมนู–กางเมนู” ตรงสถานะ

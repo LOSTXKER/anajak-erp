@@ -394,24 +394,32 @@ const hSm = CONTROL_H_SM.split(" ");
     !sidebarBrandHeaderSource.includes('sidebarCollapsed && "h-10 w-10 min-w-10 justify-center gap-0"') ||
     !sidebarBrandHeaderSource.includes('sidebarCollapsed && "sr-only"') ||
     sidebarBrandHeaderSource.includes('sidebarCollapsed && "hidden"') ||
-    // ลูกศรแยกจากตราใน DOM เพื่อรักษาลำดับ Tab แต่ย้ายภาพไปอยู่ใน gutter ซ้ายของ topbar
-    // ปุ่ม ghost 32px ไม่มีชิ้นส่วนคาบ/ยื่นติดเส้น sidebar และตรงกับระยะ lg:px-8 ของเนื้อหา
+    // trigger แยกจากตราใน DOM เพื่อรักษาลำดับ Tab แต่วางภาพกลาง action slot 56px แรกของ topbar
+    // ใช้ขนาดมาตรฐานจาก Button (desktop 36px/coarse 44px) และ icon แผงซ้าย ไม่ใช่ chevron แบบ Back
     !sidebarBrandHeaderSource.includes("relative flex h-14") ||
     !sidebarCollapseButtonSource.includes("data-sidebar-collapse-toggle") ||
+    !sidebarCollapseButtonSource.includes("data-sidebar-collapse-slot") ||
     !appShellSource.includes(
       '<aside className="hidden min-h-0 border-r border-divider bg-chrome lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:flex lg:flex-col">',
     ) ||
     !appShellSource.includes(
       'className="mx-auto flex w-full min-w-0 max-w-screen-2xl flex-1 items-center gap-2 px-4 sm:px-6 lg:px-8"',
     ) ||
-    !sidebarCollapseButtonSource.includes("absolute -right-16 top-1/2") ||
-    !sidebarCollapseButtonSource.includes("hidden h-8 min-h-8 w-8 min-w-8") ||
-    !sidebarCollapseButtonSource.includes("-translate-y-1/2") ||
-    !sidebarCollapseButtonSource.includes("lg:inline-flex") ||
+    !sidebarCollapseButtonSource.includes(
+      "absolute left-full top-0 z-40 hidden h-14 w-14 items-center justify-center lg:flex",
+    ) ||
+    !sidebarCollapseButtonSource.includes('size="icon"') ||
     !sidebarCollapseButtonSource.includes("bg-transparent p-0") ||
     !sidebarCollapseButtonSource.includes("text-muted") ||
     !sidebarCollapseButtonSource.includes("INTERACTIVE_CHROME_HOVER") ||
     !sidebarCollapseButtonSource.includes("INTERACTIVE_CHROME_PRESSED") ||
+    !sidebarCollapseButtonSource.includes("PanelLeftOpen") ||
+    !sidebarCollapseButtonSource.includes("PanelLeftClose") ||
+    !sidebarCollapseButtonSource.includes('className="!size-4"') ||
+    sidebarCollapseButtonSource.includes("ChevronLeft") ||
+    sidebarCollapseButtonSource.includes("<ChevronRight") ||
+    sidebarCollapseButtonSource.includes("-right-") ||
+    sidebarCollapseButtonSource.includes("-translate-y-1/2") ||
     sidebarCollapseButtonSource.includes("data-sidebar-collapse-handle") ||
     sidebarCollapseButtonSource.includes("rounded-r-md") ||
     sidebarCollapseButtonSource.includes("border-divider bg-chrome") ||
@@ -424,12 +432,10 @@ const hSm = CONTROL_H_SM.split(" ");
     sidebarCollapseButtonSource.includes(" border-") ||
     sidebarCollapseButtonSource.includes("border-border-strong") ||
     !sidebarCollapseButtonSource.includes("z-40") ||
-    !/collapsed \? \([\s\S]*?<ChevronRight[\s\S]*?\) : \([\s\S]*?<ChevronLeft/.test(
+    !/collapsed \? \([\s\S]*?<PanelLeftOpen[\s\S]*?\) : \([\s\S]*?<PanelLeftClose/.test(
       sidebarCollapseButtonSource,
     ) ||
     sidebarCollapseButtonSource.includes("<SidebarBrandMark") ||
-    appShellSource.includes("PanelLeftOpen") ||
-    appShellSource.includes("PanelLeftClose") ||
     // ปุ่มตัวเดิมต้องอยู่ในหัว sidebar ตลอดเพื่อรักษา focus ตอนกาง/หุบ
     // และห้ามมี SidebarCollapseButton แทรกอยู่ใน nav ไม่ว่าจะใช้ class อะไร
     !sidebarBrandHeaderSource.includes("<SidebarCollapseButton") ||

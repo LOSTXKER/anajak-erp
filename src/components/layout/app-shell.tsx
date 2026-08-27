@@ -13,9 +13,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Bell,
-  ChevronLeft,
   ChevronRight,
   MoreHorizontal,
+  PanelLeftClose,
+  PanelLeftOpen,
   Printer,
   Search,
 } from "lucide-react";
@@ -163,8 +164,8 @@ function SidebarBrandMark() {
 }
 
 /* ปุ่มหุบ/กางเมนูแยกจากตราอย่างชัดเจน (เบสสั่ง 2026-08-27)
-   ตราคงหน้าที่พากลับหน้าหลัก ส่วนลูกศรอยู่ใน gutter ซ้ายของ topbar โดยไม่คาบขอบ:
-   ตอนกางชี้ซ้ายเพื่อหุบ · ตอนหุบชี้ขวาเพื่อกาง · ปุ่มตัวเดิมอยู่ตลอดเพื่อรักษา focus */
+   ตราคงหน้าที่พากลับหน้าหลัก ส่วน trigger อยู่กลาง action slot 56px แรกของ topbar:
+   สัญลักษณ์บอกการเปิด/ปิดแผงซ้ายโดยตรง ไม่อ่านเป็นปุ่ม Back · ปุ่มตัวเดิมอยู่ตลอดเพื่อรักษา focus */
 function SidebarCollapseButton({
   collapsed,
 }: {
@@ -172,31 +173,33 @@ function SidebarCollapseButton({
 }) {
   const label = collapsed ? "กางเมนู" : "หุบเมนู";
   return (
-    <Button
-      type="button"
-      variant="ghost"
-      size="icon"
-      onClick={() => writeSidebarCollapsed(!collapsed)}
-      aria-expanded={!collapsed}
-      aria-controls="app-sidebar-navigation"
-      aria-label={label}
-      title={label}
-      data-sidebar-collapse-toggle
-      className={cn(
-        INTERACTIVE_CHROME_HOVER,
-        INTERACTIVE_CHROME_PRESSED,
-        RADIUS.item,
-        // อยู่ห่างขอบ sidebar 32px = gutter เดียวกับ lg:px-8 ของ topbar/content
-        // ยังวางใน DOM ระหว่าง Link กับ nav เพื่อคงลำดับ Tab ที่เดินตามภาพ
-        "absolute -right-16 top-1/2 z-40 hidden h-8 min-h-8 w-8 min-w-8 -translate-y-1/2 shrink-0 bg-transparent p-0 text-muted shadow-none sm:h-8 sm:min-h-8 sm:w-8 sm:min-w-8 lg:inline-flex",
-      )}
+    <span
+      data-sidebar-collapse-slot
+      className="absolute left-full top-0 z-40 hidden h-14 w-14 items-center justify-center lg:flex"
     >
-      {collapsed ? (
-        <ChevronRight className="!size-3.5" strokeWidth={1.75} />
-      ) : (
-        <ChevronLeft className="!size-3.5" strokeWidth={1.75} />
-      )}
-    </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        onClick={() => writeSidebarCollapsed(!collapsed)}
+        aria-expanded={!collapsed}
+        aria-controls="app-sidebar-navigation"
+        aria-label={label}
+        title={label}
+        data-sidebar-collapse-toggle
+        className={cn(
+          INTERACTIVE_CHROME_HOVER,
+          INTERACTIVE_CHROME_PRESSED,
+          "shrink-0 bg-transparent p-0 text-muted shadow-none",
+        )}
+      >
+        {collapsed ? (
+          <PanelLeftOpen className="!size-4" strokeWidth={1.75} />
+        ) : (
+          <PanelLeftClose className="!size-4" strokeWidth={1.75} />
+        )}
+      </Button>
+    </span>
   );
 }
 
