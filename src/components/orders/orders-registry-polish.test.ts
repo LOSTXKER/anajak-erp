@@ -21,13 +21,23 @@ describe("Orders scan-first registry contract", () => {
   it("ชื่อลูกค้าเป็นบรรทัดหลัก ชื่องานเป็นบรรทัดรอง และไม่มีบรรทัดสถานะภายใน", () => {
     expect(pageSource.match(/const primaryIdentity = customerName \|\| orderTitle \|\| "—"/g)).toHaveLength(2);
     expect(pageSource.match(/customerName && orderTitle && customerName !== orderTitle/g)).toHaveLength(2);
-    expect(pageSource.match(/text-base font-semibold text-strong/g)).toHaveLength(2);
+    expect(pageSource.match(/text-base font-semibold text-strong/g)).toHaveLength(1);
+    expect(pageSource).toContain("max-w-80 truncate text-sm font-semibold text-strong");
     expect(pageSource).toContain("truncate text-sm text-secondary");
     expect(pageSource).toContain("<DataTable.Th>ลูกค้า / งาน</DataTable.Th>");
     expect(pageSource).toContain("${primaryIdentity} ${secondaryTitle}");
     expect(pageSource).not.toContain("${customerName} ${orderTitle}`.replace");
     expect(pageSource).toContain("showInternalStatus={false}");
     expect(pageSource).not.toContain("labelInternalStatus");
+  });
+
+  it("หัวตารางกลืนกับพื้นข้อมูล ข้อมูล desktop เป็น 14px และประเภทงานอยู่คอลัมน์แยก", () => {
+    expect(pageSource).toContain("max-xl:[&_td]:px-4");
+    expect(pageSource).toContain('<DataTable.Head className="bg-surface">');
+    expect(pageSource).toContain('<DataTable.Body className="[&_td]:text-sm [&_td_*]:text-sm">');
+    expect(pageSource).toContain("<DataTable.Th>ประเภทงาน</DataTable.Th>");
+    expect(pageSource).toContain('variant={order.orderType === "CUSTOM" ? "accent" : "outline"}');
+    expect(pageSource).not.toContain('secondaryTitle || order.orderType === "CUSTOM"');
   });
 
   it("ยังเปิดบรรทัดสถานะภายในให้หน้าที่ต้องรู้ขั้นจริงได้", () => {
@@ -50,7 +60,7 @@ describe("Orders scan-first registry contract", () => {
         หัวคอลัมน์แรกจึงเยื้องขวากว่าข้อมูล 20px — ตรงกับสิ่งที่ flush อ้างว่าจะกัน
      ตั้งแต่เฟส 11 ผืนหน้าเป็น near-white แต่ตารางยังใช้ bordered ปริยายและแยกด้วย edge+shadow */
   it("ทะเบียนกลับมามีกล่องครอบ และ prop flush ถูกถอดออกจากระบบแล้ว", () => {
-    expect(pageSource).toContain("<DataTable.Root>");
+    expect(pageSource).toContain("<DataTable.Root");
     expect(pageSource).not.toContain("bordered={false}");
     expect(pageSource).not.toContain(" flush");
     // primitive ต้องไม่เหลือทางกลับไปสู่แบบไม่มีกล่อง

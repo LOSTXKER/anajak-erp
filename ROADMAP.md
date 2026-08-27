@@ -99,6 +99,7 @@
 
 - [x] เปลี่ยนผืนงาน Light จากเทาชัดเป็น near-white โดยยังให้ตาราง/การ์ดขาวอ่านเป็นผิวแยกผ่าน edge + เงากลางเดิม; ปรับ contract/d่านที่ล็อกความต่างสีเก่าให้ตรงบทบาทใหม่ ไม่ปิดด่าน
 - [x] `/orders` ทั้ง desktop/mobile ใช้ **ชื่อลูกค้าเป็นบรรทัดหลัก** และชื่องานเป็นบรรทัดรอง พร้อม fallback ที่ไม่แสดงข้อมูลซ้ำ; หัวคอลัมน์เปลี่ยนเป็น “ลูกค้า / งาน”
+- [x] **Follow-up 2026-08-27 — ตารางออเดอร์อ่านเป็นชุดเดียวกัน**: หัวตารางใช้พื้นเดียวกับแถว, ค่าข้อมูลในแถว desktop เป็น 14px เท่ากันโดยคงชื่อลูกค้าเด่นด้วยน้ำหนัก, และ `ประเภทงาน` แยกเป็นคอลัมน์ของตัวเองทั้งสั่งทำ/สำเร็จรูป · ช่วง 1024–1279px ลดเฉพาะ padding แนวนอนเพื่อให้คอลัมน์หลักอยู่ครบแม้กาง sidebar โดยไม่เกิด table/page overflow · mobile card และ data flow เดิมไม่เปลี่ยน
 - [x] ย้ายช่วงวันที่ · ช่องทาง · ประเภทออเดอร์ออกมาเห็นบน toolbar ตลอด โดยใช้ control กลางแบบ flat/compact; คืนปุ่ม “ล้างตัวกรอง” เมื่อมีค่าค้าง · มือถือ 320–390px wrap เป็นกริด 2×2 โดยไม่ล้นและรายการแรกอยู่ `y=481` (มีปุ่มล้าง `y=533`)
 - [x] คง status rail, attention deep link, search, sort, pagination, CSV, empty/error/loading, URL state และ permission เดิมทั้งหมด
 - [x] Verify: targeted 11/11 · `verify:ui` · unit 1659/1659 · typecheck · lint 0 error เมื่อไม่นับไฟล์ทดลอง untracked เดิม `scripts/_probe-sidebar.tsx` · production build · detector `[]` · browserจริง Light 1280/1024/390/320 + Dark 1280 รวมเลือก/ล้างตัวกรอง, overflow, console และ hydration

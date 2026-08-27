@@ -4,6 +4,13 @@
 
 ## ตอนนี้
 
+> **✅ Orders follow-up — หัวตารางเรียบ + ตัวอักษรเท่ากัน + คอลัมน์ประเภทงาน (2026-08-27)**
+> ตาราง desktop `/orders` ใช้พื้นหัวเดียวกับผิวตารางและคง divider บางไว้ · ข้อมูลทุกคอลัมน์เป็น 14px เท่ากัน ส่วนชื่อลูกค้ายังนำชื่องานด้วย semibold/สีข้อความ ไม่ใช้ขนาดใหญ่กว่า · ย้าย `สั่งทำ/สำเร็จรูป` ออกจากช่องลูกค้าไปคอลัมน์ `ประเภทงาน` ของตัวเองและแสดง label จากข้อมูลเดิมทุกประเภท
+> ช่วง 1024–1279px ลดเฉพาะ padding แนวนอน 24→16px: ที่ 1024 sidebar หุบได้พื้นที่ 884/884px และ sidebar กางได้ 708/708px จึงไม่ต้องเลื่อนในตารางและไม่ตัดยอดรวม · 1440 คงจังหวะเดิม · mobile 390px ยังเป็นการ์ดเดิมและไม่ล้น
+> **ตรวจ browser จริงหลัง production build:** Light/Dark 1440 · Light 1024 sidebar หุบ+กาง · mobile 390 · พื้นหัว/ตาราง computed color ตรงกัน, ค่าในแถวแรกทุกตัว 14px, ลูกค้า 600/ชื่องาน 400, console warning/error 0, hydration/error overlay 0
+> **ด่าน:** regression 9/9 · unit **1660/1660** · `verify:ui` · typecheck · lint 0 error (26 warning เดิม) · production build 42 static pages · Impeccable detector `[]` · `git diff --check`
+> **ขอบเขต:** presentation + regression guard + docs เท่านั้น · query/mutation/permission/status/schema/dependency/mobile card ไม่เปลี่ยน · ไฟล์ของเบส `scripts/verify-artwork.ts`, `.cursor/`, `public/`, `scripts/_probe-sidebar.tsx` ไม่ได้แตะ
+>
 > **✅ UI-2026 ผ่านเฟส 1–12 + migration คลาวด์ (อัปเดตล่าสุด 2026-08-27)**
 > เบสสั่ง "ทำหมดเลย และทำ UXUI ให้หมดทุกหน้าด้วย ให้สม่ำเสมอ" · ใบงานเต็ม: `ROADMAP.md` หัวข้อ `UI-2026` · ตัวอย่างที่เคาะ: artifact `948ab738-2857-41a9-8770-dd6d5e263830`
 >

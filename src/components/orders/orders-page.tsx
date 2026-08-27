@@ -615,8 +615,8 @@ function OrdersPageContent() {
           // ไม่ให้ control ที่เพิ่งกดหายไปกลางการใช้งาน
           const showDeadline = hasDeadline || sortBy === "deadline";
           return (
-          <DataTable.Root>
-            <DataTable.Head>
+          <DataTable.Root className="max-xl:[&_td]:px-4 max-xl:[&_th:not([aria-sort])]:px-4 max-xl:[&_th[aria-sort]>button]:px-4">
+            <DataTable.Head className="bg-surface">
               <tr>
                 {/* การเรียงย้ายมาอยู่ที่หัวคอลัมน์แล้ว (เบสสั่ง 2026-07-31) — กดซ้ำสลับทิศ
                     เรียงได้เท่าที่ฐานข้อมูลรองรับ: เลขออเดอร์ · ยอดรวม · วันที่ · กำหนดส่ง */}
@@ -624,6 +624,7 @@ function OrdersPageContent() {
                   เลขออเดอร์
                 </DataTable.SortableTh>
                 <DataTable.Th>ลูกค้า / งาน</DataTable.Th>
+                <DataTable.Th>ประเภทงาน</DataTable.Th>
                 <DataTable.Th className="hidden min-[1360px]:table-cell">
                   ช่องทาง
                 </DataTable.Th>
@@ -647,7 +648,7 @@ function OrdersPageContent() {
                 )}
               </tr>
             </DataTable.Head>
-            <DataTable.Body>
+            <DataTable.Body className="[&_td]:text-sm [&_td_*]:text-sm">
               {orders.map((order) => {
                 const mockupCover = order.designs[0]
                   ? mockupCoverImage(order.designs[0])
@@ -677,22 +678,13 @@ function OrdersPageContent() {
                   </DataTable.Td>
                   <DataTable.Td>
                     <div className="min-w-0">
-                      <p className="max-w-80 truncate text-base font-semibold text-strong">
+                      <p className="max-w-80 truncate text-sm font-semibold text-strong">
                         {primaryIdentity}
                       </p>
-                      {(secondaryTitle || order.orderType === "CUSTOM") && (
-                        <div className="mt-0.5 flex max-w-80 min-w-0 items-center gap-1.5">
-                          {secondaryTitle && (
-                            <p className="min-w-0 flex-1 truncate text-sm text-secondary">
-                              {secondaryTitle}
-                            </p>
-                          )}
-                          {order.orderType === "CUSTOM" && (
-                            <Badge variant="accent" size="sm" className="shrink-0">
-                              {ORDER_TYPE_UI_LABELS[order.orderType]}
-                            </Badge>
-                          )}
-                        </div>
+                      {secondaryTitle && (
+                        <p className="mt-0.5 max-w-80 truncate text-sm text-secondary">
+                          {secondaryTitle}
+                        </p>
                       )}
                       <ChatLink
                         stopPropagation
@@ -701,6 +693,14 @@ function OrdersPageContent() {
                         className="mt-0.5"
                       />
                     </div>
+                  </DataTable.Td>
+                  <DataTable.Td className="whitespace-nowrap">
+                    <Badge
+                      variant={order.orderType === "CUSTOM" ? "accent" : "outline"}
+                      size="sm"
+                    >
+                      {ORDER_TYPE_UI_LABELS[order.orderType]}
+                    </Badge>
                   </DataTable.Td>
                   <DataTable.Td className="hidden text-xs text-secondary min-[1360px]:table-cell">
                     {CHANNEL_LABELS[order.channel] ?? order.channel}
