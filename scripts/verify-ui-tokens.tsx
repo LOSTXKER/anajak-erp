@@ -28,6 +28,7 @@ import {
   DASHED,
   DASHED_INTERACTIVE,
   FOCUS_BUTTON,
+  FOCUS_BUTTON_PROXY,
   FOCUS_FIELD,
   FOCUS_INSET,
   INTERACTIVE_CHROME_HOVER,
@@ -394,11 +395,31 @@ const hSm = CONTROL_H_SM.split(" ");
     !sidebarBrandHeaderSource.includes('sidebarCollapsed && "h-10 w-10 min-w-10 justify-center gap-0"') ||
     !sidebarBrandHeaderSource.includes('sidebarCollapsed && "sr-only"') ||
     sidebarBrandHeaderSource.includes('sidebarCollapsed && "hidden"') ||
-    // ลูกศรแยกจากตราและคาบขอบ sidebar โดยไม่ลงไปปนกับ nav
+    // ลูกศรแยกจากตราและเป็น edge handle เล็กที่คร่อมเส้น sidebar จริง
+    // hit area ยัง 44px แต่พื้นวงกลมที่มองเห็นมีเพียง 24px จึงไม่อ่านเป็นปุ่มเมนูอีกช่อง
     !sidebarBrandHeaderSource.includes("relative flex h-14") ||
     !sidebarCollapseButtonSource.includes("data-sidebar-collapse-toggle") ||
-    !sidebarCollapseButtonSource.includes("absolute right-0 top-1/2") ||
-    !sidebarCollapseButtonSource.includes("translate-x-full") ||
+    // Geometry ของ handle อาศัยเส้นขอบ aside เป็นแกน และระยะ 32px ฝั่ง content
+    // เป็นพื้นที่รับ hit area 44px; ถ้าสองค่านี้หาย handle จะเหลื่อมหรือทับช่องค้นหา
+    !appShellSource.includes(
+      '<aside className="hidden min-h-0 border-r border-divider bg-chrome lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:flex lg:flex-col">',
+    ) ||
+    !appShellSource.includes(
+      'className="mx-auto flex w-full min-w-0 max-w-screen-2xl flex-1 items-center gap-2 px-4 sm:px-6 lg:px-8"',
+    ) ||
+    !sidebarCollapseButtonSource.includes("absolute -right-8 top-1/2") ||
+    !sidebarCollapseButtonSource.includes("justify-start") ||
+    !sidebarCollapseButtonSource.includes("translate-x-px") ||
+    sidebarCollapseButtonSource.includes("translate-x-1/2") ||
+    sidebarCollapseButtonSource.includes("translate-x-full") ||
+    !sidebarCollapseButtonSource.includes("h-11 min-h-11 w-11 min-w-11") ||
+    !sidebarCollapseButtonSource.includes("data-sidebar-collapse-handle") ||
+    !sidebarCollapseButtonSource.includes("h-6 w-6") ||
+    !sidebarCollapseButtonSource.includes("rounded-full border border-border-strong bg-chrome") ||
+    !sidebarCollapseButtonSource.includes("focus-visible:ring-0") ||
+    !sidebarCollapseButtonSource.includes("FOCUS_BUTTON_PROXY") ||
+    !FOCUS_BUTTON_PROXY.includes("group-focus-visible:ring-2") ||
+    !FOCUS_BUTTON_PROXY.includes("group-focus-visible:ring-offset-transparent") ||
     !sidebarCollapseButtonSource.includes("z-40") ||
     !/collapsed \? \([\s\S]*?<ChevronRight[\s\S]*?\) : \([\s\S]*?<ChevronLeft/.test(
       sidebarCollapseButtonSource,

@@ -37,6 +37,7 @@ import {
 import { CONTROL_H, CONTROL_MIN_H } from "@/components/ui/control-size";
 import {
   FOCUS_BUTTON,
+  FOCUS_BUTTON_PROXY,
   FOCUS_INSET,
   INTERACTIVE_CHROME_HOVER,
   INTERACTIVE_CHROME_PRESSED,
@@ -57,6 +58,8 @@ const MOBILE_EXCLUDED_IDS = new Set<string>(MOBILE_NAV_IDS);
    เห็นค่าคนละอย่างตอน hydrate · ค่าเริ่มต้นฝั่งเซิร์ฟเวอร์คือ "กาง" เสมอ */
 const SIDEBAR_COLLAPSED_KEY = "anajak.sidebar.collapsed";
 const SIDEBAR_EVENT = "anajak:sidebar-collapsed";
+const SIDEBAR_EDGE_HANDLE_INTERACTION =
+  "group-hover:bg-interactive-chrome-hover group-hover:text-strong group-active:bg-interactive-chrome-pressed group-active:text-strong";
 
 function subscribeSidebarCollapsed(onChange: () => void) {
   window.addEventListener("storage", onChange);
@@ -183,18 +186,26 @@ function SidebarCollapseButton({
       title={label}
       data-sidebar-collapse-toggle
       className={cn(
-        INTERACTIVE_CHROME_HOVER,
-        INTERACTIVE_CHROME_PRESSED,
-        // วางปุ่มพ้น hit area ของโลโก้และพ้น flex flow เพื่อไม่ดันแนวตรา/เมนู
-        // พื้น chrome บอกความเป็นส่วนหนึ่งของ sidebar แม้ตัวปุ่มจะคาบเข้า gutter ของเนื้อหา
-        "absolute right-0 top-1/2 z-40 -translate-y-1/2 translate-x-full shrink-0 border border-divider bg-chrome text-muted sm:h-8 sm:min-h-8 sm:w-8",
+        // พื้นวงกลม 24px คาบเส้น sidebar ข้างละ 12px ส่วน hit area 44px ขยายออกไปทางเนื้อหา
+        // จึงไม่ทับลิงก์โลโก้ตอนหุบ แต่ยังกดง่ายและไม่อ่านเป็นปุ่มเมนูอีกช่อง
+        "group absolute -right-8 top-1/2 z-40 h-11 min-h-11 w-11 min-w-11 -translate-y-1/2 translate-x-px shrink-0 justify-start rounded-full !bg-transparent p-0 text-muted shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 sm:h-11 sm:min-h-11 sm:w-11 sm:min-w-11",
       )}
     >
-      {collapsed ? (
-        <ChevronRight strokeWidth={1.75} />
-      ) : (
-        <ChevronLeft strokeWidth={1.75} />
-      )}
+      <span
+        aria-hidden="true"
+        data-sidebar-collapse-handle
+        className={cn(
+          "flex h-6 w-6 items-center justify-center rounded-full border border-border-strong bg-chrome text-muted transition-colors",
+          SIDEBAR_EDGE_HANDLE_INTERACTION,
+          FOCUS_BUTTON_PROXY,
+        )}
+      >
+        {collapsed ? (
+          <ChevronRight className="!size-3.5" strokeWidth={1.75} />
+        ) : (
+          <ChevronLeft className="!size-3.5" strokeWidth={1.75} />
+        )}
+      </span>
     </Button>
   );
 }
@@ -433,7 +444,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
 
         {/* ตอนหุบ: จองรางแถบเลื่อน "ทั้งสองข้าง" ไม่งั้นแถบเลื่อนที่กินที่จริง 10px
             (::-webkit-scrollbar ใน globals.css) จะดันไอคอนไปทางซ้าย 5px
-            วัดจริงแล้ว: ไอคอนเมนูอยู่กลางที่ 26.5 ส่วนตรากับปุ่มหุบอยู่ที่ 31.5
+            วัดจริงแล้ว: ไอคอนเมนูอยู่กลางที่ 26.5 ส่วนตราอยู่ที่ 31.5
             ตอนกางไม่ใช้ both-edges เพราะจะกินความกว้างของชื่อเมนูไป 20px เปล่า ๆ */}
         <nav
           id="app-sidebar-navigation"

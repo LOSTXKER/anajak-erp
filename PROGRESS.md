@@ -4,6 +4,13 @@
 
 ## ตอนนี้
 
+> **✅ Sidebar follow-up รอบสาม — edge handle เล็กคาบขอบแบบ minimal (2026-08-27)**
+> เบสชี้ว่าปุ่มลูกศร 32px ที่ถูกผลักออกจาก sidebar ทั้งก้อนยังอ่านเป็นช่องเมนูใหญ่อีกช่อง ไม่ใช่ handle แบบเว็บทั่วไป · แก้ component กลางให้วงกลมที่มองเห็นเหลือ **24×24px** พร้อม chevron 14px และวางศูนย์กลางตรงเส้นขอบ sidebar พอดีทั้งตอนกาง/หุบ
+> พื้นที่กดจริงยัง **44×44px** แต่ขยายออกไปทางเนื้อหา ไม่คร่อมเข้าด้านโลโก้: ตอนหุบโลโก้ x=11.5–51.5, hit area x=52–96, handle x=52–76, overlap 0 และศูนย์ handle ตรงขอบ x=64; ตอนกาง hit area x=228–272, handle x=228–252 ตรงขอบ x=240 · ขอบวงใช้ `border-strong` ให้ผ่าน 3:1 และวง focus เกาะ handle จริงแทนกล่องโปร่ง 44px
+> **ตรวจ browser จริง:** Light/Dark ที่ 1512×776 ทั้งกาง/หุบ · focus คงอยู่หลัง toggle, `aria-expanded`/ชื่อ “หุบเมนู–กางเมนู” ตรงสถานะ, Tab แสดงวง focus ที่ handle, horizontal overflow 0, app console warning/error 0 และไม่มี error overlay · mobile 390×844 ซ่อน aside/handle จริงและคง bottom navigation โดยไม่ล้น
+> **ด่าน:** unit **1660/1660** · `verify:ui` · typecheck · lint ไฟล์ที่แตะ 0 error · Impeccable detector `[]` · browser geometry/interaction ผ่าน
+> **ขอบเขต:** presentation/accessibility + regression guard + docs เท่านั้น · navigation destination/state persistence/mobile shell/query/mutation/permission/status/schema/dependency ไม่เปลี่ยน · ไฟล์ของเบส `scripts/verify-artwork.ts`, `.cursor/`, `public/`, `scripts/_probe-sidebar.tsx` ไม่ได้แตะ
+>
 > **✅ เฟส 13 — ตารางและความสม่ำเสมอทั้งเว็บ (2026-08-27)**
 > เบสทักว่ารอบก่อนแก้หัวตาราง/ขนาดข้อความเฉพาะ `/orders` จึงไล่บัญชีใหม่ทั้งระบบ: `DataTable` 21 จุด · raw dashboard table 10 จุด (8 มีหัว + 2 summary ไม่มีหัว) · public 1 · print A4 8 · responsive mobile list 13 · route ใน typography inventory 54 หน้า แล้วแยก **list table หลังบ้าน** ออกจาก compact form/detail table, public, print และ Factory/Station ที่มีหน้าที่เฉพาะ ไม่ใช้ CSS เหมารวมจนทำให้ใบพิมพ์หรือจอหน้างานเพี้ยน
 > **แก้ที่ฐานกลาง:** หัว `DataTable` โปร่งเพื่อรับสีผิวตารางเดียวกันทุกหน้าและคง divider · ข้อมูลทุกระดับใน body เป็น 14px เท่ากันโดยใช้ weight/color สร้างลำดับ · cell spacing และ `ListSkeleton` ตรงกับของจริง · ถอน override เฉพาะ `/orders` และเพิ่ม `verify:ui` กวาด caller/raw table กันหน้าใดกลับไปย้อมหัวหรือบีบตัวอักษรเอง
@@ -12,7 +19,7 @@
 > **ด่าน:** targeted 11/11 · unit **1660/1660** · `verify:ui` · typecheck · lint 0 error (26 warning เดิม) · production build 42 static pages · Impeccable detector `[]` · `git diff --check`
 > **ขอบเขต:** presentation/accessibility + regression guard + docs เท่านั้น · query/mutation/permission/status/schema/dependency ไม่เปลี่ยน · แยก follow-up ที่ต้องออกแบบ behavior/architecture ออกต่างหากใน ROADMAP (CardTitle hierarchy, PageShell states, settings mobile, add-product keyboard, outsource delete undo) · ไฟล์ของเบส `scripts/verify-artwork.ts`, `.cursor/`, `public/`, `scripts/_probe-sidebar.tsx` ไม่ได้แตะ
 >
-> **✅ Sidebar follow-up รอบสอง — แยกโลโก้กับปุ่มลูกศร (2026-08-27)**
+> **✅ Sidebar follow-up รอบสอง — แยกโลโก้กับปุ่มลูกศร (ประวัติ · ถูกแทนที่รอบสาม 2026-08-27)**
 > ตรา Anajak Print กลับเป็นลิงก์หน้าหลักทั้งตอนกางและหุบ · ปุ่มหุบ/กางเป็น chevron แยกที่ขอบขวาของหัว sidebar: ตอนกางชี้ซ้ายเพื่อหุบ ตอนหุบชี้ขวาเพื่อกาง · ปุ่มตัวเดิมคงอยู่ตลอด จึงรักษา focus, `aria-expanded`, `aria-controls` และลำดับ Tab `Link → Button → nav`
 > **ตรวจ browser จริงหลัง production build:** `/orders` Light/Dark ที่ 1280 และ 1024 + mobile 390 · ตอนหุบโลโก้ 40×40px (x=11.5–51.5) และลูกศร 32×32px (x=63–95) แยกกัน overlap 0 · ตอนกางลูกศรอยู่ x=239–271 ใน gutter ของเนื้อหา · ไม่มี horizontal overflow · focus คงอยู่หลังหุบ/กาง · ลิงก์โลโก้ยังชื่อ `Anajak Print` และ href `/` · mobile ซ่อน sidebar/ใช้แถบล่างเดิม · console warning/error 0 และไม่มี hydration/error overlay
 > **ด่าน:** unit **1660/1660** · `verify:ui` · typecheck · lint 0 error (26 warning เดิม) · production build 42 static pages · Impeccable detector `[]` · `git diff --check`
