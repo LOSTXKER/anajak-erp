@@ -394,7 +394,8 @@ const hSm = CONTROL_H_SM.split(" ");
     !sidebarBrandHeaderSource.includes('sidebarCollapsed && "h-10 w-10 min-w-10 justify-center gap-0"') ||
     !sidebarBrandHeaderSource.includes('sidebarCollapsed && "sr-only"') ||
     sidebarBrandHeaderSource.includes('sidebarCollapsed && "hidden"') ||
-    // trigger แยกจากตราใน DOM เพื่อรักษาลำดับ Tab แต่วางกลาง action slot 56px แรกของ topbar
+    // trigger แยกจากตราใน DOM เพื่อรักษาลำดับ Tab: ตอนกางอยู่ท้าย brand header
+    // ตอนหุบค่อยไป action slot 56px แรกของ topbar เพราะราง 64px วางสองเป้ากดไม่ได้
     // visual/hit area/feedback ใช้ Button มาตรฐานชุดเดียว ไม่คาบ divider หรือสร้าง focus proxy
     !sidebarBrandHeaderSource.includes("relative flex h-14") ||
     !sidebarCollapseButtonSource.includes("data-sidebar-collapse-toggle") ||
@@ -406,8 +407,15 @@ const hSm = CONTROL_H_SM.split(" ");
       'className="mx-auto flex w-full min-w-0 max-w-screen-2xl flex-1 items-center gap-2 px-4 sm:px-6 lg:px-8"',
     ) ||
     !sidebarCollapseButtonSource.includes(
-      "absolute left-full top-0 z-40 hidden h-14 w-14 items-center justify-center lg:flex",
+      'data-sidebar-collapse-placement={collapsed ? "topbar" : "sidebar"}',
     ) ||
+    !sidebarCollapseButtonSource.includes(
+      '"pointer-events-none z-40 hidden items-center justify-center lg:flex"',
+    ) ||
+    !sidebarCollapseButtonSource.includes(
+      '? "absolute left-full top-0 h-14 w-14"',
+    ) ||
+    !sidebarCollapseButtonSource.includes(': "ml-auto shrink-0"') ||
     !sidebarCollapseButtonSource.includes('type="button"') ||
     !sidebarCollapseButtonSource.includes('variant="ghost"') ||
     sidebarCollapseButtonSource.includes("variant={null}") ||
@@ -416,6 +424,7 @@ const hSm = CONTROL_H_SM.split(" ");
     !sidebarCollapseButtonSource.includes("aria-expanded={!collapsed}") ||
     !sidebarCollapseButtonSource.includes('aria-controls="app-sidebar-navigation"') ||
     !sidebarCollapseButtonSource.includes("aria-label={label}") ||
+    !sidebarCollapseButtonSource.includes("pointer-events-auto") ||
     !sidebarCollapseButtonSource.includes("bg-transparent p-0") ||
     !sidebarCollapseButtonSource.includes("text-muted") ||
     !sidebarCollapseButtonSource.includes("INTERACTIVE_CHROME_HOVER") ||

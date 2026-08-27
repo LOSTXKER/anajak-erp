@@ -4,7 +4,13 @@
 
 ## ตอนนี้
 
-> **✅ Sidebar follow-up รอบแปด — topbar action มาตรฐาน (2026-08-28)**
+> **✅ Sidebar follow-up รอบเก้า — ปุ่มตามเจ้าของพื้นที่ในแต่ละสถานะ (2026-08-28)**
+> ภาพจากเบสชี้ว่าตอน sidebar กาง ปุ่มซึ่งอยู่นอก divider ทั้งก้อนอ่านเป็น utility ที่ลอยเดี่ยวใน topbar ไม่ใช่ส่วนควบคุม sidebar · เปลี่ยนเป็น state-aware โดยใช้ button node เดิม: **ตอนกาง** ปุ่มหุบอยู่ท้าย brand header ภายในราง 240px; **ตอนหุบ** คงตราเป็นลิงก์กลางราง 64px แล้วค่อยย้ายปุ่มกางไป action slot 56px แรกของ topbar เพราะรางแคบวางเป้ากด 36/44px สองอันคู่กันไม่ได้โดยไม่ทับกัน
+> **ตรวจ browser จริง:** Dark 1512×776 ทั้งกาง/หุบ และ Light 1512×776 + Light 1024×768 ตอนกาง · expanded: sidebar right=240, brand x=24–149.27, ปุ่ม x=195–231 จึงห่างชื่อ 45.73px และเหลือ 9px ถึง divider; collapsed: ตรา x=11.5–51.5, slot x=63–119, ปุ่ม x=73–109, overlap=0 และเหลือ 9px จาก divider · focus คงหลังคลิก, `aria-expanded`/ชื่อ/placement ตรงสถานะ, hover ลงทั้งปุ่ม 36px, ที่ 1024px ปุ่มห่าง search 423px และทุกจอ horizontal overflow 0 · mobile 390×844 ซ่อน aside+slot จริงและคง bottom navigation 75px · console warning/error 0, Next.js portal ว่าง 0×0 และหน้าไม่ว่าง
+> **ด่าน:** unit **1660/1660** · `verify:ui` · typecheck · targeted lint 0 error · full lint (ยกเว้นไฟล์ทดลองเดิม `scripts/_probe-sidebar.tsx`) 0 error/26 warning เดิม · production build 42 static pages · Impeccable layout detector `[]` · `git diff --check`
+> **ขอบเขต:** presentation/accessibility + regression guard + docs เท่านั้น · mobile shell/navigation/query/mutation/permission/status/schema/dependency ไม่เปลี่ยน · ไฟล์ของเบส `scripts/verify-artwork.ts`, `.cursor/`, `public/`, `scripts/_probe-sidebar.tsx` ไม่ได้แตะ
+>
+> **✅ Sidebar follow-up รอบแปด — topbar action มาตรฐาน (ประวัติ · ถูกแทนที่รอบเก้า 2026-08-28)**
 > ภาพจริงชี้ว่าปุ่มคาบ divider ทำให้พื้นที่กดกับ feedback ต้องเยื้องกันและดูไม่มีเจ้าของ · คืน `PanelLeftOpen/Close` เข้า action slot **56px** แรกของ topbar ฝั่งขวาเส้นแบ่ง โดยใช้ `Button` ghost มาตรฐานทั้งก้อน **36×36px** / coarse pointer **44×44px**; ถอน magic offset, visual ซ้อน, hover/focus proxy และการปิด focus ring ออกทั้งหมด
 > ปุ่มอยู่ตำแหน่งเดิมทั้งตอนกาง/หุบและเว้นจาก divider จริง **9px** จึงยังเชื่อมกับ sidebar โดยไม่คาบเส้นหรือชนตรา · คง DOM order `Link → toggle → nav`, node/focus เดิม, localStorage, `aria-expanded`, `aria-controls` และชื่อ “หุบเมนู–กางเมนู”
 > **ตรวจ browser จริง:** Dark 1512×776 และ Light 1512×776/1024×768 ทั้งกาง/หุบ · ตอนกาง sidebar right=240, slot x=239–295, ปุ่ม x=249–285; ตอนหุบ right=64, slot x=63–119, ปุ่ม x=73–109 · logo overlap 0, focus คงหลังสลับ, icon/ARIA ตรงสถานะ และ horizontal overflow 0 · mobile 390×844 ซ่อน slot+sidebar จริง, bottom navigation สูง 75px ยังอยู่, หน้าไม่ว่างและไม่ล้น · console warning/error 0, Next.js portal ว่างขนาด 0×0 ไม่มี error overlay ที่มองเห็น

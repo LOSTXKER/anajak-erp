@@ -164,8 +164,9 @@ function SidebarBrandMark() {
 }
 
 /* ปุ่มหุบ/กางเมนูแยกจากตราอย่างชัดเจน (เบสสั่ง 2026-08-27)
-   trigger อยู่กลาง action slot 56px แรกของ topbar ให้เจ้าของพื้นที่ชัดและไม่คาบเส้น divider
-   ใช้ปุ่มมาตรฐานทั้ง visual/hit area/feedback · ปุ่มตัวเดิมอยู่ตลอดเพื่อรักษา focus */
+   ตอนกางให้อยู่ในหัว sidebar ข้างแบรนด์ · ตอนหุบค่อยย้ายไป action slot แรกของ topbar
+   เพราะราง 64px วางลิงก์ตราและเป้ากดมาตรฐานสองอันคู่กันไม่ได้โดยไม่ทับกัน
+   ใช้ปุ่ม node เดิมทั้งสองสถานะเพื่อรักษา focus และไม่คาบเส้น divider */
 function SidebarCollapseButton({
   collapsed,
 }: {
@@ -175,7 +176,13 @@ function SidebarCollapseButton({
   return (
     <span
       data-sidebar-collapse-slot
-      className="absolute left-full top-0 z-40 hidden h-14 w-14 items-center justify-center lg:flex"
+      data-sidebar-collapse-placement={collapsed ? "topbar" : "sidebar"}
+      className={cn(
+        "pointer-events-none z-40 hidden items-center justify-center lg:flex",
+        collapsed
+          ? "absolute left-full top-0 h-14 w-14"
+          : "ml-auto shrink-0",
+      )}
     >
       <Button
         type="button"
@@ -190,7 +197,7 @@ function SidebarCollapseButton({
         className={cn(
           INTERACTIVE_CHROME_HOVER,
           INTERACTIVE_CHROME_PRESSED,
-          "shrink-0 bg-transparent p-0 text-muted shadow-none",
+          "pointer-events-auto shrink-0 bg-transparent p-0 text-muted shadow-none",
         )}
       >
         {collapsed ? (
@@ -398,8 +405,9 @@ function AppShellContent({ children }: { children: ReactNode }) {
         {/* ตราย้ายลงมาอยู่หัวเมนูซ้าย เพราะแถบบนไม่พาดทับคอลัมน์นี้แล้ว
             ความสูง 3rem เท่าแถบบน เส้นล่างจึงต่อกันเป็นเส้นเดียวข้ามทั้งจอ
             (เดิมช่องตรากว้าง 240px แต่มีของจริงแค่ ~126px และเส้นแนวตั้งหักกลางคัน) */}
-        {/* ตราเป็นลิงก์หน้าหลักเสมอ ส่วนลูกศรเป็นปุ่มหุบ/กางแยกที่ขอบ sidebar
-            DOM ยังเรียง Link → Button → nav ตรงกับภาพและลำดับ Tab (WCAG 2.4.3) */}
+        {/* ตราเป็นลิงก์หน้าหลักเสมอ ส่วนปุ่มหุบอยู่ท้ายหัว sidebar ตอนกาง
+            และย้ายออกไป action slot ของ topbar เฉพาะตอนหุบที่ราง 64px วางสองเป้ากดไม่ได้
+            DOM ยังเรียง Link → Button → nav และใช้ button node เดิมเพื่อคง focus (WCAG 2.4.3) */}
         <div
           data-sidebar-brand-header
           className={cn(
