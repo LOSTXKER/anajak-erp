@@ -4,6 +4,13 @@
 
 ## ตอนนี้
 
+> **⏸ รอเบสเคาะ — ปุ่มหุบเมนูรอบสิบ ทำ mockup แทนการแก้โค้ด (2026-08-28)**
+> เบสส่งภาพตอน sidebar หุบแล้วบอก "ไม่ชอบที่มันวางแบบนี้ อยากได้แบบมาตรฐานที่เขาทำกัน" · แก้โค้ดมาเก้ารอบแล้วยังไม่ผ่าน จึงหยุดแก้โค้ดตามกฎ "ดู mockup ก่อนแตะโค้ด" แล้วไปหาหลักฐานว่ามาตรฐานจริงคืออะไร
+> **สำรวจมาแล้ว:** shadcn/ui วาง `SidebarTrigger` เป็นชิ้นแรกใน header ของ `SidebarInset` (`-ml-1` + `Separator` + `Breadcrumb`) ทุก block ตั้งแต่ sidebar-01 ถึง sidebar-15 และ **ปุ่มไม่ย้าย DOM ไม่เปลี่ยนไอคอน** ตอนหุบ · สำรวจ 12 แอปได้ 5 pattern: ปักหัวเนื้อหา (GitHub/GitLab/Intercom/shadcn) · หัว sidebar แล้วย้ายตอนหุบ (Notion/Jira/Height/Linear) · เส้นแบ่งคือปุ่ม (Linear/Slack/SidebarRail) · คลัสเตอร์มุมขวาบน (VS Code) · rail+hover peek (Supabase) · และ **8 ใน 12 แอปมีคีย์ลัด** (shadcn = Ctrl/Cmd+B)
+> **mockup กดเล่นได้:** `docs/mockups/sidebar-toggle-2026-08-28.html` → artifact https://claude.ai/code/artifact/16df6291-b881-4b31-a5c4-ad60450e1ccb · เทียบ 4 แบบ (ของเดิม · ก หัวเนื้อหา · ข เส้นแบ่ง · ค หุบแล้วซ่อน) สลับธีมสว่าง/มืดได้ ใช้ token จริงจาก globals.css (แบรนด์ #3973b2 · red #d92d20 · Prompt + JetBrains Mono)
+> **คัดออกแล้วเพราะเบสเคยปฏิเสธ:** ปุ่มเป็นแถวใน `<nav>` (บน/ล่าง) · ตราเป็นปุ่มกางเอง · ปุ่มสี่เหลี่ยมยืนเดี่ยวในราง · bubble/edge tab ยื่นจากเส้น · ปุ่มคาบ divider · state-aware แบบรอบเก้า (= ของที่อยู่บนจอตอนนี้)
+> **NEXT:** รอเบสเลือกแบบจาก mockup → ค่อยแก้ `src/components/layout/app-shell.tsx` ตามที่เคาะ · **ยังไม่ได้แตะโค้ดแอป** commit นี้มีแค่ไฟล์ mockup + PROGRESS
+>
 > **✅ Sidebar follow-up รอบเก้า — ปุ่มตามเจ้าของพื้นที่ในแต่ละสถานะ (2026-08-28)**
 > ภาพจากเบสชี้ว่าตอน sidebar กาง ปุ่มซึ่งอยู่นอก divider ทั้งก้อนอ่านเป็น utility ที่ลอยเดี่ยวใน topbar ไม่ใช่ส่วนควบคุม sidebar · เปลี่ยนเป็น state-aware โดยใช้ button node เดิม: **ตอนกาง** ปุ่มหุบอยู่ท้าย brand header ภายในราง 240px; **ตอนหุบ** คงตราเป็นลิงก์กลางราง 64px แล้วค่อยย้ายปุ่มกางไป action slot 56px แรกของ topbar เพราะรางแคบวางเป้ากด 36/44px สองอันคู่กันไม่ได้โดยไม่ทับกัน
 > **ตรวจ browser จริง:** Dark 1512×776 ทั้งกาง/หุบ และ Light 1512×776 + Light 1024×768 ตอนกาง · expanded: sidebar right=240, brand x=24–149.27, ปุ่ม x=195–231 จึงห่างชื่อ 45.73px และเหลือ 9px ถึง divider; collapsed: ตรา x=11.5–51.5, slot x=63–119, ปุ่ม x=73–109, overlap=0 และเหลือ 9px จาก divider · focus คงหลังคลิก, `aria-expanded`/ชื่อ/placement ตรงสถานะ, hover ลงทั้งปุ่ม 36px, ที่ 1024px ปุ่มห่าง search 423px และทุกจอ horizontal overflow 0 · mobile 390×844 ซ่อน aside+slot จริงและคง bottom navigation 75px · console warning/error 0, Next.js portal ว่าง 0×0 และหน้าไม่ว่าง
