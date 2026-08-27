@@ -166,7 +166,7 @@ function SidebarBrandMark() {
 }
 
 /* ปุ่มหุบ/กางเมนูแยกจากตราอย่างชัดเจน (เบสสั่ง 2026-08-27)
-   ตราคงหน้าที่พากลับหน้าหลัก ส่วนลูกศรยืนคาบขอบ sidebar ตามแบบที่ผู้ใช้คุ้นเคย:
+   ตราคงหน้าที่พากลับหน้าหลัก ส่วนลูกศรเป็น tab เล็กที่ต่อออกจากขอบ sidebar:
    ตอนกางชี้ซ้ายเพื่อหุบ · ตอนหุบชี้ขวาเพื่อกาง · ปุ่มตัวเดิมอยู่ตลอดเพื่อรักษา focus */
 function SidebarCollapseButton({
   collapsed,
@@ -186,16 +186,16 @@ function SidebarCollapseButton({
       title={label}
       data-sidebar-collapse-toggle
       className={cn(
-        // พื้นวงกลม 24px คาบเส้น sidebar ข้างละ 12px ส่วน hit area 44px ขยายออกไปทางเนื้อหา
-        // จึงไม่ทับลิงก์โลโก้ตอนหุบ แต่ยังกดง่ายและไม่อ่านเป็นปุ่มเมนูอีกช่อง
-        "group absolute -right-8 top-1/2 z-40 h-11 min-h-11 w-11 min-w-11 -translate-y-1/2 translate-x-px shrink-0 justify-start rounded-full !bg-transparent p-0 text-muted shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 sm:h-11 sm:min-h-11 sm:w-11 sm:min-w-11",
+        // hit area 44px เริ่มก่อนเส้นขอบ 12px แต่ tab ที่เห็นเริ่มตรงเส้นขอบพอดี
+        // แล้วยื่นออกฝั่งเนื้อหาเท่านั้น จึงไม่เป็นวงกลมลอยและไม่ทับลิงก์โลโก้
+        "group absolute -right-8 top-1/2 z-40 h-11 min-h-11 w-11 min-w-11 -translate-y-1/2 translate-x-px shrink-0 justify-start rounded-none !bg-transparent p-0 pl-3 text-muted shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 sm:h-11 sm:min-h-11 sm:w-11 sm:min-w-11",
       )}
     >
       <span
         aria-hidden="true"
         data-sidebar-collapse-handle
         className={cn(
-          "flex h-6 w-6 items-center justify-center rounded-full border border-border-strong bg-chrome text-muted transition-colors",
+          "flex h-7 w-5 items-center justify-center rounded-r-md border border-l-0 border-divider bg-chrome text-muted transition-colors",
           SIDEBAR_EDGE_HANDLE_INTERACTION,
           FOCUS_BUTTON_PROXY,
         )}

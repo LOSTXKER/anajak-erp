@@ -4,7 +4,14 @@
 
 ## ตอนนี้
 
-> **✅ Sidebar follow-up รอบสาม — edge handle เล็กคาบขอบแบบ minimal (2026-08-27)**
+> **✅ Sidebar follow-up รอบสี่ — edge tab มาตรฐาน ไม่ใช่วงกลมลอย (2026-08-27)**
+> เบสชี้ว่าการทำวงกลมคาบเส้นทำให้ control ดูเหมือน bubble ลอยและตลก · เปลี่ยนชิ้นที่เห็นเป็น **tab 20×28px** เริ่มตรงเส้นขอบ sidebar แล้วยื่นออกฝั่งเนื้อหา ใช้มุมโค้งเฉพาะด้านขวา ไม่มีขอบซ้ายและไม่มีเงา; chevron ยัง 14px และทิศตรงกับกาง/หุบ
+> พื้นที่กดจริงยัง **44×44px**: ตอนหุบโลโก้ x=11.5–51.5, hit area x=52–96, tab x=64–84, overlap 0; ตอนกาง hit area x=228–272, tab x=240–260 · regression guard ล็อก geometry ของเส้นขอบ sidebar, gutter 32px, hit area และห้าม `rounded-full`/`border-strong` กลับมา
+> **ตรวจ browser จริง:** Light/Dark ที่ 1512×720 ทั้งกาง/หุบ · Tab แสดง focus ที่ tab จริง, Enter สลับสถานะและรักษา focus, `aria-expanded`/ชื่อ “หุบเมนู–กางเมนู” ตรงสถานะ, horizontal overflow 0 · navigation/mobile shell/query/mutation/permission/status ไม่เปลี่ยน
+> **ด่าน:** unit **1660/1660** · `verify:ui` · typecheck · targeted lint 0 error · browser geometry/interaction ผ่าน
+> **ขอบเขต:** presentation/accessibility + regression guard + docs เท่านั้น · ไฟล์ของเบส `scripts/verify-artwork.ts`, `.cursor/`, `public/`, `scripts/_probe-sidebar.tsx` ไม่ได้แตะ
+>
+> **✅ Sidebar follow-up รอบสาม — edge handle เล็กคาบขอบแบบ minimal (ประวัติ · ถูกแทนที่รอบสี่ 2026-08-27)**
 > เบสชี้ว่าปุ่มลูกศร 32px ที่ถูกผลักออกจาก sidebar ทั้งก้อนยังอ่านเป็นช่องเมนูใหญ่อีกช่อง ไม่ใช่ handle แบบเว็บทั่วไป · แก้ component กลางให้วงกลมที่มองเห็นเหลือ **24×24px** พร้อม chevron 14px และวางศูนย์กลางตรงเส้นขอบ sidebar พอดีทั้งตอนกาง/หุบ
 > พื้นที่กดจริงยัง **44×44px** แต่ขยายออกไปทางเนื้อหา ไม่คร่อมเข้าด้านโลโก้: ตอนหุบโลโก้ x=11.5–51.5, hit area x=52–96, handle x=52–76, overlap 0 และศูนย์ handle ตรงขอบ x=64; ตอนกาง hit area x=228–272, handle x=228–252 ตรงขอบ x=240 · ขอบวงใช้ `border-strong` ให้ผ่าน 3:1 และวง focus เกาะ handle จริงแทนกล่องโปร่ง 44px
 > **ตรวจ browser จริง:** Light/Dark ที่ 1512×776 ทั้งกาง/หุบ · focus คงอยู่หลัง toggle, `aria-expanded`/ชื่อ “หุบเมนู–กางเมนู” ตรงสถานะ, Tab แสดงวง focus ที่ handle, horizontal overflow 0, app console warning/error 0 และไม่มี error overlay · mobile 390×844 ซ่อน aside/handle จริงและคง bottom navigation โดยไม่ล้น

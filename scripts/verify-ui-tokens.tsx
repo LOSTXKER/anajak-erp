@@ -395,8 +395,8 @@ const hSm = CONTROL_H_SM.split(" ");
     !sidebarBrandHeaderSource.includes('sidebarCollapsed && "h-10 w-10 min-w-10 justify-center gap-0"') ||
     !sidebarBrandHeaderSource.includes('sidebarCollapsed && "sr-only"') ||
     sidebarBrandHeaderSource.includes('sidebarCollapsed && "hidden"') ||
-    // ลูกศรแยกจากตราและเป็น edge handle เล็กที่คร่อมเส้น sidebar จริง
-    // hit area ยัง 44px แต่พื้นวงกลมที่มองเห็นมีเพียง 24px จึงไม่อ่านเป็นปุ่มเมนูอีกช่อง
+    // ลูกศรแยกจากตราและเป็น edge tab เล็กที่ต่อออกจากเส้น sidebar จริง
+    // hit area ยัง 44px แต่ชิ้นที่เห็น 20×28px ยื่นออกฝั่งเนื้อหา จึงไม่เป็น bubble ลอยบนเส้น
     !sidebarBrandHeaderSource.includes("relative flex h-14") ||
     !sidebarCollapseButtonSource.includes("data-sidebar-collapse-toggle") ||
     // Geometry ของ handle อาศัยเส้นขอบ aside เป็นแกน และระยะ 32px ฝั่ง content
@@ -409,13 +409,17 @@ const hSm = CONTROL_H_SM.split(" ");
     ) ||
     !sidebarCollapseButtonSource.includes("absolute -right-8 top-1/2") ||
     !sidebarCollapseButtonSource.includes("justify-start") ||
+    !sidebarCollapseButtonSource.includes("rounded-none") ||
+    !sidebarCollapseButtonSource.includes("p-0 pl-3") ||
     !sidebarCollapseButtonSource.includes("translate-x-px") ||
     sidebarCollapseButtonSource.includes("translate-x-1/2") ||
     sidebarCollapseButtonSource.includes("translate-x-full") ||
     !sidebarCollapseButtonSource.includes("h-11 min-h-11 w-11 min-w-11") ||
     !sidebarCollapseButtonSource.includes("data-sidebar-collapse-handle") ||
-    !sidebarCollapseButtonSource.includes("h-6 w-6") ||
-    !sidebarCollapseButtonSource.includes("rounded-full border border-border-strong bg-chrome") ||
+    !sidebarCollapseButtonSource.includes("h-7 w-5") ||
+    !sidebarCollapseButtonSource.includes("rounded-r-md border border-l-0 border-divider bg-chrome") ||
+    sidebarCollapseButtonSource.includes("rounded-full") ||
+    sidebarCollapseButtonSource.includes("border-border-strong") ||
     !sidebarCollapseButtonSource.includes("focus-visible:ring-0") ||
     !sidebarCollapseButtonSource.includes("FOCUS_BUTTON_PROXY") ||
     !FOCUS_BUTTON_PROXY.includes("group-focus-visible:ring-2") ||
