@@ -390,32 +390,26 @@ const hSm = CONTROL_H_SM.split(" ");
     !appShellSource.includes('sidebarCollapsed && "px-0 [scrollbar-gutter:stable_both-edges]"') ||
     // ปุ่มเมนูตอนหุบต้องเป็นสี่เหลี่ยมจัตุรัส 40px วางกลางราง
     !appShellSource.includes('collapsed && "mx-auto h-10 w-10 justify-center gap-0 px-0 py-0"') ||
-    // ตราเป็นลิงก์หน้าหลักทั้งสองสถานะ: ตอนหุบยังเห็นตรา 40px แต่ซ่อนเฉพาะชื่อด้วย sr-only
-    !sidebarBrandHeaderSource.includes('sidebarCollapsed && "h-10 w-10 min-w-10 justify-center gap-0"') ||
-    !sidebarBrandHeaderSource.includes('sidebarCollapsed && "sr-only"') ||
-    sidebarBrandHeaderSource.includes('sidebarCollapsed && "hidden"') ||
-    // trigger แยกจากตราใน DOM เพื่อรักษาลำดับ Tab: ตอนกางอยู่ท้าย brand header
-    // ตอนหุบค่อยไป action slot 56px แรกของ topbar เพราะราง 64px วางสองเป้ากดไม่ได้
+    // ตอนหุบ ตราหายทั้งก้อน เหลือปุ่มยืนกลางราง 64px (เบสเคาะ 2026-08-28)
+    // ราง 64px วางตรา 28px กับเป้ากด 36px คู่กันไม่ได้โดยไม่ทับกัน — เรขาคณิต ไม่ใช่รสนิยม
+    // ห้ามกลับไปคง sr-only ให้ตราตอนหุบ เพราะตราจะแย่งที่กับปุ่มอีก
+    !sidebarBrandHeaderSource.includes("{!sidebarCollapsed && (") ||
+    !sidebarBrandHeaderSource.includes('sidebarCollapsed ? "justify-center px-0" : "pl-6 pr-1"') ||
+    sidebarBrandHeaderSource.includes('sidebarCollapsed && "sr-only"') ||
+    // ปุ่มอยู่ในหัวเมนูตำแหน่งเดียวทั้งสองสถานะ ห้ามย้ายข้ามเส้นแบ่งไป topbar อีก
     // visual/hit area/feedback ใช้ Button มาตรฐานชุดเดียว ไม่คาบ divider หรือสร้าง focus proxy
     !sidebarBrandHeaderSource.includes("relative flex h-14") ||
     !sidebarCollapseButtonSource.includes("data-sidebar-collapse-toggle") ||
-    !sidebarCollapseButtonSource.includes("data-sidebar-collapse-slot") ||
+    sidebarCollapseButtonSource.includes("data-sidebar-collapse-slot") ||
+    sidebarCollapseButtonSource.includes("data-sidebar-collapse-placement") ||
+    sidebarCollapseButtonSource.includes("absolute left-full") ||
     !appShellSource.includes(
       '<aside className="hidden min-h-0 border-r border-divider bg-chrome lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:flex lg:flex-col">',
     ) ||
     !appShellSource.includes(
       'className="mx-auto flex w-full min-w-0 max-w-screen-2xl flex-1 items-center gap-2 px-4 sm:px-6 lg:px-8"',
     ) ||
-    !sidebarCollapseButtonSource.includes(
-      'data-sidebar-collapse-placement={collapsed ? "topbar" : "sidebar"}',
-    ) ||
-    !sidebarCollapseButtonSource.includes(
-      '"pointer-events-none z-40 hidden items-center justify-center lg:flex"',
-    ) ||
-    !sidebarCollapseButtonSource.includes(
-      '? "absolute left-full top-0 h-14 w-14"',
-    ) ||
-    !sidebarCollapseButtonSource.includes(': "ml-auto shrink-0"') ||
+    !sidebarCollapseButtonSource.includes('!collapsed && "ml-auto"') ||
     !sidebarCollapseButtonSource.includes('type="button"') ||
     !sidebarCollapseButtonSource.includes('variant="ghost"') ||
     sidebarCollapseButtonSource.includes("variant={null}") ||
@@ -424,13 +418,15 @@ const hSm = CONTROL_H_SM.split(" ");
     !sidebarCollapseButtonSource.includes("aria-expanded={!collapsed}") ||
     !sidebarCollapseButtonSource.includes('aria-controls="app-sidebar-navigation"') ||
     !sidebarCollapseButtonSource.includes("aria-label={label}") ||
-    !sidebarCollapseButtonSource.includes("pointer-events-auto") ||
     !sidebarCollapseButtonSource.includes("bg-transparent p-0") ||
     !sidebarCollapseButtonSource.includes("text-muted") ||
     !sidebarCollapseButtonSource.includes("INTERACTIVE_CHROME_HOVER") ||
     !sidebarCollapseButtonSource.includes("INTERACTIVE_CHROME_PRESSED") ||
-    !sidebarCollapseButtonSource.includes("PanelLeftOpen") ||
-    !sidebarCollapseButtonSource.includes("PanelLeftClose") ||
+    // ไอคอนตัวเดียวจบตามมาตรฐาน shadcn — ไอคอนคู่ทำให้ต้องเดาว่ามันบอกสถานะตอนนี้
+    // หรือผลลัพธ์เมื่อกด · สถานะบอกด้วย aria-expanded + ชื่อปุ่มแทน
+    !sidebarCollapseButtonSource.includes("<PanelLeft ") ||
+    sidebarCollapseButtonSource.includes("PanelLeftOpen") ||
+    sidebarCollapseButtonSource.includes("PanelLeftClose") ||
     !sidebarCollapseButtonSource.includes('className="!size-4"') ||
     sidebarCollapseButtonSource.includes("ChevronLeft") ||
     sidebarCollapseButtonSource.includes("<ChevronRight") ||
@@ -449,16 +445,12 @@ const hSm = CONTROL_H_SM.split(" ");
     sidebarCollapseButtonSource.includes(" border ") ||
     sidebarCollapseButtonSource.includes(" border-") ||
     sidebarCollapseButtonSource.includes("border-border-strong") ||
-    !sidebarCollapseButtonSource.includes("z-40") ||
-    !/collapsed \? \([\s\S]*?<PanelLeftOpen[\s\S]*?\) : \([\s\S]*?<PanelLeftClose/.test(
-      sidebarCollapseButtonSource,
-    ) ||
     sidebarCollapseButtonSource.includes("<SidebarBrandMark") ||
     // ปุ่มตัวเดิมต้องอยู่ในหัว sidebar ตลอดเพื่อรักษา focus ตอนกาง/หุบ
     // และห้ามมี SidebarCollapseButton แทรกอยู่ใน nav ไม่ว่าจะใช้ class อะไร
     !sidebarBrandHeaderSource.includes("<SidebarCollapseButton") ||
     !sidebarBrandHeaderSource.includes("collapsed={sidebarCollapsed}") ||
-    !/<\/Link>\s*<SidebarCollapseButton/.test(sidebarBrandHeaderSource) ||
+    !/<\/Link>\s*\)\}\s*<SidebarCollapseButton/.test(sidebarBrandHeaderSource) ||
     appShellSource.includes("aria-pressed={collapsed}") ||
     !sidebarNavigationSource ||
     sidebarNavigationSource.includes("<SidebarCollapseButton") ||

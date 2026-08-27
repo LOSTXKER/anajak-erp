@@ -15,8 +15,7 @@ import {
   Bell,
   ChevronRight,
   MoreHorizontal,
-  PanelLeftClose,
-  PanelLeftOpen,
+  PanelLeft,
   Printer,
   Search,
 } from "lucide-react";
@@ -163,10 +162,19 @@ function SidebarBrandMark() {
   );
 }
 
-/* ปุ่มหุบ/กางเมนูแยกจากตราอย่างชัดเจน (เบสสั่ง 2026-08-27)
-   ตอนกางให้อยู่ในหัว sidebar ข้างแบรนด์ · ตอนหุบค่อยย้ายไป action slot แรกของ topbar
-   เพราะราง 64px วางลิงก์ตราและเป้ากดมาตรฐานสองอันคู่กันไม่ได้โดยไม่ทับกัน
-   ใช้ปุ่ม node เดิมทั้งสองสถานะเพื่อรักษา focus และไม่คาบเส้น divider */
+/* ปุ่มหุบ/กางอยู่ในหัวเมนู แถวเดียวกับตรา ชิดขอบขวา (เบสเคาะ 2026-08-28 จาก mockup
+   docs/mockups/sidebar-brandrow-2026-08-28.html หลังลองวางที่อื่นมาเก้ารอบ)
+
+   ตอนหุบ "ตราหายไป เหลือปุ่มยืนกลางราง 64px คนเดียว" — ไม่ใช่การตัดของทิ้งมั่ว
+   แต่เพราะราง 64px วางตรา 28px กับเป้ากดมาตรฐาน 36px คู่กันไม่ได้โดยไม่ทับกัน
+   (วัดจริง = ข้อจำกัดเชิงเรขาคณิต ไม่ใช่รสนิยม) · ทางเลือกอีกสองทางที่เสนอไป
+   (ย้ายตราขึ้นแถบบน / หัวเมนูสองชั้น 104px) เบสไม่เอา ทางหลังยังผิดกฎ
+   "หัวเมนูสูงเท่าแถบบน" ที่ทำให้เส้นล่างต่อกันข้ามจอด้วย
+
+   ⚠️ ไอคอนตัวเดียวทั้งสองสถานะ ห้ามกลับไปสลับไอคอนคู่ตามสถานะอีก —
+   shadcn ทั้ง 16 block ทางการใช้ PanelLeft ตัวเดียวจบ เพราะไอคอนสองตัวทำให้ต้องเดาว่า
+   มันบอก "สถานะตอนนี้" หรือ "ผลลัพธ์เมื่อกด" · สถานะบอกด้วย aria-expanded + ชื่อปุ่มแทน
+   ⚠️ ปุ่มเป็น node เดิมทั้งสองสถานะ โฟกัสจึงไม่หลุดตอนกด (WCAG 2.4.3) */
 function SidebarCollapseButton({
   collapsed,
 }: {
@@ -174,39 +182,26 @@ function SidebarCollapseButton({
 }) {
   const label = collapsed ? "กางเมนู" : "หุบเมนู";
   return (
-    <span
-      data-sidebar-collapse-slot
-      data-sidebar-collapse-placement={collapsed ? "topbar" : "sidebar"}
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon"
+      onClick={() => writeSidebarCollapsed(!collapsed)}
+      aria-expanded={!collapsed}
+      aria-controls="app-sidebar-navigation"
+      aria-label={label}
+      title={label}
+      data-sidebar-collapse-toggle
       className={cn(
-        "pointer-events-none z-40 hidden items-center justify-center lg:flex",
-        collapsed
-          ? "absolute left-full top-0 h-14 w-14"
-          : "ml-auto shrink-0",
+        INTERACTIVE_CHROME_HOVER,
+        INTERACTIVE_CHROME_PRESSED,
+        "shrink-0 bg-transparent p-0 text-muted shadow-none",
+        // ตอนกางดันไปชิดขอบขวาของหัวเมนู · ตอนหุบไม่มีตราแล้ว ปล่อยให้ยืนกลางรางเอง
+        !collapsed && "ml-auto",
       )}
     >
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        onClick={() => writeSidebarCollapsed(!collapsed)}
-        aria-expanded={!collapsed}
-        aria-controls="app-sidebar-navigation"
-        aria-label={label}
-        title={label}
-        data-sidebar-collapse-toggle
-        className={cn(
-          INTERACTIVE_CHROME_HOVER,
-          INTERACTIVE_CHROME_PRESSED,
-          "pointer-events-auto shrink-0 bg-transparent p-0 text-muted shadow-none",
-        )}
-      >
-        {collapsed ? (
-          <PanelLeftOpen className="!size-4" strokeWidth={1.75} />
-        ) : (
-          <PanelLeftClose className="!size-4" strokeWidth={1.75} />
-        )}
-      </Button>
-    </span>
+      <PanelLeft className="!size-4" strokeWidth={1.75} />
+    </Button>
   );
 }
 
@@ -405,41 +400,38 @@ function AppShellContent({ children }: { children: ReactNode }) {
         {/* ตราย้ายลงมาอยู่หัวเมนูซ้าย เพราะแถบบนไม่พาดทับคอลัมน์นี้แล้ว
             ความสูง 3rem เท่าแถบบน เส้นล่างจึงต่อกันเป็นเส้นเดียวข้ามทั้งจอ
             (เดิมช่องตรากว้าง 240px แต่มีของจริงแค่ ~126px และเส้นแนวตั้งหักกลางคัน) */}
-        {/* ตราเป็นลิงก์หน้าหลักเสมอ ส่วนปุ่มหุบอยู่ท้ายหัว sidebar ตอนกาง
-            และย้ายออกไป action slot ของ topbar เฉพาะตอนหุบที่ราง 64px วางสองเป้ากดไม่ได้
-            DOM ยังเรียง Link → Button → nav และใช้ button node เดิมเพื่อคง focus (WCAG 2.4.3) */}
+        {/* ตอนกาง: ตราซ้าย + ปุ่มหุบชิดขอบขวา (pr-1 = ห่างเส้นแบ่ง 4px)
+            ตอนหุบ: ตราหายทั้งก้อน เหลือปุ่มยืนกลางราง 64px — ดูเหตุผลที่ SidebarCollapseButton
+            ⚠️ ตอนหุบจึงไม่มีลิงก์กลับหน้าหลักในเมนูซ้าย (เบสรับข้อนี้แล้ว 2026-08-28)
+            คนที่ใช้คีย์บอร์ดยังไปหน้าแรกได้จากเมนู "แดชบอร์ด" ที่อยู่ถัดลงมา
+            DOM ยังเรียง Link → Button → nav ปุ่มจึงเป็น node เดิมและโฟกัสไม่หลุด */}
         <div
           data-sidebar-brand-header
           className={cn(
             // ⚠️ ความสูงต้องเท่าแถบบนเสมอ (h-14 = 56px = แถวแรกของกริด 3.5rem)
-            // ไม่งั้นเส้นล่างของตรากับของแถบบนจะไม่ต่อกันเป็นเส้นเดียวข้ามจอ
+            // ไม่งั้นเส้นล่างของหัวเมนูกับของแถบบนจะไม่ต่อกันเป็นเส้นเดียวข้ามจอ
             "relative flex h-14 shrink-0 items-center border-b border-divider",
-            sidebarCollapsed ? "justify-center" : "pl-6 pr-2",
+            sidebarCollapsed ? "justify-center px-0" : "pl-6 pr-1",
           )}
         >
-          <Link
-            href="/"
-            // ชื่อที่เห็นคือ "Anajak Print" — ห้ามตั้ง aria-label เป็นคำอื่น
-            // ไม่งั้นคนที่สั่งงานด้วยเสียงพูดว่า "คลิก Anajak Print" แล้วไม่โดน (WCAG 2.5.3)
-            className={cn(
-              FOCUS_BUTTON,
-              RADIUS.item,
-              // ตรงแนวกับไอคอนเมนูข้างล่าง (nav px-3 + แถวเมนู px-3 = 24px)
-              "flex min-w-0 items-center gap-3",
-              sidebarCollapsed && "h-10 w-10 min-w-10 justify-center gap-0",
-            )}
-            title={sidebarCollapsed ? "Anajak Print" : undefined}
-          >
-            <SidebarBrandMark />
-            <span
+          {!sidebarCollapsed && (
+            <Link
+              href="/"
+              // ชื่อที่เห็นคือ "Anajak Print" — ห้ามตั้ง aria-label เป็นคำอื่น
+              // ไม่งั้นคนที่สั่งงานด้วยเสียงพูดว่า "คลิก Anajak Print" แล้วไม่โดน (WCAG 2.5.3)
               className={cn(
-                "truncate text-sm font-semibold text-strong",
-                sidebarCollapsed && "sr-only",
+                FOCUS_BUTTON,
+                RADIUS.item,
+                // ตรงแนวกับไอคอนเมนูข้างล่าง (nav px-3 + แถวเมนู px-3 = 24px)
+                "flex min-w-0 items-center gap-3",
               )}
             >
-              Anajak Print
-            </span>
-          </Link>
+              <SidebarBrandMark />
+              <span className="truncate text-sm font-semibold text-strong">
+                Anajak Print
+              </span>
+            </Link>
+          )}
           <SidebarCollapseButton collapsed={sidebarCollapsed} />
         </div>
 
