@@ -4,7 +4,14 @@
 
 ## ตอนนี้
 
-> **✅ Sidebar follow-up รอบเจ็ด — ปุ่มทับเส้นแบ่งทุกสถานะ (2026-08-28)**
+> **✅ Sidebar follow-up รอบแปด — topbar action มาตรฐาน (2026-08-28)**
+> ภาพจริงชี้ว่าปุ่มคาบ divider ทำให้พื้นที่กดกับ feedback ต้องเยื้องกันและดูไม่มีเจ้าของ · คืน `PanelLeftOpen/Close` เข้า action slot **56px** แรกของ topbar ฝั่งขวาเส้นแบ่ง โดยใช้ `Button` ghost มาตรฐานทั้งก้อน **36×36px** / coarse pointer **44×44px**; ถอน magic offset, visual ซ้อน, hover/focus proxy และการปิด focus ring ออกทั้งหมด
+> ปุ่มอยู่ตำแหน่งเดิมทั้งตอนกาง/หุบและเว้นจาก divider จริง **9px** จึงยังเชื่อมกับ sidebar โดยไม่คาบเส้นหรือชนตรา · คง DOM order `Link → toggle → nav`, node/focus เดิม, localStorage, `aria-expanded`, `aria-controls` และชื่อ “หุบเมนู–กางเมนู”
+> **ตรวจ browser จริง:** Dark 1512×776 และ Light 1512×776/1024×768 ทั้งกาง/หุบ · ตอนกาง sidebar right=240, slot x=239–295, ปุ่ม x=249–285; ตอนหุบ right=64, slot x=63–119, ปุ่ม x=73–109 · logo overlap 0, focus คงหลังสลับ, icon/ARIA ตรงสถานะ และ horizontal overflow 0 · mobile 390×844 ซ่อน slot+sidebar จริง, bottom navigation สูง 75px ยังอยู่, หน้าไม่ว่างและไม่ล้น · console warning/error 0, Next.js portal ว่างขนาด 0×0 ไม่มี error overlay ที่มองเห็น
+> **ด่าน:** unit **1660/1660** · `verify:ui` · typecheck · targeted lint 0 error · full lint (ยกเว้นไฟล์ทดลองเดิม `scripts/_probe-sidebar.tsx`) 0 error/26 warning เดิม · production build 42 static pages · Impeccable detector `[]` · `git diff --check`
+> **ขอบเขต:** presentation/accessibility + regression guard + docs เท่านั้น · mobile shell/navigation/query/mutation/permission/status/schema/dependency ไม่เปลี่ยน · ไฟล์ของเบส `scripts/verify-artwork.ts`, `.cursor/`, `public/`, `scripts/_probe-sidebar.tsx` ไม่ได้แตะ
+>
+> **✅ Sidebar follow-up รอบเจ็ด — ปุ่มทับเส้นแบ่งทุกสถานะ (ประวัติ · ถูกแทนที่รอบแปด 2026-08-28)**
 > เบสขอจากภาพตอน sidebar หุบให้ปุ่มอยู่ทับเส้นจริง · ปรับให้ visual 24px + `PanelLeftOpen/Close` อยู่กึ่งกลางเส้นแบ่งทั้งตอนกางและหุบ ขณะที่ hit area มาตรฐาน 36px / coarse pointer 44px ยื่นไปฝั่งเนื้อหา จึงคงเป้ากดใหญ่โดยไม่ซ้อนลิงก์ตรา · พื้น chrome ตัดเส้นใต้ visual และ hover/pressed/focus เกาะศูนย์กลางเดียวกัน ไม่เกิดกล่องตอบสนองที่เยื้อง
 > **ตรวจ browser จริง:** Light/Dark 1512×776 และ Light 1024×768 ทั้งกาง/หุบ · ตอนกาง sidebar right=240, hit area x=228–264, visual x=227–251; ตอนหุบ sidebar right=64, ตรา x=11.5–51.5, hit area x=52–88, visual x=51–75 และ overlap=0 · visual center ตรง pixel snap ของ divider 1px, focus คงหลังสลับ, `aria-expanded`/ชื่อ “หุบเมนู–กางเมนู” ตรงสถานะ, horizontal overflow 0 · mobile 390×844 ซ่อน slot พร้อม sidebar และคง bottom navigation · console warning/error 0, ไม่มี error overlay และหน้าไม่ว่าง
 > **ด่าน:** unit **1660/1660** · `verify:ui` · typecheck · targeted lint 0 error · full lint (ยกเว้นไฟล์ทดลองเดิม `scripts/_probe-sidebar.tsx`) 0 error/26 warning เดิม · production build 42 static pages · Impeccable detector `[]` · `git diff --check`

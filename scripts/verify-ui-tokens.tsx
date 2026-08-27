@@ -394,8 +394,8 @@ const hSm = CONTROL_H_SM.split(" ");
     !sidebarBrandHeaderSource.includes('sidebarCollapsed && "h-10 w-10 min-w-10 justify-center gap-0"') ||
     !sidebarBrandHeaderSource.includes('sidebarCollapsed && "sr-only"') ||
     sidebarBrandHeaderSource.includes('sidebarCollapsed && "hidden"') ||
-    // trigger แยกจากตราใน DOM เพื่อรักษาลำดับ Tab · visual อยู่กลาง divider ทุกสถานะ
-    // hit area 36/44px ยื่นไปฝั่ง topbar กันซ้อนตรา และ feedback/focus อยู่กับ visual
+    // trigger แยกจากตราใน DOM เพื่อรักษาลำดับ Tab แต่วางกลาง action slot 56px แรกของ topbar
+    // visual/hit area/feedback ใช้ Button มาตรฐานชุดเดียว ไม่คาบ divider หรือสร้าง focus proxy
     !sidebarBrandHeaderSource.includes("relative flex h-14") ||
     !sidebarCollapseButtonSource.includes("data-sidebar-collapse-toggle") ||
     !sidebarCollapseButtonSource.includes("data-sidebar-collapse-slot") ||
@@ -406,23 +406,20 @@ const hSm = CONTROL_H_SM.split(" ");
       'className="mx-auto flex w-full min-w-0 max-w-screen-2xl flex-1 items-center gap-2 px-4 sm:px-6 lg:px-8"',
     ) ||
     !sidebarCollapseButtonSource.includes(
-      "absolute left-full top-0 z-40 hidden h-14 w-14 -translate-x-[11px] items-center lg:flex",
+      "absolute left-full top-0 z-40 hidden h-14 w-14 items-center justify-center lg:flex",
     ) ||
-    sidebarCollapseButtonSource.includes('collapsed && "-translate-x-1/2"') ||
-    sidebarCollapseButtonSource.includes('!collapsed && "-translate-x-1/2"') ||
-    !sidebarCollapseButtonSource.includes("variant={null}") ||
-    sidebarCollapseButtonSource.includes('variant="ghost"') ||
+    !sidebarCollapseButtonSource.includes('type="button"') ||
+    !sidebarCollapseButtonSource.includes('variant="ghost"') ||
+    sidebarCollapseButtonSource.includes("variant={null}") ||
     !sidebarCollapseButtonSource.includes('size="icon"') ||
-    !sidebarCollapseButtonSource.includes("group/sidebar-collapse") ||
-    !sidebarCollapseButtonSource.includes("justify-start bg-transparent p-0") ||
-    !sidebarCollapseButtonSource.includes("data-sidebar-collapse-visual") ||
-    !sidebarCollapseButtonSource.includes("flex size-6 -translate-x-px") ||
-    !sidebarCollapseButtonSource.includes("rounded-sm bg-chrome") ||
-    !sidebarCollapseButtonSource.includes("group-hover/sidebar-collapse:bg-interactive-chrome-hover") ||
-    !sidebarCollapseButtonSource.includes("group-active/sidebar-collapse:bg-interactive-chrome-pressed") ||
-    !sidebarCollapseButtonSource.includes("group-focus-visible/sidebar-collapse:ring-2") ||
-    !sidebarCollapseButtonSource.includes("focus-visible:ring-0 focus-visible:ring-offset-0") ||
+    !sidebarCollapseButtonSource.includes("onClick={() => writeSidebarCollapsed(!collapsed)}") ||
+    !sidebarCollapseButtonSource.includes("aria-expanded={!collapsed}") ||
+    !sidebarCollapseButtonSource.includes('aria-controls="app-sidebar-navigation"') ||
+    !sidebarCollapseButtonSource.includes("aria-label={label}") ||
+    !sidebarCollapseButtonSource.includes("bg-transparent p-0") ||
     !sidebarCollapseButtonSource.includes("text-muted") ||
+    !sidebarCollapseButtonSource.includes("INTERACTIVE_CHROME_HOVER") ||
+    !sidebarCollapseButtonSource.includes("INTERACTIVE_CHROME_PRESSED") ||
     !sidebarCollapseButtonSource.includes("PanelLeftOpen") ||
     !sidebarCollapseButtonSource.includes("PanelLeftClose") ||
     !sidebarCollapseButtonSource.includes('className="!size-4"') ||
@@ -434,9 +431,11 @@ const hSm = CONTROL_H_SM.split(" ");
     sidebarCollapseButtonSource.includes("rounded-r-md") ||
     sidebarCollapseButtonSource.includes("border-divider bg-chrome") ||
     sidebarCollapseButtonSource.includes("pl-3") ||
-    sidebarCollapseButtonSource.includes('"translate-x-1/2"') ||
-    /[\s\"]translate-x-px(?:\s|\")/.test(sidebarCollapseButtonSource) ||
-    sidebarCollapseButtonSource.includes("translate-x-full") ||
+    sidebarCollapseButtonSource.includes("translate-x-") ||
+    sidebarCollapseButtonSource.includes("data-sidebar-collapse-visual") ||
+    sidebarCollapseButtonSource.includes("group/sidebar-collapse") ||
+    sidebarCollapseButtonSource.includes("focus-visible:ring-0") ||
+    sidebarCollapseButtonSource.includes("justify-start") ||
     sidebarCollapseButtonSource.includes("rounded-full") ||
     sidebarCollapseButtonSource.includes(" border ") ||
     sidebarCollapseButtonSource.includes(" border-") ||
@@ -451,8 +450,6 @@ const hSm = CONTROL_H_SM.split(" ");
     !sidebarBrandHeaderSource.includes("<SidebarCollapseButton") ||
     !sidebarBrandHeaderSource.includes("collapsed={sidebarCollapsed}") ||
     !/<\/Link>\s*<SidebarCollapseButton/.test(sidebarBrandHeaderSource) ||
-    !appShellSource.includes("aria-expanded={!collapsed}") ||
-    !appShellSource.includes('aria-controls="app-sidebar-navigation"') ||
     appShellSource.includes("aria-pressed={collapsed}") ||
     !sidebarNavigationSource ||
     sidebarNavigationSource.includes("<SidebarCollapseButton") ||
