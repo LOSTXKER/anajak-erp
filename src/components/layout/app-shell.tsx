@@ -164,8 +164,8 @@ function SidebarBrandMark() {
 }
 
 /* ปุ่มหุบ/กางเมนูแยกจากตราอย่างชัดเจน (เบสสั่ง 2026-08-27)
-   ตราคงหน้าที่พากลับหน้าหลัก ส่วน trigger อยู่กลาง action slot 56px แรกของ topbar:
-   สัญลักษณ์บอกการเปิด/ปิดแผงซ้ายโดยตรง ไม่อ่านเป็นปุ่ม Back · ปุ่มตัวเดิมอยู่ตลอดเพื่อรักษา focus */
+   ให้ visual 24px อยู่กลางเส้นแบ่งทั้งตอนกาง/หุบ แต่เยื้อง hit area 36/44px ไปฝั่งเนื้อหา
+   เพื่อคงเป้ากดมาตรฐานโดยไม่ซ้อนตรา · ปุ่มตัวเดิมอยู่ตลอดเพื่อรักษา focus */
 function SidebarCollapseButton({
   collapsed,
 }: {
@@ -175,11 +175,11 @@ function SidebarCollapseButton({
   return (
     <span
       data-sidebar-collapse-slot
-      className="absolute left-full top-0 z-40 hidden h-14 w-14 items-center justify-center lg:flex"
+      className="absolute left-full top-0 z-40 hidden h-14 w-14 -translate-x-[11px] items-center lg:flex"
     >
       <Button
         type="button"
-        variant="ghost"
+        variant={null}
         size="icon"
         onClick={() => writeSidebarCollapsed(!collapsed)}
         aria-expanded={!collapsed}
@@ -187,17 +187,21 @@ function SidebarCollapseButton({
         aria-label={label}
         title={label}
         data-sidebar-collapse-toggle
-        className={cn(
-          INTERACTIVE_CHROME_HOVER,
-          INTERACTIVE_CHROME_PRESSED,
-          "shrink-0 bg-transparent p-0 text-muted shadow-none",
-        )}
+        // ไม่ใช้ ghost variant เพราะ hover surface ของปุ่มทั้งก้อนจะเยื้องไปทางเนื้อหา
+        // visual ด้านในรับ semantic hover/pressed/focus เอง ส่วน hit area ยังได้ขนาดจาก Button
+        className="group/sidebar-collapse shrink-0 justify-start bg-transparent p-0 text-muted shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
       >
-        {collapsed ? (
-          <PanelLeftOpen className="!size-4" strokeWidth={1.75} />
-        ) : (
-          <PanelLeftClose className="!size-4" strokeWidth={1.75} />
-        )}
+        <span
+          aria-hidden="true"
+          data-sidebar-collapse-visual
+          className="flex size-6 -translate-x-px items-center justify-center rounded-sm bg-chrome transition-[background-color,color,box-shadow] group-hover/sidebar-collapse:bg-interactive-chrome-hover group-hover/sidebar-collapse:text-strong group-active/sidebar-collapse:bg-interactive-chrome-pressed group-active/sidebar-collapse:text-strong group-focus-visible/sidebar-collapse:ring-2 group-focus-visible/sidebar-collapse:ring-blue-500 group-focus-visible/sidebar-collapse:ring-offset-2 group-focus-visible/sidebar-collapse:ring-offset-transparent dark:group-focus-visible/sidebar-collapse:ring-blue-400"
+        >
+          {collapsed ? (
+            <PanelLeftOpen className="!size-4" strokeWidth={1.75} />
+          ) : (
+            <PanelLeftClose className="!size-4" strokeWidth={1.75} />
+          )}
+        </span>
       </Button>
     </span>
   );
