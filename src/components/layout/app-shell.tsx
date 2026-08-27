@@ -37,7 +37,6 @@ import {
 import { CONTROL_H, CONTROL_MIN_H } from "@/components/ui/control-size";
 import {
   FOCUS_BUTTON,
-  FOCUS_BUTTON_PROXY,
   FOCUS_INSET,
   INTERACTIVE_CHROME_HOVER,
   INTERACTIVE_CHROME_PRESSED,
@@ -58,8 +57,6 @@ const MOBILE_EXCLUDED_IDS = new Set<string>(MOBILE_NAV_IDS);
    เห็นค่าคนละอย่างตอน hydrate · ค่าเริ่มต้นฝั่งเซิร์ฟเวอร์คือ "กาง" เสมอ */
 const SIDEBAR_COLLAPSED_KEY = "anajak.sidebar.collapsed";
 const SIDEBAR_EVENT = "anajak:sidebar-collapsed";
-const SIDEBAR_EDGE_HANDLE_INTERACTION =
-  "group-hover:bg-interactive-chrome-hover group-hover:text-strong group-active:bg-interactive-chrome-pressed group-active:text-strong";
 
 function subscribeSidebarCollapsed(onChange: () => void) {
   window.addEventListener("storage", onChange);
@@ -166,7 +163,7 @@ function SidebarBrandMark() {
 }
 
 /* ปุ่มหุบ/กางเมนูแยกจากตราอย่างชัดเจน (เบสสั่ง 2026-08-27)
-   ตราคงหน้าที่พากลับหน้าหลัก ส่วนลูกศรเป็น tab เล็กที่ต่อออกจากขอบ sidebar:
+   ตราคงหน้าที่พากลับหน้าหลัก ส่วนลูกศรอยู่ใน gutter ซ้ายของ topbar โดยไม่คาบขอบ:
    ตอนกางชี้ซ้ายเพื่อหุบ · ตอนหุบชี้ขวาเพื่อกาง · ปุ่มตัวเดิมอยู่ตลอดเพื่อรักษา focus */
 function SidebarCollapseButton({
   collapsed,
@@ -186,26 +183,19 @@ function SidebarCollapseButton({
       title={label}
       data-sidebar-collapse-toggle
       className={cn(
-        // hit area 44px เริ่มก่อนเส้นขอบ 12px แต่ tab ที่เห็นเริ่มตรงเส้นขอบพอดี
-        // แล้วยื่นออกฝั่งเนื้อหาเท่านั้น จึงไม่เป็นวงกลมลอยและไม่ทับลิงก์โลโก้
-        "group absolute -right-8 top-1/2 z-40 h-11 min-h-11 w-11 min-w-11 -translate-y-1/2 translate-x-px shrink-0 justify-start rounded-none !bg-transparent p-0 pl-3 text-muted shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 sm:h-11 sm:min-h-11 sm:w-11 sm:min-w-11",
+        INTERACTIVE_CHROME_HOVER,
+        INTERACTIVE_CHROME_PRESSED,
+        RADIUS.item,
+        // อยู่ห่างขอบ sidebar 32px = gutter เดียวกับ lg:px-8 ของ topbar/content
+        // ยังวางใน DOM ระหว่าง Link กับ nav เพื่อคงลำดับ Tab ที่เดินตามภาพ
+        "absolute -right-16 top-1/2 z-40 hidden h-8 min-h-8 w-8 min-w-8 -translate-y-1/2 shrink-0 bg-transparent p-0 text-muted shadow-none sm:h-8 sm:min-h-8 sm:w-8 sm:min-w-8 lg:inline-flex",
       )}
     >
-      <span
-        aria-hidden="true"
-        data-sidebar-collapse-handle
-        className={cn(
-          "flex h-7 w-5 items-center justify-center rounded-r-md border border-l-0 border-divider bg-chrome text-muted transition-colors",
-          SIDEBAR_EDGE_HANDLE_INTERACTION,
-          FOCUS_BUTTON_PROXY,
-        )}
-      >
-        {collapsed ? (
-          <ChevronRight className="!size-3.5" strokeWidth={1.75} />
-        ) : (
-          <ChevronLeft className="!size-3.5" strokeWidth={1.75} />
-        )}
-      </span>
+      {collapsed ? (
+        <ChevronRight className="!size-3.5" strokeWidth={1.75} />
+      ) : (
+        <ChevronLeft className="!size-3.5" strokeWidth={1.75} />
+      )}
     </Button>
   );
 }

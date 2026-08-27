@@ -28,7 +28,6 @@ import {
   DASHED,
   DASHED_INTERACTIVE,
   FOCUS_BUTTON,
-  FOCUS_BUTTON_PROXY,
   FOCUS_FIELD,
   FOCUS_INSET,
   INTERACTIVE_CHROME_HOVER,
@@ -395,35 +394,35 @@ const hSm = CONTROL_H_SM.split(" ");
     !sidebarBrandHeaderSource.includes('sidebarCollapsed && "h-10 w-10 min-w-10 justify-center gap-0"') ||
     !sidebarBrandHeaderSource.includes('sidebarCollapsed && "sr-only"') ||
     sidebarBrandHeaderSource.includes('sidebarCollapsed && "hidden"') ||
-    // ลูกศรแยกจากตราและเป็น edge tab เล็กที่ต่อออกจากเส้น sidebar จริง
-    // hit area ยัง 44px แต่ชิ้นที่เห็น 20×28px ยื่นออกฝั่งเนื้อหา จึงไม่เป็น bubble ลอยบนเส้น
+    // ลูกศรแยกจากตราใน DOM เพื่อรักษาลำดับ Tab แต่ย้ายภาพไปอยู่ใน gutter ซ้ายของ topbar
+    // ปุ่ม ghost 32px ไม่มีชิ้นส่วนคาบ/ยื่นติดเส้น sidebar และตรงกับระยะ lg:px-8 ของเนื้อหา
     !sidebarBrandHeaderSource.includes("relative flex h-14") ||
     !sidebarCollapseButtonSource.includes("data-sidebar-collapse-toggle") ||
-    // Geometry ของ handle อาศัยเส้นขอบ aside เป็นแกน และระยะ 32px ฝั่ง content
-    // เป็นพื้นที่รับ hit area 44px; ถ้าสองค่านี้หาย handle จะเหลื่อมหรือทับช่องค้นหา
     !appShellSource.includes(
       '<aside className="hidden min-h-0 border-r border-divider bg-chrome lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:flex lg:flex-col">',
     ) ||
     !appShellSource.includes(
       'className="mx-auto flex w-full min-w-0 max-w-screen-2xl flex-1 items-center gap-2 px-4 sm:px-6 lg:px-8"',
     ) ||
-    !sidebarCollapseButtonSource.includes("absolute -right-8 top-1/2") ||
-    !sidebarCollapseButtonSource.includes("justify-start") ||
-    !sidebarCollapseButtonSource.includes("rounded-none") ||
-    !sidebarCollapseButtonSource.includes("p-0 pl-3") ||
-    !sidebarCollapseButtonSource.includes("translate-x-px") ||
+    !sidebarCollapseButtonSource.includes("absolute -right-16 top-1/2") ||
+    !sidebarCollapseButtonSource.includes("hidden h-8 min-h-8 w-8 min-w-8") ||
+    !sidebarCollapseButtonSource.includes("-translate-y-1/2") ||
+    !sidebarCollapseButtonSource.includes("lg:inline-flex") ||
+    !sidebarCollapseButtonSource.includes("bg-transparent p-0") ||
+    !sidebarCollapseButtonSource.includes("text-muted") ||
+    !sidebarCollapseButtonSource.includes("INTERACTIVE_CHROME_HOVER") ||
+    !sidebarCollapseButtonSource.includes("INTERACTIVE_CHROME_PRESSED") ||
+    sidebarCollapseButtonSource.includes("data-sidebar-collapse-handle") ||
+    sidebarCollapseButtonSource.includes("rounded-r-md") ||
+    sidebarCollapseButtonSource.includes("border-divider bg-chrome") ||
+    sidebarCollapseButtonSource.includes("pl-3") ||
     sidebarCollapseButtonSource.includes("translate-x-1/2") ||
+    sidebarCollapseButtonSource.includes("translate-x-px") ||
     sidebarCollapseButtonSource.includes("translate-x-full") ||
-    !sidebarCollapseButtonSource.includes("h-11 min-h-11 w-11 min-w-11") ||
-    !sidebarCollapseButtonSource.includes("data-sidebar-collapse-handle") ||
-    !sidebarCollapseButtonSource.includes("h-7 w-5") ||
-    !sidebarCollapseButtonSource.includes("rounded-r-md border border-l-0 border-divider bg-chrome") ||
     sidebarCollapseButtonSource.includes("rounded-full") ||
+    sidebarCollapseButtonSource.includes(" border ") ||
+    sidebarCollapseButtonSource.includes(" border-") ||
     sidebarCollapseButtonSource.includes("border-border-strong") ||
-    !sidebarCollapseButtonSource.includes("focus-visible:ring-0") ||
-    !sidebarCollapseButtonSource.includes("FOCUS_BUTTON_PROXY") ||
-    !FOCUS_BUTTON_PROXY.includes("group-focus-visible:ring-2") ||
-    !FOCUS_BUTTON_PROXY.includes("group-focus-visible:ring-offset-transparent") ||
     !sidebarCollapseButtonSource.includes("z-40") ||
     !/collapsed \? \([\s\S]*?<ChevronRight[\s\S]*?\) : \([\s\S]*?<ChevronLeft/.test(
       sidebarCollapseButtonSource,

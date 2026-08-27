@@ -71,11 +71,6 @@ export const FOCUS_FIELD =
 export const FOCUS_BUTTON =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent dark:focus-visible:ring-blue-400";
 
-/** ปุ่มที่ hit area ใหญ่กว่าพื้นที่วาดจริง — ให้ลูกที่มองเห็นรับวงแหวนแทนกล่องโปร่งของปุ่มแม่
- *  ความหมายและสีเดียวกับ FOCUS_BUTTON ต่างเพียงใช้ group-focus-visible ส่งสถานะลงไป */
-export const FOCUS_BUTTON_PROXY =
-  "group-focus-visible:outline-none group-focus-visible:ring-2 group-focus-visible:ring-blue-500 group-focus-visible:ring-offset-2 group-focus-visible:ring-offset-transparent dark:group-focus-visible:ring-blue-400";
-
 /** ของที่กดได้แต่เต็มพื้นที่จนไม่มีที่ให้เว้นขอบ — หัวคอลัมน์ตาราง · แถวในรายการ
  *  ใช้วงแหวนด้านใน เพราะ ring-offset จะโดนขอบตารางบังจนมองไม่เห็นว่าโฟกัสอยู่ไหน */
 export const FOCUS_INSET =

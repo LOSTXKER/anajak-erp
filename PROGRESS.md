@@ -4,7 +4,14 @@
 
 ## ตอนนี้
 
-> **✅ Sidebar follow-up รอบสี่ — edge tab มาตรฐาน ไม่ใช่วงกลมลอย (2026-08-27)**
+> **✅ Sidebar follow-up รอบห้า — ปุ่ม ghost อยู่ใน topbar ไม่มีส่วนยื่น (2026-08-27)**
+> เบสยืนยันว่าไม่ชอบ control ที่โผล่จากเส้น sidebar ไม่ว่าทรงใด · ถอน edge tab/วง/ขอบ/เงาทั้งหมด แล้ววาง chevron 14px ในปุ่ม ghost **32×32px** ที่ gutter ซ้ายของ topbar ห่างขอบ sidebar ตามระยะ `lg:px-8`; coarse pointer ยังได้เป้าขั้นต่ำ 44px จาก Button primitive
+> ปุ่มยังอยู่ใน DOM ระหว่างลิงก์โลโก้กับ `<nav>` แล้ว absolute ไปยัง topbar จึงรักษาลำดับ Tab `Link → toggle → nav` โดยไม่ใช้ tabindex · ลบ `FOCUS_BUTTON_PROXY` และ interaction สูตรเฉพาะ edge handle ที่ไม่จำเป็น เหลือ focus/hover/pressed token มาตรฐาน
+> **ตรวจ browser จริง:** Light/Dark 1512×776 ทั้งกาง/หุบ · ตอนกาง sidebar right=240 และปุ่ม x=271–303; ตอนหุบ right=64 และปุ่ม x=95–127 · logo/search overlap 0, horizontal overflow 0 · Tab เห็น focus ring บนปุ่ม, Enter สลับสถานะและรักษา focus, `aria-expanded`/ชื่อ “หุบเมนู–กางเมนู” ตรงสถานะ
+> **ด่าน:** unit **1660/1660** · `verify:ui` · typecheck · targeted lint 0 error · independent review ไม่พบ blocker · browser geometry/interaction ผ่าน
+> **ขอบเขต:** presentation/accessibility + regression guard + docs เท่านั้น · mobile shell/navigation/query/mutation/permission/status/schema/dependency ไม่เปลี่ยน · ไฟล์ของเบส `scripts/verify-artwork.ts`, `.cursor/`, `public/`, `scripts/_probe-sidebar.tsx` ไม่ได้แตะ
+>
+> **✅ Sidebar follow-up รอบสี่ — edge tab มาตรฐาน ไม่ใช่วงกลมลอย (ประวัติ · ถูกแทนที่รอบห้า 2026-08-27)**
 > เบสชี้ว่าการทำวงกลมคาบเส้นทำให้ control ดูเหมือน bubble ลอยและตลก · เปลี่ยนชิ้นที่เห็นเป็น **tab 20×28px** เริ่มตรงเส้นขอบ sidebar แล้วยื่นออกฝั่งเนื้อหา ใช้มุมโค้งเฉพาะด้านขวา ไม่มีขอบซ้ายและไม่มีเงา; chevron ยัง 14px และทิศตรงกับกาง/หุบ
 > พื้นที่กดจริงยัง **44×44px**: ตอนหุบโลโก้ x=11.5–51.5, hit area x=52–96, tab x=64–84, overlap 0; ตอนกาง hit area x=228–272, tab x=240–260 · regression guard ล็อก geometry ของเส้นขอบ sidebar, gutter 32px, hit area และห้าม `rounded-full`/`border-strong` กลับมา
 > **ตรวจ browser จริง:** Light/Dark ที่ 1512×720 ทั้งกาง/หุบ · Tab แสดง focus ที่ tab จริง, Enter สลับสถานะและรักษา focus, `aria-expanded`/ชื่อ “หุบเมนู–กางเมนู” ตรงสถานะ, horizontal overflow 0 · navigation/mobile shell/query/mutation/permission/status ไม่เปลี่ยน
