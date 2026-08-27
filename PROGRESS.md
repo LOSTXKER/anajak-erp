@@ -4,7 +4,7 @@
 
 ## ตอนนี้
 
-> **✅ ปุ่มหุบเมนูรอบสิบ — ลงโค้ดจริงแล้ว รอเบสดูของจริง (2026-08-28)**
+> **✅ ปุ่มหุบเมนูรอบสิบ — ขึ้น main + production แล้ว (2026-08-28)**
 > เบสเคาะจาก mockup: **ปุ่มอยู่ในหัวเมนู แถวเดียวกับตรา ชิดขอบขวา · ตอนหุบซ่อนตรา เหลือปุ่มยืนกลางราง 64px**
 > **แก้ 2 ไฟล์:** `src/components/layout/app-shell.tsx` (ปุ่ม + หัวเมนู) · `scripts/verify-ui-tokens.tsx` (ด่านล็อกโครงใหม่แทนโครงเดิม)
 > **สิ่งที่เปลี่ยน:** ถอด wrapper `<span>` + `data-sidebar-collapse-slot`/`-placement` + `absolute left-full` ทิ้ง — ปุ่มเป็น `<Button>` ตรง ๆ ในหัวเมนูตำแหน่งเดียวทั้งสองสถานะ ไม่ย้ายข้ามเส้นแบ่งอีก · ไอคอนเหลือ `PanelLeft` ตัวเดียว (เลิกสลับ `PanelLeftOpen`/`PanelLeftClose`) ตามมาตรฐาน shadcn ทั้ง 16 block — สถานะบอกด้วย `aria-expanded` + ชื่อปุ่ม · หัวเมนู `sidebarCollapsed ? "justify-center px-0" : "pl-6 pr-1"` · ตราเรนเดอร์เฉพาะตอนกาง (`{!sidebarCollapsed && (<Link…>)}`)
@@ -12,7 +12,10 @@
 > **ด่านที่ผ่าน:** typecheck · `verify:ui` ✅ (และ **negative-test แล้ว** — ลองใส่ไอคอนคู่กลับเข้าไป ด่านจับได้จริง ไม่ได้ผ่านเพราะเช็คหลวม) · unit **1660/1660** · lint 2 ไฟล์ที่แตะ 0 error · ไม่มี override `--spacing` จึงยืนยันได้ว่า `pr-1`=4px และ `w-9`=36px
 > ⚠️ **ยังไม่ได้เปิดดูในแอปจริง** — dev server ของเบสรันอยู่ที่ :3000 แต่ติดหน้า login และ Nami ไม่กรอกรหัสผ่าน · ที่วัดมา (ปุ่ม x=224–260 เส้น x=265 ห่าง 5px · ตอนหุบปุ่มกลางราง ไม่ทับตรา) วัดจาก mockup ที่ใช้ token/ขนาดชุดเดียวกัน **เบสช่วยรีเฟรชแท็บที่เปิดอยู่แล้วดูให้หน่อย**
 > **mockup ที่ใช้ตัดสิน:** `docs/mockups/sidebar-brandrow-2026-08-28.html` → https://claude.ai/code/artifact/e628ec41-cb88-442a-b26c-1146ee6e6cb1
-> **NEXT:** เบสดูของจริง → ถ้าโอเคปิดงาน · ถ้ายังขัดตาบอกจุดที่ขัด
+> **ขึ้น production แล้ว:** เบสสั่ง "commit push main เลย" → fast-forward `main` เป็น `a986c27` (ไม่มี commit บน origin/main ที่ถูกทับ) → push ผ่านยามกลางด้วย `BESTOS_OVERRIDE=1` ตามที่เบสอนุมัติ · Vercel production `dpl_2JPRwzMeYuAc3YFspciZdCpc3rzy` = **READY** ที่ https://anajak-erp.vercel.app · preview ของ commit เดียวกันก็ READY ก่อนหน้าแล้ว จึงยืนยันว่า build ผ่านสองรอบ
+> **rollback ถ้าต้อง:** deployment ก่อนหน้า `dpl_6KWpwjbc5RK2gdfRywT82kwqgK8b` (commit 25c5036) เป็น rollback candidate อยู่
+> ⚠️ **หมายเหตุยามกลาง:** hook บล็อกทั้ง Bash call ไม่ใช่แค่ท่อน push — ต้องแยก commit กับ push เป็นคนละคำสั่ง และ `BESTOS_OVERRIDE=1` ต้องอยู่หน้าสุดของคำสั่งจริง ๆ (มี `cd` นำหน้าไม่ผ่าน)
+> **NEXT:** เบสเปิด https://anajak-erp.vercel.app กดหุบ/กางดู — ยังไม่มีใครเห็นหน้าจอจริงของงานนี้ (Nami ติด login ทั้ง local และ production)
 >
 > **✅ Sidebar follow-up รอบเก้า — ปุ่มตามเจ้าของพื้นที่ในแต่ละสถานะ (2026-08-28)**
 > ภาพจากเบสชี้ว่าตอน sidebar กาง ปุ่มซึ่งอยู่นอก divider ทั้งก้อนอ่านเป็น utility ที่ลอยเดี่ยวใน topbar ไม่ใช่ส่วนควบคุม sidebar · เปลี่ยนเป็น state-aware โดยใช้ button node เดิม: **ตอนกาง** ปุ่มหุบอยู่ท้าย brand header ภายในราง 240px; **ตอนหุบ** คงตราเป็นลิงก์กลางราง 64px แล้วค่อยย้ายปุ่มกางไป action slot 56px แรกของ topbar เพราะรางแคบวางเป้ากด 36/44px สองอันคู่กันไม่ได้โดยไม่ทับกัน
