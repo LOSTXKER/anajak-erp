@@ -7,6 +7,12 @@
 > **✅ UI-2026 ผ่านเฟส 1–12 + migration คลาวด์ (อัปเดตล่าสุด 2026-08-27)**
 > เบสสั่ง "ทำหมดเลย และทำ UXUI ให้หมดทุกหน้าด้วย ให้สม่ำเสมอ" · ใบงานเต็ม: `ROADMAP.md` หัวข้อ `UI-2026` · ตัวอย่างที่เคาะ: artifact `948ab738-2857-41a9-8770-dd6d5e263830`
 >
+> **✅ Sidebar follow-up — ปุ่มหุบ/กางอยู่บนโลโก้ (2026-08-27)**
+> ตอนเมนูหุบ ตราน้ำเงินในหัว sidebar เป็นปุ่มกางโดยตรงพร้อมสัญลักษณ์มุมขวาล่าง · ถอนปุ่มแยกที่เคยอยู่ต้น `<nav>` จึงไม่อ่านเป็นเมนูรายการแรกและคืนพื้นที่แนวตั้งให้รายการจริง · ตอนกางคงลิงก์ Anajak Print และปุ่มหุบข้างตราแบบเดิม
+> **ตรวจ browser จริง:** `/orders` 1280×720 และ 1024×768 ทั้ง Light/Dark · ปุ่มบนตรา 40×40px อยู่ในหัว 56px · เมนูแรกเริ่มทันทีใต้เส้นแบ่ง · กาง/หุบได้จริงโดย focus คงอยู่บนปุ่มเดิมและ `aria-expanded` ตรงสถานะ · ไม่มี horizontal overflow, error overlay หรือ console warning/error
+> **ด่าน:** Impeccable detector `[]` · `verify:ui` · unit **1659/1659** · typecheck · lint 0 error (26 warning เดิม) · production build 42 static pages
+> **ขอบเขต:** presentation + regression guard + docs เท่านั้น · navigation destinations/state persistence/mobile shell ไม่เปลี่ยน · ไฟล์ของเบส `scripts/verify-artwork.ts`, `.cursor/`, `public/`, `scripts/_probe-sidebar.tsx` ไม่ได้แตะ
+>
 > **✅ เฟส 12 — Typography สมส่วนทั้งเว็บ (2026-08-27)**
 > ตรวจ `page.tsx` ครบ 54 route (49 surface + 5 redirect) และล็อก role กลางของ Prompt: ชื่อหน้า 24/31 · section 16/24 · dialog 18/28 · body/table/button 14/22 · compact navigation/filter/table header + metadata/help/error 12/18 · micro status/counter 11/18 เท่านั้น · mobile input 16/24
 > ถอด negative tracking/line-height แบบ Latin ออกจากภาษาไทย · คืน Button/Input/Select/Textarea ที่ caller บีบเหลือ 11–12px · ยกข้อมูลตัดสินใจบน Factory และข้อความช่วย/error สำคัญขึ้นอย่างน้อย 12px · เพิ่ม `tabular-nums` ให้ยอดเงินที่แตะรอบนี้ · เอา Prompt 300 ที่ไม่มี caller ออกจาก payload · เพิ่มด่านกวาดทุก TSX กัน regression

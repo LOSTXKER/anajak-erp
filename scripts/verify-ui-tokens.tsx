@@ -359,6 +359,14 @@ const hSm = CONTROL_H_SM.split(" ");
 
 {
   const appShellSource = readFileSync("src/components/layout/app-shell.tsx", "utf8");
+  const sidebarBrandHeaderSource =
+    appShellSource.match(
+      /<div\s+data-sidebar-brand-header[\s\S]*?<\/div>/,
+    )?.[0] ?? "";
+  const sidebarNavigationSource =
+    appShellSource.match(
+      /<nav\s+id="app-sidebar-navigation"[\s\S]*?<\/nav>/,
+    )?.[0] ?? "";
   if (
     // ความกว้างเมนูซ้ายมาจากตัวแปร ไม่ใช่ค่าคงที่ ตั้งแต่มีโหมดหุบ/กาง (2026-08-26)
     // ยังล็อกไว้ว่าคอลัมน์ขวาต้อง minmax(0,1fr) และค่าทั้งสองสถานะต้องประกาศจริง
@@ -380,6 +388,15 @@ const hSm = CONTROL_H_SM.split(" ");
     !appShellSource.includes('collapsed && "mx-auto h-10 w-10 justify-center gap-0 px-0 py-0"') ||
     // ปุ่มหุบต้องขนาดเท่าปุ่มเมนู ไม่งั้นแกนกลางคนละเส้นกัน
     !appShellSource.includes('collapsed && "mx-auto h-10 w-10"') ||
+    // ปุ่มตัวเดิมต้องอยู่ในหัว sidebar ตลอดเพื่อรักษา focus ตอนกาง/หุบ
+    // และห้ามมี SidebarCollapseButton แทรกอยู่ใน nav ไม่ว่าจะใช้ class อะไร
+    !sidebarBrandHeaderSource.includes("<SidebarCollapseButton") ||
+    !sidebarBrandHeaderSource.includes("collapsed={sidebarCollapsed}") ||
+    !appShellSource.includes("aria-expanded={!collapsed}") ||
+    !appShellSource.includes('aria-controls="app-sidebar-navigation"') ||
+    appShellSource.includes("aria-pressed={collapsed}") ||
+    !sidebarNavigationSource ||
+    sidebarNavigationSource.includes("<SidebarCollapseButton") ||
     !appShellSource.includes("aria-label={sidebarCollapsed ? item.label : undefined}") ||
     // จุดกะพริบตอนกดเมนูถูกถอดออกถาวร (เบสสั่ง 2026-08-26 "ไม่ชอบเวลากดเลือกหัวข้อแล้วมีจุด")
     // loading.tsx เป็นสัญญาณ "ระบบรับรู้แล้ว" หลักอยู่แล้ว · เช็คการใช้งานจริง ไม่ใช่คำในคอมเมนต์

@@ -143,9 +143,29 @@ function SidebarGroupLabel({
    ขึ้นโครงร่างหน้าใหม่ให้อยู่แล้ว ซึ่งเป็นทางหลักที่ Next แนะนำ · จุดในเมนู
    เป็นแค่ตัวเสริมระหว่าง prefetch เท่านั้น */
 
+/* ตราสัญลักษณ์ desktop ใช้ชิ้นเดียวทั้งตอนกางและหุบ
+   เพื่อให้สี ขนาด และน้ำหนักไอคอนไม่ drift ตามสถานะ */
+function SidebarBrandMark() {
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        RADIUS.inner,
+        // ⚠️ ตราสัญลักษณ์คือที่ที่สีแบรนด์ควรอยู่โดยธรรมชาติ — เคยเปลี่ยนเป็นเทา
+        // ตอนเก็บ "สงวนน้ำเงินให้ปุ่มหลัก/สิ่งที่เลือก/โฟกัส" ซึ่งคิดผิด
+        // กติกานั้นมีไว้กันสีลิงก์โรยทั่วตาราง ไม่ได้มีไว้ถอดแบรนด์ออกจากตราของตัวเอง
+        // (เบสทัก 2026-08-26 "อย่าลืมสีฟ้าที่เป็น asset เรา")
+        "flex h-7 w-7 shrink-0 items-center justify-center bg-blue-600 text-white",
+      )}
+    >
+      <Printer className="!h-3.5 !w-3.5" strokeWidth={1.75} />
+    </span>
+  );
+}
+
 /* ปุ่มหุบ/กางเมนู — ไอคอนเงียบ ๆ ไม่มีป้ายชื่อ (เบสสั่ง 2026-08-26 "ไม่ต้องเด่น")
    ใช้ทรงเดียวกับปุ่มกระดิ่งบนแถบบน จะได้ไม่มีปุ่มทรงแปลกโผล่มาอีกทรง
-   ตอนกางยืนข้างตรา · ตอนหุบลงมาอยู่บนสุดของเมนู เพราะข้างตราไม่มีที่พอ */
+   ตอนกางยืนข้างตรา · ตอนหุบใช้ตราเป็นปุ่มกางโดยตรง ไม่ลงไปปนกับรายการเมนู */
 function SidebarCollapseButton({
   collapsed,
   className,
@@ -160,20 +180,32 @@ function SidebarCollapseButton({
       variant="ghost"
       size="icon"
       onClick={() => writeSidebarCollapsed(!collapsed)}
-      aria-pressed={collapsed}
+      aria-expanded={!collapsed}
+      aria-controls="app-sidebar-navigation"
       aria-label={label}
       title={label}
+      data-sidebar-brand-toggle={collapsed ? "" : undefined}
       className={cn(
         INTERACTIVE_CHROME_HOVER,
         INTERACTIVE_CHROME_PRESSED,
         "shrink-0 text-muted",
         // ตอนหุบต้องขนาดเท่าปุ่มเมนู ไม่งั้นได้แกนกลางคนละเส้นกับไอคอนข้างล่าง
         collapsed && "mx-auto h-10 w-10",
+        collapsed &&
+          "group relative min-w-10 p-0 sm:h-10 sm:min-h-10 sm:w-10 sm:min-w-10 [@media(pointer:coarse)]:w-11",
         className,
       )}
     >
       {collapsed ? (
-        <PanelLeftOpen strokeWidth={1.75} />
+        <>
+          <SidebarBrandMark />
+          <span
+            aria-hidden="true"
+            className="absolute bottom-0 right-0 flex h-4 w-4 items-center justify-center rounded-full border border-divider bg-chrome text-muted transition-colors group-hover:text-strong group-focus-visible:text-strong"
+          >
+            <PanelLeftOpen className="!h-2.5 !w-2.5" strokeWidth={2} />
+          </span>
+        </>
       ) : (
         <PanelLeftClose strokeWidth={1.75} />
       )}
@@ -377,9 +409,10 @@ function AppShellContent({ children }: { children: ReactNode }) {
             ความสูง 3rem เท่าแถบบน เส้นล่างจึงต่อกันเป็นเส้นเดียวข้ามทั้งจอ
             (เดิมช่องตรากว้าง 240px แต่มีของจริงแค่ ~126px และเส้นแนวตั้งหักกลางคัน) */}
         {/* ปุ่มหุบอยู่แถวเดียวกับตรา และเป็นไอคอนเงียบ ๆ ไม่มีป้ายชื่อ
-            (เบสสั่ง 2026-08-26 "หุบเมนูไม่ต้องเด่น เอาไว้บนโลโก้ได้มั้ย")
-            ตอนหุบไม่มีที่พอให้ยืนข้างตรา จึงลงไปอยู่บนสุดของเมนูแทน — ยังติดตราอยู่ */}
+            ตอนหุบ ตราเปลี่ยนเป็นปุ่มกางโดยตรงพร้อมสัญลักษณ์มุมขวาล่าง
+            จึงไม่มีปุ่มลอยลงไปปนกับรายการเมนู และไม่ซ้อน hit area ของ Link กับ Button */}
         <div
+          data-sidebar-brand-header
           className={cn(
             // ⚠️ ความสูงต้องเท่าแถบบนเสมอ (h-14 = 56px = แถวแรกของกริด 3.5rem)
             // ไม่งั้นเส้นล่างของตรากับของแถบบนจะไม่ต่อกันเป็นเส้นเดียวข้ามจอ
@@ -387,35 +420,27 @@ function AppShellContent({ children }: { children: ReactNode }) {
             sidebarCollapsed ? "justify-center" : "pl-6 pr-2",
           )}
         >
-        <Link
-          href="/"
-          // ตอนกาง ชื่อที่เห็นคือ "Anajak Print" — ห้ามตั้ง aria-label เป็นคำอื่น
-          // ไม่งั้นคนที่สั่งงานด้วยเสียงพูดว่า "คลิก Anajak Print" แล้วไม่โดน (WCAG 2.5.3)
-          aria-label={sidebarCollapsed ? "Anajak Print" : undefined}
-          className={cn(
-            FOCUS_BUTTON,
-            RADIUS.item,
-            // ตรงแนวกับไอคอนเมนูข้างล่าง (nav px-3 + แถวเมนู px-3 = 24px)
-            "flex min-w-0 items-center gap-3",
-          )}
-        >
-          <div
+          <Link
+            href="/"
+            // ชื่อที่เห็นคือ "Anajak Print" — ห้ามตั้ง aria-label เป็นคำอื่น
+            // ไม่งั้นคนที่สั่งงานด้วยเสียงพูดว่า "คลิก Anajak Print" แล้วไม่โดน (WCAG 2.5.3)
             className={cn(
-              RADIUS.inner,
-              // ⚠️ ตราสัญลักษณ์คือที่ที่สีแบรนด์ควรอยู่โดยธรรมชาติ — เคยเปลี่ยนเป็นเทา
-              // ตอนเก็บ "สงวนน้ำเงินให้ปุ่มหลัก/สิ่งที่เลือก/โฟกัส" ซึ่งคิดผิด
-              // กติกานั้นมีไว้กันสีลิงก์โรยทั่วตาราง ไม่ได้มีไว้ถอดแบรนด์ออกจากตราของตัวเอง
-              // (เบสทัก 2026-08-26 "อย่าลืมสีฟ้าที่เป็น asset เรา")
-              "flex h-7 w-7 shrink-0 items-center justify-center bg-blue-600 text-white",
+              FOCUS_BUTTON,
+              RADIUS.item,
+              // ตรงแนวกับไอคอนเมนูข้างล่าง (nav px-3 + แถวเมนู px-3 = 24px)
+              "flex min-w-0 items-center gap-3",
+              sidebarCollapsed && "hidden",
             )}
           >
-            <Printer className="h-3.5 w-3.5" strokeWidth={1.75} />
-          </div>
-          {!sidebarCollapsed && (
-            <span className="truncate text-sm font-semibold text-strong">Anajak Print</span>
-          )}
-        </Link>
-          {!sidebarCollapsed && <SidebarCollapseButton collapsed={false} className="ml-auto" />}
+            <SidebarBrandMark />
+            <span className="truncate text-sm font-semibold text-strong">
+              Anajak Print
+            </span>
+          </Link>
+          <SidebarCollapseButton
+            collapsed={sidebarCollapsed}
+            className={sidebarCollapsed ? undefined : "ml-auto"}
+          />
         </div>
 
         {/* ตอนหุบ: จองรางแถบเลื่อน "ทั้งสองข้าง" ไม่งั้นแถบเลื่อนที่กินที่จริง 10px
@@ -423,17 +448,15 @@ function AppShellContent({ children }: { children: ReactNode }) {
             วัดจริงแล้ว: ไอคอนเมนูอยู่กลางที่ 26.5 ส่วนตรากับปุ่มหุบอยู่ที่ 31.5
             ตอนกางไม่ใช้ both-edges เพราะจะกินความกว้างของชื่อเมนูไป 20px เปล่า ๆ */}
         <nav
+          id="app-sidebar-navigation"
           aria-label="เมนูหลัก"
           className={cn(
             "min-h-0 flex-1 overflow-y-auto px-3 py-3",
             // ตอนหุบถอดระยะขอบข้างออก แล้วให้ปุ่ม 40px จัดกลางเอง
             // (px-3 + รางแถบเลื่อนสองข้าง เหลือเนื้อที่จริงแค่ 19px ปุ่มเลยถูกบีบ)
             sidebarCollapsed && "px-0 [scrollbar-gutter:stable_both-edges]",
-            
           )}
         >
-          {/* ตอนหุบ ปุ่มลงมาอยู่บนสุดของเมนู เพราะข้างตราไม่มีที่พอ */}
-          {sidebarCollapsed && <SidebarCollapseButton collapsed className="mb-3" />}
           {/* ตอนกางมีหัวกลุ่มอธิบายช่องว่าง 16px · ตอนหุบหัวกลุ่มหายไป
               ช่องว่างเท่าเดิมจึงอ่านเป็น "เว้นมั่ว" — ย่อเหลือ 12px ให้ยังแยกกลุ่มออก
               แต่ไม่ห่างจนดูเหมือนลืมใส่อะไร */}
