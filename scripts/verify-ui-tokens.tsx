@@ -367,6 +367,10 @@ const hSm = CONTROL_H_SM.split(" ");
     appShellSource.match(
       /<nav\s+id="app-sidebar-navigation"[\s\S]*?<\/nav>/,
     )?.[0] ?? "";
+  const sidebarCollapseButtonSource =
+    appShellSource.match(
+      /function SidebarCollapseButton[\s\S]*?\n}\n\nfunction sidebarNavIconClass/,
+    )?.[0] ?? "";
   if (
     // ความกว้างเมนูซ้ายมาจากตัวแปร ไม่ใช่ค่าคงที่ ตั้งแต่มีโหมดหุบ/กาง (2026-08-26)
     // ยังล็อกไว้ว่าคอลัมน์ขวาต้อง minmax(0,1fr) และค่าทั้งสองสถานะต้องประกาศจริง
@@ -386,12 +390,27 @@ const hSm = CONTROL_H_SM.split(" ");
     !appShellSource.includes('sidebarCollapsed && "px-0 [scrollbar-gutter:stable_both-edges]"') ||
     // ปุ่มเมนูตอนหุบต้องเป็นสี่เหลี่ยมจัตุรัส 40px วางกลางราง
     !appShellSource.includes('collapsed && "mx-auto h-10 w-10 justify-center gap-0 px-0 py-0"') ||
-    // ปุ่มหุบต้องขนาดเท่าปุ่มเมนู ไม่งั้นแกนกลางคนละเส้นกัน
-    !appShellSource.includes('collapsed && "mx-auto h-10 w-10"') ||
+    // ตราเป็นลิงก์หน้าหลักทั้งสองสถานะ: ตอนหุบยังเห็นตรา 40px แต่ซ่อนเฉพาะชื่อด้วย sr-only
+    !sidebarBrandHeaderSource.includes('sidebarCollapsed && "h-10 w-10 min-w-10 justify-center gap-0"') ||
+    !sidebarBrandHeaderSource.includes('sidebarCollapsed && "sr-only"') ||
+    sidebarBrandHeaderSource.includes('sidebarCollapsed && "hidden"') ||
+    // ลูกศรแยกจากตราและคาบขอบ sidebar โดยไม่ลงไปปนกับ nav
+    !sidebarBrandHeaderSource.includes("relative flex h-14") ||
+    !sidebarCollapseButtonSource.includes("data-sidebar-collapse-toggle") ||
+    !sidebarCollapseButtonSource.includes("absolute right-0 top-1/2") ||
+    !sidebarCollapseButtonSource.includes("translate-x-full") ||
+    !sidebarCollapseButtonSource.includes("z-40") ||
+    !/collapsed \? \([\s\S]*?<ChevronRight[\s\S]*?\) : \([\s\S]*?<ChevronLeft/.test(
+      sidebarCollapseButtonSource,
+    ) ||
+    sidebarCollapseButtonSource.includes("<SidebarBrandMark") ||
+    appShellSource.includes("PanelLeftOpen") ||
+    appShellSource.includes("PanelLeftClose") ||
     // ปุ่มตัวเดิมต้องอยู่ในหัว sidebar ตลอดเพื่อรักษา focus ตอนกาง/หุบ
     // และห้ามมี SidebarCollapseButton แทรกอยู่ใน nav ไม่ว่าจะใช้ class อะไร
     !sidebarBrandHeaderSource.includes("<SidebarCollapseButton") ||
     !sidebarBrandHeaderSource.includes("collapsed={sidebarCollapsed}") ||
+    !/<\/Link>\s*<SidebarCollapseButton/.test(sidebarBrandHeaderSource) ||
     !appShellSource.includes("aria-expanded={!collapsed}") ||
     !appShellSource.includes('aria-controls="app-sidebar-navigation"') ||
     appShellSource.includes("aria-pressed={collapsed}") ||

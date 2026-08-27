@@ -13,10 +13,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Bell,
+  ChevronLeft,
   ChevronRight,
   MoreHorizontal,
-  PanelLeftClose,
-  PanelLeftOpen,
   Printer,
   Search,
 } from "lucide-react";
@@ -163,15 +162,13 @@ function SidebarBrandMark() {
   );
 }
 
-/* ปุ่มหุบ/กางเมนู — ไอคอนเงียบ ๆ ไม่มีป้ายชื่อ (เบสสั่ง 2026-08-26 "ไม่ต้องเด่น")
-   ใช้ทรงเดียวกับปุ่มกระดิ่งบนแถบบน จะได้ไม่มีปุ่มทรงแปลกโผล่มาอีกทรง
-   ตอนกางยืนข้างตรา · ตอนหุบใช้ตราเป็นปุ่มกางโดยตรง ไม่ลงไปปนกับรายการเมนู */
+/* ปุ่มหุบ/กางเมนูแยกจากตราอย่างชัดเจน (เบสสั่ง 2026-08-27)
+   ตราคงหน้าที่พากลับหน้าหลัก ส่วนลูกศรยืนคาบขอบ sidebar ตามแบบที่ผู้ใช้คุ้นเคย:
+   ตอนกางชี้ซ้ายเพื่อหุบ · ตอนหุบชี้ขวาเพื่อกาง · ปุ่มตัวเดิมอยู่ตลอดเพื่อรักษา focus */
 function SidebarCollapseButton({
   collapsed,
-  className,
 }: {
   collapsed: boolean;
-  className?: string;
 }) {
   const label = collapsed ? "กางเมนู" : "หุบเมนู";
   return (
@@ -184,30 +181,19 @@ function SidebarCollapseButton({
       aria-controls="app-sidebar-navigation"
       aria-label={label}
       title={label}
-      data-sidebar-brand-toggle={collapsed ? "" : undefined}
+      data-sidebar-collapse-toggle
       className={cn(
         INTERACTIVE_CHROME_HOVER,
         INTERACTIVE_CHROME_PRESSED,
-        "shrink-0 text-muted",
-        // ตอนหุบต้องขนาดเท่าปุ่มเมนู ไม่งั้นได้แกนกลางคนละเส้นกับไอคอนข้างล่าง
-        collapsed && "mx-auto h-10 w-10",
-        collapsed &&
-          "group relative min-w-10 p-0 sm:h-10 sm:min-h-10 sm:w-10 sm:min-w-10 [@media(pointer:coarse)]:w-11",
-        className,
+        // วางปุ่มพ้น hit area ของโลโก้และพ้น flex flow เพื่อไม่ดันแนวตรา/เมนู
+        // พื้น chrome บอกความเป็นส่วนหนึ่งของ sidebar แม้ตัวปุ่มจะคาบเข้า gutter ของเนื้อหา
+        "absolute right-0 top-1/2 z-40 -translate-y-1/2 translate-x-full shrink-0 border border-divider bg-chrome text-muted sm:h-8 sm:min-h-8 sm:w-8",
       )}
     >
       {collapsed ? (
-        <>
-          <SidebarBrandMark />
-          <span
-            aria-hidden="true"
-            className="absolute bottom-0 right-0 flex h-4 w-4 items-center justify-center rounded-full border border-divider bg-chrome text-muted transition-colors group-hover:text-strong group-focus-visible:text-strong"
-          >
-            <PanelLeftOpen className="!h-2.5 !w-2.5" strokeWidth={2} />
-          </span>
-        </>
+        <ChevronRight strokeWidth={1.75} />
       ) : (
-        <PanelLeftClose strokeWidth={1.75} />
+        <ChevronLeft strokeWidth={1.75} />
       )}
     </Button>
   );
@@ -408,15 +394,14 @@ function AppShellContent({ children }: { children: ReactNode }) {
         {/* ตราย้ายลงมาอยู่หัวเมนูซ้าย เพราะแถบบนไม่พาดทับคอลัมน์นี้แล้ว
             ความสูง 3rem เท่าแถบบน เส้นล่างจึงต่อกันเป็นเส้นเดียวข้ามทั้งจอ
             (เดิมช่องตรากว้าง 240px แต่มีของจริงแค่ ~126px และเส้นแนวตั้งหักกลางคัน) */}
-        {/* ปุ่มหุบอยู่แถวเดียวกับตรา และเป็นไอคอนเงียบ ๆ ไม่มีป้ายชื่อ
-            ตอนหุบ ตราเปลี่ยนเป็นปุ่มกางโดยตรงพร้อมสัญลักษณ์มุมขวาล่าง
-            จึงไม่มีปุ่มลอยลงไปปนกับรายการเมนู และไม่ซ้อน hit area ของ Link กับ Button */}
+        {/* ตราเป็นลิงก์หน้าหลักเสมอ ส่วนลูกศรเป็นปุ่มหุบ/กางแยกที่ขอบ sidebar
+            DOM ยังเรียง Link → Button → nav ตรงกับภาพและลำดับ Tab (WCAG 2.4.3) */}
         <div
           data-sidebar-brand-header
           className={cn(
             // ⚠️ ความสูงต้องเท่าแถบบนเสมอ (h-14 = 56px = แถวแรกของกริด 3.5rem)
             // ไม่งั้นเส้นล่างของตรากับของแถบบนจะไม่ต่อกันเป็นเส้นเดียวข้ามจอ
-            "flex h-14 shrink-0 items-center border-b border-divider",
+            "relative flex h-14 shrink-0 items-center border-b border-divider",
             sidebarCollapsed ? "justify-center" : "pl-6 pr-2",
           )}
         >
@@ -429,18 +414,21 @@ function AppShellContent({ children }: { children: ReactNode }) {
               RADIUS.item,
               // ตรงแนวกับไอคอนเมนูข้างล่าง (nav px-3 + แถวเมนู px-3 = 24px)
               "flex min-w-0 items-center gap-3",
-              sidebarCollapsed && "hidden",
+              sidebarCollapsed && "h-10 w-10 min-w-10 justify-center gap-0",
             )}
+            title={sidebarCollapsed ? "Anajak Print" : undefined}
           >
             <SidebarBrandMark />
-            <span className="truncate text-sm font-semibold text-strong">
+            <span
+              className={cn(
+                "truncate text-sm font-semibold text-strong",
+                sidebarCollapsed && "sr-only",
+              )}
+            >
               Anajak Print
             </span>
           </Link>
-          <SidebarCollapseButton
-            collapsed={sidebarCollapsed}
-            className={sidebarCollapsed ? undefined : "ml-auto"}
-          />
+          <SidebarCollapseButton collapsed={sidebarCollapsed} />
         </div>
 
         {/* ตอนหุบ: จองรางแถบเลื่อน "ทั้งสองข้าง" ไม่งั้นแถบเลื่อนที่กินที่จริง 10px
