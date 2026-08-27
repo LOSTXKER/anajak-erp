@@ -6,16 +6,72 @@ const statusSource = readFileSync(
   new URL("./order-status-filter.tsx", import.meta.url),
   "utf8",
 );
+const tableSource = readFileSync(
+  new URL("../ui/data-table.tsx", import.meta.url),
+  "utf8",
+);
 const badgeSource = readFileSync(
   new URL("../order-status-badge.tsx", import.meta.url),
   "utf8",
 );
 
 describe("Orders scan-first registry contract", () => {
-  it("แสดงชื่องานใน desktop และระบุสถานะภายในเมื่อมีสองสถานะ", () => {
-    expect(pageSource).toContain("{order.title}");
-    expect(pageSource).toContain("labelInternalStatus");
+  // เบสกลับ hierarchy หลังดูหน้าจริง 2026-08-27: คนใช้ต้องหา "ลูกค้าคนไหน" ก่อน
+  // แล้วค่อยอ่าน "งานอะไร"; สถานะภายในยังไม่ต้องเพิ่มกลับมาเป็นบรรทัดซ้ำ
+  it("ชื่อลูกค้าเป็นบรรทัดหลัก ชื่องานเป็นบรรทัดรอง และไม่มีบรรทัดสถานะภายใน", () => {
+    expect(pageSource.match(/const primaryIdentity = customerName \|\| orderTitle \|\| "—"/g)).toHaveLength(2);
+    expect(pageSource.match(/customerName && orderTitle && customerName !== orderTitle/g)).toHaveLength(2);
+    expect(pageSource.match(/text-base font-semibold text-strong/g)).toHaveLength(1);
+    expect(pageSource).toContain("max-w-80 truncate text-sm font-semibold text-strong");
+    expect(pageSource).toContain("truncate text-sm text-secondary");
+    expect(pageSource).toContain("<DataTable.Th>ลูกค้า / งาน</DataTable.Th>");
+    expect(pageSource).toContain("${primaryIdentity} ${secondaryTitle}");
+    expect(pageSource).not.toContain("${customerName} ${orderTitle}`.replace");
+    expect(pageSource).toContain("showInternalStatus={false}");
+    expect(pageSource).not.toContain("labelInternalStatus");
+  });
+
+  it("ใช้ contract หัวตารางและขนาดข้อมูลกลางโดยไม่มี one-off พร้อมคอลัมน์ประเภทงาน", () => {
+    expect(pageSource).toContain("max-xl:[&_td]:px-4");
+    expect(pageSource).toContain("<DataTable.Head>");
+    expect(pageSource).toContain("<DataTable.Body>");
+    expect(pageSource).not.toContain("<DataTable.Head className=");
+    expect(pageSource).not.toContain("<DataTable.Body className=");
+    expect(tableSource).toContain("[&_td]:text-sm");
+    expect(tableSource).toContain(":not(:is(button");
+    expect(pageSource).toContain("<DataTable.Th>ประเภทงาน</DataTable.Th>");
+    expect(pageSource).toContain('variant={order.orderType === "CUSTOM" ? "accent" : "outline"}');
+    expect(pageSource).not.toContain('secondaryTitle || order.orderType === "CUSTOM"');
+  });
+
+  it("ยังเปิดบรรทัดสถานะภายในให้หน้าที่ต้องรู้ขั้นจริงได้", () => {
+    expect(badgeSource).toContain("showInternalStatus = true");
+    expect(badgeSource).toContain("sub={showInternalStatus ? internalSubLabel : undefined}");
     expect(badgeSource).toContain("`ภายใน: ${internalLabel}`");
+  });
+
+  it("เลขออเดอร์ไม่ใช่ลิงก์สีแบรนด์แล้ว — สงวนน้ำเงินให้ปุ่มหลัก/สิ่งที่เลือก/โฟกัส", () => {
+    expect(pageSource).toContain("font-medium tabular-nums text-strong hover:underline");
+    expect(pageSource).not.toContain("text-blue-600 hover:underline");
+  });
+
+  /* กลับคำตัดสินใจเดิม (2026-08-26 · UI-2026 เฟส 6) — เบสเห็นของจริงบนจอกว้างแล้วบอกว่า
+     "การที่เอาตารางวางบนพื้นเลยดูแปลกๆ และไม่ชอบ" จึงคืนกล่องครอบให้ตาราง
+     สาเหตุที่แบบไม่มีกล่องใช้ไม่ได้จริง มีสองชั้นและวัดได้ทั้งคู่:
+     1) ธีมสว่างไม่เคยมีชั้นความลึกจริง การ์ดต่างจากผืนหน้าเดิม 1.03 เท่า
+        สิ่งที่ตาเห็นว่าเป็นกล่องคือเส้นขอบล้วน ๆ พอถอดกล่อง เส้นหายไปด้วย
+     2) prop flush สั่ง pl-0 ที่ <th> แต่ SortableTh วางระยะขอบไว้ที่ <button> ข้างใน
+        หัวคอลัมน์แรกจึงเยื้องขวากว่าข้อมูล 20px — ตรงกับสิ่งที่ flush อ้างว่าจะกัน
+     ตั้งแต่เฟส 11 ผืนหน้าเป็น near-white แต่ตารางยังใช้ bordered ปริยายและแยกด้วย edge+shadow */
+  it("ทะเบียนกลับมามีกล่องครอบ และ prop flush ถูกถอดออกจากระบบแล้ว", () => {
+    expect(pageSource).toContain("<DataTable.Root");
+    expect(pageSource).not.toContain("bordered={false}");
+    expect(pageSource).not.toContain(" flush");
+    // primitive ต้องไม่เหลือทางกลับไปสู่แบบไม่มีกล่อง
+    expect(tableSource).not.toContain("flush?: boolean");
+    expect(tableSource).not.toContain("[&_th:first-child]:pl-0");
+    expect(tableSource).not.toContain("[&_thead]:bg-transparent");
+    expect(tableSource).toContain('bordered && "card-surface overflow-hidden rounded-2xl"');
   });
 
   it("รวมวันส่งกับ countdown ไว้ใต้หัว sortable เดียว", () => {

@@ -207,7 +207,7 @@ export function OrderStatusBar({
                         ? "bg-amber-500 ring-[3px] ring-amber-100 dark:ring-amber-500/25"
                         : "bg-blue-600 ring-[3px] ring-blue-100 dark:bg-blue-500 dark:ring-blue-500/25"),
                   (st === "todo" || st === "skipped") &&
-                    "border-2 border-slate-200 bg-bg dark:border-slate-800",
+                    "border-2 border-border bg-bg",
                 )}
               >
                 {st === "done" && <Check className="h-2.5 w-2.5" strokeWidth={3} />}
@@ -215,15 +215,15 @@ export function OrderStatusBar({
               <span
                 className={cn(
                   // ห้าม truncate — ป้ายไทยยาวให้ขึ้นบรรทัดใหม่
-                  "text-center text-2xs leading-tight [overflow-wrap:anywhere]",
+                  "text-center text-2xs [overflow-wrap:anywhere]",
                   st === "current" &&
                     (tone === "cancel"
                       ? "font-semibold text-red-700 dark:text-red-300"
                       : tone === "hold"
                         ? "font-semibold text-amber-700 dark:text-amber-300"
                         : "font-semibold text-blue-700 dark:text-blue-300"),
-                  st === "done" && "text-slate-700 dark:text-slate-300",
-                  st === "todo" && "text-slate-500 dark:text-slate-400",
+                  st === "done" && "text-secondary",
+                  st === "todo" && "text-muted",
                   st === "skipped" && "text-muted line-through",
                 )}
               >
@@ -254,7 +254,7 @@ export function OrderStatusBar({
             {blockers.map((b) => (
               <li
                 key={b}
-                className="flex items-start gap-1.5 text-slate-600 [overflow-wrap:anywhere] dark:text-slate-300"
+                className="flex items-start gap-1.5 text-secondary [overflow-wrap:anywhere]"
               >
                 <span
                   aria-hidden="true"
@@ -268,7 +268,7 @@ export function OrderStatusBar({
       )}
 
       {isOffPath && !offPathAnchor && (
-        <p className="mt-2.5 text-xs text-slate-600 dark:text-slate-300">
+        <p className="mt-2.5 text-xs text-secondary">
           สถานะ &quot;{currentLabel}&quot; อยู่นอกเส้นทางหลักของงานชนิดนี้
         </p>
       )}

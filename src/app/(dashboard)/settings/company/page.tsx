@@ -95,7 +95,7 @@ export default function CompanySettingsPage() {
               }}
             >
               <div>
-                <label htmlFor="company-name" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                <label htmlFor="company-name" className="mb-1 block text-sm font-medium text-secondary">
                   ชื่อกิจการ (ตามจดทะเบียน) *
                 </label>
                 <Input
@@ -108,7 +108,7 @@ export default function CompanySettingsPage() {
               </div>
 
               <div>
-                <label htmlFor="company-address" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                <label htmlFor="company-address" className="mb-1 block text-sm font-medium text-secondary">
                   ที่อยู่ *
                 </label>
                 <Textarea
@@ -123,7 +123,7 @@ export default function CompanySettingsPage() {
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <label htmlFor="company-tax-id" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  <label htmlFor="company-tax-id" className="mb-1 block text-sm font-medium text-secondary">
                     เลขประจำตัวผู้เสียภาษี (13 หลัก) *
                   </label>
                   <Input
@@ -136,7 +136,7 @@ export default function CompanySettingsPage() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="company-branch-kind" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  <label htmlFor="company-branch-kind" className="mb-1 block text-sm font-medium text-secondary">
                     สำนักงาน
                   </label>
                   <Select
@@ -168,7 +168,7 @@ export default function CompanySettingsPage() {
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <label htmlFor="company-phone" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  <label htmlFor="company-phone" className="mb-1 block text-sm font-medium text-secondary">
                     โทรศัพท์
                   </label>
                   <Input
@@ -180,7 +180,7 @@ export default function CompanySettingsPage() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="company-email" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  <label htmlFor="company-email" className="mb-1 block text-sm font-medium text-secondary">
                     อีเมล
                   </label>
                   <Input

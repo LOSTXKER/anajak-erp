@@ -10,7 +10,6 @@ import {
   ShieldCheck,
   Shirt,
   Truck,
-  Factory,
 } from "lucide-react";
 import { trpc, type RouterOutput } from "@/lib/trpc";
 import { ManufacturingFactoryBoard } from "@/components/factory/manufacturing-factory-board";
@@ -77,7 +76,7 @@ function LegacyFactoryBoardPage() {
   const stale = query.isError || (now > 0 && now - query.dataUpdatedAt > STALE_MS);
 
   return (
-    <main className="flex h-dvh min-h-[640px] flex-col gap-3 overflow-hidden p-4">
+    <main className="factory-board flex h-dvh min-h-[640px] flex-col gap-3 overflow-hidden p-4">
       <BoardHeader
         board={board}
         stale={stale}
@@ -228,12 +227,14 @@ function BoardHeader({
 
   return (
     <header className="flex min-h-14 items-center gap-4 border-b border-divider pb-3">
-      <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center text-module-production-text" aria-hidden="true">
-        <Factory className="h-5 w-5" />
+      {/* ตรา Anajak — จอโรงงานไม่มี sidebar/topbar ตราจึงต้องอยู่ในหัวจอเอง
+          (เบสทัก 2026-08-26 "อย่าลืมสีฟ้าที่เป็น asset เรา") */}
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-white" aria-hidden="true">
+        <Printer className="h-5 w-5" strokeWidth={1.75} />
       </span>
       <div className="min-w-0">
         <h1 className="truncate text-2xl font-semibold text-strong">สถานะการผลิตทั้งโรงงาน</h1>
-        <p className="mt-0.5 text-sm text-muted">เตรียมเสื้อ → พิมพ์ DTF → รีดร้อน → QC → แพ็กสุดท้าย</p>
+        <p className="mt-0.5 truncate text-sm text-muted">Anajak Print · เตรียมเสื้อ → พิมพ์ DTF → รีดร้อน → QC → แพ็กสุดท้าย</p>
       </div>
 
       <div className="ml-auto flex shrink-0 items-center gap-5">
@@ -390,7 +391,7 @@ function QueueRow({
         {customerName}
         {assignee ? ` · ${assignee}` : ""}
       </p>
-      <div className="mt-1.5 flex min-w-0 items-center justify-between gap-2 text-2xs">
+      <div className="mt-1.5 flex min-w-0 items-center justify-between gap-2 text-xs">
         <span
           className={cn(
             "truncate",
@@ -489,7 +490,7 @@ function BoardRail({ board }: { board: Board }) {
                 <span className={cn("min-w-0 truncate text-xs", item.danger ? "text-red-300" : "text-yellow-200")}>
                   {item.label}
                 </span>
-                <span className="ml-auto hidden max-w-28 truncate text-2xs text-muted xl:block">{item.detail}</span>
+                <span className="ml-auto hidden max-w-28 truncate text-xs text-muted xl:block">{item.detail}</span>
               </div>
             ))}
           </div>

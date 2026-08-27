@@ -11,7 +11,7 @@ import { SearchInput } from "@/components/ui/search-input";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
 import { StatusLabel, toneFromBadgeVariant } from "@/components/ui/status-label";
-import { Skeleton } from "@/components/ui/skeleton";
+import { ListPageSkeleton } from "@/components/ui/page-skeleton";
 import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ResponsiveList } from "@/components/ui/responsive-list";
@@ -59,7 +59,7 @@ function QuotationStatusLabel({ status }: { status: string }) {
 
 export default function QuotationsPage() {
   return (
-    <Suspense fallback={<Skeleton className="h-96 rounded-lg" />}>
+    <Suspense fallback={<ListPageSkeleton />}>
       <QuotationsPageContent />
     </Suspense>
   );
@@ -151,65 +151,64 @@ function QuotationsPageContent() {
         onRetry={() => refetch()}
         label="ใบเสนอราคา"
         emptyState={
-          <div className="card-surface rounded-lg">
-            <EmptyState
-              icon={ClipboardList}
-              title="ไม่พบใบเสนอราคา"
-              description="เปิดงานก่อน แล้วค่อยเติมรายการและแชร์ใบเสนอจากงานใบเดิม"
-              action={
-                canCreateQuotation ? (
-                  <Button size="sm" asChild>
-                    <Link href="/orders/new?next=quote">
-                      <Plus />
-                      เปิดงานเพื่อออกใบเสนอ
-                    </Link>
-                  </Button>
-                ) : undefined
-              }
-            />
-          </div>
+          <EmptyState
+            icon={ClipboardList}
+            title="ไม่พบใบเสนอราคา"
+            description="เปิดงานก่อน แล้วค่อยเติมรายการและแชร์ใบเสนอจากงานใบเดิม"
+            action={
+              canCreateQuotation ? (
+                <Button size="sm" asChild>
+                  <Link href="/orders/new?next=quote">
+                    <Plus />
+                    เปิดงานเพื่อออกใบเสนอ
+                  </Link>
+                </Button>
+              ) : undefined
+            }
+          />
         }
         renderMobile={(quotations) => (
-          <div className="space-y-3">
+          <ul aria-label="รายการใบเสนอราคา" className="space-y-3">
             {quotations.map((q) => (
-              <Link
-                key={q.id}
-                href={`/quotations/${q.id}`}
-                className={cn("card-surface card-surface-hover group block rounded-lg p-4", FOCUS_BUTTON)}
-                aria-label={`เปิดใบเสนอ ${q.quotationNumber} ของ ${q.customer.name}`}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="font-semibold text-blue-700 dark:text-blue-300">
-                      {q.quotationNumber}
-                    </p>
-                    <p className="mt-1 truncate text-sm font-medium text-slate-900 dark:text-white">
-                      {q.title}
-                    </p>
+              <li key={q.id}>
+                <Link
+                  href={`/quotations/${q.id}`}
+                  className={cn("card-surface card-surface-hover group block rounded-2xl p-4", FOCUS_BUTTON)}
+                  aria-label={`เปิดใบเสนอ ${q.quotationNumber} ของ ${q.customer.name}`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-semibold text-blue-700 dark:text-blue-300">
+                        {q.quotationNumber}
+                      </p>
+                      <p className="mt-1 truncate text-sm font-medium text-strong">
+                        {q.title}
+                      </p>
+                    </div>
+                    <div className="shrink-0">
+                      <QuotationStatusLabel status={q.status} />
+                    </div>
                   </div>
-                  <div className="shrink-0">
-                    <QuotationStatusLabel status={q.status} />
+                  <div className="mt-3 flex items-end justify-between gap-3 border-t border-divider pt-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm text-secondary">
+                        {q.customer.name}
+                      </p>
+                      <p className="mt-0.5 text-xs text-muted group-hover:text-secondary group-active:text-secondary dark:group-hover:text-secondary dark:group-active:text-secondary">
+                        {formatDate(q.createdAt)}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <span className="tabular-nums font-semibold text-strong">
+                        {formatCurrency(q.totalAmount)}
+                      </span>
+                      <ChevronRight className="h-4 w-4 text-muted" aria-hidden="true" />
+                    </div>
                   </div>
-                </div>
-                <div className="mt-3 flex items-end justify-between gap-3 border-t border-slate-100 pt-3 dark:border-slate-800">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm text-slate-700 dark:text-slate-300">
-                      {q.customer.name}
-                    </p>
-                    <p className="mt-0.5 text-xs text-slate-500 group-hover:text-secondary group-active:text-secondary dark:text-slate-400 dark:group-hover:text-secondary dark:group-active:text-secondary">
-                      {formatDate(q.createdAt)}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <span className="tabular-nums font-semibold text-slate-900 dark:text-white">
-                      {formatCurrency(q.totalAmount)}
-                    </span>
-                    <ChevronRight className="h-4 w-4 text-slate-400" aria-hidden="true" />
-                  </div>
-                </div>
-              </Link>
+                </Link>
+              </li>
             ))}
-          </div>
+          </ul>
         )}
         renderDesktop={(quotations) => (
           <DataTable.Root>
@@ -225,36 +224,36 @@ function QuotationsPageContent() {
             </DataTable.Head>
             <DataTable.Body>
               {quotations.map((q) => (
-                <DataTable.Row key={q.id}>
+                <DataTable.Row key={q.id} href={`/quotations/${q.id}`}>
                   <DataTable.Td>
                     <Link
                       href={`/quotations/${q.id}`}
-                      className="text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
+                      className="text-sm font-medium tabular-nums text-strong hover:underline"
                     >
                       {q.quotationNumber}
                     </Link>
                   </DataTable.Td>
-                  <DataTable.Td className="text-slate-900 dark:text-white">
+                  <DataTable.Td className="text-strong">
                     {q.title}
                   </DataTable.Td>
                   <DataTable.Td>
-                    <p className="text-sm text-slate-900 dark:text-white">{q.customer.name}</p>
+                    <p className="text-sm text-strong">{q.customer.name}</p>
                     {q.customer.company && (
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                      <p className="text-xs text-muted">
                         {q.customer.company}
                       </p>
                     )}
                   </DataTable.Td>
                   <DataTable.Td
                     align="right"
-                    className="font-medium tabular-nums text-slate-900 dark:text-white"
+                    className="font-medium tabular-nums text-strong"
                   >
                     {formatCurrency(q.totalAmount)}
                   </DataTable.Td>
                   <DataTable.Td>
                     <QuotationStatusLabel status={q.status} />
                   </DataTable.Td>
-                  <DataTable.Td className="text-xs text-slate-500 dark:text-slate-400">
+                  <DataTable.Td className="text-xs text-muted">
                     {formatDate(q.createdAt)}
                   </DataTable.Td>
                 </DataTable.Row>

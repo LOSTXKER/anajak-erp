@@ -183,16 +183,16 @@ export default function CustomerUploadPage({
                       <Spinner size="md" className="shrink-0 text-blue-500" />
                     )}
                     {it.status === "done" && (
-                      <CheckCircle className="h-4 w-4 shrink-0 text-green-500" />
+                      <CheckCircle className="h-4 w-4 shrink-0 text-green-600 dark:text-green-400" />
                     )}
                     {it.status === "error" && (
-                      <X className="h-4 w-4 shrink-0 text-red-500" />
+                      <X className="h-4 w-4 shrink-0 text-red-600 dark:text-red-400" />
                     )}
                     <span className="min-w-0 flex-1 truncate text-secondary">
                       {it.name}
                     </span>
                     {it.status === "error" && (
-                      <span className="shrink-0 text-xs text-red-500">
+                      <span className="shrink-0 text-xs text-red-600 dark:text-red-400">
                         {it.error}
                       </span>
                     )}
@@ -202,7 +202,7 @@ export default function CustomerUploadPage({
             )}
 
             {doneCount > 0 && (
-              <p className="flex items-center gap-1.5 text-sm text-green-600">
+              <p className="flex items-center gap-1.5 text-sm text-green-600 dark:text-green-400">
                 <FileCheck className="h-4 w-4" />
                 ส่งไฟล์เรียบร้อย {doneCount} ไฟล์ — ทีมงานได้รับแล้ว
               </p>

@@ -140,7 +140,7 @@ export function CustomMadeDetail({
               variant="ghost"
               size="sm"
               onClick={() => setShowQuickAdd(true)}
-              className="ml-auto gap-1.5 text-xs text-muted"
+              className="ml-auto gap-1.5 text-muted"
             >
               <Plus className="h-3 w-3" />สร้างแพทเทิร์นใหม่
             </Button>
@@ -181,18 +181,18 @@ export function CustomMadeDetail({
                   <img
                     src={selectedPattern.thumbnailUrl}
                     alt={selectedPattern.name}
-                    className="h-16 w-16 flex-shrink-0 rounded border border-slate-200 object-cover dark:border-slate-700"
+                    className="h-16 w-16 flex-shrink-0 rounded border border-border object-cover"
                   />
                 )}
                 <div className="min-w-0 text-xs">
-                  <span className="block font-medium text-slate-700 dark:text-slate-200">{selectedPattern.name}</span>
+                  <span className="block font-medium text-secondary">{selectedPattern.name}</span>
                   {selectedPattern.description && (
                     <span className="block text-muted">{selectedPattern.description}</span>
                   )}
-                  <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-slate-400">
-                    {selectedPattern.collarType && <span>คอ: <span className="text-slate-600 dark:text-slate-300">{COLLAR_TYPES[selectedPattern.collarType] || selectedPattern.collarType}</span></span>}
-                    {selectedPattern.sleeveType && <span>แขน: <span className="text-slate-600 dark:text-slate-300">{SLEEVE_TYPES[selectedPattern.sleeveType] || selectedPattern.sleeveType}</span></span>}
-                    {selectedPattern.bodyFit && <span>ทรง: <span className="text-slate-600 dark:text-slate-300">{BODY_FITS[selectedPattern.bodyFit] || selectedPattern.bodyFit}</span></span>}
+                  <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted">
+                    {selectedPattern.collarType && <span>คอ: <span className="text-secondary">{COLLAR_TYPES[selectedPattern.collarType] || selectedPattern.collarType}</span></span>}
+                    {selectedPattern.sleeveType && <span>แขน: <span className="text-secondary">{SLEEVE_TYPES[selectedPattern.sleeveType] || selectedPattern.sleeveType}</span></span>}
+                    {selectedPattern.bodyFit && <span>ทรง: <span className="text-secondary">{BODY_FITS[selectedPattern.bodyFit] || selectedPattern.bodyFit}</span></span>}
                   </div>
                 </div>
               </div>

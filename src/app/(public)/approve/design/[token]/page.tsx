@@ -66,7 +66,7 @@ export default function DesignApprovalPage({
           <CardContent className="p-8 text-center">
             {submitted === "approved" ? (
               <>
-                <CheckCircle className="mx-auto mb-4 h-16 w-16 text-green-500" />
+                <CheckCircle className="mx-auto mb-4 h-16 w-16 text-green-600 dark:text-green-400" />
                 <h2 className="mb-2 text-xl font-semibold text-strong">
                   อนุมัติแบบเรียบร้อย!
                 </h2>
@@ -76,7 +76,7 @@ export default function DesignApprovalPage({
               </>
             ) : (
               <>
-                <AlertCircle className="mx-auto mb-4 h-16 w-16 text-amber-500" />
+                <AlertCircle className="mx-auto mb-4 h-16 w-16 text-amber-700 dark:text-amber-400" />
                 <h2 className="mb-2 text-xl font-semibold text-strong">
                   รับทราบแล้ว!
                 </h2>
@@ -200,7 +200,7 @@ export default function DesignApprovalPage({
                     href={image.fileUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex min-h-11 touch-manipulation items-center gap-1.5 px-2 text-sm text-blue-600 hover:underline"
+                    className="inline-flex min-h-11 touch-manipulation items-center gap-1.5 px-2 text-sm text-secondary hover:text-strong hover:underline"
                   >
                     <ExternalLink className="h-3.5 w-3.5" />
                     {image.previewUrl ? "เปิดภาพเต็ม" : "เปิดไฟล์"}
@@ -223,15 +223,15 @@ export default function DesignApprovalPage({
             <CardContent className="p-6 text-center">
               {d.approvalStatus === "APPROVED" ? (
                 <div className="space-y-2">
-                  <CheckCircle className="mx-auto h-10 w-10 text-green-500" />
-                  <p className="font-medium text-green-700">
+                  <CheckCircle className="mx-auto h-10 w-10 text-green-600 dark:text-green-400" />
+                  <p className="font-medium text-green-700 dark:text-green-300">
                     แบบนี้อนุมัติแล้ว
                   </p>
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <AlertCircle className="mx-auto h-10 w-10 text-amber-500" />
-                  <p className="font-medium text-amber-700">
+                  <AlertCircle className="mx-auto h-10 w-10 text-amber-700 dark:text-amber-400" />
+                  <p className="font-medium text-amber-700 dark:text-amber-400">
                     ขอแก้ไขแล้ว -- รอแบบใหม่จากทีมงาน
                   </p>
                   {d.customerComment && (

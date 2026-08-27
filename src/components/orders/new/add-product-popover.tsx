@@ -48,10 +48,10 @@ export function AddProductPopover({
                 onClick={() => { handlers[key](); setOpen(false); }}
                 className="group flex w-full items-start gap-2 rounded-lg px-3 py-2 text-left transition-colors hover:bg-interactive-hover active:bg-interactive-pressed dark:hover:bg-interactive-hover dark:active:bg-interactive-pressed"
               >
-                <Icon className="mt-0.5 h-4 w-4 flex-shrink-0 text-slate-400" strokeWidth={1.75} />
+                <Icon className="mt-0.5 h-4 w-4 flex-shrink-0 text-muted" strokeWidth={1.75} />
                 <span className="min-w-0">
-                  <span className="block text-sm font-medium text-slate-700 dark:text-slate-200">{label}</span>
-                  <span className="block text-xs text-slate-500 group-hover:text-secondary group-active:text-secondary dark:text-slate-400 dark:group-hover:text-secondary dark:group-active:text-secondary">{desc}</span>
+                  <span className="block text-sm font-medium text-secondary">{label}</span>
+                  <span className="block text-xs text-muted group-hover:text-secondary group-active:text-secondary dark:group-hover:text-secondary dark:group-active:text-secondary">{desc}</span>
                 </span>
               </button>
             ))}

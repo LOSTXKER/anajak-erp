@@ -219,9 +219,9 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
       </CardHeader>
       <CardContent>
         {artworks.isLoading ? (
-          <p className="text-sm text-slate-400">กำลังโหลด...</p>
+          <p className="text-sm text-muted">กำลังโหลด...</p>
         ) : rows.length === 0 ? (
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-muted">
             ยังไม่มีลายในคลัง — ลายจะเข้าคลังเองเมื่องานพิมพ์ผ่าน QC หรือกด &quot;เพิ่มลาย&quot;
           </p>
         ) : (
@@ -231,7 +231,7 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
               return (
                 <div
                   key={a.id}
-                  className={`flex gap-3 rounded-lg border border-slate-200 p-3 dark:border-slate-700 ${
+                  className={`flex gap-3 rounded-lg border border-border p-3 ${
                     a.isActive ? "" : "opacity-50"
                   }`}
                 >
@@ -240,44 +240,44 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
                       <img
                         src={a.imageUrl}
                         alt={a.name}
-                        className="h-16 w-16 shrink-0 rounded-lg border border-slate-200 object-cover dark:border-slate-700"
+                        className="h-16 w-16 shrink-0 rounded-lg border border-border object-cover"
                       />
                     </a>
                   ) : (
-                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800">
-                      <ImageIcon className="h-6 w-6 text-slate-300 dark:text-slate-600" />
+                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg border border-border bg-slate-50 dark:bg-slate-800">
+                      <ImageIcon className="h-6 w-6 text-muted" />
                     </div>
                   )}
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <p className="truncate text-sm font-medium text-slate-900 dark:text-white">
+                      <p className="truncate text-sm font-medium text-strong">
                         {a.name}
                       </p>
                       {!a.isActive && (
-                        <Badge variant="secondary" className="text-2xs">
+                        <Badge variant="secondary">
                           ปิดใช้งาน
                         </Badge>
                       )}
                     </div>
                     <div className="mt-1 flex flex-wrap gap-1.5">
                       {specChips(a).map((c) => (
-                        <Badge key={c} variant="secondary" className="text-2xs">
+                        <Badge key={c} variant="secondary">
                           {c}
                         </Badge>
                       ))}
                     </div>
-                    <p className="mt-1 text-2xs text-muted">
+                    <p className="mt-1 text-xs text-muted">
                       ใช้ไป {a.usedOrderCount} ออเดอร์
                       {a.latestOrder ? ` · ล่าสุด ${a.latestOrder.orderNumber}` : ""}
                       {a.filmQty > 0 ? (
-                        <span className="font-medium text-amber-600 dark:text-amber-400">
+                        <span className="font-medium text-amber-700 dark:text-amber-400">
                           {" "}
                           · ฟิล์มค้าง {a.filmQty} ชิ้น
                         </span>
                       ) : null}
                     </p>
                     {gaps.length > 0 && (
-                      <p className="mt-0.5 text-2xs text-amber-600 dark:text-amber-400">
+                      <p className="mt-0.5 text-xs text-amber-700 dark:text-amber-400">
                         สเปกยังไม่ครบ: {gaps.join(" · ")}
                       </p>
                     )}
@@ -310,7 +310,7 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 w-full text-xs text-muted"
+                className="h-8 w-full text-muted"
                 onClick={() => setShowAll((v) => !v)}
               >
                 {showAll ? "ย่อ" : `ดูทั้งหมด (${rows.length})`}
@@ -433,7 +433,7 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
                   <img
                     src={addImageUrl}
                     alt="ลายใหม่"
-                    className="h-16 w-16 rounded-lg border border-slate-200 object-cover dark:border-slate-700"
+                    className="h-16 w-16 rounded-lg border border-border object-cover"
                   />
                   <Button variant="ghost" size="sm" onClick={() => setAddImageUrl("")}
                   >
@@ -450,7 +450,7 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
                 />
               )}
             </div>
-            <p className="text-2xs text-slate-400">
+            <p className="text-xs text-muted">
               สเปก (ขนาด/อุณหภูมิ/แรงกด) เติมทีหลังได้จากปุ่มแก้ไข
             </p>
           </div>

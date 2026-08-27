@@ -456,7 +456,7 @@ export function OrderItemsEditor({
           summary={
             hasItemContent ? (
               <>
-                <p className="text-2xs text-muted">
+                <p className="text-xs text-muted">
                   ยอดรวมทั้งหมด{order.taxRate > 0 ? " (รวม VAT)" : ""}
                 </p>
                 <p className={cn("truncate", DISPLAY_AMOUNT)}>
@@ -464,7 +464,7 @@ export function OrderItemsEditor({
                 </p>
               </>
             ) : (
-              <p className="text-xs leading-snug text-muted">
+              <p className="text-xs text-muted">
                 ยังไม่ใส่รายการ/ราคา
               </p>
             )

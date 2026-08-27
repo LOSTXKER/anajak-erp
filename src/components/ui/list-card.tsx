@@ -33,7 +33,7 @@ export function ListCardItem({
   children: React.ReactNode;
 }) {
   return (
-    <article role="listitem" className={cn("card-surface rounded-lg", className)}>
+    <article role="listitem" className={cn("card-surface rounded-2xl", className)}>
       {children}
     </article>
   );
@@ -77,7 +77,7 @@ export function ListCardMeta({
   return (
     <div className={cn("min-w-0", align === "right" && "text-right", className)}>
       <p className="text-muted">{label}</p>
-      <div className="mt-0.5 truncate text-slate-800 dark:text-slate-200">{children}</div>
+      <div className="mt-0.5 truncate text-secondary">{children}</div>
     </div>
   );
 }

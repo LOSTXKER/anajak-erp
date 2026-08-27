@@ -256,12 +256,12 @@ function Group({
     <div
       className={cn(
         "space-y-3",
-        divided && "border-t border-slate-100 pt-4 dark:border-slate-800",
+        divided && "border-t border-divider pt-4",
         className,
       )}
     >
       {label && (
-        <p className="text-2xs font-semibold text-slate-500 dark:text-slate-400">
+        <p className="text-xs font-semibold text-muted">
           {label}
         </p>
       )}
@@ -876,7 +876,7 @@ export function OrderOverviewTab({
                   {order.brandProfile.colorCodes.map((code) => (
                     <span
                       key={code}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2 py-1 font-mono text-xs text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2 py-1 font-mono text-xs text-secondary dark:bg-slate-800"
                     >
                       <span
                         aria-hidden="true"

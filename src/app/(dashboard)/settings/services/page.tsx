@@ -213,7 +213,7 @@ export default function ServicesPage() {
           {showAddForm && (
             <form
               onSubmit={handleCreate}
-              className="card-surface mb-4 space-y-3 rounded-lg p-4"
+              className="card-surface mb-4 space-y-3 rounded-2xl p-4"
             >
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
                 <div>
@@ -351,18 +351,19 @@ export default function ServicesPage() {
                               }
                             />
                           ) : (
-                            <span className="text-sm font-medium text-slate-900 dark:text-white">
+                            <span className="text-sm font-medium text-strong">
                               {item.name}
                             </span>
                           )}
                         </DataTable.Td>
-                        <DataTable.Td className="text-slate-500 dark:text-slate-400">
+                        <DataTable.Td className="text-muted">
                           {item.type}
                         </DataTable.Td>
                         <DataTable.Td align="right">
                           {isEditing ? (
                             <Input
                               aria-label={`ราคาบริการ ${item.name}`}
+                              size="dense"
                               type="number"
                               min={0}
                               step={0.01}
@@ -374,10 +375,10 @@ export default function ServicesPage() {
                                     parseFloat(e.target.value) || 0,
                                 })
                               }
-                              className="ml-auto h-7 w-28 text-right text-sm"
+                              className="ml-auto w-28 text-right"
                             />
                           ) : (
-                            <span className="text-sm tabular-nums font-medium text-slate-900 dark:text-white">
+                            <span className="text-sm tabular-nums font-medium text-strong">
                               {formatCurrency(item.defaultPrice)}
                             </span>
                           )}

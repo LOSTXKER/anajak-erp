@@ -220,7 +220,7 @@ function QuickLink({
       >
         <Icon className="h-4 w-4" />
       </div>
-      <p className="min-w-0 flex-1 text-pretty text-sm font-semibold leading-snug">
+      <p className="min-w-0 flex-1 text-pretty text-sm font-semibold">
         {label}
       </p>
     </Link>
@@ -232,7 +232,7 @@ function Metric({ label, value, note }: { label: string; value: ReactNode; note?
     <div className="min-w-0 bg-surface p-4 sm:p-5">
       <p className="text-xs font-medium text-muted">{label}</p>
       <p className="mt-2 text-2xl font-semibold tabular-nums text-strong">{value}</p>
-      {note && <p className="mt-1 truncate text-2xs text-muted">{note}</p>}
+      {note && <p className="mt-1 truncate text-xs text-muted">{note}</p>}
     </div>
   );
 }
@@ -386,14 +386,14 @@ export function DashboardHome() {
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="text-sm font-semibold tabular-nums text-strong">{order.orderNumber}</p>
                     {order.printLabel && (
-                      <Badge variant="accent" size="sm">{order.printLabel}</Badge>
+                      <Badge variant="default" size="sm">{order.printLabel}</Badge>
                     )}
                   </div>
                   <p className="mt-1 truncate text-xs text-muted group-hover:text-secondary group-active:text-secondary">
                     {order.customerName} · {order.title}
                   </p>
                   {order.deadline && (
-                    <p className="mt-1 text-2xs text-muted group-hover:text-secondary group-active:text-secondary">กำหนด {formatDateShort(order.deadline)}</p>
+                    <p className="mt-1 text-xs text-muted group-hover:text-secondary group-active:text-secondary">กำหนด {formatDateShort(order.deadline)}</p>
                   )}
                 </div>
                 <div className="flex items-center justify-between gap-3 sm:justify-end">

@@ -94,6 +94,7 @@ export function ProductPickerDialog({
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [selections, setSelections] = useState<VariantSelection>({});
   const inputRef = useRef<HTMLInputElement>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 300);
@@ -178,16 +179,35 @@ export function ProductPickerDialog({
   return (
     <Dialog.Root open={open} onOpenChange={(v) => !v && onClose()}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-backdrop backdrop-blur-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-backdrop backdrop-blur-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 motion-reduce:animate-none" />
         <Dialog.Content
+          onOpenAutoFocus={() => {
+            returnFocusRef.current = null;
+            const activeElement = document.activeElement;
+            if (
+              activeElement instanceof HTMLElement &&
+              activeElement !== document.body &&
+              !activeElement.closest('[role="dialog"]')
+            ) {
+              returnFocusRef.current = activeElement;
+            }
+          }}
+          onCloseAutoFocus={(event) => {
+            const returnFocusElement = returnFocusRef.current;
+            returnFocusRef.current = null;
+            if (returnFocusElement?.isConnected) {
+              event.preventDefault();
+              returnFocusElement.focus();
+            }
+          }}
           className={cn(
             OVERLAY_PANEL,
-            "fixed inset-x-4 top-[5%] z-50 mx-auto flex max-h-[90vh] max-w-2xl flex-col data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+            "fixed inset-x-4 top-[5%] z-50 mx-auto flex max-h-[90dvh] max-w-2xl flex-col data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 motion-reduce:animate-none",
           )}
         >
           {/* Header */}
           <div className="flex items-center justify-between border-b border-divider px-5 py-4">
-            <Dialog.Title className="flex min-w-0 items-start gap-2 text-lg font-semibold leading-tight text-strong">
+            <Dialog.Title className="flex min-w-0 items-start gap-2 text-lg font-semibold text-strong">
               <Package className="mt-0.5 h-5 w-5 shrink-0 text-blue-600 dark:text-blue-400" />
               เลือกสินค้าจากแค็ตตาล็อก
             </Dialog.Title>
@@ -258,7 +278,12 @@ export function ProductPickerDialog({
                       <button
                         type="button"
                         onClick={() => toggleExpand(product.id)}
-                        className="group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-interactive-hover active:bg-interactive-pressed"
+                        aria-expanded={isExpanded}
+                        aria-controls={`product-variants-${product.id}`}
+                        className={cn(
+                          FOCUS_BUTTON,
+                          "group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-interactive-hover active:bg-interactive-pressed",
+                        )}
                       >
                         {isExpanded ? (
                           <ChevronDown className="h-4 w-4 flex-shrink-0 text-muted" />
@@ -270,11 +295,11 @@ export function ProductPickerDialog({
                             <span className="truncate text-sm font-medium text-strong">
                               {product.name}
                             </span>
-                            <span className="inline-flex flex-shrink-0 items-center rounded-full bg-surface-muted px-2 py-0.5 text-2xs font-medium text-secondary">
+                            <span className="inline-flex flex-shrink-0 items-center rounded-full bg-surface-muted px-2 py-0.5 text-xs font-medium text-secondary">
                               {PRODUCT_TYPE_LABELS[product.productType] ?? product.productType}
                             </span>
                             {selectedFromProduct > 0 && (
-                              <span className="inline-flex flex-shrink-0 items-center rounded-full bg-blue-100 px-2 py-0.5 text-2xs font-semibold text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                              <span className="inline-flex flex-shrink-0 items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-900 dark:text-blue-300">
                                 เลือก {selectedFromProduct}
                               </span>
                             )}
@@ -297,7 +322,7 @@ export function ProductPickerDialog({
                                   totalStock > 10
                                     ? "text-green-600 dark:text-green-400"
                                     : totalStock > 0
-                                      ? "text-amber-600 dark:text-amber-400"
+                                      ? "text-amber-700 dark:text-amber-400"
                                       : "text-red-700 dark:text-red-300",
                                 )}
                               >
@@ -310,7 +335,10 @@ export function ProductPickerDialog({
 
                       {/* Expanded: variant selection with checkboxes + qty */}
                       {isExpanded && product.variants.length > 0 && (
-                        <div className="mx-1 mb-1 overflow-hidden rounded-lg border border-border bg-surface-muted sm:ml-10 sm:mr-3">
+                        <div
+                          id={`product-variants-${product.id}`}
+                          className="mx-1 mb-1 overflow-hidden rounded-lg border border-border bg-surface-muted sm:ml-10 sm:mr-3"
+                        >
                           <table className="block w-full text-xs sm:table sm:table-fixed">
                             <thead className={cn(TABLE_HEAD_SURFACE, "hidden sm:table-header-group")}>
                               <tr>
@@ -350,19 +378,19 @@ export function ProductPickerDialog({
                                       {v.sku}
                                     </td>
                                     <td className="col-start-2 min-w-0 p-0 text-secondary sm:table-cell sm:px-3 sm:py-1.5">
-                                      <span className="block text-2xs text-muted sm:hidden">
+                                      <span className="block text-xs text-muted sm:hidden">
                                         สี
                                       </span>
                                       <span className="block truncate">{v.color || "-"}</span>
                                     </td>
                                     <td className="col-start-3 min-w-0 p-0 font-medium text-secondary sm:table-cell sm:px-3 sm:py-1.5">
-                                      <span className="block text-2xs font-normal text-muted sm:hidden">
+                                      <span className="block text-xs font-normal text-muted sm:hidden">
                                         ไซส์
                                       </span>
                                       <span className="block truncate">{v.size}</span>
                                     </td>
                                     <td className="col-start-2 p-0 sm:table-cell sm:px-3 sm:py-1.5 sm:text-right">
-                                      <span className="mb-1 block text-2xs text-muted sm:hidden">
+                                      <span className="mb-1 block text-xs text-muted sm:hidden">
                                         คงเหลือ
                                       </span>
                                       <Badge
@@ -380,7 +408,7 @@ export function ProductPickerDialog({
                                       </Badge>
                                     </td>
                                     <td className="col-start-3 min-w-0 p-0 font-medium text-secondary sm:table-cell sm:px-3 sm:py-1.5 sm:text-right">
-                                      <span className="block text-2xs font-normal text-muted sm:hidden">
+                                      <span className="block text-xs font-normal text-muted sm:hidden">
                                         ราคา
                                       </span>
                                       <span className="block break-words">
@@ -448,7 +476,7 @@ export function ProductPickerDialog({
                                         </button>
                                       </div>
                                       {exceedsStock && (
-                                        <p className="text-center text-2xs text-amber-600 dark:text-amber-400">
+                                        <p className="text-center text-xs text-amber-700 dark:text-amber-400">
                                           เกินสต็อก (ต้องสั่งเพิ่ม)
                                         </p>
                                       )}
@@ -463,7 +491,10 @@ export function ProductPickerDialog({
 
                       {/* No variants -- allow direct manual add */}
                       {isExpanded && product.variants.length === 0 && (
-                        <div className="mb-1 ml-10 mr-3 rounded-lg border border-border bg-surface-muted p-3 text-center text-xs text-muted">
+                        <div
+                          id={`product-variants-${product.id}`}
+                          className="mb-1 ml-10 mr-3 rounded-lg border border-border bg-surface-muted p-3 text-center text-xs text-muted"
+                        >
                           สินค้านี้ไม่มี variant -- ใช้ &quot;เพิ่มรายการด้วยตนเอง&quot; แทน
                         </div>
                       )}

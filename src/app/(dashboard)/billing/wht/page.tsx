@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { StatusLabel } from "@/components/ui/status-label";
 import { SearchInput } from "@/components/ui/search-input";
 import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
-import { Skeleton } from "@/components/ui/skeleton";
+import { ListPageSkeleton } from "@/components/ui/page-skeleton";
 import { QueryError } from "@/components/ui/query-error";
 import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -118,7 +118,7 @@ function exportWhtCsv(rows: WhtRow[]) {
 
 export default function WhtRegisterPage() {
   return (
-    <Suspense fallback={<Skeleton className="h-96 rounded-lg" />}>
+    <Suspense fallback={<ListPageSkeleton />}>
       <WhtRegisterPageContent />
     </Suspense>
   );
@@ -319,15 +319,15 @@ function WhtRegisterPageContent() {
             <DataTable.Body>
               {items.map((row) => (
                 <DataTable.Row key={row.id}>
-                  <DataTable.Td className="text-xs tabular-nums text-slate-500 dark:text-slate-400">
+                  <DataTable.Td className="text-xs tabular-nums text-muted">
                     {formatDate(row.payment.createdAt)}
                   </DataTable.Td>
                   <DataTable.Td>
-                    <p className="font-medium text-slate-900 dark:text-white">
+                    <p className="font-medium text-strong">
                       {row.customer.name}
                     </p>
                     {row.customer.taxId && (
-                      <p className="text-xs tabular-nums text-slate-500 dark:text-slate-400">
+                      <p className="text-xs tabular-nums text-muted">
                         {row.customer.taxId}
                       </p>
                     )}
@@ -336,7 +336,7 @@ function WhtRegisterPageContent() {
                     <div className="flex items-center gap-2">
                       <Link
                         href={`/orders/${row.invoice.orderId}`}
-                        className="text-blue-600 hover:underline dark:text-blue-400"
+                        className="text-strong hover:underline"
                       >
                         {row.invoice.invoiceNumber}
                       </Link>
@@ -354,7 +354,7 @@ function WhtRegisterPageContent() {
                   </DataTable.Td>
                   <DataTable.Td
                     align="right"
-                    className="font-semibold tabular-nums text-slate-900 dark:text-white"
+                    className="font-semibold tabular-nums text-strong"
                   >
                     {formatCurrency(row.amount)}
                   </DataTable.Td>
@@ -378,7 +378,7 @@ function WhtRegisterPageContent() {
                           asChild
                           variant="ghost"
                           size="icon-sm"
-                          className="text-slate-400 hover:text-strong dark:hover:text-strong"
+                          className="text-muted hover:text-strong dark:hover:text-strong"
                         >
                           <a
                             href={row.fileUrl}
@@ -410,19 +410,20 @@ function WhtRegisterPageContent() {
           </DataTable.Root>
         )}
         renderMobile={(items) => (
-          <div className="space-y-3">
+          <div role="list" aria-label="รายการหนังสือรับรองหัก ณ ที่จ่าย" className="space-y-3">
             {items.map((row) => (
               <div
                 key={row.id}
-                className="card-surface rounded-lg p-4"
+                role="listitem"
+                className="card-surface rounded-2xl p-4"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">
+                    <p className="truncate text-sm font-semibold text-strong">
                       {row.customer.name}
                     </p>
                     {row.customer.taxId && (
-                      <p className="text-xs tabular-nums text-slate-500 dark:text-slate-400">
+                      <p className="text-xs tabular-nums text-muted">
                         {row.customer.taxId}
                       </p>
                     )}
@@ -444,7 +445,7 @@ function WhtRegisterPageContent() {
                   <div className="flex min-w-0 items-center gap-2">
                     <Link
                       href={`/orders/${row.invoice.orderId}`}
-                      className="text-blue-600 hover:underline dark:text-blue-400"
+                      className="text-strong hover:underline"
                     >
                       {row.invoice.invoiceNumber}
                     </Link>
@@ -452,19 +453,19 @@ function WhtRegisterPageContent() {
                       <StatusLabel label="บิลยกเลิก" tone="danger" emphasize />
                     )}
                   </div>
-                  <span className="shrink-0 text-xs tabular-nums text-slate-500 dark:text-slate-400">
+                  <span className="shrink-0 text-xs tabular-nums text-muted">
                     รับเงิน {formatDate(row.payment.createdAt)}
                   </span>
                 </div>
 
-                <p className="mt-1.5 text-sm tabular-nums text-slate-600 dark:text-slate-300">
+                <p className="mt-1.5 text-sm tabular-nums text-secondary">
                   ฐาน {formatCurrency(row.baseAmount)} × {row.ratePct}% = หัก{" "}
-                  <span className="font-semibold text-slate-900 dark:text-white">
+                  <span className="font-semibold text-strong">
                     {formatCurrency(row.amount)}
                   </span>
                 </p>
                 {row.received && row.certNumber && (
-                  <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                  <p className="mt-0.5 text-xs text-muted">
                     เลขใบ {row.certNumber}
                   </p>
                 )}
@@ -527,7 +528,7 @@ function WhtRegisterPageContent() {
             </div>
 
             <div className="space-y-2">
-              <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+              <p className="text-sm font-medium text-secondary">
                 แนบสแกนหนังสือรับรอง (ถ้ามี)
               </p>
               {fileUrl && (
@@ -546,7 +547,7 @@ function WhtRegisterPageContent() {
                     variant="ghost"
                     size="icon-sm"
                     onClick={() => setFileUrl("")}
-                    className="shrink-0 text-slate-400 hover:text-red-600 dark:hover:text-red-400"
+                    className="shrink-0 text-muted hover:text-red-600 dark:hover:text-red-400"
                     title="เอาไฟล์ออก"
                   >
                     <X />

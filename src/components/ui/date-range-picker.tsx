@@ -190,8 +190,8 @@ export function DateRangePicker({
     <PopoverPrimitive.Root open={open} onOpenChange={setOpen}>
       <span className="inline-flex items-center">
         <PopoverPrimitive.Trigger asChild>
-          {/* ใช้ Button ของกลางเป็นตัวเปิด ไม่ลอกสไตล์มาเอง — มันยืนข้างปุ่ม "ตัวกรอง"
-              บนแถบเดียวกัน ถ้าลอกสไตล์จะเพี้ยนทีละนิดทุกครั้งที่ Button เปลี่ยน
+          {/* ใช้ Button ของกลางเป็นตัวเปิด ไม่ลอกสไตล์มาเอง — มันยืนร่วมกับ control กรอง
+              บน toolbar เดียวกัน ถ้าลอกสไตล์จะเพี้ยนทีละนิดทุกครั้งที่ Button เปลี่ยน
               (เบสจับได้ 2026-08-01: สูง 36 vs 32 · อักษร 12 vs 14 · น้ำหนัก 400 vs 600) */}
           <Button
             variant="outline"
@@ -201,7 +201,7 @@ export function DateRangePicker({
               label && "pr-10",
               className,
               // มีช่วงวันที่เลือกอยู่ = กรองอยู่ ต้องเห็นตั้งแต่ยังไม่กดเข้าไป
-              // ใช้สีชุดเดียวกับปุ่ม "ตัวกรอง" ที่ยืนข้างกัน (เบสทักว่าสีไม่เหมือนกัน 2026-08-01)
+              // ใช้สี active ชุดเดียวกับ control กรองที่ยืนข้างกัน (เบสทักว่าสีไม่เหมือนกัน 2026-08-01)
               label &&
                 ACTIVE_FILTER,
             )}
@@ -268,7 +268,7 @@ export function DateRangePicker({
             })}
           </div>
 
-          <div className="mb-2 flex items-center justify-between border-t border-slate-200 pt-3 dark:border-slate-800">
+          <div className="mb-2 flex items-center justify-between border-t border-border pt-3">
             <button
               type="button"
               aria-label="เดือนก่อนหน้า"
@@ -292,7 +292,7 @@ export function DateRangePicker({
 
           <div className="grid grid-cols-7 gap-y-0.5" onMouseLeave={() => setHovered(null)}>
             {WEEKDAYS.map((w) => (
-              <div key={w} className="pb-1 text-center text-2xs font-medium text-muted">
+              <div key={w} className="pb-1 text-center text-xs font-medium text-muted">
                 {w}
               </div>
             ))}

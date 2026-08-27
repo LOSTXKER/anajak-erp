@@ -57,7 +57,7 @@ export const Section = React.forwardRef<HTMLDivElement, SectionProps>(
       <section
         ref={ref}
         className={cn(
-          isCard ? "card-surface overflow-hidden rounded-lg" : bordered && "border-b border-divider pb-6",
+          isCard ? "card-surface overflow-hidden rounded-2xl" : bordered && "border-b border-divider pb-6",
           className
         )}
         {...props}
@@ -83,14 +83,14 @@ export const Section = React.forwardRef<HTMLDivElement, SectionProps>(
               {title &&
                 (compact ? (
                   <div className="flex items-center gap-1">
-                    <Heading className="text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    <Heading className="text-xs font-medium text-muted">
                       {title}
                     </Heading>
                     {help && <HelpTip label={typeof title === "string" ? title : "หัวข้อนี้"}>{help}</HelpTip>}
                   </div>
                 ) : (
                   <div className="flex items-center gap-1">
-                    <Heading className="text-base font-semibold text-slate-900 dark:text-white">
+                    <Heading className="text-base font-semibold text-strong">
                       {title}
                     </Heading>
                     {help && <HelpTip label={typeof title === "string" ? title : "หัวข้อนี้"}>{help}</HelpTip>}

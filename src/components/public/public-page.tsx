@@ -1,4 +1,5 @@
-import { Spinner } from "@/components/ui/spinner";
+import { Skeleton } from "@/components/ui/skeleton";
+
 
 /* โครงหน้า public (ลิงก์ลูกค้า/ร้านนอก) — แหล่งเดียวของ กล่องครอบ + header + footer
    เดิม 5 หน้า (quote/status/upload/approve/job) ก๊อปโครงกันเองแล้วเพี้ยน:
@@ -11,6 +12,9 @@ export function PublicPageShell({
   subtitle,
   footer,
   hideFooter = false,
+  // ค่าปริยายตามหลัง hideFooter — blind ship แปลว่า "ห้ามโผล่ตัวตนร้าน" ทั้งชุด
+  // ถ้าปล่อยให้ default เป็น false ใครลืมส่ง prop ก็ทำแบรนด์หลุดได้เงียบ ๆ
+  hideBrandMark = hideFooter,
   children,
 }: {
   /** ไอคอนหัวหน้า — ส่ง Lucide มาโดยไม่ใส่สี; shell กำหนดขนาดและ neutral tone */
@@ -22,18 +26,29 @@ export function PublicPageShell({
   footer?: React.ReactNode;
   /** ซ่อน footer ทั้งแถบ (blind ship — ห้ามโผล่ชื่อร้าน) */
   hideFooter?: boolean;
+  /** ซ่อนตราสัญลักษณ์ด้วย — ใช้คู่กับ hideFooter ตอน blind ship
+   *  ปกติหัวการ์ดใส่ตราน้ำเงินไว้ เพราะหน้าพวกนี้คือที่เดียวที่ลูกค้าเห็นแบรนด์เรา
+   *  (เบสทัก 2026-08-26 "อย่าลืมสีฟ้าที่เป็น asset เรา" — หัวหน้าลูกค้าเคยเป็นเทาล้วน) */
+  hideBrandMark?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <div className="min-h-screen bg-bg px-4 py-5 sm:py-10">
       <div className="mx-auto max-w-2xl space-y-5">
-        <header className="card-surface rounded-lg p-5 sm:p-6">
+        <header className="card-surface rounded-2xl p-5 sm:p-6">
           <div className="flex items-start gap-3">
-            <span className="mt-1 shrink-0 text-secondary [&_svg]:h-5 [&_svg]:w-5" aria-hidden="true">
+            <span
+              className={
+                hideBrandMark
+                  ? "mt-1 shrink-0 text-secondary [&_svg]:h-5 [&_svg]:w-5"
+                  : "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-blue-600 text-white [&_svg]:h-5 [&_svg]:w-5"
+              }
+              aria-hidden="true"
+            >
               {icon}
             </span>
             <div className="min-w-0">
-              <h1 className="text-xl font-semibold tracking-[-0.02em] text-strong sm:text-2xl">{title}</h1>
+              <h1 className="break-words text-2xl font-semibold text-strong [overflow-wrap:anywhere]">{title}</h1>
               <p className="mt-1 text-sm leading-relaxed text-muted">{subtitle}</p>
             </div>
           </div>
@@ -49,13 +64,32 @@ export function PublicPageShell({
   );
 }
 
-/** จอโหลดเต็มหน้าก่อนข้อมูล token มา — คู่กับ PublicLinkError (เดิมก๊อป 5 สำเนา) */
+/** จอโหลดก่อนข้อมูล token มา — คู่กับ PublicLinkError (เดิมก๊อป 5 สำเนา)
+ *
+ *  เดิมเป็นสปินเนอร์กลางจอ แล้วพอข้อมูลมาถึงเนื้อหาเด้งไปชิดบน = จอกระโดดทุกครั้ง
+ *  (UI-2026 · เบสสั่ง 2026-08-26) ตอนนี้ใช้โครงเดียวกับ PublicPageShell เป๊ะ
+ *  คงชื่อฟังก์ชันเดิมไว้เพื่อไม่ต้องไล่แก้ 5 หน้าที่เรียกใช้ */
 export function FullScreenLoading() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-bg">
-      <div className="flex items-center gap-2 text-muted">
-        <Spinner size="lg" />
-        <span>กำลังโหลด...</span>
+    <div className="min-h-screen bg-bg px-4 py-5 sm:py-10" role="status" aria-label="กำลังโหลด">
+      <span className="sr-only">กำลังโหลด</span>
+      <div className="mx-auto max-w-2xl space-y-5">
+        <div className="card-surface rounded-2xl p-5 sm:p-6">
+          <div className="flex items-start gap-3">
+            <Skeleton className="mt-1 h-5 w-5 shrink-0" />
+            <div className="min-w-0 flex-1 space-y-2">
+              <Skeleton className="h-6 w-56" />
+              <Skeleton className="h-4 w-72 max-w-full" />
+            </div>
+          </div>
+        </div>
+        {[0, 1].map((index) => (
+          <div key={index} className="card-surface space-y-3 rounded-2xl p-5 sm:p-6">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-2/3" />
+          </div>
+        ))}
       </div>
     </div>
   );

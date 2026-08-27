@@ -163,10 +163,10 @@ export default function UsersSettingsPage() {
           {showAddForm && (
             <form
               onSubmit={handleCreate}
-              className="card-surface mb-4 grid grid-cols-1 items-end gap-3 rounded-lg p-4 sm:grid-cols-2 lg:grid-cols-5"
+              className="card-surface mb-4 grid grid-cols-1 items-end gap-3 rounded-2xl p-4 sm:grid-cols-2 lg:grid-cols-5"
             >
               <div>
-                <label htmlFor="new-user-name" className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
+                <label htmlFor="new-user-name" className="mb-1 block text-xs font-medium text-muted">
                   ชื่อ *
                 </label>
                 <Input
@@ -179,7 +179,7 @@ export default function UsersSettingsPage() {
                 />
               </div>
               <div>
-                <label htmlFor="new-user-email" className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
+                <label htmlFor="new-user-email" className="mb-1 block text-xs font-medium text-muted">
                   อีเมล *
                 </label>
                 <Input
@@ -193,7 +193,7 @@ export default function UsersSettingsPage() {
                 />
               </div>
               <div>
-                <label htmlFor="new-user-role" className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
+                <label htmlFor="new-user-role" className="mb-1 block text-xs font-medium text-muted">
                   บทบาท *
                 </label>
                 <Select
@@ -211,7 +211,7 @@ export default function UsersSettingsPage() {
                 </Select>
               </div>
               <div>
-                <label htmlFor="new-user-password" className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
+                <label htmlFor="new-user-password" className="mb-1 block text-xs font-medium text-muted">
                   รหัสผ่านเริ่มต้น * (8+ ตัว)
                 </label>
                 <Input
@@ -256,8 +256,8 @@ export default function UsersSettingsPage() {
             />
           ) : !users || users.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12">
-              <Users className="h-10 w-10 text-slate-300 dark:text-slate-600" />
-              <p className="mt-3 text-sm text-slate-400">ยังไม่มีผู้ใช้</p>
+              <Users className="h-10 w-10 text-muted" />
+              <p className="mt-3 text-sm text-muted">ยังไม่มีผู้ใช้</p>
             </div>
           ) : (
             <DataTable.Root bordered={false}>
@@ -280,22 +280,22 @@ export default function UsersSettingsPage() {
                       >
                         <DataTable.Td>
                           <div>
-                            <span className="text-sm font-medium text-slate-900 dark:text-white">
+                            <span className="text-sm font-medium text-strong">
                               {user.name}
                             </span>
                             {isSelf && (
-                              <span className="ml-2 rounded-full bg-blue-50 px-2 py-0.5 text-2xs font-medium text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
+                              <span className="ml-2 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
                                 คุณ
                               </span>
                             )}
                           </div>
                         </DataTable.Td>
-                        <DataTable.Td className="text-slate-500 dark:text-slate-400">
+                        <DataTable.Td className="text-muted">
                           {user.email}
                         </DataTable.Td>
                         <DataTable.Td>
                           {isSelf ? (
-                            <span className="text-sm text-slate-700 dark:text-slate-300">
+                            <span className="text-sm text-secondary">
                               {ROLE_LABELS[user.role]}
                             </span>
                           ) : (
@@ -398,7 +398,7 @@ export default function UsersSettingsPage() {
           </DialogHeader>
           <form onSubmit={handleResetPassword} className="space-y-4">
             <div>
-              <label htmlFor="reset-user-password" className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
+              <label htmlFor="reset-user-password" className="mb-1 block text-xs font-medium text-muted">
                 รหัสผ่านใหม่ (8+ ตัว)
               </label>
               <Input
@@ -459,7 +459,7 @@ export default function UsersSettingsPage() {
             <div className="space-y-4">
               {[...new Set(PERMISSION_DEFS.map((d) => d.group))].map((group) => (
                 <div key={group}>
-                  <p className="mb-1.5 text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">
+                  <p className="mb-1.5 text-xs font-semibold text-muted">
                     {group}
                   </p>
                   <div className="space-y-1">
@@ -489,12 +489,12 @@ export default function UsersSettingsPage() {
                           </span>
                           <span className="flex shrink-0 items-center gap-1.5">
                             {overridden && (
-                              <span className="rounded-full bg-amber-50 px-2 py-0.5 text-2xs font-medium text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
+                              <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
                                 ปรับเอง
                               </span>
                             )}
                             {locked && (
-                              <span className="text-2xs text-slate-400">เจ้าของเท่านั้น</span>
+                              <span className="text-xs text-muted">เจ้าของเท่านั้น</span>
                             )}
                           </span>
                         </label>

@@ -55,7 +55,7 @@ function HeatSpecList({ prints }: { prints: readonly OrderPrint[] }) {
           </li>
         ))}
       </ul>
-      <p className="mt-2 text-2xs text-muted">
+      <p className="mt-2 text-xs text-muted">
         ค่าจากคลังลายของลูกค้า — แก้ได้ที่ลายนั้นเพื่อให้ทุกออเดอร์ถัดไปตรงกัน
       </p>
     </section>

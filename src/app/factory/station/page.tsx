@@ -1,7 +1,7 @@
 import { Suspense } from "react";
+import { ListSkeleton } from "@/components/ui/page-skeleton";
 import { StationModeScreen } from "@/components/factory/station-mode-screen";
 import { ManufacturingStationScreen } from "@/components/factory/manufacturing-station-screen";
-import { Skeleton } from "@/components/ui/skeleton";
 import { productionV2Enabled } from "@/lib/production-v2-flag";
 
 export default function FactoryStationPage() {
@@ -10,8 +10,8 @@ export default function FactoryStationPage() {
     <Suspense
       fallback={
         <div className="space-y-4 p-6">
-          <Skeleton className="h-16 rounded-lg" />
-          <Skeleton className="h-80 rounded-lg" />
+          <ListSkeleton rows={1} />
+          <ListSkeleton rows={5} />
         </div>
       }
     >

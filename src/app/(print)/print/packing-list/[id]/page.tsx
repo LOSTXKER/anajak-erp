@@ -96,7 +96,7 @@ export default async function PrintPackingListPage({
         {/* ผู้ส่ง / ผู้รับ */}
         <div className="mt-4 grid grid-cols-2 gap-3">
           <div className="rounded border border-slate-300 px-4 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            <p className="text-[11px] font-semibold text-slate-500">
               ผู้ส่ง / FROM
             </p>
             {order.blindShip ? (
@@ -118,7 +118,7 @@ export default async function PrintPackingListPage({
             )}
           </div>
           <div className="rounded border border-slate-300 px-4 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            <p className="text-[11px] font-semibold text-slate-500">
               ผู้รับ / TO
             </p>
             <p className="font-semibold">{delivery.recipientName}</p>

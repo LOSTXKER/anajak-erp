@@ -95,7 +95,7 @@ export function ProductionNowCard({
 
   if (nowSteps.length === 0) {
     return (
-      <section className={cn(!embedded && "card-surface rounded-lg", "px-4 py-3")}>
+      <section className={cn(!embedded && "card-surface rounded-2xl", "px-4 py-3")}>
         <p className="text-sm text-muted">{emptyMessage}</p>
       </section>
     );
@@ -142,7 +142,7 @@ export function ProductionNowCard({
             aria-valuenow={donePct}
             className="h-2 w-full overflow-hidden rounded-full bg-surface-muted"
           >
-            <div className="h-full rounded-full bg-blue-500" style={{ width: `${donePct}%` }} />
+            <div className="h-full rounded-full bg-blue-600 transition-[width] duration-[var(--duration-base)] ease-out" style={{ width: `${donePct}%` }} />
           </div>
         )}
 
@@ -292,7 +292,7 @@ export function ProductionNowCard({
 
   return (
     <section
-      className={cn(!embedded && "card-surface rounded-lg", embedded ? "p-0" : "p-5 sm:p-6")}
+      className={cn(!embedded && "card-surface rounded-2xl", embedded ? "p-0" : "p-5 sm:p-6")}
       aria-labelledby={
         focused
           ? "production-focused-step"
@@ -302,11 +302,11 @@ export function ProductionNowCard({
       }
     >
       {focused ? (
-        <h2 id="production-focused-step" className="text-2xl font-semibold tracking-tight text-strong">
+        <h2 id="production-focused-step" className="text-2xl font-semibold text-strong">
           {stepLabel(nowSteps[0]!.step)}
         </h2>
       ) : !embedded ? (
-        <h2 id="production-now" className="text-xs font-semibold uppercase tracking-wide text-muted">
+        <h2 id="production-now" className="text-xs font-semibold text-muted">
           ทำตอนนี้
         </h2>
       ) : currentSteps.length > 0 ? (

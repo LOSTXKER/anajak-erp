@@ -68,15 +68,15 @@ function ReceiveTrackingInline({ product, onSuccess, readOnly }: {
         <span className="font-medium text-yellow-700 dark:text-yellow-300">ตรวจรับของ:</span>
         {product.receivedInspected ? (
           <>
-            <Badge variant="default" className="text-2xs">ตรวจรับแล้ว</Badge>
+            <Badge variant="default">ตรวจรับแล้ว</Badge>
             {product.garmentCondition && <span className="text-muted">สภาพ: {GARMENT_CONDITIONS[product.garmentCondition] ?? product.garmentCondition}</span>}
             {product.receiveNote && <span className="text-muted">({product.receiveNote})</span>}
           </>
         ) : (
-          <span className="text-slate-400">ยังไม่มีหลักฐานใบตรวจรับ</span>
+          <span className="text-muted">ยังไม่มีหลักฐานใบตรวจรับ</span>
         )}
         {!readOnly ? (
-          <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(true)} className="ml-auto h-6 gap-1.5 px-2 text-2xs text-yellow-600 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-300">
+          <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(true)} className="ml-auto gap-1.5 text-yellow-700 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-300">
             <Edit3 />แก้สภาพ/หมายเหตุ
           </Button>
         ) : null}
@@ -90,26 +90,26 @@ function ReceiveTrackingInline({ product, onSuccess, readOnly }: {
         <Package className="h-3.5 w-3.5 text-yellow-600" />
         <div>
           <p className="text-xs font-semibold text-yellow-700 dark:text-yellow-300">ข้อมูลสภาพเสื้อจากลูกค้า</p>
-          <p className="text-2xs text-muted">สถานะตรวจรับอ้างอิงจากใบตรวจรับและยอดนับจริงเท่านั้น</p>
+          <p className="text-xs text-muted">สถานะตรวจรับอ้างอิงจากใบตรวจรับและยอดนับจริงเท่านั้น</p>
         </div>
       </div>
       <div className="flex flex-wrap items-end gap-3">
         <div>
-          <label htmlFor={`garment-condition-${product.id}`} className="mb-0.5 block text-2xs font-medium text-muted">สภาพเสื้อ</label>
-          <Select size="sm" id={`garment-condition-${product.id}`} value={condition} onChange={(e) => setCondition(e.target.value)} className={cn("px-2 py-1 text-xs", FOCUS_BUTTON)}>
+          <label htmlFor={`garment-condition-${product.id}`} className="mb-0.5 block text-xs font-medium text-muted">สภาพเสื้อ</label>
+          <Select size="sm" id={`garment-condition-${product.id}`} value={condition} onChange={(e) => setCondition(e.target.value)} className={cn("px-2 py-1", FOCUS_BUTTON)}>
             <option value="">เลือก</option>
             {Object.entries(GARMENT_CONDITIONS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </Select>
         </div>
         <div className="min-w-[160px] flex-1">
-          <label htmlFor={`garment-note-${product.id}`} className="mb-0.5 block text-2xs font-medium text-muted">หมายเหตุ</label>
+          <label htmlFor={`garment-note-${product.id}`} className="mb-0.5 block text-xs font-medium text-muted">หมายเหตุ</label>
           <Input size="sm" id={`garment-note-${product.id}`} value={note} onChange={(e) => setNote(e.target.value)} placeholder="เช่น เสื้อสภาพดี มีถุงครบ" />
         </div>
         <div className="flex gap-1.5">
-          <Button type="button" size="sm" onClick={() => mutation.mutate({ orderItemProductId: product.id, garmentCondition: condition || undefined, receiveNote: note || undefined })} disabled={mutation.isPending} className="h-8 gap-1.5 bg-yellow-600 text-xs text-white hover:bg-yellow-700">
+          <Button type="button" size="sm" onClick={() => mutation.mutate({ orderItemProductId: product.id, garmentCondition: condition || undefined, receiveNote: note || undefined })} disabled={mutation.isPending} className="h-8 gap-1.5 bg-yellow-700 text-white hover:bg-yellow-800">
             <Check />{mutation.isPending ? "กำลังบันทึก..." : "บันทึก"}
           </Button>
-          <Button type="button" variant="ghost" size="sm" onClick={() => { setEditing(false); setCondition(product.garmentCondition ?? ""); setNote(product.receiveNote ?? ""); }} className="h-8 text-xs">
+          <Button type="button" variant="ghost" size="sm" onClick={() => { setEditing(false); setCondition(product.garmentCondition ?? ""); setNote(product.receiveNote ?? ""); }} className="h-8">
             ยกเลิก
           </Button>
         </div>
@@ -138,7 +138,7 @@ interface OrderItemsDisplayProps {
 
 /** หัวข้อย่อยในรายการ (สินค้า/งานพิมพ์/ส่วนเสริม/สรุปราคา) — เขียนซ้ำ 4 ที่ */
 const GROUP_HEADING =
-  "mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted";
+  "mb-2 flex items-center gap-1.5 text-xs font-semibold text-muted";
 
 /**
  * ป้ายไทยของแต่ละบรรทัดใน "สรุปราคา"
@@ -216,7 +216,7 @@ export function OrderItemsDisplay({
         <CardContent>
           {isEmpty && (
             <div className="flex flex-col items-center gap-3 py-8 text-center">
-              <p className="text-sm text-slate-500 dark:text-slate-400">
+              <p className="text-sm text-muted">
                 ยังไม่มีรายการสินค้า/ราคา — ใส่ก่อนถึงจะยืนยันออเดอร์ได้
               </p>
               {onEditItems && (
@@ -268,7 +268,7 @@ export function OrderItemsDisplay({
                         <ShoppingBag className="h-3.5 w-3.5" />
                         สินค้า{item.products.length > 1 ? ` (${item.products.length})` : ""}
                       </div>
-                      <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                      <div className="divide-y divide-divider">
                         {item.products.map((prod, prodIdx) => {
                           const prodQty = prod.variants?.reduce((s: number, v: OrderItemVariant) => s + v.quantity, 0) ?? 0;
                           const netPrice = Math.max(0, (prod.baseUnitPrice ?? 0) - (prod.discount ?? 0));
@@ -285,16 +285,16 @@ export function OrderItemsDisplay({
                                 <div className="min-w-0 space-y-1">
                                   <div className="flex flex-wrap items-center gap-2">
                                     {item.products.length > 1 && (
-                                      <span className="text-xs font-medium text-slate-400">{prodIdx + 1}.</span>
+                                      <span className="text-xs font-medium text-muted">{prodIdx + 1}.</span>
                                     )}
                                     {prod.product?.imageUrl && (
                                       <img src={prod.product.imageUrl} alt="" className="h-8 w-8 rounded border object-cover" />
                                     )}
-                                    <span className="text-sm font-medium text-slate-900 dark:text-white [overflow-wrap:anywhere]">
+                                    <span className="text-sm font-medium text-strong [overflow-wrap:anywhere]">
                                       {prod.product?.name || prod.description || "สินค้า"}
                                     </span>
                                     {prod.product?.sku && (
-                                      <span className="font-mono text-xs text-slate-400">{prod.product.sku}</span>
+                                      <span className="font-mono text-xs text-muted">{prod.product.sku}</span>
                                     )}
                                     {source && <Badge variant={source.variant}>{source.label}</Badge>}
                                     {prod.productType && (
@@ -327,7 +327,7 @@ export function OrderItemsDisplay({
                                       {formatCurrency(prod.baseUnitPrice ?? 0)}/ชิ้น
                                       {(prod.discount ?? 0) > 0 && <span className="ml-1 text-red-500">(-{formatCurrency(prod.discount ?? 0)})</span>}
                                     </p>
-                                    <p className="tabular-nums text-sm font-semibold text-slate-900 dark:text-white">
+                                    <p className="tabular-nums text-sm font-semibold text-strong">
                                       {formatCurrency(prodQty * netPrice)}
                                     </p>
                                   </div>
@@ -359,20 +359,20 @@ export function OrderItemsDisplay({
                                     <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
                                       {prod.variants.map((v) => (
                                         <tr key={v.id}>
-                                          {variantsHaveColor && <td className="py-1.5 pr-4 text-slate-700 dark:text-slate-300">{v.color || "-"}</td>}
-                                          {variantsHaveSize && <td className="py-1.5 pr-4 text-slate-700 dark:text-slate-300">{v.size || "-"}</td>}
-                                          <td className="py-1.5 text-right tabular-nums font-medium text-slate-900 dark:text-white">{v.quantity}</td>
+                                          {variantsHaveColor && <td className="py-1.5 pr-4 text-secondary">{v.color || "-"}</td>}
+                                          {variantsHaveSize && <td className="py-1.5 pr-4 text-secondary">{v.size || "-"}</td>}
+                                          <td className="py-1.5 text-right tabular-nums font-medium text-strong">{v.quantity}</td>
                                         </tr>
                                       ))}
                                     </tbody>
                                     <tfoot>
                                       {/* ช่องคำว่า "รวม" ยืดตามจำนวนคอลัมน์ที่เหลืออยู่จริง —
                                           ถ้าไม่มีทั้งสี/ไซส์ ก็ไม่มีช่องให้ยืน ต้องพ่วงคำไปกับตัวเลขแทน */}
-                                      <tr className="border-t border-slate-100 dark:border-slate-800">
+                                      <tr className="border-t border-divider">
                                         {variantLeadCols > 0 && (
                                           <td colSpan={variantLeadCols} className="pt-1.5 text-xs font-medium text-muted">รวม</td>
                                         )}
-                                        <td className="pt-1.5 text-right tabular-nums text-sm font-semibold text-slate-900 dark:text-white">
+                                        <td className="pt-1.5 text-right tabular-nums text-sm font-semibold text-strong">
                                           {variantLeadCols > 0 ? prodQty : `รวม ${prodQty}`}
                                         </td>
                                       </tr>
@@ -429,7 +429,7 @@ export function OrderItemsDisplay({
                                         <img
                                           src={p.designImageUrl!}
                                           alt={`ลาย ${positionLabel}`}
-                                          className="h-10 w-10 rounded border border-slate-200 object-contain dark:border-slate-700"
+                                          className="h-10 w-10 rounded border border-border object-contain"
                                         />
                                       </a>
                                     ) : p.designImageUrl ? (
@@ -447,25 +447,25 @@ export function OrderItemsDisplay({
                                       </a>
                                     ) : (
                                       // เขียนเป็นคำ ไม่ใช้ขีด — ขีดหน้าตาเหมือนช่อง "ไม่ต้องกรอก" ทั้งที่นี่คือ "งานเดินต่อไม่ได้"
-                                      <span className="text-2xs text-muted">ยังไม่มีไฟล์แบบ</span>
+                                      <span className="text-xs text-muted">ยังไม่มีไฟล์แบบ</span>
                                     )}
                                   </td>
                                   {printsHavePosition && (
-                                    <td className="py-1.5 pr-4 text-slate-700 dark:text-slate-300">{positionLabel}</td>
+                                    <td className="py-1.5 pr-4 text-secondary">{positionLabel}</td>
                                   )}
                                   {printsHaveType && (
-                                    <td className="py-1.5 pr-4 text-slate-700 dark:text-slate-300">{p.printType ? PRINT_TYPES[p.printType] ?? p.printType : "-"}</td>
+                                    <td className="py-1.5 pr-4 text-secondary">{p.printType ? PRINT_TYPES[p.printType] ?? p.printType : "-"}</td>
                                   )}
                                   {printsHaveColorCount && (
-                                    <td className="py-1.5 pr-4 text-right tabular-nums text-slate-700 dark:text-slate-300">{p.colorCount ?? "-"}</td>
+                                    <td className="py-1.5 pr-4 text-right tabular-nums text-secondary">{p.colorCount ?? "-"}</td>
                                   )}
                                   {printsHaveSize && (
-                                    <td className="py-1.5 pr-4 text-right tabular-nums text-slate-700 dark:text-slate-300">
+                                    <td className="py-1.5 pr-4 text-right tabular-nums text-secondary">
                                       {(p.width || p.height) ? `${p.width || 0} x ${p.height || 0}` : "-"}
                                     </td>
                                   )}
                                   {showMoney && (
-                                    <td className="py-1.5 text-right tabular-nums font-medium text-slate-900 dark:text-white">{formatCurrency(p.unitPrice ?? 0)}</td>
+                                    <td className="py-1.5 text-right tabular-nums font-medium text-strong">{formatCurrency(p.unitPrice ?? 0)}</td>
                                   )}
                                 </tr>
                               );
@@ -514,18 +514,18 @@ export function OrderItemsDisplay({
                               const addonQty = a.pricingType === "PER_PIECE" ? (a.quantity ?? itemTotalQty) : 1;
                               return (
                                 <tr key={a.id}>
-                                  <td className="py-1.5 pr-4 text-slate-700 dark:text-slate-300 [overflow-wrap:anywhere]">{a.name || "-"}</td>
+                                  <td className="py-1.5 pr-4 text-secondary [overflow-wrap:anywhere]">{a.name || "-"}</td>
                                   <td className="py-1.5 pr-4">
                                     <Badge variant={a.pricingType === "PER_PIECE" ? "default" : "secondary"}>
                                       {PRICING_TYPE_LABELS[a.pricingType as PricingType] ?? a.pricingType}
                                     </Badge>
                                   </td>
                                   {showMoney && (
-                                    <td className="py-1.5 pr-4 text-right tabular-nums text-slate-700 dark:text-slate-300">{formatCurrency(a.unitPrice ?? 0)}</td>
+                                    <td className="py-1.5 pr-4 text-right tabular-nums text-secondary">{formatCurrency(a.unitPrice ?? 0)}</td>
                                   )}
-                                  <td className="py-1.5 pr-4 text-right tabular-nums text-slate-700 dark:text-slate-300">{addonQty}</td>
+                                  <td className="py-1.5 pr-4 text-right tabular-nums text-secondary">{addonQty}</td>
                                   {showMoney && (
-                                    <td className="py-1.5 text-right tabular-nums font-medium text-slate-900 dark:text-white">{formatCurrency((a.unitPrice ?? 0) * addonQty)}</td>
+                                    <td className="py-1.5 text-right tabular-nums font-medium text-strong">{formatCurrency((a.unitPrice ?? 0) * addonQty)}</td>
                                   )}
                                 </tr>
                               );
@@ -538,20 +538,20 @@ export function OrderItemsDisplay({
 
                   {/* สรุปราคา — ทุกบรรทัดบวกกันแล้วต้องเท่า item.subtotal ที่ server คิดมา */}
                   {showMoney && priceLines.length > 0 && (
-                    <div className="border-t border-slate-200/70 pt-3 dark:border-slate-700/60">
+                    <div className="border-t border-border/70 pt-3/60">
                       <div className={GROUP_HEADING}>
                         <Receipt className="h-3.5 w-3.5" />
                         สรุปราคา
                       </div>
                       <div className="overflow-x-auto">
                         <table className="w-full text-xs">
-                          <tbody className="text-slate-600 dark:text-slate-300">
+                          <tbody className="text-secondary">
                             {priceLines.map((line) => {
                               const { label, detail } = priceLineText(item, line);
                               return (
                                 <tr key={`${line.kind}-${line.index}`}>
                                   <td className="py-1 pr-2 [overflow-wrap:anywhere]">
-                                    <span className="text-slate-700 dark:text-slate-200">{label}</span>
+                                    <span className="text-secondary">{label}</span>
                                     {detail && <span className="ml-1 text-muted">({detail})</span>}
                                   </td>
                                   <td className="px-2 py-1 text-right tabular-nums text-muted">{formatCurrency(line.unitPrice)}</td>
@@ -562,14 +562,14 @@ export function OrderItemsDisplay({
                             })}
                           </tbody>
                           <tfoot>
-                            <tr className="border-t border-slate-200/70 dark:border-slate-700/60">
-                              <td colSpan={2} className="pt-2 text-sm font-semibold text-slate-900 dark:text-white">
+                            <tr className="border-t border-border/70/60">
+                              <td colSpan={2} className="pt-2 text-sm font-semibold text-strong">
                                 รวมทั้งหมด
                               </td>
                               <td className="px-2 pt-2 text-right text-xs tabular-nums text-muted">
                                 {itemTotalQty} ตัว
                               </td>
-                              <td className="pt-2 text-right text-sm font-semibold tabular-nums text-slate-900 dark:text-white">
+                              <td className="pt-2 text-right text-sm font-semibold tabular-nums text-strong">
                                 {formatCurrency(item.subtotal ?? 0)}
                               </td>
                             </tr>
@@ -596,7 +596,7 @@ export function OrderItemsDisplay({
                     {(item.description || item.notes) && (
                       <div className="space-y-0.5">
                         {item.description && (
-                          <p className="text-sm font-medium text-slate-800 dark:text-slate-200 [overflow-wrap:anywhere]">{item.description}</p>
+                          <p className="text-sm font-medium text-secondary [overflow-wrap:anywhere]">{item.description}</p>
                         )}
                         {item.notes && (
                           <p className="text-xs text-muted [overflow-wrap:anywhere]">{item.notes}</p>
@@ -618,19 +618,19 @@ export function OrderItemsDisplay({
                         {itemIndex + 1}
                       </span>
                       <div className="min-w-0 space-y-0.5">
-                        <p className="text-sm font-medium text-slate-800 dark:text-slate-200 [overflow-wrap:anywhere]">
+                        <p className="text-sm font-medium text-secondary [overflow-wrap:anywhere]">
                           {item.description || `รายการที่ ${itemIndex + 1}`}
                         </p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                        <p className="text-xs text-muted">
                           {item.products?.length ?? 0} สินค้า · {itemTotalQty} ชิ้น
                         </p>
                         {item.notes && (
-                          <p className="text-xs text-slate-500 dark:text-slate-400 [overflow-wrap:anywhere]">{item.notes}</p>
+                          <p className="text-xs text-muted [overflow-wrap:anywhere]">{item.notes}</p>
                         )}
                       </div>
                     </div>
                     {showMoney && item.subtotal != null && (
-                      <p className="flex-shrink-0 tabular-nums text-sm font-semibold text-slate-900 dark:text-white">
+                      <p className="flex-shrink-0 tabular-nums text-sm font-semibold text-strong">
                         {formatCurrency(item.subtotal)}
                       </p>
                     )}
@@ -664,12 +664,12 @@ export function OrderItemsDisplay({
                       {fee.feeType && (
                         <Badge variant="secondary">{fee.feeType}</Badge>
                       )}
-                      <span className="text-sm text-slate-700 dark:text-slate-300">
+                      <span className="text-sm text-secondary">
                         {fee.name || fee.feeType || "ค่าธรรมเนียม"}
                       </span>
                     </div>
                     {showMoney && (
-                      <span className="tabular-nums text-sm font-medium text-slate-900 dark:text-white">
+                      <span className="tabular-nums text-sm font-medium text-strong">
                         {formatCurrency(fee.amount ?? 0)}
                       </span>
                     )}

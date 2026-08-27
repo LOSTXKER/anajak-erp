@@ -25,7 +25,8 @@ import {
   primaryStationCommand,
   workCenterCodeFromStationParam,
 } from "@/lib/manufacturing-station";
-import { formatDateShort } from "@/lib/utils";
+import { cn, formatDateShort } from "@/lib/utils";
+import { ListSkeleton } from "@/components/ui/page-skeleton";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -45,6 +46,11 @@ import { QueryError } from "@/components/ui/query-error";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusLabel } from "@/components/ui/status-label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  FOCUS_BUTTON,
+  INTERACTIVE_HOVER,
+  INTERACTIVE_PRESSED,
+} from "@/components/ui/tokens";
 import { MockupThumbnail } from "@/components/mockup/mockup-thumbnail";
 import { GoodsReceiptDialog } from "@/components/goods-receipt/goods-receipt-dialog";
 import { GarmentPickCard } from "@/components/production/garment-pick-card";
@@ -449,7 +455,7 @@ export function ManufacturingStationScreen() {
         <div className="mx-auto flex max-w-[1500px] flex-col gap-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-300">
+              <p className="text-xs font-semibold text-muted">
                 Station
               </p>
               <h1 className="text-2xl font-semibold">โหมดสถานี</h1>
@@ -511,11 +517,11 @@ export function ManufacturingStationScreen() {
           />
         ) : loading ? (
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
-            <Skeleton className="h-[32rem] rounded-lg" />
-            <Skeleton className="h-[32rem] rounded-lg" />
+            <div className="card-surface rounded-2xl p-4"><ListSkeleton rows={5} /></div>
+            <div className="card-surface rounded-2xl p-4"><ListSkeleton rows={4} /></div>
           </div>
         ) : !effectiveWorkCenter ? (
-          <div className="card-surface rounded-lg">
+          <div className="card-surface rounded-2xl">
             <EmptyState
               icon={ScanLine}
               title="ยังไม่มีจุดทำงาน"
@@ -523,7 +529,7 @@ export function ManufacturingStationScreen() {
             />
           </div>
         ) : !dispatch.data ? (
-          <div className="card-surface rounded-lg">
+          <div className="card-surface rounded-2xl">
             <EmptyState
               icon={AlertTriangle}
               title="ไม่พบจุดทำงานนี้"
@@ -602,7 +608,7 @@ export function ManufacturingStationScreen() {
                   onRetry={() => void deepJob.refetch()}
                 />
               ) : (
-                <div className="card-surface rounded-lg">
+                <div className="card-surface rounded-2xl">
                   <EmptyState
                     icon={ClipboardCheck}
                     title="เลือกงานจากคิว"
@@ -618,9 +624,9 @@ export function ManufacturingStationScreen() {
                 selectedOperationId={currentJob?.operation.id ?? null}
                 onSelect={(job) => selectJob(job.operation.id)}
               />
-              <section className="card-surface rounded-lg p-4" aria-labelledby="station-scan-title">
+              <section className="card-surface rounded-2xl p-4" aria-labelledby="station-scan-title">
                 <div className="flex items-center gap-2">
-                  <QrCode className="h-5 w-5 text-blue-300" aria-hidden="true" />
+                  <QrCode className="h-5 w-5 text-muted" aria-hidden="true" />
                   <h2 id="station-scan-title" className="font-semibold">สแกนหรือพิมพ์เลขงาน</h2>
                 </div>
                 <p className="mt-1 text-xs text-muted">เปิดบริบทเท่านั้น ไม่เริ่มงานอัตโนมัติ</p>
@@ -807,7 +813,7 @@ function StationQueue({
     ...dispatch.queue,
   ];
   return (
-    <section className="card-surface overflow-hidden rounded-lg" aria-labelledby="station-queue-title">
+    <section className="card-surface overflow-hidden rounded-2xl" aria-labelledby="station-queue-title">
       <div className="border-b border-divider px-4 py-3">
         <h2 id="station-queue-title" className="font-semibold">คิว {dispatch.workCenter.name}</h2>
         <p className="text-xs text-muted">{jobs.length.toLocaleString("th-TH")} งานที่เห็นตามสิทธิ์</p>
@@ -919,7 +925,7 @@ function StationOrderContext({
   }
   if (jobs.length === 0) {
     return (
-      <div className="card-surface rounded-lg">
+      <div className="card-surface rounded-2xl">
         <EmptyState
           icon={QrCode}
           title="ยังไม่มีงานที่ทำได้จาก QR ใบนี้"
@@ -929,7 +935,7 @@ function StationOrderContext({
     );
   }
   return (
-    <section className="card-surface rounded-lg p-4" aria-labelledby="station-order-context-title">
+    <section className="card-surface rounded-2xl p-4" aria-labelledby="station-order-context-title">
       <h2 id="station-order-context-title" className="font-semibold">
         เลือกงานของออเดอร์นี้
       </h2>
@@ -941,7 +947,12 @@ function StationOrderContext({
           <li key={job.operation.id}>
             <button
               type="button"
-              className="flex min-h-11 w-full items-center justify-between gap-3 rounded-lg border border-divider px-4 py-3 text-left transition-colors hover:bg-hover"
+              className={cn(
+                FOCUS_BUTTON,
+                INTERACTIVE_HOVER,
+                INTERACTIVE_PRESSED,
+                "flex min-h-11 w-full items-center justify-between gap-3 rounded-lg border border-divider px-4 py-3 text-left transition-colors",
+              )}
               onClick={() => onSelect(job)}
             >
               <span className="min-w-0">
@@ -1047,12 +1058,12 @@ function StationJobPanel({
         : <ClipboardCheck />;
 
   return (
-    <article className="card-surface overflow-hidden rounded-lg">
+    <article className="card-surface overflow-hidden rounded-2xl">
       <div className="border-b border-divider p-5 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm font-semibold text-blue-300">{job.order.orderNumber}</span>
+              <span className="text-sm font-semibold text-strong">{job.order.orderNumber}</span>
               <StatusLabel label={meta.label} tone={meta.tone} emphasize={operation.state === "BLOCKED"} />
             </div>
             <h2 className="mt-2 text-2xl font-semibold sm:text-3xl">{operation.name}</h2>

@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useListPageState, usePageClamp } from "@/hooks/use-list-page-state";
 import { StatCard } from "@/components/ui/stat-card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { ListPageSkeleton } from "@/components/ui/page-skeleton";
 import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
@@ -58,7 +58,7 @@ const PAGE_SIZE = 20;
 
 export default function AgingPage() {
   return (
-    <Suspense fallback={<Skeleton className="h-96 rounded-lg" />}>
+    <Suspense fallback={<ListPageSkeleton />}>
       <AgingPageContent />
     </Suspense>
   );
@@ -296,7 +296,7 @@ function AgingPageContent() {
                     <div className="flex items-center gap-2">
                       <Link
                         href={`/customers/${row.customerId}`}
-                        className="font-medium text-blue-600 hover:underline dark:text-blue-400"
+                        className="font-medium text-strong hover:underline"
                       >
                         {row.company ? `${row.company} (${row.name})` : row.name}
                       </Link>
@@ -321,12 +321,17 @@ function AgingPageContent() {
                     <DataTable.Td
                       key={bucket.key}
                       align="right"
+                      // หัวคอลัมน์บอกช่วงอายุหนี้อยู่แล้ว — ย้อมแดงทุกช่องที่ไม่ใช่
+                      // "ยังไม่ครบกำหนด" ทำให้ทั้งตารางแดงจนของที่เจ็บจริงแข่งไม่ขึ้น
+                      // เก็บแดงไว้ช่วงเกิน 90 วันช่องเดียว ที่เหลือไล่ด้วยน้ำหนักแทน
                       className={`tabular-nums ${
                         row.buckets[bucket.key] === 0
                           ? "text-muted"
                           : bucket.key === "current"
                             ? ""
-                            : "font-medium text-red-700 dark:text-red-300"
+                            : bucket.key === "d90plus"
+                              ? "font-medium text-red-700 dark:text-red-300"
+                              : "font-medium text-secondary"
                       }`}
                     >
                       {row.buckets[bucket.key] === 0
@@ -336,7 +341,7 @@ function AgingPageContent() {
                   ))}
                   <DataTable.Td
                     align="right"
-                    className="font-semibold tabular-nums text-slate-900 dark:text-white"
+                    className="font-semibold tabular-nums text-strong"
                   >
                     {formatCurrency(row.total)}
                   </DataTable.Td>
@@ -361,37 +366,37 @@ function AgingPageContent() {
         renderMobile={(rows) => (
           <div role="list" aria-label="รายการลูกหนี้" className="space-y-3">
             {rows.map((row) => (
-              <article key={row.customerId} role="listitem" className="card-surface rounded-lg p-4">
+              <article key={row.customerId} role="listitem" className="card-surface rounded-2xl p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <Link
                       href={`/customers/${row.customerId}`}
-                      className="font-semibold text-blue-700 hover:underline dark:text-blue-300"
+                      className="font-semibold text-strong hover:underline"
                     >
                       {row.company || row.name}
                     </Link>
                     {row.company && (
-                      <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                      <p className="mt-0.5 text-xs text-muted">
                         ผู้ติดต่อ {row.name}
                       </p>
                     )}
                   </div>
                   <p className="shrink-0 text-right">
-                    <span className="block text-xs text-slate-500 dark:text-slate-400">ค้างรวม</span>
-                    <span className="font-semibold tabular-nums text-slate-900 dark:text-white">
+                    <span className="block text-xs text-muted">ค้างรวม</span>
+                    <span className="font-semibold tabular-nums text-strong">
                       {formatCurrency(row.total)}
                     </span>
                   </p>
                 </div>
 
-                <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-slate-100 pt-3 text-xs dark:border-slate-800">
+                <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-divider pt-3 text-xs">
                   {BUCKETS.filter((bucket) => row.buckets[bucket.key] > 0).map((bucket) => (
                     <div key={bucket.key} className="flex items-center justify-between gap-2">
-                      <dt className="text-slate-500 dark:text-slate-400">{bucket.label}</dt>
+                      <dt className="text-muted">{bucket.label}</dt>
                       <dd
                         className={`font-medium tabular-nums ${
                           bucket.key === "current"
-                            ? "text-slate-900 dark:text-white"
+                            ? "text-strong"
                             : "text-red-700 dark:text-red-300"
                         }`}
                       >
@@ -481,7 +486,7 @@ function AgingPageContent() {
                   value={draft.data.text}
                   readOnly
                   rows={12}
-                  className="font-mono text-xs"
+                  className="font-mono"
                 />
                 {/* ปุ่มคัดลอก = action หลักของ dialog นี้ — ใช้ DialogFooter ให้ปักก้นกรอบ
                     เหมือน dialog อื่น (ข้อความทวงยาวตามจำนวนใบ ดันปุ่มตกนอกสายตาได้) */}
@@ -496,7 +501,7 @@ function AgingPageContent() {
                 </DialogFooter>
               </>
             ) : (
-              <p className="py-8 text-center text-sm text-slate-400">
+              <p className="py-8 text-center text-sm text-muted">
                 ลูกค้ารายนี้ไม่มียอดค้าง — ไม่มีอะไรต้องทวง
               </p>
             )}

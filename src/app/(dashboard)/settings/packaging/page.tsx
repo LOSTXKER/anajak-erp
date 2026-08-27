@@ -130,10 +130,10 @@ export default function PackagingSettingsPage() {
           {showAddForm && (
             <form
               onSubmit={handleCreate}
-              className="card-surface mb-4 flex items-end gap-3 rounded-lg p-4"
+              className="card-surface mb-4 flex items-end gap-3 rounded-2xl p-4"
             >
               <div className="flex-1">
-                <label htmlFor="new-packaging-name" className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
+                <label htmlFor="new-packaging-name" className="mb-1 block text-xs font-medium text-muted">
                   ชื่อแพ็คเกจ *
                 </label>
                 <Input
@@ -170,9 +170,9 @@ export default function PackagingSettingsPage() {
             </div>
           ) : !options || options.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12">
-              <Package className="h-10 w-10 text-slate-300 dark:text-slate-600" />
-              <p className="mt-3 text-sm text-slate-400">ยังไม่มีแพ็คเกจ</p>
-              <p className="mt-1 text-xs text-slate-400">
+              <Package className="h-10 w-10 text-muted" />
+              <p className="mt-3 text-sm text-muted">ยังไม่มีแพ็คเกจ</p>
+              <p className="mt-1 text-xs text-muted">
                 เพิ่มตัวเลือกแพ็คเกจเพื่อใช้ในออเดอร์
               </p>
             </div>
@@ -196,7 +196,7 @@ export default function PackagingSettingsPage() {
                       className={!opt.isActive ? "opacity-50" : undefined}
                     >
                       <DataTable.Td align="center">
-                        <GripVertical aria-hidden="true" className="inline h-4 w-4 text-slate-300" />
+                        <GripVertical aria-hidden="true" className="inline h-4 w-4 text-muted" />
                       </DataTable.Td>
                       <DataTable.Td>
                         {isEditing ? (
@@ -210,12 +210,12 @@ export default function PackagingSettingsPage() {
                             }}
                           />
                         ) : (
-                          <span className="text-sm font-medium text-slate-900 dark:text-white">
+                          <span className="text-sm font-medium text-strong">
                             {opt.name}
                           </span>
                         )}
                       </DataTable.Td>
-                      <DataTable.Td align="center" className="text-xs text-slate-400">
+                      <DataTable.Td align="center" className="text-xs text-muted">
                         {opt.sortOrder}
                       </DataTable.Td>
                       <DataTable.Td align="center">

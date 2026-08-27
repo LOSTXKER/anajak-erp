@@ -12,9 +12,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { RADIUS, TINT } from "@/components/ui/tokens";
 import { Badge } from "@/components/ui/badge";
 import { QueryError } from "@/components/ui/query-error";
-import { formatDateTime } from "@/lib/utils";
+import { cn, formatDateTime } from "@/lib/utils";
 import {
   Cloud,
   RefreshCw,
@@ -267,7 +268,7 @@ export default function StockSettingsPage() {
                 <div>
                       <label
                         htmlFor="stock-api-url"
-                        className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300"
+                        className="mb-1.5 block text-sm font-medium text-secondary"
                       >
                     API URL
                   </label>
@@ -278,9 +279,9 @@ export default function StockSettingsPage() {
                           setDraft({ apiUrl: e.target.value, apiKey })
                         }
                     placeholder="https://stock.anajak.com/api"
-                    className="font-mono text-sm"
+                    className="font-mono"
                   />
-                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  <p className="mt-1 text-xs text-muted">
                     ดูได้ที่หน้า Integrations ในระบบ Stock
                   </p>
                 </div>
@@ -289,7 +290,7 @@ export default function StockSettingsPage() {
                 <div>
                       <label
                         htmlFor="stock-api-key"
-                        className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300"
+                        className="mb-1.5 block text-sm font-medium text-secondary"
                       >
                     API Key
                   </label>
@@ -303,7 +304,7 @@ export default function StockSettingsPage() {
                               setDraft({ apiUrl, apiKey: e.target.value })
                             }
                         placeholder="sk_xxxxxxxxxxxxxxxx"
-                        className="pr-10 font-mono text-sm"
+                        className="pr-10 font-mono"
                       />
                       <Button
                         type="button"
@@ -313,13 +314,13 @@ export default function StockSettingsPage() {
                             aria-label={
                               showApiKey ? "ซ่อน API Key" : "แสดง API Key"
                             }
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted hover:text-strong"
                       >
                             {showApiKey ? <EyeOff /> : <Eye />}
                       </Button>
                     </div>
                   </div>
-                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  <p className="mt-1 text-xs text-muted">
                         สร้าง API Key ได้ที่ระบบ Stock &gt; ตั้งค่า &gt;
                         เชื่อมต่อระบบ &gt; เพิ่ม Custom ERP
                   </p>
@@ -364,7 +365,7 @@ export default function StockSettingsPage() {
 
                 {/* Unsaved changes indicator */}
                 {!isSaved && (
-                  <p className="text-xs text-amber-600 dark:text-amber-400">
+                  <p className="text-xs text-amber-700 dark:text-amber-400">
                     * มีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก
                   </p>
                 )}
@@ -372,11 +373,11 @@ export default function StockSettingsPage() {
                 {/* Connection result */}
                 {connectionResult && (
                   <div
-                    className={`flex items-center gap-2 rounded-lg p-3 text-sm ${
-                      connectionResult.connected
-                        ? "bg-green-50 text-green-700 dark:bg-green-950/50 dark:text-green-400"
-                        : "bg-red-50 text-red-700 dark:bg-red-950/50 dark:text-red-400"
-                    }`}
+                    className={cn(
+                      RADIUS.inner,
+                      "flex items-center gap-2 border p-3 text-sm",
+                      connectionResult.connected ? TINT.success : TINT.error,
+                    )}
                   >
                     {connectionResult.connected ? (
                       <>
@@ -427,33 +428,33 @@ export default function StockSettingsPage() {
               ) : syncStatus ? (
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center justify-between">
-                        <span className="text-slate-500 dark:text-slate-400">
+                        <span className="text-muted">
                           อัพเดทล่าสุด
                         </span>
-                    <span className="font-medium text-slate-900 dark:text-white">
+                    <span className="font-medium text-strong">
                       {syncStatus.lastSyncAt
                         ? formatDateTime(syncStatus.lastSyncAt)
                         : "ยังไม่เคย Sync"}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                        <span className="text-slate-500 dark:text-slate-400">
+                        <span className="text-muted">
                           สินค้าจาก Stock
                         </span>
-                    <span className="font-medium text-slate-900 dark:text-white">
+                    <span className="font-medium text-strong">
                       {syncStatus.totalStockProducts} รายการ
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                        <span className="text-slate-500 dark:text-slate-400">
+                        <span className="text-muted">
                           สินค้า Local
                         </span>
-                    <span className="font-medium text-slate-900 dark:text-white">
+                    <span className="font-medium text-strong">
                       {syncStatus.totalLocalProducts} รายการ
                     </span>
                   </div>
-                  <div className="flex items-center justify-between border-t border-slate-200 pt-2 dark:border-slate-700">
-                        <span className="text-slate-500 dark:text-slate-400">
+                  <div className="flex items-center justify-between border-t border-border pt-2">
+                        <span className="text-muted">
                           สินค้าทั้งหมด
                         </span>
                     <span className="font-semibold text-blue-600 dark:text-blue-400">
@@ -539,14 +540,14 @@ export default function StockSettingsPage() {
                   <DataTable.Row key={i}>
                     <th
                       scope="row"
-                      className="px-5 py-3 text-left text-sm font-normal text-slate-900 dark:text-white"
+                      className="px-6 py-4 text-left text-sm font-normal text-strong"
                     >
                       {mapping.stockCategory}
                     </th>
                     <DataTable.Td
                       aria-hidden="true"
                       align="center"
-                      className="text-slate-400"
+                      className="text-muted"
                     >
                       →
                     </DataTable.Td>
@@ -554,10 +555,10 @@ export default function StockSettingsPage() {
                       aria-label={`${mapping.erpItemType} ${mapping.erpCode}`}
                     >
                       <div className="flex items-center gap-2">
-                        <span className="text-slate-900 dark:text-white">
+                        <span className="text-strong">
                           {mapping.erpItemType}
                         </span>
-                        <Badge variant="secondary" className="text-2xs">
+                        <Badge variant="secondary">
                           {mapping.erpCode}
                         </Badge>
                       </div>
@@ -578,14 +579,14 @@ export default function StockSettingsPage() {
               วิธีเชื่อมต่อ
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
+          <CardContent className="space-y-3 text-sm text-secondary">
             <div className="space-y-3">
               <div className="flex gap-3">
                 <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-700 dark:bg-blue-900 dark:text-blue-300">
                   1
                 </div>
                 <div>
-                  <p className="font-medium text-slate-900 dark:text-white">
+                  <p className="font-medium text-strong">
                     สร้าง API Key ในระบบ Stock
                   </p>
                   <p className="text-xs">
@@ -601,7 +602,7 @@ export default function StockSettingsPage() {
                   2
                 </div>
                 <div>
-                  <p className="font-medium text-slate-900 dark:text-white">
+                  <p className="font-medium text-strong">
                     คัดลอก API URL และ API Key
                   </p>
                   <p className="text-xs">
@@ -616,7 +617,7 @@ export default function StockSettingsPage() {
                   3
                 </div>
                 <div>
-                  <p className="font-medium text-slate-900 dark:text-white">
+                  <p className="font-medium text-strong">
                     วาง URL + Key ในฟอร์มด้านบน แล้วกดบันทึก
                   </p>
                   <p className="text-xs">

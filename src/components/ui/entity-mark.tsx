@@ -7,7 +7,7 @@ import { VISUAL_TONE_CLASSES, type VisualTone } from "@/lib/visual-tone";
 type EntityMarkSize = "sm" | "md" | "lg";
 
 const SIZE: Record<EntityMarkSize, { frame: string; icon: string; image: number }> = {
-  sm: { frame: "h-8 w-8 rounded-lg text-2xs", icon: "h-4 w-4", image: 32 },
+  sm: { frame: "h-8 w-8 rounded-lg text-xs", icon: "h-4 w-4", image: 32 },
   md: { frame: "h-10 w-10 rounded-lg text-xs", icon: "h-5 w-5", image: 40 },
   lg: { frame: "h-12 w-12 rounded-lg text-sm", icon: "h-6 w-6", image: 48 },
 };

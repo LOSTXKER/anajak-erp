@@ -139,7 +139,7 @@ export function DatePicker({
                 ? `${selected.getDate()} ${MONTHS[selected.getMonth()]} ${buddhistYear(selected)}`
                 : placeholder}
             </span>
-            <CalendarDays className="h-4 w-4 shrink-0 text-slate-400" />
+            <CalendarDays className="h-4 w-4 shrink-0 text-muted" />
           </button>
         </PopoverPrimitive.Trigger>
 
@@ -147,7 +147,7 @@ export function DatePicker({
           <ControlIconButton
             aria-label="ล้างวันที่"
             onClick={() => onChange("")}
-            className="absolute right-9 top-1/2 -translate-y-1/2 text-slate-400"
+            className="absolute right-9 top-1/2 -translate-y-1/2 text-muted"
           >
             <X className="h-3.5 w-3.5" />
           </ControlIconButton>
@@ -194,7 +194,7 @@ export function DatePicker({
             {WEEKDAYS.map((w) => (
               <div
                 key={w}
-                className="pb-1 text-center text-2xs font-medium text-muted"
+                className="pb-1 text-center text-xs font-medium text-muted"
               >
                 {w}
               </div>

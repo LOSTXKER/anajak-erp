@@ -35,7 +35,7 @@ const DialogOverlay = React.forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      "fixed inset-0 z-50 bg-backdrop backdrop-blur-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      "fixed inset-0 z-50 bg-backdrop backdrop-blur-md duration-[var(--duration-fast)] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 motion-reduce:animate-none",
       className
     )}
     {...props}
@@ -84,7 +84,7 @@ const DialogContent = React.forwardRef<
         aria-describedby={undefined}
         className={cn(
           OVERLAY_PANEL,
-          "fixed left-1/2 top-1/2 z-50 grid max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto overscroll-contain p-5 pr-14 duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:p-6 sm:pr-14",
+          "fixed left-1/2 top-1/2 z-50 grid max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto overscroll-contain p-5 pr-14 duration-[var(--duration-base)] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 motion-reduce:animate-none sm:p-6 sm:pr-14",
           // ฟอร์มยาวกว่ากรอบ: ปุ่มท้ายต้องปักก้นกรอบ ไม่เลื่อนหนีไปกับเนื้อหา
           // (เบสส่งภาพ 2026-08-12 · วัดของจริง: เนื้อใน 1171px ในกรอบ 744px → ปุ่มบันทึก
           //  จมอยู่ต่ำกว่าขอบ 367px · เลื่อนถึงได้ แต่ไม่มีอะไรบอกว่าเลื่อนได้)
@@ -148,7 +148,7 @@ const DialogTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Title
     ref={ref}
-    className={cn("text-lg font-semibold leading-tight text-strong", className)}
+    className={cn("text-lg font-semibold text-strong", className)}
     {...props}
   />
 ));

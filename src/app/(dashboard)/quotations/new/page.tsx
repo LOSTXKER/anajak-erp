@@ -13,7 +13,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { ListPageSkeleton } from "@/components/ui/page-skeleton";
 import { formatCurrency } from "@/lib/utils";
 import { CustomerPicker } from "@/components/customers/customer-picker";
 import { permAllows } from "@/lib/permissions";
@@ -50,7 +50,7 @@ const emptyItem: LineItem = {
 const labelClass = FIELD_LABEL;
 
 const sectionLabelClass =
-  "mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300";
+  "mb-1.5 block text-sm font-medium text-secondary";
 
 // ============================================================
 // COMPONENT
@@ -59,7 +59,7 @@ const sectionLabelClass =
 export default function NewQuotationPage() {
   // useSearchParams ต้องอยู่ใต้ Suspense (ข้อบังคับ Next.js ตอน prerender)
   return (
-    <Suspense fallback={<Skeleton className="h-96 rounded-lg" />}>
+    <Suspense fallback={<ListPageSkeleton />}>
       <QuotationFormPage />
     </Suspense>
   );
@@ -312,7 +312,7 @@ function QuotationFormPage() {
             : null
       }
       loading={redirectToCanonicalIntake}
-      skeleton={<Skeleton className="h-96 rounded-lg" />}
+      skeleton={<ListPageSkeleton />}
       denied={
         !!me &&
         !canAuthor && {
@@ -335,8 +335,8 @@ function QuotationFormPage() {
                 <legend className={sectionLabelClass}>ลูกค้า *</legend>
                 {fromOrderId || editId ? (
                   // ลูกค้าล็อกตามออเดอร์/ใบเดิม — เปลี่ยนลูกค้า = เปิดใบใหม่
-                  <div className="flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300">
-                    <User className="h-4 w-4 text-slate-400" />
+                  <div className="flex h-10 items-center gap-2 rounded-lg border border-border bg-slate-50 px-3 text-sm text-secondary dark:bg-slate-800/50">
+                    <User className="h-4 w-4 text-muted" />
                     {customerLabel || "..."}
                   </div>
                 ) : (
@@ -416,7 +416,7 @@ function QuotationFormPage() {
                 >
                   {/* Item header */}
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    <span className="text-sm font-semibold text-secondary">
                       รายการ #{idx + 1}
                     </span>
                     <div className="flex items-center gap-3">
@@ -537,7 +537,7 @@ function QuotationFormPage() {
           <CardContent className="space-y-3">
             <div className="space-y-2 text-sm">
               {/* Subtotal */}
-              <div className="flex justify-between text-slate-600 dark:text-slate-400">
+              <div className="flex justify-between text-secondary">
                 <span>ยอดรวมสินค้า</span>
                 <span className="tabular-nums">
                   {formatCurrency(pricingSummary.subtotal)}
@@ -546,7 +546,7 @@ function QuotationFormPage() {
 
               {/* Discount */}
               <div className="flex items-center justify-between">
-                <label htmlFor="quotation-discount" className="text-slate-600 dark:text-slate-400">
+                <label htmlFor="quotation-discount" className="text-secondary">
                   ส่วนลด
                 </label>
                 <Input
@@ -566,7 +566,7 @@ function QuotationFormPage() {
               {/* Tax — จำนวนเงินบาท (ต่างจากฟอร์มออเดอร์ที่เป็น %) · ปุ่มลัดคิด 7%
                   จากฐานหลังหักส่วนลด — บริษัทจด VAT ใบเสนอควรมีภาษีเสมอ (Gate B2) */}
               <div className="flex items-center justify-between">
-                <label htmlFor="quotation-tax" className="text-slate-600 dark:text-slate-400">
+                <label htmlFor="quotation-tax" className="text-secondary">
                   ภาษี (บาท)
                 </label>
                 <div className="flex items-center gap-2">
@@ -574,7 +574,6 @@ function QuotationFormPage() {
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="text-xs"
                     title="คำนวณ VAT 7% จากยอดหลังหักส่วนลด"
                     onClick={() => {
                       const base = Math.max(0, pricingSummary.subtotal - discount);
@@ -598,7 +597,7 @@ function QuotationFormPage() {
             </div>
 
             {/* Summary breakdown */}
-            <div className="space-y-1.5 border-t border-slate-200 pt-3 text-sm dark:border-slate-700">
+            <div className="space-y-1.5 border-t border-border pt-3 text-sm">
               <div className="flex justify-between text-muted">
                 <span>ยอดรวมสินค้า</span>
                 <span className="tabular-nums">
@@ -624,8 +623,8 @@ function QuotationFormPage() {
             </div>
 
             {/* Grand total */}
-            <div className="flex items-center justify-between border-t border-slate-200 pt-3 dark:border-slate-700">
-              <span className="text-lg font-semibold text-slate-900 dark:text-white">
+            <div className="flex items-center justify-between border-t border-border pt-3">
+              <span className="text-lg font-semibold text-strong">
                 ยอดรวมทั้งหมด
               </span>
               <span className={DISPLAY_AMOUNT}>

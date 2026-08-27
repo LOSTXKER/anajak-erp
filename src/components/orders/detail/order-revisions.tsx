@@ -47,7 +47,7 @@ export function OrderRevisions({ revisions }: OrderRevisionsProps) {
       </CardHeader>
       <CardContent>
         {!revisions || revisions.length === 0 ? (
-          <p className="text-sm text-slate-500 dark:text-slate-400">
+          <p className="text-sm text-muted">
             ยังไม่มีประวัติการเปลี่ยนแปลง
           </p>
         ) : (
@@ -61,23 +61,23 @@ export function OrderRevisions({ revisions }: OrderRevisionsProps) {
             return (
               <div
                 key={rev.id}
-                className="flex gap-3 border-l-2 border-slate-200 pl-4 dark:border-slate-700"
+                className="flex gap-3 border-l-2 border-border pl-4"
               >
                 <div className="min-w-0 flex-1">
                   {isStatusRow ? (
-                    <p className="flex flex-wrap items-center gap-1.5 text-sm text-slate-900 dark:text-white">
-                      <span className="text-slate-500 dark:text-slate-400">
+                    <p className="flex flex-wrap items-center gap-1.5 text-sm text-strong">
+                      <span className="text-muted">
                         {statusLabel(rev.oldValue)}
                       </span>
-                      <ArrowRight className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                      <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted" />
                       <span className="font-medium">{statusLabel(rev.newValue)}</span>
                     </p>
                   ) : (
-                    <p className="text-sm text-slate-900 dark:text-white">
+                    <p className="text-sm text-strong">
                       {rev.description}
                     </p>
                   )}
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-muted">
                     {rev.changedByName ?? rev.changedBy} &mdash;{" "}
                     {formatDateTime(rev.createdAt)}
                   </p>

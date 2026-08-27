@@ -171,7 +171,7 @@ export function OrderDeliverySection({
             <button
               type="button"
               onClick={() => setShowBlindShipDialog(true)}
-              className={cn(CONTROL_MIN_H, "mt-1 flex w-fit touch-manipulation items-center gap-1.5 text-xs text-slate-400 transition-colors hover:text-strong dark:hover:text-strong")}
+              className={cn(CONTROL_MIN_H, "mt-1 flex w-fit touch-manipulation items-center gap-1.5 text-xs text-muted transition-colors hover:text-strong dark:hover:text-strong")}
             >
               <Settings2 className="h-3 w-3" />
               {packContext.data.blindShip ? "ตั้งค่า blind ship" : "ตั้งค่า blind ship (ปิดอยู่)"}
@@ -203,7 +203,7 @@ export function OrderDeliverySection({
               )}
               {!hasDeliveries ? (
                 !packContextUnavailable && (
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                  <p className="text-sm text-muted">
                     ยังไม่มีข้อมูลจัดส่ง
                   </p>
                 )
@@ -235,7 +235,7 @@ export function OrderDeliverySection({
                                   delivery.status as keyof typeof DELIVERY_STATUS_LABELS
                                 ] || delivery.status}
                               </Badge>
-                              <span className="text-sm font-medium text-slate-900 dark:text-white">
+                              <span className="text-sm font-medium text-strong">
                                 {SHIPPING_METHOD_LABELS[delivery.shippingMethod] ||
                                   delivery.shippingMethod}
                               </span>
@@ -277,7 +277,7 @@ export function OrderDeliverySection({
                                 ) : actions.canEditTracking ? (
                                   <button
                                     type="button"
-                                    className={cn(CONTROL_MIN_H, "touch-manipulation text-xs text-slate-400 hover:text-strong dark:hover:text-strong")}
+                                    className={cn(CONTROL_MIN_H, "touch-manipulation text-xs text-muted hover:text-strong dark:hover:text-strong")}
                                     onClick={() => {
                                       setEditTrackingId(delivery.id);
                                       setEditTrackingValue(delivery.trackingNumber || "");
@@ -297,7 +297,7 @@ export function OrderDeliverySection({
 
                             {/* รายการต่อกล่อง (ก้อน 3) — กล่องนี้มีอะไรบ้าง เช่น "10 ตัว (M ดำ ×6 · L ดำ ×4)" */}
                             {delivery.lines.length > 0 && (
-                              <div className="flex items-start gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+                              <div className="flex items-start gap-1.5 text-xs text-muted">
                                 <Package className="mt-0.5 h-3 w-3 shrink-0" />
                                 <span>
                                   {delivery.lines.reduce((s, l) => s + l.qty, 0)} ตัว (
@@ -309,7 +309,7 @@ export function OrderDeliverySection({
                               </div>
                             )}
 
-                            <div className="flex flex-wrap gap-3 text-xs text-slate-400">
+                            <div className="flex flex-wrap gap-3 text-xs text-muted">
                               {delivery.shippedAt && (
                                 <span>ส่ง: {formatDateTime(delivery.shippedAt)}</span>
                               )}
@@ -331,7 +331,7 @@ export function OrderDeliverySection({
                                 rel="noreferrer"
                                 title="ใบรายการแนบกล่อง"
                                 aria-label={`พิมพ์ใบรายการแนบกล่องสำหรับ ${delivery.recipientName}`}
-                                className={cn(CONTROL_H, RADIUS.item, "flex w-11 items-center justify-center text-slate-400 transition-colors hover:bg-interactive-hover hover:text-strong sm:w-9 dark:hover:text-strong")}
+                                className={cn(CONTROL_H, RADIUS.item, "flex w-11 items-center justify-center text-muted transition-colors hover:bg-interactive-hover hover:text-strong sm:w-9 dark:hover:text-strong")}
                               >
                                 <Printer className="h-3.5 w-3.5" />
                               </a>
@@ -342,7 +342,6 @@ export function OrderDeliverySection({
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="text-xs"
                                 onClick={() =>
                                   setStatusTarget({
                                     delivery,

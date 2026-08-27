@@ -242,7 +242,7 @@ export default function ProductDetailPage({
         <div className="space-y-6">
           {/* Image */}
           <Card className="overflow-hidden">
-            <div className="flex h-56 items-center justify-center bg-gradient-to-br from-blue-500 to-blue-700">
+            <div className="flex h-56 items-center justify-center bg-surface-muted">
               {product.imageUrl ? (
                 <img
                   src={product.imageUrl}
@@ -342,16 +342,16 @@ export default function ProductDetailPage({
                   </div>
                 )}
                 {product.lastSyncAt && (
-                  <div className="border-t border-slate-100 pt-3 dark:border-slate-800">
-                    <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                  <div className="border-t border-divider pt-3">
+                    <div className="flex items-center gap-1.5 text-xs text-muted">
                       <Cloud className="h-3 w-3" />
                       Sync ล่าสุด: {formatDateTime(product.lastSyncAt)}
                     </div>
                   </div>
                 )}
                 {product.description && (
-                  <div className="border-t border-slate-100 pt-3 dark:border-slate-800">
-                    <p className="text-slate-600 dark:text-slate-400">
+                  <div className="border-t border-divider pt-3">
+                    <p className="text-secondary">
                       {product.description}
                     </p>
                   </div>
@@ -373,7 +373,7 @@ export default function ProductDetailPage({
               {/* Variants table */}
               {product.variants.length === 0 ? (
                 <div className="flex flex-col items-center py-8">
-                  <p className="text-sm text-slate-400">
+                  <p className="text-sm text-muted">
                     ยังไม่มีตัวเลือก — Sync จาก Anajak Stock เพื่อดึงข้อมูล
                   </p>
                 </div>
@@ -396,17 +396,17 @@ export default function ProductDetailPage({
                         key={variant.id}
                         className={!variant.isActive ? "opacity-50" : undefined}
                       >
-                        <DataTable.Td className="text-slate-600 dark:text-slate-400">
+                        <DataTable.Td className="text-secondary">
                           {variant.color}
                         </DataTable.Td>
-                        <DataTable.Td className="font-medium text-slate-900 dark:text-white">
+                        <DataTable.Td className="font-medium text-strong">
                           {variant.size}
                         </DataTable.Td>
                         <DataTable.Td className="font-mono text-xs text-muted">
                           {variant.sku}
                         </DataTable.Td>
                         <DataTable.Td align="right" className="tabular-nums">
-                          <span className="font-medium text-slate-900 dark:text-white">
+                          <span className="font-medium text-strong">
                             {formatCurrency(
                               (variant.sellingPrice > 0
                                 ? variant.sellingPrice
@@ -459,14 +459,14 @@ export default function ProductDetailPage({
                               )}
                             </div>
                           ) : (
-                            <span className="text-sm tabular-nums text-slate-600 dark:text-slate-300">
+                            <span className="text-sm tabular-nums text-secondary">
                               {formatCurrency(variant.priceAdj)}
                             </span>
                           )}
                         </DataTable.Td>
                         <DataTable.Td
                           align="right"
-                          className="tabular-nums text-slate-600 dark:text-slate-400"
+                          className="tabular-nums text-secondary"
                         >
                           {variant.totalStock || variant.stock}
                         </DataTable.Td>

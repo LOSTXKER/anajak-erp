@@ -7,10 +7,11 @@ import {
   CalendarClock,
   CheckCircle2,
   CircleGauge,
-  Factory,
+  Printer,
 } from "lucide-react";
 import { trpc, type RouterOutput } from "@/lib/trpc";
-import { formatTime } from "@/lib/utils";
+import { cn, formatTime } from "@/lib/utils";
+import { TINT } from "@/components/ui/tokens";
 import { Alert } from "@/components/ui/alert";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -75,7 +76,7 @@ export function ManufacturingFactoryBoard() {
 
   if (loads.isLoading && !loads.data) {
     return (
-      <main className="flex h-dvh min-h-[720px] flex-col gap-4 overflow-hidden p-5">
+      <main className="factory-board flex h-dvh min-h-[720px] flex-col gap-4 overflow-hidden p-5">
         <Skeleton className="h-16 rounded-lg" />
         <div className="grid min-h-0 flex-1 grid-cols-3 grid-rows-2 gap-4">
           {Array.from({ length: 6 }, (_, index) => (
@@ -109,15 +110,18 @@ export function ManufacturingFactoryBoard() {
   );
 
   return (
-    <main className="flex h-dvh min-h-[720px] flex-col gap-4 overflow-hidden p-5">
+    <main className="factory-board flex h-dvh min-h-[720px] flex-col gap-4 overflow-hidden p-5">
       <header className="flex min-h-16 items-center justify-between gap-5 border-b border-divider pb-4">
         <div className="flex items-center gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-500/15 text-blue-300">
-            <Factory className="h-7 w-7" aria-hidden="true" />
+          {/* จอนี้แขวนอยู่หน้าโรงงานทั้งวันและไม่มี sidebar/topbar เหมือนหน้าอื่น
+              ถ้าไม่มีตราตรงนี้ ทั้งจอจะไม่มีคำว่า Anajak อยู่เลยสักที่
+              (เบสทัก 2026-08-26 "อย่าลืมสีฟ้าที่เป็น asset เรา") */}
+          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-600 text-white">
+            <Printer className="h-6 w-6" strokeWidth={1.75} aria-hidden="true" />
           </div>
           <div>
             <h1 className="text-3xl font-semibold">สถานะโรงงาน</h1>
-            <p className="text-base text-secondary">ภาพรวมอ่านอย่างเดียว · ข้อมูลเดียวกับ ERP และ Station</p>
+            <p className="text-base text-secondary">Anajak Print · ภาพรวมอ่านอย่างเดียว · ข้อมูลเดียวกับ ERP และ Station</p>
           </div>
         </div>
         <div className="flex items-center gap-3 text-right">
@@ -148,7 +152,7 @@ export function ManufacturingFactoryBoard() {
             <WorkCenterPanel key={center.workCenter.id} center={center} />
           ))}
           {centers.length === 0 ? (
-            <div className="col-span-full row-span-full card-surface rounded-lg">
+            <div className="col-span-full row-span-full card-surface rounded-2xl">
               <EmptyState icon={Boxes} title="ยังไม่มี Work Center" description="ตั้งจุดทำงานก่อนเปิดจอโรงงาน" />
             </div>
           ) : null}
@@ -192,7 +196,7 @@ export function ManufacturingFactoryBoard() {
                 ))}
               </ul>
             ) : (
-              <div className="mt-4 rounded-lg bg-green-500/10 p-4 text-center">
+              <div className={cn(TINT.success, "mt-4 rounded-lg border p-4 text-center")}>
                 <CheckCircle2 className="mx-auto h-7 w-7 text-green-300" aria-hidden="true" />
                 <p className="mt-2 font-medium">ไม่มีปัญหาเปิดอยู่</p>
               </div>
@@ -210,7 +214,7 @@ function WorkCenterPanel({ center }: { center: WorkCenterLoad }) {
     <article className="flex min-h-0 flex-col overflow-hidden rounded-lg bg-surface p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-blue-300">{center.workCenter.code}</p>
+          <p className="text-xs font-semibold text-muted">{center.workCenter.code}</p>
           <h2 className="truncate text-xl font-semibold">{center.workCenter.name}</h2>
         </div>
         <StatusLabel label={hasAttention ? "ต้องดู" : "ปกติ"} tone={hasAttention ? "warning" : "success"} />

@@ -32,7 +32,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { DASHED_INTERACTIVE } from "@/components/ui/tokens";
 import { PageShell } from "@/components/page-shell";
 
-const labelClass = "mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400";
+const labelClass = "mb-1 block text-xs font-medium text-muted";
 
 type NewPatternForm = {
   name: string;
@@ -192,7 +192,7 @@ export default function PatternsPage() {
           {showAddForm && canCreate && (
             <form
               onSubmit={handleCreate}
-              className="card-surface mb-4 space-y-3 rounded-lg p-4"
+              className="card-surface mb-4 space-y-3 rounded-2xl p-4"
             >
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <div>
@@ -336,7 +336,7 @@ export default function PatternsPage() {
                           />
                         ) : (
                           <div>
-                            <span className="text-sm font-medium text-slate-900 dark:text-white">
+                            <span className="text-sm font-medium text-strong">
                               {p.name}
                             </span>
                             {p.fileUrl && (

@@ -9,6 +9,7 @@ import { SearchInput } from "@/components/ui/search-input";
 import { Select } from "@/components/ui/select";
 import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ListPageSkeleton } from "@/components/ui/page-skeleton";
 import { QueryError } from "@/components/ui/query-error";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cn, formatCurrency, formatDateTime } from "@/lib/utils";
@@ -50,7 +51,7 @@ const typeConfig: Record<string, { label: string }> = {
 
 export default function ProductsPage() {
   return (
-    <Suspense fallback={<Skeleton className="h-96 rounded-lg" />}>
+    <Suspense fallback={<ListPageSkeleton />}>
       <ProductsPageContent />
     </Suspense>
   );
@@ -132,10 +133,10 @@ function ProductsPageContent() {
           <span>สต๊อกทดสอบในเครื่อง · ไม่เชื่อม Anajak Stock</span>
         </div>
       ) : syncStatus?.lastSyncAt ? (
-        <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+        <div className="flex items-center gap-2 text-xs text-muted">
           <Cloud className="h-3.5 w-3.5" />
           <span>Sync ล่าสุด: {formatDateTime(syncStatus.lastSyncAt)}</span>
-          <span className="text-slate-300 dark:text-slate-600">·</span>
+          <span className="text-muted">·</span>
           <span>ทั้งหมด {syncStatus.totalProducts} รายการ</span>
         </div>
       ) : null}
@@ -192,7 +193,7 @@ function ProductsPageContent() {
       ) : isLoading ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {[...Array(8)].map((_, i) => (
-            <div key={i} className="card-surface overflow-hidden rounded-lg">
+            <div key={i} className="card-surface overflow-hidden rounded-2xl">
               <Skeleton className="h-44 w-full rounded-none" />
               <div className="space-y-2 p-3">
                 <Skeleton className="h-4 w-3/4" />
@@ -203,7 +204,7 @@ function ProductsPageContent() {
           ))}
         </div>
       ) : data?.products?.length === 0 ? (
-        <div className="card-surface rounded-lg">
+        <div className="card-surface rounded-2xl">
           <EmptyState
             icon={Package}
             title="ไม่พบสินค้า"
@@ -249,7 +250,7 @@ function ProductsPageContent() {
                 href={`/products/${product.id}`}
                 className={cn("block rounded-lg", FOCUS_BUTTON)}
               >
-                <div className="card-surface card-surface-hover group h-full overflow-hidden rounded-lg transition-all">
+                <div className="card-surface card-surface-hover group h-full overflow-hidden rounded-2xl">
                   <div className="relative flex h-44 items-center justify-center bg-slate-100 dark:bg-slate-800">
                     {product.imageUrl ? (
                       <img
@@ -259,7 +260,7 @@ function ProductsPageContent() {
                       />
                     ) : (
                       <Package
-                        className="h-10 w-10 text-slate-300 dark:text-slate-600"
+                        className="h-10 w-10 text-muted"
                         strokeWidth={1.25}
                       />
                     )}
@@ -277,17 +278,17 @@ function ProductsPageContent() {
                   <div className="space-y-1.5 p-3">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
-                        <h3 className="truncate text-sm font-medium text-slate-900 group-hover:text-strong dark:text-white dark:group-hover:text-strong">
+                        <h3 className="truncate text-sm font-medium text-strong">
                           {product.name}
                         </h3>
-                        <p className="truncate text-2xs text-slate-500 dark:text-slate-400">
+                        <p className="truncate text-xs text-muted">
                           {product.sku} · {typ.label}
                         </p>
                       </div>
                     </div>
 
                     <div className="flex items-center justify-between pt-0.5">
-                      <span className="text-sm font-semibold tabular-nums text-slate-900 dark:text-white">
+                      <span className="text-sm font-semibold tabular-nums text-strong">
                         {(() => {
                           const prices = product.variants
                             ?.map((v) => v.sellingPrice)
@@ -302,9 +303,9 @@ function ProductsPageContent() {
                           return formatCurrency(product.basePrice);
                         })()}
                       </span>
-                      <span className="text-2xs text-slate-500 dark:text-slate-400">
+                      <span className="text-xs text-muted">
                         สต็อก{" "}
-                        <span className="tabular-nums font-medium text-slate-700 dark:text-slate-300">
+                        <span className="tabular-nums font-medium text-secondary">
                           {product.totalStock ?? 0}
                         </span>
                       </span>
@@ -355,7 +356,7 @@ function ProductsPageContent() {
                   p === "..." ? (
                     <span
                       key={`ellipsis-${i}`}
-                      className="px-2 text-sm text-slate-400"
+                      className="px-2 text-sm text-muted"
                     >
                       ...
                     </span>
@@ -385,7 +386,7 @@ function ProductsPageContent() {
               </Button>
             </div>
           )}
-          <p className="text-center text-xs text-slate-400">
+          <p className="text-center text-xs text-muted">
             แสดง {data.products.length} จาก {data.total} รายการ
           </p>
         </div>

@@ -64,7 +64,7 @@ export function PrintTableRow({
               <img
                 src={imageUrl}
                 alt={`ลาย ${printIdx + 1}`}
-                className={cn(RADIUS.item, "h-11 w-11 border border-slate-200 object-cover dark:border-slate-700")}
+                className={cn(RADIUS.item, "h-11 w-11 border border-border object-cover")}
               />
             </button>
             <ImageRemoveButton
@@ -82,7 +82,7 @@ export function PrintTableRow({
               DASHED_INTERACTIVE,
               RADIUS.item,
               FOCUS_BUTTON,
-              "mx-auto flex h-11 w-11 shrink-0 items-center justify-center text-slate-400 transition-colors hover:text-strong dark:hover:text-strong"
+              "mx-auto flex h-11 w-11 shrink-0 items-center justify-center text-muted transition-colors hover:text-strong dark:hover:text-strong"
             )}
           >
             {uploading ? <Spinner size="md" /> : <Plus />}
@@ -158,7 +158,7 @@ export function PrintTableRow({
               placeholder="0"
               size="dense" className="w-full px-1 text-center"
             />
-            <span className="text-xs text-slate-400">×</span>
+            <span className="text-xs text-muted">×</span>
             <Input
               aria-label={`ความสูงลาย จุดที่ ${printIdx + 1} (ซม.)`}
               type="number"
@@ -173,7 +173,7 @@ export function PrintTableRow({
             />
           </div>
         ) : (
-          <div className="flex h-9 items-center justify-center text-xs tabular-nums text-slate-500 dark:text-slate-400">
+          <div className="flex h-9 items-center justify-center text-xs tabular-nums text-muted">
             {sizePreset ? `${sizePreset.width} × ${sizePreset.height}` : dash}
           </div>
         )}

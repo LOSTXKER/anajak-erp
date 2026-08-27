@@ -31,7 +31,7 @@ import { FIELD_LABEL, FIELD_MEASURE, FOCUS_BUTTON, RADIUS, SUNK_PANEL, TABLE_HEA
 export const labelClass = FIELD_LABEL;
 
 const groupHeadingClass =
-  "text-sm font-semibold text-slate-800 dark:text-slate-100";
+  "text-sm font-semibold text-strong";
 
 interface OrderItemCardProps {
   cardId: string;
@@ -90,12 +90,12 @@ function OrderItemRow({
           กลายเป็นขีดลอยสองอันบนหัวรายการที่ไม่ได้บอกอะไร (เบสถามเอง 2026-08-05
           "ขีดนี้คืออะไร" = สัญญาณว่ามันสื่อความไม่ได้) */}
       {!empty && totalQty > 0 && (
-        <span className="flex-shrink-0 text-right text-xs tabular-nums text-slate-500 dark:text-slate-400">
+        <span className="flex-shrink-0 text-right text-xs tabular-nums text-muted">
           {totalQty} ตัว
         </span>
       )}
       {!empty && subtotal > 0 && (
-        <span className="flex-shrink-0 text-right text-sm font-semibold tabular-nums text-slate-900 dark:text-white">
+        <span className="flex-shrink-0 text-right text-sm font-semibold tabular-nums text-strong">
           {formatCurrency(subtotal)}
         </span>
       )}
@@ -230,12 +230,13 @@ export function OrderItemCard({
               <div className="relative">
                 <Select
                   surface="inline"
+                  size="dense"
                   aria-label="คัดลอกลายจากรายการอื่น"
                   value=""
                   onChange={(e) => {
                     if (e.target.value) copyPrintsFrom(parseInt(e.target.value));
                   }}
-                  className="w-auto appearance-none rounded-lg pl-7 pr-2 text-slate-600 hover:bg-interactive-hover hover:text-secondary sm:text-xs dark:text-slate-400 dark:hover:bg-interactive-hover dark:hover:text-secondary"
+                  className="w-auto appearance-none rounded-lg pl-7 pr-2 text-secondary hover:bg-interactive-hover hover:text-secondary dark:hover:bg-interactive-hover dark:hover:text-secondary"
                 >
                   <option value="">คัดลอกลาย...</option>
                   {otherItemsWithPrints.map(({ it, idx }) => (
@@ -244,7 +245,7 @@ export function OrderItemCard({
                     </option>
                   ))}
                 </Select>
-                <Copy className="pointer-events-none absolute left-1.5 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-400" />
+                <Copy className="pointer-events-none absolute left-1.5 top-1/2 h-3 w-3 -translate-y-1/2 text-muted" />
               </div>
             )}
             {item.prints.length > 0 && (
@@ -478,7 +479,7 @@ export function OrderItemCard({
           {item.addons.map((addon, addonIdx) => (
             <div key={addonIdx} className={cn("space-y-3 rounded-lg p-3", SUNK_PANEL)}>
               <div className="flex items-center justify-between gap-2">
-                <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                <p className="text-xs font-medium text-muted">
                   ส่วนเสริม #{addonIdx + 1}
                 </p>
                 <Button type="button" variant="ghost" size="icon-sm" aria-label={`ลบส่วนเสริม ${addonIdx + 1}`} className="text-muted hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400" onClick={() => onRemoveAddon(itemIdx, addonIdx)}><Trash2 /></Button>
@@ -524,17 +525,17 @@ export function OrderItemCard({
 
   // ── section: สรุปราคาต่อรายการ (เฉพาะโหมดปกติ — compact ใช้สรุปรวมที่ sidebar) ──
   const priceSummary = totalQty > 0 ? (
-    <div className="border-t border-slate-200/70 pt-3 dark:border-slate-700/60">
+    <div className="border-t border-border/70 pt-3/60">
       <p className={cn(groupHeadingClass, "mb-2")}>สรุปราคารายการ</p>
       <table className="w-full text-xs">
-        <tbody className="text-slate-600 dark:text-slate-300">
+        <tbody className="text-secondary">
           {itemPriceSummary.lines.map((line) => {
             return (
               <tr key={line.key}>
                 <td className="py-1">
-                  <span className="text-slate-700 dark:text-slate-200">{line.label}</span>
+                  <span className="text-secondary">{line.label}</span>
                   {line.detail && (
-                    <span className={cn("ml-1 text-slate-400", line.kind === "addon" && "text-xs")}>
+                    <span className={cn("ml-1 text-muted", line.kind === "addon" && "text-xs")}>
                       ({line.detail})
                     </span>
                   )}
@@ -542,27 +543,27 @@ export function OrderItemCard({
                     <span className="ml-1 text-red-500">-{formatCurrency(line.discount || 0)}</span>
                   )}
                 </td>
-                <td className="px-2 py-1 text-right tabular-nums text-slate-400">{formatCurrency(line.unitPrice)}</td>
-                <td className="px-2 py-1 text-right tabular-nums text-slate-400">×{line.quantity}</td>
+                <td className="px-2 py-1 text-right tabular-nums text-muted">{formatCurrency(line.unitPrice)}</td>
+                <td className="px-2 py-1 text-right tabular-nums text-muted">×{line.quantity}</td>
                 <td className="py-1 text-right tabular-nums">{formatCurrency(line.total)}</td>
               </tr>
             );
           })}
         </tbody>
         <tfoot>
-          <tr className="border-t border-slate-200/70 dark:border-slate-700/60">
-            <td colSpan={2} className="pt-2 text-sm font-semibold text-slate-900 dark:text-white">
+          <tr className="border-t border-border/70/60">
+            <td colSpan={2} className="pt-2 text-sm font-semibold text-strong">
               รวมทั้งหมด
             </td>
-            <td className="px-2 pt-2 text-right text-xs tabular-nums text-slate-400">
+            <td className="px-2 pt-2 text-right text-xs tabular-nums text-muted">
               {totalQty} ตัว
             </td>
-            <td className="pt-2 text-right text-sm font-semibold tabular-nums text-slate-900 dark:text-white">
+            <td className="pt-2 text-right text-sm font-semibold tabular-nums text-strong">
               {formatCurrency(subtotal)}
             </td>
           </tr>
           <tr>
-            <td colSpan={3} className="text-xs text-slate-400">
+            <td colSpan={3} className="text-xs text-muted">
               เฉลี่ย {formatCurrency(itemPriceSummary.averageUnitPrice ?? 0)} / ตัว
             </td>
             <td aria-hidden="true" />

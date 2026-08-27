@@ -27,6 +27,7 @@ import { SearchInput } from "@/components/ui/search-input";
 import { SegmentedControl } from "@/components/ui/segmented";
 import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ListPageSkeleton } from "@/components/ui/page-skeleton";
 import { StatusLabel } from "@/components/ui/status-label";
 import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
 import { formatDate, formatDateTime } from "@/lib/utils";
@@ -95,7 +96,7 @@ function Progress({ done, total }: { done: number; total: number }) {
         aria-valuenow={percent}
         className="h-1.5 overflow-hidden rounded-full bg-surface-muted"
       >
-        <div className="h-full rounded-full bg-blue-600" style={{ width: `${percent}%` }} />
+        <div className="h-full rounded-full bg-blue-600 transition-[width] duration-[var(--duration-base)] ease-out" style={{ width: `${percent}%` }} />
       </div>
     </div>
   );
@@ -157,7 +158,7 @@ function WorkOrderDesktopRows({ items }: { items: readonly ControlItem[] }) {
   return (
     <DataTable.Root>
       <DataTable.Head>
-        <DataTable.Row>
+        <tr>
           <DataTable.Th>งานผลิต</DataTable.Th>
           <DataTable.Th>ขั้นตอนปัจจุบัน</DataTable.Th>
           <DataTable.Th>ความคืบหน้า</DataTable.Th>
@@ -165,7 +166,7 @@ function WorkOrderDesktopRows({ items }: { items: readonly ControlItem[] }) {
           <DataTable.Th align="right">
             <span className="sr-only">เปิดงาน</span>
           </DataTable.Th>
-        </DataTable.Row>
+        </tr>
       </DataTable.Head>
       <DataTable.Body className="divide-y divide-divider">
         {items.map((item) => {
@@ -209,44 +210,45 @@ function WorkOrderDesktopRows({ items }: { items: readonly ControlItem[] }) {
 
 function WorkOrderMobileCards({ items }: { items: readonly ControlItem[] }) {
   return (
-    <div className="space-y-3">
+    <ul aria-label="รายการงานผลิต" className="space-y-3">
       {items.map((item) => {
         const status = workOrderStatusMeta(item.state);
         return (
-          <Link
-            key={item.id}
-            href={`/production/${item.id}`}
-            className={cn("card-surface-hover block rounded-lg p-4 sm:p-5", FOCUS_BUTTON)}
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="font-semibold text-strong">{item.order.orderNumber}</p>
-                <p className="mt-0.5 truncate text-sm text-secondary">{item.order.title}</p>
-                <p className="truncate text-xs text-muted">{item.order.customerName}</p>
+          <li key={item.id}>
+            <Link
+              href={`/production/${item.id}`}
+              className={cn("card-surface card-surface-hover block rounded-2xl p-4 sm:p-5", FOCUS_BUTTON)}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-semibold text-strong">{item.order.orderNumber}</p>
+                  <p className="mt-0.5 truncate text-sm text-secondary">{item.order.title}</p>
+                  <p className="truncate text-xs text-muted">{item.order.customerName}</p>
+                </div>
+                <StatusLabel label={status.label} tone={status.tone} />
               </div>
-              <StatusLabel label={status.label} tone={status.tone} />
-            </div>
-            <div className="mt-4 border-t border-divider pt-4">
-              <p className="mb-2 text-xs font-medium text-muted">ขั้นตอนปัจจุบัน</p>
-              <CurrentOperations item={item} />
-            </div>
-            <div className="mt-4 grid grid-cols-[minmax(0,1fr)_minmax(7.5rem,0.75fr)] gap-4 border-t border-divider pt-4">
-              <div>
-                <p className="mb-2 text-xs font-medium text-muted">ความคืบหน้า</p>
-                <Progress
-                  done={item.progress.operationsCompleted}
-                  total={item.progress.operationsTotal}
-                />
+              <div className="mt-4 border-t border-divider pt-4">
+                <p className="mb-2 text-xs font-medium text-muted">ขั้นตอนปัจจุบัน</p>
+                <CurrentOperations item={item} />
               </div>
-              <div>
-                <p className="mb-2 text-xs font-medium text-muted">กำหนดส่ง</p>
-                <DueAndException item={item} />
+              <div className="mt-4 grid grid-cols-[minmax(0,1fr)_minmax(7.5rem,0.75fr)] gap-4 border-t border-divider pt-4">
+                <div>
+                  <p className="mb-2 text-xs font-medium text-muted">ความคืบหน้า</p>
+                  <Progress
+                    done={item.progress.operationsCompleted}
+                    total={item.progress.operationsTotal}
+                  />
+                </div>
+                <div>
+                  <p className="mb-2 text-xs font-medium text-muted">กำหนดส่ง</p>
+                  <DueAndException item={item} />
+                </div>
               </div>
-            </div>
-          </Link>
+            </Link>
+          </li>
         );
       })}
-    </div>
+    </ul>
   );
 }
 
@@ -497,7 +499,7 @@ function CenterCard({
     center.blocked > 0 || center.overdue > 0 || center.openExceptions > 0;
   return (
     <article
-      className={`card-surface rounded-lg p-5 ${selected ? "ring-2 ring-blue-500" : ""}`}
+      className={`card-surface rounded-2xl p-5 ${selected ? "ring-2 ring-blue-500" : ""}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -612,13 +614,13 @@ function ExceptionDesktopRows({ items }: { items: readonly ExceptionItem[] }) {
   return (
     <DataTable.Root>
       <DataTable.Head>
-        <DataTable.Row>
+        <tr>
           <DataTable.Th>ปัญหา</DataTable.Th>
           <DataTable.Th>งานผลิต</DataTable.Th>
           <DataTable.Th>ศูนย์งาน</DataTable.Th>
           <DataTable.Th>สถานะ</DataTable.Th>
           <DataTable.Th>แจ้งเมื่อ</DataTable.Th>
-        </DataTable.Row>
+        </tr>
       </DataTable.Head>
       <DataTable.Body>
         {items.map((item) => {
@@ -667,32 +669,33 @@ function ExceptionDesktopRows({ items }: { items: readonly ExceptionItem[] }) {
 
 function ExceptionMobileCards({ items }: { items: readonly ExceptionItem[] }) {
   return (
-    <div className="space-y-3">
+    <ul aria-label="รายการปัญหาการผลิต" className="space-y-3">
       {items.map((item) => {
         const severity = exceptionSeverityMeta(item.severity);
         const state = exceptionStatusMeta(item.state);
         return (
-          <Link
-            key={item.id}
-            href={`/production/${item.production.id}`}
-            className={cn("card-surface-hover block rounded-lg p-5", FOCUS_BUTTON)}
-          >
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <StatusLabel label={severity.label} tone={severity.tone} />
-              <StatusLabel label={state.label} tone={state.tone} />
-            </div>
-            <p className="mt-3 font-semibold text-strong">{item.title}</p>
-            <p className="mt-1 text-sm text-secondary">
-              {item.production.order.orderNumber} ·{" "}
-              {item.workCenter?.name ?? "ยังไม่ระบุศูนย์งาน"}
-            </p>
-            <p className="mt-2 text-xs text-muted">
-              แจ้งเมื่อ {formatDateTime(item.createdAt)}
-            </p>
-          </Link>
+          <li key={item.id}>
+            <Link
+              href={`/production/${item.production.id}`}
+              className={cn("card-surface card-surface-hover block rounded-2xl p-5", FOCUS_BUTTON)}
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <StatusLabel label={severity.label} tone={severity.tone} />
+                <StatusLabel label={state.label} tone={state.tone} />
+              </div>
+              <p className="mt-3 font-semibold text-strong">{item.title}</p>
+              <p className="mt-1 text-sm text-secondary">
+                {item.production.order.orderNumber} ·{" "}
+                {item.workCenter?.name ?? "ยังไม่ระบุศูนย์งาน"}
+              </p>
+              <p className="mt-2 text-xs text-muted">
+                แจ้งเมื่อ {formatDateTime(item.createdAt)}
+              </p>
+            </Link>
+          </li>
         );
       })}
-    </div>
+    </ul>
   );
 }
 
@@ -935,7 +938,7 @@ function ProductionV2WorkspaceContent() {
 
 export function ProductionV2Workspace() {
   return (
-    <Suspense fallback={<Skeleton className="h-96 rounded-lg" />}>
+    <Suspense fallback={<ListPageSkeleton />}>
       <ProductionV2WorkspaceContent />
     </Suspense>
   );

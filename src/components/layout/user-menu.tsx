@@ -9,14 +9,19 @@ import { trpc } from "@/lib/trpc";
 import { createClient } from "@/lib/supabase";
 import { ROLE_LABELS } from "@/lib/roles";
 import { requestAppNavigation } from "@/lib/navigation-request";
-import { FOCUS_BUTTON, MENU_SEPARATOR, OVERLAY_PANEL } from "@/components/ui/tokens";
+import {
+  FOCUS_BUTTON,
+  INTERACTIVE_CHROME_HOVER,
+  MENU_SEPARATOR,
+  OVERLAY_PANEL,
+} from "@/components/ui/tokens";
 import { CONTROL_H, CONTROL_MIN_H } from "@/components/ui/control-size";
 
 const menuItemClass = cn(
   CONTROL_MIN_H,
   // โหมดมืด: แถบไฮไลต์เคยเป็น slate-800 ซึ่ง **เข้มกว่า** พื้นเมนู = ทำผิดทิศ
   // ไล่ลูกศรบนคีย์บอร์ดแล้วมองไม่ออกว่าค้างบรรทัดไหน (audit สี 2026-08-02)
-  "flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-700 outline-none transition-colors data-[highlighted]:bg-interactive-hover data-[highlighted]:text-strong dark:text-slate-300",
+  "flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-secondary outline-none transition-colors data-[highlighted]:bg-interactive-hover data-[highlighted]:text-strong",
 );
 
 export function UserMenu() {
@@ -54,7 +59,13 @@ export function UserMenu() {
       <DropdownMenu.Trigger asChild>
         <button
           type="button"
-          className={cn(CONTROL_H, "flex w-11 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white transition-transform hover:scale-105 sm:w-9", FOCUS_BUTTON)}
+          /* 1) ความกว้างต้องเดินตามความสูงทุกจุด — CONTROL_H มี [@media(pointer:coarse)]:h-11
+                แต่ความกว้างเดิมค้างที่ sm:w-9 ทำให้บนจอทัชโรงงานวงกลมกลายเป็นวงรี 36×44
+             2) เลิกเป็นวงกลมน้ำเงินทึบ (เฟส 6 · เบสเคาะ 2026-08-26) — เดิมมีน้ำเงินสองก้อน
+                คนละมุมของแถบเดียวกัน ตรากับรูปคนแย่งกันเป็นตัวแทนแบรนด์
+                น้ำเงินเหลืออยู่ที่ตราชิ้นเดียว ที่นี่เป็นวงเงียบมีขอบ
+             3) เลิกขยายตัวตอนชี้ — ทั้งเว็บบอก hover ด้วยสี ไม่ใช่การเปลี่ยนขนาด */
+          className={cn(CONTROL_H, "flex w-11 items-center justify-center rounded-full bg-surface text-sm font-semibold text-strong ring-1 ring-border transition-colors sm:w-9 [@media(pointer:coarse)]:w-11", INTERACTIVE_CHROME_HOVER, FOCUS_BUTTON)}
           aria-label="เมนูผู้ใช้"
         >
           {me?.name?.charAt(0).toUpperCase() ?? "?"}
@@ -71,10 +82,10 @@ export function UserMenu() {
           )}
         >
           <div className="px-2 pt-1.5 pb-1">
-            <p className="text-sm font-semibold text-slate-900 dark:text-white">
+            <p className="text-sm font-semibold text-strong">
               {me?.name ?? "..."}
             </p>
-            <p className="text-2xs text-slate-500 dark:text-slate-400">
+            <p className="text-xs text-muted">
               {me?.email ?? ""}
               {me?.role ? ` · ${ROLE_LABELS[me.role] ?? me.role}` : ""}
             </p>
@@ -85,7 +96,7 @@ export function UserMenu() {
             <DropdownMenu.SubTrigger className={menuItemClass}>
               {themeIcon}
               ธีม
-              <span className="ml-auto text-xs text-slate-400">
+              <span className="ml-auto text-xs text-muted">
                 {theme === "system" ? "ระบบ" : theme === "dark" ? "มืด" : "สว่าง"}
               </span>
             </DropdownMenu.SubTrigger>

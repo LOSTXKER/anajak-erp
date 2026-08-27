@@ -1,14 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { RADIUS, TINT } from "@/components/ui/tokens";
+import { FOCUS_INSET_ON_LIGHT, RADIUS, TINT } from "@/components/ui/tokens";
 import { formatDate, isImageUrl } from "@/lib/utils";
 import { PRINT_POSITIONS, PRINT_TYPES } from "@/types/order-form";
 import { cn } from "@/lib/utils";
@@ -131,7 +130,7 @@ function GarmentPlacementDiagram({
   return (
     <figure className="flex h-full flex-col rounded-lg border border-divider bg-surface-muted p-3">
       <div
-        className="relative mx-auto aspect-[4/3] w-full max-w-44 text-slate-500 dark:text-slate-300"
+        className="relative mx-auto aspect-[4/3] w-full max-w-44 text-secondary"
         role="img"
         aria-label={
           side
@@ -165,7 +164,7 @@ function GarmentPlacementDiagram({
             data-station-side-diagram={position}
             className={cn(
               TINT.info,
-              "absolute inset-x-5 top-1/2 -translate-y-1/2 rounded-lg border px-3 py-2 text-center text-sm font-semibold shadow-sm",
+              "absolute inset-x-5 top-1/2 -translate-y-1/2 rounded-md border px-3 py-2 text-center text-sm font-semibold",
             )}
             aria-hidden="true"
           >
@@ -233,9 +232,10 @@ function ApprovedDesignReference({
           >
             ม็อกอัพอนุมัติสำหรับเปิดเทียบ
           </h4>
-          <Badge variant="success" size="sm">
+          {/* เลขเวอร์ชันเป็นค่าอ่านอย่างเดียว ไม่ใช่สถานะ — ชิปสงวนให้สถานะ (UI-2026) */}
+          <span className="text-sm font-medium tabular-nums text-muted">
             v{design.versionNumber}
-          </Badge>
+          </span>
         </div>
         {design.approvedAt ? (
           <p className="text-xs text-muted">
@@ -258,7 +258,7 @@ function ApprovedDesignReference({
           type="button"
           data-station-approved-reference-image=""
           onClick={() => onZoom({ src: image, label })}
-          className="group flex min-h-48 w-full items-center justify-center bg-white p-3 outline-none ring-inset focus-visible:ring-2 focus-visible:ring-ring sm:min-h-56 sm:p-4"
+          className={cn(FOCUS_INSET_ON_LIGHT, "group flex min-h-48 w-full items-center justify-center bg-white p-3 sm:min-h-56 sm:p-4")}
           aria-label={`ขยาย${label}`}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -304,7 +304,7 @@ function ApprovedDesignReference({
                     label: item.sideLabel ? `${label} — ${item.sideLabel}` : label,
                   })
                 }
-                className="block overflow-hidden rounded-lg border border-border bg-white outline-none ring-inset focus-visible:ring-2 focus-visible:ring-ring"
+                className={cn(FOCUS_INSET_ON_LIGHT, "block overflow-hidden rounded-lg border border-border bg-white")}
                 aria-label={`ขยาย${label}${item.sideLabel ? ` ${item.sideLabel}` : ""}`}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -316,7 +316,7 @@ function ApprovedDesignReference({
                   className="h-20 w-20 object-contain"
                 />
                 {item.sideLabel ? (
-                  <span className="block bg-surface-muted px-1 py-0.5 text-2xs text-secondary">
+                  <span className="block bg-surface-muted px-1 py-0.5 text-xs text-secondary">
                     {item.sideLabel}
                   </span>
                 ) : null}
@@ -385,7 +385,7 @@ function StationPrintRow({
           {heatLabel ? (
             <p
               data-station-heat-spec=""
-              className="mt-1.5 inline-block rounded-lg bg-blue-100 px-3 py-1.5 text-sm font-semibold tabular-nums text-blue-700 dark:bg-blue-950/60 dark:text-blue-300"
+              className="mt-1.5 text-sm font-semibold tabular-nums text-secondary"
             >
               {heatLabel}
             </p>
@@ -424,7 +424,7 @@ function StationPrintRow({
                     label: `รูปลายแยก · ${positionLabel} · ${workLabel}`,
                   })
                 }
-                className="flex min-h-36 flex-1 items-center justify-center bg-white p-3 outline-none ring-inset focus-visible:ring-2 focus-visible:ring-ring"
+                className={cn(FOCUS_INSET_ON_LIGHT, "flex min-h-36 flex-1 items-center justify-center bg-white p-3")}
                 aria-label={`ขยายรูปลายแยก ${positionLabel} สำหรับ ${workLabel}`}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -642,7 +642,7 @@ export function StationGarmentPreview({
     >
       <h3
         id="station-work-visual-title"
-        className="flex items-center gap-2 text-xl font-semibold tracking-tight text-strong"
+        className="flex items-center gap-2 text-xl font-semibold text-strong"
       >
         {allGroupsUseShirtDiagram ? (
           <Shirt className="h-6 w-6 text-blue-500" aria-hidden="true" />

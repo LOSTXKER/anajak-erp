@@ -9,7 +9,7 @@ import { StatusLabel, toneFromBadgeVariant } from "@/components/ui/status-label"
 import { SearchInput } from "@/components/ui/search-input";
 import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
 import { StatCard } from "@/components/ui/stat-card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { ListPageSkeleton } from "@/components/ui/page-skeleton";
 import { QueryError } from "@/components/ui/query-error";
 import { DataTable } from "@/components/ui/data-table";
 import { TablePagination } from "@/components/ui/table-pagination";
@@ -73,7 +73,7 @@ function paymentActionLabel(status: string, type: string) {
 
 export default function BillingPage() {
   return (
-    <Suspense fallback={<Skeleton className="h-96 rounded-lg" />}>
+    <Suspense fallback={<ListPageSkeleton />}>
       <BillingPageContent />
     </Suspense>
   );
@@ -208,29 +208,27 @@ function BillingPageContent() {
         onRetry={() => refetch()}
         label="บิล"
         emptyState={
-          <div className="card-surface rounded-lg">
-            <EmptyState
-              icon={FileText}
-              title={
-                search || statusFilter !== ALL || typeFilter !== ALL
-                  ? "ไม่พบบิลตามเงื่อนไข"
-                  : "ยังไม่มีบิล"
-              }
-              description={
-                search || statusFilter !== ALL || typeFilter !== ALL
-                  ? "ลองปรับคำค้นหรือตัวกรอง"
-                  : "สร้างบิลได้จากหน้าออเดอร์ — แท็บ เงิน/บิล"
-              }
-            />
-          </div>
+          <EmptyState
+            icon={FileText}
+            title={
+              search || statusFilter !== ALL || typeFilter !== ALL
+                ? "ไม่พบบิลตามเงื่อนไข"
+                : "ยังไม่มีบิล"
+            }
+            description={
+              search || statusFilter !== ALL || typeFilter !== ALL
+                ? "ลองปรับคำค้นหรือตัวกรอง"
+                : "สร้างบิลได้จากหน้าออเดอร์ — แท็บ เงิน/บิล"
+            }
+          />
         }
         renderMobile={(invoices) => (
-          <div className="space-y-3">
+          <div role="list" aria-label="รายการบิล" className="space-y-3">
             {invoices.map((inv) => {
               const status = paymentStatusProps(inv.paymentStatus);
               const moneyHref = `/orders/${inv.orderId}?tab=money`;
               return (
-                <article key={inv.id} className="card-surface rounded-lg p-4">
+                <article key={inv.id} role="listitem" className="card-surface rounded-2xl p-4">
                   <Link
                     href={moneyHref}
                     className={cn("block rounded-lg", FOCUS_BUTTON)}
@@ -238,10 +236,10 @@ function BillingPageContent() {
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="font-semibold text-blue-700 dark:text-blue-300">
+                        <p className="font-semibold text-strong">
                           {inv.invoiceNumber}
                         </p>
-                        <p className="mt-1 truncate text-xs text-slate-500 dark:text-slate-400">
+                        <p className="mt-1 truncate text-xs text-muted">
                           {INVOICE_TYPE_LABELS[inv.type] ?? inv.type}
                         </p>
                       </div>
@@ -252,34 +250,34 @@ function BillingPageContent() {
                         className="shrink-0"
                       />
                     </div>
-                    <div className="mt-3 grid grid-cols-2 gap-3 border-t border-slate-100 pt-3 dark:border-slate-800">
+                    <div className="mt-3 grid grid-cols-2 gap-3 border-t border-divider pt-3">
                       <div className="min-w-0">
-                        <p className="text-xs text-slate-500 dark:text-slate-400">ลูกค้า</p>
-                        <p className="mt-1 truncate text-sm font-medium text-slate-900 dark:text-white">
+                        <p className="text-xs text-muted">ลูกค้า</p>
+                        <p className="mt-1 truncate text-sm font-medium text-strong">
                           {inv.customer.name}
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-xs text-slate-500 dark:text-slate-400">ยอดบิล</p>
-                        <p className="mt-1 tabular-nums font-semibold text-slate-900 dark:text-white">
+                        <p className="text-xs text-muted">ยอดบิล</p>
+                        <p className="mt-1 tabular-nums font-semibold text-strong">
                           {formatCurrency(inv.totalAmount)}
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">ออเดอร์</p>
-                        <p className="mt-1 text-sm text-blue-700 dark:text-blue-300">
+                        <p className="text-xs text-muted">ออเดอร์</p>
+                        <p className="mt-1 text-sm text-secondary">
                           {inv.order.orderNumber}
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-xs text-slate-500 dark:text-slate-400">ครบกำหนด</p>
-                        <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+                        <p className="text-xs text-muted">ครบกำหนด</p>
+                        <p className="mt-1 text-sm text-secondary">
                           {inv.dueDate ? formatDate(inv.dueDate) : "—"}
                         </p>
                       </div>
                     </div>
                   </Link>
-                  <div className="mt-3 grid grid-cols-2 gap-2 border-t border-slate-100 pt-3 dark:border-slate-800">
+                  <div className="mt-3 grid grid-cols-2 gap-2 border-t border-divider pt-3">
                     <Button variant="outline" size="sm" asChild>
                       <Link
                         href={`/print/invoice/${inv.id}`}
@@ -323,32 +321,32 @@ function BillingPageContent() {
                 const moneyHref = `/orders/${inv.orderId}?tab=money`;
                 return (
                   <DataTable.Row key={inv.id}>
-                    <DataTable.Td className="p-0 font-medium text-slate-900 dark:text-white">
-                      <Link href={moneyHref} className="block px-5 py-3 text-blue-700 dark:text-blue-300">
+                    <DataTable.Td className="p-0 font-medium text-strong">
+                      <Link href={moneyHref} className="block px-6 py-4 font-medium text-strong">
                         {inv.invoiceNumber}
                       </Link>
                     </DataTable.Td>
-                    <DataTable.Td className="p-0 text-xs text-slate-500 dark:text-slate-400">
-                      <Link href={moneyHref} className="block px-5 py-3">
+                    <DataTable.Td className="p-0 text-xs text-muted">
+                      <Link href={moneyHref} className="block px-6 py-4">
                         {INVOICE_TYPE_LABELS[inv.type] ?? inv.type}
                       </Link>
                     </DataTable.Td>
                     <DataTable.Td className="p-0">
-                      <Link href={moneyHref} className="block px-5 py-3">{inv.customer.name}</Link>
+                      <Link href={moneyHref} className="block px-6 py-4">{inv.customer.name}</Link>
                     </DataTable.Td>
-                    <DataTable.Td className="p-0 text-blue-600 dark:text-blue-400">
-                      <Link href={moneyHref} className="block px-5 py-3">{inv.order.orderNumber}</Link>
+                    <DataTable.Td className="p-0">
+                      <Link href={moneyHref} className="block px-6 py-4">{inv.order.orderNumber}</Link>
                     </DataTable.Td>
                     <DataTable.Td
                       align="right"
-                      className="p-0 font-medium tabular-nums text-slate-900 dark:text-white"
+                      className="p-0 font-medium tabular-nums text-strong"
                     >
-                      <Link href={moneyHref} className="block px-5 py-3 text-right">
+                      <Link href={moneyHref} className="block px-6 py-4 text-right">
                         {formatCurrency(inv.totalAmount)}
                       </Link>
                     </DataTable.Td>
                     <DataTable.Td className="p-0">
-                      <Link href={moneyHref} className="block px-5 py-3">
+                      <Link href={moneyHref} className="block px-6 py-4">
                         <StatusLabel
                           label={status.label}
                           tone={status.tone}
@@ -356,8 +354,8 @@ function BillingPageContent() {
                         />
                       </Link>
                     </DataTable.Td>
-                    <DataTable.Td className="p-0 text-xs text-slate-500 dark:text-slate-400">
-                      <Link href={moneyHref} className="block px-5 py-3">
+                    <DataTable.Td className="p-0 text-xs text-muted">
+                      <Link href={moneyHref} className="block px-6 py-4">
                         {inv.dueDate ? formatDate(inv.dueDate) : "—"}
                       </Link>
                     </DataTable.Td>
@@ -374,7 +372,7 @@ function BillingPageContent() {
                             <Printer />
                           </Link>
                         </Button>
-                        <Button variant="outline" size="sm" asChild>
+                        <Button size="sm" asChild>
                           <Link href={moneyHref}>
                             {paymentActionLabel(inv.paymentStatus, inv.type)}
                           </Link>

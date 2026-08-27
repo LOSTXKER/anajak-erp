@@ -111,14 +111,14 @@ export function StepQtySheet({
             <button
               type="button"
               onClick={() => setValue(String(remaining))}
-              className={cn(DASHED_INTERACTIVE, "min-h-11 w-full rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed dark:text-slate-300 dark:hover:bg-interactive-hover dark:hover:text-strong dark:active:bg-interactive-pressed")}
+              className={cn(DASHED_INTERACTIVE, "min-h-11 w-full rounded-lg px-3 py-2.5 text-sm font-medium text-secondary transition-colors hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed dark:hover:bg-interactive-hover dark:hover:text-strong dark:active:bg-interactive-pressed")}
             >
               ครบที่เหลือ ({remaining} ตัว)
             </button>
           )}
           <p className="text-center text-sm text-muted">
             รวมเป็น{" "}
-            <span className="font-semibold tabular-nums text-slate-900 dark:text-white">
+            <span className="font-semibold tabular-nums text-strong">
               {newDone}/{total}
             </span>
             {willComplete && (

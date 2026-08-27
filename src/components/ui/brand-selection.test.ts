@@ -46,11 +46,16 @@ describe("Anajak selected-state contract", () => {
     expect(flowFilterSource).toContain("ACTIVE_UNDERLINE");
   });
 
-  it("navigation และ active filter เฉพาะหน้าใช้ selected role สีน้ำเงิน", () => {
+  /* แถบเมนูของ app shell ถอยจากพิลฟ้ามาเป็น "เทากลาง + ขีดแบรนด์" (แบบ ก · เบสเคาะ 2026-08-26)
+     เพราะพิลฟ้าเต็มแถบไปแย่งสายตากับปุ่มหลักที่ใช้น้ำเงินเหมือนกัน
+     ส่วนเมนูโมดูลในหน้าผลิตยังใช้ selected role เดิม — คนละระดับกัน จงใจให้ต่าง */
+  it("navigation ใช้เทากลาง + ขีดแบรนด์ · active filter เฉพาะหน้ายังใช้ selected role สีน้ำเงิน", () => {
     expect(shellSource).toContain(
-      "bg-interactive-selected font-medium text-interactive-selected-text",
+      'onChrome ? "bg-interactive-chrome-pressed" : "bg-interactive-pressed"',
     );
-    expect(shellSource).toContain('? "text-interactive-selected-text"');
+    expect(shellSource).toContain("before:bg-blue-600");
+    expect(shellSource).toContain("dark:before:bg-blue-400");
+    expect(shellSource).not.toContain("text-interactive-selected-text");
     expect(productionNavSource).toContain(
       'active && "bg-interactive-selected font-medium text-interactive-selected-text"',
     );
@@ -58,6 +63,65 @@ describe("Anajak selected-state contract", () => {
     expect(ordersSource).toContain(
       "border-b-2 border-blue-600",
     );
+  });
+
+  /* ตราสัญลักษณ์ไม่ได้ถูกล็อกไว้เลย จึงหลุดไปเงียบ ๆ ระหว่างรื้อ UI-2026:
+     กติกา "สงวนน้ำเงินให้ปุ่มหลัก/สิ่งที่เลือก/โฟกัส" ไม่มีช่องสำหรับคำว่า "ตัวตน"
+     พอโลโก้ไม่ใช่ปุ่มและไม่ใช่สถานะ มันเลยถูกทำเป็นเทาโดยไม่มีอะไรร้อง
+     (เบสทัก 2026-08-26 "อย่าลืมสีฟ้าที่เป็น asset เรา") */
+  it("ตราสัญลักษณ์เป็นสีแบรนด์เสมอ — ไม่อยู่ใต้กติกาสงวนสี", () => {
+    // ตอนนี้มีตราสองก้อน (หัวเมนูซ้ายบนจอกว้าง + บนแถบบนของจอแคบ) — ต้องเป็นสีแบรนด์ทั้งคู่
+    // เช็คจำนวน ไม่ใช่แค่ toContain ไม่งั้นก้อนหนึ่งกลายเป็นเทาแล้วเทสยังเขียว
+    expect(shellSource.match(/bg-blue-600 text-white/g)).toHaveLength(2);
+    expect(shellSource).toContain("bg-blue-600 text-white");
+    expect(shellSource).not.toContain("bg-surface text-secondary ring-1 ring-border");
+    // หน้า login คือจอแรกที่คนเห็น ตราต้องเป็นสีแบรนด์เหมือนกัน
+    expect(read("../../app/(auth)/login/page.tsx")).toContain("bg-blue-600");
+  });
+
+  /* กระดาษคือที่ที่แบรนด์อยู่ได้นานที่สุด — ลูกค้า B2B เก็บใบกำกับภาษีเป็นปี
+     grayscale lock ใน globals.css มีไว้กัน slate ของ app shell ไหลลงกระดาษ
+     ไม่ได้มีไว้ห้ามแบรนด์ · ตราหัวใบกับเส้นคาดหนึ่งเส้นเท่านั้นที่ได้สี ที่เหลือคงเทา */
+  it("เอกสารพิมพ์มีตราสีแบรนด์และพิมพ์ออกมาแล้วสีติดจริง", () => {
+    const printSource = read("../print/print-document.tsx");
+    expect(printSource).toContain("bg-blue-600");
+    expect(printSource).toContain("border-b-2 border-blue-600");
+    expect(read("../../app/globals.css")).toContain("print-color-adjust: exact");
+  });
+
+  /* หน้าที่ลูกค้าเห็นคือจอเดียวที่คนนอกเจอแบรนด์เรา — หัวการ์ดเคยเป็นเทาล้วน
+     ยกเว้นออเดอร์ blind ship ที่ต้องปิดตราตามสัญญากับลูกค้า */
+  it("หัวหน้าลูกค้ามีตราสีแบรนด์ และปิดได้ตอน blind ship", () => {
+    const publicSource = read("../public/public-page.tsx");
+    expect(publicSource).toContain("bg-blue-600 text-white");
+    // blind ship ต้องปิดตราเองโดยไม่ต้องรอให้ caller จำ
+    expect(publicSource).toContain("hideBrandMark = hideFooter");
+  });
+
+  /* จอโรงงาน /factory ไม่มี sidebar/topbar เลย — ตราจึงไม่มีที่อยู่โดยอัตโนมัติ
+     ก่อน 2026-08-26 ทั้งจอไม่มีคำว่า Anajak อยู่สักที่ ทั้งที่แขวนหน้าโรงงานทั้งวัน */
+  it("จอโรงงานทั้งสองรุ่นมีตรา Anajak สีแบรนด์ในหัวจอ", () => {
+    for (const source of [
+      read("../../app/factory/page.tsx"),
+      read("../factory/manufacturing-factory-board.tsx"),
+    ]) {
+      expect(source).toContain("bg-blue-600 text-white");
+      expect(source).toContain("Anajak Print");
+    }
+  });
+
+  /* user-menu.tsx ไม่เคยมีด่านหรือเทสแตะเลยสักบรรทัด ทั้งที่เป็นของที่อยู่บนทุกหน้า
+     บั๊กวงรี 36×44 บนจอทัชจึงอยู่มานานโดยไม่มีอะไรร้อง (เจอตอนไล่ตรวจ 2026-08-26) */
+  it("รูปผู้ใช้บนแถบบนเป็นวงกลมจริงทุกจอ และไม่แย่งความเป็นแบรนด์กับตรา", () => {
+    const userMenuSource = read("../layout/user-menu.tsx");
+    // ความกว้างต้องเดินตามความสูงทุกช่วง — CONTROL_H มี override ให้จอทัช ความกว้างก็ต้องมี
+    expect(userMenuSource).toContain("w-11");
+    expect(userMenuSource).toContain("sm:w-9");
+    expect(userMenuSource).toContain("[@media(pointer:coarse)]:w-11");
+    // น้ำเงินเหลืออยู่ที่ตราชิ้นเดียว ที่นี่เป็นวงเงียบมีขอบ
+    expect(userMenuSource).not.toContain("bg-blue-600");
+    // ทั้งเว็บบอก hover ด้วยสี ไม่ใช่การขยายตัว
+    expect(userMenuSource).not.toContain("hover:scale");
   });
 
   it("Production ใช้การ์ดตัวกรองเรียบและ selected คงสีประจำสถานะ", () => {

@@ -33,12 +33,21 @@ interface RootProps extends React.HTMLAttributes<HTMLDivElement> {
   bordered?: boolean;
 }
 
+/* prop `flush` (ตารางวางบนผืนหน้าไม่มีกล่องครอบ) ถูกถอดออก 2026-08-26 — เบสเห็นของจริง
+   บนจอกว้างแล้วบอกว่า "ดูแปลกๆ และไม่ชอบ" · มันพังสองชั้นพร้อมกัน:
+   1) ธีมสว่างไม่เคยมีชั้นความลึกจริง (การ์ดต่างจากผืนหน้า 1.03 เท่า) สิ่งที่ตาเห็นว่า
+      เป็นกล่องคือเส้นขอบล้วน ๆ พอถอดกล่อง เส้นหายไปด้วย เลยไม่เหลือขอบเขตอะไรเลย
+   2) คำสั่ง "ให้เซลล์แรกชิดขอบ" ไปลงที่ <th> แต่ `SortableTh` วาง p-0 ไว้ที่ <th>
+      และ px-5 ไว้ที่ <button> ข้างใน คำสั่งจึงไม่โดน — หัวคอลัมน์แรกเยื้องขวากว่า
+      ข้อมูล 20px ซึ่งตรงกับสิ่งที่ prop ตัวนี้เขียนคอมเมนต์ไว้เองว่าจะป้องกัน
+   ตอนนี้ตารางระดับบนสุดใช้ `bordered` ปริยาย = การ์ดครอบ; ตั้งแต่ 2026-08-27
+   ผืน Light เป็น near-white และการ์ดแยกขอบเขตหลักด้วย edge+shadow กลาง */
 const Root = React.forwardRef<HTMLDivElement, RootProps>(
   ({ className, bordered = true, children, ...props }, ref) => (
     <div
       ref={ref}
       className={cn(
-        bordered && "card-surface overflow-hidden rounded-lg",
+        bordered && "card-surface overflow-hidden rounded-2xl",
         className
       )}
       {...props}
@@ -74,7 +83,9 @@ const Body = React.forwardRef<
     ref={ref}
     className={cn(
       // Vercel-like dataset panel ใช้ divider บางช่วยไล่แถว โดยไม่ทำ cell grid
-      "divide-y divide-divider",
+      // ข้อมูลทุกระดับในเซลล์ใช้ 14px; control ที่จงใจใช้ density แบบ sm/dense
+      // รักษาขนาดจาก primitive ของตัวเอง ไม่ถูกกฎข้อมูลตารางทับ
+      "divide-y divide-divider [&_td]:text-sm [&_td_:not(:is(button,button_*,input,input_*,select,select_*,textarea,textarea_*,[role=combobox],[role=combobox]_*))]:text-sm",
       className
     )}
     {...props}
@@ -110,7 +121,7 @@ const Row = React.forwardRef<HTMLTableRowElement, RowProps>(
         className={cn(
           // ชี้แถวไหนต้องรู้ทันที — ตารางกว้างแล้วกดผิดแถวคือกดผิดออเดอร์
           INTERACTIVE_HOVER,
-          "group transition-colors duration-150 hover:[&_.text-muted]:text-secondary hover:[&_.text-slate-500]:text-secondary dark:hover:[&_.text-muted]:text-secondary dark:hover:[&_.text-slate-500]:text-secondary",
+          "group transition-colors hover:[&_.text-muted]:text-secondary hover:[&_.text-muted]:text-secondary dark:hover:[&_.text-muted]:text-secondary dark:hover:[&_.text-muted]:text-secondary",
           href && cn("cursor-pointer", INTERACTIVE_PRESSED),
           className
         )}
@@ -131,7 +142,9 @@ const Th = React.forwardRef<HTMLTableCellElement, ThProps>(
       ref={ref}
       scope={scope}
       className={cn(
-        "px-5 py-3 text-xs font-semibold text-secondary",
+        // หัวคอลัมน์ไม่ตัดกลางวลี — "กำหนดส่ง" ที่ขึ้นบรรทัดใหม่กลางคำอ่านสะดุด
+        // และทำให้หัวตารางสูงไม่เท่ากันทีละคอลัมน์ · ตารางมี overflow-x อยู่แล้ว
+        "whitespace-nowrap px-6 py-3 text-xs font-semibold text-secondary",
         align === "right" && "text-right",
         align === "center" && "text-center",
         align === "left" && "text-left",
@@ -199,7 +212,7 @@ const SortableTh = React.forwardRef<HTMLTableCellElement, SortableThProps>(
             // ไม่ย้อมพื้นตอนเอาเมาส์ชี้ (เบสสั่ง 2026-08-02 "ไม่ชอบหัวตารางเปลี่ยนสีตอนชี้") —
             // แถบเทาโผล่เฉพาะช่องที่ชี้อยู่ ทำให้หัวตารางดูขาดเป็นท่อนๆ
             // บอกว่า "กดได้" ด้วยตัวหนังสือกับลูกศรที่เข้มขึ้นแทน — เบากว่าและไม่ทำให้แถวขาด
-            "group flex w-full cursor-pointer touch-manipulation items-center gap-1.5 px-5 py-3 text-xs font-semibold transition-colors [@media(pointer:coarse)]:min-h-11",
+            "group flex w-full cursor-pointer touch-manipulation items-center gap-1.5 whitespace-nowrap px-6 py-3 text-xs font-semibold transition-colors [@media(pointer:coarse)]:min-h-11",
             FOCUS_INSET,
             active
               ? "font-semibold text-blue-700 dark:text-blue-300"
@@ -215,7 +228,7 @@ const SortableTh = React.forwardRef<HTMLTableCellElement, SortableThProps>(
               "h-3 w-3 shrink-0 transition-colors",
               active
                 ? "text-blue-600 dark:text-blue-400"
-                : "text-slate-300 group-hover:text-slate-500 dark:text-slate-600 dark:group-hover:text-slate-400"
+                : "text-muted group-hover:text-secondary"
             )}
           />
         </button>
@@ -234,7 +247,8 @@ const Td = React.forwardRef<HTMLTableCellElement, TdProps>(
     <td
       ref={ref}
       className={cn(
-        "px-5 py-3 text-sm text-slate-700 dark:text-slate-300",
+        // แถวหายใจขึ้น (เฟส 10 · เบสเคาะ "นุ่มเต็มที่") — py 12 → 16px · เซลล์ 20 → 24px
+        "px-6 py-4 text-sm text-secondary",
         align === "right" && "text-right",
         align === "center" && "text-center",
         align === "left" && "text-left",

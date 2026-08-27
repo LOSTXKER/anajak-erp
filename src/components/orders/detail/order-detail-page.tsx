@@ -98,7 +98,7 @@ function OrderDetailSkeleton() {
       </div>
       <Skeleton className="h-20 rounded-lg" />
       {/* โครงต้องตรงกับของจริง (แถบแท็บ + เนื้อหาเต็มความกว้าง) ไม่งั้นจอกระโดดตอนโหลดเสร็จ */}
-      <div className="flex h-11 items-center gap-6 overflow-hidden border-b border-slate-200/70 dark:border-white/10">
+      <div className="flex h-11 items-center gap-6 overflow-hidden border-b border-border">
         <Skeleton className="h-4 w-16 rounded" />
         <Skeleton className="h-4 w-20 rounded" />
         <Skeleton className="h-4 w-16 rounded" />
@@ -581,7 +581,7 @@ function OrderDetailContent({
 
   const channelColor = CHANNEL_COLORS[order.channel] ?? {
     bg: "bg-slate-100 dark:bg-slate-800",
-    text: "text-slate-700 dark:text-slate-300",
+    text: "text-secondary",
   };
 
   // COMPLETED: ไม่มีปุ่มหลัก — ทางถอย (เปิดงานกลับ) ทั้งหมดอยู่ใน dropdown
@@ -593,7 +593,7 @@ function OrderDetailContent({
       ? "เปิดงานกลับ (→ จัดส่งแล้ว)"
       : INTERNAL_STATUS_LABELS[status as keyof typeof INTERNAL_STATUS_LABELS];
   const dropdownItemClass =
-    "flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-700 outline-none data-[highlighted]:bg-interactive-hover data-[highlighted]:text-strong dark:text-slate-300";
+    "flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-secondary outline-none data-[highlighted]:bg-interactive-hover data-[highlighted]:text-strong";
 
   return (
     <div className="space-y-6">

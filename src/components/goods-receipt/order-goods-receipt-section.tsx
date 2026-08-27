@@ -45,7 +45,7 @@ export function OrderGoodsReceiptSection({
       <CardHeader className="pb-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-            <ClipboardCheck className="h-4 w-4 text-slate-400" />
+            <ClipboardCheck className="h-4 w-4 text-muted" />
             ของเข้า / ตรวจรับ
           </CardTitle>
           {canReceive && (
@@ -54,7 +54,7 @@ export function OrderGoodsReceiptSection({
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-8 gap-1.5 text-xs"
+                  className="h-8 gap-1.5"
                   onClick={() => setDialogType("CUSTOMER_GARMENT")}
                 >
                   <PackageOpen />
@@ -65,7 +65,7 @@ export function OrderGoodsReceiptSection({
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-8 gap-1.5 text-xs"
+                  className="h-8 gap-1.5"
                   onClick={() => setDialogType("SEWING_GARMENT")}
                 >
                   <PackageOpen />
@@ -76,7 +76,7 @@ export function OrderGoodsReceiptSection({
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-8 gap-1.5 text-xs text-muted"
+                  className="h-8 gap-1.5 text-muted"
                   onClick={() => setDialogType("CUSTOMER_RETURN")}
                 >
                   <Undo2 />
@@ -94,7 +94,7 @@ export function OrderGoodsReceiptSection({
             onRetry={() => void refetch()}
           />
         ) : (receipts ?? []).length === 0 ? (
-          <p className="py-2 text-center text-sm text-slate-400">
+          <p className="py-2 text-center text-sm text-muted">
             ยังไม่มีใบตรวจรับ — ของเข้าโรงงานเมื่อไหร่ กดนับทันที (นับจริงต่อไซส์)
           </p>
         ) : (
@@ -107,23 +107,23 @@ export function OrderGoodsReceiptSection({
             return (
               <div
                 key={r.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-100 px-3 py-2 dark:border-slate-800"
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-divider px-3 py-2"
               >
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-slate-900 dark:text-white">
+                  <p className="text-sm font-medium text-strong">
                     {RECEIPT_TYPE_LABELS[r.receiptType as ReceiptType] ?? r.receiptType}
                     <span className="ml-2 text-xs font-normal tabular-nums text-muted">
                       {counted} ตัว
                     </span>
                   </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                  <p className="text-xs text-muted">
                     {formatDate(r.receivedAt)} · {r.receivedBy.name}
                     {r.notes ? ` · ${r.notes}` : ""}
                   </p>
                 </div>
                 <div className="flex items-center gap-1.5">
                   {r.photoUrls.length > 0 && (
-                    <span className="flex items-center gap-0.5 text-xs text-slate-400">
+                    <span className="flex items-center gap-0.5 text-xs text-muted">
                       <ImageIcon className="h-3 w-3" />
                       {r.photoUrls.length}
                     </span>

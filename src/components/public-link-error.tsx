@@ -40,7 +40,7 @@ export function PublicLinkError({
               <AlertCircle className="h-5 w-5" />
             </span>
             <div className="min-w-0">
-              <h1 className="text-xl font-semibold tracking-[-0.02em] text-strong">เปิดลิงก์ไม่ได้</h1>
+              <h1 className="text-2xl font-semibold text-strong">เปิดลิงก์ไม่ได้</h1>
               <p className="mt-1 text-sm leading-relaxed text-secondary">{message}</p>
             </div>
           </div>

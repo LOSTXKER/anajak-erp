@@ -14,6 +14,10 @@ interface OrderStatusBadgeProps {
   subClassName?: string;
   /** ระบุบทบาทของบรรทัดรองใน registry ที่มีสถานะลูกค้าและภายในอยู่พร้อมกัน */
   labelInternalStatus?: boolean;
+  /** แสดงบรรทัดสถานะภายในใต้สถานะหลักหรือไม่ — ทะเบียนออเดอร์ปิดไว้
+   *  (เบสเคาะ 2026-08-25: "สถานะออเดอร์ไม่ชอบการที่มีคำอธิบายใต้สถานะหลัก")
+   *  หน้าที่ต้องรู้ขั้นภายในจริง ๆ เช่นรายละเอียดออเดอร์/ผลิต ยังเปิดไว้ตามเดิม */
+  showInternalStatus?: boolean;
 }
 
 /** โทนของสถานะฝั่งลูกค้า — ปลายทาง (จบ/ยกเลิก) เท่านั้นที่ย้อมข้อความ */
@@ -38,6 +42,7 @@ export function OrderStatusBadge({
   compact,
   subClassName,
   labelInternalStatus = false,
+  showInternalStatus = true,
 }: OrderStatusBadgeProps) {
   if (!customerStatus && !internalStatus) return null;
 
@@ -73,7 +78,7 @@ export function OrderStatusBadge({
       tone={tone}
       // ซ่อนบรรทัดล่างเมื่อสะกดตรงกับบรรทัดบน (เช่น "กำลังผลิต / กำลังผลิต")
       // — เขียนซ้ำไม่ได้บอกอะไรเพิ่ม มีแต่ทำให้สงสัยว่าต่างกันตรงไหน
-      sub={internalSubLabel}
+      sub={showInternalStatus ? internalSubLabel : undefined}
       subClassName={subClassName}
       className={compact ? undefined : "gap-0.5"}
     />

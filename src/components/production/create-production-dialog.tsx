@@ -192,7 +192,7 @@ function StepBuilder({
             return (
               <div key={index}>
                 {showLaneHeader && (
-                  <p className="mb-1 mt-2 px-0.5 text-xs font-semibold uppercase tracking-wide text-muted first:mt-0">
+                  <p className="mb-1 mt-2 px-0.5 text-xs font-semibold text-muted first:mt-0">
                     {LANE_LABELS[lane]}
                   </p>
                 )}

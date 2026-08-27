@@ -267,16 +267,16 @@ export function OrderInfoEditDialog({
   const sectionClass =
     "space-y-3 rounded-lg border border-border p-4";
   const sectionTitleClass =
-    "mb-3 text-xs font-semibold uppercase tracking-wider text-muted";
+    "mb-3 text-xs font-semibold text-muted";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] sm:max-w-2xl">
+      <DialogContent className="max-h-[90dvh] sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>แก้ไขข้อมูลออเดอร์</DialogTitle>
         </DialogHeader>
 
-        <div className="max-h-[60vh] space-y-4 overflow-y-auto pr-1">
+        <div className="max-h-[60dvh] space-y-4 overflow-y-auto pr-1">
           {/* --Basic Info-- ใช้ช่องชุดเดียวกับหน้าเปิดงาน (ก้อน 3 · เบสสั่ง 2026-08-11
               "หน้ารายละเอียดกดแก้ไข ก็ใช้ฟอร์มเดียวกับสร้างออเดอร์เลย UI จะได้เหมือนกัน")
               — เดิมที่นี่เขียนช่องเอง จึงเรียงคนละลำดับ ป้ายคนละคำ และตกช่องที่หน้าเปิดงานมี */}

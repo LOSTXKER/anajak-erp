@@ -12,11 +12,11 @@ import {
   UsersRound,
 } from "lucide-react";
 import { trpc, type RouterOutput } from "@/lib/trpc";
+import { ListSkeleton } from "@/components/ui/page-skeleton";
 import { PageShell } from "@/components/page-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Skeleton } from "@/components/ui/skeleton";
 import { StatusLabel, toneFromBadgeVariant } from "@/components/ui/status-label";
 import { STEP_TYPE_LABELS } from "@/lib/production-steps";
 import { manufacturingTaskHref } from "@/lib/manufacturing-task";
@@ -294,7 +294,7 @@ function TaskRow({ item, urgent }: { item: TaskListItem; urgent?: boolean }) {
       >
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="min-w-0 truncate text-sm font-medium text-slate-900 dark:text-white">
+            <p className="min-w-0 truncate text-sm font-medium text-strong">
               {item.title}
             </p>
             {attention && (
@@ -306,11 +306,11 @@ function TaskRow({ item, urgent }: { item: TaskListItem; urgent?: boolean }) {
             )}
           </div>
           {item.description && (
-            <p className="truncate text-xs text-slate-600 dark:text-slate-300">
+            <p className="truncate text-xs text-secondary">
               {item.description}
             </p>
           )}
-          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-600 dark:text-slate-300">
+          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-secondary">
             {/* ป้ายสถานะของงานอยู่ในแถว meta (flex-wrap) เพื่อให้เห็นทุกขนาดจอ — ห้ามซ่อนบนมือถือ */}
             {item.badge && (
               <StatusLabel
@@ -336,7 +336,7 @@ function TaskRow({ item, urgent }: { item: TaskListItem; urgent?: boolean }) {
             {item.meta && <span className="tabular-nums">{item.meta}</span>}
           </div>
         </div>
-        <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" />
+        <ChevronRight className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
       </Link>
     </li>
   );
@@ -351,41 +351,41 @@ function TaskGroupCard({ group }: { group: TaskGroup }) {
   return (
     <section
       className={cn(
-        "card-surface overflow-hidden rounded-lg",
+        "card-surface overflow-hidden rounded-2xl",
         // ต้องมี `border` คู่ด้วย ไม่งั้นสั่งแค่สีขอบ = เส้นไม่ขึ้นเลย (audit สี 2026-08-02)
         group.id === "attention" && "border border-red-200 dark:border-red-900"
       )}
     >
-      <div className="flex items-start gap-3 border-b border-slate-100 px-4 py-3 dark:border-slate-800">
+      <div className="flex items-start gap-3 border-b border-divider px-4 py-3">
         <div
           className={cn(
             "mt-0.5 rounded-lg p-2",
             group.id === "attention"
               ? "bg-red-50 text-red-700 dark:bg-red-950/50 dark:text-red-300"
-              : "bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300"
+              : "bg-surface-muted text-secondary"
           )}
         >
           <Icon className="h-4 w-4" aria-hidden="true" />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold text-slate-900 dark:text-white">{group.title}</h2>
+            <h2 className="text-sm font-semibold text-strong">{group.title}</h2>
             <Badge variant={group.id === "attention" ? "destructive" : "default"} size="sm">
               {group.items.length}
             </Badge>
           </div>
           {group.description && (
-            <p className="text-xs text-slate-600 dark:text-slate-300">{group.description}</p>
+            <p className="text-xs text-secondary">{group.description}</p>
           )}
         </div>
       </div>
-      <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+      <ul className="divide-y divide-divider">
         {visible.map((item) => (
           <TaskRow key={item.key} item={item} urgent={group.id === "attention"} />
         ))}
       </ul>
       {group.items.length > 5 && (
-        <div className="border-t border-slate-100 p-2 dark:border-slate-800">
+        <div className="border-t border-divider p-2">
           <Button
             type="button"
             variant="ghost"
@@ -425,13 +425,7 @@ export default function MyTasksPage() {
             : "เคลียร์หมดแล้ว — ไม่มีงานค้าง"
       }
       loading={isLoading}
-      skeleton={
-        <>
-          {[0, 1, 2].map((index) => (
-            <Skeleton key={index} className="h-44 rounded-lg" />
-          ))}
-        </>
-      }
+      skeleton={<ListSkeleton rows={5} />}
       error={
         isError || (!isLoading && !data)
           ? { message: "เกิดข้อผิดพลาดในการโหลดข้อมูล", onRetry: () => refetch() }
@@ -439,7 +433,7 @@ export default function MyTasksPage() {
       }
     >
       {groups.length === 0 ? (
-        <div className="card-surface rounded-lg">
+        <div className="card-surface rounded-2xl">
           <EmptyState
             icon={CheckCircle2}
             title="ไม่มีงานค้างบนโต๊ะคุณ"

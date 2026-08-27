@@ -106,7 +106,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
         }
       >
         {customerProfileGaps(customer).length > 0 && (
-          <p className="text-xs text-amber-600 dark:text-amber-400">
+          <p className="text-xs text-amber-700 dark:text-amber-400">
             โปรไฟล์ยังไม่ครบ: {customerProfileGaps(customer).map((g) => g.label).join(" · ")}
           </p>
         )}
@@ -119,12 +119,12 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
             <CardHeader><CardTitle className="text-base">ข้อมูลติดต่อ</CardTitle></CardHeader>
             <CardContent className="space-y-3 text-sm">
               {customer.phone && (
-                <a href={`tel:${customer.phone}`} className="flex min-h-11 items-center gap-2 rounded-lg text-slate-700 hover:text-strong dark:text-slate-300 dark:hover:text-strong">
+                <a href={`tel:${customer.phone}`} className="flex min-h-11 items-center gap-2 rounded-lg text-secondary hover:text-strong dark:hover:text-strong">
                   <Phone className="h-4 w-4" /> {customer.phone}
                 </a>
               )}
               {customer.email && (
-                <a href={`mailto:${customer.email}`} className="flex min-h-11 items-center gap-2 rounded-lg text-slate-700 hover:text-strong dark:text-slate-300 dark:hover:text-strong">
+                <a href={`mailto:${customer.email}`} className="flex min-h-11 items-center gap-2 rounded-lg text-secondary hover:text-strong dark:hover:text-strong">
                   <Mail className="h-4 w-4" /> {customer.email}
                 </a>
               )}
@@ -133,7 +133,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                   href={`https://line.me/R/ti/p/~${encodeURIComponent(customer.lineId)}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex min-h-11 items-center gap-2 rounded-lg text-slate-700 hover:text-strong dark:text-slate-300 dark:hover:text-strong"
+                  className="flex min-h-11 items-center gap-2 rounded-lg text-secondary hover:text-strong dark:hover:text-strong"
                 >
                   <MessageCircle className="h-4 w-4" /> {customer.lineId}
                 </a>
@@ -141,7 +141,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
               {/* เดิมมีแต่ไอคอนหมุด ไม่มีป้าย — คนอ่านเดาไม่ออกว่านี่ที่อยู่อะไร (ส่งของ? ออกบิล?)
                   ต้องเรียกชื่อเดียวกับฟอร์มที่กรอกค่านี้ = "ที่อยู่ผู้ติดต่อ" (เบสสั่ง 2026-08-12) */}
               {customer.address && (
-                <div className="flex items-start gap-2 text-slate-600 dark:text-slate-400">
+                <div className="flex items-start gap-2 text-secondary">
                   <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
                   <span className="min-w-0">
                     <span className="block text-xs text-muted">ที่อยู่ผู้ติดต่อ</span>
@@ -152,7 +152,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
               {/* ลูกค้าที่ยังไม่กรอกช่องทางติดต่อเลย — เดิมการ์ดนี้เหลือแต่หัวข้อ ข้างในโล่ง
                   คนอ่านแยกไม่ออกว่า "ยังไม่ได้กรอก" กับ "หน้าโหลดไม่ครบ" */}
               {!customer.phone && !customer.email && !customer.lineId && !customer.address && (
-                <p className="text-slate-500 dark:text-slate-400">
+                <p className="text-muted">
                   ยังไม่ได้กรอกช่องทางติดต่อ
                 </p>
               )}
@@ -198,7 +198,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                 </Alert>
               )}
               {canSeeMoney && !creditLoading && !creditError && !credit && (
-                <p className="text-sm text-slate-500 dark:text-slate-400">
+                <p className="text-sm text-muted">
                   ยังไม่มีข้อมูลสถานะเครดิต
                 </p>
               )}
@@ -255,14 +255,14 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                   </Alert>
                 )}
                 {customer.taxId && (
-                  <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                  <div className="flex items-center gap-2 text-secondary">
                     <FileText className="h-4 w-4" /> เลขผู้เสียภาษี: {customer.taxId}
-                    {customer.branchNumber && <span className="text-slate-400">(สาขา {customer.branchNumber === "00000" ? "สำนักงานใหญ่" : customer.branchNumber})</span>}
+                    {customer.branchNumber && <span className="text-muted">(สาขา {customer.branchNumber === "00000" ? "สำนักงานใหญ่" : customer.branchNumber})</span>}
                   </div>
                 )}
                 {customer.creditLimit != null && (
                   <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                    <div className="flex items-center gap-2 text-secondary">
                       <CreditCard className="h-4 w-4" /> วงเงินเครดิต: {formatCurrency(customer.creditLimit)}
                     </div>
                     {creditLoading && (
@@ -276,7 +276,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                       </p>
                     )}
                     {credit && credit.available != null && (
-                      <p className={`pl-6 text-xs ${credit.available < 0 ? "font-medium text-red-600 dark:text-red-400" : "text-slate-500"}`}>
+                      <p className={`pl-6 text-xs ${credit.available < 0 ? "font-medium text-red-600 dark:text-red-400" : "text-muted"}`}>
                         ภาระหนี้ {formatCurrency(credit.exposure)} (ค้างชำระ {formatCurrency(credit.invoiceOutstanding)} + งานยังไม่วางบิล {formatCurrency(credit.unbilled)})
                         {credit.available < 0
                           ? ` — เกินวงเงิน ${formatCurrency(Math.abs(credit.available))}`
@@ -287,21 +287,21 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                       !creditLoading &&
                       !creditError &&
                       credit?.available == null && (
-                        <p className="pl-6 text-xs text-slate-500 dark:text-slate-400">
+                        <p className="pl-6 text-xs text-muted">
                           ยังไม่มีข้อมูลภาระหนี้
                         </p>
                       )}
                   </div>
                 )}
                 {customer.defaultPaymentTerms && (
-                  <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                  <div className="flex items-center gap-2 text-secondary">
                     <DollarSign className="h-4 w-4" /> เงื่อนไขชำระ: {PAYMENT_TERMS_LABELS[customer.defaultPaymentTerms] ?? customer.defaultPaymentTerms}
                   </div>
                 )}
                 {customer.billingAddress && (
                   <div className="mt-3 rounded-lg border border-border bg-surface-muted p-3">
                     <p className="mb-1 text-xs font-semibold text-muted">ที่อยู่ออกใบกำกับภาษี</p>
-                    <p className="text-sm text-slate-700 dark:text-slate-300">
+                    <p className="text-sm text-secondary">
                       {customer.billingAddress}
                       {customer.billingSubDistrict && ` ${customer.billingSubDistrict}`}
                       {customer.billingDistrict && ` ${customer.billingDistrict}`}
@@ -324,7 +324,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
             <CardHeader><CardTitle className="text-base">ออเดอร์ล่าสุด</CardTitle></CardHeader>
             <CardContent>
               {customer.orders.length === 0 ? (
-                <p className="text-sm text-slate-400">ยังไม่มีออเดอร์</p>
+                <p className="text-sm text-muted">ยังไม่มีออเดอร์</p>
               ) : (
                 <div className="space-y-2">
                   {customer.orders.map((order) => (
@@ -369,18 +369,18 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
             </CardHeader>
             <CardContent>
               {customer.communicationLogs.length === 0 ? (
-                <p className="text-sm text-slate-400">ยังไม่มีบันทึก — คุยอะไรกับลูกค้าจดไว้ ทีมอื่นเห็นด้วย</p>
+                <p className="text-sm text-muted">ยังไม่มีบันทึก — คุยอะไรกับลูกค้าจดไว้ ทีมอื่นเห็นด้วย</p>
               ) : (
                 <div className="space-y-3">
                   {customer.communicationLogs.map((log) => (
-                    <div key={log.id} className="border-l-2 border-slate-200 pl-4 dark:border-slate-700">
+                    <div key={log.id} className="border-l-2 border-border pl-4">
                       <div className="flex items-center gap-2">
                         <Badge variant="secondary">{commChannelLabel(log.channel)}</Badge>
-                        <span className="text-xs text-slate-400">{formatDateTime(log.createdAt)}</span>
-                        <span className="text-xs text-slate-400">- {log.user.name}</span>
+                        <span className="text-xs text-muted">{formatDateTime(log.createdAt)}</span>
+                        <span className="text-xs text-muted">- {log.user.name}</span>
                       </div>
                       {log.subject && <p className="text-sm font-medium mt-1">{log.subject}</p>}
-                      <p className="text-sm text-slate-600 dark:text-slate-400 mt-0.5">{log.content}</p>
+                      <p className="text-sm text-secondary mt-0.5">{log.content}</p>
                     </div>
                   ))}
                 </div>

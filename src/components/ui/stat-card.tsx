@@ -33,11 +33,11 @@ interface StatCardProps {
 }
 
 const TONE_CLASSES: Record<NonNullable<StatCardProps["tone"]>, string> = {
-  default: "text-slate-900 dark:text-white",
+  default: "text-strong",
   danger: "text-red-600 dark:text-red-400",
-  warning: "text-amber-600 dark:text-amber-400",
+  warning: "text-amber-700 dark:text-amber-400",
   success: "text-green-600 dark:text-green-400",
-  muted: "text-slate-500 dark:text-slate-400",
+  muted: "text-muted",
 };
 
 export function StatCard({
@@ -55,18 +55,18 @@ export function StatCard({
   const card = (
     <div
       className={cn(
-        "card-surface rounded-lg p-5",
+        "card-surface rounded-2xl p-5",
         href && "card-surface-hover",
         !href && className
       )}
     >
       <div className="flex items-center justify-between">
-        <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+        <p className="text-xs font-medium text-muted">
           {title}
         </p>
         {Icon && (
           <Icon
-            className="h-4 w-4 text-slate-500 dark:text-slate-400"
+            className="h-4 w-4 text-muted"
             strokeWidth={1.75}
           />
         )}
@@ -99,10 +99,10 @@ export function StatCard({
           </span>
         )}
         {change !== undefined && changeSuffix && (
-          <span className="text-slate-500 dark:text-slate-400">{changeSuffix}</span>
+          <span className="text-muted">{changeSuffix}</span>
         )}
         {caption && (
-          <span className="text-slate-500 dark:text-slate-400">{caption}</span>
+          <span className="text-muted">{caption}</span>
         )}
       </div>
     </div>

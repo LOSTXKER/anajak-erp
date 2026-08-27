@@ -23,9 +23,14 @@ describe("FilterPopover visual contract", () => {
     expect(popoverSource).toContain("ACTIVE_FILTER");
   });
 
-  it("caller หลายเงื่อนไขใช้ field contract เดียวกัน", () => {
-    expect(ordersSource.match(/<FilterPopoverField/g)).toHaveLength(2);
+  it("orders เปิดตัวกรองที่ใช้ประจำไว้ตรงหน้า ส่วน production ยังใช้ popover กับเงื่อนไขรอง", () => {
+    expect(ordersSource).not.toContain("<FilterPopover");
     expect(ordersSource).not.toContain("<FilterChip");
+    expect(ordersSource).toContain('aria-label="กรองช่องทางออเดอร์"');
+    expect(ordersSource).toContain('aria-label="กรองประเภทออเดอร์"');
+    expect(ordersSource.match(/surface="raised"/g)?.length).toBeGreaterThanOrEqual(3);
+    expect(ordersSource).toContain("const clearToolbarFilters = () =>");
+    expect(ordersSource).toContain("ล้างตัวกรอง");
     expect(productionSource.match(/<FilterPopoverField/g)).toHaveLength(3);
   });
 });

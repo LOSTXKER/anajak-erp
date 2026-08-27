@@ -180,7 +180,7 @@ export function CreateDeliveryDialog({
         <DialogHeader>
           <DialogTitle>สร้างรายการจัดส่ง</DialogTitle>
         </DialogHeader>
-        <div className="max-h-[60vh] space-y-4 overflow-y-auto">
+        <div className="max-h-[60dvh] space-y-4 overflow-y-auto">
           {/* ปุ่มก๊อป — ใบงานมีที่อยู่จัดส่งก็ดึงชุดนั้น (ครบ 7 ช่อง) ไม่มีค่อยถอยไปที่อยู่ผู้ติดต่อ
               (โปรไฟล์เก็บที่อยู่ก้อนเดียว เติมได้แค่ช่อง "ที่อยู่") */}
           {copySource && (
@@ -373,7 +373,7 @@ export function CreateDeliveryDialog({
             <span>
               เติมเป็นที่อยู่ผู้ติดต่อของลูกค้า (เติมเบอร์นี้ให้โปรไฟล์ด้วยถ้ายังว่าง)
               {canSaveAsCustomerAddress ? (
-                <span className="block text-xs text-amber-600 dark:text-amber-400">
+                <span className="block text-xs text-amber-700 dark:text-amber-400">
                   ลูกค้ารายนี้ยังไม่มีที่อยู่ในระบบ — เติมไว้แล้วใช้บนเอกสารได้เลย
                 </span>
               ) : (

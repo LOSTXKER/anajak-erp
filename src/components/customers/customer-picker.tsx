@@ -163,7 +163,7 @@ export function CustomerPicker({
       )}
     >
       <div className="relative">
-        <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+        <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted" />
         <Input
           ref={searchRef}
           aria-label="ค้นหาลูกค้า"
@@ -289,7 +289,7 @@ export function CustomerPicker({
                     <span>
                       {c.name}
                       {c.company && <span className="text-muted group-hover:text-secondary group-active:text-secondary"> ({c.company})</span>}
-                      <span className="ml-1.5 text-xs text-slate-400 group-hover:text-secondary group-active:text-secondary">
+                      <span className="ml-1.5 text-xs text-muted group-hover:text-secondary group-active:text-secondary">
                         {[c.phone, c.lineId].filter(Boolean).join(" · ")}
                       </span>
                     </span>

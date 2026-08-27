@@ -10,7 +10,7 @@
 import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { readFileSync, readdirSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { join, sep } from "node:path";
 import { Factory } from "lucide-react";
 import { Select } from "../src/components/ui/select";
 import { Input } from "../src/components/ui/input";
@@ -32,6 +32,8 @@ import {
   FOCUS_INSET,
   INTERACTIVE_CHROME_HOVER,
   INTERACTIVE_CHROME_PRESSED,
+  INTERACTIVE_PAGE_HOVER,
+  INTERACTIVE_PAGE_PRESSED,
   RAISED_CONTROL_SURFACE,
   SUNK_PANEL,
 } from "../src/components/ui/tokens";
@@ -46,6 +48,75 @@ import { VISUAL_TONE_CLASSES } from "../src/lib/visual-tone";
 
 let failed = 0;
 const globalsSource = readFileSync("src/app/globals.css", "utf8");
+
+function tsxFilesUnder(dir: string): string[] {
+  const files: string[] = [];
+  for (const name of readdirSync(dir)) {
+    const path = join(dir, name);
+    if (statSync(path).isDirectory()) files.push(...tsxFilesUnder(path));
+    else if (name.endsWith(".tsx")) files.push(path);
+  }
+  return files;
+}
+
+/** เว้นจำนวนบรรทัดเดิมไว้เพื่อให้รายงาน file:line ยังชี้ถูก แต่ไม่สแกนข้อความใน comment */
+function withoutSourceComments(source: string): string {
+  return source
+    .replace(/\/\*[\s\S]*?\*\//g, (comment) => comment.replace(/[^\n]/g, " "))
+    .replace(/\/\/[^\n]*/g, "");
+}
+
+/** อ่านเฉพาะ opening tag โดยไม่หยุดผิดที่ลูกศร `=>` ใน JSX expression */
+function jsxOpeningTags(
+  source: string,
+  tag:
+    | "Button"
+    | "Input"
+    | "Select"
+    | "Textarea"
+    | "Link"
+    | "button"
+    | "a"
+    | "Label"
+    | "label",
+) {
+  const tags: Array<{ index: number; text: string }> = [];
+  const needle = `<${tag}`;
+  let cursor = 0;
+  while (cursor < source.length) {
+    const start = source.indexOf(needle, cursor);
+    if (start < 0) break;
+    const boundary = source[start + needle.length];
+    if (boundary && !/[\s/>]/.test(boundary)) {
+      cursor = start + needle.length;
+      continue;
+    }
+
+    let braces = 0;
+    let quote: "\"" | "'" | "`" | null = null;
+    let escaped = false;
+    let end = start + needle.length;
+    for (; end < source.length; end++) {
+      const char = source[end]!;
+      if (quote) {
+        if (escaped) escaped = false;
+        else if (char === "\\") escaped = true;
+        else if (char === quote) quote = null;
+        continue;
+      }
+      if (char === "\"" || char === "'" || char === "`") quote = char;
+      else if (char === "{") braces++;
+      else if (char === "}") braces = Math.max(0, braces - 1);
+      else if (char === ">" && braces === 0) {
+        end++;
+        break;
+      }
+    }
+    tags.push({ index: start, text: source.slice(start, end) });
+    cursor = Math.max(end, start + needle.length);
+  }
+  return tags;
+}
 
 type Rgb = [number, number, number];
 
@@ -128,6 +199,113 @@ const h = CONTROL_H.split(" ");
 const hSm = CONTROL_H_SM.split(" ");
 
 {
+  const layoutSource = readFileSync("src/app/layout.tsx", "utf8");
+  const labelSource = readFileSync("src/components/ui/label.tsx", "utf8");
+  const dialogSource = readFileSync("src/components/ui/dialog.tsx", "utf8");
+  const pageHeaderSource = readFileSync("src/components/page-header.tsx", "utf8");
+  const dataTableSource = readFileSync("src/components/ui/data-table.tsx", "utf8");
+  const buttonSource = readFileSync("src/components/ui/button.tsx", "utf8");
+  const expectedScale = [
+    ["2xs", "11px", "1.125rem"],
+    ["xs", "12px", "1.125rem"],
+    ["sm", "14px", "1.375rem"],
+    ["base", "16px", "1.5rem"],
+    ["lg", "18px", "1.75rem"],
+    ["xl", "20px", "1.875rem"],
+    ["2xl", "24px", "1.3"],
+    ["3xl", "28px", "1.25"],
+  ] as const;
+  const roleContractOk =
+    expectedScale.every(
+      ([role, size, lineHeight]) =>
+        globalsSource.includes(`--text-${role}: ${size};`) &&
+        globalsSource.includes(`--text-${role}--line-height: ${lineHeight};`),
+    ) &&
+    layoutSource.includes('weight: ["400", "500", "600", "700"]') &&
+    !layoutSource.includes('"300"') &&
+    pageHeaderSource.includes("text-2xl font-semibold text-strong") &&
+    dialogSource.includes("text-lg font-semibold text-strong") &&
+    labelSource.includes("text-sm font-medium text-secondary") &&
+    dataTableSource.includes('table className="w-full text-sm"') &&
+    buttonSource.includes("text-sm font-semibold");
+
+  const compressedType: string[] = [];
+  const primitiveOverrides: string[] = [];
+  const invalidMicroType: string[] = [];
+  const printRoots = ["src/app/(print)/", "src/components/print/"];
+  const statusMicroFiles = new Set([
+    "src/components/ui/status-label.tsx",
+    "src/components/orders/detail/order-status-bar.tsx",
+    "src/components/production/production-route-rail.tsx",
+    "src/components/production/production-freshness.tsx",
+  ]);
+  for (const path of tsxFilesUnder("src")) {
+    const source = readFileSync(path, "utf8");
+    const lineOf = (index: number) => source.slice(0, index).split("\n").length;
+
+    for (const tag of ["Button", "Input", "Select", "Textarea"] as const) {
+      for (const opening of jsxOpeningTags(source, tag)) {
+        const codeOnly = opening.text
+          .replace(/\{\/\*[\s\S]*?\*\/\}/g, "")
+          .replace(/\/\/[^\n]*/g, "");
+        const callerShrinksDesktop = /\b(?:[a-z0-9-]+:)*text-(?:2xs|xs)\b/.test(codeOnly);
+        const callerShrinksMobileControl =
+          tag !== "Button" && /(?:["'\s,(])text-sm\b/.test(codeOnly);
+        if (callerShrinksDesktop || callerShrinksMobileControl) {
+          primitiveOverrides.push(`${path}:${lineOf(opening.index)} (${tag})`);
+        }
+      }
+    }
+    for (const tag of ["Link", "button", "a", "Label", "label"] as const) {
+      for (const opening of jsxOpeningTags(source, tag)) {
+        const codeOnly = opening.text
+          .replace(/\{\/\*[\s\S]*?\*\/\}/g, "")
+          .replace(/\/\/[^\n]*/g, "");
+        if (/\btext-2xs\b/.test(codeOnly)) {
+          primitiveOverrides.push(`${path}:${lineOf(opening.index)} (${tag})`);
+        }
+      }
+    }
+
+    if (printRoots.some((root) => path.startsWith(root))) continue;
+    withoutSourceComments(source).split("\n").forEach((line, index) => {
+      const hasTrackingOverride =
+        /\btracking-(?:tighter|tight|wide|wider|widest)\b/.test(line) ||
+        /\btracking-\[[^\]]+\]/.test(line);
+      const hasCompressedLeading = /\bleading-(?:tight|snug)\b/.test(line);
+      const hasNonNumericLeadingNone =
+        /\bleading-none\b/.test(line) && !/\btabular-nums\b/.test(line);
+      if (hasTrackingOverride || hasCompressedLeading || hasNonNumericLeadingNone) {
+        compressedType.push(`${path}:${index + 1}`);
+      }
+      if (
+        /\btext-2xs\b/.test(line) &&
+        !/\btabular-nums\b/.test(line) &&
+        !statusMicroFiles.has(path)
+      ) {
+        invalidMicroType.push(`${path}:${index + 1}`);
+      }
+    });
+  }
+
+  if (
+    !roleContractOk ||
+    compressedType.length ||
+    primitiveOverrides.length ||
+    invalidMicroType.length
+  ) {
+    failed++;
+    console.log("❌ typography ต้องใช้ role กลางของ Prompt และ caller ห้ามบีบข้อความ/primitive ลงเอง");
+    if (!roleContractOk) console.log("   role scale/font weights/primitive contract ไม่ตรงค่าที่เคาะ");
+    compressedType.slice(0, 20).forEach((offender) => console.log(`   ${offender} (tracking/leading)`));
+    primitiveOverrides.slice(0, 20).forEach((offender) => console.log(`   ${offender} (font-size override)`));
+    invalidMicroType.slice(0, 20).forEach((offender) => console.log(`   ${offender} (11px outside status/counter)`));
+  } else {
+    console.log("✅ typography ใช้ Prompt role กลาง · 11px เฉพาะ status/counter · control primitive ไม่ถูก caller ลดขนาด");
+  }
+}
+
+{
   const headerHtml = renderToStaticMarkup(<PageHeader title="ควบคุมการผลิต" />);
   const contextHtml = renderToStaticMarkup(
     <ContextPanel title="ข้อมูลประกอบ">ข้อความคงที่</ContextPanel>,
@@ -181,8 +359,68 @@ const hSm = CONTROL_H_SM.split(" ");
 
 {
   const appShellSource = readFileSync("src/components/layout/app-shell.tsx", "utf8");
+  const sidebarBrandHeaderSource =
+    appShellSource.match(
+      /<div\s+data-sidebar-brand-header[\s\S]*?<\/div>/,
+    )?.[0] ?? "";
+  const sidebarNavigationSource =
+    appShellSource.match(
+      /<nav\s+id="app-sidebar-navigation"[\s\S]*?<\/nav>/,
+    )?.[0] ?? "";
+  const sidebarCollapseButtonSource =
+    appShellSource.match(
+      /function SidebarCollapseButton[\s\S]*?\n}\n\nfunction sidebarNavIconClass/,
+    )?.[0] ?? "";
   if (
-    !appShellSource.includes('lg:grid-cols-[15rem_minmax(0,1fr)]') ||
+    // ความกว้างเมนูซ้ายมาจากตัวแปร ไม่ใช่ค่าคงที่ ตั้งแต่มีโหมดหุบ/กาง (2026-08-26)
+    // ยังล็อกไว้ว่าคอลัมน์ขวาต้อง minmax(0,1fr) และค่าทั้งสองสถานะต้องประกาศจริง
+    !appShellSource.includes('lg:grid-cols-[var(--app-sidebar-w)_minmax(0,1fr)]') ||
+    !appShellSource.includes('"--app-sidebar-w": sidebarCollapsed ? "4rem" : "15rem"') ||
+    // สถานะหุบต้องมาจาก store ภายนอก ไม่ใช่ useState+useEffect (กัน SSR/client ต่างกัน)
+    !appShellSource.includes("useSyncExternalStore") ||
+    // หุบแล้วชื่อเมนูหายจากจอ ต้องเหลือชื่อไว้ให้เมาส์และเครื่องอ่านหน้าจอ
+    !appShellSource.includes("title={sidebarCollapsed ? item.label : undefined}") ||
+    // แถบบน หัวเมนูซ้าย และแถวแรกของกริด ต้องสูงเท่ากันทั้งสามที่เสมอ
+    // ไม่งั้นเส้นล่างของตรากับของแถบบนจะไม่ต่อกันเป็นเส้นเดียวข้ามจอ (เคยพลาดมาแล้ว)
+    !appShellSource.includes("grid-rows-[3.5rem_minmax(0,1fr)]") ||
+    (appShellSource.match(/flex h-14 /g)?.length ?? 0) !== 2 ||
+    // ตอนหุบต้องจองรางแถบเลื่อนสองข้าง ไม่งั้นแถบเลื่อน 10px ดันไอคอนไปทางซ้าย 5px
+    // และต้องถอดระยะขอบข้างของ nav ออกด้วย ไม่งั้นเนื้อที่จริงเหลือ 19px
+    // จนปุ่มเมนูถูกบีบเหลือกว้าง 24px สูง 36px = อ่านเป็นเม็ดยา (วัดจริง 2026-08-26)
+    !appShellSource.includes('sidebarCollapsed && "px-0 [scrollbar-gutter:stable_both-edges]"') ||
+    // ปุ่มเมนูตอนหุบต้องเป็นสี่เหลี่ยมจัตุรัส 40px วางกลางราง
+    !appShellSource.includes('collapsed && "mx-auto h-10 w-10 justify-center gap-0 px-0 py-0"') ||
+    // ตราเป็นลิงก์หน้าหลักทั้งสองสถานะ: ตอนหุบยังเห็นตรา 40px แต่ซ่อนเฉพาะชื่อด้วย sr-only
+    !sidebarBrandHeaderSource.includes('sidebarCollapsed && "h-10 w-10 min-w-10 justify-center gap-0"') ||
+    !sidebarBrandHeaderSource.includes('sidebarCollapsed && "sr-only"') ||
+    sidebarBrandHeaderSource.includes('sidebarCollapsed && "hidden"') ||
+    // ลูกศรแยกจากตราและคาบขอบ sidebar โดยไม่ลงไปปนกับ nav
+    !sidebarBrandHeaderSource.includes("relative flex h-14") ||
+    !sidebarCollapseButtonSource.includes("data-sidebar-collapse-toggle") ||
+    !sidebarCollapseButtonSource.includes("absolute right-0 top-1/2") ||
+    !sidebarCollapseButtonSource.includes("translate-x-full") ||
+    !sidebarCollapseButtonSource.includes("z-40") ||
+    !/collapsed \? \([\s\S]*?<ChevronRight[\s\S]*?\) : \([\s\S]*?<ChevronLeft/.test(
+      sidebarCollapseButtonSource,
+    ) ||
+    sidebarCollapseButtonSource.includes("<SidebarBrandMark") ||
+    appShellSource.includes("PanelLeftOpen") ||
+    appShellSource.includes("PanelLeftClose") ||
+    // ปุ่มตัวเดิมต้องอยู่ในหัว sidebar ตลอดเพื่อรักษา focus ตอนกาง/หุบ
+    // และห้ามมี SidebarCollapseButton แทรกอยู่ใน nav ไม่ว่าจะใช้ class อะไร
+    !sidebarBrandHeaderSource.includes("<SidebarCollapseButton") ||
+    !sidebarBrandHeaderSource.includes("collapsed={sidebarCollapsed}") ||
+    !/<\/Link>\s*<SidebarCollapseButton/.test(sidebarBrandHeaderSource) ||
+    !appShellSource.includes("aria-expanded={!collapsed}") ||
+    !appShellSource.includes('aria-controls="app-sidebar-navigation"') ||
+    appShellSource.includes("aria-pressed={collapsed}") ||
+    !sidebarNavigationSource ||
+    sidebarNavigationSource.includes("<SidebarCollapseButton") ||
+    !appShellSource.includes("aria-label={sidebarCollapsed ? item.label : undefined}") ||
+    // จุดกะพริบตอนกดเมนูถูกถอดออกถาวร (เบสสั่ง 2026-08-26 "ไม่ชอบเวลากดเลือกหัวข้อแล้วมีจุด")
+    // loading.tsx เป็นสัญญาณ "ระบบรับรู้แล้ว" หลักอยู่แล้ว · เช็คการใช้งานจริง ไม่ใช่คำในคอมเมนต์
+    appShellSource.includes("<NavPendingMark") ||
+    appShellSource.includes("useLinkStatus") ||
     !appShellSource.includes("SidebarGroupLabel") ||
     appShellSource.includes("data-active-group") ||
     appShellSource.includes('groupActive && "bg-surface-muted"') ||
@@ -198,22 +436,37 @@ const hSm = CONTROL_H_SM.split(" ");
 }
 
 {
-  const customHeaderSources = [
-    readFileSync("src/components/factory/station-mode-shell.tsx", "utf8"),
+  /* หัวจอสองตัวนี้เคยถูกล็อกด้วยกฎเดียวกัน ("ไอคอนเส้นล้วน ไม่มีพื้น") แต่บทบาทของมันคนละอย่าง
+     - จอสถานี: ไอคอนคือ "สถานีไหน" — เปลี่ยนตามสถานีจริง จึงเป็นไอคอนโมดูลและต้องเป็นเส้นล้วนต่อไป
+     - Factory TV: ไอคอนเดิมเป็นรูปโรงงานประดับเฉย ๆ ไม่ได้บอกอะไร · ตั้งแต่ 2026-08-26 ที่ตรงนั้น
+       คือ "ตราสัญลักษณ์" เพราะจอนี้ไม่มี sidebar/topbar ทั้งจอจึงไม่เคยมีคำว่า Anajak อยู่เลย
+       ตราไม่อยู่ใต้กติกาสงวนสี (เหตุผลเดียวกับที่โลโก้บนแถบบนหลุดไปเป็นเทาแล้วต้องคืน)
+     ข้อห้ามพื้นโมดูลทึบกับเงายังใช้กับทั้งคู่เหมือนเดิม */
+  const stationShellSource = readFileSync(
+    "src/components/factory/station-mode-shell.tsx",
+    "utf8",
+  );
+  const factoryBoardSources = [
     readFileSync("src/app/factory/page.tsx", "utf8"),
+    readFileSync("src/components/factory/manufacturing-factory-board.tsx", "utf8"),
   ];
+  const noSolidModuleFill = [stationShellSource, ...factoryBoardSources].every(
+    (source) =>
+      !source.includes("bg-module-production-solid") && !source.includes("shadow-sm"),
+  );
   if (
-    customHeaderSources.some(
-      (source) =>
-        !source.includes("text-module-production-text") ||
-        source.includes("bg-module-production-solid") ||
-        source.includes("shadow-sm"),
+    !noSolidModuleFill ||
+    !stationShellSource.includes("text-module-production-text") ||
+    !factoryBoardSources.every(
+      (source) => source.includes("bg-blue-600 text-white") && source.includes("Anajak Print"),
     )
   ) {
     failed++;
-    console.log("❌ หัว Station/Factory TV ต้องเป็นไอคอนเส้นล้วน ไม่มีพื้นหรือเงา");
+    console.log(
+      "❌ หัวจอสถานีต้องเป็นไอคอนเส้นล้วน · หัว Factory TV ต้องมีตรา Anajak · ห้ามพื้นโมดูลทึบหรือเงา",
+    );
   } else {
-    console.log("✅ หัว Station/Factory TV เป็นไอคอนเส้นล้วน ไม่มีพื้นหรือเงา");
+    console.log("✅ หัวจอสถานีเป็นไอคอนเส้นล้วน · หัว Factory TV มีตรา Anajak");
   }
 }
 
@@ -325,14 +578,14 @@ const FIELD = [
 ];
 // ห้าม field กลับไปยืมพื้น structural หรือปล่อย boundary โปร่งใส
 const FIELD_NO = ["border-transparent", "border-border", "bg-surface-muted", "bg-[var(--field-bg)]"];
-check("ช่องกรอก (Input)", renderToStaticMarkup(<Input />), [...h, ...FIELD, "rounded-lg"], [...FIELD_NO, "rounded-2xl"]);
+check("ช่องกรอก (Input)", renderToStaticMarkup(<Input />), [...h, ...FIELD, "rounded-md"], [...FIELD_NO, "rounded-2xl", "rounded-lg"]);
 check(
   "ช่องเลือก (Select)",
   renderToStaticMarkup(<Select value="" onChange={() => {}}><option value="">ก</option></Select>),
-  [...h, ...FIELD, "rounded-lg"],
+  [...h, ...FIELD, "rounded-md"],
   [...FIELD_NO, "rounded-2xl"],
 );
-check("กล่องข้อความ (Textarea)", renderToStaticMarkup(<Textarea />), [...FIELD, "rounded-lg", "min-h-24"], [...FIELD_NO, "rounded-2xl"]);
+check("กล่องข้อความ (Textarea)", renderToStaticMarkup(<Textarea />), [...FIELD, "rounded-md", "min-h-24"], [...FIELD_NO, "rounded-2xl", "rounded-lg"]);
 {
   const dateHtml = renderToStaticMarkup(
     <DatePicker
@@ -370,11 +623,11 @@ check(
 );
 
 // ② compatibility shape เดิมต้องถูกยุบเป็น control ทรงธรรมดา
-check("ช่องกรอก compatibility pill ใช้ทรงธรรมดา", renderToStaticMarkup(<Input shape="pill" />), ["rounded-lg"], ["rounded-full"]);
+check("ช่องกรอก compatibility pill ใช้ทรงธรรมดา", renderToStaticMarkup(<Input shape="pill" />), ["rounded-md"], ["rounded-full"]);
 check(
   "ช่องเลือก compatibility pill ใช้ทรงธรรมดา",
   renderToStaticMarkup(<Select shape="pill" value="" onChange={() => {}}><option value="">ก</option></Select>),
-  ["rounded-lg"],
+  ["rounded-md"],
   ["rounded-full"],
 );
 check(
@@ -463,14 +716,17 @@ check("สั่งความสูงทับเองได้", renderToSt
 // ⑤ ปุ่ม = วงแหวนโฟกัสคนละสูตรกับช่องกรอก (ชัดกว่า + เว้นขอบ)
 check("ปุ่ม", renderToStaticMarkup(<Button>ก</Button>), [
   ...h,
-  "rounded-lg",
+  "rounded-md",
   "focus-visible:ring-2",
   "focus-visible:ring-blue-500",
   "focus-visible:ring-offset-2",
-  "focus-visible:ring-offset-", // ผูกช่องว่างรอบวงแหวนกับสีพื้น ไม่ล็อกเป็นขาวตายตัว
+  // ช่องว่างรอบวงแหวนต้องโปร่ง ให้โชว์พื้นที่อยู่ข้างหลังจริง ไม่ว่าปุ่มจะไปยืนบนพื้นอะไร
+  // (เคยผูกกับ ring-offset-bg แล้วปุ่มในการ์ดขาวได้แถบเทาคาด หลังผืนงานเปลี่ยนเป็นเทา)
+  "focus-visible:ring-offset-transparent",
 ], [
   "focus-visible:ring-blue-500/15",
   "focus-visible:ring-offset-white",
+  "focus-visible:ring-offset-bg",
 ]);
 check("ปุ่มขนาดเล็ก", renderToStaticMarkup(<Button size="sm">ก</Button>), hSm, ["sm:h-8", "sm:min-h-8"]);
 check(
@@ -665,9 +921,9 @@ check(
   }
 }
 
-// ⑥ หัวตารางอ่าน semantic surface/divider ชุดเดียวทั้งสองธีม
+// ⑥ ตารางอ่านสี/ขนาดจาก contract กลาง: หัวโปร่งตาม surface แม่ และข้อมูลทุกระดับ 14px
 check(
-  "หัวตารางเป็นแถบ neutral ต่อเนื่อง",
+  "หัวตารางโปร่งตามพื้นแม่และใช้ divider กลาง",
   renderToStaticMarkup(
     <table>
       <DataTable.Head>
@@ -675,9 +931,95 @@ check(
       </DataTable.Head>
     </table>,
   ),
-  ["border-divider", "bg-surface-muted", "text-secondary"],
-  ["bg-slate-50", "bg-slate-100"],
+  ["border-divider", "bg-transparent", "text-secondary"],
+  ["bg-surface", "bg-surface-muted", "bg-slate-50", "bg-slate-100"],
 );
+
+check(
+  "ข้อมูลทุกระดับในเซลล์ตารางเป็น 14px",
+  renderToStaticMarkup(
+    <table>
+      <DataTable.Body>
+        <tr><DataTable.Td><span>ข้อมูลรอง</span></DataTable.Td></tr>
+      </DataTable.Body>
+    </table>,
+  ),
+  [
+    "divide-y",
+    "divide-divider",
+    "[&amp;_td]:text-sm",
+    "[&amp;_td_:not(:is(button,button_*,input,input_*,select,select_*,textarea,textarea_*,[role=combobox],[role=combobox]_*))]:text-sm",
+  ],
+);
+
+{
+  const offenders: string[] = [];
+  const rawTableOffenders: string[] = [];
+  const semanticOffenders: string[] = [];
+  for (const path of tsxFilesUnder("src")) {
+    const source = withoutSourceComments(readFileSync(path, "utf8"));
+    for (const match of source.matchAll(/<DataTable\.Head\b([^>]*)>/g)) {
+      if (/\bbg-[\w[\]/.-]+/.test(match[1] ?? "")) {
+        const line = source.slice(0, match.index).split("\n").length;
+        offenders.push(`${path}:${line} (caller ทับสีหัวตาราง)`);
+      }
+    }
+    for (const match of source.matchAll(/<DataTable\.Body\b([^>]*)>/g)) {
+      if (/\[&_td(?:_\*)?\]:text-/.test(match[1] ?? "")) {
+        const line = source.slice(0, match.index).split("\n").length;
+        offenders.push(`${path}:${line} (caller ทับขนาดข้อมูลตาราง)`);
+      }
+    }
+    for (const match of source.matchAll(/<DataTable\.Head\b[^>]*>([\s\S]*?)<\/DataTable\.Head>/g)) {
+      if ((match[1] ?? "").includes("<DataTable.Row")) {
+        const line = source.slice(0, match.index).split("\n").length;
+        offenders.push(`${path}:${line} (หัวตารางใช้ Row ที่มี hover)`);
+      }
+    }
+    for (const match of source.matchAll(/<Link\b[^>]*\brole=["']listitem["'][^>]*>/g)) {
+      const line = source.slice(0, match.index).split("\n").length;
+      semanticOffenders.push(`${path}:${line}`);
+    }
+
+    const isDashboardRawTable =
+      !path.includes(`${sep}components${sep}print${sep}`) &&
+      !path.includes(`${sep}app${sep}(print)${sep}`) &&
+      !path.includes(`${sep}app${sep}(public)${sep}`) &&
+      !path.endsWith(`${sep}components${sep}ui${sep}data-table.tsx`);
+    if (isDashboardRawTable) {
+      for (const match of source.matchAll(/<thead\b([^>]*)>/g)) {
+        if (!(match[1] ?? "").includes("TABLE_HEAD_SURFACE")) {
+          const line = source.slice(0, match.index).split("\n").length;
+          rawTableOffenders.push(`${path}:${line}`);
+        }
+      }
+    }
+  }
+
+  if (offenders.length > 0) {
+    failed++;
+    console.log("❌ DataTable caller ยังทับ contract สีหัว/ขนาดข้อมูลกลาง");
+    offenders.forEach((offender) => console.log(`   ${offender}`));
+  } else {
+    console.log("✅ DataTable caller ไม่ทับ contract สีหัว/ขนาดข้อมูลกลาง");
+  }
+
+  if (rawTableOffenders.length > 0) {
+    failed++;
+    console.log("❌ compact table หลังบ้านยังไม่ใช้ TABLE_HEAD_SURFACE กลาง");
+    rawTableOffenders.forEach((offender) => console.log(`   ${offender}`));
+  } else {
+    console.log("✅ compact table หลังบ้านใช้ TABLE_HEAD_SURFACE กลางครบ");
+  }
+
+  if (semanticOffenders.length > 0) {
+    failed++;
+    console.log("❌ mobile list ห้ามใช้ role=listitem ทับบทบาท Link");
+    semanticOffenders.forEach((offender) => console.log(`   ${offender}`));
+  } else {
+    console.log("✅ mobile list แยก listitem container โดยคงบทบาท Link");
+  }
+}
 
 // ⑦ ด่านธีมมืด: ในโซนที่สลับธีมได้ ห้ามมีตัวหนังสือ slate เข้มระดับหลัก (900/700/500)
 // ที่ไม่มีคู่ dark: บนบรรทัดเดียวกัน — ใช้ semantic token แทน (text-strong /
@@ -835,17 +1177,76 @@ check(
     return Math.max(...channels) - Math.min(...channels) <= 6;
   });
   const surface = colorValues("surface");
-  const stateContrastIsBalanced = tokenCountsValid && surface.length === 2 && hover.every((value, index) => {
-    const hoverFromSurface = contrast(hexRgb(value), hexRgb(surface[index]!));
-    const pressedFromHover = contrast(hexRgb(pressed[index]!), hexRgb(value));
-    const hoverCeiling = index === 0 ? 1.13 : 1.25;
-    return hoverFromSurface >= 1.1 && hoverFromSurface <= hoverCeiling && pressedFromHover >= 1.05;
-  });
+  const page = colorValues("bg");
+  // hover วัดเทียบ --color-surface = พื้นที่แถวจริงไปยืน (UI-2026 เฟส 6 · 2026-08-26)
+  //
+  // เฟส 1 เคยบังคับให้ผ่านบน --color-bg ด้วย เพราะตอนนั้นทะเบียนออเดอร์ถอดกล่องครอบ
+  // แถวจึงนั่งบนผืนหน้าตรง ๆ · เบสกลับคำตัดสินใจนั้นแล้ว ("การ์ดครอบ") แถวกลับไปอยู่
+  // บนการ์ดขาวหมด และผืนหน้ากลายเป็นเทาจริง (#f1f2f4) — เงื่อนไขเดิมจึงบังคับให้
+  // hover ต้องเข้มพอสำหรับพื้นเทา และอ่อนพอสำหรับพื้นขาวพร้อมกัน ซึ่งเป็นไปไม่ได้
+  //
+  // ⚠️ ของที่กดได้และ "ไม่ได้อยู่ในการ์ด" ต้องไม่ใช้คู่นี้ — ถ้ายืนบน chrome ใช้ชุด
+  // chrome-* ถ้ายืนบนผืนหน้าเปล่า ๆ ให้ห่อการ์ดก่อน อย่าปรับ token ให้ผ่านทั้งสองพื้น
+  //
+  // เพดาน 1.16 ในธีมสว่าง: hover ที่หนักกว่านั้นจะอ่านเป็น "ถูกเลือกอยู่"
+  // ไปแข่งกับ interactive-selected
+  const stateContrastIsBalanced =
+    tokenCountsValid && surface.length === 2 && page.length >= 2 &&
+    hover.every((value, index) => {
+      const hoverFromSurface = contrast(hexRgb(value), hexRgb(surface[index]!));
+      const pressedFromHover = contrast(hexRgb(pressed[index]!), hexRgb(value));
+      const hoverCeiling = index === 0 ? 1.16 : 1.25;
+      return (
+        hoverFromSurface >= 1.1 &&
+        hoverFromSurface <= hoverCeiling &&
+        pressedFromHover >= 1.05
+      );
+    });
   const chromeStateContrastIsBalanced = chromeTokenCountsValid && chromeHover.every((value, index) => {
     const hoverFromChrome = contrast(hexRgb(value), hexRgb(chrome[index]!));
     const pressedFromHover = contrast(hexRgb(chromePressed[index]!), hexRgb(value));
     return hoverFromChrome >= 1.1 && hoverFromChrome <= 1.25 && pressedFromHover >= 1.05;
   });
+  /* พื้นที่สาม: ของที่กดได้แล้วยืนบน "ผืนงาน" ตรง ๆ (ปุ่มแบ่งหน้า · ปุ่มย้อนกลับบนหัวหน้า)
+     เพิ่มด่านนี้ 2026-08-26 หลังพบว่าตอนผืนงานเปลี่ยนเป็นเทาจริง คู่ที่ใช้บนการ์ดขาว
+     เหลือแค่ 1.03 เท่าบนผืนงาน = ชี้แล้วจอไม่ขยับ และตอนนั้นไม่มีด่านไหนจับได้เลย */
+  const pageHover = colorValues("interactive-page-hover");
+  const pagePressed = colorValues("interactive-page-pressed");
+  const pageStateContrastIsBalanced =
+    pageHover.length === 2 &&
+    pagePressed.length === 2 &&
+    page.length >= 2 &&
+    pageHover.every((value, index) => {
+      const hoverFromPage = contrast(hexRgb(value), hexRgb(page[index]!));
+      const pressedFromHover = contrast(hexRgb(pagePressed[index]!), hexRgb(value));
+      return hoverFromPage >= 1.1 && hoverFromPage <= 1.3 && pressedFromHover >= 1.05;
+    });
+  /* โครงร่างตอนโหลดต้องสูงเท่าแถวจริง ไม่งั้นพอข้อมูลมาถึงจอกระโดดทุกหน้ารายการ
+     ตัวเลขนี้เคยเป็น 69px แล้วขยับเป็น 75px ตอนแถวหายใจขึ้นในเฟส 10
+     ด่านนี้จับแค่ว่า "ทั้งสองที่พูดตรงกัน" — ถ้าเปลี่ยนความหนาแน่นอีกต้องวัดใหม่ */
+  const skeletonSource = readFileSync("src/components/ui/page-skeleton.tsx", "utf8");
+  const cellPaddingMatchesSkeleton =
+    skeletonSource.includes("h-[75px]") &&
+    readFileSync("src/components/ui/data-table.tsx", "utf8").includes('"px-6 py-4 text-sm text-secondary"');
+
+  const pageTokensAreWired =
+    INTERACTIVE_PAGE_HOVER.includes("bg-interactive-page-hover") &&
+    INTERACTIVE_PAGE_PRESSED.includes("bg-interactive-page-pressed") &&
+    // คู่ของผืนงานต้องไม่ใช่ค่าเดียวกับอีกสองคู่ ไม่งั้นการแยกคู่ก็ไม่มีความหมาย
+    // (ส่วน chrome กับ surface "เท่ากันได้" ในธีมสว่าง เพราะทั้งคู่เป็นพื้นขาวจริง ๆ
+    //  ตั้งแต่เบสสั่งให้กรอบเว็บเป็นขาว 2026-08-26 — ไม่ใช่ของหลุด)
+    pageHover[0] !== hover[0] &&
+    pageHover[0] !== chromeHover[0] &&
+    pageHover[1] !== hover[1] &&
+    // ของที่ยืนบนผืนงานจริง ๆ ต้องประกาศตัวว่าใช้คู่นี้ (กันคนลบทิ้งแล้วลืม)
+    // เช็คการ "ใช้งานจริง" ไม่ใช่แค่บรรทัด import — ไม่งั้นลบออกจาก className แล้วด่านยังเขียว
+    // ปุ่มก่อนหน้า/ถัดไป ต้องได้ครบทั้งสองปุ่ม — นับจำนวน ไม่ใช่แค่ includes
+    // (includes เฉย ๆ ปล่อยให้ลบออกจากปุ่มเดียวแล้วด่านยังเขียว ทดสอบแล้วเป็นอย่างนั้นจริง)
+    (readFileSync("src/components/ui/table-pagination.tsx", "utf8").match(
+      /cn\(INTERACTIVE_PAGE_HOVER, INTERACTIVE_PAGE_PRESSED\)/g,
+    )?.length ?? 0) === 2 &&
+    readFileSync("src/components/page-header.tsx", "utf8")
+      .includes("cn(INTERACTIVE_PAGE_HOVER, INTERACTIVE_PAGE_PRESSED,");
   const chromeTokensAreWired =
     INTERACTIVE_CHROME_HOVER.includes("bg-interactive-chrome-hover") &&
     INTERACTIVE_CHROME_PRESSED.includes("bg-interactive-chrome-pressed");
@@ -856,10 +1257,17 @@ check(
     navigationHelperSource.includes("INTERACTIVE_CHROME_HOVER") &&
     navigationHelperSource.includes("INTERACTIVE_HOVER") &&
     navigationHelperSource.includes("INTERACTIVE_CHROME_PRESSED") &&
-    navigationHelperSource.includes("bg-interactive-selected") &&
-    navigationHelperSource.includes("font-medium text-interactive-selected-text") &&
-    navigationHelperSource.includes('active\n    ? "text-interactive-selected-text"') &&
-    !navigationHelperSource.includes("before:bg-blue-600") &&
+    // แบบ ก (เบสเคาะ 2026-08-26) — เมนูที่กำลังเปิดอยู่ต้องเป็น "เทากลาง + ขีดแบรนด์"
+    // ไม่ใช่พิลฟ้าแบบเดิม · สัญญานี้กลับด้านจากของเดิมทั้งสองฝั่ง จงใจ ไม่ใช่ของหลุด
+    navigationHelperSource.includes(
+      'onChrome ? "bg-interactive-chrome-pressed" : "bg-interactive-pressed"',
+    ) &&
+    !navigationHelperSource.includes("bg-interactive-selected") &&
+    navigationHelperSource.includes("font-medium text-strong") &&
+    navigationHelperSource.includes('active\n    ? "text-strong"') &&
+    // เทาล้วนอย่างเดียวไม่พอ — ถ้าขีดแบรนด์หาย แถบเมนูจะไม่เหลือ Anajak เลย
+    navigationHelperSource.includes("before:bg-blue-600") &&
+    navigationHelperSource.includes("dark:before:bg-blue-400") &&
     navigationHelperSource.includes("FOCUS_INSET") &&
     navigationHelperSource.includes("group-hover/sidebar-item:text-secondary") &&
     !navigationHelperSource.includes("hover:bg-");
@@ -922,6 +1330,9 @@ check(
     !chromeTokenCountsValid ||
     !tokenLayersValid ||
     !chromeTokenLayersValid ||
+    !pageStateContrastIsBalanced ||
+    !pageTokensAreWired ||
+    !cellPaddingMatchesSkeleton ||
     !interactionIsNeutral ||
     !stateContrastIsBalanced ||
     !chromeStateContrastIsBalanced ||
@@ -1008,7 +1419,11 @@ check(
 // ⑨ ด่านสีจริง — class ถูกไม่ได้แปลว่าสีอ่านออก จึงคำนวณ WCAG จาก token กลาง
 {
   const themes = [0, 1] as const;
-  const surfaces = ["bg", "surface", "surface-muted", "interactive-hover", "interactive-pressed", "interactive-selected"] as const;
+  // chrome + chrome-hover เข้ามาในลิสต์ตั้งแต่ chrome เป็นเทา (UI-2026 เฟส 1) —
+  // ก่อนหน้านี้ chrome เป็นขาว/ดำสนิทจึงไม่มีใครคิดว่าต้องเช็ก
+  // chrome-pressed จงใจไม่อยู่ในลิสต์: ทุกจุดที่ใช้ต้องมากับ INTERACTIVE_CHROME_PRESSED
+  // ซึ่งพ่วง active:text-strong มาแล้ว (มีด่านแยกด้านล่างห้ามเขียน active:bg-... เอง)
+  const surfaces = ["bg", "surface", "surface-muted", "interactive-hover", "interactive-pressed", "interactive-selected", "chrome", "interactive-chrome-hover"] as const;
   const texts = ["strong", "secondary", "muted"] as const;
   const fields = colorValues("field");
   const fieldBorders = colorValues("field-border");
@@ -1110,7 +1525,11 @@ check(
       4.5,
     );
   }
-  for (const shade of ["blue-500", "red-500", "amber-500", "green-500"]) {
+  // amber-500 ถูกถอดออกจากชุดนี้ตั้งใจ (UI-2026 เฟส 1 · เบสเคาะ 2026-08-25):
+  // บทบาทใหม่คือ "สัญญาณล้วน" (จุดสถานะ/แท่ง/วงแหวน) ที่มีข้อความกำกับเสมอ
+  // เหลืองอำพันจริงบนขาวได้แค่ ~2.1:1 จะบังคับ 4.5:1 ไม่ได้โดยไม่ทุบให้เป็นน้ำตาล
+  // (ซึ่งคือปัญหาเดิม) · แทนที่ด้วยด่านห้ามใช้เป็นตัวหนังสือด้านล่าง + amber-600 ที่ 3:1
+  for (const shade of ["blue-500", "red-500", "green-500"]) {
     checkContrast(
       `${shade} legacy text บน light surface`,
       hexRgb(colorValues(shade)[0]!),
@@ -1129,8 +1548,37 @@ check(
   }
 
   const lightSurface = hexRgb(colorValues("surface")[0]!);
-  for (const shade of ["blue-600", "red-600", "amber-600", "green-600"]) {
+  for (const shade of ["blue-600", "red-600", "green-600"]) {
     checkContrast(`${shade} บน surface`, hexRgb(colorValues(shade)[0]!), lightSurface, 4.5);
+  }
+  // amber-600 = ไอคอน/สัญญาณ non-text (WCAG 1.4.11 = 3:1) ไม่ใช่ตัวหนังสือ
+  // ตัวหนังสือเหลืองใช้ amber-700 ซึ่งถูกเช็กที่ 4.5:1 ผ่าน lightTints ด้านล่าง
+  checkContrast("amber-600 ไอคอน บน surface", hexRgb(colorValues("amber-600")[0]!), lightSurface, 3);
+  checkContrast("amber-700 ตัวหนังสือ บน surface", hexRgb(colorValues("amber-700")[0]!), lightSurface, 4.5);
+  checkContrast("amber-700 ตัวหนังสือ บน bg", hexRgb(colorValues("amber-700")[0]!), hexRgb(colorValues("bg")[0]!), 4.5);
+
+  // ด่านแทนการเช็ก contrast ของ amber-500: ห้ามเอา "สัญญาณ" ไปใช้เป็นตัวหนังสือ/ไอคอนเดี่ยว
+  {
+    const offenders: string[] = [];
+    const walkSource = (dir: string) => {
+      for (const entry of readdirSync(dir)) {
+        const full = join(dir, entry);
+        if (statSync(full).isDirectory()) { walkSource(full); continue; }
+        if (!/\.tsx?$/.test(entry)) continue;
+        readFileSync(full, "utf8").split("\n").forEach((line, index) => {
+          if (/(?:^|[\s"'`:])(?:dark:)?text-(?:amber|yellow)-500\b/.test(line)) {
+            offenders.push(`${full}:${index + 1}`);
+          }
+        });
+      }
+    };
+    walkSource("src");
+    if (offenders.length) {
+      failed++;
+      console.log(`❌ amber/yellow-500 เป็นสีสัญญาณ ห้ามใช้เป็นตัวหนังสือ (ใช้ 700 คู่ dark:400) — ${offenders.slice(0, 8).join(", ")}`);
+    } else {
+      console.log("✅ สีเตือน: 500 เป็นสัญญาณ · 600 ไอคอน · 700 ตัวหนังสือ");
+    }
   }
 
   const lightTints = [
@@ -1177,20 +1625,33 @@ check(
   if (failed === 0) console.log("✅ contrast ของ text/control/focus/status ผ่านทั้ง light และ dark");
 }
 
-// ⑩ Vercel-like panel ใช้ border กลาง 1px และไม่มี decorative shadow
+// ⑩ การ์ดแยกตัวด้วยเงา ไม่ใช่เส้น (เฟส 10 · เบสเคาะ "นุ่มเต็มที่" 2026-08-26)
+//
+// กติกาเดิมคือ "panel ห้ามมีเงาตกแต่ง" ซึ่งตั้งไว้ตอนที่เงาถูกใช้เป็นของประดับ
+// ให้ทุกอย่างลอยพร่ำเพรื่อ · ที่นี่เงาทำหน้าที่ต่างออกไป: มันคือ **วิธีแยกกล่อง**
+// แทนเส้น ด่านจึงเปลี่ยนจาก "ห้ามมีเงา" เป็น "ต้องมีเงาชุดกลางชุดเดียว และห้ามแรง"
+// — เพดานคือ blur ไม่เกิน 20px และ alpha ไม่เกิน 0.2 ในธีมสว่าง
+// ถ้าไม่คุมเพดาน มันจะไหลกลับไปเป็นเงาประดับแบบที่เคยรื้อทิ้งไปแล้ว
 {
   const cardBlock =
     globalsSource.match(/\.card-surface\s*\{([^}]*)\}/)?.[1] ?? "";
   const darkCardBlock =
     globalsSource.match(/\.dark\s+\.card-surface\s*\{([^}]*)\}/)?.[1] ?? "";
+  const lightShadow = globalsSource.match(/--shadow-card:\s*([^;]+);/)?.[1] ?? "";
+  const shadowAlphas = [...lightShadow.matchAll(/\/\s*([0-9.]+)\)/g)].map((m) => Number(m[1]));
+  const shadowBlurs = [...lightShadow.matchAll(/(\d+)px\s+-?\d*px?\s*rgb/g)].map((m) => Number(m[1]));
   if (
-    !cardBlock.includes("border: 1px solid var(--color-border)") ||
-    !darkCardBlock.includes("border-color: var(--color-border)") ||
-    !cardBlock.includes("box-shadow: none") ||
-    !darkCardBlock.includes("box-shadow: none")
+    // การ์ดต้องผูกกับตัวแปรกลาง ไม่ใช่เขียนเงา/เส้นเองรายที่
+    !cardBlock.includes("border: 1px solid var(--color-card-edge)") ||
+    !darkCardBlock.includes("border-color: var(--color-card-edge)") ||
+    !cardBlock.includes("box-shadow: var(--shadow-card)") ||
+    !darkCardBlock.includes("box-shadow: var(--shadow-card)") ||
+    // เพดานกันเงาไหลกลับไปเป็นของประดับ
+    shadowAlphas.some((alpha) => alpha > 0.2) ||
+    shadowBlurs.some((blur) => blur > 20)
   ) {
     failed++;
-    console.log("❌ card-surface ต้องมี border 1px และไม่มีเงาทั้ง Light/Dark");
+    console.log("❌ card-surface ต้องแยกตัวด้วยเงาชุดกลาง (--shadow-card) ที่ไม่แรงเกินเพดาน และผูกขอบกับ --color-card-edge");
   } else {
     console.log("✅ card-surface เป็น bordered panel ไม่มี decorative shadow");
   }
@@ -1259,8 +1720,12 @@ check(
     "src/components/ui/context-panel.tsx",
     "src/components/ui/add-card.tsx",
   ].map((path) => [path, readFileSync(path, "utf8")] as const);
+  /* มุมการ์ดขยับเป็น 16px (rounded-2xl) แล้ว 2026-08-26 — เฟส 10 "นุ่มเต็มที่"
+     ที่ยังห้ามเหมือนเดิมคือ **utility เงา** (shadow-sm ฯลฯ) เพราะเงาของการ์ด
+     ต้องมาจาก .card-surface ชุดเดียว ไม่ใช่ใครนึกจะใส่ก็ใส่รายที่
+     และห้าม rounded-3xl (24px) ซึ่งเลยจุดที่อ่านเป็น "การ์ด" ไปเป็น "ก้อนกลม" */
   const panelPrimitiveOffenders = panelPrimitiveSources.filter(
-    ([, source]) => /rounded-(?:xl|2xl|3xl)|shadow-sm/.test(source),
+    ([, source]) => /rounded-3xl|shadow-sm|shadow-md|shadow-lg/.test(source),
   );
   const cardPrimitiveSource = panelPrimitiveSources[0]?.[1] ?? "";
   if (
@@ -1269,10 +1734,10 @@ check(
     !cardPrimitiveSource.includes("px-5 pb-5 pt-0")
   ) {
     failed++;
-    console.log("❌ primitive panel/alert/context ต้องใช้มุม 8px ไร้เงาและจังหวะขอบ 20px ชุดเดียว");
+    console.log("❌ primitive panel/alert/context ต้องไม่ใส่ utility เงาเอง ไม่เกิน rounded-2xl และคงจังหวะขอบ 20px ชุดเดียว");
     panelPrimitiveOffenders.forEach(([path]) => console.log(`   ${path}`));
   } else {
-    console.log("✅ primitive panel/alert/context ใช้มุม 8px ไร้เงาและจังหวะขอบ 20px ชุดเดียว");
+    console.log("✅ primitive panel/alert/context ใช้มุม 16px เงามาจาก card-surface ชุดเดียว และจังหวะขอบ 20px");
   }
 
   const productionPanelSource = readFileSync(
@@ -1296,19 +1761,21 @@ check(
     "src/components/production/legacy-print-runs-page.tsx",
     "src/components/outsource/legacy-outsource-page.tsx",
   ].map((path) => [path, readFileSync(path, "utf8")] as const);
+  /* มุมการ์ดเป็น 16px (rounded-2xl) ทั้งระบบแล้ว 2026-08-26 · ที่ยังห้ามคือ utility เงา
+     เพราะเงาต้องมาจาก .card-surface ชุดเดียว และห้าม rounded-3xl ที่เลยความเป็นการ์ด */
   const stationPanelOffenders = stationPanelSources.filter(
-    ([, source]) => /rounded-(?:xl|2xl|3xl)|shadow-sm/.test(source),
+    ([, source]) => /rounded-3xl|shadow-sm|shadow-md|shadow-lg/.test(source),
   );
   if (
-    /rounded-(?:xl|2xl|3xl)|shadow-sm/.test(productionPanelSource) ||
-    !productionPanelSource.includes('className="card-surface overflow-hidden rounded-lg"') ||
+    /rounded-3xl|shadow-sm|shadow-md|shadow-lg/.test(productionPanelSource) ||
+    !productionPanelSource.includes('className="card-surface overflow-hidden rounded-2xl"') ||
     stationPanelOffenders.length > 0
   ) {
     failed++;
-    console.log("❌ Production/Station panel หลักต้องใช้มุม 8px และไม่มี decorative shadow");
+    console.log("❌ Production/Station panel หลักต้องไม่ใส่ utility เงาเอง และใช้มุมการ์ดชุดกลาง (rounded-2xl)");
     stationPanelOffenders.forEach(([path]) => console.log(`   ${path}`));
   } else {
-    console.log("✅ Production/Station panel หลักใช้มุม 8px และไม่มี decorative shadow");
+    console.log("✅ Production/Station panel หลักใช้มุมการ์ดชุดกลางและไม่ใส่ utility เงาเอง");
   }
 
   const factoryTvSource = readFileSync("src/app/factory/page.tsx", "utf8");
@@ -1346,6 +1813,13 @@ check(
     !productPickerSource.includes("<FilterChip") ||
     productPickerSource.includes("INTERACTIVE_SELECTED") ||
     /rounded-xl/.test(productPickerSource) ||
+    !productPickerSource.includes("returnFocusRef") ||
+    !productPickerSource.includes("onOpenAutoFocus") ||
+    !productPickerSource.includes("onCloseAutoFocus") ||
+    !productPickerSource.includes("aria-expanded={isExpanded}") ||
+    !productPickerSource.includes("aria-controls={`product-variants-${product.id}`}") ||
+    !productPickerSource.includes("max-h-[90dvh]") ||
+    !productPickerSource.includes("motion-reduce:animate-none") ||
     /hover:shadow-md/.test(orderFilesSource) ||
     !dialogPrimitiveSource.includes("returnFocusElement") ||
     !dialogPrimitiveSource.includes("onCloseAutoFocus={handleCloseAutoFocus}")
@@ -1701,15 +2175,56 @@ check(
   ) {
     problems.push("shared header ต้องมี CTA mobile เต็มแถวและพา focus ไป card ใหม่");
   }
-  const pageColors = colorValues("bg");
-  if (
-    pageColors[0] !== "#fafafa" ||
-    pageColors[1] !== "#000000" ||
-    !appShellSource.includes("app-workspace") ||
-    !globalsSource.includes(".app-workspace") ||
-    !globalsSource.includes("--color-bg: #fafafa")
-  ) {
-    problems.push("AppShell workspace ต้องเป็น off-white และ Dark ดำตาม Vercel panel system");
+  // บันไดความลึก — กฎที่ยังจริงทั้งสองธีมมีสองข้อ (แก้ 2026-08-26 · UI-2026 เฟส 6):
+  //   1) ผืนงาน (bg) เป็น "พื้นจม" การ์ด (surface) ต้องลอยเหนือมันเสมอ
+  //   2) Light workspace ต้องเป็น near-white แต่ยังต่างจาก chrome/card เล็กน้อย
+  //      แต่ **ไม่บังคับทิศ** เพราะสองธีมวางตัวคนละฝั่งโดยตั้งใจ:
+  //        สว่าง  chrome ขาว = การ์ดขาว ลอยเหนือ near-white (เบสสั่งให้ขาวขึ้น 2026-08-27)
+  //        มืด    chrome เกือบดำ จมใต้ผืนงาน               (ของเดิม ไม่ได้ถูกทัก)
+  //
+  // ประวัติ: เฟส 1 (2026-08-25) เคยล็อกว่า chrome < bg < surface ทั้งสองธีม
+  // เพื่อให้ "อ่านทิศเดียวกัน" · เบสดูของจริงบนจอกว้างสองรอบแล้วสั่งให้ธีมสว่าง
+  // กลับไปเป็นกรอบขาว ก่อนเฟส 11 จะขยับผืน Light เป็น near-white ตามหน้าจริง
+  // การ์ดยังมี edge+shadow กลางเป็นขอบเขต จึงไม่ย้อนกลับไปเป็นขาวลอยบนขาวแบบ 2026-08-03
+  {
+    const relLum = (value: string) => luminance(hexRgb(value));
+    const chromeColors = colorValues("chrome");
+    const pageColors = colorValues("bg");
+    const surfaceColors = colorValues("surface");
+    // --color-bg ถูกประกาศซ้ำใน .app-workspace ด้วย จึงมีมากกว่า 2 ค่า —
+    // index 0/1 ยังเป็นคู่ light/dark ของ @theme ตามลำดับการประกาศในไฟล์
+    const hasAll =
+      chromeColors.length >= 2 && pageColors.length >= 2 && surfaceColors.length >= 2;
+    const cardFloatsAbovePage =
+      hasAll &&
+      [0, 1].every((theme) => relLum(pageColors[theme]!) < relLum(surfaceColors[theme]!));
+    // ธีมสว่างตั้งใจให้อยู่ในช่วง near-white 1.04–1.08 เทียบขาว
+    // การ์ดแยกชั้นหลักด้วย edge+shadow ซึ่งมีด่านบังคับแยกอยู่แล้วด้านบน
+    // ธีมมืดแยกด้วย "เส้นขอบ" มาตลอด — chrome กับ bg ต่างกันแค่ 1.02 เท่า
+    // บังคับ 1.1 กับธีมมืดด้วยจะเป็นการแต่งกฎให้ตรงกับธีมสว่างโดยไม่มีใครเคยตัดสินใจ
+    // จึงบังคับแค่ "ต้องไม่ใช่ค่าเดียวกัน" เพื่อไม่ให้ใครยุบสองชั้นนี้เป็นชั้นเดียว
+    const chromeReadsAgainstPage =
+      hasAll &&
+      contrast(hexRgb(chromeColors[0]!), hexRgb(pageColors[0]!)) >= 1.04 &&
+      contrast(hexRgb(chromeColors[0]!), hexRgb(pageColors[0]!)) <= 1.08 &&
+      chromeColors[1] !== pageColors[1];
+    // ทิศของแต่ละธีมยังล็อกไว้ เพื่อไม่ให้ใครสลับกลับเงียบ ๆ ทีละธีม
+    const lightChromeIsRaised = hasAll && relLum(chromeColors[0]!) > relLum(pageColors[0]!);
+    const darkChromeIsSunk = hasAll && relLum(chromeColors[1]!) < relLum(pageColors[1]!);
+    if (
+      !cardFloatsAbovePage ||
+      !chromeReadsAgainstPage ||
+      !lightChromeIsRaised ||
+      !darkChromeIsSunk ||
+      pageColors[1] === "#000000" ||
+      !appShellSource.includes("app-workspace") ||
+      !globalsSource.includes(".app-workspace") ||
+      !globalsSource.includes(`--color-bg: ${pageColors[0]}`)
+    ) {
+      problems.push(
+        "บันไดความลึก: การ์ดต้องลอยเหนือผืนงานทั้งสองธีม · Light workspace ต้องเป็น near-white ต่างจาก chrome/card 1.04–1.08 เท่า · Dark chrome ยังจมใต้ผืนงานและต้องไม่ใช่ค่าเดียวกับผืนงาน · ห้าม Dark เป็นดำสนิท · .app-workspace ต้องผูกกับค่า --color-bg เดียวกัน",
+      );
+    }
   }
 
   if (problems.length) {
@@ -2520,7 +3035,7 @@ check(
     !managerHtml.slice(renderedQueueIndex, renderedHistoryIndex).includes("top-3") ||
     !managerHtml
       .slice(renderedQueueIndex, renderedHistoryIndex)
-      .includes("card-surface overflow-clip rounded-lg")
+      .includes("card-surface overflow-clip rounded-2xl")
   ) {
     problems.push("fixture คิวยาวต้องคง sticky bar ใต้ ancestor ที่ไม่เป็น scroll container");
   }
@@ -2655,7 +3170,7 @@ check(
     queueListIndex < 0 ||
     selectionIndex > queueListIndex ||
     !printRunsSource.includes('stationMode ? "top-32" : "top-3"') ||
-    !printRunsSource.includes('className="card-surface overflow-clip rounded-lg"')
+    !printRunsSource.includes('className="card-surface overflow-clip rounded-2xl"')
   ) {
     problems.push("แถบเปิดรอบต้องอยู่ในบริบทคิวและตามเห็นทันทีเมื่อเลือกงาน");
   }

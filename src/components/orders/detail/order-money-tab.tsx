@@ -27,8 +27,8 @@ interface OrderMoneyTabProps {
 function Row({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="flex items-start justify-between gap-3 text-sm">
-      <span className="text-xs text-slate-500 dark:text-slate-400">{label}</span>
-      <div className="text-right text-sm font-medium text-slate-900 dark:text-white">{children}</div>
+      <span className="text-xs text-muted">{label}</span>
+      <div className="text-right text-sm font-medium text-strong">{children}</div>
     </div>
   );
 }
@@ -79,16 +79,16 @@ export function OrderMoneyTab({
                 <span className="tabular-nums">{formatCurrency(order.taxAmount ?? 0)}</span>
               </Row>
             )}
-            <div className="flex items-baseline justify-between border-t border-slate-100 pt-2.5 dark:border-slate-800">
-              <span className="text-sm font-medium text-slate-900 dark:text-white">ยอดรวมทั้งหมด</span>
-              <span className="text-lg font-semibold tabular-nums text-slate-900 dark:text-white">
+            <div className="flex items-baseline justify-between border-t border-divider pt-2.5">
+              <span className="text-sm font-medium text-strong">ยอดรวมทั้งหมด</span>
+              <span className="text-lg font-semibold tabular-nums text-strong">
                 {formatCurrency(totalAmount)}
               </span>
             </div>
 
             {hasCostEntries && (
-              <div className="space-y-2.5 border-t border-dashed border-slate-200 pt-3 dark:border-slate-700">
-                <p className="text-2xs font-semibold uppercase tracking-wider text-slate-400">
+              <div className="space-y-2.5 border-t border-dashed border-border pt-3">
+                <p className="text-xs font-semibold text-muted">
                   ต้นทุน
                 </p>
                 <Row label="ต้นทุนรวม">
@@ -104,7 +104,7 @@ export function OrderMoneyTab({
                         profitMargin >= 30
                           ? "text-green-600 dark:text-green-400"
                           : profitMargin >= 15
-                            ? "text-amber-600 dark:text-amber-400"
+                            ? "text-amber-700 dark:text-amber-400"
                             : "text-red-600 dark:text-red-400"
                       }`}
                     >

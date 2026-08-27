@@ -1,11 +1,19 @@
 "use client";
 
 import type { CSSProperties, ReactNode, RefObject } from "react";
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Suspense,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Bell,
+  ChevronLeft,
   ChevronRight,
   MoreHorizontal,
   Printer,
@@ -37,26 +45,76 @@ import {
   RADIUS,
   SUNK_PANEL,
 } from "@/components/ui/tokens";
+import { ListPageSkeleton } from "@/components/ui/page-skeleton";
 import { CommandPalette } from "@/components/layout/command-palette";
 import { UserMenu } from "@/components/layout/user-menu";
 
 const MOBILE_NAV_IDS = ["dashboard", "my-tasks", "orders", "production"] as const;
 const MOBILE_EXCLUDED_IDS = new Set<string>(MOBILE_NAV_IDS);
 
+/* เมนูซ้ายจำสถานะหุบ/กางไว้ในเครื่องผู้ใช้ (เบสสั่ง 2026-08-26)
+   ใช้ useSyncExternalStore แทน useState+useEffect เพื่อไม่ให้ SSR กับ client
+   เห็นค่าคนละอย่างตอน hydrate · ค่าเริ่มต้นฝั่งเซิร์ฟเวอร์คือ "กาง" เสมอ */
+const SIDEBAR_COLLAPSED_KEY = "anajak.sidebar.collapsed";
+const SIDEBAR_EVENT = "anajak:sidebar-collapsed";
+
+function subscribeSidebarCollapsed(onChange: () => void) {
+  window.addEventListener("storage", onChange);
+  window.addEventListener(SIDEBAR_EVENT, onChange);
+  return () => {
+    window.removeEventListener("storage", onChange);
+    window.removeEventListener(SIDEBAR_EVENT, onChange);
+  };
+}
+
+function readSidebarCollapsed() {
+  try {
+    return window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "1";
+  } catch {
+    // โหมดส่วนตัวของบางเบราว์เซอร์โยน error ตอนอ่าน localStorage — ถือว่ากางไว้
+    return false;
+  }
+}
+
+function writeSidebarCollapsed(next: boolean) {
+  try {
+    window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, next ? "1" : "0");
+  } catch {
+    // เขียนไม่ได้ก็ยังต้องหุบ/กางให้ทันที แค่ไม่ถูกจำข้ามครั้ง
+  }
+  window.dispatchEvent(new Event(SIDEBAR_EVENT));
+}
+
 function sidebarNavItemClass({
   active,
   onChrome = false,
+  collapsed = false,
 }: {
   active: boolean;
   onChrome?: boolean;
+  collapsed?: boolean;
 }) {
   return cn(
     CONTROL_MIN_H,
     FOCUS_INSET,
     RADIUS.item,
-    "group/sidebar-item flex scroll-m-4 items-center gap-3 px-3 py-2 text-sm transition-colors",
+    "group/sidebar-item relative flex scroll-m-4 items-center gap-3 px-3 py-2 text-sm transition-colors",
+    // ตอนหุบเป็น "ปุ่มสี่เหลี่ยมจัตุรัส 40px วางกลางราง" ไม่ใช่แถบเต็มความกว้าง
+    // เดิมปล่อยให้ยืดตามกล่องแม่ แล้วโดนบีบเหลือกว้าง 24px สูง 36px = อ่านเป็นเม็ดยา
+    // (วัดจริง 2026-08-26 หลังเบสทัก "sidebar ตอนหุบ UI ก็ไม่ดี")
+    collapsed && "mx-auto h-10 w-10 justify-center gap-0 px-0 py-0",
     active
-      ? "bg-interactive-selected font-medium text-interactive-selected-text"
+      ? // แบบ ก (เบสเคาะ 2026-08-26) — เมนูที่กำลังเปิดอยู่เลิกเป็นพิลฟ้า
+        // เหลือพื้นเทากลาง ๆ + ขีดสีแบรนด์บาง ๆ ริมซ้ายของแถบ + ตัวหนังสือเข้มขึ้น
+        // น้ำเงินจึงเหลือหน้าที่เดียวในแถบเมนูคือบอกว่า "อยู่ตรงนี้"
+        // ⚠️ ตอนหุบไม่มีขีด — ขีดที่ริมรางห่างจากไอคอนจนอ่านเป็นคนละชิ้น
+        // พื้นเทาเต็มปุ่มสี่เหลี่ยมบอก "อยู่ตรงนี้" ได้ชัดกว่าบนรางแคบ 64px
+        cn(
+          "font-medium text-strong",
+          onChrome ? "bg-interactive-chrome-pressed" : "bg-interactive-pressed",
+          !collapsed &&
+            "before:absolute before:inset-y-1.5 before:-left-3 before:w-0.5 before:rounded-r-full before:bg-blue-600 before:content-[''] dark:before:bg-blue-400",
+        )
       : cn(
           "font-normal",
           "text-secondary",
@@ -74,13 +132,76 @@ function SidebarGroupLabel({
   if (!label) return null;
 
   return (
-    <p className="px-3 pb-1.5 text-2xs font-medium text-muted">{label}</p>
+    <p className="px-3 pb-1.5 text-xs font-medium text-muted">{label}</p>
+  );
+}
+
+/* เคยมี NavPendingMark = จุดเล็กกะพริบในเมนูระหว่างที่หน้าใหม่ยังโหลด (เฟส 4)
+   ถอดออก 2026-08-26 — เบสบอก "ไม่ชอบเวลากดเลือกหัวข้อแล้วมีจุด"
+   ไม่ได้เสียสัญญาณ "ระบบรับรู้แล้ว" ไป เพราะ src/app/(dashboard)/loading.tsx
+   ขึ้นโครงร่างหน้าใหม่ให้อยู่แล้ว ซึ่งเป็นทางหลักที่ Next แนะนำ · จุดในเมนู
+   เป็นแค่ตัวเสริมระหว่าง prefetch เท่านั้น */
+
+/* ตราสัญลักษณ์ desktop ใช้ชิ้นเดียวทั้งตอนกางและหุบ
+   เพื่อให้สี ขนาด และน้ำหนักไอคอนไม่ drift ตามสถานะ */
+function SidebarBrandMark() {
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        RADIUS.inner,
+        // ⚠️ ตราสัญลักษณ์คือที่ที่สีแบรนด์ควรอยู่โดยธรรมชาติ — เคยเปลี่ยนเป็นเทา
+        // ตอนเก็บ "สงวนน้ำเงินให้ปุ่มหลัก/สิ่งที่เลือก/โฟกัส" ซึ่งคิดผิด
+        // กติกานั้นมีไว้กันสีลิงก์โรยทั่วตาราง ไม่ได้มีไว้ถอดแบรนด์ออกจากตราของตัวเอง
+        // (เบสทัก 2026-08-26 "อย่าลืมสีฟ้าที่เป็น asset เรา")
+        "flex h-7 w-7 shrink-0 items-center justify-center bg-blue-600 text-white",
+      )}
+    >
+      <Printer className="!h-3.5 !w-3.5" strokeWidth={1.75} />
+    </span>
+  );
+}
+
+/* ปุ่มหุบ/กางเมนูแยกจากตราอย่างชัดเจน (เบสสั่ง 2026-08-27)
+   ตราคงหน้าที่พากลับหน้าหลัก ส่วนลูกศรยืนคาบขอบ sidebar ตามแบบที่ผู้ใช้คุ้นเคย:
+   ตอนกางชี้ซ้ายเพื่อหุบ · ตอนหุบชี้ขวาเพื่อกาง · ปุ่มตัวเดิมอยู่ตลอดเพื่อรักษา focus */
+function SidebarCollapseButton({
+  collapsed,
+}: {
+  collapsed: boolean;
+}) {
+  const label = collapsed ? "กางเมนู" : "หุบเมนู";
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon"
+      onClick={() => writeSidebarCollapsed(!collapsed)}
+      aria-expanded={!collapsed}
+      aria-controls="app-sidebar-navigation"
+      aria-label={label}
+      title={label}
+      data-sidebar-collapse-toggle
+      className={cn(
+        INTERACTIVE_CHROME_HOVER,
+        INTERACTIVE_CHROME_PRESSED,
+        // วางปุ่มพ้น hit area ของโลโก้และพ้น flex flow เพื่อไม่ดันแนวตรา/เมนู
+        // พื้น chrome บอกความเป็นส่วนหนึ่งของ sidebar แม้ตัวปุ่มจะคาบเข้า gutter ของเนื้อหา
+        "absolute right-0 top-1/2 z-40 -translate-y-1/2 translate-x-full shrink-0 border border-divider bg-chrome text-muted sm:h-8 sm:min-h-8 sm:w-8",
+      )}
+    >
+      {collapsed ? (
+        <ChevronRight strokeWidth={1.75} />
+      ) : (
+        <ChevronLeft strokeWidth={1.75} />
+      )}
+    </Button>
   );
 }
 
 function sidebarNavIconClass(active: boolean) {
   return active
-    ? "text-interactive-selected-text"
+    ? "text-strong"
     : "text-muted group-hover/sidebar-item:text-secondary group-active/sidebar-item:text-strong";
 }
 
@@ -215,6 +336,11 @@ function AppShellContent({ children }: { children: ReactNode }) {
 
   const count = unreadCount ?? 0;
   const activeNavigationId = findActiveNavigationItem(pathname)?.id;
+  const sidebarCollapsed = useSyncExternalStore(
+    subscribeSidebarCollapsed,
+    readSidebarCollapsed,
+    () => false,
+  );
   const mobileMoreActive = sidebarGroups.some(
     (group) =>
       group.items.some(
@@ -238,11 +364,13 @@ function AppShellContent({ children }: { children: ReactNode }) {
 
   return (
     <div
-      className="app-workspace grid h-dvh grid-cols-1 grid-rows-[4rem_minmax(0,1fr)] overflow-hidden bg-bg lg:grid-cols-[15rem_minmax(0,1fr)]"
+      className="app-workspace grid h-dvh grid-cols-1 grid-rows-[3.5rem_minmax(0,1fr)] overflow-hidden bg-bg lg:grid-cols-[var(--app-sidebar-w)_minmax(0,1fr)]"
       style={
         {
           "--app-bottom-nav-offset":
             "calc(5rem + env(safe-area-inset-bottom))",
+          // หุบ = พอให้ไอคอน 16px ยืนกลางช่องที่หัก px-3 ออกแล้ว · กาง = 240px เท่าเดิม
+          "--app-sidebar-w": sidebarCollapsed ? "4rem" : "15rem",
         } as CSSProperties
       }
     >
@@ -258,29 +386,143 @@ function AppShellContent({ children }: { children: ReactNode }) {
         ข้ามไปเนื้อหาหลัก
       </a>
 
-      <header className="relative z-30 col-span-full row-start-1 flex h-16 min-w-0 items-center border-b border-divider bg-chrome">
+      {/* เมนูซ้ายอยู่ก่อนแถบบนใน DOM โดยตั้งใจ (แก้ 2026-08-26)
+          บนจอกว้าง aside กินแถวที่ 1 ด้วย ตราจึงนั่งมุมซ้ายบนสุดของจอ
+          ถ้า header มาก่อนใน DOM คนกด Tab จะได้ ค้นหา → กระดิ่ง → บัญชี (มุมขวาบน)
+          แล้วเด้งข้ามจอกลับมาที่ตรา (มุมซ้ายบน) = ลำดับโฟกัสเดินขวาไปซ้าย (WCAG 2.4.3) */}
+      <aside className="hidden min-h-0 border-r border-divider bg-chrome lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:flex lg:flex-col">
+        {/* ตราย้ายลงมาอยู่หัวเมนูซ้าย เพราะแถบบนไม่พาดทับคอลัมน์นี้แล้ว
+            ความสูง 3rem เท่าแถบบน เส้นล่างจึงต่อกันเป็นเส้นเดียวข้ามทั้งจอ
+            (เดิมช่องตรากว้าง 240px แต่มีของจริงแค่ ~126px และเส้นแนวตั้งหักกลางคัน) */}
+        {/* ตราเป็นลิงก์หน้าหลักเสมอ ส่วนลูกศรเป็นปุ่มหุบ/กางแยกที่ขอบ sidebar
+            DOM ยังเรียง Link → Button → nav ตรงกับภาพและลำดับ Tab (WCAG 2.4.3) */}
+        <div
+          data-sidebar-brand-header
+          className={cn(
+            // ⚠️ ความสูงต้องเท่าแถบบนเสมอ (h-14 = 56px = แถวแรกของกริด 3.5rem)
+            // ไม่งั้นเส้นล่างของตรากับของแถบบนจะไม่ต่อกันเป็นเส้นเดียวข้ามจอ
+            "relative flex h-14 shrink-0 items-center border-b border-divider",
+            sidebarCollapsed ? "justify-center" : "pl-6 pr-2",
+          )}
+        >
+          <Link
+            href="/"
+            // ชื่อที่เห็นคือ "Anajak Print" — ห้ามตั้ง aria-label เป็นคำอื่น
+            // ไม่งั้นคนที่สั่งงานด้วยเสียงพูดว่า "คลิก Anajak Print" แล้วไม่โดน (WCAG 2.5.3)
+            className={cn(
+              FOCUS_BUTTON,
+              RADIUS.item,
+              // ตรงแนวกับไอคอนเมนูข้างล่าง (nav px-3 + แถวเมนู px-3 = 24px)
+              "flex min-w-0 items-center gap-3",
+              sidebarCollapsed && "h-10 w-10 min-w-10 justify-center gap-0",
+            )}
+            title={sidebarCollapsed ? "Anajak Print" : undefined}
+          >
+            <SidebarBrandMark />
+            <span
+              className={cn(
+                "truncate text-sm font-semibold text-strong",
+                sidebarCollapsed && "sr-only",
+              )}
+            >
+              Anajak Print
+            </span>
+          </Link>
+          <SidebarCollapseButton collapsed={sidebarCollapsed} />
+        </div>
+
+        {/* ตอนหุบ: จองรางแถบเลื่อน "ทั้งสองข้าง" ไม่งั้นแถบเลื่อนที่กินที่จริง 10px
+            (::-webkit-scrollbar ใน globals.css) จะดันไอคอนไปทางซ้าย 5px
+            วัดจริงแล้ว: ไอคอนเมนูอยู่กลางที่ 26.5 ส่วนตรากับปุ่มหุบอยู่ที่ 31.5
+            ตอนกางไม่ใช้ both-edges เพราะจะกินความกว้างของชื่อเมนูไป 20px เปล่า ๆ */}
+        <nav
+          id="app-sidebar-navigation"
+          aria-label="เมนูหลัก"
+          className={cn(
+            "min-h-0 flex-1 overflow-y-auto px-3 py-3",
+            // ตอนหุบถอดระยะขอบข้างออก แล้วให้ปุ่ม 40px จัดกลางเอง
+            // (px-3 + รางแถบเลื่อนสองข้าง เหลือเนื้อที่จริงแค่ 19px ปุ่มเลยถูกบีบ)
+            sidebarCollapsed && "px-0 [scrollbar-gutter:stable_both-edges]",
+          )}
+        >
+          {/* ตอนกางมีหัวกลุ่มอธิบายช่องว่าง 16px · ตอนหุบหัวกลุ่มหายไป
+              ช่องว่างเท่าเดิมจึงอ่านเป็น "เว้นมั่ว" — ย่อเหลือ 12px ให้ยังแยกกลุ่มออก
+              แต่ไม่ห่างจนดูเหมือนลืมใส่อะไร */}
+          <div className={cn(sidebarCollapsed ? "space-y-3" : "space-y-4")}>
+            {sidebarGroups.map((group) => (
+              <div key={group.id}>
+                <SidebarGroupLabel label={sidebarCollapsed ? null : group.label} />
+                <ul aria-label={group.label ?? undefined} className="space-y-1">
+                  {group.items.map((item) => {
+                    const active = activeNavigationId === item.id;
+                    return (
+                      <li key={item.id}>
+                        <Link
+                          ref={active ? activeSidebarRef : undefined}
+                          href={item.href}
+                          aria-current={active ? "page" : undefined}
+                          // ตอนหุบ ชื่อเมนูหายไปจากจอ จึงต้องเหลือชื่อไว้ให้ทั้งเมาส์
+                          // (title) และเครื่องอ่านหน้าจอ (aria-label) ไม่งั้นเหลือแต่ไอคอนเปล่า
+                          title={sidebarCollapsed ? item.label : undefined}
+                          aria-label={sidebarCollapsed ? item.label : undefined}
+                          className={sidebarNavItemClass({
+                            active,
+                            onChrome: true,
+                            collapsed: sidebarCollapsed,
+                          })}
+                        >
+                          <item.icon
+                            className={cn("h-4 w-4 shrink-0", sidebarNavIconClass(active))}
+                            strokeWidth={1.75}
+                          />
+                          {!sidebarCollapsed && <span>{item.label}</span>}
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </nav>
+
+      </aside>
+
+      {/* แถบบนอยู่เหนือ "เฉพาะฝั่งเนื้อหา" บนจอกว้าง ไม่พาดทับเมนูซ้ายอีกแล้ว
+          (UI-2026 เฟส 6 · เบสเคาะ 2026-08-26 "ไม่มีแถบบนแต่ขอมี navbar")
+          เดิมพาดเต็มจอโดยมีของอยู่ 3 ชิ้น เหลือที่ว่างกลางแถบราว 1,000px บนจอ 1920
+          ความสูง 64 → 48 (เฟส 2) → 56px (เฟส 10 · เบสบอก "ดูต่ำไป" หลังทั้งเว็บโค้งมนขึ้น
+          ของในหน้าสูงขึ้นทั้งชุด แถบ 48px จึงกลายเป็นแถบที่แน่นกว่าเนื้อหาที่มันครอบอยู่)
+          จอแคบไม่มีเมนูซ้าย แถบจึงยังพาดเต็มจอและถือตราไว้เหมือนเดิม
+          ⚠️ อยู่หลัง <aside> ใน DOM โดยตั้งใจ — ดูเหตุผลที่คอมเมนต์เหนือ <aside> */}
+      <header className="relative z-30 col-span-full row-start-1 flex h-14 min-w-0 items-center border-b border-divider bg-chrome lg:col-span-1 lg:col-start-2 lg:pr-[var(--app-scrollbar-w)]">
         <Link
           href="/"
           aria-label="ภาพรวม"
           className={cn(
             FOCUS_BUTTON,
-            "flex h-full w-16 shrink-0 items-center justify-center lg:w-60 lg:justify-start lg:gap-3 lg:border-r lg:border-divider lg:px-5",
+            "flex h-full w-14 shrink-0 items-center justify-center lg:hidden",
           )}
         >
           <div
             className={cn(
               RADIUS.inner,
-              "flex h-9 w-9 items-center justify-center bg-blue-600 text-white",
+              "flex h-7 w-7 items-center justify-center bg-blue-600 text-white",
             )}
           >
-            <Printer className="h-4 w-4" strokeWidth={1.75} />
+            <Printer className="h-3.5 w-3.5" strokeWidth={1.75} />
           </div>
-          <span className="hidden truncate text-sm font-semibold text-strong lg:block">
-            Anajak Print
-          </span>
         </Link>
 
-        <div className="flex min-w-0 flex-1 items-center gap-2 px-3 sm:px-5">
+        {/* ไม่มีชื่อหมวดบนแถบแล้ว (เบสสั่ง 2026-08-26) — ตำแหน่งที่อยู่บอกด้วยเมนูซ้าย
+            ที่ไฮไลต์อยู่แล้ว เขียนซ้ำบนแถบก็เป็นคำเดียวกันสองที่
+            แถบนี้จึงเหลือหน้าที่เดียว: ของที่ใช้ได้ทุกหน้า (ค้นหา · แจ้งเตือน · บัญชี)
+            จอกว้างจึงดันไปชิดขวาทั้งชุด ไม่ต้องมีอะไรมาถ่วงฝั่งซ้าย */}
+        {/* กล่องเดียวกับเนื้อหาในหน้า (mx-auto max-w-screen-2xl + ระยะขอบชุดเดียวกัน)
+            ตอนแถบบนพาดเต็มจอมันอ้างอิงขอบจอ ไม่มีใครเห็นว่าเยื้อง · พอย้ายมาวางเหนือ
+            คอลัมน์เนื้อหาพอดี ขอบขวาสองอันต้องตรงกัน ไม่งั้นรูปผู้ใช้จะล้ำขอบการ์ด 16px
+            ส่วน --app-scrollbar-w ที่ตัว <header> ชดเชยรางแถบเลื่อนที่ <main> จองไว้ */}
+        <div className="mx-auto flex w-full min-w-0 max-w-screen-2xl flex-1 items-center gap-2 px-4 sm:px-6 lg:px-8">
           <button
             ref={searchTriggerRef}
             type="button"
@@ -291,26 +533,37 @@ function AppShellContent({ children }: { children: ReactNode }) {
               CONTROL_H,
               FOCUS_BUTTON,
               RADIUS.field,
+              // chrome กลับมาเป็นขาวแล้ว (2026-08-26) ช่องค้นหาจึงต้องเป็น "ช่องจม"
+              // ไม่ใช่ขาวบนขาวที่เห็นแค่เส้นขอบ — SUNK_PANEL ให้พื้นเทาอ่อนกว่าแถบหนึ่งขั้น
               SUNK_PANEL,
+              "border border-border",
               INTERACTIVE_HOVER,
               INTERACTIVE_PRESSED,
-              "group flex min-w-0 flex-1 items-center gap-2 px-3 text-sm text-muted transition-colors sm:max-w-lg sm:px-4",
+              // จอแคบยังยืดเต็มที่ · จอกว้างหดเป็นชิปกว้างคงที่แล้วดันไปชิดขวา
+              "group flex min-w-0 flex-1 items-center gap-2 px-3 text-sm text-muted transition-colors sm:max-w-lg sm:px-4 lg:ml-auto lg:w-60 lg:max-w-60 lg:flex-none",
             )}
           >
             <Search className="h-4 w-4 shrink-0" strokeWidth={1.75} />
             <span className="min-w-0 flex-1 truncate text-left">ค้นหาเลขงาน ลูกค้า หรือเมนู</span>
-            <kbd className="hidden text-2xs sm:inline">⌘K</kbd>
+            <kbd className="hidden text-xs sm:inline">⌘K</kbd>
           </button>
 
-          <div className="ml-auto flex shrink-0 items-center gap-2">
-            <Button asChild variant="ghost" size="icon" className="relative shrink-0">
+          <div className="ml-auto flex shrink-0 items-center gap-2 lg:ml-0">
+            {/* ปุ่มบนแถบบนยืนบน chrome (เทา) ไม่ใช่ surface (ขาว) — hover ชุดปกติ
+                จึงเกือบเท่าพื้นตัวเอง ต้องใช้ชุด chrome ที่เข้มกว่าหนึ่งขั้น */}
+            <Button
+              asChild
+              variant="ghost"
+              size="icon"
+              className={cn(INTERACTIVE_CHROME_HOVER, INTERACTIVE_CHROME_PRESSED, "relative shrink-0")}
+            >
               <Link
                 href="/notifications"
                 aria-label={count > 0 ? `การแจ้งเตือน ยังไม่อ่าน ${count} รายการ` : "การแจ้งเตือน"}
               >
                 <Bell />
                 {count > 0 && (
-                  <span className="absolute right-0 top-0 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-2xs font-semibold text-white ring-2 ring-chrome">
+                  <span className="absolute right-0 top-0 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-2xs font-semibold tabular-nums text-white ring-2 ring-chrome">
                     {count > 99 ? "99+" : count}
                   </span>
                 )}
@@ -321,43 +574,10 @@ function AppShellContent({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <aside className="hidden min-h-0 border-r border-divider bg-chrome lg:col-start-1 lg:row-start-2 lg:flex lg:flex-col">
-        <nav aria-label="เมนูหลัก" className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
-          <div className="space-y-4">
-            {sidebarGroups.map((group) => (
-              <div key={group.id}>
-                <SidebarGroupLabel label={group.label} />
-                <ul aria-label={group.label ?? undefined} className="space-y-1">
-                  {group.items.map((item) => {
-                    const active = activeNavigationId === item.id;
-                    return (
-                      <li key={item.id}>
-                        <Link
-                          ref={active ? activeSidebarRef : undefined}
-                          href={item.href}
-                          aria-current={active ? "page" : undefined}
-                          className={sidebarNavItemClass({ active, onChrome: true })}
-                        >
-                          <item.icon
-                            className={cn("h-4 w-4", sidebarNavIconClass(active))}
-                            strokeWidth={1.75}
-                          />
-                          <span>{item.label}</span>
-                        </Link>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </nav>
-      </aside>
-
       <main
         id="main-content"
         tabIndex={-1}
-        className="relative col-start-1 row-start-2 min-h-0 min-w-0 overflow-y-auto outline-none lg:col-start-2"
+        className="relative col-start-1 row-start-2 min-h-0 min-w-0 overflow-y-auto outline-none [scrollbar-gutter:stable] lg:col-start-2"
       >
         <div className="mx-auto w-full max-w-screen-2xl px-4 pb-[calc(var(--app-bottom-nav-offset)+2rem)] pt-6 sm:px-6 sm:pt-8 lg:px-8 lg:pb-10">
           {children}
@@ -385,9 +605,13 @@ function AppShellContent({ children }: { children: ReactNode }) {
                   CONTROL_MIN_H,
                   FOCUS_INSET,
                   RADIUS.item,
-                  "flex flex-col items-center justify-center gap-1 px-1 py-2 text-2xs transition-colors active:bg-interactive-chrome-pressed",
+                  INTERACTIVE_CHROME_PRESSED,
+                  "flex flex-col items-center justify-center gap-1 px-1 py-2 text-xs transition-colors",
                   active
-                    ? "font-semibold text-interactive-selected-text"
+                    ? cn(
+                        "relative bg-interactive-chrome-pressed font-semibold text-strong",
+                        "before:absolute before:inset-x-3 before:top-0 before:h-0.5 before:rounded-b-full before:bg-blue-600 before:content-[''] dark:before:bg-blue-400",
+                      )
                     : "font-medium text-muted",
                 )}
               >
@@ -413,9 +637,13 @@ function AppShellContent({ children }: { children: ReactNode }) {
               CONTROL_MIN_H,
               FOCUS_INSET,
               RADIUS.item,
-              "flex flex-col items-center justify-center gap-1 px-1 py-2 text-2xs transition-colors active:bg-interactive-chrome-pressed",
+              INTERACTIVE_CHROME_PRESSED,
+              "flex flex-col items-center justify-center gap-1 px-1 py-2 text-xs transition-colors",
               mobileMoreActive
-                ? "font-semibold text-interactive-selected-text"
+                ? cn(
+                    "relative bg-interactive-chrome-pressed font-semibold text-strong",
+                    "before:absolute before:inset-x-3 before:top-0 before:h-0.5 before:rounded-b-full before:bg-blue-600 before:content-[''] dark:before:bg-blue-400",
+                  )
                 : "font-medium text-muted",
             )}
           >
@@ -452,11 +680,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <Suspense
       fallback={
-        <div
-          className="app-workspace h-dvh bg-bg"
-          role="status"
-          aria-label="กำลังโหลดพื้นที่ทำงาน"
-        />
+        <div className="app-workspace h-dvh overflow-hidden bg-bg px-6 pt-6">
+          <ListPageSkeleton rows={6} />
+        </div>
       }
     >
       <AppShellContent>{children}</AppShellContent>

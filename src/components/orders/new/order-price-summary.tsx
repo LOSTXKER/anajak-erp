@@ -94,10 +94,10 @@ export function useMarginEstimate(
 export function MarginEstimateBlock({ estimate }: { estimate: MarginEstimate }) {
   if (!estimate.configured) {
     return (
-      <p className="text-xs text-slate-500 dark:text-slate-400">
+      <p className="text-xs text-muted">
         <Link
           href="/settings/cost-rates"
-          className="underline underline-offset-2 hover:text-slate-600 dark:hover:text-slate-300"
+          className="underline underline-offset-2 hover:text-strong"
         >
           ตั้งเรตต้นทุนกลาง
         </Link>
@@ -122,7 +122,7 @@ export function MarginEstimateBlock({ estimate }: { estimate: MarginEstimate }) 
 
   return (
     <div className="space-y-1.5">
-      <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+      <p className="text-xs font-medium text-muted">
         กำไรขั้นต้นโดยประมาณ
       </p>
       <p
@@ -139,7 +139,7 @@ export function MarginEstimateBlock({ estimate }: { estimate: MarginEstimate }) 
           </span>
         )}
       </p>
-      <div className="space-y-0.5 text-xs text-slate-500 dark:text-slate-400">
+      <div className="space-y-0.5 text-xs text-muted">
         <div className="flex items-center justify-between">
           <span>เสื้อ</span>
           <span className="tabular-nums">{formatCurrency(estimate.garmentCost)}</span>
@@ -158,13 +158,13 @@ export function MarginEstimateBlock({ estimate }: { estimate: MarginEstimate }) 
       {warnings.length > 0 && (
         <div className="space-y-0.5">
           {warnings.map((w) => (
-            <p key={w} className="text-xs text-amber-600 dark:text-amber-400">
+            <p key={w} className="text-xs text-amber-700 dark:text-amber-400">
               {w}
             </p>
           ))}
         </div>
       )}
-      <p className="text-xs text-slate-500 dark:text-slate-400">
+      <p className="text-xs text-muted">
         เข็มทิศตอนตั้งราคา — ไม่ใช่ตัวเลขบัญชี
       </p>
     </div>
@@ -185,8 +185,8 @@ function Row({
       <span
         className={
           muted
-            ? "text-slate-500 dark:text-slate-400"
-            : "text-slate-700 dark:text-slate-200"
+            ? "text-muted"
+            : "text-secondary"
         }
       >
         {label}
@@ -227,9 +227,9 @@ export function OrderPriceSummary({
         {isMarketplace &&
           (onPlatformFeeChange ? (
             <div className="flex items-center justify-between gap-2">
-              <label htmlFor="order-platform-fee" className="text-sm text-slate-500 dark:text-slate-400">
+              <label htmlFor="order-platform-fee" className="text-sm text-muted">
                 ค่าธรรมเนียม {channelLabel}
-                <span className="block text-xs text-slate-500 dark:text-slate-400">
+                <span className="block text-xs text-muted">
                   หักจากยอดโอนเข้าร้าน — ไม่รวมในยอดบิล
                 </span>
               </label>
@@ -246,7 +246,7 @@ export function OrderPriceSummary({
 
         {onDiscountChange ? (
           <div className="flex items-center justify-between gap-2">
-            <label htmlFor="order-discount" className="text-sm text-slate-500 dark:text-slate-400">
+            <label htmlFor="order-discount" className="text-sm text-muted">
               ส่วนลดท้ายบิล
             </label>
             <MoneyInput size="sm"
@@ -268,8 +268,8 @@ export function OrderPriceSummary({
         )}
       </div>
 
-      <div className="mt-3 flex items-baseline justify-between border-t border-slate-100 pt-3 dark:border-white/10">
-        <span className="text-sm font-medium text-slate-900 dark:text-white">
+      <div className="mt-3 flex items-baseline justify-between border-t border-divider pt-3">
+        <span className="text-sm font-medium text-strong">
           ยอดรวมทั้งหมด
           {taxRate > 0 && (
             <span className="ml-1 text-xs font-normal text-muted">
@@ -284,7 +284,7 @@ export function OrderPriceSummary({
 
       {/* กำไรขั้นต้นโดยประมาณ — โชว์เฉพาะ role การเงิน (caller ส่ง null = ไม่ render เลย) */}
       {marginEstimate && (
-        <div className="mt-3 border-t border-slate-100 pt-3 dark:border-white/10">
+        <div className="mt-3 border-t border-divider pt-3">
           <MarginEstimateBlock estimate={marginEstimate} />
         </div>
       )}

@@ -14,8 +14,9 @@ import {
 import { SHIPPING_METHOD_LABELS } from "@/lib/shipping-methods";
 import {
   CUSTOMER_STATUS_LABELS,
-  CUSTOMER_STATUS_COLORS,
+  CUSTOMER_STATUS_TONES,
 } from "@/lib/order-status";
+import { StatusLabel } from "@/components/ui/status-label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PublicLinkError } from "@/components/public-link-error";
@@ -53,7 +54,6 @@ export default function OrderStatusPage({
   const d = status.data;
   const cancelled = d.customerStatus === "CANCELLED";
   const currentIdx = d.steps.findIndex((s) => s.status === d.customerStatus);
-  const statusColor = CUSTOMER_STATUS_COLORS[d.customerStatus];
 
   return (
     <PublicPageShell
@@ -70,12 +70,14 @@ export default function OrderStatusPage({
                 <p className="text-lg font-semibold text-strong">{d.title}</p>
                 <p className="text-sm text-muted">เลขออเดอร์ {d.orderNumber}</p>
               </div>
-              <span
-                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium ${statusColor.bg} ${statusColor.text}`}
-              >
-                <span className={`h-2 w-2 rounded-full ${statusColor.dot}`} />
-                {CUSTOMER_STATUS_LABELS[d.customerStatus]}
-              </span>
+              {/* เดิมเป็นแคปซูลพื้นสี ทำให้สถานะเดียวกันลูกค้าเห็นคนละหน้าตากับที่ทีมเห็น
+                  (UI-2026 · เบสสั่ง 2026-08-26) ตอนนี้ใช้ป้ายกลางตัวเดียวกันทั้งเว็บ */}
+              <StatusLabel
+                label={CUSTOMER_STATUS_LABELS[d.customerStatus]}
+                tone={CUSTOMER_STATUS_TONES[d.customerStatus]}
+                emphasize
+                className="text-sm"
+              />
             </div>
             <div className="grid gap-1.5 text-sm">
               <InfoRow label="ลูกค้า">{d.customerName}</InfoRow>
@@ -90,9 +92,9 @@ export default function OrderStatusPage({
         {cancelled ? (
           <Card>
             <CardContent className="flex items-center gap-3 p-5">
-              <XCircle className="h-8 w-8 shrink-0 text-red-500" />
+              <XCircle className="h-8 w-8 shrink-0 text-red-600 dark:text-red-400" />
               <div>
-                <p className="font-semibold text-red-700">ออเดอร์ถูกยกเลิก</p>
+                <p className="font-semibold text-red-700 dark:text-red-300">ออเดอร์ถูกยกเลิก</p>
                 <p className="text-sm text-muted">กรุณาติดต่อทีมงานหากมีข้อสงสัย</p>
               </div>
             </CardContent>
@@ -114,7 +116,7 @@ export default function OrderStatusPage({
                           done
                             ? "bg-green-500 text-white"
                             : current
-                              ? "bg-blue-600 text-white ring-4 ring-blue-100"
+                              ? "bg-blue-600 text-white ring-4 ring-blue-100 dark:ring-blue-900"
                               : "bg-surface-muted text-muted"
                         }`}
                       >
@@ -123,7 +125,7 @@ export default function OrderStatusPage({
                       <span
                         className={`text-sm ${
                           current
-                            ? "font-semibold text-blue-700"
+                            ? "font-semibold text-blue-700 dark:text-blue-300"
                             : done
                               ? "text-secondary"
                               : "text-muted"
@@ -170,13 +172,13 @@ export default function OrderStatusPage({
                     href={d.approvedDesign.imageUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex min-h-11 touch-manipulation items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm text-blue-600 hover:bg-interactive-hover hover:underline"
+                    className="inline-flex min-h-11 touch-manipulation items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm text-secondary hover:bg-interactive-hover hover:text-strong hover:underline"
                   >
                     <ExternalLink className="h-4 w-4" />
                     เปิดไฟล์แบบที่อนุมัติ
                   </a>
                 ))}
-              <p className="mt-2 flex items-center gap-1.5 text-xs text-green-600">
+              <p className="mt-2 flex items-center gap-1.5 text-xs text-green-600 dark:text-green-400">
                 <CheckCircle2 className="h-3.5 w-3.5" />
                 เวอร์ชัน {d.approvedDesign.versionNumber} · อนุมัติแล้ว
               </p>
@@ -213,7 +215,7 @@ export default function OrderStatusPage({
                     <p className="text-xs text-muted">ส่งเมื่อ {formatDate(dv.shippedAt)}</p>
                   )}
                   {dv.deliveredAt && (
-                    <p className="text-xs text-green-600">ถึงปลายทาง {formatDate(dv.deliveredAt)}</p>
+                    <p className="text-xs text-green-600 dark:text-green-400">ถึงปลายทาง {formatDate(dv.deliveredAt)}</p>
                   )}
                   {dv.lines.length > 0 && (
                     <ul className="mt-2 space-y-0.5 text-xs text-muted">
@@ -259,7 +261,7 @@ export default function OrderStatusPage({
                         href={q.pdfUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex min-h-11 touch-manipulation items-center gap-1.5 px-2 text-xs text-blue-600 hover:underline"
+                        className="inline-flex min-h-11 touch-manipulation items-center gap-1.5 px-2 text-xs text-secondary hover:text-strong hover:underline"
                       >
                         <ExternalLink className="h-3.5 w-3.5" />
                         PDF
@@ -278,7 +280,7 @@ export default function OrderStatusPage({
                     <div className="min-w-0">
                       <p className="font-medium text-strong">
                         {INVOICE_TYPE_LABELS_CUSTOMER[inv.type] ?? "ใบแจ้งหนี้"} {inv.invoiceNumber}
-                        {inv.isVoided && <span className="ml-1 text-xs text-red-500">(ยกเลิก)</span>}
+                        {inv.isVoided && <span className="ml-1 text-xs text-red-600 dark:text-red-400">(ยกเลิก)</span>}
                       </p>
                       {inv.dueDate && !inv.isVoided && (
                         <p className="text-xs text-muted">ครบกำหนด {formatDate(inv.dueDate)}</p>

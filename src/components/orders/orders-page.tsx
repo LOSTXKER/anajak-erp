@@ -11,12 +11,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { SearchInput } from "@/components/ui/search-input";
-import { FilterPopover, FilterPopoverField } from "@/components/ui/filter-popover";
-import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
+import { Toolbar } from "@/components/ui/toolbar";
 import { OrderStatusFilter } from "@/components/orders/order-status-filter";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { Select } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
+import { ListPageSkeleton } from "@/components/ui/page-skeleton";
 import { DataTable } from "@/components/ui/data-table";
 import { ResponsiveList } from "@/components/ui/responsive-list";
 import { OrderStatusBadge } from "@/components/order-status-badge";
@@ -73,7 +72,7 @@ function OrderMockupMark({
 const PAYMENT_DOT: Record<string, { label: string; dot: string; text: string }> = {
   paid: { label: "ชำระแล้ว", dot: "bg-green-500", text: "text-green-700 dark:text-green-300" },
   unpaid: { label: "ค้างชำระ", dot: "bg-red-500", text: "text-red-700 dark:text-red-300" },
-  partial: { label: "บางส่วน", dot: "bg-amber-700 dark:bg-amber-500", text: "text-amber-700 dark:text-amber-300" },
+  partial: { label: "บางส่วน", dot: "bg-amber-500", text: "text-amber-700 dark:text-amber-300" },
 };
 
 // ────────────────────────────────────────────────────────────
@@ -131,19 +130,19 @@ function OrderCountdown({
       : days === 0
         ? {
             label: "วันนี้",
-            dot: "bg-amber-700 dark:bg-amber-500",
+            dot: "bg-amber-500",
             text: "font-medium text-amber-700 dark:text-amber-400",
           }
         : days <= 2
           ? {
               label: `เหลือ ${days} วัน`,
-              dot: "bg-amber-700 dark:bg-amber-500",
+              dot: "bg-amber-500",
               text: "text-amber-700 dark:text-amber-400",
             }
           : {
               label: `เหลือ ${days} วัน`,
               dot: "bg-slate-300 dark:bg-slate-600",
-              text: "text-slate-600 dark:text-slate-400",
+              text: "text-secondary",
             };
   return (
     <span
@@ -282,7 +281,7 @@ function exportOrdersCsv(
 
 export default function OrdersPage() {
   return (
-    <Suspense fallback={<Skeleton className="h-96 rounded-lg" />}>
+    <Suspense fallback={<ListPageSkeleton />}>
       <OrdersPageContent />
     </Suspense>
   );
@@ -360,11 +359,10 @@ function OrdersPageContent() {
 
   usePageClamp(page, data?.pages, replaceListState);
 
-  // attention ไม่นับในป้ายกล่องตัวกรอง — มันมีบ้านเป็นแถว chip บนผิวหน้าแล้ว
-  // นับเฉพาะตัวกรองที่ซ่อนอยู่ในกล่อง — ช่วงวันที่มีปุ่มของตัวเองบนแถบ เห็นอยู่แล้วว่าเลือกอะไร
-  const activeFilterCount = [channel, orderType].filter(Boolean).length;
-
-  const clearFilters = () => {
+  const hasToolbarFilters = Boolean(
+    channel || orderType || attention || createdAfter || createdBefore,
+  );
+  const clearToolbarFilters = () => {
     replaceListState({
       channel: null,
       type: null,
@@ -376,7 +374,6 @@ function OrdersPageContent() {
   };
 
   // empty state ตอนหาไม่เจอ: นับทั้งสถานะ/วันที่/คำค้น แล้วล้างทุกอย่างในจังหวะเดียว
-  // (คนละปุ่มกับในกล่องตัวกรองที่ล้างเฉพาะ filter)
   const hasActiveFilters = hasActiveOrderListFilters({
     search,
     channel,
@@ -477,8 +474,8 @@ function OrdersPageContent() {
         isLoading={isLoading}
       />
 
-      <div className="space-y-3 lg:space-y-0 lg:overflow-hidden lg:rounded-lg lg:border lg:border-border lg:bg-surface">
-      <Toolbar className="lg:border-b lg:border-divider lg:px-4 lg:py-3">
+      <div className="space-y-3 lg:space-y-0">
+      <Toolbar className="lg:pb-3">
         <SearchInput
           ref={searchInputRef}
           containerClassName="@2xl:max-w-sm @2xl:flex-1"
@@ -488,7 +485,9 @@ function OrdersPageContent() {
           onChange={(event) => onSearchChange(event.target.value)}
         />
 
-        <ToolbarGroup className="w-full flex-wrap @2xl:w-auto @2xl:flex-nowrap">
+        {/* ตัวกรองที่ใช้ประจำต้องเห็นและเปลี่ยนได้ทันที ไม่ซ่อนหลังปุ่มรวม
+            จอแคบใช้กริดสองคอลัมน์; จอกว้างคลี่เป็นแถวเดียวโดยไม่เพิ่มความกว้างหน้า */}
+        <div className="grid w-full min-w-0 grid-cols-2 items-center gap-2 @2xl:flex @2xl:w-auto @2xl:flex-nowrap">
           {/* ช่องเรียงเหลือไว้เฉพาะจอแคบ (เบสเคาะ 2026-07-31) — จอกว้างย้ายไปกดที่หัวตารางแทน
               แต่จอแคบเป็นการ์ด ไม่มีหัวตารางให้กด ถ้าถอดทิ้งด้วยจะเรียงไม่ได้เลย */}
           <Select
@@ -502,7 +501,7 @@ function OrdersPageContent() {
                 page: null,
               })
             }
-            className="w-auto px-3 lg:hidden"
+            className="w-full min-w-0 px-3 lg:hidden"
           >
             {sortOptions.map((o) => (
               <option key={o.value} value={o.value}>
@@ -511,63 +510,55 @@ function OrdersPageContent() {
             ))}
           </Select>
 
-          {/* ช่วงวันที่ออกมาอยู่นอกกล่องตัวกรอง (เบสสั่ง 2026-08-01) — เป็นตัวกรองที่ใช้บ่อยสุด
-              ไม่ควรต้องกดเปิดกล่องก่อน · มีปุ่มทางลัด เดือนนี้/ปีนี้/สัปดาห์นี้ ในตัว */}
-          <DateRangePicker
-            from={createdAfter}
-            to={createdBefore}
-            onChange={(f, t) =>
-              replaceListState({ from: f || null, to: t || null, page: null })
-            }
-          />
+          <div className="min-w-0 [&>span]:w-full @2xl:flex-none">
+            <DateRangePicker
+              from={createdAfter}
+              to={createdBefore}
+              className="w-full min-w-0 justify-start @2xl:w-auto"
+              onChange={(f, t) =>
+                replaceListState({ from: f || null, to: t || null, page: null })
+              }
+            />
+          </div>
 
-          {/* ตัวกรองลอยใต้ปุ่ม — ตารางไม่ขยับ (เบสเคาะ 2026-07-31 แบบ ข)
-              เหลือ 2 หมวด: สถานะลูกค้าถอดตามคำสั่ง · สถานะภายในอยู่แถบด้านบน · วันที่ออกมาข้างนอก */}
-          <FilterPopover
-            activeCount={activeFilterCount}
-            onClear={clearFilters}
-            resultLabel={`ดูผลลัพธ์ ${data?.total ?? 0} รายการ`}
+          <Select
+            surface="raised"
+            aria-label="กรองช่องทางออเดอร์"
+            value={channel}
+            onChange={(event) =>
+              replaceListState({ channel: event.target.value || null, page: null })
+            }
+            className="min-w-0 @2xl:w-40"
           >
-            <FilterPopoverField label="ช่องทาง" htmlFor="order-channel-filter">
-              <Select
-                id="order-channel-filter"
-                aria-label="กรองช่องทางออเดอร์"
-                value={channel}
-                onChange={(event) =>
-                  replaceListState({ channel: event.target.value || null, page: null })
-                }
-              >
-                {CHANNEL_FILTERS.map((filter) => (
-                  <option key={filter.value} value={filter.value}>
-                    {filter.label}
-                  </option>
-                ))}
-              </Select>
-            </FilterPopoverField>
-            <FilterPopoverField label="ประเภทออเดอร์" htmlFor="order-type-filter">
-              <Select
-                id="order-type-filter"
-                aria-label="กรองประเภทออเดอร์"
-                value={orderType}
-                onChange={(event) =>
-                  replaceListState({ type: event.target.value || null, page: null })
-                }
-              >
-                {TYPE_FILTERS.map((filter) => (
-                  <option key={filter.value} value={filter.value}>
-                    {filter.label}
-                  </option>
-                ))}
-              </Select>
-            </FilterPopoverField>
-          </FilterPopover>
+            {CHANNEL_FILTERS.map((filter) => (
+              <option key={filter.value} value={filter.value}>
+                {filter.label}
+              </option>
+            ))}
+          </Select>
+
+          <Select
+            surface="raised"
+            aria-label="กรองประเภทออเดอร์"
+            value={orderType}
+            onChange={(event) =>
+              replaceListState({ type: event.target.value || null, page: null })
+            }
+            className="min-w-0 @2xl:w-40"
+          >
+            {TYPE_FILTERS.map((filter) => (
+              <option key={filter.value} value={filter.value}>
+                {filter.label}
+              </option>
+            ))}
+          </Select>
 
           {/* แถวชิปความเร่งด่วนถูกถอดออกแล้ว (เบสสั่ง 2026-07-31 — ย้ายไปเป็นคอลัมน์
               "เร่งด่วน" ที่เรียงได้แทน) · แต่แดชบอร์ดยังลิงก์มาด้วย ?attention= 3 ทาง
               ถ้าไม่มีอะไรบอกเลย คนกดมาจากแดชบอร์ดจะเห็นรายการถูกกรองอยู่โดยไม่รู้ว่ากรองอะไร
               และล้างไม่ได้ — จึงโชว์ป้ายเดียวเฉพาะตอนกรองค้างอยู่ กดกากบาทเพื่อล้าง */}
           {attention && (
-            <span className="inline-flex items-center gap-1.5 border-b-2 border-blue-600 py-1 pl-1 text-xs font-semibold text-blue-700 dark:border-blue-400 dark:text-blue-400">
+            <span className="col-span-2 inline-flex items-center gap-1.5 border-b-2 border-blue-600 py-1 pl-1 text-xs font-semibold text-blue-700 @2xl:col-span-1 dark:border-blue-400 dark:text-blue-400">
               {ATTENTION_FILTERS.find((f) => f.value === attention)?.label}
               <Button
                 variant="ghost"
@@ -580,13 +571,25 @@ function OrdersPageContent() {
               </Button>
             </span>
           )}
-        </ToolbarGroup>
+
+          {hasToolbarFilters && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearToolbarFilters}
+              className="col-span-2 justify-self-start px-2 text-secondary @2xl:col-span-1"
+            >
+              <X />
+              ล้างตัวกรอง
+            </Button>
+          )}
+        </div>
 
         {data && (
           <p
             aria-busy={isFetching}
             aria-live="polite"
-            className="self-end whitespace-nowrap text-xs tabular-nums text-slate-500 @2xl:ml-auto @2xl:self-auto dark:text-slate-400"
+            className="self-end whitespace-nowrap text-xs tabular-nums text-muted @2xl:ml-auto @2xl:self-auto"
           >
             {isFetching
               ? "กำลังอัปเดต…"
@@ -612,7 +615,7 @@ function OrdersPageContent() {
           // ไม่ให้ control ที่เพิ่งกดหายไปกลางการใช้งาน
           const showDeadline = hasDeadline || sortBy === "deadline";
           return (
-          <DataTable.Root bordered={false}>
+          <DataTable.Root className="max-xl:[&_td]:px-4 max-xl:[&_th:not([aria-sort])]:px-4 max-xl:[&_th[aria-sort]>button]:px-4">
             <DataTable.Head>
               <tr>
                 {/* การเรียงย้ายมาอยู่ที่หัวคอลัมน์แล้ว (เบสสั่ง 2026-07-31) — กดซ้ำสลับทิศ
@@ -621,6 +624,7 @@ function OrdersPageContent() {
                   เลขออเดอร์
                 </DataTable.SortableTh>
                 <DataTable.Th>ลูกค้า / งาน</DataTable.Th>
+                <DataTable.Th>ประเภทงาน</DataTable.Th>
                 <DataTable.Th className="hidden min-[1360px]:table-cell">
                   ช่องทาง
                 </DataTable.Th>
@@ -649,6 +653,13 @@ function OrdersPageContent() {
                 const mockupCover = order.designs[0]
                   ? mockupCoverImage(order.designs[0])
                   : null;
+                const customerName = order.customer?.name?.trim() ?? "";
+                const orderTitle = order.title?.trim() ?? "";
+                const primaryIdentity = customerName || orderTitle || "—";
+                const secondaryTitle =
+                  customerName && orderTitle && customerName !== orderTitle
+                    ? orderTitle
+                    : "";
                 return (
                   <DataTable.Row key={order.id} href={`/orders/${order.id}`}>
                   <DataTable.Td className="whitespace-nowrap">
@@ -659,7 +670,7 @@ function OrdersPageContent() {
                       />
                       <Link
                         href={`/orders/${order.id}`}
-                        className="font-medium text-blue-600 hover:underline dark:text-blue-400"
+                        className="font-medium tabular-nums text-strong hover:underline"
                       >
                         {order.orderNumber}
                       </Link>
@@ -667,17 +678,14 @@ function OrdersPageContent() {
                   </DataTable.Td>
                   <DataTable.Td>
                     <div className="min-w-0">
-                      <p className="truncate text-slate-900 dark:text-white">
-                        {order.customer?.name ?? "—"}
-                        {order.orderType === "CUSTOM" && (
-                          <Badge variant="accent" size="sm" className="ml-1.5">
-                            {ORDER_TYPE_UI_LABELS[order.orderType]}
-                          </Badge>
-                        )}
+                      <p className="max-w-80 truncate text-sm font-semibold text-strong">
+                        {primaryIdentity}
                       </p>
-                      <p className="mt-0.5 max-w-64 truncate text-xs text-muted">
-                        {order.title}
-                      </p>
+                      {secondaryTitle && (
+                        <p className="mt-0.5 max-w-80 truncate text-sm text-secondary">
+                          {secondaryTitle}
+                        </p>
+                      )}
                       <ChatLink
                         stopPropagation
                         name={order.customer?.chatName}
@@ -686,7 +694,15 @@ function OrdersPageContent() {
                       />
                     </div>
                   </DataTable.Td>
-                  <DataTable.Td className="hidden text-xs text-slate-600 min-[1360px]:table-cell dark:text-slate-400">
+                  <DataTable.Td className="whitespace-nowrap">
+                    <Badge
+                      variant={order.orderType === "CUSTOM" ? "accent" : "outline"}
+                      size="sm"
+                    >
+                      {ORDER_TYPE_UI_LABELS[order.orderType]}
+                    </Badge>
+                  </DataTable.Td>
+                  <DataTable.Td className="hidden text-xs text-secondary min-[1360px]:table-cell">
                     {CHANNEL_LABELS[order.channel] ?? order.channel}
                   </DataTable.Td>
                   <DataTable.Td>
@@ -694,7 +710,7 @@ function OrdersPageContent() {
                       customerStatus={order.customerStatus}
                       internalStatus={order.internalStatus}
                       compact
-                      labelInternalStatus
+                      showInternalStatus={false}
                     />
                   </DataTable.Td>
                   {canSeeMoney && (
@@ -702,7 +718,7 @@ function OrdersPageContent() {
                       align="right"
                       // เงินในคอลัมน์ = ทศนิยม 2 ตำแหน่งเสมอ ให้หลักสตางค์เรียงแนวดิ่ง
                       // น้ำหนักปกติ — คอลัมน์นำของแถวคือเลขออเดอร์ตัวเดียว (benchmark 2026-08-04)
-                      className="tabular-nums text-slate-900 dark:text-white"
+                      className="tabular-nums text-strong"
                     >
                       {formatBaht(order.totalAmount ?? 0)}
                     </DataTable.Td>
@@ -713,7 +729,7 @@ function OrdersPageContent() {
                     </DataTable.Td>
                   )}
                   {/* วันที่เปิดออเดอร์ — วางติดกำหนดส่งให้อ่านเป็นคู่ ต้นทาง–ปลายทาง */}
-                  <DataTable.Td className="hidden whitespace-nowrap text-xs tabular-nums text-slate-500 min-[1360px]:table-cell dark:text-slate-400">
+                  <DataTable.Td className="hidden whitespace-nowrap text-xs tabular-nums text-muted min-[1360px]:table-cell">
                     {formatDate(order.createdAt)}
                   </DataTable.Td>
                   {showDeadline && (
@@ -737,12 +753,19 @@ function OrdersPageContent() {
               const mockupCover = order.designs[0]
                 ? mockupCoverImage(order.designs[0])
                 : null;
+              const customerName = order.customer?.name?.trim() ?? "";
+              const orderTitle = order.title?.trim() ?? "";
+              const primaryIdentity = customerName || orderTitle || "—";
+              const secondaryTitle =
+                customerName && orderTitle && customerName !== orderTitle
+                  ? orderTitle
+                  : "";
               return (
-                <article key={order.id} role="listitem" className="card-surface rounded-lg">
+                <article key={order.id} role="listitem" className="card-surface rounded-2xl">
                 <Link
                   href={`/orders/${order.id}`}
                   className={cn("block min-h-11 rounded-lg p-3", FOCUS_BUTTON)}
-                  aria-label={`เปิดออเดอร์ ${order.orderNumber} ${order.customer?.name ?? ""}`}
+                  aria-label={`เปิดออเดอร์ ${order.orderNumber} ${primaryIdentity} ${secondaryTitle}`.replace(/\s+/g, " ").trim()}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex min-w-0 items-start gap-3">
@@ -751,18 +774,20 @@ function OrdersPageContent() {
                         orderNumber={order.orderNumber}
                       />
                       <div className="min-w-0">
-                        <p className="font-semibold text-blue-700 dark:text-blue-300">
+                        <p className="font-medium tabular-nums text-secondary">
                           {order.orderNumber}
                         </p>
-                        <p className="mt-0.5 truncate font-medium text-slate-900 dark:text-white">
-                          {order.customer?.name ?? "—"}
+                        <p className="mt-0.5 truncate text-base font-semibold text-strong">
+                          {primaryIdentity}
                         </p>
-                        <p className="truncate text-xs text-slate-500 dark:text-slate-400">
-                          {order.title}
-                        </p>
+                        {secondaryTitle && (
+                          <p className="truncate text-sm text-secondary">
+                            {secondaryTitle}
+                          </p>
+                        )}
                       </div>
                     </div>
-                    <ChevronRight aria-hidden="true" className="mt-1 h-5 w-5 shrink-0 text-slate-400" />
+                    <ChevronRight aria-hidden="true" className="mt-1 h-5 w-5 shrink-0 text-muted" />
                   </div>
 
                   <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -770,7 +795,7 @@ function OrdersPageContent() {
                       customerStatus={order.customerStatus}
                       internalStatus={order.internalStatus}
                       compact
-                      labelInternalStatus
+                      showInternalStatus={false}
                     />
                     {order.orderType === "CUSTOM" && (
                       <Badge variant="accent" size="sm">
@@ -793,7 +818,7 @@ function OrdersPageContent() {
                     </div>
                     {canSeeMoney && (
                       <div className="text-right">
-                        <p className="text-2xs text-muted">ยอดรวม</p>
+                        <p className="text-xs text-muted">ยอดรวม</p>
                         <p className="font-semibold tabular-nums text-strong">
                           {formatBaht(order.totalAmount ?? 0)}
                         </p>

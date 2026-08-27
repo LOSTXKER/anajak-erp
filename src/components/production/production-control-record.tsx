@@ -26,29 +26,36 @@ import {
   type GarmentControlEvidence,
   type ProductionControlTone,
 } from "@/lib/production-control";
+import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { mockupCoverImage, mockupImageCount } from "@/lib/mockup";
 import { productionWorkflowSteps } from "@/lib/production-steps";
 import { cn, formatDate, formatDateTime } from "@/lib/utils";
 
-const TONE_CLASS: Record<ProductionControlTone, string> = {
-  danger: "bg-red-50 text-red-700 dark:bg-red-950/45 dark:text-red-300",
-  warning: "bg-amber-50 text-amber-800 dark:bg-amber-950/45 dark:text-amber-200",
-  active: "bg-blue-50 text-blue-700 dark:bg-blue-950/45 dark:text-blue-300",
-  success: "bg-green-50 text-green-700 dark:bg-green-950/45 dark:text-green-300",
-  neutral: "bg-surface-muted text-secondary",
+/* ป้ายสถานะของหน้าผลิตเคยเป็นแคปซูลพื้นสีที่เขียนสูตรเองในไฟล์นี้ — ทำให้ทั้งเว็บ
+   พูดสถานะ 3 ภาษาพร้อมกัน (จุดสี+ข้อความ · <Badge> · แคปซูลตัวนี้)
+   ตอนนี้ยืมภาษาเดียวกับที่เหลือ: วงแหวนบาง + จุดสี ไม่มีพื้นสี (UI-2026 เฟส 3) */
+const TONE_VARIANT: Record<ProductionControlTone, BadgeProps["variant"]> = {
+  danger: "destructive",
+  warning: "warning",
+  active: "accent",
+  success: "success",
+  neutral: "default",
+};
+
+const TONE_DOT: Record<ProductionControlTone, string> = {
+  danger: "bg-red-500",
+  warning: "bg-amber-500",
+  active: "bg-blue-500",
+  success: "bg-green-600 dark:bg-green-400",
+  neutral: "bg-slate-500 dark:bg-slate-400",
 };
 
 function StatusPill({ tone, children }: { tone: ProductionControlTone; children: string }) {
   return (
-    <span
-      className={cn(
-        "inline-flex min-h-7 w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium",
-        TONE_CLASS[tone],
-      )}
-    >
-      <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true" />
+    <Badge variant={TONE_VARIANT[tone]} className="min-h-7 w-fit px-2 py-1">
+      <span className={cn("h-1.5 w-1.5 rounded-full", TONE_DOT[tone])} aria-hidden="true" />
       {children}
-    </span>
+    </Badge>
   );
 }
 
@@ -241,7 +248,7 @@ export function ProductionControlRecord({
       className="min-h-[calc(100dvh-4rem)] bg-bg px-4 py-5 sm:px-6 lg:px-8 lg:py-6"
     >
       <div className="mx-auto max-w-[78rem] space-y-5">
-        <section className="card-surface overflow-hidden rounded-lg">
+        <section className="card-surface overflow-hidden rounded-2xl">
           <div className="px-4 py-4 sm:px-5 sm:py-5">
             <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
               <nav aria-label="ตำแหน่งปัจจุบัน" className="flex items-center gap-1.5 text-xs text-muted">
@@ -263,7 +270,7 @@ export function ProductionControlRecord({
 
             <header className="mt-3 grid gap-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
               <div className="min-w-0">
-                <p className="text-2xs font-medium text-muted">ข้อมูลงาน</p>
+                <p className="text-xs font-medium text-muted">ข้อมูลงาน</p>
                 <div className="mt-1 flex flex-wrap items-center gap-2">
                   <h1 className="text-2xl font-semibold text-strong">{order.orderNumber}</h1>
                   <StatusPill tone={allStepsCompleted ? "success" : overallDisplay.tone}>
@@ -275,13 +282,13 @@ export function ProductionControlRecord({
                 </p>
                 <dl className="mt-4 flex flex-wrap items-start gap-x-5 gap-y-3 text-sm">
                   <div className="min-w-24 border-r border-divider pr-5">
-                    <dt className="text-2xs font-medium text-muted">จำนวนผลิต</dt>
+                    <dt className="text-xs font-medium text-muted">จำนวนผลิต</dt>
                     <dd className="mt-0.5 font-semibold tabular-nums text-strong">
                       {totalQty.toLocaleString("th-TH")} ตัว
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-2xs font-medium text-muted">กำหนดส่ง</dt>
+                    <dt className="text-xs font-medium text-muted">กำหนดส่ง</dt>
                     <dd className={cn("mt-0.5 font-semibold", order.deadline ? "text-strong" : "text-amber-700 dark:text-amber-300")}>
                       {order.deadline ? formatDate(order.deadline) : "ยังไม่กำหนด"}
                     </dd>
@@ -318,7 +325,7 @@ export function ProductionControlRecord({
                     size="lg"
                   />
                   <span className="min-w-0 flex-1">
-                    <span className="block text-2xs font-medium text-muted">แบบที่ใช้ผลิต</span>
+                    <span className="block text-xs font-medium text-muted">แบบที่ใช้ผลิต</span>
                     <span className="mt-0.5 block text-sm font-semibold text-strong">
                       {latestMockup ? `ม็อกอัพอนุมัติ v${latestMockup.versionNumber}` : "ยังไม่มีม็อกอัพอนุมัติ"}
                     </span>
@@ -338,7 +345,7 @@ export function ProductionControlRecord({
               className="grid border-t border-divider md:grid-cols-2"
             >
               <div className="px-4 py-4 sm:px-5">
-                <dt className="text-2xs font-medium text-muted">ปิดงานเมื่อ</dt>
+                <dt className="text-xs font-medium text-muted">ปิดงานเมื่อ</dt>
                 <dd className="mt-1 font-semibold text-strong">
                   {finalStep?.completedAt ? formatDateTime(finalStep.completedAt) : "เวลาไม่ถูกบันทึก"}
                 </dd>
@@ -347,7 +354,7 @@ export function ProductionControlRecord({
                 </p>
               </div>
               <div className="border-t border-divider bg-blue-50/45 px-4 py-4 dark:bg-blue-950/20 md:border-l md:border-t-0 sm:px-5">
-                <dt className="text-2xs font-medium text-blue-700 dark:text-blue-300">ส่งต่องาน</dt>
+                <dt className="text-xs font-medium text-blue-700 dark:text-blue-300">ส่งต่องาน</dt>
                 <dd className="mt-1 font-semibold text-strong">{handoff.label}</dd>
                 <p className="mt-0.5 text-xs text-secondary">เจ้าของถัดไป: {handoff.owner}</p>
                 <Button asChild size="sm" className="mt-3 w-full sm:w-auto">
@@ -364,7 +371,7 @@ export function ProductionControlRecord({
         {selectedStep && selectedRow ? (
           <section
             data-production-step-flow=""
-            className="card-surface overflow-hidden rounded-lg"
+            className="card-surface overflow-hidden rounded-2xl"
             aria-labelledby="selected-production-step-title"
           >
             <header className="flex flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
@@ -452,15 +459,15 @@ export function ProductionControlRecord({
                     ) : null}
                     <dl className="grid grid-cols-3 divide-x divide-divider overflow-hidden rounded-lg border border-border text-center tabular-nums">
                       <div className="px-3 py-3">
-                        <dt className="text-2xs text-muted">{aggregateGarmentMetrics ? "ต้องใช้รวม" : "ต้องใช้"}</dt>
+                        <dt className="text-xs text-muted">{aggregateGarmentMetrics ? "ต้องใช้รวม" : "ต้องใช้"}</dt>
                         <dd className="mt-1 text-xl font-semibold text-strong">{garment.totalNeeded}</dd>
                       </div>
                       <div className="px-3 py-3">
-                        <dt className="text-2xs text-muted">{aggregateGarmentMetrics ? "เบิกสุทธิรวม" : "เบิกสุทธิ"}</dt>
+                        <dt className="text-xs text-muted">{aggregateGarmentMetrics ? "เบิกสุทธิรวม" : "เบิกสุทธิ"}</dt>
                         <dd className="mt-1 text-xl font-semibold text-strong">{garment.netIssued}</dd>
                       </div>
                       <div className="px-3 py-3">
-                        <dt className="text-2xs text-muted">{aggregateGarmentMetrics ? "ยังขาดรวม" : "ยังขาด"}</dt>
+                        <dt className="text-xs text-muted">{aggregateGarmentMetrics ? "ยังขาดรวม" : "ยังขาด"}</dt>
                         <dd className={cn("mt-1 text-xl font-semibold", garment.missing > 0 ? "text-amber-700 dark:text-amber-300" : "text-green-700 dark:text-green-300")}>
                           {garment.missing}
                         </dd>
@@ -471,11 +478,11 @@ export function ProductionControlRecord({
 
                 <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
                   <div>
-                    <dt className="text-2xs font-medium text-muted">ผลจริง</dt>
+                    <dt className="text-xs font-medium text-muted">ผลจริง</dt>
                     <dd className="mt-1 font-semibold tabular-nums text-strong">{selectedRow.actualLabel}</dd>
                   </div>
                   <div>
-                    <dt className="text-2xs font-medium text-muted">ผู้รับผิดชอบ</dt>
+                    <dt className="text-xs font-medium text-muted">ผู้รับผิดชอบ</dt>
                     <dd className={cn("mt-1 font-semibold", selectedStep.assignedTo ? "text-strong" : "text-muted")}>
                       {selectedRow.ownerLabel}
                     </dd>
@@ -510,7 +517,7 @@ export function ProductionControlRecord({
               </div>
 
               <div className="border-t border-divider bg-surface-muted px-4 py-5 lg:border-l lg:border-t-0 sm:px-5">
-                <p className="text-2xs font-medium text-muted">
+                <p className="text-xs font-medium text-muted">
                   {selectedStep.status === "COMPLETED" ? "หลักฐานการปิดขั้น" : "เงื่อนไขของขั้นนี้"}
                 </p>
                 {selectedStep.status === "COMPLETED" ? (
@@ -540,7 +547,7 @@ export function ProductionControlRecord({
                     {selectedRow.blocker || "ไม่มีเงื่อนไขหรือปัญหาที่เปิดอยู่"}
                   </p>
                 )}
-                <p className="mt-4 border-t border-divider pt-3 text-2xs text-muted">
+                <p className="mt-4 border-t border-divider pt-3 text-xs text-muted">
                   ระบบบันทึกเวลาเสร็จและผู้รับผิดชอบ · ยังไม่รวมผู้กด ต้นทาง และเหตุผลแก้ไข
                 </p>
               </div>
@@ -548,7 +555,7 @@ export function ProductionControlRecord({
 
           </section>
         ) : (
-          <section className="card-surface rounded-lg px-4 py-5 text-sm text-muted sm:px-5">
+          <section className="card-surface rounded-2xl px-4 py-5 text-sm text-muted sm:px-5">
             ใบผลิตนี้ยังไม่มีขั้นตอน
           </section>
         )}

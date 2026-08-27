@@ -195,20 +195,20 @@ export default function SettingsPage() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={cn("group card-surface card-surface-hover flex items-center gap-3 rounded-lg p-4 transition-colors", FOCUS_BUTTON)}
+                  className={cn("group card-surface card-surface-hover flex items-center gap-3 rounded-2xl p-4 transition-colors", FOCUS_BUTTON)}
                 >
                   <div className={cn("flex h-9 w-9 items-center justify-center rounded-lg transition-colors", VISUAL_TONE_CLASSES[link.tone].soft)}>
                     <link.icon className="h-4 w-4" strokeWidth={1.75} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-slate-900 dark:text-white">
+                    <p className="truncate text-sm font-medium text-strong">
                       {link.title}
                     </p>
-                    <p className="truncate text-xs text-slate-500 dark:text-slate-400">
+                    <p className="truncate text-xs text-muted">
                       {link.meta}
                     </p>
                   </div>
-                  <ChevronRight className="h-4 w-4 shrink-0 text-slate-300 transition-transform group-hover:translate-x-0.5 dark:text-slate-600" />
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted transition-transform group-hover:translate-x-0.5" />
                 </Link>
               ))}
             </div>

@@ -71,8 +71,22 @@ export function ProductionFreshness({
           )}
         />
       )}
-      <span className="text-xs font-medium leading-4 text-current">{title}</span>
-      <span className={cn("text-2xs leading-4", stale ? "text-current" : "text-muted")}>{detail}</span>
+      <span
+        className={cn(
+          "font-medium text-current",
+          liveSurface ? "text-sm" : "text-xs leading-4",
+        )}
+      >
+        {title}
+      </span>
+      <span
+        className={cn(
+          liveSurface ? "text-xs" : "text-2xs leading-4",
+          stale ? "text-current" : "text-muted",
+        )}
+      >
+        {detail}
+      </span>
       {stale ? (
         <span className="sr-only" role="status">
           {title} {detail}

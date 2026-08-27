@@ -26,7 +26,7 @@ import { ShieldAlert } from "lucide-react";
 function MetaCell({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
   return (
     <div>
-      <p className="text-[10.5px] uppercase tracking-wide text-slate-500">{label}</p>
+      <p className="text-[10.5px] text-slate-500">{label}</p>
       <p className={strong ? "text-[14px] font-bold" : "text-[12.5px] font-medium"}>{value}</p>
     </div>
   );
@@ -190,7 +190,7 @@ export default async function PrintJobTicketPage({
         {/* ม็อกอัพที่ลูกค้าอนุมัติล่าสุด — อ้างอิงเวอร์ชันชัดเจน กันพิมพ์ผิดเวอร์ชัน */}
         {approvedDesign && (
           <div className="mt-3 rounded border border-slate-300 px-4 py-2.5">
-            <p className="text-[10.5px] uppercase tracking-wide text-slate-500">
+            <p className="text-[10.5px] text-slate-500">
               ม็อกอัพอนุมัติล่าสุด — เวอร์ชัน {approvedDesign.versionNumber}
               {approvedDesign.approvedAt
                 ? ` (อนุมัติ ${formatDocDate(approvedDesign.approvedAt)})`

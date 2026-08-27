@@ -30,12 +30,12 @@ export function AddCard({
         "flex w-full flex-col items-center gap-1.5 rounded-lg p-4 text-center transition-colors hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed"
       )}
     >
-      <Icon className="h-6 w-6 shrink-0 text-slate-400" strokeWidth={1.75} />
+      <Icon className="h-6 w-6 shrink-0 text-muted" strokeWidth={1.75} />
       <span>
-        <span className="block text-sm font-medium text-slate-700 dark:text-slate-200">
+        <span className="block text-sm font-medium text-secondary">
           {label}
         </span>
-        <span className="block text-xs text-slate-500 dark:text-slate-400">
+        <span className="block text-xs text-muted">
           {desc}
         </span>
       </span>

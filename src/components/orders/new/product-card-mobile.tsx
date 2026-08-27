@@ -37,7 +37,7 @@ export function ProductCardMobile({
     productLabel, variantLabel,
   } = useProductRow(product, prodIdx, itemIdx, onSetItems);
 
-  const fieldLabel = "mb-1 block text-xs text-slate-500 dark:text-slate-400";
+  const fieldLabel = "mb-1 block text-xs text-muted";
 
   return (
     <div className="space-y-2.5 rounded-lg border border-border p-3">
@@ -73,16 +73,16 @@ export function ProductCardMobile({
         <div className="flex items-center gap-2">
           {product.productImageUrl ? (
             /* eslint-disable-next-line @next/next/no-img-element */
-            <img src={product.productImageUrl} alt="" className="h-10 w-10 flex-shrink-0 rounded-lg border border-slate-200 object-cover dark:border-slate-700" />
+            <img src={product.productImageUrl} alt="" className="h-10 w-10 flex-shrink-0 rounded-lg border border-border object-cover" />
           ) : (
-            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-white/[0.06]">
-              <ImageIcon className="h-4 w-4 text-slate-300 dark:text-slate-600" />
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border border-border bg-surface-muted">
+              <ImageIcon className="h-4 w-4 text-muted" />
             </div>
           )}
           <div className="min-w-0">
-            <span className="block truncate text-sm font-medium text-slate-800 dark:text-slate-100">{productLabel}</span>
+            <span className="block truncate text-sm font-medium text-strong">{productLabel}</span>
             {variantLabel && <span className="block text-xs text-muted">{variantLabel}</span>}
-            <div className="mt-0.5 flex items-center gap-2 text-xs text-slate-400">
+            <div className="mt-0.5 flex items-center gap-2 text-xs text-muted">
               {product.productSku && <span>{product.productSku}</span>}
               {product.stockAvailable != null && (
                 <span className={product.stockAvailable > 0 ? "text-green-600 dark:text-green-400" : "text-red-700 dark:text-red-300"}>คลัง {product.stockAvailable}</span>
@@ -113,7 +113,7 @@ export function ProductCardMobile({
                 type="button" variant="outline" size="sm"
                 onClick={() => setShowMatrix((v) => !v)}
                 disabled={product.variants.length > 1}
-                className={cn("h-9 gap-1.5 px-2 text-xs", multi && "border-blue-400 bg-blue-50 text-blue-700 dark:border-blue-700 dark:bg-blue-900/40 dark:text-blue-300")}
+                className={cn("h-9 gap-1.5 px-2", multi && "border-blue-400 bg-blue-50 text-blue-700 dark:border-blue-700 dark:bg-blue-900/40 dark:text-blue-300")}
                 title={product.variants.length > 1 ? "ล้างจำนวนไซส์ให้เหลือไซส์เดียวก่อนปิด" : "กรอกหลายไซส์ในแถวเดียว"}
               >
                 <LayoutGrid />{multi ? "ปิดหลายไซส์" : "หลายไซส์"}
@@ -128,7 +128,7 @@ export function ProductCardMobile({
         <label className="block">
           <span className={fieldLabel}>ราคา/ชิ้น</span>
           {isCustomerProvided ? (
-            <div className="flex h-9 items-center text-xs text-slate-300">—</div>
+            <div className="flex h-9 items-center text-xs text-muted">—</div>
           ) : (
             <Input type="number" min={0} step={0.01} value={product.baseUnitPrice || ""} onChange={(e) => updateProduct("baseUnitPrice", parseFloat(e.target.value) || 0)} placeholder="0" className="w-full text-right" />
           )}
@@ -136,7 +136,7 @@ export function ProductCardMobile({
         <label className="block">
           <span className={fieldLabel}>จำนวน</span>
           {multi ? (
-            <div className="flex h-9 items-center justify-center text-sm font-medium text-slate-700 dark:text-slate-200">{totalQty}</div>
+            <div className="flex h-9 items-center justify-center text-sm font-medium text-secondary">{totalQty}</div>
           ) : (
             <Input type="number" min={0} value={qty || ""} onChange={(e) => updateVariantField("quantity", parseInt(e.target.value) || 0)} placeholder="0" className="w-full text-center" />
           )}
@@ -144,9 +144,9 @@ export function ProductCardMobile({
         <div className="block">
           <span className={fieldLabel}>รวม</span>
           {isCustomerProvided ? (
-            <div className="flex h-9 items-center justify-end text-xs text-slate-300">—</div>
+            <div className="flex h-9 items-center justify-end text-xs text-muted">—</div>
           ) : (
-            <div className="flex h-9 items-center justify-end text-sm font-semibold tabular-nums text-slate-800 dark:text-slate-100">{formatCurrency(lineTotal)}</div>
+            <div className="flex h-9 items-center justify-end text-sm font-semibold tabular-nums text-strong">{formatCurrency(lineTotal)}</div>
           )}
         </div>
       </div>
@@ -169,7 +169,7 @@ export function ProductCardMobile({
                 </Select>
                 </>
               ) : (
-                <><p className={fieldLabel}>แพค</p><span className="text-xs text-slate-400">ยังไม่มีตัวเลือกแพค</span></>
+                <><p className={fieldLabel}>แพค</p><span className="text-xs text-muted">ยังไม่มีตัวเลือกแพค</span></>
               )}
             </div>
       </div>

@@ -29,28 +29,69 @@
 
 ## สี — semantic system (`src/app/globals.css`)
 
-Anajak Operational Panel System ใช้ workspace เป็นฉากหลังและ panel เป็นขอบเขตข้อมูล: Light workspace off-white `#fafafa`
-กับ chrome/panel ขาว; Dark workspace ดำ `#000` กับ panel `#0a0a0a` · `Section` ที่มีขอบและ `DataTable`
-รวมเนื้อหาที่สัมพันธ์กันใน panel เส้น 1px มุม 8px โดยไม่มีเงาตกแต่ง · menu/dialog เป็นชั้นลอยสูงสุด ·
-น้ำเงิน Anajak `#3973b2` สงวนให้ primary, link, focus และ current/selected; active navigation ใช้พื้นฟ้า tint อ่อนกับข้อความ/ไอคอนน้ำเงิน
+Anajak Operational Panel System — กฎที่จริงทั้งสองธีมคือ **ผืนงาน (bg) เป็นพื้นจม การ์ดลอยเหนือมันเสมอ**
+ส่วนกรอบเว็บวางคนละฝั่งของผืนงานในแต่ละธีมโดยตั้งใจ (ตารางค่าจริงอยู่ใต้หัวข้อนี้) ·
+`Section` ที่มีขอบและ `DataTable` รวมเนื้อหาที่สัมพันธ์กัน ·
+**ของที่กดได้มีคู่ interaction สามชุด** เลือกตามพื้นที่ของจริงไปยืน: การ์ดขาว / กรอบเว็บ / ผืนงาน near-white
+ใช้ผิดคู่แล้วชี้จะไม่ขยับ — เคยเกิดจริงตอนผืนงานเปลี่ยนเป็นเทา 2026-08-26
+เมนูซ้ายมีสองสถานะ: **กาง 15rem / หุบ 4rem (เหลือแต่ไอคอน)** จำไว้ที่เครื่องผู้ใช้ ·
+ตอนหุบต้องคงชื่อเมนูไว้ใน `title` + `aria-label` เสมอ · **ห้ามใส่จุด/สปินเนอร์ในเมนูตอนกด**
+(เบสสั่ง 2026-08-26) — สัญญาณ "ระบบรับรู้แล้ว" เป็นหน้าที่ของ `loading.tsx` ที่เดียว
+
+**บันไดมุมโค้ง (เฟส 10 · เบสเคาะ "นุ่มเต็มที่" 2026-08-26):** ชิ้นเล็ก `rounded-md` = **10px** ·
+กล่องทั่วไป `rounded-lg` = **12px** · การ์ด/พาเนล/overlay `rounded-2xl` = **16px** — ค่าจริงนิยามที่ `@theme`
+กติกาเดียวที่ยังอยู่: ชั้นในโค้งไม่เกินชั้นนอก · ห้าม `rounded-3xl` (เลยความเป็นการ์ดไปเป็นก้อนกลม)
+
+**การ์ดแยกตัวด้วยเงา ไม่ใช่เส้น** — `.card-surface` ใช้ `--shadow-card` ชุดกลางชุดเดียว
+นี่คือการกลับคำจากกติกาเดิม "panel ห้ามมีเงาตกแต่ง" ซึ่งตั้งไว้ตอนที่เงาถูกใช้เป็นของประดับ
+ที่นี่เงาคือ *วิธีแยกกล่อง* แทนเส้น · **ห้ามใส่ utility เงาเอง** (`shadow-sm/md/lg`) ทุกกรณี
+เพดานที่ด่านคุมไว้: blur ≤ 20px และ alpha ≤ 0.2 ในธีมสว่าง — เกินกว่านี้จะไหลกลับไปเป็นเงาประดับ
+ธีมมืดเงาแทบมองไม่เห็น จึงยังพึ่งเส้นจาง ๆ (`--color-card-edge`) เป็นตัวหลัก
+
+**ความหนาแน่นแถวตาราง:** เซลล์ `px-6 py-4` · แถวจริงสูง **75px** — `page-skeleton.tsx` ต้องใช้ตัวเลขเดียวกัน
+ไม่งั้นพอข้อมูลมาถึงจอจะกระโดด (มีด่านล็อกสองที่ให้ตรงกัน) · ข้อมูลทุกระดับใน `DataTable` list ใช้
+14/22px เท่ากันและแยกลำดับชั้นด้วยสี/น้ำหนัก; 12/18px ใช้กับหัวคอลัมน์, compact table ใน form/detail
+และ form control ที่ประกาศ `size="sm"`/`dense` อย่างชัดเจนเท่านั้น
+
+**ตารางระดับบนสุดอยู่ในการ์ดเสมอ** — เคยลองแบบวางบน
+ผืนหน้าตรง ๆ แล้วเบสตีกลับ 2026-08-26 ("ดูแปลกๆ และไม่ชอบ") จึงคืนกล่องครอบ ·
+ตั้งแต่ 2026-08-27 ผืน Light ขาวขึ้นเป็น near-white และใช้ edge+shadow กลางของการ์ดเป็นตัวแยกขอบเขตหลัก · menu/dialog เป็นชั้นลอยสูงสุด ·
+น้ำเงิน Anajak `#3973b2` สงวนให้ primary, link, focus, current/selected และ **ตัวตนของแบรนด์** (ตราสัญลักษณ์ · หัวเอกสารพิมพ์ · หัวหน้าที่ลูกค้าเห็น · หัวจอโรงงาน) ซึ่งไม่อยู่ใต้กติกาสงวนสี
+**ยกเว้นแถบเมนูหลักของ app shell** (เบสเคาะแบบ ก · 2026-08-26): เมนูที่กำลังเปิดอยู่ใช้ **พื้นเทากลาง ๆ + ขีดแบรนด์ 2px ริมแถบ + ตัวหนังสือเข้ม** ไม่ใช่พื้นฟ้า tint — เพราะพิลฟ้าเต็มแถบไปแย่งสายตากับปุ่มหลักที่ใช้น้ำเงินเหมือนกัน · เมนูโมดูลในหน้าผลิต แถบ segmented และจอสถานี ยังใช้ `INTERACTIVE_SELECTED` พื้นฟ้าตามเดิม
 
 | บทบาท | Light | Dark | utility |
 |---|---|---|---|
-| พื้น workspace/fallback หลังบ้าน | `#fafafa` | `#000` | `.app-workspace` + `bg-bg` |
-| navbar/sidebar | `#fff` | `#000` | `bg-chrome` |
-| panel/card | `#fff` + ขอบ `#e5e5e5` | `#0a0a0a` + ขอบ `#2e2e2e` | `bg-surface` / `card-surface` |
-| menu/dialog | `#fff` | `#171717` | `bg-surface-elevated` / `overlay-surface` |
-| กล่องจมเชิงโครงสร้าง/disabled/หัวตาราง | `#fafafa` | `#111` | `bg-surface-muted` / `SUNK_PANEL` / `TABLE_HEAD_SURFACE` |
-| ช่องกรอก | `#fff` + ขอบ `#d4d4d4` | `#0a0a0a` + ขอบ `#3a3a3a` | `FIELD_SURFACE` |
+| พื้น workspace (ผืนงาน · พื้นจมของทั้งระบบ) | `#f7f7f8` | `#0e0e10` | `.app-workspace` + `bg-bg` |
+| navbar/sidebar | `#ffffff` (ขาวเท่าการ์ด) | `#0a0a0b` (จมใต้ผืนงาน) | `bg-chrome` |
+| panel/card | `#fff` + ขอบ `#e5e6e9` | `#161618` + ขอบ `#2b2b2f` | `bg-surface` / `card-surface` |
+| menu/dialog | `#fff` | `#1c1c20` | `bg-surface-elevated` / `overlay-surface` |
+| กล่องจมเชิงโครงสร้าง/disabled | `#f4f5f6` | `#101013` | `bg-surface-muted` / `SUNK_PANEL` |
+| หัวตาราง | โปร่งตามพื้นตารางแม่ | โปร่งตามพื้นตารางแม่ | `TABLE_HEAD_SURFACE` = transparent + divider |
+| ช่องกรอก | `#fff` + ขอบ `#cfcfd4` | `#101013` + ขอบ `#3a3a3f` | `FIELD_SURFACE` |
 | พื้นที่เพิ่ม/อัปโหลด | ขอบประ `slate-300` | ขอบประ `slate-700` | `DASHED` / `DASHED_INTERACTIVE` — resting เบา; hover/focus ค่อยเน้น |
 | control บน toolbar | ขาว + ขอบบาง | panel dark + ขอบบาง | prop `surface="raised"` → `RAISED_CONTROL_SURFACE` |
 | ปุ่มรอง | ขาว + ขอบบาง | panel dark + ขอบบาง | `Button outline/secondary/subtle` |
-| ขอบทั่วไป / เส้นคั่น | `#e5e5e5` / `#ededed` | `#2e2e2e` / `#262626` | `border-border` / `border-divider` |
-| Hover | `#f3f3f3` | `#1a1a1a` | `bg-interactive-hover` / `INTERACTIVE_HOVER` |
-| Pressed | `#ebebeb` | `#242424` | `bg-interactive-pressed` / `INTERACTIVE_PRESSED` |
-| Hover บน navbar/sidebar | `#ebebeb` | `#1a1a1a` | `bg-interactive-chrome-hover` / `INTERACTIVE_CHROME_HOVER` |
-| Pressed บน navbar/sidebar | `#e1e1e1` | `#242424` | `bg-interactive-chrome-pressed` / `INTERACTIVE_CHROME_PRESSED` |
+| ขอบทั่วไป / เส้นคั่น | `#e5e6e9` / `#ececee` | `#2b2b2f` / `#242428` | `border-border` / `border-divider` |
+| Hover | `#efeff1` | `#232326` | `bg-interactive-hover` / `INTERACTIVE_HOVER` |
+| Pressed | `#e7e7e9` | `#2a2a2e` | `bg-interactive-pressed` / `INTERACTIVE_PRESSED` |
+| Hover บน navbar/sidebar | `#efeff1` (เท่าคู่การ์ด เพราะพื้นขาวเหมือนกัน) | `#1b1b1d` | `bg-interactive-chrome-hover` / `INTERACTIVE_CHROME_HOVER` |
+| Pressed บน navbar/sidebar | `#e7e7e9` | `#222225` | `bg-interactive-chrome-pressed` / `INTERACTIVE_CHROME_PRESSED` |
+| **Hover บนผืนงาน** (ปุ่มแบ่งหน้า · ปุ่มย้อนกลับ) | `#e5e6ea` | `#1a1a1d` | `bg-interactive-page-hover` / `INTERACTIVE_PAGE_HOVER` |
+| **Pressed บนผืนงาน** | `#dcdde2` | `#212125` | `bg-interactive-page-pressed` / `INTERACTIVE_PAGE_PRESSED` |
 | Selected | `#d2e4f6` | `#173c61` | `bg-interactive-selected text-interactive-selected-text` |
+
+> **บันไดพื้นผิว (แก้ล่าสุด 2026-08-27)** — กฎที่จริงทั้งสองธีม: *ผืนงานเป็นพื้นจม การ์ดลอยเหนือมันเสมอ*
+> ส่วนกรอบเว็บวางคนละฝั่งของผืนงานในแต่ละธีม และนั่นตั้งใจ
+>
+> | | กรอบเว็บ (chrome) | ผืนงาน (bg) | การ์ด (surface) |
+> |---|---|---|---|
+> | สว่าง | `#ffffff` ขาวเท่าการ์ด | `#f7f7f8` near-white | `#ffffff` + edge/เงากลาง |
+> | มืด | `#0a0a0b` จมใต้ผืนงาน | `#0e0e10` | `#161618` |
+>
+> การ์ดต่างจากผืนงาน 1.07 เท่าในธีมสว่าง; edge+เงากลางเป็นตัวแยกขอบเขตหลัก
+> ธีมมืดยังต่างกัน 1.07 เท่า และแยกด้วยเส้นขอบเป็นหลัก — หนี้ที่รู้ตัว ไม่ใช่ของหลุด
+> ประวัติ: กรอบขาว (08-03) → กรอบเทา (08-25 เฟส 1) → กรอบขาวอีกครั้ง (08-26) → **ผืนงาน Light ขาวขึ้นเป็น near-white (08-27 เบสสั่งตรง)**
+> รอบล่าสุดการ์ดไม่ได้กลับไปเป็นขาวลอยบนขาว เพราะยังมี hairline edge + เงากลางเป็นขอบเขตหลัก
 
 สีบริบททุกตัวประกาศที่ token กลางและต้องผ่านคู่ `solid/surface/text/border` ทั้ง Light/Dark:
 
@@ -77,12 +118,12 @@ Anajak Operational Panel System ใช้ workspace เป็นฉากหล�
 
 กติกา interaction:
 
-- navigation, control, menu option, row และ clickable card ใช้ neutral hover/pressed ครอบ hit area จริง; current/selected ใช้น้ำเงิน Anajak โดย control แบบเส้นใต้เปลี่ยนทั้งเส้นและข้อความ ส่วน navigation ใช้ selected tint อ่อน
+- navigation, control, menu option, row และ clickable card ใช้ neutral hover/pressed ครอบ hit area จริง; current/selected ใช้น้ำเงิน Anajak โดย control แบบเส้นใต้เปลี่ยนทั้งเส้นและข้อความ ส่วน **แถบเมนูหลักของ app shell ใช้พื้นเทากลาง + ขีดแบรนด์ริมแถบ** (แบบ ก) ไม่ใช่ selected tint
 - clickable card compose `card-surface-hover` เพื่อเปลี่ยน neutral fill/เส้นขอบโดยไม่ขยับตำแหน่งและไม่มีเงา; ห้ามเขียนสี/เงาซ้ำที่ caller
-- ของที่กดได้จริง compose `INTERACTIVE_PRESSED` ให้ตอนกดเข้มกว่า hover; selected/current คงพื้นฟ้า
+- ของที่กดได้จริง compose `INTERACTIVE_PRESSED` ให้ตอนกดเข้มกว่า hover; selected/current คงพื้นฟ้า ยกเว้นแถบเมนูหลักตามข้อบน
 - ของที่ถูกเลือกใช้ `INTERACTIVE_SELECTED` — ห้ามใช้ hover เป็น selected เพราะความหมายคนละอย่าง
 - Primary action ใช้ `blue-600` → hover `blue-700` → pressed `blue-800`; น้ำเงิน 600 ต้องคง `#3973b2`
-- Minimal = workspace เป็นฉากเรียบและใช้ panel เฉพาะกลุ่มเนื้อหาที่อ่านเป็นหน่วยเดียว: `Section` ที่มีขอบและ `DataTable` ใช้ `card-surface`; หัว/แถวคั่นด้วย divider · panel ไม่มีเงา · field/toolbar/secondary action ใช้พื้น panel+ขอบบาง · overlay ลอยสูงสุด
+- Minimal = workspace เป็นฉากเรียบและใช้ panel เฉพาะกลุ่มเนื้อหาที่อ่านเป็นหน่วยเดียว: `Section` ที่มีขอบและ `DataTable` ใช้ `card-surface` ทุกที่ (ไม่มีข้อยกเว้นแล้ว — prop `flush` ถูกถอดออก 2026-08-26); หัวตารางโปร่งตามพื้นแม่และใช้ divider แยกจากข้อมูล, แถวใช้ divider และขอบล่างของการ์ดเป็นเส้นปิดท้ายตาราง · panel ไม่มีเงา · field/toolbar/secondary action ใช้พื้น panel+ขอบบาง · overlay ลอยสูงสุด
 - `FlowFilterBar` อยู่ใน panel ของ caller จึงใช้กรอบนอกเพียงชั้นเดียว: hairline 1px ใช้เฉพาะใต้หัวช่วงเพื่อจัดกลุ่ม, “นอกเส้นทาง” ไม่มีเส้นตั้ง และห้ามคืน progress track ใต้ทุกสถานะเพราะจำนวนงานบอกปริมาณอยู่แล้ว · ทุกสถานะต้องมี cursor+neutral hover/pressed และ aria/title action ที่ตรงกับ selected state โดยไม่แสดงข้อความแนะนำค้างบนหน้า; ตัวที่เลือกยังใช้เส้นใต้ Anajak Blue
 - รายการงานในฟอร์มใช้หนึ่ง `card-surface` ต่อหนึ่งรายการโดยตรงบน workspace · ห้ามวาง card ใหญ่ครอบ list แล้วเติม card รอบรายการซ้ำ · CTA “เพิ่มรายการ” อยู่ก่อน list ทั้งหน้าเปิดงานและหน้าแก้ไข
 - ช่องกรอกใช้ `FIELD_SURFACE` เสมอ — `border-field-border bg-field` ไม่มีเงา; resting boundary ต้องอยู่ในช่วงที่ guard ล็อกไว้ไม่ให้จางจนกลืนหรือเข้มจนเป็นตาราง · focus/error ใช้เส้น contrast สูงและเปลี่ยนสีเส้นเดิมโดยความสูงไม่ขยับ · ห้าม ancestor เปลี่ยนสี field ตามตำแหน่ง
@@ -105,7 +146,7 @@ Anajak Operational Panel System ใช้ workspace เป็นฉากหล�
 | **โครงหน้า public (token)** | `components/public/public-page.tsx` (PublicPageShell / FullScreenLoading / InfoRow) | route อยู่ใน `(public)` — layout กลางใส่ noindex ให้ · prefix ธีมสว่างอยู่ `lib/public-routes.ts` |
 | **ไม่มีสิทธิ์** | `ui/access-denied.tsx` | ผ่าน prop `denied` ของ PageShell — ห้ามใช้ QueryError/`<p>` เทาแทน |
 | **state หน้า list** | `hooks/use-list-page-state.ts` (useListPageState + usePageClamp) | URL state + debounce ค้นหา + page clamp — ห้ามเขียน replaceListState เอง |
-| ตาราง list | `ui/data-table.tsx` (DataTable.Root/Head/Body/...) + `ui/table-pagination.tsx` | หัว sentence-case ห้าม UPPERCASE · หัวตาราง custom ใช้ `TABLE_HEAD_SURFACE` · จอเล็ก: ดูหัวข้อ Mobile |
+| ตาราง list | `ui/data-table.tsx` (DataTable.Root/Head/Body/...) + `ui/table-pagination.tsx` | หัว sentence-case ห้าม UPPERCASE · หัวโปร่งตามพื้นแม่ · body 14px ทุกระดับ · หัวตาราง custom ใช้ `TABLE_HEAD_SURFACE` · จอเล็ก: ดูหัวข้อ Mobile |
 | ยืนยัน/ถามเหตุผล | `useConfirm()` / `usePromptText()` จาก `ui/confirm-dialog.tsx` | **ห้าม window.confirm/prompt — lint เป็น error** |
 | dialog ทั่วไป | `ui/dialog.tsx` (Radix) | **เปิดแบบ conditional mount เท่านั้น** — กติกาอยู่ comment หัวไฟล์ |
 | แท็บ | `ui/tabs.tsx` | เนื้อหา lazy เป็นค่าเริ่มต้น · ฟอร์มที่มี state ยังไม่บันทึกเท่านั้นจึง opt-in `keepMounted` · ห้าม force-mount แท็บ query-heavy ทั้งหน้า |
@@ -160,6 +201,22 @@ Anajak Operational Panel System ใช้ workspace เป็นฉากหล�
 ตามที่ component มาตรฐานใช้อยู่: ฟอนต์ Prompt · ตัวเลขเงิน `tabular-nums` เสมอ ·
 mobile input ต้อง 16px กัน browser zoom; desktop control/body 14px · metadata อย่างน้อย 12px และต้องผ่าน contrast
 
+| บทบาท | ขนาด/บรรทัด | น้ำหนัก |
+|---|---:|---:|
+| ชื่อหน้า | 24/31px | 600 |
+| หัว section/card | 16/24px | 600 |
+| หัว dialog | 18/28px | 600 |
+| เนื้อหา/ตาราง/ปุ่ม | 14/22px | 400–600 |
+| navigation/filter/หัวตารางแบบ compact | 12/18px | 500–600 |
+| input บนมือถือ | 16/24px | 400 |
+| metadata/help/error | 12/18px | 400–500 |
+| micro status/counter | 11/18px | 500; ห้ามใช้กับ action/label/instruction |
+| ตัวเลขสรุป | 28/35px | 600 |
+
+- surface จอไม่ใช้ tracking override กับตัวอักษรใดเพื่อให้ Prompt คงจังหวะเดียวกันทั้งระบบ และภาษาไทยห้าม `leading-tight`, `leading-snug` หรือ `leading-none` มาบีบบรรทัด · `leading-none` ใช้ได้เฉพาะตัวเลขล้วนที่มี `tabular-nums`
+- caller ของ `Button`/`Input`/`Select`/`Textarea` ห้ามสั่ง font-size เอง; ให้ `size` ของ primitive คุม 14px desktop, 16px control บนมือถือ และใช้ `size="dense"` เมื่อต้องการ 12px เฉพาะ desktop โดยไม่ทำให้มือถือซูมเอง
+- เอกสาร A4 เป็น typography surface แยกและอาจใช้ค่าพิกเซลเฉพาะเพื่อคุม pagination; ต้อง render เอกสารทั้ง 5 ชนิดก่อนเปลี่ยน ห้ามกวาดตามสเกลหน้าจอ
+
 `Card` มาตรฐานใช้ inset แนวนอน 20px (`px-5`), หัวเริ่มที่ 16px และเว้นถึงเนื้อหา 12–16px, เนื้อหาจบที่ 20px; ใช้ระยะนี้กับ panel หลักก่อน override และห้ามลด/เพิ่มเพียงเพื่อชดเชยมุมหรือเงาของระบบเก่า
 
 **มุมโค้ง — ใช้ `RADIUS` จาก `ui/tokens.ts` เท่านั้น** (แก้ข้อมูลผิด 2026-08-02: เอกสารเคยบอกว่าปุ่ม/ช่องกรอกเป็น 8px ซึ่งไม่ตรงของจริง ทำตามแล้วมุมไม่เท่าหน้าอื่น):
@@ -173,7 +230,7 @@ mobile input ต้อง 16px กัน browser zoom; desktop control/body 14px
 | **ปุ่ม / ช่องค้นหา / compatibility `pill`** | 8px |
 | **สวิตช์** | `RADIUS.pill` = มนเต็ม |
 | **ตัวกรองไม่เกิน 5 ตัวเลือก** | ไม่มีกรอบ/พื้น/radius · สถานะพักเป็น neutral; สถานะเลือกใช้ข้อความ+เส้นใต้ Anajak Blue |
-| **ตัวกรองเกิน 5 ตัวเลือก / หลายเงื่อนไข** | ใช้ `Select`; ถ้ามีหลายเงื่อนไขรวมใน `FilterPopover` กลาง · ห้ามวาดตัวเลือกยาวเป็นแท็บหลายแถวใน overlay |
+| **ตัวกรองเกิน 5 ตัวเลือก / หลายเงื่อนไข** | ใช้ `Select`; ตัวกรองที่ใช้ประจำให้เห็นตรง toolbar (เช่น วันที่/ช่องทาง/ประเภทใน `/orders`) · `FilterPopover` ใช้กับเงื่อนไขรองที่ไม่ควรกินพื้นที่ตลอด · ห้ามวาดตัวเลือกยาวเป็นแท็บหลายแถวใน overlay |
 
 **ขนาดตัวอักษร** ใช้บันได 8 ขั้นใน `globals.css` (`text-2xs` … `text-3xl`) — **ห้ามสั่งเป็น px ดิบ มีด่าน lint ดักไว้**
 หัวเรื่องหน้า = `PageHeader` (`text-2xl` = 24px · แก้ข้อมูลผิด 2026-08-02: เอกสารเคยเขียน `text-[26px]` ซึ่ง**ด่าน lint ตีตกทันที**ทั้งที่ทำตามเอกสารเป๊ะ) — ทุกหน้าใช้ผ่าน component นี้ **ห้ามเขียน `<h1>` เอง** · หัว section ภายในหน้า = `Section`

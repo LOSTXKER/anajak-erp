@@ -47,7 +47,7 @@ function DeadlineChip({ deadline }: { deadline: Date | string | null }) {
         "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium",
         overdue
           ? "bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300"
-          : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
+          : "bg-slate-100 text-secondary dark:bg-slate-800",
       )}
     >
       {overdue ? <AlertTriangle className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
@@ -89,11 +89,11 @@ function DesignThumb({
           className={cn(box, "bg-white object-contain")}
         />
       ) : (
-        <div className={cn(box, "flex items-center justify-center bg-slate-50 text-slate-300 dark:bg-slate-800")}>
+        <div className={cn(box, "flex items-center justify-center bg-slate-50 text-muted dark:bg-slate-800")}>
           <ImageOff className="h-4 w-4" />
         </div>
       )}
-      <span className="absolute bottom-0 right-0 rounded-tl bg-black/70 px-1 text-2xs font-semibold tabular-nums text-white">
+      <span className="absolute bottom-0 right-0 rounded-tl bg-black/70 px-1 text-xs font-semibold tabular-nums text-white">
         v{design.versionNumber}
       </span>
     </a>
@@ -118,7 +118,7 @@ function BlockSection({
   return (
     <section
       data-print-run-stage={stage}
-      className="card-surface overflow-clip rounded-lg"
+      className="card-surface overflow-clip rounded-2xl"
     >
       <div className="flex items-center gap-2 border-b border-divider px-4 py-3">
         <Icon className="h-4 w-4 text-blue-600 dark:text-blue-400" strokeWidth={1.75} />
@@ -268,7 +268,7 @@ export function PrintRunsPageView({
                   <div
                     data-print-run-selection-bar=""
                     className={cn(
-                      "card-surface sticky z-20 m-3 flex flex-wrap items-center gap-2 rounded-lg px-3 py-3 backdrop-blur",
+                      "card-surface sticky z-20 m-3 flex flex-wrap items-center gap-2 rounded-2xl px-3 py-3 backdrop-blur",
                       // Station header มีทั้งแถวชื่อจอและแถบเลือกสถานี (~124px)
                       // จึงต้องเกาะใต้ header ไม่ถูก z-30 บังตอนคิวยาว
                       stationMode ? "top-32" : "top-3",

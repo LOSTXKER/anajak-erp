@@ -27,7 +27,9 @@ export function EmptyState({
     >
       <div
         className={cn(
-          "flex items-center justify-center rounded-full bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500",
+          // เดิม bg-slate-100 เคยเกือบเท่าผืนหน้า = วงกลมหายไปกับพื้น
+          // ใช้ token กลางแทน และตอนนี้ empty state ยืนอยู่ในการ์ดขาวแล้ว จึงอ่านออกจริง
+          "flex items-center justify-center rounded-full bg-surface-muted text-muted",
           compact ? "h-10 w-10" : "h-12 w-12",
         )}
       >
@@ -35,14 +37,14 @@ export function EmptyState({
       </div>
       <p
         className={cn(
-          "text-sm font-medium text-slate-800 dark:text-slate-100",
+          "text-sm font-medium text-strong",
           compact ? "mt-3" : "mt-4",
         )}
       >
         {title}
       </p>
       {description && (
-        <p className="mt-1.5 max-w-sm text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+        <p className="mt-1.5 max-w-sm text-xs leading-relaxed text-muted">
           {description}
         </p>
       )}

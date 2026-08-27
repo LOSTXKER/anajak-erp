@@ -6,6 +6,7 @@ import { permAllows } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ListPageSkeleton } from "@/components/ui/page-skeleton";
 import {
   Dialog,
   DialogContent,
@@ -89,7 +90,7 @@ function ProductionDetailSkeleton() {
           <Skeleton className="h-80 rounded-lg" />
           <Skeleton className="h-56 rounded-lg" />
         </div>
-        <Skeleton className="h-96 rounded-lg" />
+        <ListPageSkeleton />
       </div>
     </div>
   );
@@ -140,7 +141,7 @@ function ProductionJacketSkeleton() {
           </div>
         </div>
         <div className="p-4 sm:p-6 lg:p-7">
-          <div className="card-surface mx-auto max-w-4xl space-y-5 rounded-lg p-6 sm:p-8">
+          <div className="card-surface mx-auto max-w-4xl space-y-5 rounded-2xl p-6 sm:p-8">
             <Skeleton className="h-8 w-64 max-w-full rounded-md" />
             <Skeleton className="h-24 w-full rounded-lg" />
             <Skeleton className="h-11 w-60 max-w-full rounded-full" />
@@ -802,7 +803,7 @@ export function ProductionDetailScreen({
   const stationCurrentJob = production && order ? (
     <article
       data-station-current-job=""
-      className="card-surface flex min-h-[34rem] min-w-0 flex-col rounded-lg lg:min-h-[calc(100dvh-8rem)]"
+      className="card-surface flex min-h-[34rem] min-w-0 flex-col rounded-2xl lg:min-h-[calc(100dvh-8rem)]"
     >
       <header className="flex flex-col gap-3 border-b border-divider px-5 py-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
@@ -823,7 +824,7 @@ export function ProductionDetailScreen({
           <h1
             data-station-current-job-heading=""
             tabIndex={-1}
-            className="mt-1 text-2xl font-semibold tracking-tight text-strong outline-none focus-visible:ring-2 focus-visible:ring-ring sm:text-3xl"
+            className="mt-1 text-2xl font-semibold text-strong outline-none focus-visible:ring-2 focus-visible:ring-ring sm:text-3xl"
           >
             {order.orderNumber}
           </h1>
@@ -851,7 +852,7 @@ export function ProductionDetailScreen({
             <div>
               <h2
                 id="station-garment-receive-title"
-                className="text-2xl font-semibold tracking-tight text-strong"
+                className="text-2xl font-semibold text-strong"
               >
                 ตรวจรับเสื้อลูกค้า
               </h2>
@@ -1101,7 +1102,7 @@ export function ProductionDetailScreen({
                   className="h-1.5 min-w-16 flex-1 overflow-hidden rounded-full bg-surface ring-1 ring-inset ring-divider"
                 >
                   <div
-                    className="h-full rounded-full bg-blue-500"
+                    className="h-full rounded-full bg-blue-600 transition-[width] duration-[var(--duration-base)] ease-out"
                     style={{ width: `${completedPct}%` }}
                   />
                 </div>

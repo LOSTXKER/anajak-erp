@@ -176,7 +176,7 @@ export function GarmentPickCard({
           <h2
             id="production-garment-title"
             className={cn(
-              "flex items-center gap-2 font-semibold tracking-tight text-strong",
+              "flex items-center gap-2 font-semibold text-strong",
               embedded && primaryTask ? "text-2xl" : "text-base",
             )}
           >
@@ -234,7 +234,7 @@ export function GarmentPickCard({
             <h2
               id="production-garment-title"
               className={cn(
-                "flex items-center gap-2 font-semibold tracking-tight text-strong",
+                "flex items-center gap-2 font-semibold text-strong",
                 embedded && primaryTask ? "text-2xl" : "text-lg",
               )}
             >
@@ -583,7 +583,7 @@ function IssueGarmentsDialog({
             return (
               <div key={l.sku} className="flex items-center gap-3">
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-slate-900 dark:text-white">
+                  <p className="truncate text-sm font-medium text-strong">
                     {lineLabel(l)}
                   </p>
                   <p id={helpId} className="text-xs tabular-nums text-muted">
@@ -705,7 +705,7 @@ function ReturnGarmentsDialog({
             return (
               <div key={l.sku} className="flex items-center gap-3">
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-slate-900 dark:text-white">
+                  <p className="truncate text-sm font-medium text-strong">
                     {lineLabel(l)}
                   </p>
                   <p

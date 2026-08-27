@@ -99,7 +99,7 @@ export function JobShareView({ token }: { token: string }) {
                         alt={a.fileName}
                         className="h-36 w-full rounded-lg border border-border bg-surface object-contain"
                       />
-                      <p className="mt-1 truncate text-2xs text-muted">{a.fileName}</p>
+                      <p className="mt-1 truncate text-xs text-muted">{a.fileName}</p>
                     </a>
                   ))}
                   {designIsImage && design && (
@@ -113,7 +113,7 @@ export function JobShareView({ token }: { token: string }) {
                         alt={`แบบ v${design.versionNumber}`}
                         className="h-36 w-full rounded-lg border border-border bg-surface object-contain"
                       />
-                      <p className="mt-1 truncate text-2xs text-muted">
+                      <p className="mt-1 truncate text-xs text-muted">
                         แบบที่อนุมัติ (v{design.versionNumber})
                       </p>
                     </a>
@@ -129,7 +129,7 @@ export function JobShareView({ token }: { token: string }) {
                         href={design.fileUrl ?? design.imageUrl ?? "#"}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className={cn("flex items-center gap-2 rounded-lg border border-border bg-surface p-3 text-sm text-blue-600", INTERACTIVE_HOVER, INTERACTIVE_PRESSED, FOCUS_BUTTON)}
+                        className={cn("flex items-center gap-2 rounded-lg border border-border bg-surface p-3 text-sm text-secondary", INTERACTIVE_HOVER, INTERACTIVE_PRESSED, FOCUS_BUTTON)}
                       >
                         <Paperclip className="h-4 w-4 shrink-0 text-muted" />
                         <span className="truncate">แบบที่อนุมัติ (v{design.versionNumber})</span>
@@ -142,7 +142,7 @@ export function JobShareView({ token }: { token: string }) {
                         href={a.fileUrl ?? "#"}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className={cn("flex items-center gap-2 rounded-lg border border-border bg-surface p-3 text-sm text-blue-600", INTERACTIVE_HOVER, INTERACTIVE_PRESSED, FOCUS_BUTTON)}
+                        className={cn("flex items-center gap-2 rounded-lg border border-border bg-surface p-3 text-sm text-secondary", INTERACTIVE_HOVER, INTERACTIVE_PRESSED, FOCUS_BUTTON)}
                       >
                         <Paperclip className="h-4 w-4 shrink-0 text-muted" />
                         <span className="truncate">{a.fileName}</span>
@@ -239,9 +239,9 @@ export function JobShareView({ token }: { token: string }) {
                         <table className="w-full text-sm">
                           <thead>
                             <tr className="border-b border-divider text-left text-xs text-muted">
-                              <th className="py-1.5 pr-2 font-medium">ไซซ์</th>
-                              <th className="py-1.5 pr-2 font-medium">สี</th>
-                              <th className="py-1.5 text-right font-medium">จำนวน</th>
+                              <th scope="col" className="py-1.5 pr-2 font-medium">ไซซ์</th>
+                              <th scope="col" className="py-1.5 pr-2 font-medium">สี</th>
+                              <th scope="col" className="py-1.5 text-right font-medium">จำนวน</th>
                             </tr>
                           </thead>
                           <tbody>

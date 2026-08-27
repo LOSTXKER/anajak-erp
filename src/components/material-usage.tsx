@@ -257,7 +257,7 @@ export function MaterialUsage({
                     className="group flex min-h-11 w-full items-center justify-between rounded-lg px-2 py-1.5 text-left text-xs transition-colors hover:bg-interactive-hover active:bg-interactive-pressed dark:hover:bg-interactive-hover dark:active:bg-interactive-pressed"
                   >
                     <div>
-                      <span className="font-medium text-slate-900 dark:text-white">
+                      <span className="font-medium text-strong">
                         {product.name}
                       </span>
                       <span className="ml-2 text-muted group-hover:text-secondary group-active:text-secondary">{product.sku}</span>
@@ -331,14 +331,14 @@ export function MaterialUsage({
                 <div className="flex min-w-0 items-center gap-2">
                   <Check className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
                   <div>
-                    <span className="text-xs font-medium text-slate-900 dark:text-white">
+                    <span className="text-xs font-medium text-strong">
                       {m.name}
                     </span>
                     <span className="ml-1.5 text-xs text-muted">{m.sku}</span>
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center justify-end gap-2">
-                  <span className="text-xs tabular-nums text-slate-600 dark:text-slate-300">
+                  <span className="text-xs tabular-nums text-secondary">
                     {m.quantity} {m.unit}
                   </span>
                   {showCosts && (
@@ -346,11 +346,11 @@ export function MaterialUsage({
                       {formatCurrency(m.totalCost)}
                     </span>
                   )}
-                  <Badge variant="success" className="h-5 text-2xs">
+                  <Badge variant="success" size="sm">
                     เบิกแล้ว
                   </Badge>
                   {m.stockMovementRef && (
-                    <span className="text-2xs text-muted">{m.stockMovementRef}</span>
+                    <span className="text-xs text-muted">{m.stockMovementRef}</span>
                   )}
                 </div>
               </div>
@@ -372,26 +372,26 @@ export function MaterialUsage({
                 {/* Material info */}
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
-                    <span className="truncate text-xs font-medium text-slate-900 dark:text-white">
+                    <span className="truncate text-xs font-medium text-strong">
                       {m.name}
                     </span>
-                    <span className="shrink-0 text-2xs text-muted">{m.sku}</span>
+                    <span className="shrink-0 text-xs text-muted">{m.sku}</span>
                   </div>
-                  <div className="mt-0.5 flex items-center gap-2 text-2xs">
+                  <div className="mt-0.5 flex items-center gap-2 text-xs">
                     <span
                       className={cn(
                         "tabular-nums",
                         m.currentStock <= 0
                           ? "text-red-500"
                           : m.currentStock < m.quantity
-                            ? "text-amber-500"
+                            ? "text-amber-700 dark:text-amber-400"
                             : "text-muted"
                       )}
                     >
                       คงเหลือ: {m.currentStock}
                     </span>
                     {m.currentStock < m.quantity && m.currentStock > 0 && (
-                      <span className="flex items-center gap-0.5 text-amber-500">
+                      <span className="flex items-center gap-0.5 text-amber-700 dark:text-amber-400">
                         <AlertCircle className="h-2.5 w-2.5" />
                         สต็อกไม่พอ
                       </span>
@@ -421,7 +421,7 @@ export function MaterialUsage({
                     onChange={(e) => updateQuantity(m.id, parseFloat(e.target.value) || 0)}
                     aria-label={`จำนวน ${m.name}`}
                     size="sm"
-                    className="w-16 text-center text-xs tabular-nums"
+                    className="w-16 text-center tabular-nums"
                     min={0.01}
                     step={0.01}
                   />
@@ -436,7 +436,7 @@ export function MaterialUsage({
                 </div>
 
                 {/* Unit */}
-                <span className="w-8 text-center text-2xs text-muted">{m.unit}</span>
+                <span className="w-8 text-center text-xs text-muted">{m.unit}</span>
 
                 {/* Unit cost + row total — เงินโชว์/แก้ได้เฉพาะหัวหน้า */}
                 {showCosts && (
@@ -448,13 +448,13 @@ export function MaterialUsage({
                         onChange={(e) => updateUnitCost(m.id, parseFloat(e.target.value) || 0)}
                         aria-label={`ต้นทุนต่อหน่วย ${m.name}`}
                         size="sm"
-                        className="text-right text-xs tabular-nums"
+                        className="text-right tabular-nums"
                         min={0}
                         step={0.01}
                         placeholder="ต้นทุน/หน่วย"
                       />
                     </div>
-                    <span className="w-16 text-right text-xs tabular-nums text-slate-600 dark:text-slate-300">
+                    <span className="w-16 text-right text-xs tabular-nums text-secondary">
                       {formatCurrency(m.quantity * m.unitCost)}
                     </span>
                   </>
@@ -474,13 +474,13 @@ export function MaterialUsage({
             ))}
 
             {/* Total + Issue button */}
-            <div className="flex items-center justify-between border-t border-slate-100 pt-2 dark:border-slate-800">
+            <div className="flex items-center justify-between border-t border-divider pt-2">
               <div className="text-xs text-muted">
                 รวม {localMaterials.length} รายการ
                 {showCosts && (
                   <>
                     {" · "}
-                    <span className="font-medium text-slate-900 dark:text-white">
+                    <span className="font-medium text-strong">
                       {formatCurrency(totalCost)}
                     </span>
                   </>
@@ -512,15 +512,15 @@ export function MaterialUsage({
             <div className="flex min-h-11 flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-lg bg-surface-muted px-3 py-2">
               <p className="text-xs font-medium text-secondary">ยังไม่มีวัตถุดิบ</p>
               {!readOnly && (
-                <p className="text-2xs text-muted">ใช้ปุ่ม &quot;เพิ่มวัตถุดิบ&quot; ด้านบน</p>
+                <p className="text-xs text-muted">ใช้ปุ่ม &quot;เพิ่มวัตถุดิบ&quot; ด้านบน</p>
               )}
             </div>
           ) : (
             <div className="py-4 text-center">
-              <Package className="mx-auto h-8 w-8 text-slate-200 dark:text-slate-700" />
+              <Package className="mx-auto h-8 w-8 text-muted" />
               <p className="mt-1.5 text-xs text-muted">ยังไม่มีวัตถุดิบ</p>
               {!readOnly && (
-                <p className="text-2xs text-muted">
+                <p className="text-xs text-muted">
                   กดปุ่ม &quot;เพิ่มวัตถุดิบ&quot; เพื่อเริ่มเพิ่มรายการ
                 </p>
               )}

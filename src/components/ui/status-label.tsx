@@ -20,7 +20,7 @@ const DOT: Record<StatusTone, string> = {
   neutral: "bg-slate-500 dark:bg-slate-400",
   accent: "bg-blue-500",
   success: "bg-green-600 dark:bg-green-400",
-  warning: "bg-amber-700 dark:bg-amber-500",
+  warning: "bg-amber-500",
   danger: "bg-red-500",
 };
 
@@ -50,20 +50,20 @@ export function StatusLabel({
 }) {
   const showSub = sub != null && sub !== "" && sub !== label;
   return (
-    <div className={cn("flex flex-col leading-tight", className)}>
+    <div className={cn("flex flex-col", className)}>
       <span
         className={cn(
           "inline-flex items-center gap-1.5 whitespace-nowrap text-xs font-medium",
           emphasize
-            ? (EMPHASIS_TEXT[tone] ?? "text-slate-800 dark:text-slate-200")
-            : "text-slate-800 dark:text-slate-200",
+            ? (EMPHASIS_TEXT[tone] ?? "text-secondary")
+            : "text-secondary",
         )}
       >
         <span aria-hidden className={cn("h-2 w-2 shrink-0 rounded-full", DOT[tone])} />
         {label}
       </span>
       {showSub && (
-        <span className={cn("pl-3 text-2xs text-slate-500 dark:text-slate-400", subClassName)}>
+        <span className={cn("pl-3 text-2xs text-muted", subClassName)}>
           {sub}
         </span>
       )}

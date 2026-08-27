@@ -355,15 +355,15 @@ function CompleteRunDialog({ run, onClose }: { run: PrintRun; onClose: () => voi
             return (
               <div
                 key={item.id}
-                className="rounded-lg border border-slate-100 p-3 dark:border-slate-800"
+                className="rounded-lg border border-divider p-3"
               >
                 <div className="flex items-center gap-3">
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-slate-900 dark:text-white">
+                    <p className="truncate text-sm font-medium text-strong">
                       {item.order.orderNumber}
                       {item.order.title && ` · ${item.order.title}`}
                     </p>
-                    <p className="text-xs tabular-nums text-slate-500 dark:text-slate-400">
+                    <p className="text-xs tabular-nums text-muted">
                       พิมพ์ในรอบนี้ {item.qty} ชิ้น
                     </p>
                   </div>

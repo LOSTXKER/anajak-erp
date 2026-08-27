@@ -102,7 +102,7 @@ export function ProductionRouteRail({
                 </span>
                 <span
                   className={cn(
-                    "mt-1.5 text-xs font-medium leading-tight [overflow-wrap:anywhere]",
+                    "mt-1.5 text-xs font-medium [overflow-wrap:anywhere]",
                     completed && "text-secondary",
                     active && "text-blue-700 dark:text-blue-300",
                     failed && "text-red-700 dark:text-red-300",
@@ -113,7 +113,7 @@ export function ProductionRouteRail({
                 >
                   {stepLabel(step)}
                 </span>
-                <span className="mt-0.5 text-2xs leading-tight text-muted">
+                <span className="mt-0.5 text-2xs text-muted">
                   {stepStatusLabel(step)}
                 </span>
               </div>

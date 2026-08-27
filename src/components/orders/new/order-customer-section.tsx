@@ -104,19 +104,19 @@ export function OrderCustomerSection({
                 นิติบุคคล
               </Badge>
               {selectedCustomer.taxId && (
-                <span className="text-xs text-slate-500 dark:text-slate-400">
+                <span className="text-xs text-muted">
                   Tax ID: {selectedCustomer.taxId}
                 </span>
               )}
             </div>
           )}
           {profileGaps.length > 0 && (
-            <p className="text-xs text-amber-600 dark:text-amber-400">
+            <p className="text-xs text-amber-700 dark:text-amber-400">
               โปรไฟล์ยังไม่ครบ: {profileGaps.map((g) => g.label).join(" · ")} — เติมที่หน้าลูกค้า
             </p>
           )}
           {showCreditStatus && !shouldLoadCredit && (
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <p className="text-xs text-muted">
               ยังไม่ได้กำหนดวงเงินเครดิต
             </p>
           )}
@@ -145,7 +145,7 @@ export function OrderCustomerSection({
               className={`text-xs ${
                 creditStatus.data.available < 0
                   ? "font-medium text-red-600 dark:text-red-400"
-                  : "text-slate-500 dark:text-slate-400"
+                  : "text-muted"
               }`}
             >
               วงเงินเครดิต: ใช้ไป {formatCurrency(creditStatus.data.exposure)} /{" "}
@@ -159,12 +159,12 @@ export function OrderCustomerSection({
             !creditLoading &&
             !creditError &&
             creditStatus.data?.available == null && (
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-muted">
                 ยังไม่มีข้อมูลสถานะเครดิต
               </p>
             )}
           {selectedCustomer && filmCount > 0 && (
-            <p className="text-xs font-medium text-amber-600 dark:text-amber-400">
+            <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
               🎞️ ลูกค้ามีฟิล์มพร้อมรีดค้าง {filmCount} รายการ — เช็คที่{" "}
               <a
                 href={`/production/films?search=${encodeURIComponent(selectedCustomer.name)}`}
@@ -178,7 +178,7 @@ export function OrderCustomerSection({
             </p>
           )}
           {selectedCustomer && artworkCount > 0 && (
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <p className="text-xs text-muted">
               ลูกค้ามีลายในคลัง {artworkCount} ลาย —{" "}
               <a
                 href={`/customers/${customerId}`}

@@ -26,7 +26,7 @@ import { PageShell } from "@/components/page-shell";
 const SAMPLE_PRINT = { widthCm: 30, heightCm: 20 };
 const SAMPLE_QTY = 100;
 const READ_ONLY_INPUT_CLASS =
-  "read-only:cursor-default read-only:bg-slate-50 read-only:text-slate-600 dark:read-only:bg-slate-900 dark:read-only:text-slate-300";
+  "read-only:cursor-default read-only:bg-surface-muted read-only:text-secondary";
 
 // เก็บค่าในฟอร์มเป็น string เพื่อให้พิมพ์เลขทศนิยม/ลบค่าได้ลื่น แล้วแปลงตอน submit
 type FormState = Record<keyof CostRates, string>;
@@ -143,7 +143,7 @@ export default function CostRatesSettingsPage() {
             >
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <label htmlFor="film-rate-per-meter" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  <label htmlFor="film-rate-per-meter" className="mb-1 block text-sm font-medium text-secondary">
                     ค่าฟิล์ม+หมึก+ผง (บาท/เมตรวิ่ง) *
                   </label>
                   <Input
@@ -159,10 +159,10 @@ export default function CostRatesSettingsPage() {
                     aria-describedby="film-rate-help"
                     required
                   />
-                  <p id="film-rate-help" className="mt-1 text-xs text-slate-500 dark:text-slate-400">เรตวงการ ~25-50 บาท/เมตร</p>
+                  <p id="film-rate-help" className="mt-1 text-xs text-muted">เรตวงการ ~25-50 บาท/เมตร</p>
                 </div>
                 <div>
-                  <label htmlFor="film-roll-width" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  <label htmlFor="film-roll-width" className="mb-1 block text-sm font-medium text-secondary">
                     หน้ากว้างม้วนฟิล์ม (ซม.) *
                   </label>
                   <Input
@@ -178,7 +178,7 @@ export default function CostRatesSettingsPage() {
                     aria-describedby="film-width-help"
                     required
                   />
-                  <p id="film-width-help" className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  <p id="film-width-help" className="mt-1 text-xs text-muted">
                     ใช้แปลงพื้นที่ลายเป็นความยาวเมตรวิ่ง (ม้วนทั่วไป 60 ซม.)
                   </p>
                 </div>
@@ -186,7 +186,7 @@ export default function CostRatesSettingsPage() {
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <label htmlFor="labor-per-piece" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  <label htmlFor="labor-per-piece" className="mb-1 block text-sm font-medium text-secondary">
                     ค่าแรงเหมา (บาท/ชิ้น) *
                   </label>
                   <Input
@@ -203,7 +203,7 @@ export default function CostRatesSettingsPage() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="overhead-per-piece" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  <label htmlFor="overhead-per-piece" className="mb-1 block text-sm font-medium text-secondary">
                     ค่าไฟ+ค่าเสื่อมเครื่อง (บาท/ชิ้น) *
                   </label>
                   <Input
@@ -223,7 +223,7 @@ export default function CostRatesSettingsPage() {
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <label htmlFor="cost-deviation-alert" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  <label htmlFor="cost-deviation-alert" className="mb-1 block text-sm font-medium text-secondary">
                     เตือนเมื่อทุนซื้อเบี่ยงเกิน (%) *
                   </label>
                   <Input
@@ -240,7 +240,7 @@ export default function CostRatesSettingsPage() {
                     aria-describedby="cost-deviation-help"
                     required
                   />
-                  <p id="cost-deviation-help" className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  <p id="cost-deviation-help" className="mt-1 text-xs text-muted">
                     ทุนซื้อล็อตใหม่เบี่ยงจากที่ตั้งไว้เกิน % นี้ ระบบจะแจ้งเตือน
                   </p>
                 </div>
@@ -248,17 +248,17 @@ export default function CostRatesSettingsPage() {
 
               {/* ตัวอย่างคำนวณสด — อัปเดตตามค่าที่กรอก */}
               <div className="rounded-lg border border-border bg-surface-muted p-3">
-                <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                <p className="text-xs font-medium text-muted">
                   ตัวอย่างคำนวณ
                 </p>
                 {configured ? (
-                  <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+                  <p className="mt-1 text-sm text-secondary">
                     ลาย {SAMPLE_PRINT.widthCm}×{SAMPLE_PRINT.heightCm} ซม. × {SAMPLE_QTY} ตัว ≈
                     ฟิล์ม {sampleFilm !== null ? formatBaht(sampleFilm) : "—"} บาท +
                     ค่าแรง/โสหุ้ย {formatBaht(sampleLaborOverhead)} บาท
                   </p>
                 ) : (
-                  <p className="mt-1 text-sm text-slate-400">
+                  <p className="mt-1 text-sm text-muted">
                     ยังไม่ได้ตั้งเรต — กรอกเรตด้านบนเพื่อดูตัวอย่าง
                   </p>
                 )}
@@ -275,7 +275,7 @@ export default function CostRatesSettingsPage() {
                     บันทึก
                   </Button>
                 ) : (
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                  <p className="text-xs text-muted">
                     คุณมีสิทธิ์ดูอย่างเดียว — ผู้มีสิทธิ์ตั้งค่าระบบเท่านั้นที่แก้ได้
                   </p>
                 )}
@@ -285,7 +285,7 @@ export default function CostRatesSettingsPage() {
         </CardContent>
       </Card>
 
-      <p className="text-xs text-slate-500 dark:text-slate-400">
+      <p className="text-xs text-muted">
         ทุนตัวเสื้อมาจากราคาทุนจริงในแอป Stock อัตโนมัติ · ค่าจ้างร้านนอกตามบิลร้าน (ไม่อยู่ในเรตนี้)
       </p>
     </PageShell>

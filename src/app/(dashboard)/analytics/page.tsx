@@ -64,7 +64,7 @@ export default function AnalyticsPage() {
           bordered
         >
           {!canViewRevenue ? (
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-muted">
               ต้องมีสิทธิ์ &quot;เห็นทุน/กำไร/รายงานการเงิน&quot; — เช็คสิทธิ์ที่ ตั้งค่า → ผู้ใช้
             </p>
           ) : revenueError ? (
@@ -73,7 +73,7 @@ export default function AnalyticsPage() {
               onRetry={() => refetchRevenue()}
             />
           ) : !revenueData || revenueData.length === 0 ? (
-            <p className="text-sm text-slate-400">ยังไม่มีข้อมูล</p>
+            <p className="text-sm text-muted">ยังไม่มีข้อมูล</p>
           ) : (
             <div className="space-y-3">
               {revenueData.map((item) => {
@@ -85,16 +85,16 @@ export default function AnalyticsPage() {
                       <span className="text-xs text-muted">
                         {item.month}
                       </span>
-                      <span className="font-medium tabular-nums text-slate-900 dark:text-white">
+                      <span className="font-medium tabular-nums text-strong">
                         {formatCurrency(item.revenue)}
-                        <span className="ml-1 text-xs font-normal text-slate-400">
+                        <span className="ml-1 text-xs font-normal text-muted">
                           ({item.orders} ออเดอร์)
                         </span>
                       </span>
                     </div>
-                    <div className="h-1.5 overflow-hidden rounded-full bg-slate-200 dark:bg-white/10">
+                    <div className="h-1.5 overflow-hidden rounded-full bg-surface-muted">
                       <div
-                        className="h-full rounded-full bg-blue-600 transition-all dark:bg-blue-500"
+                        className="h-full rounded-full bg-blue-600 transition-[width] duration-[var(--duration-base)] ease-out"
                         style={{ width: `${width}%` }}
                       />
                     </div>
@@ -116,7 +116,7 @@ export default function AnalyticsPage() {
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">{c.name}</p>
                     {c.company && (
-                      <p className="truncate text-xs text-slate-400">
+                      <p className="truncate text-xs text-muted">
                         {c.company}
                       </p>
                     )}
@@ -129,7 +129,7 @@ export default function AnalyticsPage() {
             ))}
             {(!dashboard?.topCustomers ||
               dashboard.topCustomers.length === 0) && (
-              <p className="text-sm text-slate-400">
+              <p className="text-sm text-muted">
                 {canViewRevenue
                   ? "ยังไม่มีข้อมูล"
                   : "ต้องมีสิทธิ์ 'เห็นทุน/กำไร/รายงานการเงิน'"}

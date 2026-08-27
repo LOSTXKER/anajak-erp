@@ -14,7 +14,7 @@ import { Field } from "@/components/ui/field";
 import { SearchInput } from "@/components/ui/search-input";
 import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
 import { StatusLabel } from "@/components/ui/status-label";
-import { Skeleton } from "@/components/ui/skeleton";
+import { ListPageSkeleton } from "@/components/ui/page-skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DataTable } from "@/components/ui/data-table";
 import { ResponsiveList } from "@/components/ui/responsive-list";
@@ -41,7 +41,7 @@ type FilmStockItem = RouterOutput["filmStock"]["list"][number];
 
 export function LegacyFilmStockPage() {
   return (
-    <Suspense fallback={<Skeleton className="h-96 rounded-lg" />}>
+    <Suspense fallback={<ListPageSkeleton />}>
       <FilmStockPageContent />
     </Suspense>
   );
@@ -160,11 +160,11 @@ function FilmStockPageContent() {
               {items.map((item) => (
                 <DataTable.Row key={item.id}>
                   <DataTable.Td>
-                    <p className="text-sm font-medium text-slate-900 dark:text-white">
+                    <p className="text-sm font-medium text-strong">
                       {item.label}
                     </p>
                     {item.note && (
-                      <p className="text-xs text-slate-500 dark:text-slate-400">{item.note}</p>
+                      <p className="text-xs text-muted">{item.note}</p>
                     )}
                     <Link
                       href={`/customers/${item.customer.id}`}
@@ -183,19 +183,19 @@ function FilmStockPageContent() {
                           {item.order.orderNumber}
                         </Link>
                       ) : (
-                        <span className="text-slate-400">ไม่ระบุออเดอร์</span>
+                        <span className="text-muted">ไม่ระบุออเดอร์</span>
                       )}
                     </p>
-                    <p className="mt-1 text-xs tabular-nums text-slate-500 dark:text-slate-400">
+                    <p className="mt-1 text-xs tabular-nums text-muted">
                       {item.printRun ? `รอบ ${item.printRun.runNumber} · ` : ""}
                       เข้าคลัง {formatDate(item.createdAt)}
                     </p>
                   </DataTable.Td>
                   <DataTable.Td align="right">
                     {item.qty > 0 ? (
-                      <span className="tabular-nums font-medium text-slate-900 dark:text-white">
+                      <span className="tabular-nums font-medium text-strong">
                         {item.qty}
-                        <span className="font-normal text-slate-400">
+                        <span className="font-normal text-muted">
                           /{item.initialQty} ชิ้น
                         </span>
                       </span>
@@ -224,20 +224,21 @@ function FilmStockPageContent() {
           </DataTable.Root>
         )}
         renderMobile={(items) => (
-          <div className="space-y-3">
+          <div role="list" aria-label="รายการคลังฟิล์ม" className="space-y-3">
             {items.map((item) => (
               <div
                 key={item.id}
-                className="card-surface rounded-lg p-4"
+                role="listitem"
+                className="card-surface rounded-2xl p-4"
               >
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-base font-semibold text-slate-900 dark:text-white">
+                  <span className="text-base font-semibold text-strong">
                     {item.label}
                   </span>
                   {item.qty === 0 && <StatusLabel label="หมดแล้ว" />}
                 </div>
                 {item.note && (
-                  <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{item.note}</p>
+                  <p className="mt-0.5 text-xs text-muted">{item.note}</p>
                 )}
                 <p className="mt-1.5 text-sm">
                   <Link
@@ -247,7 +248,7 @@ function FilmStockPageContent() {
                     {item.customer.name}
                   </Link>
                 </p>
-                <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                <p className="mt-0.5 text-xs text-muted">
                   {item.order ? (
                     <Link
                       href={`/orders/${item.order.id}`}
@@ -260,9 +261,9 @@ function FilmStockPageContent() {
                   )}
                   {item.printRun && ` · รอบ ${item.printRun.runNumber}`}
                 </p>
-                <p className="mt-1 text-xs tabular-nums text-slate-500 dark:text-slate-400">
+                <p className="mt-1 text-xs tabular-nums text-muted">
                   คงเหลือ{" "}
-                  <span className="font-medium text-slate-900 dark:text-white">{item.qty}</span>/
+                  <span className="font-medium text-strong">{item.qty}</span>/
                   {item.initialQty} ชิ้น · เข้าคลัง {formatDate(item.createdAt)}
                 </p>
                 {canWrite && item.qty > 0 && (
@@ -319,8 +320,8 @@ function ConsumeDialog({ item, onClose }: { item: FilmStockItem; onClose: () => 
           </DialogDescription>
         </DialogHeader>
         <div className="rounded-lg border border-border bg-surface-muted p-3">
-          <p className="text-sm font-medium text-slate-900 dark:text-white">{item.label}</p>
-          <p className="mt-0.5 text-xs tabular-nums text-slate-500 dark:text-slate-400">
+          <p className="text-sm font-medium text-strong">{item.label}</p>
+          <p className="mt-0.5 text-xs tabular-nums text-muted">
             {item.customer.name} · คงเหลือ {item.qty} ชิ้น
           </p>
         </div>

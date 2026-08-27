@@ -23,14 +23,19 @@
    ถ้าโค้งมากจะกลายเป็นเม็ดยา
    ------------------------------------------------------------ */
 export const RADIUS = {
-  /** 8px — ชิ้นเล็กในรายการ: ตัวเลือกในเมนู · ปุ่มในแถบสลับ · แถบโครงร่างตอนโหลด */
-  item: "rounded-lg",
-  /** 8px — ช่องกรอก/ช่องเลือก/กล่องข้อความ ตาม panel language แบบ Vercel */
-  field: "rounded-lg",
-  /** 8px — กล่องย่อย · รูปย่อ · ป้ายสี่เหลี่ยม */
-  inner: "rounded-lg",
-  /** 8px — panel/card/overlay แบบ Vercel ใช้มุมเดียวที่สงบ */
-  surface: "rounded-lg",
+  /* ถ่างทั้งบันไดขึ้น 2026-08-26 (เฟส 10 · เบสเคาะ "นุ่มเต็มที่")
+     เฟส 2 เคยลดชิ้นเล็กจาก 8px มา 6px เพราะ "ของสูง 28-36px ที่โค้ง 8px
+     อ่านเป็นเม็ดยาเบลอ" — ข้อนั้นถูกกลับแล้ว เพราะเฟสนี้ของสูงขึ้นทั้งชุด
+     ค่าจริงของ rounded-md/lg ถูกนิยามใหม่ที่ @theme ใน globals.css
+     กติกาเดียวที่ยังอยู่: ชั้นในโค้งไม่เกินชั้นนอก */
+  /** 10px — ชิ้นเล็กในรายการ: ตัวเลือกในเมนู · ปุ่มในแถบสลับ · แถบโครงร่างตอนโหลด */
+  item: "rounded-md",
+  /** 10px — ช่องกรอก/ช่องเลือก/กล่องข้อความ */
+  field: "rounded-md",
+  /** 10px — กล่องย่อย · รูปย่อ · ป้ายสี่เหลี่ยม */
+  inner: "rounded-md",
+  /** 16px — panel/card/overlay · การ์ดคือชั้นนอกสุด จึงโค้งมากที่สุด */
+  surface: "rounded-2xl",
   /** เต็ม — ของทรงแคปซูล: ปุ่ม · ช่องค้นหา · สวิตช์ */
   pill: "rounded-full",
 } as const;
@@ -64,12 +69,22 @@ export const FOCUS_FIELD =
  *  ② ช่องว่างรอบวงแหวนเคยล็อกเป็นขาว/ดำสนิทตายตัว — พอพื้นเว็บเปลี่ยนเป็นขาว/ดำเทา
  *     โหมดมืดเลยได้ "แถบดำคาด" รอบปุ่ม · ผูกกับสีพื้นจริงแทน จะได้เปลี่ยนตามทุกครั้ง */
 export const FOCUS_BUTTON =
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-bg dark:focus-visible:ring-blue-400";
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent dark:focus-visible:ring-blue-400";
 
 /** ของที่กดได้แต่เต็มพื้นที่จนไม่มีที่ให้เว้นขอบ — หัวคอลัมน์ตาราง · แถวในรายการ
  *  ใช้วงแหวนด้านใน เพราะ ring-offset จะโดนขอบตารางบังจนมองไม่เห็นว่าโฟกัสอยู่ไหน */
 export const FOCUS_INSET =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 dark:focus-visible:ring-blue-300";
+
+/** โฟกัสบนพื้นที่ที่ล็อกเป็นสีขาวเสมอ ไม่ว่าธีมไหน — กล่องรูปลายบนจอสถานี
+ *  ซึ่งอยู่ใต้ `.dark` ทั้งจอ (factory/layout.tsx) แต่ตัวกล่องเป็น `bg-white`
+ *  เพราะต้องเป็นพื้นรองลายพิมพ์
+ *
+ *  ใช้ FOCUS_INSET ปกติไม่ได้: คู่ `dark:ring-blue-300` จะทำงาน (เพราะอยู่ใต้ .dark)
+ *  แล้วได้วงแหวนฟ้าอ่อนบนพื้นขาว = 2.2:1 ช่างที่ไล่ Tab บนจอสถานีไม่เห็นว่าโฟกัสอยู่ไหน
+ *  ตัวนี้จึงล็อกสีเข้มค่าเดียวทั้งสองธีม (blue-700 บนขาว = 6.6:1) */
+export const FOCUS_INSET_ON_LIGHT =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-700";
 
 /** ช่องที่กรอกผิด — วงแหวนแดงแทนน้ำเงิน (ใช้คู่กับ border-red-* บนตัวช่อง)
  *  ของเดิมเขียนเอง 4 แบบไม่ตรงกัน: ring-red-400 · ring-red-500 · ring-red-500/40 · ring-amber-400
@@ -120,13 +135,32 @@ export const INTERACTIVE_HOVER =
 export const INTERACTIVE_PRESSED =
   "active:bg-interactive-pressed active:text-strong dark:active:bg-interactive-pressed dark:active:text-strong";
 
-/** interaction ที่วางบน navbar/sidebar — Light ใช้ hover ขาวนวลชุดเดียวกับ surface;
- *  Dark เบาลงหนึ่งชั้นเพราะ chrome เข้มกว่า card ไม่เช่นนั้น hover จะเกือบเท่า selected */
+/** interaction ที่วางบน navbar/sidebar — คนละชุดกับที่ใช้บนการ์ด
+ *  ตั้งแต่ 2026-08-25 (UI-2026 เฟส 1) chrome เป็นเทาอ่อนในธีมสว่างและเข้มกว่าเนื้อหา
+ *  ในธีมมืด hover/pressed ของมันจึงต้องเข้มกว่าชุดปกติหนึ่งขั้นทั้งสองธีม
+ *  ไม่งั้นจะได้ hover ที่เกือบเท่าพื้นตัวเอง = ชี้แล้วจอไม่ขยับ
+ *  ⚠️ ของที่ยืนบน chrome ต้องใช้คู่นี้เสมอ (รวมปุ่ม ghost บนแถบบน) และห้ามเขียน
+ *  active:bg-interactive-chrome-pressed เองมือเปล่า เพราะจะไม่ได้ active:text-strong
+ *  ที่พ่วงมาด้วย แล้วตัวหนังสือจะตกเกณฑ์ตอนกดค้าง */
 export const INTERACTIVE_CHROME_HOVER =
   "hover:bg-interactive-chrome-hover hover:text-strong dark:hover:bg-interactive-chrome-hover dark:hover:text-strong";
 
 export const INTERACTIVE_CHROME_PRESSED =
   "active:bg-interactive-chrome-pressed active:text-strong dark:active:bg-interactive-chrome-pressed dark:active:text-strong";
+
+/** ของที่กดได้แล้วยืนบน "ผืนงาน" ตรง ๆ — ไม่ได้อยู่ในการ์ด และไม่ได้อยู่บนแถบเมนู/แถบบน
+ *  เช่น ปุ่มแบ่งหน้าที่อยู่ใต้การ์ด และปุ่มย้อนกลับบนหัวหน้า
+ *
+ *  ทั้งระบบมีพื้นสามระดับ ต้องเลือกให้ตรงกับพื้นที่ของจริงไปยืน:
+ *    การ์ดขาว    → INTERACTIVE_HOVER / INTERACTIVE_PRESSED
+ *    แถบเมนู/บน  → INTERACTIVE_CHROME_HOVER / INTERACTIVE_CHROME_PRESSED
+ *    ผืนงานเทา   → คู่นี้
+ *  ใช้ผิดคู่ = ชี้แล้วจอไม่ขยับ (เคยเกิดจริงตอนผืนงานเปลี่ยนเป็นเทา 2026-08-26) */
+export const INTERACTIVE_PAGE_HOVER =
+  "hover:bg-interactive-page-hover hover:text-strong dark:hover:bg-interactive-page-hover dark:hover:text-strong";
+
+export const INTERACTIVE_PAGE_PRESSED =
+  "active:bg-interactive-page-pressed active:text-strong dark:active:bg-interactive-page-pressed dark:active:text-strong";
 
 /** ของที่กำลังถูกเลือก — พื้นฟ้าอ่อน + ข้อความน้ำเงิน เพื่อคงตัวตน Anajak
  *  โดยไม่ใช้สีแบรนด์กับ hover/pressed ที่ยังไม่ถูกเลือก */
@@ -142,9 +176,9 @@ export const ACTIVE_UNDERLINE =
  *  ของเดิม 6 จุดใส่ซ้ำ ทำให้ในโหมดมืดได้ขอบสว่างซ้อนเงา และมุมโค้งไม่ตรงกัน */
 export const OVERLAY_PANEL = `overlay-surface ${RADIUS.surface}`;
 
-/** หัวตารางที่วางบน surface ปกติ — semantic ชุดเดียวทั้งสองธีม */
+/** หัวตารางโปร่งตาม surface แม่ — ใช้ได้ทั้งตารางบน surface ปกติและ compact table บน muted surface */
 export const TABLE_HEAD_SURFACE =
-  "border-b border-divider bg-surface-muted text-secondary";
+  "border-b border-divider bg-transparent text-secondary";
 
 /** ขอบประ = "ที่ว่างรอของ" — ปุ่มเพิ่มของ · ช่องอัปโหลด · กล่องว่างที่กดเพิ่มได้
  *  audit 2026-08-01: 21 จุดใช้ slate-200 สลับ slate-300 โดยไม่มีเหตุผล
@@ -197,13 +231,14 @@ export const TINT = {
 
    audit เจอว่าหน้ารายการใช้ตัวกรอง **5 แบบ** ทั้งที่ทำงานเดียวกัน:
    ชิปกลม (ใบเสนอราคา · แจ้งเตือน · จ้างร้านนอก) · แถบสลับ (สินค้า · หัก ณ ที่จ่าย)
-   · ดรอปดาวน์ (บิล · ลูกค้า) · ปุ่มตัวกรองลอย (ออเดอร์) · สวิตช์ (คลังฟิล์ม)
+   · ดรอปดาวน์ (บิล · ลูกค้า) · ปุ่มตัวกรองลอย (ออเดอร์ในอดีต) · สวิตช์ (คลังฟิล์ม)
    → คนใช้ต้องเรียนรู้ใหม่ทุกหน้าว่า "หน้านี้กรองยังไง"
 
      ตัวเลือก ≤5     → <FilterChip>   พักเป็น neutral; เลือกแล้วข้อความ+เส้นเป็น Anajak Blue
      ตัวเลือก >5     → <Select shape="pill">  ชิปเกิน 5 ตัวจะล้นแถวบนมือถือ
      เปิด/ปิดอย่างเดียว → <FilterChip> ตัวเดียว (ไม่ใช่สวิตช์ — สวิตช์คือ "ตั้งค่า" ไม่ใช่ "กรอง")
-     กรองหลายเงื่อนไขพร้อมกัน → <FilterPopover> (หน้าออเดอร์)
+     ตัวกรองที่ใช้ประจำหลายเงื่อนไข → วาง control กลางไว้บน toolbar ให้เห็นตรง ๆ
+     เงื่อนไขรองที่ไม่ควรกินพื้นที่ตลอด → <FilterPopover> (เช่นหน้าผลิต)
 
    <SegmentedControl> เหลือไว้ใช้ใน **ฟอร์ม** (เลือก 1 จากไม่กี่ตัว เช่นประเภทลูกค้า)
    ไม่ใช้กรองรายการ — มันดูเหมือนแท็บ คนจะนึกว่ากดแล้วเปลี่ยนหน้า
