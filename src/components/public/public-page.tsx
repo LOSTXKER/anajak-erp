@@ -48,7 +48,7 @@ export function PublicPageShell({
               {icon}
             </span>
             <div className="min-w-0">
-              <h1 className="text-xl font-semibold text-strong sm:text-2xl">{title}</h1>
+              <h1 className="break-words text-2xl font-semibold text-strong [overflow-wrap:anywhere]">{title}</h1>
               <p className="mt-1 text-sm leading-relaxed text-muted">{subtitle}</p>
             </div>
           </div>

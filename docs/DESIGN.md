@@ -198,6 +198,22 @@ Anajak Operational Panel System — กฎที่จริงทั้งส�
 ตามที่ component มาตรฐานใช้อยู่: ฟอนต์ Prompt · ตัวเลขเงิน `tabular-nums` เสมอ ·
 mobile input ต้อง 16px กัน browser zoom; desktop control/body 14px · metadata อย่างน้อย 12px และต้องผ่าน contrast
 
+| บทบาท | ขนาด/บรรทัด | น้ำหนัก |
+|---|---:|---:|
+| ชื่อหน้า | 24/31px | 600 |
+| หัว section/card | 16/24px | 600 |
+| หัว dialog | 18/28px | 600 |
+| เนื้อหา/ตาราง/ปุ่ม | 14/22px | 400–600 |
+| navigation/filter/หัวตารางแบบ compact | 12/18px | 500–600 |
+| input บนมือถือ | 16/24px | 400 |
+| metadata/help/error | 12/18px | 400–500 |
+| micro status/counter | 11/18px | 500; ห้ามใช้กับ action/label/instruction |
+| ตัวเลขสรุป | 28/35px | 600 |
+
+- surface จอไม่ใช้ tracking override กับตัวอักษรใดเพื่อให้ Prompt คงจังหวะเดียวกันทั้งระบบ และภาษาไทยห้าม `leading-tight`, `leading-snug` หรือ `leading-none` มาบีบบรรทัด · `leading-none` ใช้ได้เฉพาะตัวเลขล้วนที่มี `tabular-nums`
+- caller ของ `Button`/`Input`/`Select`/`Textarea` ห้ามสั่ง font-size เอง; ให้ `size` ของ primitive คุม 14px desktop, 16px control บนมือถือ และใช้ `size="dense"` เมื่อต้องการ 12px เฉพาะ desktop โดยไม่ทำให้มือถือซูมเอง
+- เอกสาร A4 เป็น typography surface แยกและอาจใช้ค่าพิกเซลเฉพาะเพื่อคุม pagination; ต้อง render เอกสารทั้ง 5 ชนิดก่อนเปลี่ยน ห้ามกวาดตามสเกลหน้าจอ
+
 `Card` มาตรฐานใช้ inset แนวนอน 20px (`px-5`), หัวเริ่มที่ 16px และเว้นถึงเนื้อหา 12–16px, เนื้อหาจบที่ 20px; ใช้ระยะนี้กับ panel หลักก่อน override และห้ามลด/เพิ่มเพียงเพื่อชดเชยมุมหรือเงาของระบบเก่า
 
 **มุมโค้ง — ใช้ `RADIUS` จาก `ui/tokens.ts` เท่านั้น** (แก้ข้อมูลผิด 2026-08-02: เอกสารเคยบอกว่าปุ่ม/ช่องกรอกเป็น 8px ซึ่งไม่ตรงของจริง ทำตามแล้วมุมไม่เท่าหน้าอื่น):

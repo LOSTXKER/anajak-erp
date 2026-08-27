@@ -109,7 +109,7 @@ export function OrderQcSection({ orderId, internalStatus, canCount }: OrderQcSec
           </CardTitle>
           {isQualityCheck &&
             (canCount ? (
-              <Button size="sm" className="h-9 gap-1.5 text-xs" onClick={() => setDialogOpen(true)}>
+              <Button size="sm" className="h-9 gap-1.5" onClick={() => setDialogOpen(true)}>
                 <ClipboardCheck />
                 ตรวจนับ
               </Button>
@@ -848,7 +848,6 @@ function QcCountForm({
                 value={d.note}
                 onChange={(e) => update(idx, { note: e.target.value })}
                 placeholder="หมายเหตุ เช่น จุดไหนของตัวเสื้อ"
-                className="text-sm"
               />
             </div>
           ))}

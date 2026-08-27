@@ -281,7 +281,7 @@ function ProductsPageContent() {
                         <h3 className="truncate text-sm font-medium text-strong">
                           {product.name}
                         </h3>
-                        <p className="truncate text-2xs text-muted">
+                        <p className="truncate text-xs text-muted">
                           {product.sku} · {typ.label}
                         </p>
                       </div>
@@ -303,7 +303,7 @@ function ProductsPageContent() {
                           return formatCurrency(product.basePrice);
                         })()}
                       </span>
-                      <span className="text-2xs text-muted">
+                      <span className="text-xs text-muted">
                         สต็อก{" "}
                         <span className="tabular-nums font-medium text-secondary">
                           {product.totalStock ?? 0}

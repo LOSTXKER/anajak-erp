@@ -140,7 +140,7 @@ export function CustomMadeDetail({
               variant="ghost"
               size="sm"
               onClick={() => setShowQuickAdd(true)}
-              className="ml-auto gap-1.5 text-xs text-muted"
+              className="ml-auto gap-1.5 text-muted"
             >
               <Plus className="h-3 w-3" />สร้างแพทเทิร์นใหม่
             </Button>

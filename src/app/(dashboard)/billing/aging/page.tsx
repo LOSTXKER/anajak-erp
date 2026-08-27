@@ -486,7 +486,7 @@ function AgingPageContent() {
                   value={draft.data.text}
                   readOnly
                   rows={12}
-                  className="font-mono text-xs"
+                  className="font-mono"
                 />
                 {/* ปุ่มคัดลอก = action หลักของ dialog นี้ — ใช้ DialogFooter ให้ปักก้นกรอบ
                     เหมือน dialog อื่น (ข้อความทวงยาวตามจำนวนใบ ดันปุ่มตกนอกสายตาได้) */}

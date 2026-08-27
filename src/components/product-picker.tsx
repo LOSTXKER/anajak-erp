@@ -187,7 +187,7 @@ export function ProductPickerDialog({
         >
           {/* Header */}
           <div className="flex items-center justify-between border-b border-divider px-5 py-4">
-            <Dialog.Title className="flex min-w-0 items-start gap-2 text-lg font-semibold leading-tight text-strong">
+            <Dialog.Title className="flex min-w-0 items-start gap-2 text-lg font-semibold text-strong">
               <Package className="mt-0.5 h-5 w-5 shrink-0 text-blue-600 dark:text-blue-400" />
               เลือกสินค้าจากแค็ตตาล็อก
             </Dialog.Title>
@@ -270,11 +270,11 @@ export function ProductPickerDialog({
                             <span className="truncate text-sm font-medium text-strong">
                               {product.name}
                             </span>
-                            <span className="inline-flex flex-shrink-0 items-center rounded-full bg-surface-muted px-2 py-0.5 text-2xs font-medium text-secondary">
+                            <span className="inline-flex flex-shrink-0 items-center rounded-full bg-surface-muted px-2 py-0.5 text-xs font-medium text-secondary">
                               {PRODUCT_TYPE_LABELS[product.productType] ?? product.productType}
                             </span>
                             {selectedFromProduct > 0 && (
-                              <span className="inline-flex flex-shrink-0 items-center rounded-full bg-blue-100 px-2 py-0.5 text-2xs font-semibold text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                              <span className="inline-flex flex-shrink-0 items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-900 dark:text-blue-300">
                                 เลือก {selectedFromProduct}
                               </span>
                             )}
@@ -350,19 +350,19 @@ export function ProductPickerDialog({
                                       {v.sku}
                                     </td>
                                     <td className="col-start-2 min-w-0 p-0 text-secondary sm:table-cell sm:px-3 sm:py-1.5">
-                                      <span className="block text-2xs text-muted sm:hidden">
+                                      <span className="block text-xs text-muted sm:hidden">
                                         สี
                                       </span>
                                       <span className="block truncate">{v.color || "-"}</span>
                                     </td>
                                     <td className="col-start-3 min-w-0 p-0 font-medium text-secondary sm:table-cell sm:px-3 sm:py-1.5">
-                                      <span className="block text-2xs font-normal text-muted sm:hidden">
+                                      <span className="block text-xs font-normal text-muted sm:hidden">
                                         ไซส์
                                       </span>
                                       <span className="block truncate">{v.size}</span>
                                     </td>
                                     <td className="col-start-2 p-0 sm:table-cell sm:px-3 sm:py-1.5 sm:text-right">
-                                      <span className="mb-1 block text-2xs text-muted sm:hidden">
+                                      <span className="mb-1 block text-xs text-muted sm:hidden">
                                         คงเหลือ
                                       </span>
                                       <Badge
@@ -380,7 +380,7 @@ export function ProductPickerDialog({
                                       </Badge>
                                     </td>
                                     <td className="col-start-3 min-w-0 p-0 font-medium text-secondary sm:table-cell sm:px-3 sm:py-1.5 sm:text-right">
-                                      <span className="block text-2xs font-normal text-muted sm:hidden">
+                                      <span className="block text-xs font-normal text-muted sm:hidden">
                                         ราคา
                                       </span>
                                       <span className="block break-words">
@@ -448,7 +448,7 @@ export function ProductPickerDialog({
                                         </button>
                                       </div>
                                       {exceedsStock && (
-                                        <p className="text-center text-2xs text-amber-700 dark:text-amber-400">
+                                        <p className="text-center text-xs text-amber-700 dark:text-amber-400">
                                           เกินสต็อก (ต้องสั่งเพิ่ม)
                                         </p>
                                       )}

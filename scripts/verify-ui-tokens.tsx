@@ -49,6 +49,75 @@ import { VISUAL_TONE_CLASSES } from "../src/lib/visual-tone";
 let failed = 0;
 const globalsSource = readFileSync("src/app/globals.css", "utf8");
 
+function tsxFilesUnder(dir: string): string[] {
+  const files: string[] = [];
+  for (const name of readdirSync(dir)) {
+    const path = join(dir, name);
+    if (statSync(path).isDirectory()) files.push(...tsxFilesUnder(path));
+    else if (name.endsWith(".tsx")) files.push(path);
+  }
+  return files;
+}
+
+/** เว้นจำนวนบรรทัดเดิมไว้เพื่อให้รายงาน file:line ยังชี้ถูก แต่ไม่สแกนข้อความใน comment */
+function withoutSourceComments(source: string): string {
+  return source
+    .replace(/\/\*[\s\S]*?\*\//g, (comment) => comment.replace(/[^\n]/g, " "))
+    .replace(/\/\/[^\n]*/g, "");
+}
+
+/** อ่านเฉพาะ opening tag โดยไม่หยุดผิดที่ลูกศร `=>` ใน JSX expression */
+function jsxOpeningTags(
+  source: string,
+  tag:
+    | "Button"
+    | "Input"
+    | "Select"
+    | "Textarea"
+    | "Link"
+    | "button"
+    | "a"
+    | "Label"
+    | "label",
+) {
+  const tags: Array<{ index: number; text: string }> = [];
+  const needle = `<${tag}`;
+  let cursor = 0;
+  while (cursor < source.length) {
+    const start = source.indexOf(needle, cursor);
+    if (start < 0) break;
+    const boundary = source[start + needle.length];
+    if (boundary && !/[\s/>]/.test(boundary)) {
+      cursor = start + needle.length;
+      continue;
+    }
+
+    let braces = 0;
+    let quote: "\"" | "'" | "`" | null = null;
+    let escaped = false;
+    let end = start + needle.length;
+    for (; end < source.length; end++) {
+      const char = source[end]!;
+      if (quote) {
+        if (escaped) escaped = false;
+        else if (char === "\\") escaped = true;
+        else if (char === quote) quote = null;
+        continue;
+      }
+      if (char === "\"" || char === "'" || char === "`") quote = char;
+      else if (char === "{") braces++;
+      else if (char === "}") braces = Math.max(0, braces - 1);
+      else if (char === ">" && braces === 0) {
+        end++;
+        break;
+      }
+    }
+    tags.push({ index: start, text: source.slice(start, end) });
+    cursor = Math.max(end, start + needle.length);
+  }
+  return tags;
+}
+
 type Rgb = [number, number, number];
 
 function colorValues(name: string): string[] {
@@ -128,6 +197,113 @@ function check(name: string, html: string, must: string[], mustNot: string[] = [
 
 const h = CONTROL_H.split(" ");
 const hSm = CONTROL_H_SM.split(" ");
+
+{
+  const layoutSource = readFileSync("src/app/layout.tsx", "utf8");
+  const labelSource = readFileSync("src/components/ui/label.tsx", "utf8");
+  const dialogSource = readFileSync("src/components/ui/dialog.tsx", "utf8");
+  const pageHeaderSource = readFileSync("src/components/page-header.tsx", "utf8");
+  const dataTableSource = readFileSync("src/components/ui/data-table.tsx", "utf8");
+  const buttonSource = readFileSync("src/components/ui/button.tsx", "utf8");
+  const expectedScale = [
+    ["2xs", "11px", "1.125rem"],
+    ["xs", "12px", "1.125rem"],
+    ["sm", "14px", "1.375rem"],
+    ["base", "16px", "1.5rem"],
+    ["lg", "18px", "1.75rem"],
+    ["xl", "20px", "1.875rem"],
+    ["2xl", "24px", "1.3"],
+    ["3xl", "28px", "1.25"],
+  ] as const;
+  const roleContractOk =
+    expectedScale.every(
+      ([role, size, lineHeight]) =>
+        globalsSource.includes(`--text-${role}: ${size};`) &&
+        globalsSource.includes(`--text-${role}--line-height: ${lineHeight};`),
+    ) &&
+    layoutSource.includes('weight: ["400", "500", "600", "700"]') &&
+    !layoutSource.includes('"300"') &&
+    pageHeaderSource.includes("text-2xl font-semibold text-strong") &&
+    dialogSource.includes("text-lg font-semibold text-strong") &&
+    labelSource.includes("text-sm font-medium text-secondary") &&
+    dataTableSource.includes('table className="w-full text-sm"') &&
+    buttonSource.includes("text-sm font-semibold");
+
+  const compressedType: string[] = [];
+  const primitiveOverrides: string[] = [];
+  const invalidMicroType: string[] = [];
+  const printRoots = ["src/app/(print)/", "src/components/print/"];
+  const statusMicroFiles = new Set([
+    "src/components/ui/status-label.tsx",
+    "src/components/orders/detail/order-status-bar.tsx",
+    "src/components/production/production-route-rail.tsx",
+    "src/components/production/production-freshness.tsx",
+  ]);
+  for (const path of tsxFilesUnder("src")) {
+    const source = readFileSync(path, "utf8");
+    const lineOf = (index: number) => source.slice(0, index).split("\n").length;
+
+    for (const tag of ["Button", "Input", "Select", "Textarea"] as const) {
+      for (const opening of jsxOpeningTags(source, tag)) {
+        const codeOnly = opening.text
+          .replace(/\{\/\*[\s\S]*?\*\/\}/g, "")
+          .replace(/\/\/[^\n]*/g, "");
+        const callerShrinksDesktop = /\b(?:[a-z0-9-]+:)*text-(?:2xs|xs)\b/.test(codeOnly);
+        const callerShrinksMobileControl =
+          tag !== "Button" && /(?:["'\s,(])text-sm\b/.test(codeOnly);
+        if (callerShrinksDesktop || callerShrinksMobileControl) {
+          primitiveOverrides.push(`${path}:${lineOf(opening.index)} (${tag})`);
+        }
+      }
+    }
+    for (const tag of ["Link", "button", "a", "Label", "label"] as const) {
+      for (const opening of jsxOpeningTags(source, tag)) {
+        const codeOnly = opening.text
+          .replace(/\{\/\*[\s\S]*?\*\/\}/g, "")
+          .replace(/\/\/[^\n]*/g, "");
+        if (/\btext-2xs\b/.test(codeOnly)) {
+          primitiveOverrides.push(`${path}:${lineOf(opening.index)} (${tag})`);
+        }
+      }
+    }
+
+    if (printRoots.some((root) => path.startsWith(root))) continue;
+    withoutSourceComments(source).split("\n").forEach((line, index) => {
+      const hasTrackingOverride =
+        /\btracking-(?:tighter|tight|wide|wider|widest)\b/.test(line) ||
+        /\btracking-\[[^\]]+\]/.test(line);
+      const hasCompressedLeading = /\bleading-(?:tight|snug)\b/.test(line);
+      const hasNonNumericLeadingNone =
+        /\bleading-none\b/.test(line) && !/\btabular-nums\b/.test(line);
+      if (hasTrackingOverride || hasCompressedLeading || hasNonNumericLeadingNone) {
+        compressedType.push(`${path}:${index + 1}`);
+      }
+      if (
+        /\btext-2xs\b/.test(line) &&
+        !/\btabular-nums\b/.test(line) &&
+        !statusMicroFiles.has(path)
+      ) {
+        invalidMicroType.push(`${path}:${index + 1}`);
+      }
+    });
+  }
+
+  if (
+    !roleContractOk ||
+    compressedType.length ||
+    primitiveOverrides.length ||
+    invalidMicroType.length
+  ) {
+    failed++;
+    console.log("❌ typography ต้องใช้ role กลางของ Prompt และ caller ห้ามบีบข้อความ/primitive ลงเอง");
+    if (!roleContractOk) console.log("   role scale/font weights/primitive contract ไม่ตรงค่าที่เคาะ");
+    compressedType.slice(0, 20).forEach((offender) => console.log(`   ${offender} (tracking/leading)`));
+    primitiveOverrides.slice(0, 20).forEach((offender) => console.log(`   ${offender} (font-size override)`));
+    invalidMicroType.slice(0, 20).forEach((offender) => console.log(`   ${offender} (11px outside status/counter)`));
+  } else {
+    console.log("✅ typography ใช้ Prompt role กลาง · 11px เฉพาะ status/counter · control primitive ไม่ถูก caller ลดขนาด");
+  }
+}
 
 {
   const headerHtml = renderToStaticMarkup(<PageHeader title="ควบคุมการผลิต" />);

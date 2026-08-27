@@ -122,19 +122,19 @@ export function OrderBillingSection({
           <div className="mb-4 grid grid-cols-2 gap-3 rounded-lg bg-surface-muted p-3 sm:grid-cols-4">
             <div className="text-center">
               <p className="text-xs text-muted">ยอดรวม</p>
-              <p className="text-sm font-semibold text-strong">
+              <p className="text-sm font-semibold tabular-nums text-strong">
                 {formatCurrency(totalAmount)}
               </p>
             </div>
             <div className="text-center">
               <p className="text-xs text-muted">วางบิลแล้ว</p>
-              <p className="text-sm font-semibold text-strong">
+              <p className="text-sm font-semibold tabular-nums text-strong">
                 {formatCurrency(totalInvoiced)}
               </p>
             </div>
             <div className="text-center">
               <p className="text-xs text-muted">ชำระแล้ว</p>
-              <p className="text-sm font-semibold text-green-600 dark:text-green-400">
+              <p className="text-sm font-semibold tabular-nums text-green-600 dark:text-green-400">
                 {formatCurrency(totalPaid)}
               </p>
             </div>
@@ -255,18 +255,18 @@ export function OrderBillingSection({
                         <div className="mb-3 grid grid-cols-3 gap-2 text-xs">
                           <div>
                             <span className="text-muted">ยอดเงิน</span>
-                            <p className="font-medium">{formatCurrency(inv.amount)}</p>
+                            <p className="font-medium tabular-nums">{formatCurrency(inv.amount)}</p>
                           </div>
                           {inv.discount > 0 && (
                             <div>
                               <span className="text-muted">ส่วนลด</span>
-                              <p className="font-medium">-{formatCurrency(inv.discount)}</p>
+                              <p className="font-medium tabular-nums">-{formatCurrency(inv.discount)}</p>
                             </div>
                           )}
                           {inv.tax > 0 && (
                             <div>
                               <span className="text-muted">ภาษี</span>
-                              <p className="font-medium">+{formatCurrency(inv.tax)}</p>
+                              <p className="font-medium tabular-nums">+{formatCurrency(inv.tax)}</p>
                             </div>
                           )}
                         </div>
@@ -326,7 +326,7 @@ export function OrderBillingSection({
                                       payment: p,
                                       canBill,
                                     }) ? (
-                                    <Button variant="outline" size="sm" className="gap-1.5 text-2xs" onClick={(e) => {
+                                    <Button variant="outline" size="sm" className="gap-1.5" onClick={(e) => {
                                         e.stopPropagation();
                                         setCreateDialog({ mode: "receipt", payment: p, invoice: inv });
                                       }}
@@ -336,7 +336,7 @@ export function OrderBillingSection({
                                     </Button>
                                   ) : null}
                                 </div>
-                                <span className="font-medium text-green-700 dark:text-green-400">
+                                <span className="font-medium tabular-nums text-green-700 dark:text-green-400">
                                   +{formatCurrency(p.amount)}
                                 </span>
                               </div>
@@ -350,7 +350,7 @@ export function OrderBillingSection({
                             <Button
                               variant="outline"
                               size="sm"
-                              className="gap-1.5 text-xs"
+                              className="gap-1.5"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setShowPaymentDialog(inv.id);
@@ -364,7 +364,7 @@ export function OrderBillingSection({
                             <Button
                               variant="outline"
                               size="sm"
-                              className="gap-1.5 text-xs text-amber-700 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300"
+                              className="gap-1.5 text-amber-700 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setShowRefundDialog(inv.id);
@@ -378,7 +378,7 @@ export function OrderBillingSection({
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="gap-1.5 text-xs text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300"
+                              className="gap-1.5 text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setShowVoidDialog(inv.id);

@@ -261,7 +261,7 @@ function Group({
       )}
     >
       {label && (
-        <p className="text-2xs font-semibold text-muted">
+        <p className="text-xs font-semibold text-muted">
           {label}
         </p>
       )}

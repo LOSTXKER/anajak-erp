@@ -152,6 +152,7 @@ export function OrderAttachmentsSection({
                   </Button>
                 )}
                 <Select
+                  size="dense"
                   value={img.printPosition || ""}
                   onChange={(e) => {
                     onImagesChange((prev) =>
@@ -163,7 +164,7 @@ export function OrderAttachmentsSection({
                   aria-label={`ตำแหน่งพิมพ์ของ ${img.fileName}`}
                   disabled={img.canEdit === false}
                   title={img.canEdit === false ? "แก้ไขได้เฉพาะไฟล์ที่คุณอัปโหลดเอง" : undefined}
-                  className="mt-1.5 w-24 px-1.5 py-0 text-sm sm:h-8 sm:text-xs"
+                  className="mt-1.5 w-24 px-1.5 py-0"
                 >
                   <option value="">ทั่วไป</option>
                   {Object.entries(PRINT_POSITIONS).map(([k, v]) => (

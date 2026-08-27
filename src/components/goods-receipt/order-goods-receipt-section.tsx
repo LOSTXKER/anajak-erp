@@ -54,7 +54,7 @@ export function OrderGoodsReceiptSection({
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-8 gap-1.5 text-xs"
+                  className="h-8 gap-1.5"
                   onClick={() => setDialogType("CUSTOMER_GARMENT")}
                 >
                   <PackageOpen />
@@ -65,7 +65,7 @@ export function OrderGoodsReceiptSection({
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-8 gap-1.5 text-xs"
+                  className="h-8 gap-1.5"
                   onClick={() => setDialogType("SEWING_GARMENT")}
                 >
                   <PackageOpen />
@@ -76,7 +76,7 @@ export function OrderGoodsReceiptSection({
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-8 gap-1.5 text-xs text-muted"
+                  className="h-8 gap-1.5 text-muted"
                   onClick={() => setDialogType("CUSTOMER_RETURN")}
                 >
                   <Undo2 />

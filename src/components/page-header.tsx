@@ -124,7 +124,7 @@ export function PageHeader({
           </span>
           <div className="min-w-0 space-y-1 pt-0.5">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-semibold text-strong">
+              <h1 className="break-words text-2xl font-semibold text-strong [overflow-wrap:anywhere]">
                 {title}
               </h1>
               {titleBadge}

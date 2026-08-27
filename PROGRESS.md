@@ -4,8 +4,15 @@
 
 ## ตอนนี้
 
-> **✅ UI-2026 ผ่านเฟส 1–11 + migration คลาวด์ (อัปเดตล่าสุด 2026-08-27)**
+> **✅ UI-2026 ผ่านเฟส 1–12 + migration คลาวด์ (อัปเดตล่าสุด 2026-08-27)**
 > เบสสั่ง "ทำหมดเลย และทำ UXUI ให้หมดทุกหน้าด้วย ให้สม่ำเสมอ" · ใบงานเต็ม: `ROADMAP.md` หัวข้อ `UI-2026` · ตัวอย่างที่เคาะ: artifact `948ab738-2857-41a9-8770-dd6d5e263830`
+>
+> **✅ เฟส 12 — Typography สมส่วนทั้งเว็บ (2026-08-27)**
+> ตรวจ `page.tsx` ครบ 54 route (49 surface + 5 redirect) และล็อก role กลางของ Prompt: ชื่อหน้า 24/31 · section 16/24 · dialog 18/28 · body/table/button 14/22 · compact navigation/filter/table header + metadata/help/error 12/18 · micro status/counter 11/18 เท่านั้น · mobile input 16/24
+> ถอด negative tracking/line-height แบบ Latin ออกจากภาษาไทย · คืน Button/Input/Select/Textarea ที่ caller บีบเหลือ 11–12px · ยกข้อมูลตัดสินใจบน Factory และข้อความช่วย/error สำคัญขึ้นอย่างน้อย 12px · เพิ่ม `tabular-nums` ให้ยอดเงินที่แตะรอบนี้ · เอา Prompt 300 ที่ไม่มี caller ออกจาก payload · เพิ่มด่านกวาดทุก TSX กัน regression
+> **ตรวจ browser จริง:** Light/Dark desktop + 320/390 mobile + reflow 720px เทียบเท่าซูม 200% · `/orders`, create/detail/dialog, production/detail, Factory TV/Station และ public token จริง 4 แบบ ไม่มี overflow/ข้อความไทยถูกบีบ · print จริง 4 แบบคงกระดาษ A4 793.7×1118.7px, Prompt และไม่มี horizontal overflow; `billingNote` ในฐาน dev มี 0 record จึงตรวจ route/source + primitive A4 ชุดเดียวกันโดยไม่สร้างข้อมูลทดสอบลงฐานจริง
+> **ด่าน:** changed-source Impeccable detector `[]` · `verify:ui` · unit **1659/1659** · typecheck · lint 0 error (26 warning เดิม) · production build 42 static pages · browser console warning/error 0
+> **ขอบเขต:** presentation/font delivery/test/docs เท่านั้น · query/mutation/permission/status/schema/dependency ไม่เปลี่ยน · ไฟล์ของเบส `scripts/verify-artwork.ts`, `.cursor/`, `public/`, `scripts/_probe-sidebar.tsx` ไม่ได้แตะ
 >
 > **✅ เฟส 11 — พื้น Light ขาวขึ้น + ลูกค้าเด่น + ตัวกรองเห็นตรงหน้า (2026-08-27)**
 > เบสทักจาก `/orders` จริง 3 จุดและลงครบ: ผืนงาน Light `#f1f2f4 → #f7f7f8` โดยคงการ์ดขาวแยกด้วย edge+shadow กลาง · desktop/mobile ให้ **ชื่อลูกค้า 16px semibold** เป็นบรรทัดหลักและชื่องาน 14px เป็นบรรทัดรอง พร้อม fallback ไม่พิมพ์ซ้ำ · ช่วงวันที่/ช่องทาง/ประเภทออกจาก popover มาอยู่บน toolbar ตลอด

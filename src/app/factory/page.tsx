@@ -391,7 +391,7 @@ function QueueRow({
         {customerName}
         {assignee ? ` · ${assignee}` : ""}
       </p>
-      <div className="mt-1.5 flex min-w-0 items-center justify-between gap-2 text-2xs">
+      <div className="mt-1.5 flex min-w-0 items-center justify-between gap-2 text-xs">
         <span
           className={cn(
             "truncate",
@@ -490,7 +490,7 @@ function BoardRail({ board }: { board: Board }) {
                 <span className={cn("min-w-0 truncate text-xs", item.danger ? "text-red-300" : "text-yellow-200")}>
                   {item.label}
                 </span>
-                <span className="ml-auto hidden max-w-28 truncate text-2xs text-muted xl:block">{item.detail}</span>
+                <span className="ml-auto hidden max-w-28 truncate text-xs text-muted xl:block">{item.detail}</span>
               </div>
             ))}
           </div>

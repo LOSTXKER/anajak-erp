@@ -72,7 +72,7 @@ export function MockupGallery({
                     <ZoomIn className="h-3.5 w-3.5" />
                   </span>
                   {image.positionLabel ? (
-                    <span className="absolute inset-x-0 bottom-0 bg-black/55 px-2 py-1 text-2xs font-medium text-white">
+                    <span className="absolute inset-x-0 bottom-0 bg-black/55 px-2 py-1 text-xs font-medium text-white">
                       {image.positionLabel}
                     </span>
                   ) : null}
@@ -87,13 +87,13 @@ export function MockupGallery({
                   )}
                 >
                   <ImageOff className="h-5 w-5" />
-                  <span className="px-2 text-2xs">
+                  <span className="px-2 text-xs">
                     {image.positionLabel ?? "ไฟล์นี้ดูตัวอย่างไม่ได้"}
                   </span>
                 </div>
               )}
               {image.caption ? (
-                <p className="mt-1 line-clamp-2 text-2xs text-muted">{image.caption}</p>
+                <p className="mt-1 line-clamp-2 text-xs text-muted">{image.caption}</p>
               ) : null}
             </li>
           );

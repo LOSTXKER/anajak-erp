@@ -215,7 +215,7 @@ export function OrderStatusBar({
               <span
                 className={cn(
                   // ห้าม truncate — ป้ายไทยยาวให้ขึ้นบรรทัดใหม่
-                  "text-center text-2xs leading-tight [overflow-wrap:anywhere]",
+                  "text-center text-2xs [overflow-wrap:anywhere]",
                   st === "current" &&
                     (tone === "cancel"
                       ? "font-semibold text-red-700 dark:text-red-300"

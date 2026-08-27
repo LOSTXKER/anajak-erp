@@ -342,7 +342,6 @@ export function OrderDeliverySection({
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="text-xs"
                                 onClick={() =>
                                   setStatusTarget({
                                     delivery,

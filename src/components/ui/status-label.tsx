@@ -50,7 +50,7 @@ export function StatusLabel({
 }) {
   const showSub = sub != null && sub !== "" && sub !== label;
   return (
-    <div className={cn("flex flex-col leading-tight", className)}>
+    <div className={cn("flex flex-col", className)}>
       <span
         className={cn(
           "inline-flex items-center gap-1.5 whitespace-nowrap text-xs font-medium",

@@ -68,7 +68,7 @@ function ReceiveTrackingInline({ product, onSuccess, readOnly }: {
         <span className="font-medium text-yellow-700 dark:text-yellow-300">ตรวจรับของ:</span>
         {product.receivedInspected ? (
           <>
-            <Badge variant="default" className="text-2xs">ตรวจรับแล้ว</Badge>
+            <Badge variant="default">ตรวจรับแล้ว</Badge>
             {product.garmentCondition && <span className="text-muted">สภาพ: {GARMENT_CONDITIONS[product.garmentCondition] ?? product.garmentCondition}</span>}
             {product.receiveNote && <span className="text-muted">({product.receiveNote})</span>}
           </>
@@ -76,7 +76,7 @@ function ReceiveTrackingInline({ product, onSuccess, readOnly }: {
           <span className="text-muted">ยังไม่มีหลักฐานใบตรวจรับ</span>
         )}
         {!readOnly ? (
-          <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(true)} className="ml-auto h-6 gap-1.5 px-2 text-2xs text-yellow-700 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-300">
+          <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(true)} className="ml-auto gap-1.5 text-yellow-700 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-300">
             <Edit3 />แก้สภาพ/หมายเหตุ
           </Button>
         ) : null}
@@ -90,26 +90,26 @@ function ReceiveTrackingInline({ product, onSuccess, readOnly }: {
         <Package className="h-3.5 w-3.5 text-yellow-600" />
         <div>
           <p className="text-xs font-semibold text-yellow-700 dark:text-yellow-300">ข้อมูลสภาพเสื้อจากลูกค้า</p>
-          <p className="text-2xs text-muted">สถานะตรวจรับอ้างอิงจากใบตรวจรับและยอดนับจริงเท่านั้น</p>
+          <p className="text-xs text-muted">สถานะตรวจรับอ้างอิงจากใบตรวจรับและยอดนับจริงเท่านั้น</p>
         </div>
       </div>
       <div className="flex flex-wrap items-end gap-3">
         <div>
-          <label htmlFor={`garment-condition-${product.id}`} className="mb-0.5 block text-2xs font-medium text-muted">สภาพเสื้อ</label>
-          <Select size="sm" id={`garment-condition-${product.id}`} value={condition} onChange={(e) => setCondition(e.target.value)} className={cn("px-2 py-1 text-xs", FOCUS_BUTTON)}>
+          <label htmlFor={`garment-condition-${product.id}`} className="mb-0.5 block text-xs font-medium text-muted">สภาพเสื้อ</label>
+          <Select size="sm" id={`garment-condition-${product.id}`} value={condition} onChange={(e) => setCondition(e.target.value)} className={cn("px-2 py-1", FOCUS_BUTTON)}>
             <option value="">เลือก</option>
             {Object.entries(GARMENT_CONDITIONS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </Select>
         </div>
         <div className="min-w-[160px] flex-1">
-          <label htmlFor={`garment-note-${product.id}`} className="mb-0.5 block text-2xs font-medium text-muted">หมายเหตุ</label>
+          <label htmlFor={`garment-note-${product.id}`} className="mb-0.5 block text-xs font-medium text-muted">หมายเหตุ</label>
           <Input size="sm" id={`garment-note-${product.id}`} value={note} onChange={(e) => setNote(e.target.value)} placeholder="เช่น เสื้อสภาพดี มีถุงครบ" />
         </div>
         <div className="flex gap-1.5">
-          <Button type="button" size="sm" onClick={() => mutation.mutate({ orderItemProductId: product.id, garmentCondition: condition || undefined, receiveNote: note || undefined })} disabled={mutation.isPending} className="h-8 gap-1.5 bg-yellow-700 text-xs text-white hover:bg-yellow-800">
+          <Button type="button" size="sm" onClick={() => mutation.mutate({ orderItemProductId: product.id, garmentCondition: condition || undefined, receiveNote: note || undefined })} disabled={mutation.isPending} className="h-8 gap-1.5 bg-yellow-700 text-white hover:bg-yellow-800">
             <Check />{mutation.isPending ? "กำลังบันทึก..." : "บันทึก"}
           </Button>
-          <Button type="button" variant="ghost" size="sm" onClick={() => { setEditing(false); setCondition(product.garmentCondition ?? ""); setNote(product.receiveNote ?? ""); }} className="h-8 text-xs">
+          <Button type="button" variant="ghost" size="sm" onClick={() => { setEditing(false); setCondition(product.garmentCondition ?? ""); setNote(product.receiveNote ?? ""); }} className="h-8">
             ยกเลิก
           </Button>
         </div>
@@ -447,7 +447,7 @@ export function OrderItemsDisplay({
                                       </a>
                                     ) : (
                                       // เขียนเป็นคำ ไม่ใช้ขีด — ขีดหน้าตาเหมือนช่อง "ไม่ต้องกรอก" ทั้งที่นี่คือ "งานเดินต่อไม่ได้"
-                                      <span className="text-2xs text-muted">ยังไม่มีไฟล์แบบ</span>
+                                      <span className="text-xs text-muted">ยังไม่มีไฟล์แบบ</span>
                                     )}
                                   </td>
                                   {printsHavePosition && (

@@ -194,7 +194,7 @@ export function DatePicker({
             {WEEKDAYS.map((w) => (
               <div
                 key={w}
-                className="pb-1 text-center text-2xs font-medium text-muted"
+                className="pb-1 text-center text-xs font-medium text-muted"
               >
                 {w}
               </div>

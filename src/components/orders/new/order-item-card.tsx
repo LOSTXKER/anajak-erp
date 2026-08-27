@@ -230,12 +230,13 @@ export function OrderItemCard({
               <div className="relative">
                 <Select
                   surface="inline"
+                  size="dense"
                   aria-label="คัดลอกลายจากรายการอื่น"
                   value=""
                   onChange={(e) => {
                     if (e.target.value) copyPrintsFrom(parseInt(e.target.value));
                   }}
-                  className="w-auto appearance-none rounded-lg pl-7 pr-2 text-secondary hover:bg-interactive-hover hover:text-secondary sm:text-xs dark:hover:bg-interactive-hover dark:hover:text-secondary"
+                  className="w-auto appearance-none rounded-lg pl-7 pr-2 text-secondary hover:bg-interactive-hover hover:text-secondary dark:hover:bg-interactive-hover dark:hover:text-secondary"
                 >
                   <option value="">คัดลอกลาย...</option>
                   {otherItemsWithPrints.map(({ it, idx }) => (

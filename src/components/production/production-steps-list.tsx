@@ -202,7 +202,7 @@ function StepRow({
     return (
       <div className="grid grid-cols-[1.75rem_minmax(0,1fr)] items-start gap-x-3 border-t border-divider px-0.5 py-2.5 sm:grid-cols-[1.75rem_minmax(0,1fr)_auto] sm:items-center">
         <div
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface-muted text-2xs font-medium text-muted"
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface-muted text-2xs font-medium tabular-nums text-muted"
           aria-hidden="true"
         >
           {step.sortOrder}

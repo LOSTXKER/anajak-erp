@@ -281,7 +281,7 @@ export function MockupPanel({
                             <Button
                               variant="outline"
                               size="sm"
-                              className="gap-1.5 text-xs text-amber-700 dark:text-amber-300"
+                              className="gap-1.5 text-amber-700 dark:text-amber-300"
                               onClick={() => regenerateToken.mutate({ designId: version.id })}
                               disabled={regenerateToken.isPending}
                             >
@@ -312,7 +312,7 @@ export function MockupPanel({
                           <Button
                             variant="outline"
                             size="sm"
-                            className="gap-1.5 text-xs"
+                            className="gap-1.5"
                             onClick={() => setShowApproveDialog(version.id)}
                           >
                             บันทึกผลลูกค้า

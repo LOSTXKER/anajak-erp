@@ -574,7 +574,6 @@ function QuotationFormPage() {
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="text-xs"
                     title="คำนวณ VAT 7% จากยอดหลังหักส่วนลด"
                     onClick={() => {
                       const base = Math.max(0, pricingSummary.subtotal - discount);

@@ -284,7 +284,7 @@ export default function UsersSettingsPage() {
                               {user.name}
                             </span>
                             {isSelf && (
-                              <span className="ml-2 rounded-full bg-blue-50 px-2 py-0.5 text-2xs font-medium text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
+                              <span className="ml-2 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
                                 คุณ
                               </span>
                             )}
@@ -489,12 +489,12 @@ export default function UsersSettingsPage() {
                           </span>
                           <span className="flex shrink-0 items-center gap-1.5">
                             {overridden && (
-                              <span className="rounded-full bg-amber-50 px-2 py-0.5 text-2xs font-medium text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
+                              <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
                                 ปรับเอง
                               </span>
                             )}
                             {locked && (
-                              <span className="text-2xs text-muted">เจ้าของเท่านั้น</span>
+                              <span className="text-xs text-muted">เจ้าของเท่านั้น</span>
                             )}
                           </span>
                         </label>

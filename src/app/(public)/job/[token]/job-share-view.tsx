@@ -99,7 +99,7 @@ export function JobShareView({ token }: { token: string }) {
                         alt={a.fileName}
                         className="h-36 w-full rounded-lg border border-border bg-surface object-contain"
                       />
-                      <p className="mt-1 truncate text-2xs text-muted">{a.fileName}</p>
+                      <p className="mt-1 truncate text-xs text-muted">{a.fileName}</p>
                     </a>
                   ))}
                   {designIsImage && design && (
@@ -113,7 +113,7 @@ export function JobShareView({ token }: { token: string }) {
                         alt={`แบบ v${design.versionNumber}`}
                         className="h-36 w-full rounded-lg border border-border bg-surface object-contain"
                       />
-                      <p className="mt-1 truncate text-2xs text-muted">
+                      <p className="mt-1 truncate text-xs text-muted">
                         แบบที่อนุมัติ (v{design.versionNumber})
                       </p>
                     </a>

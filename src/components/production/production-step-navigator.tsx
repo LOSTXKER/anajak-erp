@@ -187,7 +187,7 @@ export function ProductionStepNavigator({
                 <span className="min-w-0 flex-1">
                   <span
                     className={cn(
-                      "block break-words text-sm font-medium leading-snug text-strong transition-colors",
+                      "block break-words text-sm font-medium text-strong transition-colors",
                       (state.workflow === "current" || state.workflow === "in-progress") &&
                         "text-blue-700 dark:text-blue-300",
                       state.workflow === "failed" &&

@@ -113,7 +113,7 @@ export function ProductCardMobile({
                 type="button" variant="outline" size="sm"
                 onClick={() => setShowMatrix((v) => !v)}
                 disabled={product.variants.length > 1}
-                className={cn("h-9 gap-1.5 px-2 text-xs", multi && "border-blue-400 bg-blue-50 text-blue-700 dark:border-blue-700 dark:bg-blue-900/40 dark:text-blue-300")}
+                className={cn("h-9 gap-1.5 px-2", multi && "border-blue-400 bg-blue-50 text-blue-700 dark:border-blue-700 dark:bg-blue-900/40 dark:text-blue-300")}
                 title={product.variants.length > 1 ? "ล้างจำนวนไซส์ให้เหลือไซส์เดียวก่อนปิด" : "กรอกหลายไซส์ในแถวเดียว"}
               >
                 <LayoutGrid />{multi ? "ปิดหลายไซส์" : "หลายไซส์"}

@@ -292,7 +292,7 @@ export function DateRangePicker({
 
           <div className="grid grid-cols-7 gap-y-0.5" onMouseLeave={() => setHovered(null)}>
             {WEEKDAYS.map((w) => (
-              <div key={w} className="pb-1 text-center text-2xs font-medium text-muted">
+              <div key={w} className="pb-1 text-center text-xs font-medium text-muted">
                 {w}
               </div>
             ))}

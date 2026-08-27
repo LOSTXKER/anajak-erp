@@ -91,7 +91,7 @@ function MobileItemButton({
     >
       <span
         className={cn(
-          "flex min-w-0 items-center gap-1.5 text-xs leading-tight",
+          "flex min-w-0 items-center gap-1.5 text-xs",
           isOn
             ? "font-semibold text-blue-700 dark:text-blue-400"
             : item.count === 0
@@ -182,7 +182,7 @@ function DesktopItemButton({
       </span>
       <span
         className={cn(
-          "mt-1 inline-flex max-w-full items-center justify-center gap-1.5 text-2xs leading-tight",
+          "mt-1 inline-flex max-w-full items-center justify-center gap-1.5 text-xs",
           isOn
             ? "font-semibold text-blue-700 dark:text-blue-400"
             : "text-muted group-hover:text-secondary group-active:text-secondary dark:group-hover:text-secondary dark:group-active:text-secondary",
@@ -238,7 +238,7 @@ export function FlowFilterBar({
                   <p
                     key={group.label}
                     style={{ gridColumn: `span ${group.keys.length}` }}
-                    className="border-b border-divider pb-1 text-center text-2xs font-semibold text-muted"
+                    className="border-b border-divider pb-1 text-center text-xs font-semibold text-muted"
                   >
                     {group.label}
                   </p>
@@ -264,7 +264,7 @@ export function FlowFilterBar({
               aria-label={aside.ariaLabel}
               className="w-44 shrink-0"
             >
-              <p className="border-b border-divider pb-1 text-center text-2xs font-semibold text-muted">
+              <p className="border-b border-divider pb-1 text-center text-xs font-semibold text-muted">
                 {aside.label}
               </p>
               <div className="mt-2 grid grid-cols-2 gap-1.5">
@@ -296,7 +296,7 @@ export function FlowFilterBar({
         </div>
         {aside && aside.items.length > 0 && (
           <div role="group" aria-label={aside.ariaLabel}>
-            <p className="mb-2 px-1 text-2xs font-medium text-muted">
+            <p className="mb-2 px-1 text-xs font-medium text-muted">
               {aside.label}
             </p>
             <div className="grid grid-cols-2 gap-2">

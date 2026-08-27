@@ -363,6 +363,7 @@ export default function ServicesPage() {
                           {isEditing ? (
                             <Input
                               aria-label={`ราคาบริการ ${item.name}`}
+                              size="dense"
                               type="number"
                               min={0}
                               step={0.01}
@@ -374,7 +375,7 @@ export default function ServicesPage() {
                                     parseFloat(e.target.value) || 0,
                                 })
                               }
-                              className="ml-auto h-7 w-28 text-right text-sm"
+                              className="ml-auto w-28 text-right"
                             />
                           ) : (
                             <span className="text-sm tabular-nums font-medium text-strong">

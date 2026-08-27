@@ -5,7 +5,7 @@ import "./globals.css";
 
 const prompt = Prompt({
   subsets: ["latin", "thai"],
-  weight: ["300", "400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700"],
   variable: "--font-sans",
 });
 

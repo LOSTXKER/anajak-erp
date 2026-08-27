@@ -102,6 +102,15 @@
 - [x] คง status rail, attention deep link, search, sort, pagination, CSV, empty/error/loading, URL state และ permission เดิมทั้งหมด
 - [x] Verify: targeted 11/11 · `verify:ui` · unit 1659/1659 · typecheck · lint 0 error เมื่อไม่นับไฟล์ทดลอง untracked เดิม `scripts/_probe-sidebar.tsx` · production build · detector `[]` · browserจริง Light 1280/1024/390/320 + Dark 1280 รวมเลือก/ล้างตัวกรอง, overflow, console และ hydration
 
+**เฟส 12 — Typography proportion audit ทั้งเว็บ ✅ 2026-08-27 (เบสสั่ง)**
+> เบสสั่งให้ตรวจ “ฟอนต์ทั้งเว็บว่าสมส่วนหมดไหมทุกหน้าทุกส่วน” หลังขยับพื้น Light ให้ขาวขึ้น · ขอบเขต presentation/font delivery เท่านั้น คง query, mutation, permission, status transition, route, schema และ dependency เดิม
+
+- [x] ล็อกบทบาทกลาง: page 24/31 · section/card 16/24 · dialog 18/28 · body/table/button 14/22 · metadata/help/error 12/18 · micro status/counter 11/18 โดยห้าม 11px กับ action/label/instruction
+- [x] ถอด tracking override บน surface จอทั้งหมดและ line-height แบบ Latin ออกจากหัวข้อ/label/workflow ภาษาไทย; คงข้อยกเว้นเฉพาะงานพิมพ์ A4 ส่วน `leading-none` บนจอใช้ได้เฉพาะตัวเลข `tabular-nums`
+- [x] คืนปุ่มและ input/select/textarea ที่ caller ลดเหลือ 11–12px ให้ใช้ขนาด primitive กลาง พร้อมด่านกัน caller ทับ typography ลงอีก
+- [x] แยกขอบเขตตรวจครบ 54 route: dashboard/ops/public/factory/print · redirect-only ไม่ต้อง render · print คง scale กระดาษเฉพาะ โดยตรวจ source/A4 contract ครบ 5 และ render จริง 4 แบบที่ฐาน dev มีข้อมูล (`billingNote` มี 0 record)
+- [x] Verify: detector · `verify:ui` · targeted/full unit · typecheck/lint/build · browser Light/Dark desktop/mobile/200% zoom + factory + public/print โดยไม่ mutation ข้อมูลจริง
+
 **เฟส 10 — Modern Minimal ทั้งเว็บ ✅ ลงแล้ว 2026-08-26 · เหลือ QA จอโรงงาน**
 > เบสสั่งสามเรื่องพร้อมกัน: "ทุกหน้าไม่ต้องมีหัวข้อเล็กๆแบบนี้" (ส่งภาพ breadcrumb มาชี้) · "หุบเมนูไม่ต้องเด่น เอาไว้บนโลโก้ได้มั้ย" · "เว็บมันดูแข็งๆ ไม่ค่อยโมเดิร์น อยากได้ Modern Minimal โค้งมนหน่อย ทุกหน้าทุกส่วน"
 > ตัวอย่างกดเล่นได้ (3 ระดับ × สองธีม): artifact `510dc177-7648-4c74-bcbb-127cc2ae952f`

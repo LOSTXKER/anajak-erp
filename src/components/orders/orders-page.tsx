@@ -818,7 +818,7 @@ function OrdersPageContent() {
                     </div>
                     {canSeeMoney && (
                       <div className="text-right">
-                        <p className="text-2xs text-muted">ยอดรวม</p>
+                        <p className="text-xs text-muted">ยอดรวม</p>
                         <p className="font-semibold tabular-nums text-strong">
                           {formatBaht(order.totalAmount ?? 0)}
                         </p>

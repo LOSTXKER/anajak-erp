@@ -824,7 +824,7 @@ export function ProductionDetailScreen({
           <h1
             data-station-current-job-heading=""
             tabIndex={-1}
-            className="mt-1 text-2xl font-semibold tracking-tight text-strong outline-none focus-visible:ring-2 focus-visible:ring-ring sm:text-3xl"
+            className="mt-1 text-2xl font-semibold text-strong outline-none focus-visible:ring-2 focus-visible:ring-ring sm:text-3xl"
           >
             {order.orderNumber}
           </h1>
@@ -852,7 +852,7 @@ export function ProductionDetailScreen({
             <div>
               <h2
                 id="station-garment-receive-title"
-                className="text-2xl font-semibold tracking-tight text-strong"
+                className="text-2xl font-semibold text-strong"
               >
                 ตรวจรับเสื้อลูกค้า
               </h2>

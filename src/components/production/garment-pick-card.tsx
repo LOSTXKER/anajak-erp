@@ -176,7 +176,7 @@ export function GarmentPickCard({
           <h2
             id="production-garment-title"
             className={cn(
-              "flex items-center gap-2 font-semibold tracking-tight text-strong",
+              "flex items-center gap-2 font-semibold text-strong",
               embedded && primaryTask ? "text-2xl" : "text-base",
             )}
           >
@@ -234,7 +234,7 @@ export function GarmentPickCard({
             <h2
               id="production-garment-title"
               className={cn(
-                "flex items-center gap-2 font-semibold tracking-tight text-strong",
+                "flex items-center gap-2 font-semibold text-strong",
                 embedded && primaryTask ? "text-2xl" : "text-lg",
               )}
             >

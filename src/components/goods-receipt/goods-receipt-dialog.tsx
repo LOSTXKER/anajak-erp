@@ -336,7 +336,7 @@ function ReceiptForm({
                       value={l.defectNote}
                       onChange={(e) => update(idx, { defectNote: e.target.value })}
                       placeholder="ตำหนิอะไร เช่น รอยเปื้อน/รูขาด"
-                      className="flex-1 text-sm"
+                      className="flex-1"
                     />
                   )}
                 </div>

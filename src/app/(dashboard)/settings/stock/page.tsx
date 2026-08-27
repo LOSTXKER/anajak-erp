@@ -279,7 +279,7 @@ export default function StockSettingsPage() {
                           setDraft({ apiUrl: e.target.value, apiKey })
                         }
                     placeholder="https://stock.anajak.com/api"
-                    className="font-mono text-sm"
+                    className="font-mono"
                   />
                   <p className="mt-1 text-xs text-muted">
                     ดูได้ที่หน้า Integrations ในระบบ Stock
@@ -304,7 +304,7 @@ export default function StockSettingsPage() {
                               setDraft({ apiUrl, apiKey: e.target.value })
                             }
                         placeholder="sk_xxxxxxxxxxxxxxxx"
-                        className="pr-10 font-mono text-sm"
+                        className="pr-10 font-mono"
                       />
                       <Button
                         type="button"
@@ -558,7 +558,7 @@ export default function StockSettingsPage() {
                         <span className="text-strong">
                           {mapping.erpItemType}
                         </span>
-                        <Badge variant="secondary" className="text-2xs">
+                        <Badge variant="secondary">
                           {mapping.erpCode}
                         </Badge>
                       </div>

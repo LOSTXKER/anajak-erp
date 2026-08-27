@@ -254,19 +254,19 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
                         {a.name}
                       </p>
                       {!a.isActive && (
-                        <Badge variant="secondary" className="text-2xs">
+                        <Badge variant="secondary">
                           ปิดใช้งาน
                         </Badge>
                       )}
                     </div>
                     <div className="mt-1 flex flex-wrap gap-1.5">
                       {specChips(a).map((c) => (
-                        <Badge key={c} variant="secondary" className="text-2xs">
+                        <Badge key={c} variant="secondary">
                           {c}
                         </Badge>
                       ))}
                     </div>
-                    <p className="mt-1 text-2xs text-muted">
+                    <p className="mt-1 text-xs text-muted">
                       ใช้ไป {a.usedOrderCount} ออเดอร์
                       {a.latestOrder ? ` · ล่าสุด ${a.latestOrder.orderNumber}` : ""}
                       {a.filmQty > 0 ? (
@@ -277,7 +277,7 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
                       ) : null}
                     </p>
                     {gaps.length > 0 && (
-                      <p className="mt-0.5 text-2xs text-amber-700 dark:text-amber-400">
+                      <p className="mt-0.5 text-xs text-amber-700 dark:text-amber-400">
                         สเปกยังไม่ครบ: {gaps.join(" · ")}
                       </p>
                     )}
@@ -310,7 +310,7 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 w-full text-xs text-muted"
+                className="h-8 w-full text-muted"
                 onClick={() => setShowAll((v) => !v)}
               >
                 {showAll ? "ย่อ" : `ดูทั้งหมด (${rows.length})`}
@@ -450,7 +450,7 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
                 />
               )}
             </div>
-            <p className="text-2xs text-muted">
+            <p className="text-xs text-muted">
               สเปก (ขนาด/อุณหภูมิ/แรงกด) เติมทีหลังได้จากปุ่มแก้ไข
             </p>
           </div>

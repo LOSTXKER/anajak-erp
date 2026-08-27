@@ -133,7 +133,7 @@ function SidebarGroupLabel({
   if (!label) return null;
 
   return (
-    <p className="px-3 pb-1.5 text-2xs font-medium text-muted">{label}</p>
+    <p className="px-3 pb-1.5 text-xs font-medium text-muted">{label}</p>
   );
 }
 
@@ -534,7 +534,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
           >
             <Search className="h-4 w-4 shrink-0" strokeWidth={1.75} />
             <span className="min-w-0 flex-1 truncate text-left">ค้นหาเลขงาน ลูกค้า หรือเมนู</span>
-            <kbd className="hidden text-2xs sm:inline">⌘K</kbd>
+            <kbd className="hidden text-xs sm:inline">⌘K</kbd>
           </button>
 
           <div className="ml-auto flex shrink-0 items-center gap-2 lg:ml-0">
@@ -552,7 +552,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
               >
                 <Bell />
                 {count > 0 && (
-                  <span className="absolute right-0 top-0 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-2xs font-semibold text-white ring-2 ring-chrome">
+                  <span className="absolute right-0 top-0 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-2xs font-semibold tabular-nums text-white ring-2 ring-chrome">
                     {count > 99 ? "99+" : count}
                   </span>
                 )}
@@ -595,7 +595,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
                   FOCUS_INSET,
                   RADIUS.item,
                   INTERACTIVE_CHROME_PRESSED,
-                  "flex flex-col items-center justify-center gap-1 px-1 py-2 text-2xs transition-colors",
+                  "flex flex-col items-center justify-center gap-1 px-1 py-2 text-xs transition-colors",
                   active
                     ? cn(
                         "relative bg-interactive-chrome-pressed font-semibold text-strong",
@@ -627,7 +627,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
               FOCUS_INSET,
               RADIUS.item,
               INTERACTIVE_CHROME_PRESSED,
-              "flex flex-col items-center justify-center gap-1 px-1 py-2 text-2xs transition-colors",
+              "flex flex-col items-center justify-center gap-1 px-1 py-2 text-xs transition-colors",
               mobileMoreActive
                 ? cn(
                     "relative bg-interactive-chrome-pressed font-semibold text-strong",

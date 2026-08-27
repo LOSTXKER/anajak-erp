@@ -77,13 +77,13 @@ function FileThumb({
       ) : (
         <div className="flex h-28 w-28 flex-col items-center justify-center rounded-lg border border-border bg-surface-muted transition-colors hover:border-border-strong hover:bg-interactive-hover">
           <ImageIcon className="h-8 w-8 text-muted" />
-          <span className="mt-1 text-2xs text-muted">
+          <span className="mt-1 text-xs text-muted">
             {att.fileName.split(".").pop()?.toUpperCase()}
           </span>
         </div>
       )}
       {byCustomer && (
-        <span className="absolute bottom-1 left-1 flex items-center gap-0.5 rounded bg-blue-600/90 px-1 py-0.5 text-2xs font-medium text-white">
+        <span className="absolute bottom-1 left-1 flex items-center gap-0.5 rounded bg-blue-600/90 px-1 py-0.5 text-xs font-medium text-white">
           <User className="h-2.5 w-2.5" />
           ลูกค้า
         </span>
@@ -107,7 +107,7 @@ function FileThumb({
           {thumbInner}
         </a>
       )}
-      <p className="mt-0.5 max-w-[7rem] truncate text-2xs text-muted">{att.fileName}</p>
+      <p className="mt-0.5 max-w-[7rem] truncate text-xs text-muted">{att.fileName}</p>
     </div>
   );
 }
@@ -263,7 +263,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole }: Order
                       readOnly
                       value={linkUrl}
                       onFocus={(e) => e.currentTarget.select()}
-                      className="min-w-0 flex-1 text-xs"
+                      className="min-w-0 flex-1"
                     />
                     <Button size="sm" className="shrink-0 gap-1.5" onClick={copyUploadLink} >
                       {linkCopied ? (
@@ -274,7 +274,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole }: Order
                       {linkCopied ? "คัดลอกแล้ว" : "คัดลอก"}
                     </Button>
                   </div>
-                  <div className="flex items-center justify-between text-2xs text-muted">
+                  <div className="flex items-center justify-between text-xs text-muted">
                     <span>
                       {linkData?.expiresAt
                         ? `หมดอายุ ${formatDate(linkData.expiresAt)}`
@@ -284,7 +284,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole }: Order
                       type="button"
                       variant="link"
                       size="sm"
-                      className="h-auto p-0 text-2xs"
+                      className="h-auto p-0"
                       onClick={() => generateLink.mutate({ orderId })}
                       disabled={generateLink.isPending}
                     >
@@ -350,7 +350,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole }: Order
           {Object.entries(positionGroups).map(([pos, imgs]) => (
             <div key={pos} className="mb-2">
               <p className="mb-2 text-xs font-medium text-muted">
-                <Badge variant="secondary" className="text-2xs">
+                <Badge variant="secondary">
                   {POSITION_LABELS[pos] || pos}
                 </Badge>
               </p>
@@ -376,7 +376,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole }: Order
               <Printer className="h-4 w-4" />
               {FILE_LAYERS.PRINT.label}
             </p>
-            <Badge variant="secondary" className="gap-1.5 text-2xs">
+            <Badge variant="secondary" className="gap-1.5">
               <Lock className="h-2.5 w-2.5" />
               ภายในเท่านั้น
             </Badge>

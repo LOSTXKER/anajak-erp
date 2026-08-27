@@ -85,7 +85,7 @@ export function UserMenu() {
             <p className="text-sm font-semibold text-strong">
               {me?.name ?? "..."}
             </p>
-            <p className="text-2xs text-muted">
+            <p className="text-xs text-muted">
               {me?.email ?? ""}
               {me?.role ? ` · ${ROLE_LABELS[me.role] ?? me.role}` : ""}
             </p>

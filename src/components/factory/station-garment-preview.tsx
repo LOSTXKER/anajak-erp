@@ -316,7 +316,7 @@ function ApprovedDesignReference({
                   className="h-20 w-20 object-contain"
                 />
                 {item.sideLabel ? (
-                  <span className="block bg-surface-muted px-1 py-0.5 text-2xs text-secondary">
+                  <span className="block bg-surface-muted px-1 py-0.5 text-xs text-secondary">
                     {item.sideLabel}
                   </span>
                 ) : null}
@@ -642,7 +642,7 @@ export function StationGarmentPreview({
     >
       <h3
         id="station-work-visual-title"
-        className="flex items-center gap-2 text-xl font-semibold tracking-tight text-strong"
+        className="flex items-center gap-2 text-xl font-semibold text-strong"
       >
         {allGroupsUseShirtDiagram ? (
           <Shirt className="h-6 w-6 text-blue-500" aria-hidden="true" />

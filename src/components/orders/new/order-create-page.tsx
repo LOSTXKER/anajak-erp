@@ -1220,7 +1220,7 @@ export default function OrderFormPage(props: OrderFormPageProps) {
                       type="button"
                       onClick={() => changeTab(error.tab)}
                       className={cn(
-                        "ml-2 rounded text-2xs font-medium underline underline-offset-2",
+                        "ml-2 rounded text-xs font-medium underline underline-offset-2",
                         FOCUS_BUTTON,
                       )}
                     >
@@ -1551,7 +1551,7 @@ export default function OrderFormPage(props: OrderFormPageProps) {
                 <>
                   {/* ชื่อเดียวกับบรรทัดสุดท้ายของ "สรุปยอด" — เดิมเรียก "ยอดรวม" กับ
                       "ยอดรวมทั้งหมด" คนละที่คนละขนาด อ่านแล้วไม่แน่ใจว่าเลขเดียวกันไหม */}
-                  <p className="text-2xs text-muted">
+                  <p className="text-xs text-muted">
                     ยอดรวมทั้งหมด{taxRate > 0 ? " (รวม VAT)" : ""}
                   </p>
                   <p className={cn("truncate", DISPLAY_AMOUNT)}>
@@ -1559,7 +1559,7 @@ export default function OrderFormPage(props: OrderFormPageProps) {
                   </p>
                 </>
               ) : (
-                <p className="text-xs leading-snug text-muted">
+                <p className="text-xs text-muted">
                   ยังไม่ใส่รายการ/ราคา
                 </p>
               )

@@ -93,7 +93,7 @@ function DesignThumb({
           <ImageOff className="h-4 w-4" />
         </div>
       )}
-      <span className="absolute bottom-0 right-0 rounded-tl bg-black/70 px-1 text-2xs font-semibold tabular-nums text-white">
+      <span className="absolute bottom-0 right-0 rounded-tl bg-black/70 px-1 text-xs font-semibold tabular-nums text-white">
         v{design.versionNumber}
       </span>
     </a>

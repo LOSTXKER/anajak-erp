@@ -467,7 +467,7 @@ function BillingNotesPageContent() {
                 {selectedIds.size > 0 && (
                   <p className="mt-1.5 text-right text-sm">
                     เลือก {selectedIds.size} ใบ · รวม{" "}
-                    <span className="font-semibold">{formatCurrency(selectedTotal)}</span>
+                    <span className="font-semibold tabular-nums">{formatCurrency(selectedTotal)}</span>
                   </p>
                 )}
                 {creditNoteTotal > 0 && (

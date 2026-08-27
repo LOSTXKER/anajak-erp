@@ -346,11 +346,11 @@ export function MaterialUsage({
                       {formatCurrency(m.totalCost)}
                     </span>
                   )}
-                  <Badge variant="success" size="sm" className="text-2xs">
+                  <Badge variant="success" size="sm">
                     เบิกแล้ว
                   </Badge>
                   {m.stockMovementRef && (
-                    <span className="text-2xs text-muted">{m.stockMovementRef}</span>
+                    <span className="text-xs text-muted">{m.stockMovementRef}</span>
                   )}
                 </div>
               </div>
@@ -375,9 +375,9 @@ export function MaterialUsage({
                     <span className="truncate text-xs font-medium text-strong">
                       {m.name}
                     </span>
-                    <span className="shrink-0 text-2xs text-muted">{m.sku}</span>
+                    <span className="shrink-0 text-xs text-muted">{m.sku}</span>
                   </div>
-                  <div className="mt-0.5 flex items-center gap-2 text-2xs">
+                  <div className="mt-0.5 flex items-center gap-2 text-xs">
                     <span
                       className={cn(
                         "tabular-nums",
@@ -421,7 +421,7 @@ export function MaterialUsage({
                     onChange={(e) => updateQuantity(m.id, parseFloat(e.target.value) || 0)}
                     aria-label={`จำนวน ${m.name}`}
                     size="sm"
-                    className="w-16 text-center text-xs tabular-nums"
+                    className="w-16 text-center tabular-nums"
                     min={0.01}
                     step={0.01}
                   />
@@ -436,7 +436,7 @@ export function MaterialUsage({
                 </div>
 
                 {/* Unit */}
-                <span className="w-8 text-center text-2xs text-muted">{m.unit}</span>
+                <span className="w-8 text-center text-xs text-muted">{m.unit}</span>
 
                 {/* Unit cost + row total — เงินโชว์/แก้ได้เฉพาะหัวหน้า */}
                 {showCosts && (
@@ -448,7 +448,7 @@ export function MaterialUsage({
                         onChange={(e) => updateUnitCost(m.id, parseFloat(e.target.value) || 0)}
                         aria-label={`ต้นทุนต่อหน่วย ${m.name}`}
                         size="sm"
-                        className="text-right text-xs tabular-nums"
+                        className="text-right tabular-nums"
                         min={0}
                         step={0.01}
                         placeholder="ต้นทุน/หน่วย"
@@ -512,7 +512,7 @@ export function MaterialUsage({
             <div className="flex min-h-11 flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-lg bg-surface-muted px-3 py-2">
               <p className="text-xs font-medium text-secondary">ยังไม่มีวัตถุดิบ</p>
               {!readOnly && (
-                <p className="text-2xs text-muted">ใช้ปุ่ม &quot;เพิ่มวัตถุดิบ&quot; ด้านบน</p>
+                <p className="text-xs text-muted">ใช้ปุ่ม &quot;เพิ่มวัตถุดิบ&quot; ด้านบน</p>
               )}
             </div>
           ) : (
@@ -520,7 +520,7 @@ export function MaterialUsage({
               <Package className="mx-auto h-8 w-8 text-muted" />
               <p className="mt-1.5 text-xs text-muted">ยังไม่มีวัตถุดิบ</p>
               {!readOnly && (
-                <p className="text-2xs text-muted">
+                <p className="text-xs text-muted">
                   กดปุ่ม &quot;เพิ่มวัตถุดิบ&quot; เพื่อเริ่มเพิ่มรายการ
                 </p>
               )}
