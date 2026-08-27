@@ -172,7 +172,7 @@ body{
   display:flex;align-items:center;justify-content:center;flex-shrink:0;
 }
 .brand-name{font-size:14px;font-weight:600;color:var(--strong);white-space:nowrap}
-.stage[data-collapsed="true"] .brand-name{display:none}
+.stage[data-collapsed="true"] .sb-head .brand-name{display:none}
 
 /* รายการเมนู */
 .sb-nav{flex:1;min-height:0;overflow:hidden;padding:12px}
@@ -296,24 +296,31 @@ body{
 .edge:hover::after,.edge:focus-visible::after{background:var(--brand)}
 .edge:focus-visible{outline:none}
 
+/* ── หัวขบวนซ้ายของแถบบน (แบบ ก) — ปุ่ม → เส้นคั่น → ตรา ── */
+.tb-lead{display:none;align-items:center;gap:8px;padding-left:16px;flex-shrink:0}
+.tb-lead .sep{width:1px;height:16px;background:var(--divider);flex-shrink:0}
+.tb-lead .brand{gap:10px}
+
 /* ── สวิตช์ตามตัวเลือก ── */
 .stage[data-opt="now"][data-collapsed="false"] .slot--sbhead{display:flex}
 .stage[data-opt="now"][data-collapsed="true"]  .slot--topbar-first{display:flex}
 
-.stage[data-opt="a"] .slot--topbar-left,
-.stage[data-opt="c"] .slot--topbar-left{display:flex}
-.stage[data-opt="a"] .tb-sep,
-.stage[data-opt="c"] .tb-sep{display:block}
-.stage[data-opt="a"] .crumb,
-.stage[data-opt="c"] .crumb{display:block}
-.stage[data-opt="a"] .tb-inner,
-.stage[data-opt="c"] .tb-inner{padding-left:24px}
+/* แบบ ก — แถบบนพาดเต็มจอ เมนูซ้ายเริ่มใต้แถบ ปุ่มกับตรานั่งมุมซ้ายบนสุด */
+.stage[data-opt="a"] .tb{grid-column:1/-1;grid-row:1}
+.stage[data-opt="a"] .sb{grid-column:1;grid-row:2}
+.stage[data-opt="a"] .sb-head{display:none}
+.stage[data-opt="a"] .sb-nav{padding-top:12px}
+.stage[data-opt="a"] .tb-lead{display:flex}
+.stage[data-opt="a"] .tb-inner{max-width:none;margin:0;padding-left:16px}
 
-.stage[data-opt="b"] .edge{display:block}
+/* แบบ ข — ปุ่มเป็นชิ้นแรกของหัวเนื้อหา ตามด้วยเส้นคั่นและชื่อหน้า */
+.stage[data-opt="b"] .slot--topbar-left{display:flex}
+.stage[data-opt="b"] .tb-sep{display:block}
+.stage[data-opt="b"] .crumb{display:block}
+.stage[data-opt="b"] .tb-inner{padding-left:24px}
 
-/* แบบ ค — หุบแล้วเมนูหายไปทั้งแถบ ไม่เหลือรางไอคอน */
-.stage[data-opt="c"][data-collapsed="true"]{--sw:0rem}
-.stage[data-opt="c"][data-collapsed="true"] .sb{border-right:0}
+/* แบบ ค — ไม่มีปุ่มบนจอ เส้นแบ่งคือตัวควบคุม */
+.stage[data-opt="c"] .edge{display:block}
 
 /* ── บันทึกใต้เวที ── */
 .notes{display:grid;grid-template-columns:1.35fr 1fr;gap:16px;align-items:start}
@@ -384,16 +391,16 @@ body{
   <header class="head">
     <div class="eyebrow">Anajak ERP · เมนูซ้าย · 28 ส.ค. 2026</div>
     <h1>ปุ่มหุบเมนูควรอยู่ตรงไหน</h1>
-    <p>ของเดิม<strong>ย้ายที่</strong>ระหว่างสองสถานะ — ตอนเมนูกางอยู่ในหัวเมนู พอหุบแล้วกระโดดไปแถบบน คนเลยอ่านไม่ออกว่าปุ่มนี้คุมอะไร ทั้งสามแบบข้างล่างแก้ข้อเดียวกัน คือ<strong>ปุ่มอยู่ที่เดิมเสมอ</strong> ต่างกันที่ "ที่เดิม" อยู่ตรงไหน · กดปุ่มในภาพหุบ-กางได้จริง</p>
+    <p>ไปดู shadcn ครบทั้ง 16 แบบทางการ กับอีก 12 แอปมาแล้ว "แบบมาตรฐาน" มีกฎอยู่ 2 ข้อ — <strong>ปุ่มต้องอยู่ที่เดียวตลอด</strong> ไม่มีสักแบบที่ย้ายปุ่มตอนหุบ และ<strong>ปุ่มต้องมีเพื่อนบ้าน</strong> คือเป็นชิ้นแรกของกลุ่มที่มีเส้นคั่นแล้วมีตราหรือชื่อหน้าต่อท้าย ไม่เคยยืนเดี่ยวกลางที่ว่าง ของเดิมผิดทั้งสองข้อพร้อมกัน · กดปุ่มในภาพหุบ-กางได้จริง</p>
   </header>
 
   <div class="controls">
     <span class="ctl-label">แบบ</span>
     <div class="chips" id="optChips">
       <button class="chip" data-opt="now" aria-pressed="false"><span class="dot"></span>ของเดิม</button>
-      <button class="chip" data-opt="a" aria-pressed="true"><span class="dot"></span>ก · แถบบนซ้ายสุด</button>
-      <button class="chip" data-opt="b" aria-pressed="false"><span class="dot"></span>ข · เส้นแบ่ง</button>
-      <button class="chip" data-opt="c" aria-pressed="false"><span class="dot"></span>ค · หุบแล้วซ่อน</button>
+      <button class="chip" data-opt="a" aria-pressed="true"><span class="dot"></span>ก · แถบบนเต็มจอ</button>
+      <button class="chip" data-opt="b" aria-pressed="false"><span class="dot"></span>ข · หัวเนื้อหา</button>
+      <button class="chip" data-opt="c" aria-pressed="false"><span class="dot"></span>ค · เส้นแบ่ง</button>
     </div>
     <span class="spacer"></span>
     <span class="ctl-label">ธีม</span>
@@ -407,7 +414,7 @@ body{
     <div class="stage-bar">
       <span class="lights"><i></i><i></i><i></i></span>
       <span class="addr">anajak-erp · /orders</span>
-      <span class="hint">กดปุ่ม <b>หุบ/กางเมนู</b> ในภาพได้เลย</span>
+      <span class="hint">กดปุ่ม <b>หุบ/กางเมนู</b> ในภาพได้เลย · แบบ ค ให้คลิกที่เส้นแบ่ง</span>
     </div>
 
     <div class="stage" id="stage" data-opt="a" data-collapsed="false" data-mode="light">
@@ -464,6 +471,19 @@ body{
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="m14 9 3 3-3 3"/></svg>
           </button>
         </span>
+
+        <div class="tb-lead">
+          <button class="tgl js-toggle" type="button" aria-label="หุบเมนู" title="หุบเมนู">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/></svg>
+          </button>
+          <span class="sep"></span>
+          <a class="brand" href="#">
+            <span class="brand-mark">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 9V3h12v6"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg>
+            </span>
+            <span class="brand-name">Anajak Print</span>
+          </a>
+        </div>
 
         <div class="tb-inner">
           <!-- ช่อง: ซ้ายสุดของแถบบน ค้างที่เดิมทั้งสองสถานะ (แบบ ก) -->
@@ -537,52 +557,55 @@ const NOTES = {
     collapsed: "กระโดดข้ามเส้นแบ่งไปช่อง 56px แรกของแถบบน",
     moves: true,
     judge: [
-      ["minus", "ปุ่มเปลี่ยนที่ทุกครั้งที่กด มือต้องตามหาใหม่ทุกรอบ"],
-      ["minus", "ตอนหุบ ปุ่มไปยืนคนละฝั่งของเส้นแบ่งกับเมนูที่มันคุม เลยอ่านเป็นปุ่มลอย"],
+      ["minus", "ผิดกฎข้อแรกของมาตรฐาน คือปุ่มต้องอยู่ที่เดียวตลอด shadcn มี 16 แบบทางการ ไม่มีสักแบบที่ย้ายปุ่ม"],
+      ["minus", "ผิดกฎข้อสอง คือปุ่มต้องมีเพื่อนบ้าน ตอนนี้ยืนเดี่ยวในที่ว่าง เพราะช่องค้นหา กระดิ่ง บัญชี ถูกดันไปชิดขวาหมด"],
       ["minus", "ตอนหุบ ราง 64px เหลือแต่ตรา ดูเหมือนของที่โหลดค้าง"],
     ],
   },
   a: {
-    title: "ก · ซ้ายสุดของหัวเนื้อหา มีชื่อหน้ายืนคู่",
-    who: "shadcn/ui (ระบบที่โปรเจคนี้ใช้อยู่) · GitHub · GitLab · Intercom",
-    verdict: "แบบที่คนทำกันมากที่สุด",
-    expanded: "ซ้ายสุดของแถบบน ตามด้วยขีดคั่นแล้วชื่อหน้า",
-    collapsed: "ที่เดิมเป๊ะ ไอคอนก็ไม่เปลี่ยน",
+    title: "ก · แถบบนพาดเต็มจอ ปุ่มกับตราอยู่มุมซ้ายบนสุด",
+    who: "GitHub · Jira · Confluence · VS Code · shadcn block sidebar-16",
+    verdict: "แก้ที่ต้นเหตุ",
+    expanded: "มุมซ้ายบนสุดของจอ ปุ่ม → เส้นคั่น → ตรา Anajak Print",
+    collapsed: "ไม่ขยับแม้แต่พิกเซลเดียว ตราก็ไม่ขยับ",
     moves: false,
     judge: [
-      ["plus", "ปุ่มไม่เคยขยับ กดซ้ำได้โดยไม่ต้องมอง คือข้อที่ของเดิมพัง"],
-      ["plus", "มีขีดคั่นกับชื่อหน้ายืนต่อทันที เลยอ่านเป็นหัวแถวเครื่องมือ ไม่ใช่ปุ่มโดดที่ลอยอยู่กลางที่ว่าง"],
-      ["plus", "shadcn ให้มาแบบนี้ในกล่อง ของที่ทีมหยิบมาใช้ต่อจะเข้าที่เอง ไม่ต้องดัด"],
-      ["minus", "ปุ่มไม่ได้แตะเมนูที่มันคุม ต้องให้ไอคอนเป็นตัวบอกความหมาย"],
-      ["minus", "ใกล้กับที่ลองไปเมื่อคืน (รอบแปด) ต่างกันตรงคราวนั้นปุ่มยืนโดดในช่องว่าง ไม่มีชื่อหน้ายืนคู่"],
+      ["plus", "ปุ่มนิ่งสนิทจริง ไม่ใช่แค่นิ่งในโค้ด กดหุบแล้วกางกลับที่จุดเดิม นิ้วจำที่ได้"],
+      ["plus", "ไม่ลอยอีกแล้ว เพราะมีตรายืนต่อท้ายเป็นเพื่อน และมุมซ้ายบนคือที่ที่คนทั้งโลกคาดว่าจะเจอปุ่มเมนู"],
+      ["plus", "ฆ่าปัญหาที่ต้นตอ ไม่มีปุ่มในราง 64px อีกแล้ว ข้อจำกัดที่ทำให้ตันมาเก้ารอบหายไปเลย"],
+      ["plus", "เมนูซ้ายได้ความสูงคืน 56px และลำดับกด Tab เดินซ้ายไปขวาตามที่ตาเห็นจริง"],
+      ["minus", "ต้องแก้โครงจอ ไม่ใช่แก้แค่ปุ่ม และเป็นการย้อนที่เบสเคาะไว้เมื่อ 26 ส.ค. ว่าแถบบนไม่พาดทับเมนูซ้าย ต้องเบสอนุญาตข้อนี้ก่อน"],
+      ["minus", "ตราย้ายออกจากหัวเมนู ภาพจำเดิมเปลี่ยนไปหนึ่งจังหวะ ทีม 6 คนต้องปรับตาสักวันสองวัน"],
+      ["minus", "จอกว้างเกิน 1780px ขอบขวาของรูปผู้ใช้จะไม่ตรงกับขอบการ์ดข้างล่าง คลาดกันราว 70px บนจอ 1920"],
     ],
   },
   b: {
-    title: "ข · เส้นแบ่งคือปุ่ม ไม่มีปุ่มให้เห็นเลย",
-    who: "Linear · Slack · shadcn SidebarRail",
-    verdict: null,
-    expanded: "ไม่มีปุ่ม คลิกที่เส้นแบ่งระหว่างเมนูกับเนื้อหาได้เลย เส้นเปลี่ยนสีตอนเอาเมาส์ชี้",
-    collapsed: "เส้นแบ่งเดิม ขยับมาอยู่ที่ขอบราง 64px",
+    title: "ข · ปุ่มเป็นหัวขบวนของหัวเนื้อหา มีชื่อหน้ายืนคู่",
+    who: "shadcn 14 จาก 16 block · GitLab · Intercom",
+    verdict: "ตรงตำรา shadcn ที่สุด",
+    expanded: "ซ้ายสุดของแถบบน ปุ่ม → เส้นคั่น → ชื่อหน้า",
+    collapsed: "ที่เดิมใน DOM ห่างเส้นแบ่ง 32px เท่าเดิม แต่เลื่อนซ้ายตามเนื้อหา 176px",
     moves: false,
     judge: [
-      ["plus", "ไม่มีอะไรยื่นออกมาจากเส้น ไม่มีปุ่มลอย แถบบนสะอาดล้วน"],
-      ["plus", "เป้ากดสูงเต็มจอ เล็งง่ายกว่าปุ่ม 36px มาก"],
-      ["minus", "คนใหม่หาไม่เจอ ไม่มีอะไรบอกว่าเส้นนี้กดได้ ขนาด Linear เองยังต้องใส่ไอคอนสำรองไว้ให้"],
-      ["minus", "จอทัชในโรงงานไม่มี hover เลยไม่มีวันเห็นว่าเส้นเปลี่ยนสี"],
+      ["plus", "เป็นสูตรที่ shadcn เขียนไว้ตรงตัว ถ้าถามว่าเขาทำกันยังไง คำตอบตามตัวอักษรคืออันนี้"],
+      ["plus", "แก้เบาที่สุด ไม่แตะโครงจอ ไม่ย้ายตรา จบในไฟล์เดียว"],
+      ["minus", "เสี่ยงที่สุด พิกัดใกล้กับที่เบสเพิ่งปฏิเสธไปสองรอบเมื่อคืน ต่างกันแค่มีเส้นคั่นกับชื่อหน้าต่อท้าย"],
+      ["minus", "ต้องเอาชื่อหน้ากลับขึ้นแถบบน ซึ่งเบสสั่งถอดออกเองเมื่อ 26 ส.ค. ถ้ายืนยันไม่เอาชื่อหน้า ทางนี้ใช้ไม่ได้เลย"],
+      ["minus", "ปุ่มเลื่อนซ้าย 176px ตอนหุบ ถึงจะเป็นพฤติกรรมมาตรฐาน แต่คนที่จำตำแหน่งบนจอจะรู้สึกว่ามันขยับ"],
     ],
   },
   c: {
-    title: "ค · ปุ่มเหมือนแบบ ก แต่หุบแล้วเมนูหายทั้งแถบ",
-    who: "Notion · shadcn ค่าตั้งต้น (offcanvas)",
+    title: "ค · ไม่มีปุ่มบนจอเลย คลิกที่เส้นแบ่งเอง",
+    who: "Linear · Slack · shadcn SidebarRail",
     verdict: null,
-    expanded: "ซ้ายสุดของแถบบน เหมือนแบบ ก",
-    collapsed: "ที่เดิม และไม่มีรางไอคอนเหลือให้อธิบาย",
+    expanded: "ไม่มีปุ่ม เส้นแบ่งเปลี่ยนสีตอนเอาเมาส์ชี้ แล้วคลิกได้",
+    collapsed: "เส้นแบ่งเดิม ย้ายมาอยู่ที่ขอบราง 64px",
     moves: false,
     judge: [
-      ["plus", "ตัดปัญหาที่ต้นตอ ไม่มีราง 64px ก็ไม่มีคำถามว่าปุ่มควรอยู่ในรางหรือนอกราง"],
-      ["plus", "ได้ความกว้างคืนเต็ม 240px ตารางออเดอร์กว้างขึ้นจริง"],
-      ["minus", "เสียการกดเมนูทีเดียวถึงตอนหุบ ต้องกางกลับก่อนทุกครั้ง"],
-      ["minus", "เปลี่ยนพฤติกรรมมากกว่าย้ายปุ่ม ทีมต้องปรับตัวใหม่"],
+      ["plus", "จอสะอาดที่สุด ไม่มีปุ่มลอยให้ไม่ชอบได้เลย เพราะไม่มีปุ่มตั้งแต่แรก"],
+      ["plus", "เป้ากดสูงเต็มจอ เล็งด้วยเมาส์ง่ายกว่าปุ่ม 36px หลายเท่า และไม่กินพื้นที่แถบบนเลย"],
+      ["minus", "หายากที่สุด ไม่มีอะไรบอกว่าคลิกได้ ขนาด Linear เองยังต้องใส่ไอคอนสำรองไว้ให้"],
+      ["minus", "จอทัชโรงงานใช้แทบไม่ได้ ไม่มี hover และเส้นบางเกินนิ้ว"],
     ],
   },
 };
