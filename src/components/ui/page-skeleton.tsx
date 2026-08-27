@@ -16,7 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
    ============================================================ */
 
 /** แถวเดียวของตาราง — หัวข้อ + บรรทัดรอง + คอลัมน์ขวา
- *  px-5 = ระยะขอบเดียวกับเซลล์จริงของ DataTable ไม่งั้นพอข้อมูลมาถึงเนื้อหาจะเลื่อนข้าง */
+ *  px-6 = ระยะขอบเดียวกับเซลล์จริงของ DataTable ไม่งั้นพอข้อมูลมาถึงเนื้อหาจะเลื่อนข้าง */
 function SkeletonRow() {
   return (
     <div className="flex h-[75px] items-center gap-4 border-b border-divider px-6 last:border-b-0">
@@ -38,7 +38,7 @@ export function ListSkeleton({ rows = 6 }: { rows?: number }) {
   return (
     <div className="card-surface overflow-hidden rounded-2xl" role="status" aria-label="กำลังโหลดข้อมูล">
       <span className="sr-only">กำลังโหลดข้อมูล</span>
-      <div className="border-b border-border bg-surface-muted px-5 py-3">
+      <div className="border-b border-divider bg-transparent px-6 py-3">
         <Skeleton className="h-4 w-40" />
       </div>
       {Array.from({ length: rows }, (_, index) => (

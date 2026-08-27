@@ -540,7 +540,7 @@ export default function StockSettingsPage() {
                   <DataTable.Row key={i}>
                     <th
                       scope="row"
-                      className="px-5 py-3 text-left text-sm font-normal text-strong"
+                      className="px-6 py-4 text-left text-sm font-normal text-strong"
                     >
                       {mapping.stockCategory}
                     </th>

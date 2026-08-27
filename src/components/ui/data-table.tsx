@@ -83,7 +83,9 @@ const Body = React.forwardRef<
     ref={ref}
     className={cn(
       // Vercel-like dataset panel ใช้ divider บางช่วยไล่แถว โดยไม่ทำ cell grid
-      "divide-y divide-divider",
+      // ข้อมูลทุกระดับในเซลล์ใช้ 14px; control ที่จงใจใช้ density แบบ sm/dense
+      // รักษาขนาดจาก primitive ของตัวเอง ไม่ถูกกฎข้อมูลตารางทับ
+      "divide-y divide-divider [&_td]:text-sm [&_td_:not(:is(button,button_*,input,input_*,select,select_*,textarea,textarea_*,[role=combobox],[role=combobox]_*))]:text-sm",
       className
     )}
     {...props}

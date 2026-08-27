@@ -49,7 +49,9 @@ Anajak Operational Panel System — กฎที่จริงทั้งส�
 ธีมมืดเงาแทบมองไม่เห็น จึงยังพึ่งเส้นจาง ๆ (`--color-card-edge`) เป็นตัวหลัก
 
 **ความหนาแน่นแถวตาราง:** เซลล์ `px-6 py-4` · แถวจริงสูง **75px** — `page-skeleton.tsx` ต้องใช้ตัวเลขเดียวกัน
-ไม่งั้นพอข้อมูลมาถึงจอจะกระโดด (มีด่านล็อกสองที่ให้ตรงกัน)
+ไม่งั้นพอข้อมูลมาถึงจอจะกระโดด (มีด่านล็อกสองที่ให้ตรงกัน) · ข้อมูลทุกระดับใน `DataTable` list ใช้
+14/22px เท่ากันและแยกลำดับชั้นด้วยสี/น้ำหนัก; 12/18px ใช้กับหัวคอลัมน์, compact table ใน form/detail
+และ form control ที่ประกาศ `size="sm"`/`dense` อย่างชัดเจนเท่านั้น
 
 **ตารางระดับบนสุดอยู่ในการ์ดเสมอ** — เคยลองแบบวางบน
 ผืนหน้าตรง ๆ แล้วเบสตีกลับ 2026-08-26 ("ดูแปลกๆ และไม่ชอบ") จึงคืนกล่องครอบ ·
@@ -63,7 +65,8 @@ Anajak Operational Panel System — กฎที่จริงทั้งส�
 | navbar/sidebar | `#ffffff` (ขาวเท่าการ์ด) | `#0a0a0b` (จมใต้ผืนงาน) | `bg-chrome` |
 | panel/card | `#fff` + ขอบ `#e5e6e9` | `#161618` + ขอบ `#2b2b2f` | `bg-surface` / `card-surface` |
 | menu/dialog | `#fff` | `#1c1c20` | `bg-surface-elevated` / `overlay-surface` |
-| กล่องจมเชิงโครงสร้าง/disabled/หัวตาราง | `#f4f5f6` | `#101013` | `bg-surface-muted` / `SUNK_PANEL` / `TABLE_HEAD_SURFACE` |
+| กล่องจมเชิงโครงสร้าง/disabled | `#f4f5f6` | `#101013` | `bg-surface-muted` / `SUNK_PANEL` |
+| หัวตาราง | โปร่งตามพื้นตารางแม่ | โปร่งตามพื้นตารางแม่ | `TABLE_HEAD_SURFACE` = transparent + divider |
 | ช่องกรอก | `#fff` + ขอบ `#cfcfd4` | `#101013` + ขอบ `#3a3a3f` | `FIELD_SURFACE` |
 | พื้นที่เพิ่ม/อัปโหลด | ขอบประ `slate-300` | ขอบประ `slate-700` | `DASHED` / `DASHED_INTERACTIVE` — resting เบา; hover/focus ค่อยเน้น |
 | control บน toolbar | ขาว + ขอบบาง | panel dark + ขอบบาง | prop `surface="raised"` → `RAISED_CONTROL_SURFACE` |
@@ -120,7 +123,7 @@ Anajak Operational Panel System — กฎที่จริงทั้งส�
 - ของที่กดได้จริง compose `INTERACTIVE_PRESSED` ให้ตอนกดเข้มกว่า hover; selected/current คงพื้นฟ้า ยกเว้นแถบเมนูหลักตามข้อบน
 - ของที่ถูกเลือกใช้ `INTERACTIVE_SELECTED` — ห้ามใช้ hover เป็น selected เพราะความหมายคนละอย่าง
 - Primary action ใช้ `blue-600` → hover `blue-700` → pressed `blue-800`; น้ำเงิน 600 ต้องคง `#3973b2`
-- Minimal = workspace เป็นฉากเรียบและใช้ panel เฉพาะกลุ่มเนื้อหาที่อ่านเป็นหน่วยเดียว: `Section` ที่มีขอบและ `DataTable` ใช้ `card-surface` ทุกที่ (ไม่มีข้อยกเว้นแล้ว — prop `flush` ถูกถอดออก 2026-08-26); หัว/แถวคั่นด้วย divider และขอบล่างของการ์ดเป็นเส้นปิดท้ายตาราง · panel ไม่มีเงา · field/toolbar/secondary action ใช้พื้น panel+ขอบบาง · overlay ลอยสูงสุด
+- Minimal = workspace เป็นฉากเรียบและใช้ panel เฉพาะกลุ่มเนื้อหาที่อ่านเป็นหน่วยเดียว: `Section` ที่มีขอบและ `DataTable` ใช้ `card-surface` ทุกที่ (ไม่มีข้อยกเว้นแล้ว — prop `flush` ถูกถอดออก 2026-08-26); หัวตารางโปร่งตามพื้นแม่และใช้ divider แยกจากข้อมูล, แถวใช้ divider และขอบล่างของการ์ดเป็นเส้นปิดท้ายตาราง · panel ไม่มีเงา · field/toolbar/secondary action ใช้พื้น panel+ขอบบาง · overlay ลอยสูงสุด
 - `FlowFilterBar` อยู่ใน panel ของ caller จึงใช้กรอบนอกเพียงชั้นเดียว: hairline 1px ใช้เฉพาะใต้หัวช่วงเพื่อจัดกลุ่ม, “นอกเส้นทาง” ไม่มีเส้นตั้ง และห้ามคืน progress track ใต้ทุกสถานะเพราะจำนวนงานบอกปริมาณอยู่แล้ว · ทุกสถานะต้องมี cursor+neutral hover/pressed และ aria/title action ที่ตรงกับ selected state โดยไม่แสดงข้อความแนะนำค้างบนหน้า; ตัวที่เลือกยังใช้เส้นใต้ Anajak Blue
 - รายการงานในฟอร์มใช้หนึ่ง `card-surface` ต่อหนึ่งรายการโดยตรงบน workspace · ห้ามวาง card ใหญ่ครอบ list แล้วเติม card รอบรายการซ้ำ · CTA “เพิ่มรายการ” อยู่ก่อน list ทั้งหน้าเปิดงานและหน้าแก้ไข
 - ช่องกรอกใช้ `FIELD_SURFACE` เสมอ — `border-field-border bg-field` ไม่มีเงา; resting boundary ต้องอยู่ในช่วงที่ guard ล็อกไว้ไม่ให้จางจนกลืนหรือเข้มจนเป็นตาราง · focus/error ใช้เส้น contrast สูงและเปลี่ยนสีเส้นเดิมโดยความสูงไม่ขยับ · ห้าม ancestor เปลี่ยนสี field ตามตำแหน่ง
@@ -143,7 +146,7 @@ Anajak Operational Panel System — กฎที่จริงทั้งส�
 | **โครงหน้า public (token)** | `components/public/public-page.tsx` (PublicPageShell / FullScreenLoading / InfoRow) | route อยู่ใน `(public)` — layout กลางใส่ noindex ให้ · prefix ธีมสว่างอยู่ `lib/public-routes.ts` |
 | **ไม่มีสิทธิ์** | `ui/access-denied.tsx` | ผ่าน prop `denied` ของ PageShell — ห้ามใช้ QueryError/`<p>` เทาแทน |
 | **state หน้า list** | `hooks/use-list-page-state.ts` (useListPageState + usePageClamp) | URL state + debounce ค้นหา + page clamp — ห้ามเขียน replaceListState เอง |
-| ตาราง list | `ui/data-table.tsx` (DataTable.Root/Head/Body/...) + `ui/table-pagination.tsx` | หัว sentence-case ห้าม UPPERCASE · หัวตาราง custom ใช้ `TABLE_HEAD_SURFACE` · จอเล็ก: ดูหัวข้อ Mobile |
+| ตาราง list | `ui/data-table.tsx` (DataTable.Root/Head/Body/...) + `ui/table-pagination.tsx` | หัว sentence-case ห้าม UPPERCASE · หัวโปร่งตามพื้นแม่ · body 14px ทุกระดับ · หัวตาราง custom ใช้ `TABLE_HEAD_SURFACE` · จอเล็ก: ดูหัวข้อ Mobile |
 | ยืนยัน/ถามเหตุผล | `useConfirm()` / `usePromptText()` จาก `ui/confirm-dialog.tsx` | **ห้าม window.confirm/prompt — lint เป็น error** |
 | dialog ทั่วไป | `ui/dialog.tsx` (Radix) | **เปิดแบบ conditional mount เท่านั้น** — กติกาอยู่ comment หัวไฟล์ |
 | แท็บ | `ui/tabs.tsx` | เนื้อหา lazy เป็นค่าเริ่มต้น · ฟอร์มที่มี state ยังไม่บันทึกเท่านั้นจึง opt-in `keepMounted` · ห้าม force-mount แท็บ query-heavy ทั้งหน้า |

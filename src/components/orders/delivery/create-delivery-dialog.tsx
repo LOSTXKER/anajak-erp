@@ -180,7 +180,7 @@ export function CreateDeliveryDialog({
         <DialogHeader>
           <DialogTitle>สร้างรายการจัดส่ง</DialogTitle>
         </DialogHeader>
-        <div className="max-h-[60vh] space-y-4 overflow-y-auto">
+        <div className="max-h-[60dvh] space-y-4 overflow-y-auto">
           {/* ปุ่มก๊อป — ใบงานมีที่อยู่จัดส่งก็ดึงชุดนั้น (ครบ 7 ช่อง) ไม่มีค่อยถอยไปที่อยู่ผู้ติดต่อ
               (โปรไฟล์เก็บที่อยู่ก้อนเดียว เติมได้แค่ช่อง "ที่อยู่") */}
           {copySource && (

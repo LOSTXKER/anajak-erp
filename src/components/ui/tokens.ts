@@ -176,9 +176,9 @@ export const ACTIVE_UNDERLINE =
  *  ของเดิม 6 จุดใส่ซ้ำ ทำให้ในโหมดมืดได้ขอบสว่างซ้อนเงา และมุมโค้งไม่ตรงกัน */
 export const OVERLAY_PANEL = `overlay-surface ${RADIUS.surface}`;
 
-/** หัวตารางที่วางบน surface ปกติ — semantic ชุดเดียวทั้งสองธีม */
+/** หัวตารางโปร่งตาม surface แม่ — ใช้ได้ทั้งตารางบน surface ปกติและ compact table บน muted surface */
 export const TABLE_HEAD_SURFACE =
-  "border-b border-divider bg-surface-muted text-secondary";
+  "border-b border-divider bg-transparent text-secondary";
 
 /** ขอบประ = "ที่ว่างรอของ" — ปุ่มเพิ่มของ · ช่องอัปโหลด · กล่องว่างที่กดเพิ่มได้
  *  audit 2026-08-01: 21 จุดใช้ slate-200 สลับ slate-300 โดยไม่มีเหตุผล

@@ -289,9 +289,9 @@ export default function SalesTaxReportPage() {
           </DataTable.Root>
         )}
         renderMobile={(items) => (
-          <div className="space-y-3">
+          <div role="list" aria-label="รายการภาษีขาย" className="space-y-3">
             {items.map((r) => (
-              <div key={r.invoiceNumber} className="card-surface rounded-2xl p-4">
+              <div key={r.invoiceNumber} role="listitem" className="card-surface rounded-2xl p-4">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-xs tabular-nums text-muted">#{r.seq}</span>

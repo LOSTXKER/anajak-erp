@@ -208,29 +208,27 @@ function BillingPageContent() {
         onRetry={() => refetch()}
         label="บิล"
         emptyState={
-          <div className="card-surface rounded-2xl">
-            <EmptyState
-              icon={FileText}
-              title={
-                search || statusFilter !== ALL || typeFilter !== ALL
-                  ? "ไม่พบบิลตามเงื่อนไข"
-                  : "ยังไม่มีบิล"
-              }
-              description={
-                search || statusFilter !== ALL || typeFilter !== ALL
-                  ? "ลองปรับคำค้นหรือตัวกรอง"
-                  : "สร้างบิลได้จากหน้าออเดอร์ — แท็บ เงิน/บิล"
-              }
-            />
-          </div>
+          <EmptyState
+            icon={FileText}
+            title={
+              search || statusFilter !== ALL || typeFilter !== ALL
+                ? "ไม่พบบิลตามเงื่อนไข"
+                : "ยังไม่มีบิล"
+            }
+            description={
+              search || statusFilter !== ALL || typeFilter !== ALL
+                ? "ลองปรับคำค้นหรือตัวกรอง"
+                : "สร้างบิลได้จากหน้าออเดอร์ — แท็บ เงิน/บิล"
+            }
+          />
         }
         renderMobile={(invoices) => (
-          <div className="space-y-3">
+          <div role="list" aria-label="รายการบิล" className="space-y-3">
             {invoices.map((inv) => {
               const status = paymentStatusProps(inv.paymentStatus);
               const moneyHref = `/orders/${inv.orderId}?tab=money`;
               return (
-                <article key={inv.id} className="card-surface rounded-2xl p-4">
+                <article key={inv.id} role="listitem" className="card-surface rounded-2xl p-4">
                   <Link
                     href={moneyHref}
                     className={cn("block rounded-lg", FOCUS_BUTTON)}
@@ -324,31 +322,31 @@ function BillingPageContent() {
                 return (
                   <DataTable.Row key={inv.id}>
                     <DataTable.Td className="p-0 font-medium text-strong">
-                      <Link href={moneyHref} className="block px-5 py-3 font-medium text-strong">
+                      <Link href={moneyHref} className="block px-6 py-4 font-medium text-strong">
                         {inv.invoiceNumber}
                       </Link>
                     </DataTable.Td>
                     <DataTable.Td className="p-0 text-xs text-muted">
-                      <Link href={moneyHref} className="block px-5 py-3">
+                      <Link href={moneyHref} className="block px-6 py-4">
                         {INVOICE_TYPE_LABELS[inv.type] ?? inv.type}
                       </Link>
                     </DataTable.Td>
                     <DataTable.Td className="p-0">
-                      <Link href={moneyHref} className="block px-5 py-3">{inv.customer.name}</Link>
+                      <Link href={moneyHref} className="block px-6 py-4">{inv.customer.name}</Link>
                     </DataTable.Td>
                     <DataTable.Td className="p-0">
-                      <Link href={moneyHref} className="block px-5 py-3">{inv.order.orderNumber}</Link>
+                      <Link href={moneyHref} className="block px-6 py-4">{inv.order.orderNumber}</Link>
                     </DataTable.Td>
                     <DataTable.Td
                       align="right"
                       className="p-0 font-medium tabular-nums text-strong"
                     >
-                      <Link href={moneyHref} className="block px-5 py-3 text-right">
+                      <Link href={moneyHref} className="block px-6 py-4 text-right">
                         {formatCurrency(inv.totalAmount)}
                       </Link>
                     </DataTable.Td>
                     <DataTable.Td className="p-0">
-                      <Link href={moneyHref} className="block px-5 py-3">
+                      <Link href={moneyHref} className="block px-6 py-4">
                         <StatusLabel
                           label={status.label}
                           tone={status.tone}
@@ -357,7 +355,7 @@ function BillingPageContent() {
                       </Link>
                     </DataTable.Td>
                     <DataTable.Td className="p-0 text-xs text-muted">
-                      <Link href={moneyHref} className="block px-5 py-3">
+                      <Link href={moneyHref} className="block px-6 py-4">
                         {inv.dueDate ? formatDate(inv.dueDate) : "—"}
                       </Link>
                     </DataTable.Td>

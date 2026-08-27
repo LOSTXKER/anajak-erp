@@ -219,7 +219,7 @@
 
        chrome          #ffffff  navigation (ขาวเท่าการ์ด — ดูเหตุผลที่ --color-chrome)
        page            #f7f7f8  ฉากหลัง workspace (near-white ไม่ใช่เทาเด่น)
-       sunk            #f4f5f6  กลุ่มย่อยเชิงโครงสร้าง/หัวตาราง (อยู่ในการ์ดเสมอ)
+       sunk            #f4f5f6  กลุ่มย่อยเชิงโครงสร้าง/disabled (อยู่ในการ์ดเสมอ)
        surface         #ffffff  panel / card (ลอยสุด)
 
      ⚠️ 2026-08-27 (UI-2026 เฟส 11) เบสขอให้พื้นเทาของ Light ขาวขึ้น

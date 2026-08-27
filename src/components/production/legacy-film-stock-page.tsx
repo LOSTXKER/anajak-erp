@@ -224,10 +224,11 @@ function FilmStockPageContent() {
           </DataTable.Root>
         )}
         renderMobile={(items) => (
-          <div className="space-y-3">
+          <div role="list" aria-label="รายการคลังฟิล์ม" className="space-y-3">
             {items.map((item) => (
               <div
                 key={item.id}
+                role="listitem"
                 className="card-surface rounded-2xl p-4"
               >
                 <div className="flex flex-wrap items-center gap-2">

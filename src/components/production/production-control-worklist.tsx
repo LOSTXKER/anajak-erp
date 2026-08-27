@@ -248,7 +248,7 @@ function DesktopRows<S extends BoardStepLike, O extends BoardOrderLike<S>>({
               onClick={() => rememberWorklistFocus(job.order.id)}
               className="h-[82px]"
             >
-              <DataTable.Td className="min-w-44 py-2">
+              <DataTable.Td className="min-w-44">
                 <Link
                   data-production-worklist-order={job.order.id}
                   href={href}
@@ -277,23 +277,23 @@ function DesktopRows<S extends BoardStepLike, O extends BoardOrderLike<S>>({
                   </span>
                 </Link>
               </DataTable.Td>
-              <DataTable.Td className="min-w-56 py-2">
+              <DataTable.Td className="min-w-56">
                 <WorkAction job={job} exception={exception} />
                 <div className="mt-1.5"><WorkBadges job={job} /></div>
               </DataTable.Td>
-              <DataTable.Td className="w-32 py-2">
+              <DataTable.Td className="w-32">
                 <WorkProgress rail={job.rail} />
               </DataTable.Td>
-              <DataTable.Td className="hidden py-2 tabular-nums xl:table-cell" align="right">
+              <DataTable.Td className="hidden tabular-nums xl:table-cell" align="right">
                 {(job.order.totalQuantity ?? 0).toLocaleString("th-TH")}
               </DataTable.Td>
-              <DataTable.Td className="min-w-28 py-2">
+              <DataTable.Td className="min-w-28">
                 <span className={cn("block tabular-nums", job.overdue && "font-medium text-red-700 dark:text-red-300")}>
                   {job.order.deadline ? formatDateShort(job.order.deadline) : "ไม่กำหนด"}
                 </span>
                 <span className="mt-1 block"><DeadlineBadge job={job} /></span>
               </DataTable.Td>
-              <DataTable.Td className="py-2 text-muted">
+              <DataTable.Td className="text-muted">
                 <ChevronRight className="h-4 w-4" aria-hidden="true" />
               </DataTable.Td>
             </DataTable.Row>
@@ -314,57 +314,58 @@ function MobileRows<S extends BoardStepLike, O extends BoardOrderLike<S>>({
   canCreateProduction: boolean;
 }) {
   return (
-    <div className="space-y-2">
+    <ul aria-label="รายการงานผลิต" className="space-y-2">
       {jobs.map((job) => {
         const href = productionWorklistHref(job, canCreateProduction);
         const exception = exceptionByOrderId.get(job.order.id);
         return (
-          <Link
-            key={job.key}
-            data-production-worklist-order={job.order.id}
-            href={href}
-            onClick={() => rememberWorklistFocus(job.order.id)}
-            className={cn(
-              FOCUS_BUTTON,
-              "card-surface card-surface-hover block min-h-11 rounded-2xl p-4",
-            )}
-          >
-            <span className="flex items-start justify-between gap-3">
-              <span className="flex min-w-0 items-start gap-3">
-                <MockupThumbnail
-                  cover={orderMockupCover(job.order)}
-                  alt={`ม็อกอัพของ ${job.order.orderNumber}`}
-                  size="md"
-                />
-                <span className="min-w-0">
-                  <span className="flex flex-wrap items-center gap-1.5 font-semibold tabular-nums text-strong">
-                    {job.order.orderNumber}
-                    <DeadlineBadge job={job} />
+          <li key={job.key}>
+            <Link
+              data-production-worklist-order={job.order.id}
+              href={href}
+              onClick={() => rememberWorklistFocus(job.order.id)}
+              className={cn(
+                FOCUS_BUTTON,
+                "card-surface card-surface-hover block min-h-11 rounded-2xl p-4",
+              )}
+            >
+              <span className="flex items-start justify-between gap-3">
+                <span className="flex min-w-0 items-start gap-3">
+                  <MockupThumbnail
+                    cover={orderMockupCover(job.order)}
+                    alt={`ม็อกอัพของ ${job.order.orderNumber}`}
+                    size="md"
+                  />
+                  <span className="min-w-0">
+                    <span className="flex flex-wrap items-center gap-1.5 font-semibold tabular-nums text-strong">
+                      {job.order.orderNumber}
+                      <DeadlineBadge job={job} />
+                    </span>
+                    <span className="mt-0.5 block truncate text-sm text-secondary">
+                      {job.order.customerName || job.order.title || "ไม่ระบุลูกค้า"}
+                    </span>
                   </span>
-                  <span className="mt-0.5 block truncate text-sm text-secondary">
-                    {job.order.customerName || job.order.title || "ไม่ระบุลูกค้า"}
+                </span>
+                <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
+              </span>
+              <span className="mt-3 block"><WorkAction job={job} exception={exception} /></span>
+              <span className="mt-2 block"><WorkBadges job={job} /></span>
+              <span className="mt-3 grid grid-cols-[1fr_auto] items-end gap-4">
+                <WorkProgress rail={job.rail} />
+                <span className="text-right text-xs text-muted">
+                  <span className="block tabular-nums">
+                    {job.order.deadline ? formatDateShort(job.order.deadline) : "ไม่กำหนดส่ง"}
+                  </span>
+                  <span className="block tabular-nums">
+                    {(job.order.totalQuantity ?? 0).toLocaleString("th-TH")} ตัว
                   </span>
                 </span>
               </span>
-              <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
-            </span>
-            <span className="mt-3 block"><WorkAction job={job} exception={exception} /></span>
-            <span className="mt-2 block"><WorkBadges job={job} /></span>
-            <span className="mt-3 grid grid-cols-[1fr_auto] items-end gap-4">
-              <WorkProgress rail={job.rail} />
-              <span className="text-right text-xs text-muted">
-                <span className="block tabular-nums">
-                  {job.order.deadline ? formatDateShort(job.order.deadline) : "ไม่กำหนดส่ง"}
-                </span>
-                <span className="block tabular-nums">
-                  {(job.order.totalQuantity ?? 0).toLocaleString("th-TH")} ตัว
-                </span>
-              </span>
-            </span>
-          </Link>
+            </Link>
+          </li>
         );
       })}
-    </div>
+    </ul>
   );
 }
 

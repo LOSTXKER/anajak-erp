@@ -114,6 +114,15 @@
 - [x] แยกขอบเขตตรวจครบ 54 route: dashboard/ops/public/factory/print · redirect-only ไม่ต้อง render · print คง scale กระดาษเฉพาะ โดยตรวจ source/A4 contract ครบ 5 และ render จริง 4 แบบที่ฐาน dev มีข้อมูล (`billingNote` มี 0 record)
 - [x] Verify: detector · `verify:ui` · targeted/full unit · typecheck/lint/build · browser Light/Dark desktop/mobile/200% zoom + factory + public/print โดยไม่ mutation ข้อมูลจริง
 
+**เฟส 13 — Table + whole-site consistency audit ✅ 2026-08-27 (เบสสั่ง)**
+> เบสทักว่ารอบก่อนทำหัวตารางและขนาดข้อความเฉพาะ `/orders` แล้วสั่งให้ตรวจทั้งเว็บรวมเรื่องอื่น ๆ ด้วย · รอบนี้จึงแก้ shared-first และแยก family ตามหน้าที่: ตารางรายการหลังบ้านต้องเป็นชุดเดียวกัน ส่วน form/detail compact table, public, print A4, Factory TV และ Station คง composition เฉพาะงานของตัวเอง แต่ห้ามหลุด token/semantics/interaction contract
+
+- [x] ทำบัญชี route + table implementation ครบทั้ง dashboard/ops/public/factory/print และตรวจจอจริง desktop/mobile Light/Dark; บันทึก deliberate exception แยกจาก drift เพื่อไม่ใช้ CSS ครอบ `<thead>/<th>` แบบเหมารวม
+- [x] ตารางรายการหลังบ้านใช้หัว contextual สีเดียวกับพื้นตารางทั้งระบบ, body 14px เท่ากัน, default cell spacing ชุดเดียว และ loading skeleton ตรงกับของจริง; ถอน override เฉพาะ `/orders` พร้อมย้าย guard/test ไปล็อก primitive กลาง
+- [x] เก็บ drift ที่ยืนยันระหว่าง audit แบบ surgical: mobile list semantics, resting card surface, semantic hover/focus, dialog viewport/reduced-motion และ ARIA ของ control ที่เขียนเอง โดยไม่แตะ query/mutation/permission/status/business flow
+- [x] Verify: targeted/full unit · `verify:ui` · typecheck/lint/build · detector · browser representative ทุก table family + real task desktop/mobile โดยไม่มี overflow, hydration, console error หรือ focus regression
+- **แยกเป็น follow-up หลัง pass นี้:** heading hierarchy ของ `CardTitle` 51 จุด, PageShell/loading/error/not-found architecture, settings list mobile composition, add-product keyboard menu และ confirm/undo การลบไฟล์ outsource — ต้องออกแบบ migration/behavior แยก ไม่พ่วงการแก้สีตารางจนเสี่ยงเปลี่ยน flow เงียบ ๆ
+
 **เฟส 10 — Modern Minimal ทั้งเว็บ ✅ ลงแล้ว 2026-08-26 · เหลือ QA จอโรงงาน**
 > เบสสั่งสามเรื่องพร้อมกัน: "ทุกหน้าไม่ต้องมีหัวข้อเล็กๆแบบนี้" (ส่งภาพ breadcrumb มาชี้) · "หุบเมนูไม่ต้องเด่น เอาไว้บนโลโก้ได้มั้ย" · "เว็บมันดูแข็งๆ ไม่ค่อยโมเดิร์น อยากได้ Modern Minimal โค้งมนหน่อย ทุกหน้าทุกส่วน"
 > ตัวอย่างกดเล่นได้ (3 ระดับ × สองธีม): artifact `510dc177-7648-4c74-bcbb-127cc2ae952f`

@@ -31,10 +31,14 @@ describe("Orders scan-first registry contract", () => {
     expect(pageSource).not.toContain("labelInternalStatus");
   });
 
-  it("หัวตารางกลืนกับพื้นข้อมูล ข้อมูล desktop เป็น 14px และประเภทงานอยู่คอลัมน์แยก", () => {
+  it("ใช้ contract หัวตารางและขนาดข้อมูลกลางโดยไม่มี one-off พร้อมคอลัมน์ประเภทงาน", () => {
     expect(pageSource).toContain("max-xl:[&_td]:px-4");
-    expect(pageSource).toContain('<DataTable.Head className="bg-surface">');
-    expect(pageSource).toContain('<DataTable.Body className="[&_td]:text-sm [&_td_*]:text-sm">');
+    expect(pageSource).toContain("<DataTable.Head>");
+    expect(pageSource).toContain("<DataTable.Body>");
+    expect(pageSource).not.toContain("<DataTable.Head className=");
+    expect(pageSource).not.toContain("<DataTable.Body className=");
+    expect(tableSource).toContain("[&_td]:text-sm");
+    expect(tableSource).toContain(":not(:is(button");
     expect(pageSource).toContain("<DataTable.Th>ประเภทงาน</DataTable.Th>");
     expect(pageSource).toContain('variant={order.orderType === "CUSTOM" ? "accent" : "outline"}');
     expect(pageSource).not.toContain('secondaryTitle || order.orderType === "CUSTOM"');

@@ -151,65 +151,64 @@ function QuotationsPageContent() {
         onRetry={() => refetch()}
         label="ใบเสนอราคา"
         emptyState={
-          <div className="card-surface rounded-2xl">
-            <EmptyState
-              icon={ClipboardList}
-              title="ไม่พบใบเสนอราคา"
-              description="เปิดงานก่อน แล้วค่อยเติมรายการและแชร์ใบเสนอจากงานใบเดิม"
-              action={
-                canCreateQuotation ? (
-                  <Button size="sm" asChild>
-                    <Link href="/orders/new?next=quote">
-                      <Plus />
-                      เปิดงานเพื่อออกใบเสนอ
-                    </Link>
-                  </Button>
-                ) : undefined
-              }
-            />
-          </div>
+          <EmptyState
+            icon={ClipboardList}
+            title="ไม่พบใบเสนอราคา"
+            description="เปิดงานก่อน แล้วค่อยเติมรายการและแชร์ใบเสนอจากงานใบเดิม"
+            action={
+              canCreateQuotation ? (
+                <Button size="sm" asChild>
+                  <Link href="/orders/new?next=quote">
+                    <Plus />
+                    เปิดงานเพื่อออกใบเสนอ
+                  </Link>
+                </Button>
+              ) : undefined
+            }
+          />
         }
         renderMobile={(quotations) => (
-          <div className="space-y-3">
+          <ul aria-label="รายการใบเสนอราคา" className="space-y-3">
             {quotations.map((q) => (
-              <Link
-                key={q.id}
-                href={`/quotations/${q.id}`}
-                className={cn("card-surface card-surface-hover group block rounded-2xl p-4", FOCUS_BUTTON)}
-                aria-label={`เปิดใบเสนอ ${q.quotationNumber} ของ ${q.customer.name}`}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="font-semibold text-blue-700 dark:text-blue-300">
-                      {q.quotationNumber}
-                    </p>
-                    <p className="mt-1 truncate text-sm font-medium text-strong">
-                      {q.title}
-                    </p>
+              <li key={q.id}>
+                <Link
+                  href={`/quotations/${q.id}`}
+                  className={cn("card-surface card-surface-hover group block rounded-2xl p-4", FOCUS_BUTTON)}
+                  aria-label={`เปิดใบเสนอ ${q.quotationNumber} ของ ${q.customer.name}`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-semibold text-blue-700 dark:text-blue-300">
+                        {q.quotationNumber}
+                      </p>
+                      <p className="mt-1 truncate text-sm font-medium text-strong">
+                        {q.title}
+                      </p>
+                    </div>
+                    <div className="shrink-0">
+                      <QuotationStatusLabel status={q.status} />
+                    </div>
                   </div>
-                  <div className="shrink-0">
-                    <QuotationStatusLabel status={q.status} />
+                  <div className="mt-3 flex items-end justify-between gap-3 border-t border-divider pt-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm text-secondary">
+                        {q.customer.name}
+                      </p>
+                      <p className="mt-0.5 text-xs text-muted group-hover:text-secondary group-active:text-secondary dark:group-hover:text-secondary dark:group-active:text-secondary">
+                        {formatDate(q.createdAt)}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <span className="tabular-nums font-semibold text-strong">
+                        {formatCurrency(q.totalAmount)}
+                      </span>
+                      <ChevronRight className="h-4 w-4 text-muted" aria-hidden="true" />
+                    </div>
                   </div>
-                </div>
-                <div className="mt-3 flex items-end justify-between gap-3 border-t border-divider pt-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm text-secondary">
-                      {q.customer.name}
-                    </p>
-                    <p className="mt-0.5 text-xs text-muted group-hover:text-secondary group-active:text-secondary dark:group-hover:text-secondary dark:group-active:text-secondary">
-                      {formatDate(q.createdAt)}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <span className="tabular-nums font-semibold text-strong">
-                      {formatCurrency(q.totalAmount)}
-                    </span>
-                    <ChevronRight className="h-4 w-4 text-muted" aria-hidden="true" />
-                  </div>
-                </div>
-              </Link>
+                </Link>
+              </li>
             ))}
-          </div>
+          </ul>
         )}
         renderDesktop={(quotations) => (
           <DataTable.Root>

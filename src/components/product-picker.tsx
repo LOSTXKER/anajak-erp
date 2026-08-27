@@ -94,6 +94,7 @@ export function ProductPickerDialog({
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [selections, setSelections] = useState<VariantSelection>({});
   const inputRef = useRef<HTMLInputElement>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 300);
@@ -178,11 +179,30 @@ export function ProductPickerDialog({
   return (
     <Dialog.Root open={open} onOpenChange={(v) => !v && onClose()}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-backdrop backdrop-blur-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-backdrop backdrop-blur-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 motion-reduce:animate-none" />
         <Dialog.Content
+          onOpenAutoFocus={() => {
+            returnFocusRef.current = null;
+            const activeElement = document.activeElement;
+            if (
+              activeElement instanceof HTMLElement &&
+              activeElement !== document.body &&
+              !activeElement.closest('[role="dialog"]')
+            ) {
+              returnFocusRef.current = activeElement;
+            }
+          }}
+          onCloseAutoFocus={(event) => {
+            const returnFocusElement = returnFocusRef.current;
+            returnFocusRef.current = null;
+            if (returnFocusElement?.isConnected) {
+              event.preventDefault();
+              returnFocusElement.focus();
+            }
+          }}
           className={cn(
             OVERLAY_PANEL,
-            "fixed inset-x-4 top-[5%] z-50 mx-auto flex max-h-[90vh] max-w-2xl flex-col data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+            "fixed inset-x-4 top-[5%] z-50 mx-auto flex max-h-[90dvh] max-w-2xl flex-col data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 motion-reduce:animate-none",
           )}
         >
           {/* Header */}
@@ -258,7 +278,12 @@ export function ProductPickerDialog({
                       <button
                         type="button"
                         onClick={() => toggleExpand(product.id)}
-                        className="group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-interactive-hover active:bg-interactive-pressed"
+                        aria-expanded={isExpanded}
+                        aria-controls={`product-variants-${product.id}`}
+                        className={cn(
+                          FOCUS_BUTTON,
+                          "group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-interactive-hover active:bg-interactive-pressed",
+                        )}
                       >
                         {isExpanded ? (
                           <ChevronDown className="h-4 w-4 flex-shrink-0 text-muted" />
@@ -310,7 +335,10 @@ export function ProductPickerDialog({
 
                       {/* Expanded: variant selection with checkboxes + qty */}
                       {isExpanded && product.variants.length > 0 && (
-                        <div className="mx-1 mb-1 overflow-hidden rounded-lg border border-border bg-surface-muted sm:ml-10 sm:mr-3">
+                        <div
+                          id={`product-variants-${product.id}`}
+                          className="mx-1 mb-1 overflow-hidden rounded-lg border border-border bg-surface-muted sm:ml-10 sm:mr-3"
+                        >
                           <table className="block w-full text-xs sm:table sm:table-fixed">
                             <thead className={cn(TABLE_HEAD_SURFACE, "hidden sm:table-header-group")}>
                               <tr>
@@ -463,7 +491,10 @@ export function ProductPickerDialog({
 
                       {/* No variants -- allow direct manual add */}
                       {isExpanded && product.variants.length === 0 && (
-                        <div className="mb-1 ml-10 mr-3 rounded-lg border border-border bg-surface-muted p-3 text-center text-xs text-muted">
+                        <div
+                          id={`product-variants-${product.id}`}
+                          className="mb-1 ml-10 mr-3 rounded-lg border border-border bg-surface-muted p-3 text-center text-xs text-muted"
+                        >
                           สินค้านี้ไม่มี variant -- ใช้ &quot;เพิ่มรายการด้วยตนเอง&quot; แทน
                         </div>
                       )}

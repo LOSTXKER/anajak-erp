@@ -25,7 +25,7 @@ import {
   primaryStationCommand,
   workCenterCodeFromStationParam,
 } from "@/lib/manufacturing-station";
-import { formatDateShort } from "@/lib/utils";
+import { cn, formatDateShort } from "@/lib/utils";
 import { ListSkeleton } from "@/components/ui/page-skeleton";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -46,6 +46,11 @@ import { QueryError } from "@/components/ui/query-error";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusLabel } from "@/components/ui/status-label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  FOCUS_BUTTON,
+  INTERACTIVE_HOVER,
+  INTERACTIVE_PRESSED,
+} from "@/components/ui/tokens";
 import { MockupThumbnail } from "@/components/mockup/mockup-thumbnail";
 import { GoodsReceiptDialog } from "@/components/goods-receipt/goods-receipt-dialog";
 import { GarmentPickCard } from "@/components/production/garment-pick-card";
@@ -942,7 +947,12 @@ function StationOrderContext({
           <li key={job.operation.id}>
             <button
               type="button"
-              className="flex min-h-11 w-full items-center justify-between gap-3 rounded-lg border border-divider px-4 py-3 text-left transition-colors hover:bg-hover"
+              className={cn(
+                FOCUS_BUTTON,
+                INTERACTIVE_HOVER,
+                INTERACTIVE_PRESSED,
+                "flex min-h-11 w-full items-center justify-between gap-3 rounded-lg border border-divider px-4 py-3 text-left transition-colors",
+              )}
               onClick={() => onSelect(job)}
             >
               <span className="min-w-0">

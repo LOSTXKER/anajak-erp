@@ -331,7 +331,7 @@ function QuantityLedger({
               </div>
               <DataTable.Root bordered={false}>
                 <DataTable.Head>
-                  <DataTable.Row>
+                  <tr>
                     <DataTable.Th>รายการ</DataTable.Th>
                     <DataTable.Th>สี / ไซซ์</DataTable.Th>
                     <DataTable.Th>ตำแหน่งพิมพ์</DataTable.Th>
@@ -339,7 +339,7 @@ function QuantityLedger({
                     <DataTable.Th align="right">ดี</DataTable.Th>
                     <DataTable.Th align="right">เสีย</DataTable.Th>
                     <DataTable.Th align="right">ส่งแก้</DataTable.Th>
-                  </DataTable.Row>
+                  </tr>
                 </DataTable.Head>
                 <DataTable.Body>
                   {group.lines.map((line) => (

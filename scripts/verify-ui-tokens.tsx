@@ -10,7 +10,7 @@
 import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { readFileSync, readdirSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { join, sep } from "node:path";
 import { Factory } from "lucide-react";
 import { Select } from "../src/components/ui/select";
 import { Input } from "../src/components/ui/input";
@@ -921,9 +921,9 @@ check(
   }
 }
 
-// ⑥ หัวตารางอ่าน semantic surface/divider ชุดเดียวทั้งสองธีม
+// ⑥ ตารางอ่านสี/ขนาดจาก contract กลาง: หัวโปร่งตาม surface แม่ และข้อมูลทุกระดับ 14px
 check(
-  "หัวตารางเป็นแถบ neutral ต่อเนื่อง",
+  "หัวตารางโปร่งตามพื้นแม่และใช้ divider กลาง",
   renderToStaticMarkup(
     <table>
       <DataTable.Head>
@@ -931,9 +931,95 @@ check(
       </DataTable.Head>
     </table>,
   ),
-  ["border-divider", "bg-surface-muted", "text-secondary"],
-  ["bg-slate-50", "bg-slate-100"],
+  ["border-divider", "bg-transparent", "text-secondary"],
+  ["bg-surface", "bg-surface-muted", "bg-slate-50", "bg-slate-100"],
 );
+
+check(
+  "ข้อมูลทุกระดับในเซลล์ตารางเป็น 14px",
+  renderToStaticMarkup(
+    <table>
+      <DataTable.Body>
+        <tr><DataTable.Td><span>ข้อมูลรอง</span></DataTable.Td></tr>
+      </DataTable.Body>
+    </table>,
+  ),
+  [
+    "divide-y",
+    "divide-divider",
+    "[&amp;_td]:text-sm",
+    "[&amp;_td_:not(:is(button,button_*,input,input_*,select,select_*,textarea,textarea_*,[role=combobox],[role=combobox]_*))]:text-sm",
+  ],
+);
+
+{
+  const offenders: string[] = [];
+  const rawTableOffenders: string[] = [];
+  const semanticOffenders: string[] = [];
+  for (const path of tsxFilesUnder("src")) {
+    const source = withoutSourceComments(readFileSync(path, "utf8"));
+    for (const match of source.matchAll(/<DataTable\.Head\b([^>]*)>/g)) {
+      if (/\bbg-[\w[\]/.-]+/.test(match[1] ?? "")) {
+        const line = source.slice(0, match.index).split("\n").length;
+        offenders.push(`${path}:${line} (caller ทับสีหัวตาราง)`);
+      }
+    }
+    for (const match of source.matchAll(/<DataTable\.Body\b([^>]*)>/g)) {
+      if (/\[&_td(?:_\*)?\]:text-/.test(match[1] ?? "")) {
+        const line = source.slice(0, match.index).split("\n").length;
+        offenders.push(`${path}:${line} (caller ทับขนาดข้อมูลตาราง)`);
+      }
+    }
+    for (const match of source.matchAll(/<DataTable\.Head\b[^>]*>([\s\S]*?)<\/DataTable\.Head>/g)) {
+      if ((match[1] ?? "").includes("<DataTable.Row")) {
+        const line = source.slice(0, match.index).split("\n").length;
+        offenders.push(`${path}:${line} (หัวตารางใช้ Row ที่มี hover)`);
+      }
+    }
+    for (const match of source.matchAll(/<Link\b[^>]*\brole=["']listitem["'][^>]*>/g)) {
+      const line = source.slice(0, match.index).split("\n").length;
+      semanticOffenders.push(`${path}:${line}`);
+    }
+
+    const isDashboardRawTable =
+      !path.includes(`${sep}components${sep}print${sep}`) &&
+      !path.includes(`${sep}app${sep}(print)${sep}`) &&
+      !path.includes(`${sep}app${sep}(public)${sep}`) &&
+      !path.endsWith(`${sep}components${sep}ui${sep}data-table.tsx`);
+    if (isDashboardRawTable) {
+      for (const match of source.matchAll(/<thead\b([^>]*)>/g)) {
+        if (!(match[1] ?? "").includes("TABLE_HEAD_SURFACE")) {
+          const line = source.slice(0, match.index).split("\n").length;
+          rawTableOffenders.push(`${path}:${line}`);
+        }
+      }
+    }
+  }
+
+  if (offenders.length > 0) {
+    failed++;
+    console.log("❌ DataTable caller ยังทับ contract สีหัว/ขนาดข้อมูลกลาง");
+    offenders.forEach((offender) => console.log(`   ${offender}`));
+  } else {
+    console.log("✅ DataTable caller ไม่ทับ contract สีหัว/ขนาดข้อมูลกลาง");
+  }
+
+  if (rawTableOffenders.length > 0) {
+    failed++;
+    console.log("❌ compact table หลังบ้านยังไม่ใช้ TABLE_HEAD_SURFACE กลาง");
+    rawTableOffenders.forEach((offender) => console.log(`   ${offender}`));
+  } else {
+    console.log("✅ compact table หลังบ้านใช้ TABLE_HEAD_SURFACE กลางครบ");
+  }
+
+  if (semanticOffenders.length > 0) {
+    failed++;
+    console.log("❌ mobile list ห้ามใช้ role=listitem ทับบทบาท Link");
+    semanticOffenders.forEach((offender) => console.log(`   ${offender}`));
+  } else {
+    console.log("✅ mobile list แยก listitem container โดยคงบทบาท Link");
+  }
+}
 
 // ⑦ ด่านธีมมืด: ในโซนที่สลับธีมได้ ห้ามมีตัวหนังสือ slate เข้มระดับหลัก (900/700/500)
 // ที่ไม่มีคู่ dark: บนบรรทัดเดียวกัน — ใช้ semantic token แทน (text-strong /
@@ -1727,6 +1813,13 @@ check(
     !productPickerSource.includes("<FilterChip") ||
     productPickerSource.includes("INTERACTIVE_SELECTED") ||
     /rounded-xl/.test(productPickerSource) ||
+    !productPickerSource.includes("returnFocusRef") ||
+    !productPickerSource.includes("onOpenAutoFocus") ||
+    !productPickerSource.includes("onCloseAutoFocus") ||
+    !productPickerSource.includes("aria-expanded={isExpanded}") ||
+    !productPickerSource.includes("aria-controls={`product-variants-${product.id}`}") ||
+    !productPickerSource.includes("max-h-[90dvh]") ||
+    !productPickerSource.includes("motion-reduce:animate-none") ||
     /hover:shadow-md/.test(orderFilesSource) ||
     !dialogPrimitiveSource.includes("returnFocusElement") ||
     !dialogPrimitiveSource.includes("onCloseAutoFocus={handleCloseAutoFocus}")

@@ -616,7 +616,7 @@ function OrdersPageContent() {
           const showDeadline = hasDeadline || sortBy === "deadline";
           return (
           <DataTable.Root className="max-xl:[&_td]:px-4 max-xl:[&_th:not([aria-sort])]:px-4 max-xl:[&_th[aria-sort]>button]:px-4">
-            <DataTable.Head className="bg-surface">
+            <DataTable.Head>
               <tr>
                 {/* การเรียงย้ายมาอยู่ที่หัวคอลัมน์แล้ว (เบสสั่ง 2026-07-31) — กดซ้ำสลับทิศ
                     เรียงได้เท่าที่ฐานข้อมูลรองรับ: เลขออเดอร์ · ยอดรวม · วันที่ · กำหนดส่ง */}
@@ -648,7 +648,7 @@ function OrdersPageContent() {
                 )}
               </tr>
             </DataTable.Head>
-            <DataTable.Body className="[&_td]:text-sm [&_td_*]:text-sm">
+            <DataTable.Body>
               {orders.map((order) => {
                 const mockupCover = order.designs[0]
                   ? mockupCoverImage(order.designs[0])

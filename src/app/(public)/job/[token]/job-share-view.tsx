@@ -239,9 +239,9 @@ export function JobShareView({ token }: { token: string }) {
                         <table className="w-full text-sm">
                           <thead>
                             <tr className="border-b border-divider text-left text-xs text-muted">
-                              <th className="py-1.5 pr-2 font-medium">ไซซ์</th>
-                              <th className="py-1.5 pr-2 font-medium">สี</th>
-                              <th className="py-1.5 text-right font-medium">จำนวน</th>
+                              <th scope="col" className="py-1.5 pr-2 font-medium">ไซซ์</th>
+                              <th scope="col" className="py-1.5 pr-2 font-medium">สี</th>
+                              <th scope="col" className="py-1.5 text-right font-medium">จำนวน</th>
                             </tr>
                           </thead>
                           <tbody>

@@ -410,10 +410,11 @@ function WhtRegisterPageContent() {
           </DataTable.Root>
         )}
         renderMobile={(items) => (
-          <div className="space-y-3">
+          <div role="list" aria-label="รายการหนังสือรับรองหัก ณ ที่จ่าย" className="space-y-3">
             {items.map((row) => (
               <div
                 key={row.id}
+                role="listitem"
                 className="card-surface rounded-2xl p-4"
               >
                 <div className="flex items-start justify-between gap-2">
