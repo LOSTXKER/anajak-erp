@@ -4,6 +4,15 @@
 
 ## ตอนนี้
 
+> **🧪 Order Workbench prototype พร้อมให้เบสเคาะ (2026-08-29)**
+> สร้าง route ทดลองเฉพาะกิจ `/prototype/orders/[id]` บน AppShell และ design token ปัจจุบัน โดยใช้ข้อมูลออเดอร์/สิทธิ์/ตัวช่วย `getOrderNextStep` จริง · หน้า canonical `/orders/[id]` ยังไม่เปลี่ยน และ Prototype ไม่มี mutation ของตัวเอง
+> **แนวคิด:** ยกลูกค้าเป็นตัวตนหลักของงาน · เหลือ CTA น้ำเงินหนึ่งเรื่องที่ต้องทำต่อ · รวม 7 แท็บเป็นสรุป lifecycle/รายการ/จุดส่งต่องานผลิต/จัดส่ง/การเงินในหน้าเดียว · สถานะว่างบอกตรง ๆ ไม่แสดงยอด `฿0` หลอกเมื่อยังไม่มีรายการ
+> **ไฟล์หลัก:** `src/app/(dashboard)/prototype/orders/[id]/page.tsx` · `src/components/orders/prototype/order-workbench-prototype.tsx` · `src/lib/order-workbench.ts` + pure tests · หลักฐานภาพอยู่ `.impeccable/review/order-prototype-{desktop,mobile,mobile-dark}.png`
+> **ตรวจ browser จริง:** ออเดอร์ `ORD-2608-0001` ที่ 1440×900 Light + 390×844 Light/Dark · CTA “เพิ่มรายการสินค้า” ไป canonical `/orders/[id]/edit?tab=items&returnTab=items` แล้วกลับได้ · ไม่มี horizontal overflow, console warning/error หรือ hydration overlay · finish review = `ship` ไม่มี material fix
+> **ด่าน:** pure tests 8/8 · unit **1668/1668** · typecheck · `verify:ui` · targeted lint 0 error · full lint เมื่อยกเว้นไฟล์ทดลองเดิมของเบส `scripts/_probe-sidebar.tsx` = 0 error/26 warning เดิม · production build 42 หน้า + route Prototype · Impeccable detector `[]` · `git diff --check`
+> **ขอบเขต:** ไม่มี schema/endpoint/dependency/config/status transition ใหม่ · deep action ทุกจุดส่งกลับ flow canonical ที่มี server guard เดิม · ไม่แตะ `scripts/verify-artwork.ts`, `.cursor/`, `public/`, `scripts/_probe-sidebar.tsx`
+> **NEXT:** เบสกดดู Prototype แล้วเคาะ “เอาทิศนี้” หรือชี้จุดแก้ · ถ้าเคาะ ค่อยออกใบงานย้าย IA เข้า canonical `/orders/[id]` และถอด route ทดลอง ไม่ promote ระบบภาพถาวรก่อนคำตัดสิน
+>
 > **✅ ปุ่มหุบเมนูรอบสิบ — ขึ้น main + production แล้ว (2026-08-28)**
 > เบสเคาะจาก mockup: **ปุ่มอยู่ในหัวเมนู แถวเดียวกับตรา ชิดขอบขวา · ตอนหุบซ่อนตรา เหลือปุ่มยืนกลางราง 64px**
 > **แก้ 2 ไฟล์:** `src/components/layout/app-shell.tsx` (ปุ่ม + หัวเมนู) · `scripts/verify-ui-tokens.tsx` (ด่านล็อกโครงใหม่แทนโครงเดิม)
