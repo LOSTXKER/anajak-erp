@@ -1011,17 +1011,6 @@ PDF ครบชุด (ใบเสนอ/แจ้งหนี้/เสร็
 - [x] **O4 เชื่อมประสบการณ์และมีทางกลับ** — แถวออเดอร์ใน Command Center เปิด workbench ใหม่ · breadcrumb/ปุ่มเปิดรายละเอียดเต็มกลับ canonical URL จริง · query string ของแท็บใช้ contract `order-tabs` เดิม
 - [x] **O5 ด่านก่อนส่งให้เคาะ** — pure tests ครอบ lifecycle/route mapping/permission-safe model · typecheck, targeted lint, unit, `verify:ui`, Impeccable detector และ build ผ่าน · browser 1440/390 ทั้ง Light/Dark ไม่มี hydration/console/overflow · finish review + อัปเดต `docs/DESIGN.md`, surface brief, `PROGRESS.md` และ commit ก้อนเล็ก
 
-#### ใบงานทดลอง ORDER-PROTO — Order Workbench บนระบบภาพปัจจุบัน (เบสสั่ง 2026-08-29)
-
-> ทำหน้าทดลองชั่วคราวจากออเดอร์จริงให้เบสกดดูและเคาะก่อนเปลี่ยน canonical `/orders/[id]` · ใช้แกนเดิมที่พิสูจน์แล้วว่า “งานถัดไปมาก่อนข้อมูลประกอบ” แต่สร้างใหม่บน AppShell, near-white workspace, token และ component ปัจจุบัน · ไม่คืน `/redesign`/RedesignShell และไม่เพิ่มบ้านถาวรให้ UI
->
-> ขอบเขต: route ชั่วคราว `/prototype/orders/[id]` ที่ไม่อยู่ใน navigation · presentation + pure view model จาก query/helper/permission เดิมเท่านั้น · ทุก deep action กลับ canonical edit/tab/production flow · ไม่เพิ่ม schema, endpoint, mutation, dependency, config หรือ business rule และไม่แตะไฟล์ค้างของเบส
-
-- [x] **OP1 ของจริงและ fail closed** — โหลด `order.getById`/`user.me`/readiness ตามเงื่อนไขเดิม · loading/not-found/error/retry แยกกัน · เงินไม่ render จน permission ยืนยันและไม่มีข้อมูลสมมติ
-- [x] **OP2 next action เป็นพระเอก** — first viewport บอกลูกค้า/เลขงาน/สถานะ, blocker และขั้นถัดไปหนึ่งเรื่องจาก `getOrderNextStep` เดิม · มี primary action เดียวและส่งไป flow canonical ที่ทำงานจริง
-- [x] **OP3 อ่านจบโดยไม่ไล่ 7 แท็บ** — สรุป lifecycle 7 ช่วง, รายการ, งานผลิต, จัดส่ง, เงินตามสิทธิ์และจุดส่งต่องานในหน้าเดียว · desktop/mobile เป็นคนละ composition โดย 390px ไม่มี horizontal overflow และ target แตะอย่างน้อย 44px
-- [x] **OP4 ส่งให้เคาะจาก render จริง** — ตรวจ route canonical ยังไม่เปลี่ยน · browser desktop/mobile Light/Dark + console/hydration/overflow · targeted tests, typecheck, lint, `verify:ui`, detector และ build ตามความเสี่ยง · เก็บ screenshot/อัปเดต `PROGRESS.md` ก่อนส่ง URL ให้เบสดู
-
 #### ใบงานต่อยอดต้นแบบ — Connected Operations: ทะเบียนออเดอร์ → ศูนย์ควบคุมการผลิต (เบสสั่ง “เอาให้สุด มีข้อมูล กดได้จริง” 2026-08-14)
 
 > ทำให้ต้นแบบไม่ใช่ภาพหน้าเดียว แต่เดินงานหลักได้เป็นสายจาก Command Center → Orders Registry → Order Workbench → Production Control/flow หลัก · ใช้ query, permission, status/readiness และ URL จริงชุดเดิม โดยคง canonical `/orders*` และ `/production*` เป็นเจ้าของ mutation, dialog และกฎธุรกิจระหว่างช่วงทดลอง
