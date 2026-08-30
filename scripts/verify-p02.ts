@@ -44,7 +44,6 @@ async function main() {
     orderType: "CUSTOM" as const,
     channel: "SHOPEE" as const,
     customerId: customer.id,
-    title: "[P0.2-VERIFY] สูตร A",
     externalOrderId: "SHP-TEST-1",
     platformFee: 60,
     discount: 90,
@@ -77,7 +76,7 @@ async function main() {
   ok(`1.5 เลขออเดอร์ ORD-${period}-NNNN`, new RegExp(`^ORD-${period}-\\d{4}$`).test(o1.orderNumber), o1.orderNumber);
   ok("1.6 taxLineType = HIRE_OF_WORK (CUSTOM)", o1.items[0]?.taxLineType === "HIRE_OF_WORK", o1.items[0]?.taxLineType);
 
-  const o2 = await caller.order.create({ ...orderInput, title: "[P0.2-VERIFY] เลขต่อเนื่อง", externalOrderId: "SHP-TEST-2" });
+  const o2 = await caller.order.create({ ...orderInput, externalOrderId: "SHP-TEST-2" });
   const n1 = parseInt(o1.orderNumber.slice(-4), 10);
   const n2 = parseInt(o2.orderNumber.slice(-4), 10);
   ok("1.7 เลขออเดอร์รันต่อเนื่อง +1", n2 === n1 + 1, `${o1.orderNumber} → ${o2.orderNumber}`);
@@ -175,7 +174,6 @@ async function main() {
   // ---------- 4) quotation → convert + ภาษีไม่หาย ----------
   const q1 = await caller.quotation.create({
     customerId: customer.id,
-    title: "[P0.2-VERIFY] ใบเสนอราคา",
     validUntil: new Date(Date.now() + 7 * 86400_000).toISOString(),
     discount: 0,
     tax: 70,
@@ -186,7 +184,6 @@ async function main() {
 
   const q2 = await caller.quotation.create({
     customerId: customer.id,
-    title: "[P0.2-VERIFY] ทดสอบ update",
     validUntil: new Date(Date.now() + 7 * 86400_000).toISOString(),
     discount: 0,
     tax: 70,
@@ -205,7 +202,7 @@ async function main() {
   ok("4.5 แก้ fees หลัง convert → ภาษีไม่หาย (total คง 1070)", coDb2.totalAmount === 1070 && coDb2.taxAmount === 70, { t: coDb2.totalAmount, a: coDb2.taxAmount });
 
   // ---------- 5) design flow ผ่าน transition กลาง ----------
-  const o3 = await caller.order.create({ ...orderInput, channel: "LINE" as const, title: "[P0.2-VERIFY] design flow", externalOrderId: undefined, platformFee: undefined });
+  const o3 = await caller.order.create({ ...orderInput, channel: "LINE" as const, externalOrderId: undefined, platformFee: undefined });
   await caller.order.updateStatus({ id: o3.id, internalStatus: "CONFIRMED" });
   await caller.order.updateStatus({ id: o3.id, internalStatus: "DESIGNING" });
   const design = await caller.design.upload({ orderId: o3.id, files: [{ fileUrl: "https://example.com/design-v1.png" }] });

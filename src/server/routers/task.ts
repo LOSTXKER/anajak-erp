@@ -95,7 +95,6 @@ export const taskRouter = router({
     const orderSelect = {
       id: true,
       orderNumber: true,
-      title: true,
       deadline: true,
       internalStatus: true,
       customer: { select: { name: true } },
@@ -213,7 +212,7 @@ export const taskRouter = router({
             orders.map((o) => {
               const latest = o.designs[0];
               return {
-                order: { id: o.id, orderNumber: o.orderNumber, title: o.title, deadline: o.deadline, internalStatus: o.internalStatus, customer: o.customer },
+                order: { id: o.id, orderNumber: o.orderNumber, deadline: o.deadline, internalStatus: o.internalStatus, customer: o.customer },
                 latestVersion: latest?.versionNumber ?? null,
                 latestApproval: latest?.approvalStatus ?? null,
               };
@@ -232,7 +231,7 @@ export const taskRouter = router({
           })
           .then((orders) =>
             orders.map((o) => ({
-              order: { id: o.id, orderNumber: o.orderNumber, title: o.title, deadline: o.deadline, internalStatus: o.internalStatus, customer: o.customer },
+              order: { id: o.id, orderNumber: o.orderNumber, deadline: o.deadline, internalStatus: o.internalStatus, customer: o.customer },
               totalAmount: o.totalAmount,
               itemCount: o._count.items,
             }))
@@ -282,7 +281,7 @@ export const taskRouter = router({
                     },
                   },
                 },
-                select: { id: true, orderNumber: true, title: true },
+                select: { id: true, orderNumber: true, customer: { select: { name: true } } },
                 orderBy: { deadline: "asc" },
                 take: 100,
               }),
@@ -296,7 +295,7 @@ export const taskRouter = router({
                 select: {
                   id: true,
                   orderNumber: true,
-                  title: true,
+                  customer: { select: { name: true } },
                   designs: {
                     orderBy: { versionNumber: "desc" },
                     take: 1,
@@ -312,7 +311,7 @@ export const taskRouter = router({
                   internalStatus: { notIn: ["CANCELLED", "ON_HOLD", "SHIPPED", "COMPLETED"] },
                   deadline: { gte: startOfToday, lte: endOfTomorrow },
                 },
-                select: { id: true, orderNumber: true, title: true, deadline: true },
+                select: { id: true, orderNumber: true, deadline: true, customer: { select: { name: true } } },
                 orderBy: { deadline: "asc" },
                 take: 100,
               }),
@@ -331,19 +330,19 @@ export const taskRouter = router({
               awaitingInspectionRaw.map((o) => ({
                 orderId: o.id,
                 orderNumber: o.orderNumber,
-                title: o.title,
+                customerName: o.customer.name,
               }))
             ),
             designsAwaiting: pile(
               designsAwaitingRaw
                 .filter((o) => o.designs[0]?.approvalStatus === "PENDING")
-                .map((o) => ({ orderId: o.id, orderNumber: o.orderNumber, title: o.title }))
+                .map((o) => ({ orderId: o.id, orderNumber: o.orderNumber, customerName: o.customer.name }))
             ),
             dueSoon: pile(
               dueSoonRaw.map((o) => ({
                 orderId: o.id,
                 orderNumber: o.orderNumber,
-                title: o.title,
+                customerName: o.customer.name,
                 deadline: o.deadline,
               }))
             ),

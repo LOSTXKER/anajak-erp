@@ -96,8 +96,8 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
       href: data.canSupervise
         ? `/production/${queue.productionId}`
         : `/factory/station?station=dtf-print&productionId=${encodeURIComponent(queue.productionId)}&focusStepId=${encodeURIComponent(queue.stepId)}`,
-      title: queue.orderName || queue.orderNumber,
-      description: `${queue.orderNumber} · ${queue.customerName}`,
+      title: queue.orderNumber,
+      description: queue.customerName,
       deadline: queue.dueDate,
       attention: taskAttention(queue.dueDate),
       ownership: "team",
@@ -113,8 +113,8 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
       href: data.canSupervise
         ? `/production/${queue.productionId}`
         : `/factory/station?station=heat-press&productionId=${encodeURIComponent(queue.productionId)}&focusStepId=${encodeURIComponent(queue.stepId)}`,
-      title: queue.title,
-      description: queue.orderNumber,
+      title: queue.orderNumber,
+      description: queue.customerName,
       deadline: queue.deadline,
       attention: taskAttention(queue.deadline),
       ownership: "team",
@@ -136,8 +136,8 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
         : queue.productionId
           ? `/factory/station?station=final-pack&jobId=${encodeURIComponent(queue.stepId)}`
           : `/factory/station?station=final-pack&orderId=${encodeURIComponent(queue.orderId)}`,
-      title: queue.title,
-      description: `${queue.orderNumber} · ${queue.customerName}`,
+      title: queue.orderNumber,
+      description: queue.customerName,
       deadline: queue.deadline,
       attention: taskAttention(queue.deadline),
       ownership: "team",
@@ -151,8 +151,8 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
     items.push({
       key: `order:${order.id}`,
       href: `/production?create=${order.id}`,
-      title: order.title,
-      description: `${order.orderNumber} · ${order.customer.name}`,
+      title: order.orderNumber,
+      description: order.customer.name,
       deadline: order.deadline,
       attention: taskAttention(order.deadline),
       ownership: "team",
@@ -168,8 +168,8 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
     items.push({
       key: `order:${design.order.id}`,
       href: `/orders/${design.order.id}`,
-      title: design.order.title,
-      description: `${design.order.orderNumber} · ${design.order.customer.name}`,
+      title: design.order.orderNumber,
+      description: design.order.customer.name,
       deadline: design.order.deadline,
       attention: taskAttention(design.order.deadline),
       ownership: "team",
@@ -197,8 +197,8 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
     items.push({
       key: `order:${order.orderId}`,
       href: `/orders/${order.orderId}`,
-      title: order.title,
-      description: order.orderNumber,
+      title: order.orderNumber,
+      description: order.customerName,
       attention: "normal",
       ownership: "team",
       badge: "รอตรวจรับเสื้อ",
@@ -209,8 +209,8 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
     items.push({
       key: `order:${order.orderId}`,
       href: `/orders/${order.orderId}`,
-      title: order.title,
-      description: order.orderNumber,
+      title: order.orderNumber,
+      description: order.customerName,
       attention: "normal",
       ownership: "team",
       badge: "รอลูกค้าอนุมัติแบบ",
@@ -221,8 +221,8 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
     items.push({
       key: `order:${order.orderId}`,
       href: `/orders/${order.orderId}`,
-      title: order.title,
-      description: order.orderNumber,
+      title: order.orderNumber,
+      description: order.customerName,
       deadline: order.deadline,
       attention: "due-soon",
       ownership: "team",
@@ -235,8 +235,8 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
     items.push({
       key: `order:${followUp.order.id}`,
       href: `/orders/${followUp.order.id}`,
-      title: followUp.order.title,
-      description: `${followUp.order.orderNumber} · ${followUp.order.customer.name}`,
+      title: followUp.order.orderNumber,
+      description: followUp.order.customer.name,
       deadline: followUp.order.deadline,
       attention: taskAttention(followUp.order.deadline),
       ownership: "team",
@@ -265,8 +265,8 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
     items.push({
       key: `order:${order.id}`,
       href: `/orders/${order.id}?tab=money`,
-      title: order.title,
-      description: `${order.orderNumber} · ${order.customer.name}`,
+      title: order.orderNumber,
+      description: order.customer.name,
       deadline: order.deadline,
       attention: taskAttention(order.deadline),
       ownership: "team",

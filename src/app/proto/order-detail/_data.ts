@@ -25,9 +25,6 @@ function buildOrder(variant: "full" | "thin") {
   return {
     id: "demo-order-1",
     orderNumber: thin ? "SO-2026-0413" : "SO-2026-0391",
-    title: thin
-      ? "เสื้อยืดงานวิ่งการกุศล (ยังไม่สรุปแบบ)"
-      : "เสื้อโปโลพนักงานปี 2026 — ปักอกซ้าย + สกรีนหลัง",
     description: thin
       ? null
       : "โปโลคอปกสีกรมท่า ปักโลโก้อกซ้าย 8 ซม. และสกรีน DTF ด้านหลังเต็มแผ่น " +

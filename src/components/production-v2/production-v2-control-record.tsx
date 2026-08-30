@@ -103,8 +103,7 @@ function IdentityStrip({ workOrder }: { workOrder: WorkOrder }) {
           <Link href={`/orders/${workOrder.order.id}`} className="mt-1 inline-flex items-center gap-1 font-semibold text-strong hover:underline">
             {workOrder.order.orderNumber} <ExternalLink className="h-3.5 w-3.5" aria-hidden />
           </Link>
-          <p className="mt-1 text-sm text-secondary">{workOrder.order.title}</p>
-          <p className="text-xs text-muted">{workOrder.order.customerName}</p>
+          <p className="mt-1 text-sm text-secondary">{workOrder.order.customerName}</p>
         </div>
         <div>
           <p className="text-xs text-muted">กำหนดส่ง</p>

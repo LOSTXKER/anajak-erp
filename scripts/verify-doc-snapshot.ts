@@ -52,7 +52,6 @@ async function main() {
       orderNumber: `${TAG}-${Date.now()}`,
       customerId: customer.id,
       createdById: user.id,
-      title: `${TAG} งานทดสอบ`,
       totalAmount: 1000,
     },
   });

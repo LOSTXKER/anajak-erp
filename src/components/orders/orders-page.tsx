@@ -208,7 +208,6 @@ function PaymentIndicator({ status }: { status: string }) {
 function exportOrdersCsv(
   orders: Array<{
     orderNumber: string;
-    title: string;
     customer: { name: string; company?: string | null } | null;
     channel: string;
     orderType: string;
@@ -223,7 +222,6 @@ function exportOrdersCsv(
   // ⑦ ช่าง/กราฟิกไม่เห็นเงิน — ตัดคอลัมน์ยอดรวมออกทั้ง header + row
   const header = [
     "เลขออเดอร์",
-    "ชื่องาน",
     "ลูกค้า",
     "บริษัท",
     "ช่องทาง",
@@ -244,7 +242,6 @@ function exportOrdersCsv(
 
   const rows = orders.map((o) => [
     o.orderNumber,
-    o.title,
     o.customer?.name ?? "",
     o.customer?.company ?? "",
     CHANNEL_LABELS[o.channel] ?? o.channel,
@@ -480,7 +477,7 @@ function OrdersPageContent() {
           ref={searchInputRef}
           containerClassName="@2xl:max-w-sm @2xl:flex-1"
           surface="raised"
-          placeholder="ค้นหาเลขออเดอร์, ชื่อ, ลูกค้า..."
+          placeholder="ค้นหาเลขออเดอร์ หรือลูกค้า..."
           defaultValue={search}
           onChange={(event) => onSearchChange(event.target.value)}
         />
@@ -623,7 +620,7 @@ function OrdersPageContent() {
                 <DataTable.SortableTh {...sortColumn("orderNumber")}>
                   เลขออเดอร์
                 </DataTable.SortableTh>
-                <DataTable.Th>ลูกค้า / งาน</DataTable.Th>
+                <DataTable.Th>ลูกค้า</DataTable.Th>
                 <DataTable.Th>ประเภทงาน</DataTable.Th>
                 <DataTable.Th className="hidden min-[1360px]:table-cell">
                   ช่องทาง
@@ -653,13 +650,7 @@ function OrdersPageContent() {
                 const mockupCover = order.designs[0]
                   ? mockupCoverImage(order.designs[0])
                   : null;
-                const customerName = order.customer?.name?.trim() ?? "";
-                const orderTitle = order.title?.trim() ?? "";
-                const primaryIdentity = customerName || orderTitle || "—";
-                const secondaryTitle =
-                  customerName && orderTitle && customerName !== orderTitle
-                    ? orderTitle
-                    : "";
+                const primaryIdentity = order.customer?.name?.trim() || "—";
                 return (
                   <DataTable.Row key={order.id} href={`/orders/${order.id}`}>
                   <DataTable.Td className="whitespace-nowrap">
@@ -681,11 +672,6 @@ function OrdersPageContent() {
                       <p className="max-w-80 truncate text-sm font-semibold text-strong">
                         {primaryIdentity}
                       </p>
-                      {secondaryTitle && (
-                        <p className="mt-0.5 max-w-80 truncate text-sm text-secondary">
-                          {secondaryTitle}
-                        </p>
-                      )}
                       <ChatLink
                         stopPropagation
                         name={order.customer?.chatName}
@@ -753,19 +739,13 @@ function OrdersPageContent() {
               const mockupCover = order.designs[0]
                 ? mockupCoverImage(order.designs[0])
                 : null;
-              const customerName = order.customer?.name?.trim() ?? "";
-              const orderTitle = order.title?.trim() ?? "";
-              const primaryIdentity = customerName || orderTitle || "—";
-              const secondaryTitle =
-                customerName && orderTitle && customerName !== orderTitle
-                  ? orderTitle
-                  : "";
+              const primaryIdentity = order.customer?.name?.trim() || "—";
               return (
                 <article key={order.id} role="listitem" className="card-surface rounded-2xl">
                 <Link
                   href={`/orders/${order.id}`}
                   className={cn("block min-h-11 rounded-lg p-3", FOCUS_BUTTON)}
-                  aria-label={`เปิดออเดอร์ ${order.orderNumber} ${primaryIdentity} ${secondaryTitle}`.replace(/\s+/g, " ").trim()}
+                  aria-label={`เปิดออเดอร์ ${order.orderNumber} ${primaryIdentity}`}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex min-w-0 items-start gap-3">
@@ -780,11 +760,6 @@ function OrdersPageContent() {
                         <p className="mt-0.5 truncate text-base font-semibold text-strong">
                           {primaryIdentity}
                         </p>
-                        {secondaryTitle && (
-                          <p className="truncate text-sm text-secondary">
-                            {secondaryTitle}
-                          </p>
-                        )}
                       </div>
                     </div>
                     <ChevronRight aria-hidden="true" className="mt-1 h-5 w-5 shrink-0 text-muted" />

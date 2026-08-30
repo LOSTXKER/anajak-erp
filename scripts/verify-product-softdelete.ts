@@ -54,8 +54,7 @@ async function main() {
         orderNumber: `TEST-SOFTDEL-${Date.now()}`,
         orderType: "CUSTOM", channel: "LINE",
         customerId: customer.id, createdById: owner.id,
-        internalStatus: "PRODUCING", customerStatus: "IN_PRODUCTION",
-        title: `${MARK} งาน`, totalAmount: 0,
+        internalStatus: "PRODUCING", customerStatus: "IN_PRODUCTION", totalAmount: 0,
       },
     });
     ids.order = order.id;
@@ -117,7 +116,6 @@ async function main() {
       await expectThrow(() =>
         caller.order.create({
           customerId: ids.customer,
-          title: `${MARK} ออเดอร์ใช้สินค้าที่ลบ`,
           items: [{
             products: [{
               productId: product.id,

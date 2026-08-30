@@ -30,7 +30,6 @@ export default async function PrintPackingListPage({
         order: {
           select: {
             orderNumber: true,
-            title: true,
             blindShip: true,
             blindShipSenderName: true,
             customer: { select: { name: true, company: true } },
@@ -75,7 +74,6 @@ export default async function PrintPackingListPage({
             </div>
             <p className="text-[20px] font-bold leading-tight">ใบรายการสินค้า</p>
             <p className="text-[12px] tracking-wide text-slate-600">PACKING LIST</p>
-            <p className="mt-1 text-[12.5px] font-medium">{order.title}</p>
           </div>
           <div className="shrink-0 text-right">
             <table className="ml-auto text-[12.5px]">

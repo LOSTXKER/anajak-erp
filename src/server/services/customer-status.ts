@@ -46,7 +46,6 @@ export async function getOrderStatusByToken(
     select: {
       // ── ปลอดภัย ──
       orderNumber: true,
-      title: true,
       deadline: true,
       createdAt: true,
       customerStatus: true,
@@ -70,7 +69,6 @@ export async function getOrderStatusByToken(
         select: {
           quotationNumber: true,
           status: true,
-          title: true,
           validUntil: true,
           totalAmount: true,
           pdfUrl: true,
@@ -131,7 +129,6 @@ export async function getOrderStatusByToken(
 
   return {
     orderNumber: order.orderNumber,
-    title: order.title,
     customerName: order.customer.name,
     deadline: order.deadline,
     createdAt: order.createdAt,
@@ -155,7 +152,6 @@ export async function getOrderStatusByToken(
     quotations: order.quotations.map((q) => ({
       quotationNumber: q.quotationNumber,
       status: q.status,
-      title: q.title,
       validUntil: q.validUntil,
       totalAmount: num(q.totalAmount),
       pdfUrl: withFileToken(q.pdfUrl, token, "s"),

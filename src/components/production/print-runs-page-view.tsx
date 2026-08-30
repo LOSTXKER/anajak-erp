@@ -486,8 +486,7 @@ function ActiveRunCard({
           >
             <DesignThumb design={item.order.designs[0] ?? null} size="sm" />
             <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-strong">{item.order.orderNumber}</p>
-              {item.order.title && <p className="truncate text-xs text-muted">{item.order.title}</p>}
+              <p className="truncate text-sm font-medium tabular-nums text-strong">{item.order.orderNumber}</p>
             </div>
             <span className="shrink-0 text-sm tabular-nums text-secondary">{item.qty} ชิ้น</span>
           </li>
@@ -569,9 +568,8 @@ function QueueRow({
   const errorId = `print-run-qty-error-${entry.stepId}`;
   const details = (
     <div className="min-w-0 flex-1 text-left">
-      <p className="truncate text-sm font-medium text-strong">
+      <p className="truncate text-sm font-medium tabular-nums text-strong">
         {entry.orderNumber}
-        {entry.orderName && ` · ${entry.orderName}`}
       </p>
       <p className="truncate text-xs text-muted">{entry.customerName}</p>
       <div className="mt-1 flex flex-wrap items-center gap-1.5">

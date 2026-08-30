@@ -55,7 +55,6 @@ const ZOD_FIELD_LABELS: Record<string, string> = {
   discount: "ส่วนลด",
   taxRate: "อัตราภาษี",
   customerId: "ลูกค้า",
-  title: "ชื่องาน",
   name: "ชื่อ",
   phone: "เบอร์โทร",
   email: "อีเมล",

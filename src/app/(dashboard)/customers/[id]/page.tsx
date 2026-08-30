@@ -335,7 +335,11 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                     >
                       <div>
                         <p className="text-sm font-medium text-blue-600 dark:text-blue-400">{order.orderNumber}</p>
-                        <p className="text-xs text-muted group-hover:text-secondary group-active:text-secondary">{order.title}</p>
+                        {/* ไม่มีชื่องานแล้ว (เบสสั่ง 2026-08-30) — บรรทัดรองใช้วันที่เปิดงาน
+                            ซึ่งเป็นสิ่งที่ช่วยแยกใบของลูกค้ารายเดียวกันได้จริง */}
+                        <p className="text-xs text-muted group-hover:text-secondary group-active:text-secondary">
+                          เปิด {formatDate(order.createdAt)}
+                        </p>
                       </div>
                       <div className="flex items-center gap-3">
                         <OrderStatusBadge customerStatus={order.customerStatus} internalStatus={order.internalStatus} />

@@ -30,7 +30,6 @@ import { Alert } from "@/components/ui/alert";
 
 interface OrderInfoEditOrder {
   id: string;
-  title: string;
   description: string | null;
   deadline: string | Date | null;
   priority: string;
@@ -91,7 +90,6 @@ const SHIPPING_FIELD_MAP = {
 } as const;
 
 interface FormData {
-  title: string;
   description: string;
   deadline: string;
   priority: string;
@@ -125,7 +123,6 @@ export function OrderInfoEditDialog({
   focusSection,
 }: OrderInfoEditDialogProps) {
   const [form, setForm] = useState<FormData>({
-    title: "",
     description: "",
     deadline: "",
     priority: "NORMAL",
@@ -171,7 +168,6 @@ export function OrderInfoEditDialog({
   useEffect(() => {
     if (open && order) {
       setForm({
-        title: order.title ?? "",
         description: order.description ?? "",
         deadline: toDateInputValue(order.deadline),
         priority: order.priority ?? "NORMAL",
@@ -233,7 +229,6 @@ export function OrderInfoEditDialog({
   function handleSave() {
     updateMutation.mutate({
       id: order.id,
-      title: form.title || undefined,
       description: form.description || undefined,
       deadline: form.deadline || undefined,
       priority: form.priority as "LOW" | "NORMAL" | "HIGH" | "URGENT",
@@ -283,8 +278,6 @@ export function OrderInfoEditDialog({
           <div id="order-edit-info" className={sectionClass}>
             <p className={sectionTitleClass}>ข้อมูลทั่วไป</p>
             <OrderDetailFields
-              title={form.title}
-              onTitleChange={(v) => update("title", v)}
               deadline={form.deadline}
               onDeadlineChange={(v) => update("deadline", v)}
               priority={form.priority as "LOW" | "NORMAL" | "HIGH" | "URGENT"}
@@ -425,7 +418,6 @@ export function OrderInfoEditDialog({
 
         <DialogSubmitFooter
           pending={updateMutation.isPending}
-          disabled={!form.title}
           submitLabel="บันทึก"
           submitIcon={<Save />}
           onCancel={() => onOpenChange(false)}

@@ -35,7 +35,6 @@ async function main() {
   const order = await prisma.order.create({
     data: {
       orderNumber: `TEST-WHT-${Date.now()}`,
-      title: `${MARK} งานทดสอบ WHT`,
       customerId: customer.id,
       createdById: owner.id,
       internalStatus: "SHIPPED",

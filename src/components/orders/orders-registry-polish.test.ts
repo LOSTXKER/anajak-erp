@@ -17,16 +17,16 @@ const badgeSource = readFileSync(
 
 describe("Orders scan-first registry contract", () => {
   // เบสกลับ hierarchy หลังดูหน้าจริง 2026-08-27: คนใช้ต้องหา "ลูกค้าคนไหน" ก่อน
-  // แล้วค่อยอ่าน "งานอะไร"; สถานะภายในยังไม่ต้องเพิ่มกลับมาเป็นบรรทัดซ้ำ
-  it("ชื่อลูกค้าเป็นบรรทัดหลัก ชื่องานเป็นบรรทัดรอง และไม่มีบรรทัดสถานะภายใน", () => {
-    expect(pageSource.match(/const primaryIdentity = customerName \|\| orderTitle \|\| "—"/g)).toHaveLength(2);
-    expect(pageSource.match(/customerName && orderTitle && customerName !== orderTitle/g)).toHaveLength(2);
+  // 2026-08-30 เบสสั่งเอาระบบชื่องานออกทั้งหมด → บรรทัดรองที่เคยเป็นชื่องานหายไปเลย
+  // เหลือ "เลขที่ออเดอร์ + ลูกค้า" · ห้ามมีชื่องาน/บรรทัดสถานะภายในกลับมา
+  it("ลูกค้าเป็นบรรทัดเดียวของช่องระบุตัว ไม่มีชื่องานและไม่มีบรรทัดสถานะภายใน", () => {
+    expect(pageSource.match(/const primaryIdentity = order\.customer\?\.name\?\.trim\(\) \|\| "—"/g)).toHaveLength(2);
+    expect(pageSource).not.toContain("orderTitle");
+    expect(pageSource).not.toContain("secondaryTitle");
+    expect(pageSource).not.toContain("order.title");
     expect(pageSource.match(/text-base font-semibold text-strong/g)).toHaveLength(1);
     expect(pageSource).toContain("max-w-80 truncate text-sm font-semibold text-strong");
-    expect(pageSource).toContain("truncate text-sm text-secondary");
-    expect(pageSource).toContain("<DataTable.Th>ลูกค้า / งาน</DataTable.Th>");
-    expect(pageSource).toContain("${primaryIdentity} ${secondaryTitle}");
-    expect(pageSource).not.toContain("${customerName} ${orderTitle}`.replace");
+    expect(pageSource).toContain("<DataTable.Th>ลูกค้า</DataTable.Th>");
     expect(pageSource).toContain("showInternalStatus={false}");
     expect(pageSource).not.toContain("labelInternalStatus");
   });

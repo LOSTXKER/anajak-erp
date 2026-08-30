@@ -19,7 +19,6 @@ export type StationQueueItem = {
   productionId: string | null;
   stepId: string | null;
   orderNumber: string;
-  title: string;
   customerName: string | null;
   deadline: Date | string | null;
   priority: string | null;
@@ -168,8 +167,7 @@ function QueueCard({
           ) : null}
         </span>
         <span className="mt-1 block truncate text-sm font-medium text-secondary">
-          {[item.customerName, item.title].filter(Boolean).join(" · ") ||
-            "ไม่ระบุชื่องาน"}
+          {item.customerName || "ไม่ระบุลูกค้า"}
         </span>
         <span className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
           <span>{item.stepLabel}</span>

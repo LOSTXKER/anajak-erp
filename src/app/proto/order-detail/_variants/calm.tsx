@@ -91,7 +91,7 @@ export function CalmVariant({ thin, showMoney }: { thin: boolean; showMoney: boo
 
   return (
     <div className="space-y-6">
-      {/* หัวใบ: เลขที่ตัวใหญ่ ชื่องานเป็นบรรทัดอ่านได้จริง ไม่ใช่ meta ตัวจิ๋ว */}
+      {/* หัวใบ: เลขที่ตัวใหญ่ — ไม่มีชื่องานแล้ว (เบสสั่ง 2026-08-30) */}
       <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex min-w-0 items-start gap-3">
           <span
@@ -105,9 +105,6 @@ export function CalmVariant({ thin, showMoney }: { thin: boolean; showMoney: boo
             <h1 className="text-2xl font-semibold tracking-tight text-strong">
               {order.orderNumber}
             </h1>
-            <p className="mt-1 max-w-[62ch] text-base leading-6 text-secondary [overflow-wrap:anywhere]">
-              {order.title}
-            </p>
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">

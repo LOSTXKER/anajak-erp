@@ -136,7 +136,6 @@ export default async function PrintJobTicketPage({
               ใบสั่งงาน / JOB TICKET
             </p>
             <p className="text-[26px] font-bold leading-tight tabular-nums">{order.orderNumber}</p>
-            <p className="text-[13px] font-medium">{order.title}</p>
           </div>
           <div className="flex items-start gap-3">
             {isUrgent && (

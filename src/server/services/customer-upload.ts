@@ -49,7 +49,6 @@ function customerPrefix(orderId: string): string {
 type TokenOrder = {
   id: string;
   orderNumber: string;
-  title: string;
   deadline: Date | null;
   uploadTokenExpiresAt: Date | null;
   customer: { name: string };
@@ -65,7 +64,6 @@ export async function getOrderByUploadToken(
     select: {
       id: true,
       orderNumber: true,
-      title: true,
       deadline: true,
       uploadTokenExpiresAt: true,
       customer: { select: { name: true } },
@@ -124,7 +122,7 @@ export async function createCustomerUploadUrl(params: {
 export async function confirmCustomerUpload(
   prisma: ExtendedPrismaClient,
   params: {
-    order: { id: string; orderNumber: string; title: string };
+    order: { id: string; orderNumber: string };
     path: string;
     fileName: string;
     fileType: string;
@@ -211,7 +209,7 @@ export async function confirmCustomerUpload(
       userId: member.id,
       type: "ORDER",
       title: `ลูกค้าอัปไฟล์ — ${order.orderNumber}`,
-      message: `${order.title}: ${params.fileName}`,
+      message: params.fileName,
       link: `/orders/${order.id}`,
       entityType: "ORDER",
       entityId: order.id,

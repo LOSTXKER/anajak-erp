@@ -18,7 +18,6 @@ export interface QuotationDraftItemInput {
 
 export interface UpdateQuotationDraftInput {
   id: string;
-  title: string;
   description?: string;
   validUntil: Date;
   terms?: string;
@@ -49,7 +48,6 @@ export async function updateQuotationDraft(
       where: { id: params.id },
       select: {
         status: true,
-        title: true,
         customerId: true,
         validUntil: true,
         discount: true,
@@ -81,7 +79,6 @@ export async function updateQuotationDraft(
       where: { id: params.id },
       data: {
         ...party,
-        title: params.title,
         description: params.description ?? null,
         validUntil: params.validUntil,
         terms: params.terms ?? null,
@@ -112,7 +109,6 @@ export async function updateQuotationDraft(
       entityType: "QUOTATION",
       entityId: params.id,
       oldValue: {
-        title: existing.title,
         validUntil: existing.validUntil,
         discount: existing.discount,
         tax: existing.tax,
@@ -120,7 +116,6 @@ export async function updateQuotationDraft(
         itemCount: existing._count.items,
       },
       newValue: {
-        title: params.title,
         validUntil: params.validUntil,
         discount: moneyInput(params.discount).toNumber(),
         tax: moneyInput(params.tax).toNumber(),

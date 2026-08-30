@@ -548,7 +548,6 @@ export interface PrintQueueEntry {
   productionId: string;
   orderId: string;
   orderNumber: string;
-  orderName: string;
   customerName: string;
   dueDate: Date | null;
   qtyDone: number;
@@ -711,7 +710,6 @@ export async function getPrintQueue(
             select: {
               id: true,
               orderNumber: true,
-              title: true,
               internalStatus: true,
               deadline: true,
               customer: { select: { name: true } },
@@ -766,7 +764,6 @@ export async function getPrintQueue(
       productionId: s.productionId,
       orderId: order.id,
       orderNumber: order.orderNumber,
-      orderName: order.title ?? "",
       customerName: order.customer.name,
       dueDate: order.deadline,
       qtyDone,
@@ -1166,7 +1163,6 @@ export async function completePrintRun(
               select: {
                 id: true,
                 orderNumber: true,
-                title: true,
                 customerId: true,
                 internalStatus: true,
               },
@@ -1352,7 +1348,7 @@ export async function completePrintRun(
             artworkId,
             label:
               extra.label?.trim() ||
-              `ลายงาน ${item.order.orderNumber}${item.order.title ? ` — ${item.order.title}` : ""}`,
+              `ลายงาน ${item.order.orderNumber}`,
             qty: extra.extraQty,
             initialQty: extra.extraQty,
           },
@@ -1588,7 +1584,6 @@ export async function listPrintRuns(
           order: {
             select: {
               orderNumber: true,
-              title: true,
               deadline: true,
               internalStatus: true,
               designs: {

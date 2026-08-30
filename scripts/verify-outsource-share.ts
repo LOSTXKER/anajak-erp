@@ -65,7 +65,6 @@ async function main() {
         createdById: owner.id,
         internalStatus: "PRODUCING",
         customerStatus: "IN_PRODUCTION",
-        title: `${MARK} งานสกรีนส่งร้านนอก`,
         totalAmount: 12345.67,
         items: {
           create: [

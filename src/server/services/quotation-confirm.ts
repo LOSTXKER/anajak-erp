@@ -34,7 +34,6 @@ async function notifyQuoteDecision(
   params: {
     quotationId: string;
     quotationNumber: string;
-    title: string;
     accepted: boolean;
     reason?: string | null;
   }
@@ -51,7 +50,7 @@ async function notifyQuoteDecision(
       title: params.accepted
         ? `ลูกค้ายืนยันใบเสนอ ${params.quotationNumber}`
         : `ลูกค้าขอแก้ไข/ปฏิเสธใบเสนอ ${params.quotationNumber}`,
-      message: params.reason || params.title,
+      message: params.reason || "",
       link: `/quotations/${params.quotationId}`,
       entityType: "QUOTATION",
       entityId: params.quotationId,
@@ -69,7 +68,6 @@ export async function getQuotationByConfirmToken(
     select: {
       quotationNumber: true,
       status: true,
-      title: true,
       description: true,
       terms: true,
       validUntil: true,
@@ -108,7 +106,6 @@ export async function getQuotationByConfirmToken(
   return {
     quotationNumber: q.quotationNumber,
     status: q.status,
-    title: q.title,
     description: q.description,
     terms: q.terms,
     customerName: q.customer.name,
@@ -133,7 +130,7 @@ export async function getQuotationByConfirmToken(
 export async function acceptQuotationByToken(prisma: ExtendedPrismaClient, token: string) {
   const q = await prisma.quotation.findUnique({
     where: { confirmToken: token },
-    select: { id: true, status: true, validUntil: true, quotationNumber: true, title: true },
+    select: { id: true, status: true, validUntil: true, quotationNumber: true },
   });
   if (!q) throw new TRPCError({ code: "NOT_FOUND", message: "ไม่พบลิงก์ใบเสนอนี้" });
   if (q.status === "ACCEPTED" || q.status === "CONVERTED") {
@@ -168,7 +165,6 @@ export async function acceptQuotationByToken(prisma: ExtendedPrismaClient, token
     await notifyQuoteDecision(tx, {
       quotationId: q.id,
       quotationNumber: q.quotationNumber,
-      title: q.title,
       accepted: true,
     });
     return { status: "ACCEPTED" as const };
@@ -183,7 +179,7 @@ export async function rejectQuotationByToken(
 ) {
   const q = await prisma.quotation.findUnique({
     where: { confirmToken: token },
-    select: { id: true, status: true, quotationNumber: true, title: true },
+    select: { id: true, status: true, quotationNumber: true },
   });
   if (!q) throw new TRPCError({ code: "NOT_FOUND", message: "ไม่พบลิงก์ใบเสนอนี้" });
   if (q.status === "CONVERTED") {
@@ -210,7 +206,6 @@ export async function rejectQuotationByToken(
     await notifyQuoteDecision(tx, {
       quotationId: q.id,
       quotationNumber: q.quotationNumber,
-      title: q.title,
       accepted: false,
       reason,
     });

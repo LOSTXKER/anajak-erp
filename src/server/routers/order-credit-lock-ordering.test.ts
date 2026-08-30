@@ -27,7 +27,6 @@ function orderResult(overrides: Record<string, unknown> = {}) {
     channel: "LINE",
     customerId: CUSTOMER_ID,
     internalStatus: "CONFIRMED",
-    title: "ออเดอร์ล่าสุด",
     paymentTerms: "NET_30",
     subtotalItems: 900,
     subtotalFees: 0,
@@ -49,7 +48,6 @@ function acceptedQuotation(orderId: string | null, totalAmount = 100) {
     customerId: CUSTOMER_ID,
     status: "ACCEPTED",
     validUntil: new Date(Date.now() + 24 * 60 * 60 * 1000),
-    title: "งานตามใบเสนอ",
     description: null,
     subtotal: totalAmount,
     discount: 0,
@@ -171,7 +169,6 @@ describe("credit lock ordering across new-order writers", () => {
 
     await orderRouter.createCaller(ctx).create({
       customerId: CUSTOMER_ID,
-      title: "เสื้อพร้อมขาย",
       taxRate: 0,
       items: [
         {

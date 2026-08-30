@@ -390,7 +390,7 @@ export function DashboardHome() {
                     )}
                   </div>
                   <p className="mt-1 truncate text-xs text-muted group-hover:text-secondary group-active:text-secondary">
-                    {order.customerName} · {order.title}
+                    {order.customerName}
                   </p>
                   {order.deadline && (
                     <p className="mt-1 text-xs text-muted group-hover:text-secondary group-active:text-secondary">กำหนด {formatDateShort(order.deadline)}</p>

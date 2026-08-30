@@ -74,12 +74,9 @@ export default function QuoteConfirmPage({
       {/* Quote header card */}
       <Card>
         <CardContent className="space-y-4 p-5">
-          <div>
-            <p className="text-lg font-semibold text-strong">{q.title}</p>
-            {q.description && (
-              <p className="mt-1 whitespace-pre-wrap text-sm text-muted">{q.description}</p>
-            )}
-          </div>
+          {q.description && (
+            <p className="whitespace-pre-wrap text-sm text-muted">{q.description}</p>
+          )}
           <div className="grid gap-1.5 text-sm">
             <InfoRow label="ลูกค้า">{q.customerName}</InfoRow>
             <InfoRow label="ยืนราคาถึง">{formatDate(q.validUntil)}</InfoRow>

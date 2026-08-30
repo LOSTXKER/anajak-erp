@@ -517,7 +517,8 @@ model Order {
   createdById    String         @map("created_by_id")
   customerStatus CustomerStatus @default(ORDER_RECEIVED) @map("customer_status")
   internalStatus InternalStatus @default(INQUIRY) @map("internal_status")
-  title          String
+  // ไม่มีชื่องาน (เบสสั่ง 2026-08-30 "เอาระบบชื่องานออกให้หมด") — ใบงานอ้างด้วย
+  // เลขที่ออเดอร์ + ลูกค้า · สิ่งที่บอกว่าทำอะไรคือ "รายการงาน" (OrderItem.description)
   description    String?
   deadline       DateTime?
 
@@ -856,7 +857,7 @@ model Quotation {
   customerId      String    @map("customer_id")
   createdById     String    @map("created_by_id")
   status          String    @default("DRAFT") // DRAFT, SENT, ACCEPTED, REJECTED, EXPIRED, CONVERTED
-  title           String
+  // ไม่มีชื่องาน — ดูเหตุผลที่ model Order
   description     String?
   validUntil      DateTime  @map("valid_until")
   terms           String?

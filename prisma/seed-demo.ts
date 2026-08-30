@@ -1163,7 +1163,6 @@ async function main() {
             createdById: owner.id,
             customerStatus: scenario.customerStatus as CustomerStatus,
             internalStatus: scenario.internalStatus as InternalStatus,
-            title: scenario.title,
             description:
               "งานตัวอย่างจากวันทำงานจริง เพื่อทดลอง ERP และ Station Mode",
             deadline: fromNow(scenario.deadlineInDays, 10),
@@ -1304,7 +1303,6 @@ async function main() {
               createdById: owner.id,
               status:
                 scenario.internalStatus === "INQUIRY" ? "SENT" : "ACCEPTED",
-              title: scenario.title,
               validUntil: fromNow(10),
               terms: customer.defaultPaymentTerms,
               subtotal: price.subtotalItems.plus(price.subtotalFees),

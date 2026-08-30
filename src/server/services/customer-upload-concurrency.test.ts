@@ -45,7 +45,6 @@ describe("confirmCustomerUpload concurrency", () => {
       order: {
         id: "order-1",
         orderNumber: "ORD-001",
-        title: "งานทดสอบ",
       },
       path: "order-1/customer/reference.png",
       fileName: "reference.png",

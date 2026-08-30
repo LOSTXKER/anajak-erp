@@ -58,7 +58,6 @@ async function main() {
         createdById: owner.id,
         internalStatus: "CONFIRMED",
         customerStatus: "ORDER_RECEIVED",
-        title: "[OPS-VERIFY] งานผสม DTF+สกรีน",
         totalAmount: 1000,
       },
     });
@@ -220,7 +219,6 @@ async function main() {
         createdById: owner.id,
         internalStatus: "DESIGNING",
         customerStatus: "PREPARING",
-        title: "[OPS-VERIFY] งานรออนุมัติแบบ",
         totalAmount: 500,
       },
     });
@@ -279,7 +277,6 @@ async function main() {
     // ---------- 5) ฟอร์มเดียว: derive ชนิด/สถานะ/ภาษีต่อรายการ ----------
     const light = await caller.order.create({
       customerId: customer.id,
-      title: "[OPS-VERIFY] เปิดเบาจากแชท",
       description: "ลูกค้าถามราคาเสื้อทีม 50 ตัว",
       items: [],
     });
@@ -331,7 +328,6 @@ async function main() {
 
     const mixed = await caller.order.create({
       customerId: customer.id,
-      title: "[OPS-VERIFY] ออเดอร์ผสม",
       items: [
         {
           products: [
@@ -358,24 +354,25 @@ async function main() {
       { s: mixed.internalStatus, tax: mixedTax }
     );
 
-    // ชื่องานไม่บังคับ — ระบบตั้งให้เอง
-    const noTitle = await caller.order.create({ customerId: customer.id, items: [] });
-    ids.orders.push(noTitle.id);
+    // ไม่มีระบบชื่องานแล้ว (เบสสั่ง 2026-08-30) — ใบงานอ้างด้วยเลขที่ + ลูกค้า
+    // สิ่งที่บอกว่า "ทำอะไร" คือรายการงาน (OrderItem.description) ซึ่งยังอยู่ครบ
+    const bare = await caller.order.create({ customerId: customer.id, items: [] });
+    ids.orders.push(bare.id);
     ok(
-      "5.6 เปิดงานไม่ใส่ชื่อ+ไม่มีรายการ → ตั้งชื่อจากลูกค้า+วันที่ให้เอง",
-      noTitle.title.startsWith("งาน ") && noTitle.title.includes(customer.name),
-      noTitle.title
+      "5.6 เปิดงานเปล่า → ได้เลขที่ออเดอร์ ไม่ต้องคิดชื่อ",
+      Boolean(bare.orderNumber) && bare.customerId === customer.id,
+      bare.orderNumber
     );
 
-    const noTitleItems = await caller.order.create({
+    const withItem = await caller.order.create({
       customerId: customer.id,
       items: [plainItem],
     });
-    ids.orders.push(noTitleItems.id);
+    ids.orders.push(withItem.id);
     ok(
-      "5.7 เปิดงานไม่ใส่ชื่อ+มีรายการ → ใช้คำอธิบายรายการแรกเป็นชื่องาน",
-      noTitleItems.title === "เสื้อเปล่าจากสต๊อก",
-      noTitleItems.title
+      "5.7 เปิดงานพร้อมรายการ → ชื่อรายการงานยังอยู่ครบ",
+      withItem.items?.[0]?.description === "เสื้อเปล่าจากสต๊อก",
+      withItem.items?.[0]?.description
     );
 
     // ---------- 6) สถานะเด้งเองตามเหตุการณ์ (auto-advance) ----------
@@ -388,7 +385,6 @@ async function main() {
         createdById: owner.id,
         internalStatus: "CONFIRMED",
         customerStatus: "ORDER_RECEIVED",
-        title: "[OPS-VERIFY] สถานะเด้งเอง",
         totalAmount: 500,
       },
     });
@@ -484,7 +480,6 @@ async function main() {
         createdById: owner.id,
         internalStatus: "READY_TO_SHIP",
         customerStatus: "READY_TO_SHIP",
-        title: "[OPS-VERIFY] แบ่งส่งสองกล่อง",
         totalAmount: 500,
       },
     });
@@ -524,7 +519,6 @@ async function main() {
         createdById: owner.id,
         internalStatus: "CONFIRMED",
         customerStatus: "ORDER_RECEIVED",
-        title: "[OPS-VERIFY] งานผลิตของฉัน",
         totalAmount: 500,
       },
     });
@@ -545,7 +539,6 @@ async function main() {
         createdById: owner.id,
         internalStatus: "DESIGNING",
         customerStatus: "PREPARING",
-        title: "[OPS-VERIFY] งานออกแบบของฉัน",
         totalAmount: 500,
       },
     });
@@ -596,7 +589,6 @@ async function main() {
         createdById: owner.id,
         internalStatus: "PRODUCING",
         customerStatus: "IN_PRODUCTION",
-        title: "[OPS-VERIFY] งานแจ้งปัญหาจากสถานี",
         totalAmount: 0,
       },
     });
@@ -669,7 +661,6 @@ async function main() {
         createdById: owner.id,
         internalStatus: "PRODUCTION_QUEUE",
         customerStatus: "IN_PRODUCTION",
-        title: "[OPS-VERIFY] เข้าคิวแต่ยังไม่มีใบผลิต",
         totalAmount: 300,
       },
     });

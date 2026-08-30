@@ -2334,8 +2334,9 @@ check(
     problems.push("หัวข้อการ์ดในแท็บภาพรวมต้องเป็น compact ทุกใบ");
   }
   /* หัวใบ (2026-08-30 เบสสั่ง "ข้างบนไม่ต้องมีอะไรเยอะ มีแค่สถานะและ CTA ก็พอ")
-     — ต้องเป็นแผ่นเดียวที่ห่อ PageHeader + แถบสถานะ · ชื่องานเป็น description
-     (ไม่ใช่ meta ตัวจิ๋ว) · และห้ามมีข้อเท็จจริงตัวใหญ่กลับขึ้นไปอีก */
+     — ต้องเป็นแผ่นเดียวที่ห่อ PageHeader + แถบสถานะ · และห้ามมีข้อเท็จจริง
+     ตัวใหญ่กลับขึ้นไปอีก · 2026-08-30 เบสสั่งเอาระบบชื่องานออกทั้งหมด
+     → หัวใบไม่มีบรรทัดรองแล้ว (description ต้องเป็น null ตายตัว) */
   const railSource = readFileSync(
     "src/components/orders/detail/order-status-bar.tsx",
     "utf8",
@@ -2344,9 +2345,9 @@ check(
     !detailSource.includes('data-order-head=""') ||
     // minimal = ยืนบนผืนหน้าตรง ๆ · ห่อด้วยการ์ด/พื้น/เงาเมื่อไหร่ = ย้อนคำสั่งเบส
     /data-order-head[\s\S]{0,400}?card-surface/.test(detailSource) ||
-    !detailSource.includes("description={order.title || null}") ||
+    !detailSource.includes("description={null}") ||
     !detailSource.includes("titleBadge={") ||
-    detailSource.includes("meta={order.title") ||
+    /order\.title/.test(detailSource) ||
     detailSource.includes("<SummaryFact") ||
     // ส่วนบนไม่มีเส้นแบ่งเลย — แยกกลุ่มด้วยระยะอย่างเดียว
     /border-(?:y|t) border-divider/.test(railSource) ||

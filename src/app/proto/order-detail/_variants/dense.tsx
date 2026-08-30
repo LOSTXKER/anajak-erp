@@ -121,7 +121,7 @@ export function DenseVariant({ thin, showMoney }: { thin: boolean; showMoney: bo
 
   return (
     <div className="space-y-3">
-      {/* หัวใบแถวเดียว — เลขที่ ชื่องาน ป้าย ปุ่ม อยู่บรรทัดเดียวกันให้มากที่สุด */}
+      {/* หัวใบแถวเดียว — เลขที่ ป้าย ปุ่ม อยู่บรรทัดเดียวกันให้มากที่สุด */}
       <header className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <span
           aria-hidden="true"
@@ -132,12 +132,7 @@ export function DenseVariant({ thin, showMoney }: { thin: boolean; showMoney: bo
         <h1 className="text-lg font-semibold tabular-nums text-strong">
           {order.orderNumber}
         </h1>
-        <span aria-hidden="true" className="text-border">
-          |
-        </span>
-        <p className="min-w-0 flex-1 truncate text-sm text-secondary" title={order.title}>
-          {order.title}
-        </p>
+        <span className="min-w-0 flex-1" />
         <Badge variant="accent" size="sm">
           {CUSTOMER_STATUS_LABELS[status.customerStatus]}
         </Badge>

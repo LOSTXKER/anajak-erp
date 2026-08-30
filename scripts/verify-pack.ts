@@ -27,7 +27,7 @@ async function main() {
   const order = await prisma.order.create({
     data: {
       orderNumber: `TEST-PACK-${Date.now()}`,
-      title: `${MARK} งานทดสอบแพ็ค`,
+      notes: `${MARK} งานทดสอบแพ็ค`,
       customerId: customer.id,
       createdById: owner.id,
       internalStatus: "PACKING",
@@ -114,7 +114,7 @@ async function main() {
     const order2 = await prisma.order.create({
       data: {
         orderNumber: `TEST-PACK2-${Date.now()}`,
-        title: `${MARK} งานทดสอบเด้งตามจำนวน`,
+        notes: `${MARK} งานทดสอบเด้งตามจำนวน`,
         customerId: customer.id,
         createdById: owner.id,
         internalStatus: "PACKING",
@@ -143,7 +143,7 @@ async function main() {
     const order3 = await prisma.order.create({
       data: {
         orderNumber: `TEST-PACK3-${Date.now()}`,
-        title: `${MARK} งานทดสอบ B13`,
+        notes: `${MARK} งานทดสอบ B13`,
         customerId: customer.id, createdById: owner.id, internalStatus: "PACKING",
       },
     });
@@ -190,7 +190,7 @@ async function main() {
     const d4db = await prisma.delivery.findUniqueOrThrow({ where: { id: d4.id } });
     check("7.8 DELIVERED→RETURNED ได้ (ของส่งถึงแล้วตีกลับ · เดิม UI ปุ่มซ่อนกดไม่ได้)", d4db.status === "RETURNED");
   } finally {
-    const allOrders = await prisma.order.findMany({ where: { title: { contains: MARK } }, select: { id: true } });
+    const allOrders = await prisma.order.findMany({ where: { notes: { contains: MARK } }, select: { id: true } });
     const orderIds = allOrders.map((o) => o.id);
     const dels = await prisma.delivery.findMany({ where: { orderId: { in: orderIds } }, select: { id: true } });
     await prisma.deliveryLine.deleteMany({ where: { deliveryId: { in: dels.map((d) => d.id) } } });

@@ -62,7 +62,7 @@ async function notifyDesignDecision(
   params: {
     orderId: string;
     orderNumber: string;
-    orderTitle: string;
+    customerName: string;
     versionNumber: number;
     approved: boolean;
     comment?: string | null;
@@ -85,7 +85,7 @@ async function notifyDesignDecision(
       title: params.approved
         ? `${params.titlePrefix}อนุมัติแบบ v${params.versionNumber} — ${params.orderNumber}`
         : `${params.titlePrefix}ขอแก้แบบ v${params.versionNumber} — ${params.orderNumber}`,
-      message: params.comment || params.orderTitle,
+      message: params.comment || params.customerName,
       link: `/orders/${params.orderId}`,
       entityType: "ORDER",
       entityId: params.orderId,
@@ -278,7 +278,6 @@ export const designRouter = router({
           order: {
             select: {
               orderNumber: true,
-              title: true,
               customer: { select: { name: true } },
             },
           },
@@ -348,7 +347,7 @@ export const designRouter = router({
 
         const design = await tx.designVersion.findUniqueOrThrow({
           where: { id: input.designId },
-          include: { order: true },
+          include: { order: { include: { customer: { select: { name: true } } } } },
         });
 
         await processDesignApproval(tx, {
@@ -363,7 +362,7 @@ export const designRouter = router({
         await notifyDesignDecision(tx, {
           orderId: design.orderId,
           orderNumber: design.order.orderNumber,
-          orderTitle: design.order.title,
+          customerName: design.order.customer.name,
           versionNumber: design.versionNumber,
           approved: input.approved,
           comment: input.comment,
@@ -431,7 +430,7 @@ export const designRouter = router({
             orderId: true,
             versionNumber: true,
             approvalStatus: true,
-            order: { select: { orderNumber: true, title: true } },
+            order: { select: { orderNumber: true, customer: { select: { name: true } } } },
           },
         });
 
@@ -447,7 +446,7 @@ export const designRouter = router({
         await notifyDesignDecision(tx, {
           orderId: design.orderId,
           orderNumber: design.order.orderNumber,
-          orderTitle: design.order.title,
+          customerName: design.order.customer.name,
           versionNumber: design.versionNumber,
           approved: input.approved,
           comment: input.comment,

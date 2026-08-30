@@ -278,7 +278,7 @@ export function ProductionControlRecord({
                   </StatusPill>
                 </div>
                 <p className="mt-1 break-words text-sm text-secondary">
-                  {[order.title, order.customer?.name].filter(Boolean).join(" · ") || "ไม่ระบุชื่องาน"}
+                  {order.customer?.name || "ไม่ระบุลูกค้า"}
                 </p>
                 <dl className="mt-4 flex flex-wrap items-start gap-x-5 gap-y-3 text-sm">
                   <div className="min-w-24 border-r border-divider pr-5">

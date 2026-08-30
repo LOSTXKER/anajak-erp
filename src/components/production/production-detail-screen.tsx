@@ -829,7 +829,7 @@ export function ProductionDetailScreen({
             {order.orderNumber}
           </h1>
           <p className="mt-1 truncate text-sm text-muted">
-            {[order.title, order.customer?.name, `${totalQty.toLocaleString("th-TH")} ตัว`]
+            {[order.customer?.name, `${totalQty.toLocaleString("th-TH")} ตัว`]
               .filter(Boolean)
               .join(" · ")}
           </p>

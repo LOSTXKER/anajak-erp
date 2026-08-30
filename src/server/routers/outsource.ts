@@ -675,7 +675,6 @@ export const outsourceRouter = router({
                   order: {
                     select: {
                       orderNumber: true,
-                      title: true,
                       internalStatus: true,
                       customer: { select: { name: true } },
                     },
@@ -763,7 +762,6 @@ export const outsourceRouter = router({
               revision: order.productionStep.production.revision,
               order: {
                 orderNumber: sourceOrder.orderNumber,
-                title: sourceOrder.title,
                 customer: sourceOrder.customer,
               },
             },

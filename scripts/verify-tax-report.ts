@@ -45,7 +45,7 @@ async function main() {
   const order = await prisma.order.create({
     data: {
       orderNumber: `TEST-TAX-${stamp}`,
-      title: `${MARK} งานทดสอบภาษีขาย`,
+      notes: `${MARK} งานทดสอบภาษีขาย`,
       customerId: customer.id,
       createdById: owner.id,
       totalAmount: 5000,
@@ -205,7 +205,7 @@ async function main() {
       where: { invoiceNumber: { startsWith: "TEST-TAX-" }, originalInvoiceId: { not: null } },
     });
     await prisma.invoice.deleteMany({ where: { invoiceNumber: { startsWith: "TEST-TAX-" } } });
-    await prisma.order.deleteMany({ where: { title: { contains: MARK } } });
+    await prisma.order.deleteMany({ where: { notes: { contains: MARK } } });
     await prisma.customer.deleteMany({ where: { name: { contains: MARK } } });
   }
 

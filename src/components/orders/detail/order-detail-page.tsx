@@ -617,9 +617,9 @@ function OrderDetailContent({
                เส้นบางเหนือแถบสถานะ ซึ่งทำหน้าที่แยก "ใบนี้คืออะไร" ออกจาก "ไปถึงไหนแล้ว"
                (ความเร่งด่วนบอกด้วยป้ายข้างเลขที่ ไม่ต้องมีแถบสีซ้ายที่ต้องอาศัยกรอบ)
 
-          ชื่องานส่งผ่าน `description` ไม่ใช่ `meta` — ของเดิมเป็นตัว 11px สีจางสุด
-          ทั้งที่เป็นข้อความเดียวที่บอกว่าใบนี้ทำอะไร · คำอธิบายอัตโนมัติประจำหน้า
-          ("ดูรายละเอียด ม็อกอัพ …") ถูกปิดด้วย null เพราะเหมือนกันทุกใบ ไม่ได้บอกอะไร */}
+          ③ "เอาระบบชื่องานออกให้หมด" (2026-08-30)
+             → หัวใบไม่มีบรรทัดรองแล้ว เหลือ เลขที่ + ป้ายสถานะ/ความเร่งด่วน + ปุ่ม
+               ตรงตามข้อ ① ที่เบสสั่งไว้แต่แรก · ลูกค้า/รายละเอียดงานอยู่ในแท็บภาพรวม */}
       <div data-order-head="" className="space-y-5">
       <PageHeader
         icon={ShoppingCart}
@@ -628,7 +628,7 @@ function OrderDetailContent({
           { label: order.orderNumber },
         ]}
         title={order.orderNumber}
-        description={order.title || null}
+        description={null}
         titleBadge={
           <span className="flex flex-wrap items-center gap-1.5">
             <Badge variant="accent" size="sm">

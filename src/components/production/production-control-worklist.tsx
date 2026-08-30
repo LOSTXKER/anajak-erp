@@ -272,7 +272,7 @@ function DesktopRows<S extends BoardStepLike, O extends BoardOrderLike<S>>({
                       ) : null}
                     </span>
                     <span className="max-w-48 truncate text-xs text-muted">
-                      {job.order.customerName || job.order.title || "ไม่ระบุลูกค้า"}
+                      {job.order.customerName || "ไม่ระบุลูกค้า"}
                     </span>
                   </span>
                 </Link>
@@ -342,7 +342,7 @@ function MobileRows<S extends BoardStepLike, O extends BoardOrderLike<S>>({
                       <DeadlineBadge job={job} />
                     </span>
                     <span className="mt-0.5 block truncate text-sm text-secondary">
-                      {job.order.customerName || job.order.title || "ไม่ระบุลูกค้า"}
+                      {job.order.customerName || "ไม่ระบุลูกค้า"}
                     </span>
                   </span>
                 </span>
@@ -508,7 +508,7 @@ export function ProductionControlWorklist<
             ref={searchInputRef}
             defaultValue={searchDefault}
             onChange={(event) => onSearchChange(event.target.value)}
-            placeholder="ค้นหาเลขออเดอร์ ลูกค้า หรืองาน"
+            placeholder="ค้นหาเลขออเดอร์ หรือลูกค้า"
             surface="raised"
             containerClassName="order-2 w-full @2xl:order-1 @2xl:max-w-md"
           />

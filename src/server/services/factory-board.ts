@@ -91,7 +91,6 @@ export async function buildPrepQueue(prisma: ExtendedPrismaClient, limit = 8) {
           order: {
             select: {
               orderNumber: true,
-              title: true,
               deadline: true,
               customer: { select: { name: true } },
             },
@@ -107,7 +106,6 @@ export async function buildPrepQueue(prisma: ExtendedPrismaClient, limit = 8) {
     stepId: step.id,
     productionId: step.production.id,
     orderNumber: step.production.order.orderNumber,
-    title: step.production.order.title,
     customerName: step.production.order.customer.name,
     deadline: step.production.order.deadline,
     status: step.status,
@@ -179,7 +177,6 @@ async function loadPressQueue(prisma: ExtendedPrismaClient, opts: StepQueueOpts 
           order: {
             select: {
               orderNumber: true,
-              title: true,
               deadline: true,
               customer: { select: { name: true } },
             },
@@ -198,7 +195,6 @@ async function loadPressQueue(prisma: ExtendedPrismaClient, opts: StepQueueOpts 
       stepId: s.id,
       productionId: s.production.id,
       orderNumber: s.production.order.orderNumber,
-      title: s.production.order.title,
       customerName: s.production.order.customer.name,
       deadline: s.production.order.deadline,
       status: s.status,
@@ -259,7 +255,6 @@ export async function buildPackQueue(prisma: ExtendedPrismaClient, opts: StepQue
     select: {
       id: true,
       orderNumber: true,
-      title: true,
       deadline: true,
       priority: true,
       blindShip: true, // ธงแดงบนคิวแพ็ก — พลาดใส่เอกสาร Anajak ครั้งเดียวเสียลูกค้า reseller
@@ -283,7 +278,6 @@ export async function buildPackQueue(prisma: ExtendedPrismaClient, opts: StepQue
       orderId: order.id,
       productionId: finalPack ? production.id : null,
       orderNumber: order.orderNumber,
-      title: order.title,
       customerName: order.customer.name,
       deadline: order.deadline,
       priority: order.priority,
@@ -308,7 +302,6 @@ async function buildOrderStatusQueue(
     select: {
       id: true,
       orderNumber: true,
-      title: true,
       deadline: true,
       priority: true,
       blindShip: true,
@@ -324,7 +317,6 @@ async function buildOrderStatusQueue(
     key: `${prefix}:${order.id}`,
     orderId: order.id,
     orderNumber: order.orderNumber,
-    title: order.title,
     customerName: order.customer.name,
     deadline: order.deadline,
     priority: order.priority,
@@ -356,7 +348,6 @@ export async function buildProblems(prisma: ExtendedPrismaClient, limit = 10) {
           order: {
             select: {
               orderNumber: true,
-              title: true,
               deadline: true,
               customer: { select: { name: true } },
             },
@@ -370,7 +361,6 @@ export async function buildProblems(prisma: ExtendedPrismaClient, limit = 10) {
   return steps.map((s) => ({
     stepId: s.id,
     orderNumber: s.production.order.orderNumber,
-    title: s.production.order.title,
     customerName: s.production.order.customer.name,
     deadline: s.production.order.deadline,
     status: s.status, // FAILED | ON_HOLD — client แปลงเป็นไทย
@@ -661,7 +651,6 @@ export async function getFactoryBoard(prisma: ExtendedPrismaClient) {
       stepId: entry.stepId, // ใช้เป็น React key — orderNumber ซ้ำได้ (ออเดอร์เดียวมีหลายขั้น DTF_PRINT)
       orderNumber: entry.orderNumber,
       customerName: entry.customerName,
-      title: entry.orderName,
       qtyTotal: entry.qtyTotal,
       remaining: entry.remaining,
       deadline: entry.dueDate,

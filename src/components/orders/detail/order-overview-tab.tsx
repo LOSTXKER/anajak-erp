@@ -29,7 +29,7 @@ import { DISPLAY_AMOUNT, FOCUS_BUTTON } from "@/components/ui/tokens";
    ทุกการ์ดหัวข้อตัวหนาเท่ากันหมด อ่านแล้วไม่รู้ว่าอะไรสำคัญกว่าอะไร
 
    ตอนนี้: **หัวใบ** (ใน order-detail-page.tsx) เป็นจุดเดียวที่เสียงดัง — เลขที่
-   ชื่องาน สถานะ ปุ่มขั้นต่อไป · แท็บนี้จึง "เงียบ" ทั้งหมด หัวข้อการ์ดเป็น
+   สถานะ ปุ่มขั้นต่อไป · แท็บนี้จึง "เงียบ" ทั้งหมด หัวข้อการ์ดเป็น
    `compact` (ตัวเล็กสีจาง) ไม่แข่งกับหัวใบ
 
    สิ่งที่ต้องรู้ก่อนแก้ต่อ:
@@ -75,7 +75,6 @@ interface OverviewCustomer {
 
 interface OverviewOrder {
   id: string;
-  title: string;
   description: string | null;
   notes: string | null;
   orderType: OrderType;

@@ -60,7 +60,6 @@ async function main() {
         ...baseOrder,
         orderNumber: "TEST-BN-1",
         internalStatus: "CONFIRMED",
-        title: "[BN-VERIFY] งานที่หนึ่ง",
         totalAmount: 3000,
       },
     });
@@ -70,7 +69,6 @@ async function main() {
         ...baseOrder,
         orderNumber: "TEST-BN-2",
         internalStatus: "INQUIRY",
-        title: "[BN-VERIFY] งานที่สอง",
         totalAmount: 4000,
       },
     });

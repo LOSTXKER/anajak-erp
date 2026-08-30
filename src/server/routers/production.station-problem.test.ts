@@ -111,7 +111,6 @@ function makeHarness(options: {
         id: "order-1",
         internalStatus: orderStatus,
         orderNumber: "ORD-2608-0041",
-        title: "เสื้อทีมหน้าร้าน",
       }),
     },
     printRunItem: {
@@ -647,7 +646,7 @@ describe("production.assignProductionStep", () => {
       data: expect.objectContaining({
         userId: "sales-with-production",
         title: "ได้รับมอบหมายงาน — ORD-2608-0041",
-        message: "เสื้อทีมหน้าร้าน · รีดร้อน",
+        message: "รีดร้อน",
         link: "/factory/station?station=heat-press&productionId=production-1",
         entityType: "PRODUCTION_STEP",
         entityId: "step-1",
@@ -716,7 +715,7 @@ describe("production.assignProductionStep", () => {
     expect(harness.tx.notification.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         userId: "production-staff-2",
-        message: "เสื้อทีมหน้าร้าน · ตรวจบล็อกพิเศษ",
+        message: "ตรวจบล็อกพิเศษ",
         link: "/production/production-1",
       }),
     });

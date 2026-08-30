@@ -60,9 +60,8 @@ export default async function PrintQuotationPage({
 
         <PartyBlock label="เสนอต่อ" {...buyer} />
 
-        <p className="mt-3 font-semibold">{quotation.title}</p>
         {quotation.description && (
-          <p className="text-[12px] text-slate-600">{quotation.description}</p>
+          <p className="mt-3 text-[12px] text-slate-600">{quotation.description}</p>
         )}
 
         <ItemsTable

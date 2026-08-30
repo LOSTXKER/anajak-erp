@@ -49,7 +49,6 @@ async function main() {
     order = await prisma.order.create({
       data: {
         orderNumber: `TEST-CO-${Date.now()}`,
-        title: `${MARK} งาน`,
         customerId: customer.id,
         createdById: owner.id,
         orderType: "CUSTOM",
@@ -105,7 +104,6 @@ async function main() {
     order2 = await prisma.order.create({
       data: {
         orderNumber: `TEST-CO2-${Date.now()}`,
-        title: `${MARK} งาน2`,
         customerId: customer.id,
         createdById: owner.id,
         orderType: "CUSTOM",
@@ -159,7 +157,6 @@ async function main() {
     order3 = await prisma.order.create({
       data: {
         orderNumber: `TEST-CO3-${Date.now()}`,
-        title: `${MARK} งานพัก`,
         customerId: customer.id,
         createdById: owner.id,
         orderType: "CUSTOM",

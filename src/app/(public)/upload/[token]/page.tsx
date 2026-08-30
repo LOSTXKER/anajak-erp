@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 
 // หน้าอัปโหลดไฟล์ของลูกค้า (FLOW-REDESIGN ก้อน 4 ชิ้น 3) — เปิดผ่านลิงก์ token ไม่ต้อง login
 // flow: createUploadUrl (server ออก signed URL) → อัปตรงเข้า storage → confirmUpload (บันทึก)
-// โชว์เฉพาะข้อมูลของลูกค้า (เลขออเดอร์/ชื่องาน/กำหนดส่ง) — ไม่มีข้อมูลภายใน
+// โชว์เฉพาะข้อมูลของลูกค้า (เลขออเดอร์/ลูกค้า/กำหนดส่ง) — ไม่มีข้อมูลภายใน
 
 const MAX_MB = 25;
 const ACCEPT = "image/*,.pdf,.ai,.psd,.eps,.zip,.rar";
@@ -125,7 +125,6 @@ export default function CustomerUploadPage({
           <CardContent>
             <div className="grid gap-2 text-sm">
               <InfoRow label="เลขออเดอร์">{d.orderNumber}</InfoRow>
-              <InfoRow label="ชื่องาน">{d.title}</InfoRow>
               <InfoRow label="ลูกค้า">{d.customerName}</InfoRow>
               {d.deadline && (
                 <InfoRow label="กำหนดส่ง">{formatDate(d.deadline)}</InfoRow>

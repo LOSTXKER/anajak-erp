@@ -39,7 +39,6 @@ const activeProductionSelect = {
 const stationOrderSelect = {
   id: true,
   orderNumber: true,
-  title: true,
   internalStatus: true,
   deadline: true,
   priority: true,
@@ -136,7 +135,6 @@ const scannedProductionSelect = {
 const stationQueueOrderSelect = {
   id: true,
   orderNumber: true,
-  title: true,
   internalStatus: true,
   deadline: true,
   priority: true,
@@ -238,7 +236,6 @@ function toStationContext(row: StationOrderRow) {
     order: {
       id: row.id,
       orderNumber: row.orderNumber,
-      title: row.title,
       internalStatus: row.internalStatus,
       deadline: row.deadline,
       priority: row.priority,
@@ -271,7 +268,6 @@ function toStationQueueItem(row: StationQueueOrderRow) {
   return {
     id: row.id,
     orderNumber: row.orderNumber,
-    title: row.title,
     internalStatus: row.internalStatus,
     deadline: row.deadline,
     priority: row.priority,

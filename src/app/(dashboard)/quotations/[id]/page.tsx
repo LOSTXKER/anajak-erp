@@ -272,7 +272,6 @@ export default function QuotationDetailPage({
             {QUOTATION_STATUS_LABELS[quotation.status as keyof typeof QUOTATION_STATUS_LABELS] ?? quotation.status}
           </Badge>
         }
-        meta={quotation.title}
         action={
           <>
           {/* DRAFT actions */}

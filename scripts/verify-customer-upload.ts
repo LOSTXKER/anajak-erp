@@ -78,7 +78,6 @@ async function main() {
     order = await prisma.order.create({
       data: {
         orderNumber: `TEST-UPLOAD-${Date.now()}`,
-        title: `${MARK} งานทดสอบอัปโหลด`,
         customerId: customer.id,
         createdById: owner.id,
         internalStatus: "DESIGNING",
@@ -105,8 +104,8 @@ async function main() {
     // ── 2. getInfo (public) — โชว์เฉพาะข้อมูลลูกค้า ──
     const info = await publicCaller.customerUpload.getInfo({ token });
     check(
-      "2.1 getInfo คืนข้อมูลออเดอร์ (เลข/ชื่องาน/ลูกค้า)",
-      info.orderNumber === order.orderNumber && !!info.title && !!info.customerName
+      "2.1 getInfo คืนข้อมูลออเดอร์ (เลข/ลูกค้า)",
+      info.orderNumber === order.orderNumber && !!info.customerName
     );
     check("2.2 getInfo ไม่หลุดข้อมูลภายใน (ไม่มี id/เงิน/สถานะ)", !("id" in info) && !("totalAmount" in info));
     check("2.3 ยังไม่มีไฟล์", info.files.length === 0);

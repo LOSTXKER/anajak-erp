@@ -82,7 +82,7 @@ async function main() {
 
     const order = await asOwner.order.create({
       customerId: customer.id,
-      title: `${MARK} งานพิมพ์ราคาลับ`,
+      description: `${MARK} งานพิมพ์ราคาลับ`,
       items: [
         {
           products: [
@@ -158,7 +158,7 @@ async function main() {
     // ถ้าโดนบังคับกลับ createdAt desc ใบใหม่ (ถูก) ต้องมาก่อน (review จับ: เทสเดิม vacuous)
     const cheapNew = await asOwner.order.create({
       customerId: customer.id,
-      title: `${MARK} ใบใหม่ราคาถูก`,
+      description: `${MARK} ใบใหม่ราคาถูก`,
       items: [
         {
           products: [
@@ -257,7 +257,7 @@ async function main() {
         orderNumber: `MGATE-DESIGN-${Date.now()}`,
         customerId: customer.id,
         createdById: owner.id,
-        title: `${MARK} ทดสอบ upload token`,
+        description: `${MARK} ทดสอบ upload token`,
         internalStatus: "DESIGNING",
         customerStatus: "PREPARING",
       },
@@ -379,7 +379,7 @@ async function main() {
         orderNumber: `MGATE-UPD-${Date.now()}`,
         customerId: customer.id,
         createdById: owner.id,
-        title: `${MARK} เทส payload เปลี่ยนสถานะ`,
+        description: `${MARK} เทส payload เปลี่ยนสถานะ`,
         internalStatus: "PRODUCING",
         customerStatus: "IN_PRODUCTION",
         subtotalItems: 1000,
@@ -664,7 +664,7 @@ async function main() {
     // ── ⑤ convertToOrder ล้าง fee เดิม (ออเดอร์เปิดเบา fees ล้วน) ──
     const lightOrder = await asOwner.order.create({
       customerId: customer.id,
-      title: `${MARK} เปิดเบา fees ล้วน`,
+      description: `${MARK} เปิดเบา fees ล้วน`,
       items: [],
       fees: [{ feeType: "DESIGN_FEE", name: "ค่าออกแบบตั้งต้น", amount: 999 }],
     });
@@ -672,7 +672,7 @@ async function main() {
     const quote = await asOwner.quotation.create({
       customerId: customer.id,
       orderId: lightOrder.id,
-      title: `${MARK} ใบเสนอราคาเหมา`,
+      description: `${MARK} ใบเสนอราคาเหมา`,
       validUntil: new Date(Date.now() + 7 * 86400_000).toISOString(),
       discount: 0,
       tax: 0,
@@ -697,7 +697,7 @@ async function main() {
     // ── ⑥ สินค้าที่ลบ: updateItems / duplicate ──
     const delOrder = await asOwner.order.create({
       customerId: customer.id,
-      title: `${MARK} อ้างสินค้าที่จะถูกลบ`,
+      description: `${MARK} อ้างสินค้าที่จะถูกลบ`,
       items: [
         {
           products: [
@@ -772,7 +772,7 @@ async function main() {
   } finally {
     // ── cleanup ตามลำดับ FK ──
     const dupOrders = await prisma.order.findMany({
-      where: { title: { contains: MARK } },
+      where: { description: { contains: MARK } },
       select: { id: true },
     });
     const orderIds = [...new Set([...ids.orders, ...dupOrders.map((o) => o.id)])];

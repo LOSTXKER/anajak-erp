@@ -1067,7 +1067,7 @@ function StationJobPanel({
               <StatusLabel label={meta.label} tone={meta.tone} emphasize={operation.state === "BLOCKED"} />
             </div>
             <h2 className="mt-2 text-2xl font-semibold sm:text-3xl">{operation.name}</h2>
-            <p className="mt-1 text-secondary">{job.order.title} · {job.order.customerName}</p>
+            <p className="mt-1 text-secondary">{job.order.customerName}</p>
           </div>
           <div className="text-right text-sm">
             <p className="text-muted">กำหนดส่ง</p>

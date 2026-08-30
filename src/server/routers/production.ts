@@ -250,7 +250,6 @@ export const productionRouter = router({
             select: {
               id: true,
               orderNumber: true,
-              title: true,
               deadline: true,
               priority: true,
               internalStatus: true,
@@ -354,7 +353,6 @@ export const productionRouter = router({
         where: { id: input.orderId },
         select: {
           orderNumber: true,
-          title: true,
           items: {
             select: {
               prints: { select: { printType: true } },
@@ -373,7 +371,6 @@ export const productionRouter = router({
       );
       return {
         orderNumber: order.orderNumber,
-        title: order.title,
         printTypes: [
           ...new Set(
             order.items.flatMap((it) => it.prints.map((p) => p.printType)),
@@ -426,7 +423,6 @@ export const productionRouter = router({
       select: {
         id: true,
         orderNumber: true,
-        title: true,
         deadline: true,
         priority: true,
         internalStatus: true,
@@ -535,7 +531,6 @@ export const productionRouter = router({
       return {
         id: o.id,
         orderNumber: o.orderNumber,
-        title: o.title,
         deadline: o.deadline,
         priority: o.priority,
         internalStatus: o.internalStatus,
@@ -843,7 +838,6 @@ export const productionRouter = router({
             id: true,
             internalStatus: true,
             orderNumber: true,
-            title: true,
           },
         });
         if (order.internalStatus !== "PRODUCING") {
@@ -979,7 +973,6 @@ export const productionRouter = router({
           );
           const notification = failedStepNotification({
             orderNumber: order.orderNumber,
-            orderTitle: order.title,
             stepName: stepDisplayName(existing),
             notes: input.reason,
             productionId: existing.productionId,
@@ -1041,7 +1034,6 @@ export const productionRouter = router({
             id: true,
             internalStatus: true,
             orderNumber: true,
-            title: true,
           },
         });
         if (order.internalStatus !== "PRODUCING") {
@@ -1137,7 +1129,7 @@ export const productionRouter = router({
         );
         const order = await tx.order.findUniqueOrThrow({
           where: { id: production.orderId },
-          select: { internalStatus: true, orderNumber: true, title: true },
+          select: { internalStatus: true, orderNumber: true },
         });
         if (
           order.internalStatus !== "PRODUCING" ||
@@ -1191,7 +1183,7 @@ export const productionRouter = router({
             userId: assignee.id,
             type: "PRODUCTION",
             title: `ได้รับมอบหมายงาน — ${order.orderNumber}`,
-            message: `${order.title} · ${stepDisplayName(existing)}`,
+            message: stepDisplayName(existing),
             link: productionStepWorkLink(
               existing.stepType,
               existing.productionId,
@@ -1495,7 +1487,7 @@ export const productionRouter = router({
         if (effectiveData.status === "FAILED") {
           const order = await tx.order.findUniqueOrThrow({
             where: { id: step.production.orderId },
-            select: { id: true, orderNumber: true, title: true },
+            select: { id: true, orderNumber: true },
           });
           const managers = await tx.user.findMany({
             where: {
@@ -1507,7 +1499,6 @@ export const productionRouter = router({
           });
           const notification = failedStepNotification({
             orderNumber: order.orderNumber,
-            orderTitle: order.title,
             stepName: stepDisplayName(step),
             notes: effectiveData.notes,
             productionId: step.productionId,

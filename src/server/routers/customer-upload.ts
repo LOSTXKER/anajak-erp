@@ -70,7 +70,6 @@ export const customerUploadRouter = router({
       });
       return {
         orderNumber: order.orderNumber,
-        title: order.title,
         customerName: order.customer.name,
         deadline: order.deadline,
         files,
@@ -114,7 +113,7 @@ export const customerUploadRouter = router({
     .mutation(async ({ ctx, input }) => {
       const order = await getOrderByUploadToken(ctx.prisma, input.token);
       await confirmCustomerUpload(ctx.prisma, {
-        order: { id: order.id, orderNumber: order.orderNumber, title: order.title },
+        order: { id: order.id, orderNumber: order.orderNumber },
         path: input.path,
         fileName: input.fileName,
         fileType: input.fileType,

@@ -74,7 +74,6 @@ function normalizeHeader(value: unknown): OrderHeaderState {
   return {
     customerId: stringValue(raw.customerId),
     channel: stringValue(raw.channel, EMPTY_ORDER_HEADER.channel),
-    title: stringValue(raw.title),
     description: stringValue(raw.description),
     deadline: stringValue(raw.deadline),
     notes: stringValue(raw.notes),

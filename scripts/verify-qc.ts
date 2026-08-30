@@ -22,7 +22,7 @@ async function makeOrder(customerId: string, userId: string, suffix: string) {
   const order = await prisma.order.create({
     data: {
       orderNumber: `TEST-QC-${suffix}-${Date.now()}`,
-      title: `${MARK} งานทดสอบ QC ${suffix}`,
+      notes: `${MARK} งานทดสอบ QC ${suffix}`,
       customerId,
       createdById: userId,
       internalStatus: "QUALITY_CHECK",
@@ -191,7 +191,7 @@ async function main() {
     check("6.2 มีผลตรวจแล้ว (นับบางส่วน) → เข้าแพ็คมือได้ (เคสลูกค้ารับของไม่ครบ)", eAfter.internalStatus === "PACKING");
   } finally {
     const orders = await prisma.order.findMany({
-      where: { title: { contains: MARK } },
+      where: { notes: { contains: MARK } },
       select: { id: true, orderNumber: true },
     });
     const ids = orders.map((o) => o.id);

@@ -35,7 +35,6 @@ function completeDraft(): OrderDraftData {
     header: {
       customerId: "customer-1",
       channel: "LAZADA",
-      title: "เสื้อทีมหน้าร้าน",
       description: "รายละเอียดจากแชท",
       deadline: "2026-08-20",
       notes: "ส่งตัวอย่างก่อนผลิต",

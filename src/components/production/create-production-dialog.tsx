@@ -69,7 +69,7 @@ export function CreateProductionDialog({
         <DialogHeader>
           <DialogTitle>เปิดใบผลิต</DialogTitle>
           <DialogDescription>
-            {context ? `${context.orderNumber} · ${context.title} — ` : ""}
+            {context ? `${context.orderNumber} — ` : ""}
             สายงานตั้งให้ตามเนื้องานแล้ว — แก้ได้
           </DialogDescription>
         </DialogHeader>

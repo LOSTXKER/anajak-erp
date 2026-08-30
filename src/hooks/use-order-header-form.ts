@@ -18,7 +18,6 @@ import { isMarketplaceChannel } from "@/lib/order-status";
 export interface OrderHeaderState {
   customerId: string;
   channel: string;
-  title: string;
   description: string;
   deadline: string;
   notes: string;
@@ -36,7 +35,6 @@ export type OrderPriority = "LOW" | "NORMAL" | "HIGH" | "URGENT";
 export const EMPTY_ORDER_HEADER: OrderHeaderState = {
   customerId: "",
   channel: "LINE",
-  title: "",
   description: "",
   deadline: "",
   notes: "",

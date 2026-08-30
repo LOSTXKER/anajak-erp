@@ -320,29 +320,28 @@ describe("stepDisplayName — ชื่อขั้นที่คนอ่า�
 describe("failedStepNotification — เนื้อกระดิ่งหาผู้จัดการเมื่อขั้นมีปัญหา", () => {
   const base = {
     orderNumber: "ORD-2026-0001",
-    orderTitle: "เสื้อรุ่นพิเศษ",
     stepName: "รีดร้อน",
     productionId: "prod-1",
     orderId: "order-1",
   };
 
-  it("มี notes → message = ชื่อขั้น: notes (ชื่องาน)", () => {
+  it("มี notes → message = ชื่อขั้น: notes", () => {
     expect(failedStepNotification({ ...base, notes: "เครื่องรีดพัง" })).toEqual({
       type: "ORDER",
       title: "ขั้นตอนผลิตมีปัญหา — ORD-2026-0001",
-      message: "รีดร้อน: เครื่องรีดพัง (เสื้อรุ่นพิเศษ)",
+      message: "รีดร้อน: เครื่องรีดพัง",
       link: "/production/prod-1",
       entityType: "ORDER",
       entityId: "order-1",
     });
   });
 
-  it("ไม่มี notes → message = ชื่อขั้น (ชื่องาน)", () => {
-    expect(failedStepNotification(base).message).toBe("รีดร้อน (เสื้อรุ่นพิเศษ)");
+  it("ไม่มี notes → message = ชื่อขั้นเปล่า", () => {
+    expect(failedStepNotification(base).message).toBe("รีดร้อน");
   });
 
   it("notes เป็น string ว่าง → เหมือนไม่มี notes (falsy ไม่ใส่โคลอน)", () => {
-    expect(failedStepNotification({ ...base, notes: "" }).message).toBe("รีดร้อน (เสื้อรุ่นพิเศษ)");
+    expect(failedStepNotification({ ...base, notes: "" }).message).toBe("รีดร้อน");
   });
 
   it("title มีคำว่า 'มีปัญหา' + เลขออเดอร์ (verify-ops 8.1 assert contains)", () => {

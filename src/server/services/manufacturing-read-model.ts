@@ -118,7 +118,6 @@ const activeStationResourceWhere = {
 const orderIdentitySelect = {
   id: true,
   orderNumber: true,
-  title: true,
   deadline: true,
   priority: true,
   internalStatus: true,
@@ -302,7 +301,6 @@ export async function getManufacturingControlList(
           OR: [
             { workOrderNumber: { contains: query, mode: "insensitive" } },
             { order: { orderNumber: { contains: query, mode: "insensitive" } } },
-            { order: { title: { contains: query, mode: "insensitive" } } },
             { order: { customer: { name: { contains: query, mode: "insensitive" } } } },
           ],
         }
@@ -381,7 +379,6 @@ export async function getManufacturingControlList(
         order: {
           id: row.order.id,
           orderNumber: row.order.orderNumber,
-          title: row.order.title,
           customerName: row.order.customer.name,
           deadline: row.order.deadline,
           priority: row.order.priority,
@@ -637,7 +634,6 @@ export async function getManufacturingWorkOrder(
     order: {
       id: row.order.id,
       orderNumber: row.order.orderNumber,
-      title: row.order.title,
       customerName: row.order.customer.name,
       deadline: row.order.deadline,
       priority: row.order.priority,
@@ -1049,7 +1045,6 @@ async function stationJobDto(
     order: {
       id: row.production.order.id,
       orderNumber: row.production.order.orderNumber,
-      title: row.production.order.title,
       customerName: row.production.order.customer.name,
       deadline: row.production.order.deadline,
       priority: row.production.order.priority,

@@ -61,7 +61,6 @@ describe("buildPrepQueue", () => {
           id: "production-1",
           order: {
             orderNumber: "ORD-2608-0040",
-            title: "เสื้อทีม",
             deadline: new Date("2026-08-19T00:00:00.000Z"),
             customer: { name: "ลูกค้าเอ" },
           },
@@ -128,7 +127,6 @@ describe("buildPressQueue", () => {
           steps: [],
           order: {
             orderNumber: "ORD-2608-0043",
-            title: "เสื้อทีม",
             deadline: null,
             customer: { name: "ลูกค้าซี" },
           },
@@ -233,7 +231,6 @@ describe("buildPressQueue", () => {
           ],
           order: {
             orderNumber: "ORD-V2-PARALLEL",
-            title: "งาน lane ขนาน",
             deadline: null,
             customer: { name: "ลูกค้า" },
           },
@@ -357,7 +354,6 @@ describe("buildPackQueue", () => {
       {
         id: "order-pack",
         orderNumber: "ORD-2608-0041",
-        title: "เสื้อทีมหน้าร้าน",
         deadline: new Date("2026-08-20T00:00:00.000Z"),
         priority: "HIGH",
         blindShip: true,
@@ -380,7 +376,6 @@ describe("buildPackQueue", () => {
         orderId: "order-pack",
         productionId: null,
         orderNumber: "ORD-2608-0041",
-        title: "เสื้อทีมหน้าร้าน",
         customerName: "ลูกค้าเอ",
         deadline: new Date("2026-08-20T00:00:00.000Z"),
         priority: "HIGH",
@@ -424,7 +419,6 @@ describe("buildPackQueue", () => {
           {
             id: "order-pack-v2",
             orderNumber: "ORD-2608-0042",
-            title: "เสื้อทีม V2",
             deadline: null,
             priority: "NORMAL",
             blindShip: false,
@@ -479,7 +473,6 @@ describe("post-production queues", () => {
   const order = {
     id: "order-post",
     orderNumber: "ORD-2608-0042",
-    title: "เสื้ออีเวนต์",
     deadline: new Date("2026-08-21T00:00:00.000Z"),
     priority: "NORMAL",
     blindShip: false,

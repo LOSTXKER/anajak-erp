@@ -35,7 +35,6 @@ async function makeOrder(
   return prisma.order.create({
     data: {
       orderNumber: `TEST-ART-${suffix}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      title: `${MARK} งานทดสอบคลังลาย ${suffix}`,
       customerId,
       createdById: userId,
       internalStatus: "QUALITY_CHECK",

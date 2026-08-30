@@ -59,7 +59,7 @@ export default async function PrintInvoicePage({
       where: { id },
       include: {
         customer: true,
-        order: { select: { id: true, orderNumber: true, title: true } },
+        order: { select: { id: true, orderNumber: true } },
         payments: { orderBy: { createdAt: "asc" } },
         // ใบลดหนี้/เพิ่มหนี้ต้องพิมพ์อ้างอิงใบเดิม + มูลค่าเดิม/ใหม่/ผลต่าง (ม.86/10)
         // — "มูลค่า" ตามกฎหมาย = ฐานภาษี (amount−discount) ไม่ใช่ยอดรวม VAT
@@ -160,7 +160,7 @@ export default async function PrintInvoicePage({
           <ItemsTable
             rows={[
               {
-                description: `${LINE_DESCRIPTIONS[invoice.type]} — ${invoice.order.title} (${invoice.order.orderNumber})${invoice.notes ? `\n${invoice.notes}` : ""}`,
+                description: `${LINE_DESCRIPTIONS[invoice.type]} — ออเดอร์ ${invoice.order.orderNumber}${invoice.notes ? `\n${invoice.notes}` : ""}`,
                 quantity: 1,
                 unit: "งาน",
                 unitPrice: invoice.amount,

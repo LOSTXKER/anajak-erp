@@ -30,7 +30,6 @@ function orderFixture(
     customerStatus: "ORDER_RECEIVED",
     customerId: "customer-1",
     channel: "SHOPEE",
-    title: "งานทดสอบ",
     description: null,
     deadline: new Date("2026-08-20T00:00:00.000Z"),
     notes: null,
@@ -172,7 +171,6 @@ describe("order edit form seed", () => {
     expect(seed.header).toMatchObject({
       customerId: "customer-1",
       channel: "SHOPEE",
-      title: "งานทดสอบ",
       description: "",
       deadline: "2026-08-20",
       notes: "",
@@ -288,7 +286,6 @@ describe("normalized dirty state and save plan", () => {
       actor,
     );
     const current = valuesFromSeed(seed);
-    current.header.title = `  ${current.header.title}  `;
     current.header.customerId = "locked-customer-must-not-dirty";
     current.header.channel = "LOCKED_CHANNEL_MUST_NOT_DIRTY";
     current.shipping.recipientName = ` ${current.shipping.recipientName} `;

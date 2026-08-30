@@ -63,7 +63,7 @@ export function CreateWorkOrderDialog({
           <DialogTitle>เปิดใบสั่งผลิต</DialogTitle>
           <DialogDescription>
             {context.data
-              ? `${context.data.order.orderNumber} · ${context.data.order.title}`
+              ? `${context.data.order.orderNumber} · ${context.data.order.customerName}`
               : "เลือกเส้นทางมาตรฐานที่ใช้กับงานนี้"}
           </DialogDescription>
         </DialogHeader>

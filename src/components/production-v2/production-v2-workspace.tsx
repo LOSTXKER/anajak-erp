@@ -180,9 +180,9 @@ function WorkOrderDesktopRows({ items }: { items: readonly ControlItem[] }) {
                   </Link>
                   <StatusLabel label={status.label} tone={status.tone} />
                 </div>
-                <p className="mt-0.5 truncate text-sm text-secondary">{item.order.title}</p>
+                <p className="mt-0.5 truncate text-sm text-secondary">{item.order.customerName}</p>
                 <p className="truncate text-xs text-muted">
-                  {item.order.customerName} · {item.workOrderNumber ?? "ยังไม่มีเลขใบผลิต"}
+                  {item.workOrderNumber ?? "ยังไม่มีเลขใบผลิต"}
                 </p>
               </DataTable.Td>
               <DataTable.Td className="w-[25%] max-w-xs py-4">
@@ -222,8 +222,7 @@ function WorkOrderMobileCards({ items }: { items: readonly ControlItem[] }) {
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="font-semibold text-strong">{item.order.orderNumber}</p>
-                  <p className="mt-0.5 truncate text-sm text-secondary">{item.order.title}</p>
-                  <p className="truncate text-xs text-muted">{item.order.customerName}</p>
+                  <p className="mt-0.5 truncate text-sm text-secondary">{item.order.customerName}</p>
                 </div>
                 <StatusLabel label={status.label} tone={status.tone} />
               </div>
@@ -357,7 +356,7 @@ function WorkOrderList() {
           ref={searchInputRef}
           defaultValue={search}
           onChange={(event) => onSearchChange(event.target.value)}
-          placeholder="ค้นหาเลขออเดอร์ ชื่องาน หรือลูกค้า"
+          placeholder="ค้นหาเลขออเดอร์ ใบผลิต หรือลูกค้า"
           containerClassName="@2xl:min-w-80 @2xl:flex-1"
         />
         <ToolbarGroup align="end" className="w-full min-w-0 @2xl:w-auto">

@@ -46,7 +46,7 @@ export const billingNoteRouter = router({
           include: {
             payments: { select: { amount: true, whtAmount: true } },
             adjustments: { select: { type: true, totalAmount: true, isVoided: true } },
-            order: { select: { orderNumber: true, title: true } },
+            order: { select: { orderNumber: true } },
             billingNoteItems: {
               where: { billingNote: { isVoided: false } },
               select: { id: true },
@@ -78,7 +78,6 @@ export const billingNoteRouter = router({
             totalAmount: inv.totalAmount,
             outstanding: outstandingOf(inv).toNumber(),
             orderNumber: inv.order.orderNumber,
-            orderTitle: inv.order.title,
           }))
           .filter((inv) => inv.outstanding > 0),
         creditNoteTotal: aggToNumber(creditNotes._sum.totalAmount),

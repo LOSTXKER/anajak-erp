@@ -54,7 +54,6 @@ export type BoardReadinessCheck = {
 export type BoardOrderLike<S extends BoardStepLike> = {
   id: string;
   orderNumber: string;
-  title: string;
   deadline: Date | string | null;
   priority?: string | null;
   internalStatus: string;
@@ -117,7 +116,7 @@ export type BoardJob<O, S extends BoardStepLike> = {
   stationKeys: string[];
   spots: BoardSpot<S>[];
   rail: BoardRailPoint[];
-  /** ข้อความที่ใช้ค้นหา (เลขออเดอร์ · ชื่องาน · ลูกค้า) — lowercase แล้ว */
+  /** ข้อความที่ใช้ค้นหา (เลขออเดอร์ · ลูกค้า) — lowercase แล้ว */
   searchText: string;
 };
 
@@ -135,7 +134,6 @@ export type BoardExceptionReason = { label: string; tone: "red" | "amber" };
 export type BoardException = {
   orderId: string;
   orderNumber: string;
-  title: string;
   customerName: string | null;
   deadline: Date | string | null;
   priority: string | null;
@@ -450,7 +448,7 @@ export function buildProductionBoard<
       stationKeys: [...new Set(spots.map((s) => s.stationKey))],
       spots,
       rail: buildRail(order, allSteps, pressBlocked),
-      searchText: [order.orderNumber, order.title, order.customerName ?? ""]
+      searchText: [order.orderNumber, order.customerName ?? ""]
         .join(" ")
         .toLowerCase(),
     });
@@ -499,7 +497,6 @@ export function buildProductionBoard<
       found = {
         orderId: order.id,
         orderNumber: order.orderNumber,
-        title: order.title,
         customerName: order.customerName ?? null,
         deadline: order.deadline,
         priority: order.priority ?? null,

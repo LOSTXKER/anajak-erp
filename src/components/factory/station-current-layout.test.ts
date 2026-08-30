@@ -27,7 +27,6 @@ function queueItem(
     productionId: `production-${key}`,
     stepId: `step-${key}`,
     orderNumber: `ORD-${key.toUpperCase()}`,
-    title: `งาน ${key}`,
     customerName: "ลูกค้าทดสอบ",
     deadline: "2026-08-20T00:00:00.000Z",
     priority: "NORMAL",

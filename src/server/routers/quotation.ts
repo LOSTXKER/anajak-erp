@@ -76,7 +76,6 @@ export const quotationRouter = router({
       if (input.search) {
         where.OR = [
           { quotationNumber: { contains: input.search, mode: "insensitive" } },
-          { title: { contains: input.search, mode: "insensitive" } },
           { customer: { name: { contains: input.search, mode: "insensitive" } } },
         ];
       }
@@ -126,7 +125,6 @@ export const quotationRouter = router({
         // ออกใบเสนอ "จากออเดอร์" — ผูกกันตั้งแต่เกิด ตอนลูกค้าตกลงจะยืนยันออเดอร์เดิม
         // ไม่สร้างออเดอร์ซ้ำ (audit ข้อ 8 BLOCKER)
         orderId: z.string().optional(),
-        title: z.string().min(1),
         description: z.string().optional(),
         validUntil: z.string(),
         terms: z.string().optional(),
@@ -173,7 +171,6 @@ export const quotationRouter = router({
               customerId: data.customerId,
               createdById: ctx.userId,
               ...party,
-              title: data.title,
               description: data.description,
               validUntil: new Date(data.validUntil),
               terms: data.terms,
@@ -205,7 +202,6 @@ export const quotationRouter = router({
             entityId: created.id,
             newValue: {
               quotationNumber: created.quotationNumber,
-              title: created.title,
               totalAmount: created.totalAmount,
               orderId: data.orderId ?? null,
             },
@@ -235,7 +231,6 @@ export const quotationRouter = router({
     .input(
       z.object({
         id: z.string(),
-        title: z.string().trim().min(1, "กรุณากรอกชื่อใบเสนอราคา"),
         description: z.string().optional(),
         validUntil: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "รูปแบบวันที่ไม่ถูกต้อง"),
         terms: z.string().optional(),
@@ -344,7 +339,6 @@ export const quotationRouter = router({
     .input(
       z.object({
         id: z.string(),
-        title: z.string().optional(),
         description: z.string().optional(),
         validUntil: z.string().optional(),
         terms: z.string().optional(),
@@ -517,7 +511,6 @@ export const quotationRouter = router({
                     customerId: true,
                     orderType: true,
                     internalStatus: true,
-                    title: true,
                     totalAmount: true,
                     paymentTerms: true,
                   },
@@ -609,7 +602,6 @@ export const quotationRouter = router({
               await tx.order.update({
                 where: { id: liveLinkedOrder.id },
                 data: {
-                  title: liveLinkedOrder.title || quotation.title,
                   discount: quotation.discount,
                   subtotalItems: quotation.subtotal,
                   subtotalFees: 0,
@@ -661,7 +653,6 @@ export const quotationRouter = router({
               createdById: ctx.userId,
               customerStatus: getCustomerStatus("CONFIRMED"),
               internalStatus: "CONFIRMED",
-              title: quotation.title,
               description: quotation.description,
               discount: quotation.discount,
               subtotalItems: quotation.subtotal,

@@ -243,7 +243,6 @@ export function buildOrderEditFormSeed(
   const header: OrderHeaderState = {
     customerId: order.customerId,
     channel: order.channel,
-    title: order.title ?? "",
     description: order.description ?? "",
     deadline: orderEditDateInputValue(order.deadline),
     notes: order.notes ?? "",
@@ -296,7 +295,6 @@ function normalizeMeta(values: OrderEditFormValues): OrderEditMetaSnapshot {
   const includeShipping = Boolean(values.includeShipping);
   return {
     header: {
-      title: trimmedString(header.title),
       // description/notes เก็บ whitespace ภายในตามที่ผู้ใช้พิมพ์ แต่ null/undefined เป็น ""
       description: stringValue(header.description),
       deadline: orderEditDateInputValue(header.deadline),
@@ -381,7 +379,6 @@ function buildHeaderMutationDiff(
   current: OrderEditMetaSnapshot["header"],
 ): OrderEditMutationMeta {
   const meta: OrderEditMutationMeta = {};
-  if (original.title !== current.title) meta.title = current.title;
   if (original.description !== current.description) {
     meta.description = nullableString(current.description);
   }

@@ -9,7 +9,6 @@ function makePrisma(overrides: Record<string, unknown> = {}) {
     quotation: {
       findUniqueOrThrow: vi.fn().mockResolvedValue({
         status: "DRAFT",
-        title: "หัวเดิม",
         customerId: "cust-1",
         validUntil: futureDate,
         discount: 0,
@@ -56,7 +55,6 @@ describe("updateQuotationDraft", () => {
     const result = await updateQuotationDraft(prisma, {
       id: "quote-1",
       userId: "user-1",
-      title: "เสื้อทีม",
       description: "DTF หน้าอก",
       validUntil: new Date("2027-01-31"),
       discount: 50,
@@ -76,7 +74,6 @@ describe("updateQuotationDraft", () => {
       expect.objectContaining({
         where: { id: "quote-1" },
         data: expect.objectContaining({
-          title: "เสื้อทีม",
           subtotal: 1050,
           discount: 50,
           tax: 35,
@@ -107,7 +104,6 @@ describe("updateQuotationDraft", () => {
     const { prisma, tx } = makePrisma();
     tx.quotation.findUniqueOrThrow.mockResolvedValueOnce({
       status: "SENT",
-      title: "ส่งแล้ว",
       validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       discount: 0,
       tax: 0,
@@ -119,7 +115,6 @@ describe("updateQuotationDraft", () => {
       updateQuotationDraft(prisma, {
         id: "quote-1",
         userId: "user-1",
-        title: "พยายามแก้",
         validUntil: new Date("2027-01-31"),
         discount: 0,
         tax: 0,

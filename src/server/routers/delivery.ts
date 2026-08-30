@@ -545,7 +545,7 @@ export const deliveryRouter = router({
         if (statusChanged && input.status === "RETURNED") {
           const order = await tx.order.findUniqueOrThrow({
             where: { id: delivery.orderId },
-            select: { id: true, orderNumber: true, title: true },
+            select: { id: true, orderNumber: true },
           });
           const managers = await tx.user.findMany({
             where: { role: { in: ["OWNER", "MANAGER"] }, isActive: true },
@@ -556,7 +556,7 @@ export const deliveryRouter = router({
               userId: m.id,
               type: "ORDER",
               title: `ของถูกตีกลับ — ${order.orderNumber}`,
-              message: `${order.title} · ตัดสินใจ: ซ่อม/ส่งใหม่/ลดหนี้ (ถอยสถานะกลับตรวจ QC ได้จากหน้าออเดอร์)`,
+              message: `ตัดสินใจ: ซ่อม/ส่งใหม่/ลดหนี้ (ถอยสถานะกลับตรวจ QC ได้จากหน้าออเดอร์)`,
               link: `/orders/${order.id}`,
               entityType: "ORDER",
               entityId: order.id,

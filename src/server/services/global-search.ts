@@ -30,7 +30,6 @@ export async function globalSearch(
       where: {
         OR: [
           { orderNumber: textFilter },
-          { title: textFilter },
           { customer: { name: textFilter } },
           { customer: { company: textFilter } },
         ],
@@ -40,7 +39,6 @@ export async function globalSearch(
       select: {
         id: true,
         orderNumber: true,
-        title: true,
         customer: { select: { name: true, company: true } },
       },
     }),
@@ -63,7 +61,6 @@ export async function globalSearch(
           where: {
             OR: [
               { quotationNumber: textFilter },
-              { title: textFilter },
               { customer: { name: textFilter } },
               { customer: { company: textFilter } },
             ],
@@ -73,7 +70,6 @@ export async function globalSearch(
           select: {
             id: true,
             quotationNumber: true,
-            title: true,
             customer: { select: { name: true } },
           },
         })
@@ -84,7 +80,6 @@ export async function globalSearch(
             OR: [
               { invoiceNumber: textFilter },
               { order: { orderNumber: textFilter } },
-              { order: { title: textFilter } },
               { customer: { name: textFilter } },
               { customer: { company: textFilter } },
             ],
@@ -107,7 +102,7 @@ export async function globalSearch(
       id: order.id,
       type: "order" as const,
       title: order.orderNumber,
-      subtitle: [order.title, order.customer.name].filter(Boolean).join(" · ") || null,
+      subtitle: order.customer.name || null,
       href: `/orders/${order.id}`,
     })),
     customers: customers.map((customer) => ({
@@ -124,7 +119,7 @@ export async function globalSearch(
       id: quotation.id,
       type: "quotation" as const,
       title: quotation.quotationNumber,
-      subtitle: [quotation.title, quotation.customer.name].filter(Boolean).join(" · ") || null,
+      subtitle: quotation.customer.name || null,
       href: `/quotations/${quotation.id}`,
     })),
     invoices: invoices.map((invoice) => ({

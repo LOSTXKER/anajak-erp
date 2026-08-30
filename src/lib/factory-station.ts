@@ -56,7 +56,6 @@ export type FactoryStationQueueEntry = {
   productionId: string | null;
   stepId: string | null;
   orderNumber: string;
-  title: string;
   deadline: Date | string | null;
   priority?: string | null;
   status: string;

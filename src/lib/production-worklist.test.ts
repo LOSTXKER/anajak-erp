@@ -43,7 +43,6 @@ function job({
   const order: TestOrder = {
     id,
     orderNumber: `ORD-${id}`,
-    title: `งาน ${id}`,
     deadline,
     priority,
     totalQuantity,
@@ -86,7 +85,6 @@ function board(jobs: TestJob[]): ProductionBoard<TestOrder, BoardStepLike> {
       {
         orderId: "problem",
         orderNumber: "ORD-problem",
-        title: "งาน problem",
         customerName: null,
         deadline: null,
         priority: null,

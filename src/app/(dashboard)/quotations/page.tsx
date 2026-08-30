@@ -182,7 +182,7 @@ function QuotationsPageContent() {
                         {q.quotationNumber}
                       </p>
                       <p className="mt-1 truncate text-sm font-medium text-strong">
-                        {q.title}
+                        {q.customer.name}
                       </p>
                     </div>
                     <div className="shrink-0">
@@ -191,9 +191,11 @@ function QuotationsPageContent() {
                   </div>
                   <div className="mt-3 flex items-end justify-between gap-3 border-t border-divider pt-3">
                     <div className="min-w-0">
-                      <p className="truncate text-sm text-secondary">
-                        {q.customer.name}
-                      </p>
+                      {q.customer.company && (
+                        <p className="truncate text-sm text-secondary">
+                          {q.customer.company}
+                        </p>
+                      )}
                       <p className="mt-0.5 text-xs text-muted group-hover:text-secondary group-active:text-secondary dark:group-hover:text-secondary dark:group-active:text-secondary">
                         {formatDate(q.createdAt)}
                       </p>
@@ -215,7 +217,6 @@ function QuotationsPageContent() {
             <DataTable.Head>
               <tr>
                 <DataTable.Th>เลขที่</DataTable.Th>
-                <DataTable.Th>ชื่อ</DataTable.Th>
                 <DataTable.Th>ลูกค้า</DataTable.Th>
                 <DataTable.Th align="right">ยอดรวม</DataTable.Th>
                 <DataTable.Th>สถานะ</DataTable.Th>
@@ -232,9 +233,6 @@ function QuotationsPageContent() {
                     >
                       {q.quotationNumber}
                     </Link>
-                  </DataTable.Td>
-                  <DataTable.Td className="text-strong">
-                    {q.title}
                   </DataTable.Td>
                   <DataTable.Td>
                     <p className="text-sm text-strong">{q.customer.name}</p>

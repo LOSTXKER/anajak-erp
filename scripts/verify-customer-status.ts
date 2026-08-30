@@ -36,7 +36,6 @@ async function main() {
     order = await prisma.order.create({
       data: {
         orderNumber: `TEST-STATUS-${Date.now()}`,
-        title: `${MARK} งานทดสอบสถานะ`,
         customerId: customer.id,
         createdById: owner.id,
         internalStatus: "PRODUCING",
@@ -69,7 +68,6 @@ async function main() {
         createdById: owner.id,
         status: "ACCEPTED",
         sentAt: new Date(), // ส่งลูกค้าแล้ว → ต้องโผล่
-        title: `${MARK} ใบเสนอ`,
         validUntil: new Date(Date.now() + 14 * 86400000),
         subtotal: 4673,
         discount: 100,
@@ -86,7 +84,6 @@ async function main() {
         customerId: customer.id,
         createdById: owner.id,
         status: "DRAFT",
-        title: `${MARK} ร่างห้ามรั่ว`,
         validUntil: new Date(Date.now() + 14 * 86400000),
         subtotal: 9999,
         totalAmount: 9999,
@@ -134,7 +131,7 @@ async function main() {
     // ── 2. getStatus (public) + กันรั่ว ──
     const d = await publicCaller.customerStatus.getStatus({ token });
     check("2.1 คืนสถานะลูกค้า (IN_PRODUCTION) + steps", d.customerStatus === "IN_PRODUCTION" && d.steps.length === 6);
-    check("2.2 คืนเลข/ชื่องาน/ลูกค้า", d.orderNumber === order.orderNumber && !!d.title && !!d.customerName);
+    check("2.2 คืนเลขออเดอร์/ลูกค้า", d.orderNumber === order.orderNumber && !!d.customerName);
 
     const topKeys = Object.keys(d);
     const forbiddenTop = ["totalAmount", "totalCost", "profitMargin", "internalStatus", "notes", "taxAmount", "discount", "subtotalItems", "subtotalFees", "paymentTerms"];

@@ -10,16 +10,16 @@ import { CHANNEL_LABELS, PRIORITY_LABELS } from "@/lib/order-status";
 import { FIELD_MEASURE } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
 
-// ช่องข้อมูลงาน (ชื่อ/กำหนดส่ง/ช่องทาง/รายละเอียด/หมายเหตุ) — แยกจาก orders/new/page.tsx
+// ช่องข้อมูลงาน (กำหนดส่ง/ช่องทาง/รายละเอียด/หมายเหตุ) — แยกจาก orders/new/page.tsx
 // ตอนรื้อฟอร์ม 2026-06-12 · ลำดับใหม่: รายละเอียดจากแชทขึ้นก่อน (จุด capture หลักตอนถือแชท)
+// ไม่มีช่อง "ชื่องาน" แล้ว (เบสสั่ง 2026-08-30 เอาระบบชื่องานออก) — สามช่องที่เหลือ
+// อ่านเป็นชุดเดียว "มาจากไหน · ส่งเมื่อไหร่ · ด่วนแค่ไหน" จึงวางเรียงสามช่องในแถวเดียว
 
 const CHANNELS = Object.keys(CHANNEL_LABELS) as string[];
 
 type Priority = "LOW" | "NORMAL" | "HIGH" | "URGENT";
 
 interface OrderDetailFieldsProps {
-  title: string;
-  onTitleChange: (v: string) => void;
   deadline: string;
   onDeadlineChange: (v: string) => void;
   priority: Priority;
@@ -40,8 +40,6 @@ interface OrderDetailFieldsProps {
 }
 
 export function OrderDetailFields({
-  title,
-  onTitleChange,
   deadline,
   onDeadlineChange,
   priority,
@@ -76,7 +74,7 @@ export function OrderDetailFields({
         />
       </Field>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Field label="ช่องทาง" id={`${id}-channel`} description={channelLockedReason}>
           <Select
             value={channel}
@@ -104,17 +102,6 @@ export function OrderDetailFields({
               <option key={key} value={key}>{value}</option>
             ))}
           </Select>
-        </Field>
-        <Field
-          label="ชื่องาน"
-          id={`${id}-title`}
-          help={showGuidance ? "เว้นว่างเพื่อให้ระบบตั้งชื่อจากลูกค้า" : undefined}
-        >
-          <Input
-            value={title}
-            onChange={(e) => onTitleChange(e.target.value)}
-            placeholder="เสื้อทีมหน้าร้าน 30 ตัว"
-          />
         </Field>
       </div>
 

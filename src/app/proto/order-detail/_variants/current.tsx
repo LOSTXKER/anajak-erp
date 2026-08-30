@@ -62,7 +62,7 @@ export function CurrentVariant({
             { label: order.orderNumber },
           ]}
           title={order.orderNumber}
-          description={order.title || null}
+          description={null}
           titleBadge={
             <span className="flex flex-wrap items-center gap-1.5">
               <Badge variant="accent" size="sm">

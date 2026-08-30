@@ -359,9 +359,8 @@ function CompleteRunDialog({ run, onClose }: { run: PrintRun; onClose: () => voi
               >
                 <div className="flex items-center gap-3">
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-strong">
+                    <p className="truncate text-sm font-medium tabular-nums text-strong">
                       {item.order.orderNumber}
-                      {item.order.title && ` · ${item.order.title}`}
                     </p>
                     <p className="text-xs tabular-nums text-muted">
                       พิมพ์ในรอบนี้ {item.qty} ชิ้น

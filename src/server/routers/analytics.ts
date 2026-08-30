@@ -58,7 +58,6 @@ export const analyticsRouter = router({
         select: {
           id: true,
           orderNumber: true,
-          title: true,
           deadline: true,
           totalAmount: true,
           customerStatus: true,
@@ -178,7 +177,6 @@ export const analyticsRouter = router({
         return {
           id: o.id,
           orderNumber: o.orderNumber,
-          title: o.title,
           deadline: o.deadline,
           customerName: o.customer.company || o.customer.name,
           customerStatus: o.customerStatus,

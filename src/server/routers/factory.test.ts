@@ -35,7 +35,6 @@ function orderRecord(
   return {
     id: "order-1",
     orderNumber: "ORD-2608-0041",
-    title: "เสื้อทีมหน้าร้าน",
     internalStatus,
     deadline,
     priority: "HIGH",
@@ -575,7 +574,6 @@ describe("factory.stationContext", () => {
       order: {
         id: "order-1",
         orderNumber: "ORD-2608-0041",
-        title: "เสื้อทีมหน้าร้าน",
         internalStatus: "PACKING",
         deadline,
         priority: "HIGH",

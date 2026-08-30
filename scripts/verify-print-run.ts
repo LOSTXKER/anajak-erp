@@ -34,7 +34,7 @@ async function makeOrder(opts: { suffix: string; qty: number; customerId: string
   const order = await prisma.order.create({
     data: {
       orderNumber: `TEST-PR-${opts.suffix}-${Date.now()}`,
-      title: `${MARK} งานทดสอบรอบพิมพ์ ${opts.suffix}`,
+      notes: `${MARK} งานทดสอบรอบพิมพ์ ${opts.suffix}`,
       customerId: opts.customerId,
       createdById: opts.userId,
       internalStatus: "PRODUCING", // พ้นเฟสออกแบบ = ไฟล์พร้อม
@@ -163,7 +163,7 @@ async function main() {
   } finally {
     // ── cleanup เกลี้ยง ──
     const orders = await prisma.order.findMany({
-      where: { title: { contains: MARK } },
+      where: { notes: { contains: MARK } },
       select: { id: true },
     });
     const orderIds = orders.map((o) => o.id);

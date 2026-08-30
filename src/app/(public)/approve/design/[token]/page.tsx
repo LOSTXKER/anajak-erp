@@ -112,12 +112,6 @@ export default function DesignApprovalPage({
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted">ชื่องาน</span>
-                <span className="font-medium text-strong">
-                  {d.order.title}
-                </span>
-              </div>
-              <div className="flex justify-between">
                 <span className="text-muted">ลูกค้า</span>
                 <span className="font-medium text-strong">
                   {d.order.customer.name}

@@ -107,7 +107,6 @@ function QuotationFormPage() {
   // -- Form state --
   const [customerId, setCustomerId] = useState("");
   const [customerLabel, setCustomerLabel] = useState(""); // โหมดผูกออเดอร์/แก้ไข — ลูกค้าล็อก
-  const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [validUntil, setValidUntil] = useState("");
   const [terms, setTerms] = useState("");
@@ -128,7 +127,6 @@ function QuotationFormPage() {
       prefilled.current = true;
       setCustomerId(linkedOrder.customerId);
       setCustomerLabel(linkedOrder.customer?.name ?? "");
-      setTitle(linkedOrder.title ?? "");
       const orderItems = (linkedOrder.items ?? []) as Array<{
         description: string | null;
         totalQuantity: number;
@@ -153,7 +151,6 @@ function QuotationFormPage() {
       prefilled.current = true;
       setCustomerId(editing.customerId);
       setCustomerLabel(editing.customer?.name ?? "");
-      setTitle(editing.title);
       setDescription(editing.description ?? "");
       setValidUntil(new Date(editing.validUntil).toISOString().slice(0, 10));
       setTerms(editing.terms ?? "");
@@ -246,7 +243,6 @@ function QuotationFormPage() {
       try {
         await updateDraft.mutateAsync({
           id: editId,
-          title,
           description: description || undefined,
           validUntil,
           terms: terms || undefined,
@@ -269,7 +265,6 @@ function QuotationFormPage() {
     createQuotation.mutate({
       customerId,
       orderId: fromOrderId,
-      title,
       description: description || undefined,
       validUntil,
       terms: terms || undefined,
@@ -356,14 +351,6 @@ function QuotationFormPage() {
                 />
               </Field>
             </div>
-            <Field label="ชื่อใบเสนอราคา" required id="quotation-title">
-              <Input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="เช่น ใบเสนอราคาเสื้อทีม ABC, ถุงผ้ารณรงค์..."
-                required
-              />
-            </Field>
             <Field label="รายละเอียด" id="quotation-description">
               <Textarea
                 value={description}

@@ -1,7 +1,7 @@
 "use client";
 
 // หน้าเปิดงานใหม่ — โหมดเดียว ไม่ถามชนิดออเดอร์ (ระบบ derive จากเนื้อรายการเอง):
-// บังคับแค่ลูกค้า — ชื่องานว่างได้ server ตั้งให้เอง · เปิดงานได้ในไม่กี่วินาทีระหว่างถือแชท
+// บังคับแค่ลูกค้า — เปิดงานได้ในไม่กี่วินาทีระหว่างถือแชท
 // (ด่านฝั่ง server กันให้: ยืนยันออเดอร์ต้องมีรายการ · ปิดงานต้องวางบิลครบ)
 //
 // รื้อโครง 2026-06-12 (เบสเคาะ): แตก section เป็น component + ลำดับสายตา 1-2-3
@@ -161,7 +161,6 @@ export default function OrderFormPage(props: OrderFormPageProps) {
   const {
     customerId,
     channel,
-    title,
     description,
     deadline,
     notes,
@@ -825,9 +824,6 @@ export default function OrderFormPage(props: OrderFormPageProps) {
         discount,
       });
 
-      if (editPlan.meta?.title !== undefined && !title.trim()) {
-        errors.push({ tab: "intake", message: "กรุณาระบุชื่องาน" });
-      }
       if (editPlan.meta?.deadline) {
         const deadlineDate = new Date(`${editPlan.meta.deadline}T23:59:59`);
         if (deadlineDate < new Date()) {
@@ -982,7 +978,6 @@ export default function OrderFormPage(props: OrderFormPageProps) {
   const buildMutationInput = () => ({
     channel: channel as "SHOPEE" | "LAZADA" | "TIKTOK" | "LINE" | "WALK_IN" | "PHONE" | "WEBSITE",
     customerId,
-    title: title.trim() || undefined,
     description: description || undefined,
     deadline: deadline || undefined,
     notes: notes || undefined,
@@ -1065,9 +1060,7 @@ export default function OrderFormPage(props: OrderFormPageProps) {
     }
 
     const totalProducts = items.reduce((s, it) => s + it.products.length, 0);
-    const dialogTitle = title.trim()
-      ? `เปิดงาน "${title.trim()}"?`
-      : `เปิดงานของ ${selectedCustomer?.name ?? "ลูกค้า"}?`;
+    const dialogTitle = `เปิดงานของ ${selectedCustomer?.name ?? "ลูกค้า"}?`;
     const ok = await confirmDialog(
       hasItemContent
         ? {
@@ -1190,7 +1183,7 @@ export default function OrderFormPage(props: OrderFormPageProps) {
       )}
       {workReadOnly && (
         <Alert variant="warning" title="รายการและราคาถูกล็อกตามสถานะงาน">
-          ยังแก้ชื่องาน รายละเอียด หมายเหตุ ที่อยู่จัดส่ง และไฟล์อ้างอิงได้
+          ยังแก้รายละเอียด หมายเหตุ ที่อยู่จัดส่ง และไฟล์อ้างอิงได้
         </Alert>
       )}
 
@@ -1299,8 +1292,6 @@ export default function OrderFormPage(props: OrderFormPageProps) {
               />
               <div data-order-edit-focus="info" className="scroll-mt-24">
                 <OrderDetailFields
-                  title={title}
-                  onTitleChange={(value) => setHeaderField("title", value)}
                   deadline={deadline}
                   onDeadlineChange={(value) => setHeaderField("deadline", value)}
                   priority={priority}

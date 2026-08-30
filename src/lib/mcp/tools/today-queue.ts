@@ -48,7 +48,6 @@ export function registerTodayQueueTool(server: McpServer): void {
         select: {
           id: true,
           orderNumber: true,
-          title: true,
           deadline: true,
           internalStatus: true,
           customer: { select: { name: true, company: true } },
@@ -74,7 +73,6 @@ export function registerTodayQueueTool(server: McpServer): void {
           const r = readiness.get(o.id);
           return {
             orderNumber: o.orderNumber,
-            title: o.title,
             customer: o.customer.company || o.customer.name,
             deadline: o.deadline,
             overdue: o.deadline ? o.deadline < now : false,

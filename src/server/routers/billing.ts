@@ -105,7 +105,7 @@ export const billingRouter = router({
         ctx.prisma.invoice.findMany({
           where,
           include: {
-            order: { select: { orderNumber: true, title: true } },
+            order: { select: { orderNumber: true } },
             customer: { select: { name: true, company: true } },
             payments: true,
           },

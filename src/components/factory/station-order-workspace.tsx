@@ -123,9 +123,7 @@ export function StationOrderWorkspace({
                 <Badge variant="destructive" size="sm">ห้ามใส่ชื่อ Anajak</Badge>
               )}
             </div>
-            <p className="mt-1 text-sm text-secondary">
-              {[customer.name, order.title].filter(Boolean).join(" · ")}
-            </p>
+            <p className="mt-1 text-sm text-secondary">{customer.name}</p>
             <p className="mt-1 text-xs text-muted">
               {order.deadline ? `กำหนดส่ง ${formatDate(order.deadline)}` : "ไม่กำหนดส่ง"}
             </p>

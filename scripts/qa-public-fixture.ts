@@ -88,7 +88,7 @@ async function main() {
         ),
       );
       const staleQuotes = await prisma.quotation.findMany({
-        where: { customerId: { in: staleCustomerIds }, title: { startsWith: "เสื้อทีม 120" } },
+        where: { customerId: { in: staleCustomerIds }, quotationNumber: { startsWith: "QT-QA-" } },
         select: { id: true },
       });
       const staleEntityIds = [
@@ -125,7 +125,6 @@ async function main() {
     const designOrder = await prisma.order.create({
       data: {
         orderNumber: `QA-PUB-${stamp}-DESIGN`,
-        title: "เสื้อทีมเปิดตัวสินค้า",
         customerId: customer.id,
         createdById: owner.id,
         internalStatus: "DESIGNING",
@@ -151,7 +150,6 @@ async function main() {
     const statusOrder = await prisma.order.create({
       data: {
         orderNumber: `QA-PUB-${stamp}-STATUS`,
-        title: "เสื้อพนักงานสาขาใหม่",
         customerId: customer.id,
         createdById: owner.id,
         internalStatus: "PRODUCING",
@@ -173,7 +171,6 @@ async function main() {
         createdById: owner.id,
         status: "SENT",
         sentAt: new Date(),
-        title: "เสื้อทีม 120 ตัว",
         description: "เสื้อคอกลมสีดำ พร้อมสกรีนหน้าอก",
         validUntil: expiresAt,
         subtotal: 14_400,
@@ -204,7 +201,6 @@ async function main() {
         createdById: owner.id,
         status: "SENT",
         sentAt: new Date(Date.now() - 3 * 86_400_000),
-        title: "เสื้อทีม 120 ตัว (หมดอายุ)",
         validUntil: new Date(Date.now() - 2 * 86_400_000),
         subtotal: 14_400,
         discount: 400,
@@ -230,7 +226,6 @@ async function main() {
     const outsourceOrder = await prisma.order.create({
       data: {
         orderNumber: `QA-PUB-${stamp}-JOB`,
-        title: "งานปักโลโก้หน้าอก",
         customerId: customer.id,
         createdById: owner.id,
         internalStatus: "PRODUCING",

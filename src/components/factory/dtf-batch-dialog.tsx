@@ -389,8 +389,8 @@ export function DtfBatchDialog({
                               aria-label={`เลือก ${entry.orderNumber}`}
                             />
                             <div className="min-w-0">
-                              <p className="font-medium">
-                                {entry.orderNumber} · {entry.orderName}
+                              <p className="font-medium tabular-nums">
+                                {entry.orderNumber}
                               </p>
                               <p className="text-xs text-muted">
                                 {entry.customerName} · เหลือ {entry.remaining} ชิ้น

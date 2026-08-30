@@ -63,7 +63,6 @@ export async function getManufacturingCreationContext(
       select: {
         id: true,
         orderNumber: true,
-        title: true,
         deadline: true,
         internalStatus: true,
         customer: { select: { name: true } },
@@ -103,7 +102,6 @@ export async function getManufacturingCreationContext(
     order: {
       id: order.id,
       orderNumber: order.orderNumber,
-      title: order.title,
       customerName: order.customer.name,
       deadline: order.deadline,
       internalStatus: order.internalStatus,
@@ -125,7 +123,6 @@ async function createWorkOrderInTransaction(
     select: {
       id: true,
       orderNumber: true,
-      title: true,
       deadline: true,
       internalStatus: true,
       items: {

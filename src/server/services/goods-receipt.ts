@@ -1111,7 +1111,7 @@ export async function createGoodsReceipt(
     try {
       const order = await prisma.order.findUniqueOrThrow({
         where: { id: params.orderId },
-        select: { id: true, orderNumber: true, title: true },
+        select: { id: true, orderNumber: true },
       });
       const problems = [
         ...discrepancies,
@@ -1126,7 +1126,7 @@ export async function createGoodsReceipt(
           userId: u.id,
           type: "ORDER",
           title: `ตรวจรับของมีปัญหา — ${order.orderNumber}`,
-          message: `${typeLabel}: ${problems.join(" · ")} (${order.title})`,
+          message: `${typeLabel}: ${problems.join(" · ")}`,
           link: `/orders/${order.id}`,
           entityType: "ORDER",
           entityId: order.id,

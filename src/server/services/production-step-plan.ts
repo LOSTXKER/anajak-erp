@@ -184,7 +184,6 @@ export function stepCostEntryPlan(params: {
 // router คง query managers (OWNER/MANAGER active ยกเว้นตัวเอง) + loop createNotification
 export function failedStepNotification(params: {
   orderNumber: string;
-  orderTitle: string;
   stepName: string;
   notes?: string;
   productionId: string;
@@ -200,7 +199,7 @@ export function failedStepNotification(params: {
   return {
     type: "ORDER",
     title: `ขั้นตอนผลิตมีปัญหา — ${params.orderNumber}`,
-    message: `${params.stepName}${params.notes ? `: ${params.notes}` : ""} (${params.orderTitle})`,
+    message: `${params.stepName}${params.notes ? `: ${params.notes}` : ""}`,
     // ชี้หน้าใบผลิตตรงๆ — ตัวจัดการขั้นตอนอยู่ที่นั่นแล้ว (แยกโมดูลผลิต 2026-06-12)
     link: `/production/${params.productionId}`,
     entityType: "ORDER",

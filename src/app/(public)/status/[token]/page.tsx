@@ -67,8 +67,8 @@ export default function OrderStatusPage({
           <CardContent className="space-y-4 p-5">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
-                <p className="text-lg font-semibold text-strong">{d.title}</p>
-                <p className="text-sm text-muted">เลขออเดอร์ {d.orderNumber}</p>
+                <p className="text-lg font-semibold tabular-nums text-strong">{d.orderNumber}</p>
+                <p className="text-sm text-muted">เลขออเดอร์ของคุณ</p>
               </div>
               {/* เดิมเป็นแคปซูลพื้นสี ทำให้สถานะเดียวกันลูกค้าเห็นคนละหน้าตากับที่ทีมเห็น
                   (UI-2026 · เบสสั่ง 2026-08-26) ตอนนี้ใช้ป้ายกลางตัวเดียวกันทั้งเว็บ */}

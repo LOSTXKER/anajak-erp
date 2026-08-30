@@ -44,7 +44,6 @@ async function main() {
         customerId: customer!.id,
         createdById: owner.id,
         status: opts.status,
-        title: `${MARK} งานเสื้อสกรีน`,
         description: "รายละเอียดงาน",
         terms: "มัดจำ 50%",
         validUntil: opts.validUntil,
@@ -83,7 +82,7 @@ async function main() {
 
     // ── 2. public getQuote — โชว์ราคาเต็ม + กันรั่ว ──
     const q = await publicCaller.quotationConfirm.getQuote({ token });
-    check("2.1 คืนเลขใบ/ชื่องาน/ลูกค้า", q.quotationNumber === sent.quotationNumber && !!q.title && !!q.customerName);
+    check("2.1 คืนเลขใบ/ลูกค้า", q.quotationNumber === sent.quotationNumber && !!q.customerName);
     check("2.2 โชว์ราคาเต็ม (subtotal/discount/tax/total)", q.subtotal === 5000 && q.discount === 200 && q.tax === 336 && q.totalAmount === 5136);
     check("2.3 รายการมีราคาต่อหน่วย+รวม", q.items.length === 1 && q.items[0].unitPrice === 50 && q.items[0].totalPrice === 5000);
     const keys = Object.keys(q);

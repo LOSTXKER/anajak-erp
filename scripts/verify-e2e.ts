@@ -65,7 +65,6 @@ async function main() {
     // 1) ขายเปิดงานจากแชท
     const oa = await sales.order.create({
       customerId: customer.id,
-      title: "[E2E-VERIFY] เสื้อทีมพิมพ์ DTF 20 ตัว",
       paymentTerms: "DEPOSIT_50",
       items: [
         {
@@ -299,7 +298,6 @@ async function main() {
     console.log("\n--- FLOW B: READY_MADE ขายสด ---");
     const ob = await sales.order.create({
       customerId: customer.id,
-      title: "[E2E-VERIFY] เสื้อเปล่าสต๊อก 5 ตัว",
       items: [
         {
           products: [
@@ -417,7 +415,6 @@ async function main() {
     console.log("\n--- FLOW C: ลูกค้ามีไฟล์ → ข้ามออกแบบ ---");
     const oc = await sales.order.create({
       customerId: customer.id,
-      title: "[E2E-VERIFY] ลูกค้ามีไฟล์เอง",
       items: [
         {
           products: [
@@ -451,7 +448,6 @@ async function main() {
     // เปิดงานเบาจากแชท (มีรายการจริง) → ออกใบเสนอผูกออเดอร์
     const of1 = await sales.order.create({
       customerId: customer.id,
-      title: "[E2E-VERIFY] งานรอใบเสนอ",
       items: [
         {
           products: [
@@ -473,7 +469,6 @@ async function main() {
     const q1 = await sales.quotation.create({
       customerId: customer.id,
       orderId: of1.id,
-      title: "[E2E-VERIFY] ใบเสนอผูกออเดอร์",
       validUntil: validTomorrow,
       items: [{ name: "เสื้อทีมพิมพ์ DTF", quantity: 10, unit: "ตัว", unitPrice: 180 }],
     });
@@ -525,7 +520,6 @@ async function main() {
     });
     const q2 = await sales.quotation.create({
       customerId: customer.id,
-      title: "[E2E-VERIFY] ใบเสนอลอย",
       validUntil: validTomorrow,
       items: [{ name: "งานสกรีนหมวก", quantity: 20, unit: "ใบ", unitPrice: 50 }],
     });
@@ -552,7 +546,6 @@ async function main() {
     // (Gate A3: ส่งใบที่หมดอายุแล้วไม่ได้ — ต้องส่งตอนยังไม่หมด แล้วจำลองเวลาผ่านด้วยเขียนตรง)
     const q3 = await sales.quotation.create({
       customerId: customer.id,
-      title: "[E2E-VERIFY] ใบเสนอหมดอายุ",
       validUntil: validTomorrow,
       items: [{ name: "งานเก่า", quantity: 1, unit: "ชิ้น", unitPrice: 100 }],
     });

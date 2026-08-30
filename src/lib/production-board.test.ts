@@ -33,7 +33,6 @@ function order(
 ): BoardOrderLike<BoardStepLike> {
   return {
     orderNumber: `ORD-${over.id}`,
-    title: "งานตัวอย่าง",
     deadline: "2026-08-20T03:00:00.000Z",
     priority: "NORMAL",
     internalStatus: "PRODUCING",

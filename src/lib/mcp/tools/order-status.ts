@@ -3,7 +3,7 @@
  *
  * โหมด:
  *  - ระบุ orderNumber → ใบเดียว พร้อม "ติดอะไร รอใคร" (readiness)
- *  - ระบุ search (ชื่อลูกค้า/ชื่องาน) → รายการที่ตรง (ทุกสถานะ)
+ *  - ระบุ search (ชื่อลูกค้า/เลขออเดอร์) → รายการที่ตรง (ทุกสถานะ)
  *  - ไม่ระบุ → ออเดอร์ที่ยัง active ล่าสุด
  *
  * กันรั่ว: allow-list select เท่านั้น — ไม่มี totalCost/profitMargin/platformFee/notes/token
@@ -31,7 +31,6 @@ import type { AgentContext } from "../auth";
 const ORDER_SELECT = {
   id: true,
   orderNumber: true,
-  title: true,
   orderType: true,
   channel: true,
   priority: true,
@@ -48,7 +47,6 @@ const ORDER_SELECT = {
 type OrderRow = {
   id: string;
   orderNumber: string;
-  title: string;
   orderType: string;
   channel: string;
   priority: string;
@@ -65,7 +63,6 @@ type OrderRow = {
 function formatOrder(o: OrderRow, ctx: AgentContext) {
   return {
     orderNumber: o.orderNumber,
-    title: o.title,
     customer: o.customer.company || o.customer.name,
     type: ORDER_TYPE_LABELS[o.orderType as keyof typeof ORDER_TYPE_LABELS] ?? o.orderType,
     channel: CHANNEL_LABELS[o.channel] ?? o.channel,
@@ -85,11 +82,11 @@ export function registerOrderStatusTool(server: McpServer): void {
     title: "สถานะออเดอร์",
     description:
       "ดูสถานะออเดอร์ของโรงงาน — ระบุ orderNumber เพื่อดูใบเดียวพร้อม 'ติดอะไร รอใคร', " +
-      "ระบุ search (ชื่อลูกค้า/ชื่องาน) เพื่อค้นหา, หรือเว้นว่างเพื่อดูงานที่ยังทำอยู่ล่าสุด",
+      "ระบุ search (ชื่อลูกค้า/เลขออเดอร์) เพื่อค้นหา, หรือเว้นว่างเพื่อดูงานที่ยังทำอยู่ล่าสุด",
     // ไม่ gate — สถานะงานเปิดทุกคนเหมือนเดิม (เงินตัดตามสิทธิ์ตอน format)
     inputSchema: {
       orderNumber: z.string().trim().optional().describe("เลขออเดอร์ เช่น ORD-2606-0024"),
-      search: z.string().trim().optional().describe("คำค้นชื่อลูกค้าหรือชื่องาน"),
+      search: z.string().trim().optional().describe("คำค้นชื่อลูกค้าหรือเลขออเดอร์"),
       limit: z.number().int().min(1).max(50).optional().describe("จำนวนรายการสูงสุด (ดีฟอลต์ 10)"),
     },
     handler: async (args, ctx) => {
@@ -132,7 +129,7 @@ export function registerOrderStatusTool(server: McpServer): void {
       const where = args.search
         ? {
             OR: [
-              { title: { contains: args.search, mode: "insensitive" as const } },
+              { orderNumber: { contains: args.search, mode: "insensitive" as const } },
               { customer: { name: { contains: args.search, mode: "insensitive" as const } } },
               { customer: { company: { contains: args.search, mode: "insensitive" as const } } },
             ],
