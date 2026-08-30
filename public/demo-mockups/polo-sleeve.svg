@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800" role="img" aria-label="ม็อกอัพแขนซ้าย">
+  <rect width="800" height="800" fill="#f1f5f9"/>
+  <!-- แขนเสื้อ: ไหล่กว้างด้านบน ปลายแขนแคบด้านล่าง -->
+  <path d="M255 210 Q400 175 545 210 L505 560 Q400 585 295 560 Z" fill="#1b2a4a"/>
+  <path d="M295 560 Q400 585 505 560 L500 600 Q400 625 300 600 Z" fill="#16233d"/>
+  <!-- ลาย DTF บนแขน -->
+  <g transform="translate(400 380)">
+    <rect x="-105" y="-32" width="210" height="64" rx="8" fill="#12a594"/>
+    <text x="0" y="12" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="30" font-weight="700" fill="#08292a" letter-spacing="2">STAFF 2026</text>
+  </g>
+  <g stroke="#94a3b8" stroke-width="2" stroke-dasharray="7 6">
+    <rect x="290" y="332" width="220" height="96" fill="none"/>
+  </g>
+</svg>

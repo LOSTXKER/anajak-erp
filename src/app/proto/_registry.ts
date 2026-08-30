@@ -13,6 +13,14 @@ export type ProtoEntry = {
 
 export const PROTOS: ProtoEntry[] = [
   {
+    slug: "order-overview",
+    title: "ภาพรวมออเดอร์ + ลาย/ม็อกอัพ",
+    question:
+      "เอาลายกับไฟล์ม็อกอัพมาไว้ในแท็บภาพรวมยังไง ให้เปิดมาเห็นเลยว่างานนี้พิมพ์อะไร และหน้ากระชับลงด้วย",
+    date: "2026-08-31",
+    status: "รอเคาะ",
+  },
+  {
     slug: "order-detail",
     title: "หน้าใบงาน (แท็บภาพรวม)",
     question:

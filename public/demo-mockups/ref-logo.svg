@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600" role="img" aria-label="ไฟล์โลโก้ต้นฉบับจากลูกค้า">
+  <rect width="800" height="600" fill="#ffffff"/>
+  <g transform="translate(400 250)">
+    <circle cx="0" cy="0" r="86" fill="none" stroke="#0f3d6e" stroke-width="14"/>
+    <path d="M-42 0 H42 M0 -42 V42" stroke="#12a594" stroke-width="22" stroke-linecap="round"/>
+  </g>
+  <text x="400" y="420" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="46" font-weight="700" fill="#0f3d6e" letter-spacing="3">BKK MEDICAL</text>
+  <text x="400" y="466" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="22" fill="#64748b" letter-spacing="7">SUPPLY &amp; SERVICE</text>
+  <text x="400" y="548" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="18" fill="#94a3b8">logo-bkkmedical-2026.png · ลูกค้าส่งมาในไลน์</text>
+</svg>

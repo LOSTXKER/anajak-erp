@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
 /**
  * หน้าใต้ /proto ใช้ตัวเลข ราคา ชื่อลูกค้าปลอมทั้งหมด — หลุดขึ้นสารบัญ Google เมื่อไหร่
@@ -11,5 +12,9 @@ export const metadata: Metadata = {
 };
 
 export default function ProtoLayout({ children }: { children: React.ReactNode }) {
-  return children;
+  // หน้าลองอ่านตัวเลือกจาก query (`?v=…`) ด้วย useSearchParams — ต้องมี Suspense คั่น
+  // ไม่งั้นตอน build Next ฟ้องว่าหน้าถูกบังคับเป็น dynamic · วางที่ layout ที่เดียว
+  // ทุกหน้าลองจึงไม่ต้องห่อเอง (fallback เป็น null เพราะหน้าลองไม่ได้รอข้อมูลอะไร
+  // ค่าจาก query มาถึงพร้อมเฟรมแรกอยู่แล้ว)
+  return <Suspense fallback={null}>{children}</Suspense>;
 }

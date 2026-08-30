@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800" role="img" aria-label="ม็อกอัพโปโลด้านหน้า">
+  <rect width="800" height="800" fill="#f1f5f9"/>
+  <path d="M250 170 L330 140 Q400 210 470 140 L550 170 L610 250 L545 300 L545 660 Q400 680 255 660 L255 300 L190 250 Z" fill="#1b2a4a"/>
+  <path d="M250 170 L190 250 L255 300 L262 200 Z" fill="#16233d"/>
+  <path d="M550 170 L610 250 L545 300 L538 200 Z" fill="#16233d"/>
+  <path d="M330 140 Q400 205 470 140 L455 128 Q400 178 345 128 Z" fill="#f8fafc"/>
+  <path d="M372 168 L400 200 L428 168 L400 152 Z" fill="#0f1a2e"/>
+  <line x1="400" y1="200" x2="400" y2="258" stroke="#0f1a2e" stroke-width="5"/>
+  <!-- ปักโลโก้อกซ้าย -->
+  <g transform="translate(318 300)">
+    <circle cx="0" cy="0" r="30" fill="none" stroke="#12a594" stroke-width="6"/>
+    <path d="M-14 0 H14 M0 -14 V14" stroke="#12a594" stroke-width="9" stroke-linecap="round"/>
+  </g>
+  <!-- กรอบ + ป้ายขนาด วางนอกตัวเสื้อ จะได้ไม่ทับลาย -->
+  <g stroke="#94a3b8" stroke-width="2" stroke-dasharray="7 6">
+    <rect x="270" y="252" width="96" height="96" fill="none"/>
+  </g>
+  <line x1="270" y1="300" x2="150" y2="300" stroke="#94a3b8" stroke-width="2"/>
+  <text x="144" y="295" text-anchor="end" font-family="Helvetica, Arial, sans-serif" font-size="20" fill="#475569">ปัก 8 ซม.</text>
+</svg>

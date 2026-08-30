@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="700" height="900" viewBox="0 0 700 900" role="img" aria-label="รูปถ่ายตารางไซซ์ที่ลูกค้าส่งมา">
+  <rect width="700" height="900" fill="#c8cdd4"/>
+  <g transform="rotate(-2 350 450)">
+    <rect x="70" y="70" width="560" height="760" fill="#fdfcf7" stroke="#b6bcc4" stroke-width="3"/>
+    <text x="350" y="150" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="34" font-weight="700" fill="#1f2937">ตารางไซซ์ — โปโล</text>
+    <g font-family="Helvetica, Arial, sans-serif" font-size="26" fill="#374151">
+      <line x1="120" y1="200" x2="580" y2="200" stroke="#9ca3af" stroke-width="2"/>
+      <text x="150" y="250">S</text><text x="330" y="250">36"</text><text x="470" y="250">24 ตัว</text>
+      <line x1="120" y1="280" x2="580" y2="280" stroke="#e5e7eb" stroke-width="2"/>
+      <text x="150" y="330">M</text><text x="330" y="330">38"</text><text x="470" y="330">72 ตัว</text>
+      <line x1="120" y1="360" x2="580" y2="360" stroke="#e5e7eb" stroke-width="2"/>
+      <text x="150" y="410">L</text><text x="330" y="410">40"</text><text x="470" y="410">84 ตัว</text>
+      <line x1="120" y1="440" x2="580" y2="440" stroke="#e5e7eb" stroke-width="2"/>
+      <text x="150" y="490">XL</text><text x="330" y="490">42"</text><text x="470" y="490">48 ตัว</text>
+      <line x1="120" y1="520" x2="580" y2="520" stroke="#e5e7eb" stroke-width="2"/>
+      <text x="150" y="570">2XL</text><text x="330" y="570">44"</text><text x="470" y="570">12 ตัว</text>
+      <line x1="120" y1="600" x2="580" y2="600" stroke="#9ca3af" stroke-width="2"/>
+      <text x="150" y="655" font-weight="700">รวม</text><text x="470" y="655" font-weight="700">240 ตัว</text>
+    </g>
+    <text x="350" y="760" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="22" fill="#6b7280">*ปักชื่อพนักงานเฉพาะไซซ์ L ขึ้นไป</text>
+  </g>
+</svg>
