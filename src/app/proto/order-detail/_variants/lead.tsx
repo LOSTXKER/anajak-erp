@@ -115,7 +115,11 @@ export function LeadVariant({ thin, showMoney }: { thin: boolean; showMoney: boo
   const order = demoOrder(thin);
   const totals = demoTotals(thin);
   const status = demoStatus(thin);
-  const facts = buildFacts(order, totals, showMoney);
+  // หัวใบเหลือแค่ "สถานะ + ปุ่ม" ตามที่เบสสั่ง — สี่ข้อเท็จจริงเดิมย้ายลงการ์ดข้อมูลออเดอร์
+  // เว้น "ลูกค้า" ที่ไม่ต้องย้ายมา เพราะการ์ดลูกค้าฝั่งซ้ายบอกอยู่แล้ว (ห้ามพูดซ้ำ 2 ที่)
+  const headlineFacts = buildFacts(order, totals, showMoney).filter(
+    (fact) => fact.key !== "customer",
+  );
   const meta = buildOrderMeta(order, showMoney);
   const timeline = buildTimeline(order);
   const tax = buildCustomerTax(order);
@@ -177,47 +181,6 @@ export function LeadVariant({ thin, showMoney }: { thin: boolean; showMoney: boo
               <ProtoMoreButton />
             </div>
           </div>
-
-          {/* สี่ข้อเท็จจริงหลัก — ตัวใหญ่ที่สุดในหน้า ตาไปตกที่นี่ก่อนเสมอ */}
-          <dl
-            className={cn(
-              "grid gap-4 rounded-xl bg-surface-muted px-5 py-4",
-              "grid-cols-2",
-              facts.length === 4 ? "lg:grid-cols-4" : "lg:grid-cols-3",
-            )}
-          >
-            {facts.map((fact) => (
-              <div key={fact.key} className="min-w-0">
-                <dt className="text-2xs font-medium uppercase tracking-wide text-muted">
-                  {fact.label}
-                </dt>
-                <dd
-                  className={cn(
-                    "mt-1 text-lg font-semibold leading-6 [overflow-wrap:anywhere]",
-                    fact.empty
-                      ? fact.tone === "warn"
-                        ? "text-sm font-medium text-amber-700 dark:text-amber-300"
-                        : "text-sm font-medium text-muted"
-                      : "text-strong",
-                  )}
-                >
-                  {fact.value}
-                </dd>
-                {fact.detail && (
-                  <p
-                    className={cn(
-                      "mt-1 text-2xs [overflow-wrap:anywhere]",
-                      fact.tone === "warn" && !fact.empty
-                        ? "text-amber-700 dark:text-amber-300"
-                        : "text-muted",
-                    )}
-                  >
-                    {fact.detail}
-                  </p>
-                )}
-              </div>
-            ))}
-          </dl>
 
           {/* แถบสถานะอยู่ในหัวใบ — "งานอยู่ตรงไหน" คือส่วนหนึ่งของหัวเรื่อง ไม่ใช่ของแยก */}
           <div className="-mb-1">
@@ -296,6 +259,51 @@ export function LeadVariant({ thin, showMoney }: { thin: boolean; showMoney: boo
               </Button>
             }
           >
+            {/* กำหนดส่ง · จำนวน · ยอด — เบสสั่งเอาออกจากหัวใบ (2026-08-30) แต่สามอย่างนี้
+                ไม่มีที่อื่นในหน้าเลย ถ้าลบตามตรง ๆ = ข้อมูลหาย จึงย้ายมาไว้บนสุดของการ์ดนี้
+                และยังทำให้เด่นกว่าแถวอื่นด้วยขนาด เพราะยังเป็นของที่คนเปิดมาหาบ่อยที่สุด
+                (“ลูกค้า” ไม่ต้องย้ายมา — การ์ดลูกค้าข้างซ้ายบอกอยู่แล้ว) */}
+            {headlineFacts.length > 0 && (
+              <dl
+                className={cn(
+                  "mb-4 grid gap-3 border-b border-divider pb-4",
+                  // ไม่เห็นเงิน = เหลือ 2 ช่อง ต้องยุบคอลัมน์ตาม ไม่งั้นเหลือช่องว่างค้างข้างขวา
+                  headlineFacts.length >= 3 ? "grid-cols-3" : "grid-cols-2",
+                )}
+              >
+                {headlineFacts.map((fact) => (
+                  <div key={fact.key} className="min-w-0">
+                    <dt className="text-2xs uppercase tracking-wide text-muted">
+                      {fact.label}
+                    </dt>
+                    <dd
+                      className={cn(
+                        "mt-0.5 text-base font-semibold leading-5 [overflow-wrap:anywhere]",
+                        fact.empty
+                          ? fact.tone === "warn"
+                            ? "text-sm font-medium text-amber-700 dark:text-amber-300"
+                            : "text-sm font-medium text-muted"
+                          : "text-strong",
+                      )}
+                    >
+                      {fact.value}
+                    </dd>
+                    {fact.detail && (
+                      <p
+                        className={cn(
+                          "mt-0.5 text-2xs [overflow-wrap:anywhere]",
+                          fact.tone === "warn" && !fact.empty
+                            ? "text-amber-700 dark:text-amber-300"
+                            : "text-muted",
+                        )}
+                      >
+                        {fact.detail}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </dl>
+            )}
             <RowList items={meta} cols={1} />
           </QuietCard>
 
