@@ -239,7 +239,11 @@ const hSm = CONTROL_H_SM.split(" ");
     "src/components/production/production-route-rail.tsx",
     "src/components/production/production-freshness.tsx",
   ]);
+  /* หน้าลอง (/proto) ไม่อยู่ในด่านนี้ — เป็นที่ทดลอง "หน้าตา" ก่อนเคาะ จึงต้อง
+     ลองระยะตัวอักษร/ความสูงบรรทัดนอกบันไดกลางได้ · ไม่มีผู้ใช้จริงเห็น (noindex,
+     ข้อมูลปลอม) และเมื่อเคาะแล้วโค้ดจะถูกเขียนใหม่ในของจริงซึ่งโดนด่านนี้เต็ม ๆ */
   for (const path of tsxFilesUnder("src")) {
+    if (path.startsWith("src/app/proto/")) continue;
     const source = readFileSync(path, "utf8");
     const lineOf = (index: number) => source.slice(0, index).split("\n").length;
 
@@ -2296,23 +2300,48 @@ check(
   );
   const problems: string[] = [];
 
+  /* ลำดับ DOM = ลำดับที่มือถือซ้อนกัน · สรุปต้องมาก่อนการ์ดลูกค้าที่ยาวมาก
+     ไม่งั้นบนมือถือกว่าจะเห็นกำหนดส่ง/ยอดต้องเลื่อนผ่านที่อยู่กับประวัติลูกค้าทั้งหมด */
   if (
     summaryIndex < 0 ||
     customerIndex < 0 ||
     shippingIndex < 0 ||
-    !(summaryIndex < customerIndex && customerIndex < shippingIndex)
+    !(summaryIndex < shippingIndex && shippingIndex < customerIndex)
   ) {
-    problems.push("DOM ต้องเรียงสรุปออเดอร์ → ลูกค้า → การจัดส่ง");
+    problems.push("DOM ต้องเรียงสรุปออเดอร์ → การจัดส่ง → ลูกค้า");
   }
   if (
     !overviewSource.includes('className="space-y-5"') ||
     !overviewSource.includes("grid items-start gap-5") ||
+    // คอลัมน์สรุปมาก่อนใน DOM แล้วดันไปขวาบนจอกว้าง — ถอด col-start ออกเมื่อไหร่
+    // มือถือยังถูกอยู่ แต่จอคอมจะกลายเป็นสรุปอยู่ซ้าย/ลูกค้าอยู่ขวา ซึ่งไม่ใช่ที่เบสเคาะ
+    !overviewSource.includes("xl:col-start-2 xl:row-start-1") ||
+    !overviewSource.includes("xl:col-start-1 xl:row-start-1") ||
     !overviewSource.includes(
-      '"grid grid-cols-2 gap-x-4 gap-y-4 sm:gap-x-8 sm:gap-y-5"',
+      '"grid grid-cols-2 gap-x-4 gap-y-4 sm:gap-x-6 sm:gap-y-5 lg:grid-cols-3"',
     )
   ) {
     problems.push(
-      "การ์ดภาพรวมต้องเต็มแถว สรุปมือถือเป็น 2×2 และการ์ดรองสูงตามเนื้อหาจริง",
+      "แท็บภาพรวมต้องเป็นสองคอลัมน์โดยคอลัมน์สรุปมาก่อนใน DOM และสามค่าหลักเป็น 2×2 บนมือถือ",
+    );
+  }
+  /* หัวข้อการ์ดในแท็บนี้ต้องเงียบ (compact) — หัวใบเป็นจุดเดียวที่เสียงดัง
+     ถ้าการ์ดกลับไปหัวหนาเท่าเดิม ลำดับความสำคัญที่เบสเคาะไว้จะหายทันที */
+  if ((overviewSource.match(/\n\s+compact\n/g) ?? []).length < 4) {
+    problems.push("หัวข้อการ์ดในแท็บภาพรวมต้องเป็น compact ทุกใบ");
+  }
+  /* หัวใบ (2026-08-30 เบสสั่ง "ข้างบนไม่ต้องมีอะไรเยอะ มีแค่สถานะและ CTA ก็พอ")
+     — ต้องเป็นแผ่นเดียวที่ห่อ PageHeader + แถบสถานะ · ชื่องานเป็น description
+     (ไม่ใช่ meta ตัวจิ๋ว) · และห้ามมีข้อเท็จจริงตัวใหญ่กลับขึ้นไปอีก */
+  if (
+    !detailSource.includes("card-surface relative overflow-hidden rounded-2xl") ||
+    !detailSource.includes("description={order.title || null}") ||
+    !detailSource.includes("titleBadge={") ||
+    detailSource.includes("meta={order.title") ||
+    detailSource.includes("<SummaryFact")
+  ) {
+    problems.push(
+      "หัวใบต้องเหลือแค่ตัวตน/สถานะ/ปุ่ม ในแผ่นเดียว และชื่องานต้องเป็นคำอธิบายหัวข้อ",
     );
   }
   if (

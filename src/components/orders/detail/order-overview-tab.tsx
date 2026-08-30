@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { User, Info, Truck, Palette, ArrowRight } from "lucide-react";
+import { User, Info, Truck, Palette, ArrowRight, FileText } from "lucide-react";
 import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,22 @@ import { DISPLAY_AMOUNT, FOCUS_BUTTON } from "@/components/ui/tokens";
    หลังย้ายการแก้ไขไปหน้าเต็ม หน้านี้เป็น read surface: สรุปข้อมูลตัดสินใจก่อน
    แล้วค่อยแยกลูกค้า/การจัดส่งตามเจ้าของข้อมูล · optional ที่ไม่มีค่าหายทั้งแถว
    แทนการจำลองฟอร์มอ่านอย่างเดียวด้วยช่อง "-" จำนวนมาก
+
+   ── หน้าตารอบ 2026-08-30 (เบสเคาะจากหน้าลอง /proto/order-detail แบบ B) ──
+   เดิมเป็นการ์ดใหญ่ "สรุปออเดอร์" เต็มความกว้างบนสุด แล้วค่อยการ์ดลูกค้า/จัดส่ง
+   ทุกการ์ดหัวข้อตัวหนาเท่ากันหมด อ่านแล้วไม่รู้ว่าอะไรสำคัญกว่าอะไร
+
+   ตอนนี้: **หัวใบ** (ใน order-detail-page.tsx) เป็นจุดเดียวที่เสียงดัง — เลขที่
+   ชื่องาน สถานะ ปุ่มขั้นต่อไป · แท็บนี้จึง "เงียบ" ทั้งหมด หัวข้อการ์ดเป็น
+   `compact` (ตัวเล็กสีจาง) ไม่แข่งกับหัวใบ
+
+   สิ่งที่ต้องรู้ก่อนแก้ต่อ:
+   - เบสสั่งเอง 2026-08-30 ว่าหัวใบ "มีแค่สถานะกับ CTA ก็พอ" → กำหนดส่ง/จำนวน/ยอด
+     ที่เคยอยู่บนหัวย้ายมาอยู่บนสุดของการ์ด "ข้อมูลออเดอร์" **ห้ามลบทิ้ง**
+     สามค่านี้ไม่มีที่อยู่อื่นในทั้งหน้า (ลูกค้าไม่ต้องย้ายมา — การ์ดลูกค้าบอกอยู่แล้ว)
+   - คอลัมน์สรุปถูกวางไว้ **ก่อน** ในลำดับ DOM แล้วค่อยดันไปอยู่ขวาด้วย grid
+     บนจอกว้าง — เพื่อให้มือถือ (ที่ซ้อนตามลำดับ DOM) เห็นกำหนดส่ง/ยอด
+     ก่อนต้องเลื่อนผ่านรายละเอียดงานกับการ์ดลูกค้าที่ยาว
 
    ⚠️ TabsContent ของหน้านี้ forceMount เสมอ (ซ่อนด้วย CSS ไม่ถอด DOM)
    → ข้อมูลเงินต้อง gate ด้วย {showMoney && ...} ระดับ JSX เท่านั้น
@@ -133,7 +149,7 @@ function SectionTitle({
 }) {
   return (
     <span className="flex items-center gap-2">
-      <Icon className="h-4 w-4" />
+      <Icon className="h-3.5 w-3.5" />
       {children}
     </span>
   );
@@ -392,190 +408,305 @@ export function OrderOverviewTab({
 
   return (
     <div className="space-y-5">
-      {/* อ่านใบงานให้รู้เรื่องก่อน — หัวหน้าและ status rail บอกตัวตน/ขั้นงานแล้ว
-          การ์ดนี้จึงตอบเฉพาะ ลูกค้า · ส่งเมื่อไร · กี่ชิ้น · ยอดเท่าไร */}
-      <Section
-        data-order-overview-card="summary"
-        title={<SectionTitle icon={Info}>สรุปออเดอร์</SectionTitle>}
-        action={editButton("info", "แก้ไขข้อมูลออเดอร์")}
-      >
-        <div className="space-y-5">
-          <dl
-            className={cn(
-              "grid grid-cols-2 gap-x-4 gap-y-4 sm:gap-x-8 sm:gap-y-5",
-              showMoney ? "xl:grid-cols-4" : "xl:grid-cols-3",
-            )}
+      {/* คอลัมน์สรุปอยู่ "ก่อน" ในลำดับ DOM แล้วดันไปขวาด้วย col-start บนจอกว้าง
+          — มือถือซ้อนตามลำดับ DOM จึงเห็นกำหนดส่ง/ยอดก่อน ไม่ต้องเลื่อนผ่าน
+          รายละเอียดงานกับการ์ดลูกค้าที่ยาวกว่ามาก */}
+      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+        <div className="space-y-5 xl:col-start-2 xl:row-start-1">
+          <Section
+            data-order-overview-card="summary"
+            compact
+            title={<SectionTitle icon={Info}>ข้อมูลออเดอร์</SectionTitle>}
+            action={editButton("info", "แก้ไขข้อมูลออเดอร์")}
           >
-            <SummaryFact label="ลูกค้า" detail={customer?.company || undefined}>
-              {customer ? (
-                customer.name
-              ) : (
-                <span className="text-base font-medium text-muted">
-                  ยังไม่ผูกลูกค้า
-                </span>
-              )}
-            </SummaryFact>
-
-            <SummaryFact
-              label="กำหนดส่ง"
-              detail={
-                <span className="inline-flex flex-wrap items-center gap-1.5">
-                  <span>ความเร่งด่วน</span>
-                  <Badge
-                    variant={
-                      order.priority === "URGENT"
-                        ? "destructive"
-                        : order.priority === "HIGH"
-                          ? "warning"
-                          : "default"
-                    }
-                    size="sm"
-                  >
-                    {PRIORITY_LABELS[order.priority] ?? order.priority}
-                  </Badge>
-                </span>
-              }
-            >
-              {order.deadline ? (
-                formatDate(order.deadline)
-              ) : (
-                <span className="text-base font-medium text-amber-700 dark:text-amber-300">
-                  ยังไม่กำหนดส่ง
-                </span>
-              )}
-            </SummaryFact>
-
-            <SummaryFact label="จำนวนรวม">
-              {totalQuantity > 0 ? (
-                `${totalQuantity.toLocaleString()} ชิ้น`
-              ) : order.estimatedQuantity ? (
-                `~${order.estimatedQuantity.toLocaleString()} ชิ้น`
-              ) : (
-                <span className="text-base font-medium text-muted">
-                  ยังไม่มีรายการ
-                </span>
-              )}
-            </SummaryFact>
-
-            {/* เงินต้อง gate ระดับ JSX เพราะแท็บ keepMounted — ห้ามซ่อนด้วย CSS */}
-            {showMoney && (
-              <SummaryFact
-                label="ยอดรวม"
-                detail={
-                  totalNeedsReview ? (
-                    <span className="text-amber-700 dark:text-amber-300">
-                      ยอดเป็นศูนย์ — ตรวจสอบราคา
+            <div className="space-y-5">
+              {/* สามค่าที่คนเปิดใบงานมาหาบ่อยที่สุด — เคยอยู่บนหัวหน้า
+                  ย้ายลงมาที่นี่ตอนเบสสั่งให้หัวใบเหลือแค่สถานะกับปุ่ม (2026-08-30) */}
+              <dl className="grid grid-cols-2 gap-x-4 gap-y-4 sm:gap-x-6 sm:gap-y-5 lg:grid-cols-3">
+                <SummaryFact
+                  label="กำหนดส่ง"
+                  detail={
+                    <span className="inline-flex flex-wrap items-center gap-1.5">
+                      <span>ความเร่งด่วน</span>
+                      <Badge
+                        variant={
+                          order.priority === "URGENT"
+                            ? "destructive"
+                            : order.priority === "HIGH"
+                              ? "warning"
+                              : "default"
+                        }
+                        size="sm"
+                      >
+                        {PRIORITY_LABELS[order.priority] ?? order.priority}
+                      </Badge>
                     </span>
-                  ) : undefined
-                }
-              >
-                {onOpenMoney ? (
-                  <button
-                    type="button"
-                    onClick={onOpenMoney}
-                    className={cn(
-                      "inline-flex min-h-11 min-w-11 items-center rounded-lg text-left hover:underline",
-                      hasPricedWork
-                        ? DISPLAY_AMOUNT
-                        : "text-base font-medium text-muted",
-                      FOCUS_BUTTON,
-                    )}
-                  >
-                    {hasPricedWork
-                      ? formatCurrency(totalAmount)
-                      : "ยังไม่ตีราคา"}
-                  </button>
-                ) : (
-                  <span
-                    className={
-                      hasPricedWork
-                        ? DISPLAY_AMOUNT
-                        : "text-base font-medium text-muted"
+                  }
+                >
+                  {order.deadline ? (
+                    formatDate(order.deadline)
+                  ) : (
+                    <span className="text-base font-medium text-amber-700 dark:text-amber-300">
+                      ยังไม่กำหนดส่ง
+                    </span>
+                  )}
+                </SummaryFact>
+
+                <SummaryFact label="จำนวนรวม">
+                  {totalQuantity > 0 ? (
+                    `${totalQuantity.toLocaleString()} ชิ้น`
+                  ) : order.estimatedQuantity ? (
+                    `~${order.estimatedQuantity.toLocaleString()} ชิ้น`
+                  ) : (
+                    <span className="text-base font-medium text-muted">
+                      ยังไม่มีรายการ
+                    </span>
+                  )}
+                </SummaryFact>
+
+                {/* เงินต้อง gate ระดับ JSX เพราะแท็บ keepMounted — ห้ามซ่อนด้วย CSS */}
+                {showMoney && (
+                  <SummaryFact
+                    label="ยอดรวม"
+                    detail={
+                      totalNeedsReview ? (
+                        <span className="text-amber-700 dark:text-amber-300">
+                          ยอดเป็นศูนย์ — ตรวจสอบราคา
+                        </span>
+                      ) : undefined
                     }
                   >
-                    {hasPricedWork
-                      ? formatCurrency(totalAmount)
-                      : "ยังไม่ตีราคา"}
-                  </span>
-                )}
-              </SummaryFact>
-            )}
-          </dl>
-
-          {order.description?.trim() && (
-            <Group label="รายละเอียดงาน" divided>
-              <p className="max-w-[75ch] text-sm leading-6 text-secondary [overflow-wrap:anywhere]">
-                {order.description}
-              </p>
-            </Group>
-          )}
-
-          <Group label="ข้อมูลประกอบ" divided>
-            <dl className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2 xl:grid-cols-4">
-              <Field label="ประเภทงาน">
-                <Badge
-                  variant={order.orderType === "CUSTOM" ? "accent" : "default"}
-                  size="sm"
-                >
-                  {ORDER_TYPE_UI_LABELS[order.orderType]}
-                </Badge>
-              </Field>
-              <Field label="ช่องทาง">
-                <span
-                  className={cn(
-                    "inline-flex rounded-full px-2 py-0.5 text-xs font-medium",
-                    channelColor.bg,
-                    channelColor.text,
-                  )}
-                >
-                  {CHANNEL_LABELS[order.channel] ?? order.channel}
-                </span>
-              </Field>
-              <Field label="สถานะที่ลูกค้าเห็น">
-                <Badge variant="default" size="sm">
-                  {CUSTOMER_STATUS_LABELS[order.customerStatus] ??
-                    order.customerStatus}
-                </Badge>
-              </Field>
-              {termsLabel && (
-                <Field label="เงื่อนไขชำระ">
-                  <span>
-                    {termsLabel}
-                    {termsDiffers && (
-                      <span className="mt-0.5 block text-xs font-normal text-muted">
-                        มาตรฐานลูกค้า: {customerTermsLabel}
+                    {onOpenMoney ? (
+                      <button
+                        type="button"
+                        onClick={onOpenMoney}
+                        className={cn(
+                          "inline-flex min-h-11 min-w-11 items-center rounded-lg text-left hover:underline",
+                          hasPricedWork
+                            ? DISPLAY_AMOUNT
+                            : "text-base font-medium text-muted",
+                          FOCUS_BUTTON,
+                        )}
+                      >
+                        {hasPricedWork
+                          ? formatCurrency(totalAmount)
+                          : "ยังไม่ตีราคา"}
+                      </button>
+                    ) : (
+                      <span
+                        className={
+                          hasPricedWork
+                            ? DISPLAY_AMOUNT
+                            : "text-base font-medium text-muted"
+                        }
+                      >
+                        {hasPricedWork
+                          ? formatCurrency(totalAmount)
+                          : "ยังไม่ตีราคา"}
                       </span>
                     )}
-                  </span>
-                </Field>
-              )}
-              {order.poNumber && (
-                <Field label="เลขที่ PO">
-                  <span className="font-mono">{order.poNumber}</span>
-                </Field>
-              )}
-              {order.externalOrderId && (
-                <Field label="หมายเลขภายนอก">
-                  <span className="font-mono">{order.externalOrderId}</span>
-                </Field>
-              )}
-              {isMarketplace && showMoney && order.platformFee != null && (
-                <Field label="ค่าธรรมเนียมแพลตฟอร์ม">
-                  <span className="tabular-nums text-red-600 dark:text-red-400">
-                    -{formatCurrency(order.platformFee)}
-                  </span>
-                </Field>
-              )}
-              {order.stockReservedAt && (
-                <Field label="จองสต๊อกแล้ว">
-                  {formatDateTime(order.stockReservedAt)}
-                </Field>
-              )}
-            </dl>
-          </Group>
+                  </SummaryFact>
+                )}
+              </dl>
 
-          {/* เวลาเป็นข้อมูลอ้างอิง ไม่ใช่หัวใจของการตัดสินใจ จึงอยู่บรรทัดท้ายแบบสงบ */}
-          <dl className="flex flex-wrap gap-x-5 gap-y-1 border-t border-divider pt-4 text-xs text-muted">
+              <Group divided>
+                <FieldGrid>
+                  <Field label="ประเภทงาน">
+                    <Badge
+                      variant={order.orderType === "CUSTOM" ? "accent" : "default"}
+                      size="sm"
+                    >
+                      {ORDER_TYPE_UI_LABELS[order.orderType]}
+                    </Badge>
+                  </Field>
+                  <Field label="ช่องทาง">
+                    <span
+                      className={cn(
+                        "inline-flex rounded-full px-2 py-0.5 text-xs font-medium",
+                        channelColor.bg,
+                        channelColor.text,
+                      )}
+                    >
+                      {CHANNEL_LABELS[order.channel] ?? order.channel}
+                    </span>
+                  </Field>
+                  <Field label="สถานะที่ลูกค้าเห็น">
+                    <Badge variant="default" size="sm">
+                      {CUSTOMER_STATUS_LABELS[order.customerStatus] ??
+                        order.customerStatus}
+                    </Badge>
+                  </Field>
+                  {termsLabel && (
+                    <Field label="เงื่อนไขชำระ">
+                      <span>
+                        {termsLabel}
+                        {termsDiffers && (
+                          <span className="mt-0.5 block text-xs font-normal text-muted">
+                            มาตรฐานลูกค้า: {customerTermsLabel}
+                          </span>
+                        )}
+                      </span>
+                    </Field>
+                  )}
+                  {order.poNumber && (
+                    <Field label="เลขที่ PO">
+                      <span className="font-mono">{order.poNumber}</span>
+                    </Field>
+                  )}
+                  {order.externalOrderId && (
+                    <Field label="หมายเลขภายนอก">
+                      <span className="font-mono">{order.externalOrderId}</span>
+                    </Field>
+                  )}
+                  {isMarketplace && showMoney && order.platformFee != null && (
+                    <Field label="ค่าธรรมเนียมแพลตฟอร์ม">
+                      <span className="tabular-nums text-red-600 dark:text-red-400">
+                        -{formatCurrency(order.platformFee)}
+                      </span>
+                    </Field>
+                  )}
+                  {order.stockReservedAt && (
+                    <Field label="จองสต๊อกแล้ว">
+                      {formatDateTime(order.stockReservedAt)}
+                    </Field>
+                  )}
+                </FieldGrid>
+              </Group>
+            </div>
+          </Section>
+
+          <Section
+            data-order-overview-card="shipping"
+            compact
+            title={<SectionTitle icon={Truck}>การจัดส่ง</SectionTitle>}
+            action={editButton(
+              "shipping",
+              hasShipping ? "แก้ไขที่อยู่จัดส่ง" : "เพิ่มที่อยู่จัดส่ง",
+              hasShipping ? "แก้ไข" : "เพิ่มที่อยู่",
+            )}
+          >
+            <div className="space-y-5">
+              {hasShipping ? (
+                <FieldGrid>
+                  <Field label="ผู้รับ">{order.shippingRecipientName}</Field>
+                  <Field label="เบอร์ผู้รับ">
+                    {order.shippingPhone && (
+                      <PhoneLink phone={order.shippingPhone} />
+                    )}
+                  </Field>
+                  <Field
+                    label="ที่อยู่จัดส่ง"
+                    wide
+                    emptyTone="warn"
+                    emptyText="ยังไม่มีที่อยู่จัดส่ง"
+                  >
+                    {order.shippingAddress || shippingArea ? (
+                      <span className="block space-y-0.5">
+                        {order.shippingAddress && (
+                          <span className="block">{order.shippingAddress}</span>
+                        )}
+                        {shippingArea && (
+                          <span className="block">{shippingArea}</span>
+                        )}
+                      </span>
+                    ) : undefined}
+                  </Field>
+                </FieldGrid>
+              ) : (
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-strong">
+                    ยังไม่มีที่อยู่จัดส่ง
+                  </p>
+                  <p className="text-sm text-muted">
+                    {customer?.address && onEditInfo
+                      ? "หน้าแก้ไขสามารถเลือกใช้ที่อยู่ลูกค้าได้ทันที"
+                      : "เพิ่มผู้รับและที่อยู่ก่อนสร้างใบส่งของ"}
+                  </p>
+                </div>
+              )}
+
+              {order.trackingNumber && (
+                <Group label="เลขพัสดุในออเดอร์" divided>
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <span className="font-mono text-sm font-medium text-strong [overflow-wrap:anywhere]">
+                      {order.trackingNumber}
+                    </span>
+                    {onOpenDelivery && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={onOpenDelivery}
+                      >
+                        ดูการจัดส่ง
+                        <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                      </Button>
+                    )}
+                  </div>
+                </Group>
+              )}
+            </div>
+          </Section>
+
+          {/* ใบที่ไม่ได้ผูกแบรนด์ไม่ต้องมีการ์ดว่างกินพื้นที่ */}
+          {order.brandProfile && (
+            <Section
+              data-order-overview-card="brand"
+              compact
+              title={<SectionTitle icon={Palette}>แบรนด์ลูกค้า</SectionTitle>}
+            >
+              <FieldGrid>
+                <Field label="ชื่อแบรนด์">{order.brandProfile.brandName}</Field>
+                {order.brandProfile.logoUrl && (
+                  <Field label="โลโก้">
+                    <a
+                      href={order.brandProfile.logoUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={cn(
+                        "inline-flex min-h-11 min-w-11 items-center rounded-lg text-blue-600 hover:underline dark:text-blue-400",
+                        FOCUS_BUTTON,
+                      )}
+                    >
+                      เปิดไฟล์โลโก้
+                    </a>
+                  </Field>
+                )}
+                {order.brandProfile.colorCodes.length > 0 && (
+                  <Field label="โค้ดสี" wide>
+                    <span className="flex flex-wrap gap-2">
+                      {order.brandProfile.colorCodes.map((code) => (
+                        <span
+                          key={code}
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2 py-1 font-mono text-xs text-secondary dark:bg-slate-800"
+                        >
+                          <span
+                            aria-hidden="true"
+                            className="h-3 w-3 shrink-0 rounded-full ring-1 ring-slate-300 dark:ring-white/20"
+                            style={{ backgroundColor: code }}
+                          />
+                          {code}
+                        </span>
+                      ))}
+                    </span>
+                  </Field>
+                )}
+                {order.brandProfile.fonts.length > 0 && (
+                  <Field label="ฟอนต์" wide>
+                    {order.brandProfile.fonts.join(" · ")}
+                  </Field>
+                )}
+                {order.brandProfile.styleNotes && (
+                  <Field label="โน้ตสไตล์" wide>
+                    {order.brandProfile.styleNotes}
+                  </Field>
+                )}
+              </FieldGrid>
+            </Section>
+          )}
+
+          {/* เวลาเป็นข้อมูลอ้างอิง ไม่ใช่หัวใจของการตัดสินใจ จึงอยู่ท้ายสุดแบบไม่มีการ์ด */}
+          <dl className="flex flex-wrap gap-x-5 gap-y-1 px-1 text-xs text-muted">
             {creatorName && (
               <ReferenceItem label="เปิดโดย">{creatorName}</ReferenceItem>
             )}
@@ -605,303 +736,188 @@ export function OrderOverviewTab({
             </ReferenceItem>
           </dl>
         </div>
-      </Section>
 
-      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-        <Section
-          data-order-overview-card="customer"
-          title={<SectionTitle icon={User}>ลูกค้าและผู้ติดต่อ</SectionTitle>}
-          action={
-            customer ? (
-              <Button asChild variant="ghost" size="sm">
-                <Link href={`/customers/${customer.id}`}>เปิดหน้าลูกค้า</Link>
-              </Button>
-            ) : undefined
-          }
-        >
-          {customer ? (
-            <div className="space-y-5">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-lg font-semibold text-strong [overflow-wrap:anywhere]">
-                    {customer.name}
-                  </p>
-                  {customer.company && (
-                    <p className="text-sm text-secondary [overflow-wrap:anywhere]">
-                      {customer.company}
+        <div className="space-y-5 xl:col-start-1 xl:row-start-1">
+          {order.description?.trim() && (
+            <Section
+              data-order-overview-card="description"
+              compact
+              title={<SectionTitle icon={FileText}>รายละเอียดงาน</SectionTitle>}
+            >
+              <p className="max-w-[75ch] text-sm leading-6 text-secondary [overflow-wrap:anywhere]">
+                {order.description}
+              </p>
+            </Section>
+          )}
+
+          <Section
+            data-order-overview-card="customer"
+            compact
+            title={<SectionTitle icon={User}>ลูกค้าและผู้ติดต่อ</SectionTitle>}
+            action={
+              customer ? (
+                <Button asChild variant="ghost" size="sm">
+                  <Link href={`/customers/${customer.id}`}>เปิดหน้าลูกค้า</Link>
+                </Button>
+              ) : undefined
+            }
+          >
+            {customer ? (
+              <div className="space-y-5">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-base font-semibold text-strong [overflow-wrap:anywhere]">
+                      {customer.name}
                     </p>
-                  )}
+                    {customer.company && (
+                      <p className="text-sm text-secondary [overflow-wrap:anywhere]">
+                        {customer.company}
+                      </p>
+                    )}
+                  </div>
+                  <Badge variant="secondary" size="sm">
+                    {customer.customerType === "CORPORATE"
+                      ? "นิติบุคคล"
+                      : "บุคคลธรรมดา"}
+                  </Badge>
                 </div>
-                <Badge variant="secondary" size="sm">
-                  {customer.customerType === "CORPORATE"
-                    ? "นิติบุคคล"
-                    : "บุคคลธรรมดา"}
-                </Badge>
-              </div>
 
-              <FieldGrid>
-                <Field
-                  label="เลขผู้เสียภาษี"
-                  emptyTone="warn"
-                  emptyText="ยังไม่มีเลขภาษี — ออกใบกำกับไม่ได้"
-                >
-                  {customer.taxId && (
-                    <span className="font-mono">
-                      {customer.taxId}
-                      {customer.branchNumber && (
-                        <span className="ml-1.5 font-sans text-xs font-normal text-muted">
-                          (สาขา{" "}
-                          {customer.branchNumber === "00000"
-                            ? "สำนักงานใหญ่"
-                            : customer.branchNumber}
-                          )
-                        </span>
-                      )}
-                    </span>
-                  )}
-                </Field>
-              </FieldGrid>
-
-              <Group label="ช่องทางติดต่อ" divided>
-                {hasCustomerContact ? (
-                  <FieldGrid>
-                    <Field label="โทรศัพท์">
-                      {customer.phone && <PhoneLink phone={customer.phone} />}
-                    </Field>
-                    <Field label="ห้องแชท">
-                      {(customer.chatName || customer.chatUrl) && (
-                        <ChatLink
-                          name={customer.chatName}
-                          url={customer.chatUrl}
-                          wrap
-                          className="min-h-11 min-w-11 text-sm"
-                        />
-                      )}
-                    </Field>
-                    <Field label="LINE ID">{customer.lineId}</Field>
-                    <Field label="อีเมล">{customer.email}</Field>
-                  </FieldGrid>
-                ) : (
-                  <p className="text-sm text-muted">ยังไม่มีช่องทางติดต่อ</p>
-                )}
-              </Group>
-
-              <Group label="ที่อยู่ลูกค้าและออกบิล" divided>
                 <FieldGrid>
                   <Field
-                    label="ที่อยู่ลูกค้า"
-                    wide
-                    emptyText="ยังไม่มีที่อยู่ลูกค้า"
+                    label="เลขผู้เสียภาษี"
+                    emptyTone="warn"
+                    emptyText="ยังไม่มีเลขภาษี — ออกใบกำกับไม่ได้"
                   >
-                    {customer.address}
-                  </Field>
-                  {hasBilling ? (
-                    <Field label="ที่อยู่ออกบิล" wide>
-                      <span className="block space-y-0.5">
-                        {customer.billingAddress && (
-                          <span className="block">
-                            {customer.billingAddress}
+                    {customer.taxId && (
+                      <span className="font-mono">
+                        {customer.taxId}
+                        {customer.branchNumber && (
+                          <span className="ml-1.5 font-sans text-xs font-normal text-muted">
+                            (สาขา{" "}
+                            {customer.branchNumber === "00000"
+                              ? "สำนักงานใหญ่"
+                              : customer.branchNumber}
+                            )
                           </span>
                         )}
-                        {billingArea && (
-                          <span className="block">{billingArea}</span>
-                        )}
                       </span>
-                    </Field>
-                  ) : customer.address ? (
-                    <Field label="ที่อยู่ออกบิล" wide>
-                      ใช้ที่อยู่ลูกค้า
-                    </Field>
-                  ) : null}
-                  {customer.tags.length > 0 && (
-                    <Field label="ป้ายลูกค้า" wide>
-                      <span className="flex flex-wrap gap-1.5">
-                        {customer.tags.map((tag) => (
-                          <Badge
-                            key={tag}
-                            variant="secondary"
-                            size="sm"
-                            className="max-w-full whitespace-normal [overflow-wrap:anywhere]"
-                          >
-                            {tag}
-                          </Badge>
-                        ))}
-                      </span>
-                    </Field>
-                  )}
-                  {customer.notes && (
-                    <Field label="หมายเหตุลูกค้า (ทุกใบ)" wide>
-                      {customer.notes}
-                    </Field>
-                  )}
+                    )}
+                  </Field>
                 </FieldGrid>
-              </Group>
 
-              {/* เงินของลูกค้า — ห่อระดับ JSX ไม่ใช่ซ่อนด้วย CSS (แท็บนี้ forceMount) */}
-              {showMoney && hasCustomerHistory && (
-                <Group label="ประวัติลูกค้า" divided>
+                <Group label="ช่องทางติดต่อ" divided>
+                  {hasCustomerContact ? (
+                    <FieldGrid>
+                      <Field label="โทรศัพท์">
+                        {customer.phone && <PhoneLink phone={customer.phone} />}
+                      </Field>
+                      <Field label="ห้องแชท">
+                        {(customer.chatName || customer.chatUrl) && (
+                          <ChatLink
+                            name={customer.chatName}
+                            url={customer.chatUrl}
+                            wrap
+                            className="min-h-11 min-w-11 text-sm"
+                          />
+                        )}
+                      </Field>
+                      <Field label="LINE ID">{customer.lineId}</Field>
+                      <Field label="อีเมล">{customer.email}</Field>
+                    </FieldGrid>
+                  ) : (
+                    <p className="text-sm text-muted">ยังไม่มีช่องทางติดต่อ</p>
+                  )}
+                </Group>
+
+                <Group label="ที่อยู่ลูกค้าและออกบิล" divided>
                   <FieldGrid>
-                    {customer.creditLimit != null && (
-                      <Field label="วงเงินเครดิต">
-                        <span className="tabular-nums">
-                          {formatCurrency(customer.creditLimit)}
+                    <Field
+                      label="ที่อยู่ลูกค้า"
+                      wide
+                      emptyText="ยังไม่มีที่อยู่ลูกค้า"
+                    >
+                      {customer.address}
+                    </Field>
+                    {hasBilling ? (
+                      <Field label="ที่อยู่ออกบิล" wide>
+                        <span className="block space-y-0.5">
+                          {customer.billingAddress && (
+                            <span className="block">
+                              {customer.billingAddress}
+                            </span>
+                          )}
+                          {billingArea && (
+                            <span className="block">{billingArea}</span>
+                          )}
+                        </span>
+                      </Field>
+                    ) : customer.address ? (
+                      <Field label="ที่อยู่ออกบิล" wide>
+                        ใช้ที่อยู่ลูกค้า
+                      </Field>
+                    ) : null}
+                    {customer.tags.length > 0 && (
+                      <Field label="ป้ายลูกค้า" wide>
+                        <span className="flex flex-wrap gap-1.5">
+                          {customer.tags.map((tag) => (
+                            <Badge
+                              key={tag}
+                              variant="secondary"
+                              size="sm"
+                              className="max-w-full whitespace-normal [overflow-wrap:anywhere]"
+                            >
+                              {tag}
+                            </Badge>
+                          ))}
                         </span>
                       </Field>
                     )}
-                    {customer.totalSpent != null && (
-                      <Field label="ยอดซื้อสะสม">
-                        <span className="tabular-nums">
-                          {formatCurrency(customer.totalSpent)}
-                        </span>
-                      </Field>
-                    )}
-                    {customer.totalOrders > 0 && (
-                      <Field label="สั่งมาแล้ว">
-                        {customer.totalOrders.toLocaleString()} ครั้ง
-                      </Field>
-                    )}
-                    {customer.lastOrderAt && (
-                      <Field label="สั่งล่าสุด">
-                        {formatDate(customer.lastOrderAt)}
+                    {customer.notes && (
+                      <Field label="หมายเหตุลูกค้า (ทุกใบ)" wide>
+                        {customer.notes}
                       </Field>
                     )}
                   </FieldGrid>
                 </Group>
-              )}
-            </div>
-          ) : (
-            <p className="text-sm text-muted">ใบนี้ยังไม่ผูกกับลูกค้า</p>
-          )}
-        </Section>
 
-        <Section
-          data-order-overview-card="shipping"
-          title={<SectionTitle icon={Truck}>การจัดส่ง</SectionTitle>}
-          action={editButton(
-            "shipping",
-            hasShipping ? "แก้ไขที่อยู่จัดส่ง" : "เพิ่มที่อยู่จัดส่ง",
-            hasShipping ? "แก้ไข" : "เพิ่มที่อยู่",
-          )}
-        >
-          <div className="space-y-5">
-            {hasShipping ? (
-              <FieldGrid>
-                <Field label="ผู้รับ">{order.shippingRecipientName}</Field>
-                <Field label="เบอร์ผู้รับ">
-                  {order.shippingPhone && (
-                    <PhoneLink phone={order.shippingPhone} />
-                  )}
-                </Field>
-                <Field
-                  label="ที่อยู่จัดส่ง"
-                  wide
-                  emptyTone="warn"
-                  emptyText="ยังไม่มีที่อยู่จัดส่ง"
-                >
-                  {order.shippingAddress || shippingArea ? (
-                    <span className="block space-y-0.5">
-                      {order.shippingAddress && (
-                        <span className="block">{order.shippingAddress}</span>
+                {/* เงินของลูกค้า — ห่อระดับ JSX ไม่ใช่ซ่อนด้วย CSS (แท็บนี้ forceMount) */}
+                {showMoney && hasCustomerHistory && (
+                  <Group label="ประวัติลูกค้า" divided>
+                    <FieldGrid>
+                      {customer.creditLimit != null && (
+                        <Field label="วงเงินเครดิต">
+                          <span className="tabular-nums">
+                            {formatCurrency(customer.creditLimit)}
+                          </span>
+                        </Field>
                       )}
-                      {shippingArea && (
-                        <span className="block">{shippingArea}</span>
+                      {customer.totalSpent != null && (
+                        <Field label="ยอดซื้อสะสม">
+                          <span className="tabular-nums">
+                            {formatCurrency(customer.totalSpent)}
+                          </span>
+                        </Field>
                       )}
-                    </span>
-                  ) : undefined}
-                </Field>
-              </FieldGrid>
-            ) : (
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-strong">
-                  ยังไม่มีที่อยู่จัดส่ง
-                </p>
-                <p className="text-sm text-muted">
-                  {customer?.address && onEditInfo
-                    ? "หน้าแก้ไขสามารถเลือกใช้ที่อยู่ลูกค้าได้ทันที"
-                    : "เพิ่มผู้รับและที่อยู่ก่อนสร้างใบส่งของ"}
-                </p>
+                      {customer.totalOrders > 0 && (
+                        <Field label="สั่งมาแล้ว">
+                          {customer.totalOrders.toLocaleString()} ครั้ง
+                        </Field>
+                      )}
+                      {customer.lastOrderAt && (
+                        <Field label="สั่งล่าสุด">
+                          {formatDate(customer.lastOrderAt)}
+                        </Field>
+                      )}
+                    </FieldGrid>
+                  </Group>
+                )}
               </div>
+            ) : (
+              <p className="text-sm text-muted">ใบนี้ยังไม่ผูกกับลูกค้า</p>
             )}
-
-            {order.trackingNumber && (
-              <Group label="เลขพัสดุในออเดอร์" divided>
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <span className="font-mono text-sm font-medium text-strong [overflow-wrap:anywhere]">
-                    {order.trackingNumber}
-                  </span>
-                  {onOpenDelivery && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={onOpenDelivery}
-                    >
-                      ดูการจัดส่ง
-                      <ArrowRight className="h-4 w-4" aria-hidden="true" />
-                    </Button>
-                  )}
-                </div>
-              </Group>
-            )}
-          </div>
-        </Section>
+          </Section>
+        </div>
       </div>
-
-      {/* ใบที่ไม่ได้ผูกแบรนด์ไม่ต้องมีการ์ดว่างกินพื้นที่ */}
-      {order.brandProfile && (
-        <Section
-          data-order-overview-card="brand"
-          title={<SectionTitle icon={Palette}>แบรนด์ลูกค้า</SectionTitle>}
-        >
-          <FieldGrid>
-            <Field label="ชื่อแบรนด์">{order.brandProfile.brandName}</Field>
-            {order.brandProfile.logoUrl && (
-              <Field label="โลโก้">
-                <a
-                  href={order.brandProfile.logoUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={cn(
-                    "inline-flex min-h-11 min-w-11 items-center rounded-lg text-blue-600 hover:underline dark:text-blue-400",
-                    FOCUS_BUTTON,
-                  )}
-                >
-                  เปิดไฟล์โลโก้
-                </a>
-              </Field>
-            )}
-            {order.brandProfile.colorCodes.length > 0 && (
-              <Field label="โค้ดสี" wide>
-                <span className="flex flex-wrap gap-2">
-                  {order.brandProfile.colorCodes.map((code) => (
-                    <span
-                      key={code}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2 py-1 font-mono text-xs text-secondary dark:bg-slate-800"
-                    >
-                      <span
-                        aria-hidden="true"
-                        className="h-3 w-3 shrink-0 rounded-full ring-1 ring-slate-300 dark:ring-white/20"
-                        style={{ backgroundColor: code }}
-                      />
-                      {code}
-                    </span>
-                  ))}
-                </span>
-              </Field>
-            )}
-            {order.brandProfile.fonts.length > 0 && (
-              <Field label="ฟอนต์" wide>
-                {order.brandProfile.fonts.join(" · ")}
-              </Field>
-            )}
-            {order.brandProfile.styleNotes && (
-              <Field label="โน้ตสไตล์" wide>
-                {order.brandProfile.styleNotes}
-              </Field>
-            )}
-          </FieldGrid>
-        </Section>
-      )}
     </div>
   );
 }

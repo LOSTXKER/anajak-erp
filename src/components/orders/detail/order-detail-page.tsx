@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useConfirm, usePromptText } from "@/components/ui/confirm-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
@@ -15,6 +16,8 @@ import { PageHeader } from "@/components/page-header";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
   INTERNAL_STATUS_LABELS,
+  CUSTOMER_STATUS_LABELS,
+  PRIORITY_LABELS,
   CHANNEL_COLORS,
   getFlowSteps,
   getNextStatuses,
@@ -595,8 +598,38 @@ function OrderDetailContent({
   const dropdownItemClass =
     "flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-secondary outline-none data-[highlighted]:bg-interactive-hover data-[highlighted]:text-strong";
 
+  const isUrgent = order.priority === "URGENT";
+  const isHighPriority = order.priority === "HIGH";
+
   return (
     <div className="space-y-6">
+      {/* ── หัวใบ (เบสเคาะจากหน้าลอง /proto/order-detail แบบ B · 2026-08-30) ──
+          รวม "ใบไหน · อยู่ขั้นไหน · ต้องกดอะไรต่อ" ไว้แผ่นเดียว แล้วให้ทุกอย่างใต้
+          แถบแท็บเงียบลง (หัวข้อการ์ดในแท็บภาพรวมเป็น compact) — เปิดหน้ามาตาจึงตก
+          ที่นี่ก่อนเสมอ ไม่ต้องกวาดหาว่าอะไรสำคัญ
+
+          เบสสั่งเองรอบนี้ว่า "ข้างบนไม่ต้องมีอะไรเยอะ มีแค่สถานะและ CTA ก็พอ"
+          → ห้ามเอา กำหนดส่ง/จำนวน/ยอด กลับขึ้นมาที่นี่ (อยู่การ์ด "ข้อมูลออเดอร์" แล้ว)
+
+          ชื่องานส่งผ่าน `description` ไม่ใช่ `meta` — ของเดิมเป็นตัว 11px สีจางสุด
+          ทั้งที่เป็นข้อความเดียวที่บอกว่าใบนี้ทำอะไร · คำอธิบายอัตโนมัติประจำหน้า
+          ("ดูรายละเอียด ม็อกอัพ …") ถูกปิดด้วย null เพราะเหมือนกันทุกใบ ไม่ได้บอกอะไร */}
+      <section
+        className={cn(
+          "card-surface relative overflow-hidden rounded-2xl",
+        )}
+      >
+        {/* แถบสีซ้าย = ความเร่งด่วน · ใบปกติไม่มีแถบ จึงไม่มีสีมารบกวนโดยไม่จำเป็น */}
+        {(isUrgent || isHighPriority) && (
+          <span
+            aria-hidden="true"
+            className={cn(
+              "absolute inset-y-0 left-0 w-1",
+              isUrgent ? "bg-red-500" : "bg-amber-500",
+            )}
+          />
+        )}
+        <div className="space-y-4 px-5 py-4 sm:px-6 sm:py-5">
       <PageHeader
         icon={ShoppingCart}
         breadcrumb={[
@@ -604,7 +637,19 @@ function OrderDetailContent({
           { label: order.orderNumber },
         ]}
         title={order.orderNumber}
-        meta={order.title || undefined}
+        description={order.title || null}
+        titleBadge={
+          <span className="flex flex-wrap items-center gap-1.5">
+            <Badge variant="accent" size="sm">
+              {CUSTOMER_STATUS_LABELS[order.customerStatus] ?? order.customerStatus}
+            </Badge>
+            {(isUrgent || isHighPriority) && (
+              <Badge variant={isUrgent ? "destructive" : "warning"} size="sm">
+                {PRIORITY_LABELS[order.priority] ?? order.priority}
+              </Badge>
+            )}
+          </span>
+        }
         action={
           <>
             {/* ปุ่มขั้นต่อไป (เบสสั่งถอดแถบฟ้าออก 2026-08-11 → ย้ายปุ่มมาไว้ตรงนี้)
@@ -735,7 +780,8 @@ function OrderDetailContent({
           (แท็บแรกที่เปิดมาเจอ) จึงไม่ได้หายไปจากหน้า แค่ไม่ต้องมีแถบซ้ำอีกชั้น */}
 
       {/* revisions = ชุดเดียวกับที่แท็บประวัติใช้ (ไม่ยิง query เพิ่ม) — แถบสถานะเอาไปหาว่า
-          งานพัก/ยกเลิกค้างไว้ที่ขั้นไหนของสายงาน เพราะ 2 สถานะนี้ไม่มีที่ยืนใน flow */}
+          งานพัก/ยกเลิกค้างไว้ที่ขั้นไหนของสายงาน เพราะ 2 สถานะนี้ไม่มีที่ยืนใน flow
+          อยู่ใน "หัวใบ" เพราะ "งานอยู่ตรงไหน" คือส่วนหนึ่งของหัวเรื่อง ไม่ใช่ของแยกชิ้น */}
       <OrderStatusBar
         flowSteps={flowSteps}
         currentStepIndex={currentStepIndex}
@@ -747,6 +793,8 @@ function OrderDetailContent({
         // ปุ่มขั้นต่อไปหายไปตอนติดด่าน — เหตุผลต้องมาโผล่ตรงนี้แทน ไม่งั้นปุ่มหายเงียบ
         blockers={nextStepBlockers(nextStep, orderContext.data?.readiness ?? null)}
       />
+        </div>
+      </section>
 
       {/* จองสต๊อคมีปัญหา — ต้องเห็นทันทีบนหน้าออเดอร์ (ด่านพร้อมผลิตจะกั้นงานไม่ให้เข้าคิวช่างอยู่แล้ว
           แต่คนแก้ต้นเหตุคือคนที่เปิดหน้านี้) · จองสำเร็จดูได้จากประวัติออเดอร์ */}
