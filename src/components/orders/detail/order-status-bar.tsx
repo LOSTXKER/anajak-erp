@@ -178,11 +178,6 @@ export function OrderStatusBar({
           const st = railStepState({ index: i, anchorIndex, cancelled: isCancelled });
           const isFirst = i === 0;
           const isLast = i === flowSteps.length - 1;
-          // สถานะของขั้นถัดไป — ใช้ระบายครึ่งขวาของเส้นที่พาดไปหาขั้นนั้น
-          const stNext = isLast
-            ? null
-            : railStepState({ index: i + 1, anchorIndex, cancelled: isCancelled });
-
           return (
             <li
               key={step}
@@ -203,19 +198,21 @@ export function OrderStatusBar({
                 // ขอบนอกของขั้นหัว-ท้ายต้องไม่มี padding ไม่งั้นจุดยังเหลื่อมการ์ดข้างล่าง 2px
                 isFirst ? "items-start pl-0" : isLast ? "items-end pr-0" : "items-center",
 
-                /* เส้นเชื่อมแตกเป็นสองครึ่งในตัวขั้นเอง (before = ครึ่งซ้าย · after = ครึ่งขวา)
-                   แทนการลากข้ามช่องด้วย -left-1/2 แบบเดิม — เพราะช่องหัว/ท้ายกว้างไม่เท่า
-                   ช่องกลางแล้ว การอ้างเป็น % ของตัวเองจะไปไม่ถึง/เลยจุดของขั้นข้างเคียง
-                   ครึ่งซ้ายของขั้นนี้กับครึ่งขวาของขั้นก่อนหน้ามาชนกันพอดีที่เส้นแบ่งช่อง */
-                "before:absolute before:top-[11px] before:h-0.5 before:content-['']",
-                "after:absolute after:top-[11px] after:h-0.5 after:content-['']",
-                isFirst ? "before:hidden" : "before:left-0",
-                isLast ? "before:right-[12px]" : "before:right-1/2",
-                isLast ? "after:hidden" : "after:right-0",
-                isFirst ? "after:left-[12px]" : "after:left-1/2",
+                /* เส้นเชื่อม = ชิ้นเดียวต่อหนึ่งช่วง วาดจากจุดของขั้นก่อนหน้ามาถึงจุดของขั้นนี้
+                   (เคยลองแตกเป็นสองครึ่ง before+after แล้วพัง — เครื่องที่ CSS ของ `after:`
+                    ยังไม่มา จะเห็นเส้นขาดครึ่งช่วง เบสเจอกับตาแล้ว 2026-08-30 "ทำไมเส้นไม่ต่อกัน")
 
-                // ครึ่งซ้ายระบายตามสถานะของขั้นนี้ · ครึ่งขวาตามสถานะของขั้นถัดไป
-                // (ผลลัพธ์บนจอเหมือนเดิมเป๊ะ: เส้นช่วง k→k+1 ใช้สีของขั้น k+1 ทั้งเส้น)
+                   ปลายซ้ายอยู่ที่ -50% ของตัวเองเสมอ = จุดของขั้นก่อนหน้าพอดี ทั้งกรณีที่
+                   ขั้นก่อนหน้าเป็นช่องกลาง (กว้าง s จุดอยู่กึ่งกลาง → -s/2) และกรณีเป็น
+                   ขั้นแรก (กว้าง 12+s/2 จุดอยู่ที่ 12 → -s/2 เท่ากัน)
+
+                   ยกเว้น "ขั้นสุดท้าย" ที่ช่องแคบกว่า (12+s/2) — -50% ของตัวเองจะไม่ถึง
+                   จึงคิดจากขอบซ้ายของตัวเองแทน: -100% + 12px = -s/2 พอดี */
+                "before:absolute before:top-[11px] before:h-0.5 before:content-['']",
+                isFirst && "before:hidden",
+                isLast
+                  ? "before:left-[calc(-100%+12px)] before:right-[12px]"
+                  : "before:-left-1/2 before:right-1/2",
                 st === "done" || st === "current"
                   ? tone === "hold"
                     ? "before:bg-amber-400 dark:before:bg-amber-600"
@@ -223,13 +220,6 @@ export function OrderStatusBar({
                       ? "before:bg-slate-300 dark:before:bg-slate-700"
                       : "before:bg-blue-400 dark:before:bg-blue-700"
                   : "before:bg-slate-200 dark:before:bg-slate-800",
-                stNext === "done" || stNext === "current"
-                  ? tone === "hold"
-                    ? "after:bg-amber-400 dark:after:bg-amber-600"
-                    : tone === "cancel"
-                      ? "after:bg-slate-300 dark:after:bg-slate-700"
-                      : "after:bg-blue-400 dark:after:bg-blue-700"
-                  : "after:bg-slate-200 dark:after:bg-slate-800",
               )}
             >
               <span
