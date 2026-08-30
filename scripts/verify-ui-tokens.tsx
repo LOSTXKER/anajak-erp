@@ -2357,6 +2357,12 @@ check(
     // เส้นเชื่อมต้องเป็นชิ้นเดียวต่อหนึ่งช่วง — เคยแตกเป็น before+after แล้วเบสเจอ
     // เส้นขาดครึ่งช่วงบนเครื่องตัวเอง (2026-08-30 "ทำไมเส้นไม่ต่อกัน")
     railSource.includes("after:absolute") ||
+    railSource.includes("before:absolute") ||
+    /* เรขาคณิตของรางต้องเป็น inline style — คลาส Tailwind ค่าเฉพาะ (flex-[...] /
+       before:left-[calc(...)]) มีผลก็ต่อเมื่อ CSS ถูก generate มาแล้ว เครื่องที่ CSS
+       ยังไม่อัปเดตจะได้รางเพี้ยน (เบสเจอกับตา 2 รอบ 2026-08-30) */
+    !railSource.includes('flex: isFirst || isLast ? "0.5 1 12px" : "1 1 0%"') ||
+    /flex-\[0\.5|before:left-\[|before:right-\[/.test(railSource) ||
     // ของที่ใช้บ่อยต้องเป็นปุ่มจริงบนหัว ไม่ใช่ซ่อนในเมนู ⋯
     !detailSource.includes("aria-label=\"พิมพ์ใบสั่งงาน (เปิดแท็บใหม่)\"") ||
     !detailSource.includes("aria-label=\"คัดลอกลิงก์สถานะสำหรับลูกค้า\"") ||
