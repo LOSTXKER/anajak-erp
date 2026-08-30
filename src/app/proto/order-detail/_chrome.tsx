@@ -11,7 +11,7 @@
  * กับหัวใบ" ไม่ใช่ของอย่างอื่นที่เปลี่ยนไปพร้อมกันจนแยกไม่ออกว่าชอบเพราะอะไร
  */
 
-import { MoreHorizontal } from "lucide-react";
+import { ClipboardList, MoreHorizontal, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsBar, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { OrderStatusBar } from "@/components/orders/detail/order-status-bar";
@@ -68,6 +68,24 @@ export function ProtoMoreButton() {
     <Button variant="outline" size="icon-sm" aria-label="เพิ่มเติม">
       <MoreHorizontal />
     </Button>
+  );
+}
+
+/** CTA ที่ของจริงยกออกมาจากเมนู ⋯ แล้ว (เบสสั่ง 2026-08-30) — ใช้บ่อยจึงต้องเห็น */
+export function ProtoQuickActions({ isSalesUp = true }: { isSalesUp?: boolean }) {
+  return (
+    <>
+      <Button variant="outline" size="sm" aria-label="พิมพ์ใบสั่งงาน (เปิดแท็บใหม่)">
+        <ClipboardList />
+        <span className="hidden sm:inline">ใบสั่งงาน</span>
+      </Button>
+      {isSalesUp && (
+        <Button variant="outline" size="sm" aria-label="คัดลอกลิงก์สถานะสำหรับลูกค้า">
+          <Share2 />
+          <span className="hidden sm:inline">ลิงก์ลูกค้า</span>
+        </Button>
+      )}
+    </>
   );
 }
 

@@ -1954,10 +1954,10 @@ check(
     !ordersStatusSource.includes("border-b border-divider pb-1") ||
     ordersStatusSource.includes("กดสถานะเพื่อกรอง · กดซ้ำเพื่อล้างตัวกรอง") ||
     !ordersStatusSource.includes("เลือกอยู่ · กดซ้ำเพื่อล้างตัวกรอง") ||
-    // 2026-08-30 เบสสั่งให้ส่วนบนของใบงาน minimal — รางเหลือเส้นบน "เส้นเดียว"
-    // (เส้นล่างเดิมไปชนกับเส้นของแถบแท็บที่อยู่ถัดลงไป กลายเป็นเส้นคู่ที่ไม่ได้แบ่งอะไร)
-    !detailStatusSource.includes("border-t border-divider") ||
+    // 2026-08-30 เบสสั่ง "ไม่ต้องมีเส้นแบ่ง" — รางในหน้าใบงานแยกกลุ่มด้วยระยะเท่านั้น
+    // (เส้นล่างเดิมไปชนกับเส้นใต้แถบแท็บที่อยู่ถัดลงไป กลายเป็นเส้นคู่ที่ไม่ได้แบ่งอะไร)
     detailStatusSource.includes("border-y border-divider") ||
+    detailStatusSource.includes("border-t border-divider") ||
     detailStatusSource.includes("card-surface")
   ) {
     failed++;
@@ -2348,12 +2348,20 @@ check(
     !detailSource.includes("titleBadge={") ||
     detailSource.includes("meta={order.title") ||
     detailSource.includes("<SummaryFact") ||
-    // เส้นบางเหนือแถบสถานะคือเส้นเดียวที่หัวใบมี — เส้นล่างจะไปซ้ำกับเส้นของแถบแท็บ
-    !railSource.includes("border-t border-divider") ||
-    railSource.includes("border-y border-divider")
+    // ส่วนบนไม่มีเส้นแบ่งเลย — แยกกลุ่มด้วยระยะอย่างเดียว
+    /border-(?:y|t) border-divider/.test(railSource) ||
+    // ของที่ใช้บ่อยต้องเป็นปุ่มจริงบนหัว ไม่ใช่ซ่อนในเมนู ⋯
+    !detailSource.includes("aria-label=\"พิมพ์ใบสั่งงาน (เปิดแท็บใหม่)\"") ||
+    !detailSource.includes("aria-label=\"คัดลอกลิงก์สถานะสำหรับลูกค้า\"") ||
+    // ไอคอนขนาดในเมนู (h-4 w-4) = ร่องรอยว่าสองรายการนี้ถูกยัดกลับเข้าเมนู ⋯ อีก
+    // (เช็คข้อความตรง ๆ ไม่ได้ — ข้อความ toast ตอนคัดลอกสำเร็จใช้คำเดียวกัน)
+    detailSource.includes('<ClipboardList className="h-4 w-4" />') ||
+    detailSource.includes('<Share2 className="h-4 w-4" />') ||
+    // เมนู ⋯ ต้องหายไปเมื่อไม่มีรายการให้เลือก ไม่ใช่กดแล้วเจอกล่องว่าง
+    !detailSource.includes("hasOverflowMenu")
   ) {
     problems.push(
-      "หัวใบต้องเป็น minimal (ไม่มีพื้น/กรอบ) เหลือแค่ตัวตน/สถานะ/ปุ่ม และชื่องานต้องเป็นคำอธิบายหัวข้อ",
+      "หัวใบต้องเป็น minimal (ไม่มีพื้น/กรอบ/เส้นแบ่ง) และ CTA ที่ใช้บ่อยต้องเป็นปุ่มจริง ไม่ซ่อนในเมนู ⋯",
     );
   }
   if (

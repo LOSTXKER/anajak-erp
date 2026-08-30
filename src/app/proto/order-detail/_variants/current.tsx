@@ -26,6 +26,7 @@ import { demoOrder, demoStatus, demoTotals } from "../_data";
 import {
   ProtoMoreButton,
   ProtoNextStepButton,
+  ProtoQuickActions,
   ProtoNotices,
   ProtoStatusRail,
   ProtoTabBar,
@@ -53,7 +54,7 @@ export function CurrentVariant({
     <div className="space-y-6">
       {/* หัวใบ minimal — ไม่มีพื้น/กรอบ (เบสสั่ง 2026-08-30) · โครงเดียวกับ
           order-detail-page.tsx เป๊ะ ๆ แก้ของจริงเมื่อไหร่ต้องแก้ตรงนี้ตาม */}
-      <div className="space-y-4">
+      <div className="space-y-5">
         <PageHeader
           icon={ShoppingCart}
           breadcrumb={[
@@ -76,6 +77,7 @@ export function CurrentVariant({
           }
           action={
             <>
+              <ProtoQuickActions isSalesUp={showMoney} />
               <ProtoNextStepButton thin={thin} showMoney={showMoney} />
               <ProtoMoreButton />
             </>

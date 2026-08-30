@@ -591,6 +591,8 @@ function OrderDetailContent({
   // UX5: ตัดปุ่มสถานะหลักบน header (ไม่เช็ค readiness = ปุ่มที่ server รู้อยู่แล้วว่าจะพัง ขัด B8) —
   // เหลือแถบขั้นต่อไปเป็น CTA เดียว (เช็ค readiness จริง) · ทางเดินสถานะทั้งหมดยังครบใน dropdown ⋯
   const otherNext = forwardStatuses;
+  // เมนู ⋯ มีของให้เลือกจริงไหม — ไม่มีก็ไม่ต้องมีปุ่ม (ช่าง/กราฟิกบางสถานะจะได้เมนูว่าง)
+  const hasOverflowMenu = isSalesUp || otherNext.length > 0 || canCancel;
   const statusItemLabel = (status: string) =>
     isCompleted && status === "SHIPPED"
       ? "เปิดงานกลับ (→ จัดส่งแล้ว)"
@@ -618,7 +620,7 @@ function OrderDetailContent({
           ชื่องานส่งผ่าน `description` ไม่ใช่ `meta` — ของเดิมเป็นตัว 11px สีจางสุด
           ทั้งที่เป็นข้อความเดียวที่บอกว่าใบนี้ทำอะไร · คำอธิบายอัตโนมัติประจำหน้า
           ("ดูรายละเอียด ม็อกอัพ …") ถูกปิดด้วย null เพราะเหมือนกันทุกใบ ไม่ได้บอกอะไร */}
-      <div data-order-head="" className="space-y-4">
+      <div data-order-head="" className="space-y-5">
       <PageHeader
         icon={ShoppingCart}
         breadcrumb={[
@@ -641,6 +643,36 @@ function OrderDetailContent({
         }
         action={
           <>
+            {/* ── ของที่ใช้บ่อยต้องเห็นเป็นปุ่ม ไม่ใช่ซ่อนในเมนู ⋯ (เบสสั่ง 2026-08-30
+                "CTA ที่ซ่อน อันไหนที่สำคัญใช้บ่อย ไม่ต้องเอาไปอยู่ 3 จุด") ──
+                พิมพ์ใบสั่งงาน = ทุก role ทุกสถานะ (ใบที่ส่งลงหน้างานจริง ใช้ทุกวัน)
+                ลิงก์สถานะลูกค้า = ฝ่ายขายส่งให้ลูกค้าเช็คเองแทนการตอบแชท
+                เหลือในเมนู ⋯ เฉพาะของที่นาน ๆ ใช้ หรือของอันตราย (สำเนา · ออกใบเสนอ ·
+                เดินสถานะเอง · ยกเลิก) และ "แก้ไข" ที่แต่ละการ์ดมีปุ่มของตัวเองอยู่แล้ว
+                จอแคบเหลือไอคอนล้วน — ชื่อยังอยู่ใน aria-label ให้เครื่องอ่านหน้าจอ */}
+            <Button asChild variant="outline" size="sm">
+              <a
+                href={`/print/job-ticket/${id}`}
+                target="_blank"
+                rel="noreferrer"
+                aria-label="พิมพ์ใบสั่งงาน (เปิดแท็บใหม่)"
+              >
+                <ClipboardList />
+                <span className="hidden sm:inline">ใบสั่งงาน</span>
+              </a>
+            </Button>
+            {isSalesUp && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => copyStatusLink()}
+                disabled={generateStatusLink.isPending}
+                aria-label="คัดลอกลิงก์สถานะสำหรับลูกค้า"
+              >
+                <Share2 />
+                <span className="hidden sm:inline">ลิงก์ลูกค้า</span>
+              </Button>
+            )}
             {/* ปุ่มขั้นต่อไป (เบสสั่งถอดแถบฟ้าออก 2026-08-11 → ย้ายปุ่มมาไว้ตรงนี้)
                 ยังเป็นทางเดียวที่เช็คด่านพร้อมผลิตให้ก่อนกด · ติดด่านเมื่อไหร่ปุ่มจะหายไป
                 แล้วแถบสถานะจะบอกแทนว่าติดอะไร (กันปุ่มที่กดแล้ว server ปฏิเสธ — B8) */}
@@ -654,9 +686,11 @@ function OrderDetailContent({
               onAnchor={handleAnchor}
               canSeeMoney={canSeeMoney}
             />
-            {/* dropdown ต้องมีเสมอ — "ใบสั่งงาน" อยู่ในนี้ ทุก role/ทุกสถานะต้องพิมพ์ได้
-                (review จับ: เดิม gate ตาม role ทำช่าง/กราฟิกพิมพ์ใบสั่งงานไม่ได้)
-                UX5: ปุ่มสถานะหลักบน header ถูกตัด — เลื่อนสถานะผ่านปุ่มขั้นต่อไป (เช็ค readiness) + รายการใน dropdown นี้ */}
+            {/* เมนู ⋯ เหลือของที่นาน ๆ ใช้ · "ใบสั่งงาน" ย้ายออกไปเป็นปุ่มจริงแล้ว
+                (ยังไม่ gate ตาม role เหมือนเดิม — review เคยจับว่าช่าง/กราฟิกต้องพิมพ์ได้)
+                ไม่มีรายการให้เลือกเลย = ไม่ต้องมีปุ่ม ⋯ ที่กดแล้วเจอเมนูว่าง
+                UX5: ปุ่มสถานะหลักบน header ถูกตัด — เลื่อนสถานะผ่านปุ่มขั้นต่อไป (เช็ค readiness) + รายการในเมนูนี้ */}
+            {hasOverflowMenu && (
             <DropdownMenu.Root>
                 <DropdownMenu.Trigger asChild>
                   <Button variant="outline" size="icon-sm" aria-label="เพิ่มเติม">
@@ -669,12 +703,6 @@ function OrderDetailContent({
                     sideOffset={6}
                     className={cn(OVERLAY_PANEL, "z-50 min-w-[200px] p-1", "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95")}
                   >
-                    <DropdownMenu.Item className={dropdownItemClass} asChild>
-                      <a href={`/print/job-ticket/${id}`} target="_blank" rel="noreferrer">
-                        <ClipboardList className="h-4 w-4" />
-                        ใบสั่งงาน (พิมพ์)
-                      </a>
-                    </DropdownMenu.Item>
                     {isSalesUp && (
                       <>
                         {canUseEditForm && (
@@ -704,14 +732,6 @@ function OrderDetailContent({
                         >
                           <Copy className="h-4 w-4" />
                           สำเนาออเดอร์
-                        </DropdownMenu.Item>
-                        <DropdownMenu.Item
-                          className={dropdownItemClass}
-                          onSelect={() => copyStatusLink()}
-                          disabled={generateStatusLink.isPending}
-                        >
-                          <Share2 className="h-4 w-4" />
-                          คัดลอกลิงก์สถานะลูกค้า
                         </DropdownMenu.Item>
                         {["DRAFT", "INQUIRY"].includes(order.internalStatus) && (
                           // สะพานใบเสนอ: ออกใบเสนอผูกใบนี้ — ลูกค้าตกลงแล้วยืนยันออเดอร์เดิม ไม่สร้างซ้ำ
@@ -760,6 +780,7 @@ function OrderDetailContent({
                   </DropdownMenu.Content>
                 </DropdownMenu.Portal>
               </DropdownMenu.Root>
+            )}
           </>
         }
       />
