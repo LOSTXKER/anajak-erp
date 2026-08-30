@@ -7,8 +7,9 @@
  *
  * ⚠️ ตั้งแต่ 2026-08-30 (เบสเคาะแบบ B แล้วลงของจริง) ปุ่มนี้จึงแสดง "แบบ B ที่ลงจริงแล้ว"
  * ไม่ใช่หน้าตาเดิมก่อนรื้ออีกต่อไป · หน้าตาเดิมดูย้อนหลังได้จากประวัติ Git
- * โครงหัวใบข้างล่างถูกคัดลอกให้ตรงกับ order-detail-page.tsx (ห่อ PageHeader + แถบสถานะ
- * ไว้ในแผ่นเดียว) — แก้ของจริงเมื่อไหร่ต้องแก้ตรงนี้ตามด้วย ไม่งั้นหน้าลองโกหก
+ * โครงหัวใบข้างล่างถูกคัดลอกให้ตรงกับ order-detail-page.tsx (PageHeader + แถบสถานะ
+ * ยืนบนผืนหน้าตรง ๆ ไม่มีพื้น/กรอบ) — แก้ของจริงเมื่อไหร่ต้องแก้ตรงนี้ตามด้วย
+ * ไม่งั้นหน้าลองโกหก
  */
 
 import { ShoppingCart } from "lucide-react";
@@ -21,7 +22,6 @@ import {
   PRIORITY_LABELS,
   isMarketplaceChannel,
 } from "@/lib/order-status";
-import { cn } from "@/lib/utils";
 import { demoOrder, demoStatus, demoTotals } from "../_data";
 import {
   ProtoMoreButton,
@@ -51,47 +51,38 @@ export function CurrentVariant({
 
   return (
     <div className="space-y-6">
-      <section className="card-surface relative overflow-hidden rounded-2xl">
-        {(isUrgent || isHighPriority) && (
-          <span
-            aria-hidden="true"
-            className={cn(
-              "absolute inset-y-0 left-0 w-1",
-              isUrgent ? "bg-red-500" : "bg-amber-500",
-            )}
-          />
-        )}
-        <div className="space-y-4 px-5 py-4 sm:px-6 sm:py-5">
-          <PageHeader
-            icon={ShoppingCart}
-            breadcrumb={[
-              { label: "ออเดอร์", href: "/orders" },
-              { label: order.orderNumber },
-            ]}
-            title={order.orderNumber}
-            description={order.title || null}
-            titleBadge={
-              <span className="flex flex-wrap items-center gap-1.5">
-                <Badge variant="accent" size="sm">
-                  {CUSTOMER_STATUS_LABELS[status.customerStatus]}
+      {/* หัวใบ minimal — ไม่มีพื้น/กรอบ (เบสสั่ง 2026-08-30) · โครงเดียวกับ
+          order-detail-page.tsx เป๊ะ ๆ แก้ของจริงเมื่อไหร่ต้องแก้ตรงนี้ตาม */}
+      <div className="space-y-4">
+        <PageHeader
+          icon={ShoppingCart}
+          breadcrumb={[
+            { label: "ออเดอร์", href: "/orders" },
+            { label: order.orderNumber },
+          ]}
+          title={order.orderNumber}
+          description={order.title || null}
+          titleBadge={
+            <span className="flex flex-wrap items-center gap-1.5">
+              <Badge variant="accent" size="sm">
+                {CUSTOMER_STATUS_LABELS[status.customerStatus]}
+              </Badge>
+              {(isUrgent || isHighPriority) && (
+                <Badge variant={isUrgent ? "destructive" : "warning"} size="sm">
+                  {PRIORITY_LABELS[order.priority]}
                 </Badge>
-                {(isUrgent || isHighPriority) && (
-                  <Badge variant={isUrgent ? "destructive" : "warning"} size="sm">
-                    {PRIORITY_LABELS[order.priority]}
-                  </Badge>
-                )}
-              </span>
-            }
-            action={
-              <>
-                <ProtoNextStepButton thin={thin} showMoney={showMoney} />
-                <ProtoMoreButton />
-              </>
-            }
-          />
-          <ProtoStatusRail thin={thin} />
-        </div>
-      </section>
+              )}
+            </span>
+          }
+          action={
+            <>
+              <ProtoNextStepButton thin={thin} showMoney={showMoney} />
+              <ProtoMoreButton />
+            </>
+          }
+        />
+        <ProtoStatusRail thin={thin} />
+      </div>
 
       <ProtoNotices order={order} />
       <ProtoTabBar showMoney={showMoney} pendingTab="production" />

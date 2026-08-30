@@ -1954,7 +1954,10 @@ check(
     !ordersStatusSource.includes("border-b border-divider pb-1") ||
     ordersStatusSource.includes("กดสถานะเพื่อกรอง · กดซ้ำเพื่อล้างตัวกรอง") ||
     !ordersStatusSource.includes("เลือกอยู่ · กดซ้ำเพื่อล้างตัวกรอง") ||
-    !detailStatusSource.includes("border-y border-divider") ||
+    // 2026-08-30 เบสสั่งให้ส่วนบนของใบงาน minimal — รางเหลือเส้นบน "เส้นเดียว"
+    // (เส้นล่างเดิมไปชนกับเส้นของแถบแท็บที่อยู่ถัดลงไป กลายเป็นเส้นคู่ที่ไม่ได้แบ่งอะไร)
+    !detailStatusSource.includes("border-t border-divider") ||
+    detailStatusSource.includes("border-y border-divider") ||
     detailStatusSource.includes("card-surface")
   ) {
     failed++;
@@ -2333,15 +2336,24 @@ check(
   /* หัวใบ (2026-08-30 เบสสั่ง "ข้างบนไม่ต้องมีอะไรเยอะ มีแค่สถานะและ CTA ก็พอ")
      — ต้องเป็นแผ่นเดียวที่ห่อ PageHeader + แถบสถานะ · ชื่องานเป็น description
      (ไม่ใช่ meta ตัวจิ๋ว) · และห้ามมีข้อเท็จจริงตัวใหญ่กลับขึ้นไปอีก */
+  const railSource = readFileSync(
+    "src/components/orders/detail/order-status-bar.tsx",
+    "utf8",
+  );
   if (
-    !detailSource.includes("card-surface relative overflow-hidden rounded-2xl") ||
+    !detailSource.includes('data-order-head=""') ||
+    // minimal = ยืนบนผืนหน้าตรง ๆ · ห่อด้วยการ์ด/พื้น/เงาเมื่อไหร่ = ย้อนคำสั่งเบส
+    /data-order-head[\s\S]{0,400}?card-surface/.test(detailSource) ||
     !detailSource.includes("description={order.title || null}") ||
     !detailSource.includes("titleBadge={") ||
     detailSource.includes("meta={order.title") ||
-    detailSource.includes("<SummaryFact")
+    detailSource.includes("<SummaryFact") ||
+    // เส้นบางเหนือแถบสถานะคือเส้นเดียวที่หัวใบมี — เส้นล่างจะไปซ้ำกับเส้นของแถบแท็บ
+    !railSource.includes("border-t border-divider") ||
+    railSource.includes("border-y border-divider")
   ) {
     problems.push(
-      "หัวใบต้องเหลือแค่ตัวตน/สถานะ/ปุ่ม ในแผ่นเดียว และชื่องานต้องเป็นคำอธิบายหัวข้อ",
+      "หัวใบต้องเป็น minimal (ไม่มีพื้น/กรอบ) เหลือแค่ตัวตน/สถานะ/ปุ่ม และชื่องานต้องเป็นคำอธิบายหัวข้อ",
     );
   }
   if (
