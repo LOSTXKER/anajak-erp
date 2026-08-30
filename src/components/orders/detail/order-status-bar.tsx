@@ -171,6 +171,21 @@ export function OrderStatusBar({
         {flowSteps.map((step, i) => {
           const st = railStepState({ index: i, anchorIndex, cancelled: isCancelled });
           const isFirst = i === 0;
+          const isLast = i === flowSteps.length - 1;
+          /* จุดหัว-ท้ายชิดขอบราง ไม่ใช่กึ่งกลางช่องของตัวเอง (เบสสั่ง 2026-08-30
+             "processbar เอาความกว้างให้เท่ากับส่วนอื่นๆ") — เดิมจุดแรก/สุดท้ายร่นเข้ามา
+             ข้างละครึ่งช่อง (~53px บนจอ 1440) ทำให้แถบดูแคบกว่าการ์ดข้างล่างที่เต็มขอบ
+
+             ป้ายของสองขั้นนี้จึงชิดซ้าย/ขวาตามจุด (ไม่ใช่กึ่งกลาง) — ไม่งั้นป้ายจะล้น
+             ออกนอกขอบเนื้อหา · และเส้นเชื่อมต้องรู้ว่าปลายทั้งสองข้างอยู่ตรงไหน:
+               ขั้นที่ 2  → ต้นทางคือ "ขอบซ้าย" ของขั้นแรก = -100% ของตัวเอง
+               ขั้นสุดท้าย → ปลายทางคือขอบขวาของตัวเอง = right-0 */
+          const connector = isFirst
+            ? "before:hidden"
+            : cn(
+                i === 1 ? "before:-left-full" : "before:-left-1/2",
+                isLast ? "before:right-0" : "before:right-1/2",
+              );
 
           return (
             <li
@@ -179,10 +194,12 @@ export function OrderStatusBar({
               aria-current={st === "current" ? "step" : undefined}
               aria-label={`${label(step)}: ${stepStateLabel[st]}`}
               className={cn(
-                "relative flex min-w-[84px] flex-1 flex-col items-center gap-1.5 px-0.5",
-                // เส้นเชื่อมไปยังขั้นก่อนหน้า — วาดจากกึ่งกลางขั้นนี้ย้อนไปกึ่งกลางขั้นก่อน
-                "before:absolute before:top-2 before:-left-1/2 before:right-1/2 before:h-0.5 before:content-['']",
-                isFirst && "before:hidden",
+                "relative flex min-w-[84px] flex-1 flex-col gap-1.5 px-0.5",
+                // ขอบนอกของขั้นหัว-ท้ายต้องไม่มี padding ไม่งั้นจุดยังเหลื่อมการ์ดข้างล่าง 2px
+                isFirst ? "items-start pl-0" : isLast ? "items-end pr-0" : "items-center",
+                // เส้นเชื่อมไปยังขั้นก่อนหน้า
+                "before:absolute before:top-2 before:h-0.5 before:content-['']",
+                connector,
                 st === "done" || st === "current"
                   ? tone === "hold"
                     ? "before:bg-amber-400 dark:before:bg-amber-600"
@@ -218,7 +235,8 @@ export function OrderStatusBar({
               <span
                 className={cn(
                   // ห้าม truncate — ป้ายไทยยาวให้ขึ้นบรรทัดใหม่
-                  "text-center text-2xs [overflow-wrap:anywhere]",
+                  "text-2xs [overflow-wrap:anywhere]",
+                  isFirst ? "text-left" : isLast ? "text-right" : "text-center",
                   st === "current" &&
                     (tone === "cancel"
                       ? "font-semibold text-red-700 dark:text-red-300"

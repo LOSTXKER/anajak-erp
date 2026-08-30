@@ -2350,6 +2350,9 @@ check(
     detailSource.includes("<SummaryFact") ||
     // ส่วนบนไม่มีเส้นแบ่งเลย — แยกกลุ่มด้วยระยะอย่างเดียว
     /border-(?:y|t) border-divider/.test(railSource) ||
+    // แถบสถานะต้องกว้างเท่าการ์ดข้างล่าง — จุดหัวชิดซ้ายสุด จุดท้ายชิดขวาสุด
+    // (เบสสั่ง 2026-08-30 "processbar เอาความกว้างให้เท่ากับส่วนอื่นๆ")
+    !railSource.includes('isFirst ? "items-start pl-0" : isLast ? "items-end pr-0"') ||
     // ของที่ใช้บ่อยต้องเป็นปุ่มจริงบนหัว ไม่ใช่ซ่อนในเมนู ⋯
     !detailSource.includes("aria-label=\"พิมพ์ใบสั่งงาน (เปิดแท็บใหม่)\"") ||
     !detailSource.includes("aria-label=\"คัดลอกลิงก์สถานะสำหรับลูกค้า\"") ||
