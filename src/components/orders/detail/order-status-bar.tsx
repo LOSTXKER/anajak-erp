@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { Check } from "lucide-react";
 import { INTERNAL_STATUS_LABELS, CUSTOMER_STATUS_COLORS } from "@/lib/order-status";
 import {
   findOffPathAnchor,
@@ -33,7 +32,14 @@ import { FOCUS_INSET, RADIUS } from "@/components/ui/tokens";
      แต่รางยังชี้ "ค้างที่ขั้นไหน" ได้จากประวัติ (order-status-rail.ts)
    ============================================================ */
 
-const NODE_SIZE = "h-[18px] w-[18px]";
+/* วงกลมโตขึ้นจาก 18px เป็น 24px ตอนใส่ตัวเลขข้างใน (เบสสั่ง 2026-08-30
+   "แต่ละจุดขอเป็น 1 2 3 4 ในวงกลมจุด") — 18px ใส่เลขแล้วอ่านไม่ออก
+   ค่านี้ผูกกับอีก 3 ที่ในไฟล์ ซึ่งเขียนเป็นเลขตรง ๆ เพราะ Tailwind ต่อคลาสจากตัวแปร
+   ไม่ได้ (ต้องเป็น literal ตอน build) — แก้ขนาดวงเมื่อไหร่ต้องไล่แก้ทั้งสามที่:
+     · `top-[11px]` ของเส้นเชื่อม = รัศมี 12 ลบครึ่งความหนาเส้น 1
+     · `right-[12px]` / `left-[12px]` = รัศมี ใช้บอกว่าเส้นจบตรงขอบวงของขั้นหัว-ท้าย
+     · `flex-[0.5_1_12px]` = รัศมี ใช้ให้ระยะระหว่างจุดเท่ากันทุกช่วง */
+const NODE_SIZE = "h-6 w-6";
 
 interface OrderStatusBarProps {
   flowSteps: string[];
@@ -193,7 +199,7 @@ export function OrderStatusBar({
                    สูตร: ช่องหัว/ท้าย = ครึ่งช่อง + รัศมีจุด (`flex: .5 1 9px`)
                    → จุดหัวอยู่ที่ 9px จากขอบซ้าย · จุดท้ายที่ 9px จากขอบขวา
                    · จุดที่เหลือเว้นเท่ากันหมดพอดี (พิสูจน์ด้วยการวัดจริงบนจอ 1440) */
-                isFirst || isLast ? "min-w-[56px] flex-[0.5_1_9px]" : "min-w-[84px] flex-1",
+                isFirst || isLast ? "min-w-[56px] flex-[0.5_1_12px]" : "min-w-[84px] flex-1",
                 // ขอบนอกของขั้นหัว-ท้ายต้องไม่มี padding ไม่งั้นจุดยังเหลื่อมการ์ดข้างล่าง 2px
                 isFirst ? "items-start pl-0" : isLast ? "items-end pr-0" : "items-center",
 
@@ -201,12 +207,12 @@ export function OrderStatusBar({
                    แทนการลากข้ามช่องด้วย -left-1/2 แบบเดิม — เพราะช่องหัว/ท้ายกว้างไม่เท่า
                    ช่องกลางแล้ว การอ้างเป็น % ของตัวเองจะไปไม่ถึง/เลยจุดของขั้นข้างเคียง
                    ครึ่งซ้ายของขั้นนี้กับครึ่งขวาของขั้นก่อนหน้ามาชนกันพอดีที่เส้นแบ่งช่อง */
-                "before:absolute before:top-2 before:h-0.5 before:content-['']",
-                "after:absolute after:top-2 after:h-0.5 after:content-['']",
+                "before:absolute before:top-[11px] before:h-0.5 before:content-['']",
+                "after:absolute after:top-[11px] after:h-0.5 after:content-['']",
                 isFirst ? "before:hidden" : "before:left-0",
-                isLast ? "before:right-[9px]" : "before:right-1/2",
+                isLast ? "before:right-[12px]" : "before:right-1/2",
                 isLast ? "after:hidden" : "after:right-0",
-                isFirst ? "after:left-[9px]" : "after:left-1/2",
+                isFirst ? "after:left-[12px]" : "after:left-1/2",
 
                 // ครึ่งซ้ายระบายตามสถานะของขั้นนี้ · ครึ่งขวาตามสถานะของขั้นถัดไป
                 // (ผลลัพธ์บนจอเหมือนเดิมเป๊ะ: เส้นช่วง k→k+1 ใช้สีของขั้น k+1 ทั้งเส้น)
@@ -230,6 +236,8 @@ export function OrderStatusBar({
                 aria-hidden="true"
                 className={cn(
                   "relative z-[1] flex shrink-0 items-center justify-center rounded-full",
+                  // เลขในวงกลมต้องความกว้างเท่ากันทุกตัว ไม่งั้น 1 กับ 11 ดูไม่อยู่กลางวง
+                  "text-2xs font-semibold tabular-nums leading-none",
                   NODE_SIZE,
                   st === "done" &&
                     (tone === "cancel"
@@ -239,15 +247,18 @@ export function OrderStatusBar({
                         : "bg-blue-600 text-white"),
                   st === "current" &&
                     (tone === "cancel"
-                      ? "bg-red-600 ring-[3px] ring-red-100 dark:ring-red-500/25"
+                      ? "bg-red-600 text-white ring-[3px] ring-red-100 dark:ring-red-500/25"
                       : tone === "hold"
-                        ? "bg-amber-500 ring-[3px] ring-amber-100 dark:ring-amber-500/25"
-                        : "bg-blue-600 ring-[3px] ring-blue-100 dark:bg-blue-500 dark:ring-blue-500/25"),
+                        ? "bg-amber-500 text-white ring-[3px] ring-amber-100 dark:ring-amber-500/25"
+                        : "bg-blue-600 text-white ring-[3px] ring-blue-100 dark:bg-blue-500 dark:ring-blue-500/25"),
                   (st === "todo" || st === "skipped") &&
-                    "border-2 border-border bg-bg",
+                    "border-2 border-border bg-bg text-muted",
                 )}
               >
-                {st === "done" && <Check className="h-2.5 w-2.5" strokeWidth={3} />}
+                {/* เลขขั้นอยู่ในวงทุกสถานะ (เบสสั่ง) — เดิมขั้นที่ผ่านแล้วเป็นเครื่องหมายถูก
+                    ตอนนี้บอก "ผ่านแล้ว" ด้วยวงทึบ + เส้นเชื่อมที่ติดสีแทน · ข้อดีคือ
+                    สั่งงานทางโทรศัพท์อ้างเลขขั้นได้ ("งานอยู่ขั้น 6") */}
+                {i + 1}
               </span>
               <span
                 className={cn(
