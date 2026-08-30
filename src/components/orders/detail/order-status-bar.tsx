@@ -160,7 +160,7 @@ export function OrderStatusBar({
         />
       )}
 
-      {/* ราง: ทุกขั้นกว้างเท่ากันและอย่างน้อย 84px — พื้นที่ไม่พอเมื่อไหร่ก็เลื่อนแทนบีบป้าย */}
+      {/* ราง: ช่วงระหว่างจุดกว้างเท่ากันทุกช่วง — พื้นที่ไม่พอเมื่อไหร่ก็เลื่อนแทนบีบป้าย */}
       <ol
         ref={railRef}
         aria-label="เส้นทางสถานะออเดอร์ เลื่อนซ้ายขวาเพื่อดูทุกขั้น"
@@ -172,20 +172,10 @@ export function OrderStatusBar({
           const st = railStepState({ index: i, anchorIndex, cancelled: isCancelled });
           const isFirst = i === 0;
           const isLast = i === flowSteps.length - 1;
-          /* จุดหัว-ท้ายชิดขอบราง ไม่ใช่กึ่งกลางช่องของตัวเอง (เบสสั่ง 2026-08-30
-             "processbar เอาความกว้างให้เท่ากับส่วนอื่นๆ") — เดิมจุดแรก/สุดท้ายร่นเข้ามา
-             ข้างละครึ่งช่อง (~53px บนจอ 1440) ทำให้แถบดูแคบกว่าการ์ดข้างล่างที่เต็มขอบ
-
-             ป้ายของสองขั้นนี้จึงชิดซ้าย/ขวาตามจุด (ไม่ใช่กึ่งกลาง) — ไม่งั้นป้ายจะล้น
-             ออกนอกขอบเนื้อหา · และเส้นเชื่อมต้องรู้ว่าปลายทั้งสองข้างอยู่ตรงไหน:
-               ขั้นที่ 2  → ต้นทางคือ "ขอบซ้าย" ของขั้นแรก = -100% ของตัวเอง
-               ขั้นสุดท้าย → ปลายทางคือขอบขวาของตัวเอง = right-0 */
-          const connector = isFirst
-            ? "before:hidden"
-            : cn(
-                i === 1 ? "before:-left-full" : "before:-left-1/2",
-                isLast ? "before:right-0" : "before:right-1/2",
-              );
+          // สถานะของขั้นถัดไป — ใช้ระบายครึ่งขวาของเส้นที่พาดไปหาขั้นนั้น
+          const stNext = isLast
+            ? null
+            : railStepState({ index: i + 1, anchorIndex, cancelled: isCancelled });
 
           return (
             <li
@@ -194,12 +184,32 @@ export function OrderStatusBar({
               aria-current={st === "current" ? "step" : undefined}
               aria-label={`${label(step)}: ${stepStateLabel[st]}`}
               className={cn(
-                "relative flex min-w-[84px] flex-1 flex-col gap-1.5 px-0.5",
+                "relative flex flex-col gap-1.5 px-0.5",
+                /* ระยะระหว่างจุดต้องเท่ากันทุกช่วง (เบสสั่ง 2026-08-30 "ความห่างแต่ละ
+                   node ให้มันห่างสมมาตรหน่อย") — จุดหัว/ท้ายชิดขอบราง จุดกลางอยู่กึ่งกลาง
+                   ช่องของตัวเอง ถ้าให้ทุกช่องกว้างเท่ากันหมด ช่วงแรกกับช่วงท้ายจะกว้าง
+                   เป็น 1.5 เท่าของช่วงกลางทันที
+
+                   สูตร: ช่องหัว/ท้าย = ครึ่งช่อง + รัศมีจุด (`flex: .5 1 9px`)
+                   → จุดหัวอยู่ที่ 9px จากขอบซ้าย · จุดท้ายที่ 9px จากขอบขวา
+                   · จุดที่เหลือเว้นเท่ากันหมดพอดี (พิสูจน์ด้วยการวัดจริงบนจอ 1440) */
+                isFirst || isLast ? "min-w-[56px] flex-[0.5_1_9px]" : "min-w-[84px] flex-1",
                 // ขอบนอกของขั้นหัว-ท้ายต้องไม่มี padding ไม่งั้นจุดยังเหลื่อมการ์ดข้างล่าง 2px
                 isFirst ? "items-start pl-0" : isLast ? "items-end pr-0" : "items-center",
-                // เส้นเชื่อมไปยังขั้นก่อนหน้า
+
+                /* เส้นเชื่อมแตกเป็นสองครึ่งในตัวขั้นเอง (before = ครึ่งซ้าย · after = ครึ่งขวา)
+                   แทนการลากข้ามช่องด้วย -left-1/2 แบบเดิม — เพราะช่องหัว/ท้ายกว้างไม่เท่า
+                   ช่องกลางแล้ว การอ้างเป็น % ของตัวเองจะไปไม่ถึง/เลยจุดของขั้นข้างเคียง
+                   ครึ่งซ้ายของขั้นนี้กับครึ่งขวาของขั้นก่อนหน้ามาชนกันพอดีที่เส้นแบ่งช่อง */
                 "before:absolute before:top-2 before:h-0.5 before:content-['']",
-                connector,
+                "after:absolute after:top-2 after:h-0.5 after:content-['']",
+                isFirst ? "before:hidden" : "before:left-0",
+                isLast ? "before:right-[9px]" : "before:right-1/2",
+                isLast ? "after:hidden" : "after:right-0",
+                isFirst ? "after:left-[9px]" : "after:left-1/2",
+
+                // ครึ่งซ้ายระบายตามสถานะของขั้นนี้ · ครึ่งขวาตามสถานะของขั้นถัดไป
+                // (ผลลัพธ์บนจอเหมือนเดิมเป๊ะ: เส้นช่วง k→k+1 ใช้สีของขั้น k+1 ทั้งเส้น)
                 st === "done" || st === "current"
                   ? tone === "hold"
                     ? "before:bg-amber-400 dark:before:bg-amber-600"
@@ -207,6 +217,13 @@ export function OrderStatusBar({
                       ? "before:bg-slate-300 dark:before:bg-slate-700"
                       : "before:bg-blue-400 dark:before:bg-blue-700"
                   : "before:bg-slate-200 dark:before:bg-slate-800",
+                stNext === "done" || stNext === "current"
+                  ? tone === "hold"
+                    ? "after:bg-amber-400 dark:after:bg-amber-600"
+                    : tone === "cancel"
+                      ? "after:bg-slate-300 dark:after:bg-slate-700"
+                      : "after:bg-blue-400 dark:after:bg-blue-700"
+                  : "after:bg-slate-200 dark:after:bg-slate-800",
               )}
             >
               <span
