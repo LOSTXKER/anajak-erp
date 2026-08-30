@@ -13,13 +13,13 @@ import { ArrowRight, Palette } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Section } from "@/components/ui/section";
 import { OrderOverviewTab } from "@/components/orders/detail/order-overview-tab";
-import { MockupGallery } from "@/components/mockup/mockup-gallery";
 import { CHANNEL_COLORS, isMarketplaceChannel } from "@/lib/order-status";
 import { formatDate } from "@/lib/utils";
 
 import { demoOrder, demoTotals } from "../../order-detail/_data";
 import { demoMockups, demoPrintFiles, demoRawFiles } from "../_artwork";
 import {
+  ArtworkThumbRow,
   FileCountLine,
   MockupStatusBadge,
   NoMockupNote,
@@ -58,28 +58,24 @@ export function StripVariant({
         }
       >
         {latest ? (
-          <div className="space-y-4">
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm">
-              <MockupStatusBadge version={latest} />
-              <span className="font-medium text-strong">
-                ม็อกอัพ v{latest.versionNumber}
-              </span>
-              <span className="text-muted">
-                {latest.approvedAt
-                  ? `ลูกค้าอนุมัติ ${formatDate(latest.approvedAt)}`
-                  : `ส่งให้ลูกค้า ${formatDate(latest.createdAt)}`}
-              </span>
-              {mockups.length > 1 && (
-                <span className="text-muted">
-                  · แก้มาแล้ว {mockups.length - 1} รอบ
+          /* แถบเตี้ยแถวเดียว: รูปเล็กซ้าย — สถานะ/ไฟล์ขวา (เบสสั่งให้รูปเล็ก 2026-08-31) */
+          <div className="flex flex-wrap items-start gap-x-5 gap-y-3">
+            <ArtworkThumbRow version={latest} />
+            <div className="min-w-0 flex-1 space-y-1.5">
+              <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+                <MockupStatusBadge version={latest} />
+                <span className="font-medium text-strong">
+                  ม็อกอัพ v{latest.versionNumber}
                 </span>
-              )}
+                <span className="text-muted">
+                  {latest.approvedAt
+                    ? `ลูกค้าอนุมัติ ${formatDate(latest.approvedAt)}`
+                    : `ส่งให้ลูกค้า ${formatDate(latest.createdAt)}`}
+                  {mockups.length > 1 && ` · แก้มาแล้ว ${mockups.length - 1} รอบ`}
+                </span>
+              </p>
+              <FileCountLine rawCount={rawFiles.length} printCount={printFiles.length} />
             </div>
-
-            {/* ตัวดูรูปม็อกอัพตัวจริงของระบบ — ไม่ได้วาดกล่องรูปใหม่ */}
-            <MockupGallery version={latest} versionNumber={latest.versionNumber} />
-
-            <FileCountLine rawCount={rawFiles.length} printCount={printFiles.length} />
           </div>
         ) : (
           <NoMockupNote rawCount={rawFiles.length} />

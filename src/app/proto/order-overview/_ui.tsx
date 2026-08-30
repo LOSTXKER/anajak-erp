@@ -177,106 +177,86 @@ export function MockupStatusBadge({ version }: { version: DemoMockupVersion }) {
 
 /* ─────────────────────────── รูปลาย ─────────────────────────── */
 
-/** รูปเดียวที่กดขยายได้ — ใช้สูตรเลือกรูป (mockupImages) ตัวจริง */
-function ZoomableImage({
-  src,
-  label,
-  caption,
-  className,
-  onZoom,
-}: {
-  src: string | null;
-  label: string;
-  caption?: string | null;
-  className?: string;
-  onZoom: (z: { src: string; label: string }) => void;
-}) {
-  if (!src) {
-    // .ai/.psd ที่ไม่มีรูปตัวอย่าง — บอกตรง ๆ ว่าดูไม่ได้ (ของจริงทำแบบนี้)
-    return (
-      <div
-        className={cn(
-          "flex flex-col items-center justify-center gap-1 text-center text-muted",
-          DASHED,
-          RADIUS.inner,
-          className,
-        )}
-      >
-        <ImageOff className="h-5 w-5" />
-        <span className="px-2 text-xs">ไฟล์นี้ดูตัวอย่างไม่ได้</span>
-      </div>
-    );
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={() => onZoom({ src, label })}
-      aria-label={`ขยาย${label}`}
-      className={cn(
-        "group relative block overflow-hidden border border-border bg-surface-muted",
-        RADIUS.inner,
-        FOCUS_BUTTON,
-        className,
-      )}
-    >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={src}
-        alt={label}
-        loading="lazy"
-        decoding="async"
-        className="h-full w-full object-contain"
-      />
-      <span className="pointer-events-none absolute right-1.5 top-1.5 rounded-full bg-black/55 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
-        <ZoomIn className="h-3.5 w-3.5" />
-      </span>
-      {caption && (
-        <span className="absolute inset-x-0 bottom-0 bg-black/55 px-2 py-1 text-left text-xs font-medium text-white">
-          {caption}
-        </span>
-      )}
-    </button>
-  );
-}
-
-/** รูปใหญ่หนึ่งใบ + ด้านที่เหลือเรียงข้าง — "เปิดมาเห็นลายทันที" แบบ B */
-export function ArtworkHero({
+/**
+ * แถวรูปลายขนาดเล็ก — "เห็นผ่าน ๆ ว่าลายอะไร ถ้าอยากรู้ค่อยกดดู" (เบสสั่ง 2026-08-31)
+ *
+ * เดิมเป็นรูปใหญ่เต็มการ์ด/เต็มแถว ซึ่งกินที่จนหน้ายาวกว่าเดิมทุกแบบ — สวนทางกับโจทย์
+ * "กระชับแต่ครบ" · ตอนนี้รูปเล็กพอให้จำงานได้ (64/48px) แล้วดันรายละเอียดไปอยู่ใน
+ * กล่องขยายที่กดเปิด ซึ่งเป็นที่เดียวที่ต้องเห็นลายเต็ม ๆ จริง
+ *
+ * ป้ายด้านล่างรูปบอกตำแหน่งพิมพ์ (หน้า/หลัง/แขนซ้าย) — ที่รูปเล็กขนาดนี้ป้ายทับบนรูป
+ * แบบเดิมอ่านไม่ออก
+ */
+export function ArtworkThumbRow({
   version,
+  size = "md",
   className,
 }: {
   version: DemoMockupVersion;
+  /** md = 64px (การ์ด/แถบ) · sm = 48px (แถวข้อเท็จจริงที่ต้องเตี้ยที่สุด) */
+  size?: "md" | "sm";
   className?: string;
 }) {
   const [zoom, setZoom] = useState<{ src: string; label: string } | null>(null);
   const images = mockupImages(version);
-  const [cover, ...rest] = images;
+  const box = size === "sm" ? "h-12 w-12" : "h-16 w-16";
 
   return (
     <>
-      <div className={cn("flex gap-3", className)}>
-        <ZoomableImage
-          src={cover?.previewUrl ?? null}
-          label={`ม็อกอัพ v${version.versionNumber} ${cover?.positionLabel ?? ""}`.trim()}
-          caption={cover?.positionLabel ?? null}
-          className="aspect-square min-w-0 flex-1"
-          onZoom={setZoom}
-        />
-        {rest.length > 0 && (
-          <div className="flex w-24 shrink-0 flex-col gap-3 sm:w-28">
-            {rest.slice(0, 3).map((image, index) => (
-              <ZoomableImage
-                key={`${image.fileUrl}-${index}`}
-                src={image.previewUrl}
-                label={`ม็อกอัพ v${version.versionNumber} ${image.positionLabel ?? `รูปที่ ${index + 2}`}`}
-                caption={image.positionLabel ?? null}
-                className="aspect-square w-full"
-                onZoom={setZoom}
-              />
-            ))}
-          </div>
-        )}
-      </div>
+      <ul className={cn("flex flex-wrap items-start gap-2", className)}>
+        {images.map((image, index) => {
+          const label = image.positionLabel
+            ? `ม็อกอัพ v${version.versionNumber} ด้าน${image.positionLabel}`
+            : `ม็อกอัพ v${version.versionNumber} รูปที่ ${index + 1}`;
+
+          return (
+            <li key={`${image.fileUrl}-${index}`} className="w-fit">
+              {image.previewUrl ? (
+                <button
+                  type="button"
+                  onClick={() => setZoom({ src: image.previewUrl!, label })}
+                  aria-label={`ขยาย${label}`}
+                  className={cn(
+                    "group relative block overflow-hidden border border-border bg-surface-muted",
+                    box,
+                    RADIUS.inner,
+                    FOCUS_BUTTON,
+                  )}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={image.previewUrl}
+                    alt={label}
+                    loading="lazy"
+                    decoding="async"
+                    className="h-full w-full object-cover"
+                  />
+                  <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/40 text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+                    <ZoomIn className="h-4 w-4" />
+                  </span>
+                </button>
+              ) : (
+                // .ai/.psd ที่ไม่มีรูปตัวอย่าง — ของจริงขึ้นไอคอน ไม่ปล่อยรูปแตก
+                <div
+                  className={cn(
+                    "flex items-center justify-center text-muted",
+                    box,
+                    DASHED,
+                    RADIUS.inner,
+                  )}
+                >
+                  <ImageOff className="h-4 w-4" />
+                </div>
+              )}
+              {image.positionLabel && (
+                <p className={cn("mt-0.5 text-center text-2xs text-muted", box, "h-auto")}>
+                  {image.positionLabel}
+                </p>
+              )}
+            </li>
+          );
+        })}
+      </ul>
 
       <Dialog open={zoom !== null} onOpenChange={(open) => !open && setZoom(null)}>
         <DialogContent className="max-w-3xl">

@@ -17,7 +17,6 @@ import { ArrowRight, Shirt } from "lucide-react";
 import { ChatLink } from "@/components/customers/chat-link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MockupGallery } from "@/components/mockup/mockup-gallery";
 import { DISPLAY_AMOUNT, FOCUS_BUTTON, RADIUS, SUNK_PANEL } from "@/components/ui/tokens";
 import {
   CHANNEL_LABELS,
@@ -31,6 +30,7 @@ import { cn, formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
 import { demoOrder, demoTotals } from "../../order-detail/_data";
 import { demoMockups, demoPrintFiles, demoRawFiles } from "../_artwork";
 import {
+  ArtworkThumbRow,
   FileRow,
   MockupStatusBadge,
   NoMockupNote,
@@ -220,66 +220,62 @@ export function CoverVariant({
         </div>
       </dl>
 
-      {/* ② ลาย — พระเอกของหน้า */}
+      {/* ② ลาย + สิ่งที่ต้องอ่านคู่กับลาย — สามช่องเรียงแนวนอน ไม่ให้ใครยืดหน้าคนเดียว
+          (รูปเล็กแล้ว ถ้ายังวางเป็นสองคอลัมน์กว้าง ๆ ช่องรูปจะเหลือที่ว่างครึ่งกล่อง) */}
       <div className={cn("p-4", SUNK_PANEL, RADIUS.surface)}>
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <div className="grid gap-x-6 gap-y-4 lg:grid-cols-[auto_minmax(0,1.1fr)_minmax(0,1fr)]">
           <div className="min-w-0 space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="flex items-center gap-2 text-xs font-semibold text-muted">
-                <Shirt className="h-3.5 w-3.5" aria-hidden="true" />
-                ลายงาน
-                {latest && (
-                  <span className="font-normal">
-                    · ม็อกอัพ v{latest.versionNumber}
-                    {latest.approvedAt
-                      ? ` · ลูกค้าอนุมัติ ${formatDate(latest.approvedAt)}`
-                      : ` · ส่งให้ลูกค้า ${formatDate(latest.createdAt)}`}
-                  </span>
-                )}
-              </p>
-              <Button variant="ghost" size="sm">
-                ม็อกอัพ &amp; ไฟล์
-                <ArrowRight className="h-4 w-4" aria-hidden="true" />
-              </Button>
-            </div>
+            <p className="flex items-center gap-2 text-xs font-semibold text-muted">
+              <Shirt className="h-3.5 w-3.5" aria-hidden="true" />
+              ลายงาน
+              {latest && (
+                <span className="font-normal">
+                  v{latest.versionNumber}
+                  {latest.approvedAt
+                    ? ` · อนุมัติ ${formatDate(latest.approvedAt)}`
+                    : ` · ส่งแล้ว ${formatDate(latest.createdAt)}`}
+                </span>
+              )}
+            </p>
 
             {latest ? (
-              <MockupGallery version={latest} versionNumber={latest.versionNumber} />
+              <ArtworkThumbRow version={latest} size="sm" />
             ) : (
               <NoMockupNote rawCount={rawFiles.length} />
             )}
           </div>
 
-          <div className="min-w-0 space-y-4">
+          <div className="min-w-0 space-y-1.5">
+            <p className="text-xs font-semibold text-muted">รายละเอียดงาน</p>
             {order.description?.trim() ? (
-              <div className="space-y-1.5">
-                <p className="text-xs font-semibold text-muted">รายละเอียดงาน</p>
-                <p className="text-sm leading-6 text-secondary [overflow-wrap:anywhere]">
-                  {order.description}
-                </p>
-              </div>
+              <p className="text-sm leading-6 text-secondary [overflow-wrap:anywhere]">
+                {order.description}
+              </p>
             ) : (
-              <div className="space-y-1.5">
-                <p className="text-xs font-semibold text-muted">รายละเอียดงาน</p>
-                <p className="text-sm text-muted">ยังไม่มีรายละเอียดงาน</p>
-              </div>
+              <p className="text-sm text-muted">ยังไม่มีรายละเอียดงาน</p>
             )}
+          </div>
 
-            <div className="space-y-1.5">
+          <div className="min-w-0 space-y-1.5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-xs font-semibold text-muted">ไฟล์ของงานนี้</p>
-              {rawFiles.length + printFiles.length > 0 ? (
-                <ul className="divide-y divide-divider">
-                  {rawFiles.map((file) => (
-                    <FileRow key={file.id} file={file} />
-                  ))}
-                  {printFiles.map((file) => (
-                    <FileRow key={file.id} file={file} locked />
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-sm text-muted">ยังไม่มีไฟล์แนบ</p>
-              )}
+              <Button variant="ghost" size="sm">
+                ม็อกอัพ &amp; ไฟล์
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              </Button>
             </div>
+            {rawFiles.length + printFiles.length > 0 ? (
+              <ul className="divide-y divide-divider">
+                {rawFiles.map((file) => (
+                  <FileRow key={file.id} file={file} />
+                ))}
+                {printFiles.map((file) => (
+                  <FileRow key={file.id} file={file} locked />
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-muted">ยังไม่มีไฟล์แนบ</p>
+            )}
           </div>
         </div>
       </div>

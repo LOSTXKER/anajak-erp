@@ -42,7 +42,7 @@ import { cn, formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
 import { demoOrder, demoTotals } from "../../order-detail/_data";
 import { demoMockups, demoPrintFiles, demoRawFiles } from "../_artwork";
 import {
-  ArtworkHero,
+  ArtworkThumbRow,
   Field,
   FieldGrid,
   FileCountLine,
@@ -372,19 +372,22 @@ export function PairVariant({
         >
           <div className="space-y-4">
             {latest ? (
-              <>
-                <ArtworkHero version={latest} />
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm">
-                  <MockupStatusBadge version={latest} />
-                  <span className="font-medium text-strong">ม็อกอัพ v{latest.versionNumber}</span>
-                  <span className="text-muted">
+              /* รูปเล็กพอให้จำงานได้ กดขยายเอาถ้าต้องดูลายจริง (เบสสั่ง 2026-08-31) */
+              <div className="flex flex-wrap items-start gap-x-5 gap-y-3">
+                <ArtworkThumbRow version={latest} />
+                <div className="min-w-0 flex-1 space-y-1 text-sm">
+                  <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <MockupStatusBadge version={latest} />
+                    <span className="font-medium text-strong">ม็อกอัพ v{latest.versionNumber}</span>
+                  </p>
+                  <p className="text-xs text-muted">
                     {latest.approvedAt
                       ? `ลูกค้าอนุมัติ ${formatDate(latest.approvedAt)}`
                       : `ส่งให้ลูกค้า ${formatDate(latest.createdAt)}`}
                     {mockups.length > 1 && ` · แก้มาแล้ว ${mockups.length - 1} รอบ`}
-                  </span>
+                  </p>
                 </div>
-              </>
+              </div>
             ) : (
               <NoMockupNote rawCount={rawFiles.length} />
             )}
