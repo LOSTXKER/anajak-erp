@@ -13,6 +13,14 @@ export type ProtoEntry = {
 
 export const PROTOS: ProtoEntry[] = [
   {
+    slug: "production-list",
+    title: "หน้าควบคุมการผลิต — การ์ดกรอง + ตาราง",
+    question:
+      "การ์ดกรองข้างบนกับตารางข้างล่างของหน้า /production ควรหน้าตาแบบไหน — แน่นกว่าเดิม / เน้นสิ่งที่ต้องทำ / เอาการ์ดออกแล้วจัดกลุ่มตามกำหนดส่ง",
+    date: "2026-08-31",
+    status: "รอเคาะ",
+  },
+  {
     slug: "look",
     title: "หน้าตาทั้งเว็บ — สีและลูกเล่น",
     question:
