@@ -14,6 +14,7 @@ import {
   HardDriveDownload,
   Store,
   History,
+  Workflow,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
@@ -107,6 +108,15 @@ const SETTING_LINKS: readonly SettingLink[] = [
     meta: "แพทเทิร์นงานตัดเย็บ",
     tone: "product",
     permissionsAny: ["create_design_assets", "manage_design_files", "manage_settings"],
+  },
+  {
+    href: "/settings/routings",
+    group: "การผลิตและบริการ",
+    icon: Workflow,
+    title: "สูตรขั้นงาน",
+    meta: "ขั้นตอนผลิต · ทำเอง/ส่งร้าน · ขั้นที่ต้องเสร็จก่อน",
+    tone: "production",
+    permissionsAny: ["manage_settings"],
   },
   {
     href: "/settings/packaging",
