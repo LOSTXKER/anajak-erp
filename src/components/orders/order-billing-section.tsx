@@ -5,6 +5,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SectionTitle } from "@/components/ui/section";
 import { QueryError } from "@/components/ui/query-error";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
 import { PAYMENT_STATUS_LABELS, PAYMENT_STATUS_VARIANTS } from "@/lib/status-config";
@@ -101,8 +102,9 @@ export function OrderBillingSection({
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-base">
-              <Receipt className="h-4 w-4" />
-              บิล/การชำระเงิน
+              <SectionTitle icon={Receipt} tone="finance">
+                บิล/การชำระเงิน
+              </SectionTitle>
             </CardTitle>
             {canCreateInvoice && canBill && (
               <Button

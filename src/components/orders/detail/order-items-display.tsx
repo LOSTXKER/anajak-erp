@@ -5,6 +5,7 @@ import { trpc } from "@/lib/trpc";
 import type { RouterOutput } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SectionTitle, ToneMark } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -195,7 +196,7 @@ export function OrderItemsDisplay({
         <CardHeader>
           <div className="flex items-center justify-between gap-3">
             <CardTitle className="flex flex-wrap items-center gap-x-2 gap-y-1 text-base">
-              <Package className="h-4 w-4 flex-shrink-0" />
+              <ToneMark icon={Package} tone="product" />
               <span className="[overflow-wrap:anywhere]">
                 รายการสินค้า
                 {!isSingleItem && !isEmpty ? ` (${items.length})` : ""}
@@ -649,8 +650,9 @@ export function OrderItemsDisplay({
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <Receipt className="h-4 w-4" />
-              ค่าธรรมเนียม / ค่าใช้จ่ายเพิ่มเติม
+              <SectionTitle icon={Receipt} tone="finance">
+                ค่าธรรมเนียม / ค่าใช้จ่ายเพิ่มเติม
+              </SectionTitle>
             </CardTitle>
           </CardHeader>
           <CardContent>

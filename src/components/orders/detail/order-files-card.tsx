@@ -10,6 +10,7 @@ import {
   type AttachmentCategory,
 } from "@/lib/file-layers";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SectionTitle } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FileUpload } from "@/components/ui/file-upload";
@@ -227,8 +228,9 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole }: Order
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
-          <FolderOpen className="h-4 w-4" />
-          ไฟล์อื่นของออเดอร์
+          <SectionTitle icon={FolderOpen} tone="system">
+            ไฟล์อื่นของออเดอร์
+          </SectionTitle>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-5">

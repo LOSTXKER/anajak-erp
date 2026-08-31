@@ -194,6 +194,8 @@ export function MockupPanel({
     <>
       <Section
         title={title}
+        icon={Shirt}
+        tone="production"
         help={
           description ??
           (readOnly

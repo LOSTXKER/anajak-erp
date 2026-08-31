@@ -16,6 +16,7 @@ import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SectionTitle } from "@/components/ui/section";
 import { Input } from "@/components/ui/input";
 import { QueryError } from "@/components/ui/query-error";
 import { cn, formatCurrency, formatDateTime } from "@/lib/utils";
@@ -141,8 +142,9 @@ export function OrderDeliverySection({
         <CardHeader>
           <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle className="flex items-center gap-2 text-base">
-              <Truck className="h-4 w-4" />
-              การจัดส่ง
+              <SectionTitle icon={Truck} tone="production">
+                การจัดส่ง
+              </SectionTitle>
             </CardTitle>
             {canCreate && (
               <Button

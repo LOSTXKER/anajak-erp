@@ -4,6 +4,7 @@ import { useState } from "react";
 import { trpc, type RouterOutput } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SectionTitle } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -104,8 +105,9 @@ export function OrderQcSection({ orderId, internalStatus, canCount }: OrderQcSec
       <CardHeader className="pb-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-            <ShieldCheck className="h-4 w-4 text-muted" />
-            ตรวจนับ QC
+            <SectionTitle icon={ShieldCheck} tone="production">
+              ตรวจนับ QC
+            </SectionTitle>
           </CardTitle>
           {isQualityCheck &&
             (canCount ? (

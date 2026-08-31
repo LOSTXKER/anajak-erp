@@ -11,6 +11,7 @@ import {
   ClipboardCheck,
   ExternalLink,
   History,
+  Lock,
   PackageCheck,
   Play,
   RotateCcw,
@@ -145,7 +146,12 @@ function OperationLedger({
   }
 
   return (
-    <Section title="เส้นทางการผลิต" meta="สถานะและผลผลิตของทุกขั้น เรียงตามคิวที่หัวหน้ากำหนด" action={<Route className="h-5 w-5 text-muted" aria-hidden />}>
+    <Section
+      title="เส้นทางการผลิต"
+      meta="สถานะและผลผลิตของทุกขั้น เรียงตามคิวที่หัวหน้ากำหนด"
+      icon={Route}
+      tone="production"
+    >
       {workOrder.operations.length === 0 ? (
         <EmptyState density="compact" icon={Route} title="ยังไม่มีเส้นทางการผลิต" description="เลือกเส้นทางก่อนปล่อยใบสั่งผลิต" />
       ) : (
@@ -228,6 +234,8 @@ function ReferenceControl({ workOrder }: { workOrder: WorkOrder }) {
   return (
     <Section
       title="ข้อมูลอ้างอิงที่ล็อกไว้"
+      icon={Lock}
+      tone="system"
       meta="สำเนาที่ใช้กับใบสั่งผลิตนี้ จะไม่เปลี่ยนตามต้นฉบับภายหลัง"
       action={<ShieldCheck className="h-5 w-5 text-muted" aria-hidden />}
     >
@@ -277,7 +285,7 @@ function QuantityLedger({
 }) {
   if (lines.length === 0) {
     return (
-      <Section title="จำนวนตามรายการ">
+      <Section title="จำนวนตามรายการ" icon={PackageCheck} tone="product">
         <EmptyState
           density="compact"
           icon={PackageCheck}
@@ -312,6 +320,8 @@ function QuantityLedger({
   return (
     <Section
       title="จำนวนตามขั้นงาน"
+      icon={ClipboardCheck}
+      tone="production"
       meta="แต่ละกลุ่มเป็นยอดของขั้นงานและศูนย์งานนั้น ไม่ใช่ยอดรวมซ้ำของทั้งใบ"
       flush
     >
@@ -582,7 +592,7 @@ function EventLedger({
 }) {
   if (events.length === 0) {
     return (
-      <Section title="ประวัติการทำงาน">
+      <Section title="ประวัติการทำงาน" icon={History} tone="system">
         <EmptyState density="compact" icon={History} title="ยังไม่มีประวัติ" />
       </Section>
     );
@@ -590,6 +600,8 @@ function EventLedger({
   return (
     <Section
       title="ประวัติการทำงาน"
+      icon={History}
+      tone="system"
       meta="บันทึกย้อนหลังที่เพิ่มต่อเนื่องและไม่แก้ทับ"
     >
       <ol className="space-y-4">

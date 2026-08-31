@@ -1,5 +1,5 @@
 import { Calculator } from "lucide-react";
-import { Section } from "@/components/ui/section";
+import { Section, SectionTitle } from "@/components/ui/section";
 import { formatCurrency } from "@/lib/utils";
 import { OrderBillingSection } from "@/components/orders/order-billing-section";
 
@@ -52,10 +52,9 @@ export function OrderMoneyTab({
       {showSummary && (
         <Section
           title={
-            <span className="flex items-center gap-2">
-              <Calculator className="h-4 w-4" />
+            <SectionTitle icon={Calculator} tone="finance">
               สรุปราคา
-            </span>
+            </SectionTitle>
           }
         >
           <div className="space-y-2.5">

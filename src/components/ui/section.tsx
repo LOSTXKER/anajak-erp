@@ -134,7 +134,7 @@ Section.displayName = "Section";
  * ไม่ส่ง = เทาเหมือนเดิม — ของเก่าที่ยังไม่ได้ไล่สีจึงไม่ขยับสักจุด
  */
 export function SectionTitle({
-  icon: Icon,
+  icon,
   tone,
   children,
 }: {
@@ -144,18 +144,35 @@ export function SectionTitle({
 }) {
   return (
     <span className="flex items-center gap-2">
-      <span
-        className={cn(
-          "flex shrink-0 items-center justify-center",
-          tone
-            ? cn("h-6 w-6", RADIUS.item, VISUAL_TONE_CLASSES[tone].soft)
-            : "text-muted",
-        )}
-        aria-hidden="true"
-      >
-        <Icon className="h-3.5 w-3.5" />
-      </span>
+      <ToneMark icon={icon} tone={tone} />
       {children}
+    </span>
+  );
+}
+
+/**
+ * เฉพาะ "กล่องไอคอนสีประจำหมวด" ไม่มีข้อความ — ใช้กับหัวข้อที่จัดวางเองอยู่แล้ว
+ * (เช่นหัวการ์ดที่มีตัวเลข/ป้ายต่อท้ายและต้องขึ้นบรรทัดใหม่ได้) ซึ่งเอา SectionTitle
+ * ไปครอบไม่ได้เพราะจะกลืนพฤติกรรมการห่อบรรทัดของหัวข้อนั้น
+ */
+export function ToneMark({
+  icon: Icon,
+  tone,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  tone?: VisualTone;
+}) {
+  return (
+    <span
+      className={cn(
+        "flex shrink-0 items-center justify-center",
+        tone
+          ? cn("h-6 w-6", RADIUS.item, VISUAL_TONE_CLASSES[tone].soft)
+          : "text-muted",
+      )}
+      aria-hidden="true"
+    >
+      <Icon className="h-3.5 w-3.5" />
     </span>
   );
 }

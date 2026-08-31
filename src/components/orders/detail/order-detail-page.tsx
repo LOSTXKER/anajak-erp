@@ -979,7 +979,7 @@ function OrderDetailContent({
             ) : (
               /* แท็บอยู่เสมอแม้ยังไม่ถึงเฟส — ถ้าซ่อนตามสถานะ ชุดแท็บจะเปลี่ยนใต้มือ
                  ระหว่างวันเดียวกัน (สถานะเดินหลายรอบต่อวัน) ตำแหน่งที่คนจำไว้จะขยับ */
-              <Section title="จัดส่ง">
+              <Section title="จัดส่ง" icon={Truck} tone="production">
                 <EmptyState
                   icon={Truck}
                   title="ยังไม่ถึงขั้นจัดส่ง"
