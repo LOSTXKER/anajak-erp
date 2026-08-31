@@ -31,6 +31,7 @@ import { SearchInput } from "@/components/ui/search-input";
 import { Select } from "@/components/ui/select";
 import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
 import { FOCUS_BUTTON, RADIUS } from "@/components/ui/tokens";
+import { CONTROL_MIN_H } from "@/components/ui/control-size";
 import { MockupThumbnail } from "@/components/mockup/mockup-thumbnail";
 import { orderMockupCover } from "@/lib/mockup";
 import { cn, formatDateShort } from "@/lib/utils";
@@ -141,6 +142,29 @@ export function useWorklist(board: ProtoBoard) {
     [board.stations, lensJobs],
   );
 
+  /* จำนวนต่อ "หมวด" ของขั้นงาน — นับเป็นจำนวนใบไม่ซ้ำ (งานผสมเดินสองสายในหมวดเดียวกัน
+     ต้องนับใบเดียว ไม่ใช่บวกเลขของทุกสายซึ่งจะเกินจำนวนงานจริง) */
+  const groupCounts = useMemo(() => {
+    const countOf = (match: (key: string) => boolean) => {
+      const matched = lensJobs.filter((item) => item.stationKeys.some(match));
+      return {
+        count: matched.length,
+        overdue: matched.filter((item) => item.overdue).length,
+      };
+    };
+    const outsourceKeys = new Set(
+      stations.filter((item) => item.isOutsource).map((item) => item.key),
+    );
+    return {
+      queue: countOf((key) => key === "queue"),
+      factory: countOf(
+        (key) => key.startsWith("lane:") && !outsourceKeys.has(key),
+      ),
+      outsource: countOf((key) => outsourceKeys.has(key)),
+      post: countOf((key) => key.startsWith("post:") || key === "legacy:qc"),
+    };
+  }, [lensJobs, stations]);
+
   const counts = useMemo(() => productionWorklistCounts(board), [board]);
   const exceptionByOrderId = useMemo(
     () => new Map(board.exceptions.map((item) => [item.orderId, item])),
@@ -165,6 +189,7 @@ export function useWorklist(board: ProtoBoard) {
     station,
     setStation,
     stations,
+    groupCounts,
     sort,
     setSort,
     search,
@@ -186,11 +211,16 @@ export function WorklistToolbar({
   leading,
   freshness,
   className,
+  desktopSort = "select",
 }: {
   state: WorklistState;
   leading?: React.ReactNode;
   freshness?: React.ReactNode;
   className?: string;
+  /** ช่องเรียงบนคอม — เบสถาม 2026-08-31 ว่า "แล้วนี่มีทำไม" จึงเปิดให้ลองสามแบบ
+   *  select = ของจริงตอนนี้ · toggle = ปุ่มสลับสองอัน · none = ไม่มี (เรียงจากหัวตารางล้วน)
+   *  มือถือมีช่องเรียงครบทุกแบบเสมอ เพราะไม่มีหัวตารางให้กด */
+  desktopSort?: "select" | "toggle" | "none";
 }) {
   const desktopSortValue =
     state.sort === "attention" || state.sort === "urgent" ? state.sort : "__column__";
@@ -229,20 +259,49 @@ export function WorklistToolbar({
             </option>
           ))}
         </Select>
-        <Select
-          value={desktopSortValue}
-          onChange={(event) => state.setSort(resolveProductionWorklistSort(event.target.value))}
-          aria-label="ลำดับพิเศษ"
-          shape="pill"
-          surface="raised"
-          className="hidden @2xl:flex @2xl:w-52"
-        >
-          <option value="__column__" disabled>
-            เรียงจากหัวตาราง
-          </option>
-          <option value="attention">ต้องจัดการก่อน</option>
-          <option value="urgent">ด่วนก่อน</option>
-        </Select>
+        {desktopSort === "select" ? (
+          <Select
+            value={desktopSortValue}
+            onChange={(event) => state.setSort(resolveProductionWorklistSort(event.target.value))}
+            aria-label="ลำดับพิเศษ"
+            shape="pill"
+            surface="raised"
+            className="hidden @2xl:flex @2xl:w-52"
+          >
+            <option value="__column__" disabled>
+              เรียงจากหัวตาราง
+            </option>
+            <option value="attention">ต้องจัดการก่อน</option>
+            <option value="urgent">ด่วนก่อน</option>
+          </Select>
+        ) : null}
+        {desktopSort === "toggle" ? (
+          /* ปุ่มสลับสองอัน — กดค้างไว้ได้ทีละอัน กดซ้ำ = เลิก (กลับไปเรียงจากหัวตาราง) */
+          <span className="hidden items-center gap-1 @2xl:inline-flex">
+            {(["attention", "urgent"] as const).map((value) => {
+              const isOn = state.sort === value;
+              const label = value === "attention" ? "ต้องจัดการก่อน" : "ด่วนก่อน";
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={isOn}
+                  onClick={() => state.setSort(isOn ? "deadline:asc" : value)}
+                  className={cn(
+                    CONTROL_MIN_H,
+                    FOCUS_BUTTON,
+                    "whitespace-nowrap rounded-full px-3 text-xs transition-colors",
+                    isOn
+                      ? "bg-interactive-pressed font-medium text-strong"
+                      : "font-normal text-secondary hover:text-strong",
+                  )}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </span>
+        ) : null}
       </ToolbarGroup>
     </Toolbar>
   );

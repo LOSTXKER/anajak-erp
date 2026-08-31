@@ -13,6 +13,14 @@ export type ProtoEntry = {
 
 export const PROTOS: ProtoEntry[] = [
   {
+    slug: "production-groups",
+    title: "แถบกรองผลิต — แยกหมวด + ช่องเรียง",
+    question:
+      "แถบกรองควรแยกหมวดของขั้นงานยังไง (ป้ายกำกับ / ร้านนอกแยกแถว / ร้านนอกยุบปุ่มเดียว) และช่องเรียงบนคอมที่เบสถามว่า “มีทำไม” ควรเก็บ ยุบ หรือเอาออก",
+    date: "2026-08-31",
+    status: "รอเคาะ",
+  },
+  {
     slug: "production-filter",
     title: "แถบกรองหน้าควบคุมการผลิต",
     question:

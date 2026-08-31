@@ -240,8 +240,11 @@ function MobileRows({ jobs }: { jobs: readonly ProtoJobRow[] }) {
 export function BarVariant({
   state,
   filter,
+  desktopSort,
 }: {
   state: WorklistState;
+  /** ช่องเรียงบนคอม — ส่งต่อให้ WorklistToolbar (หน้าลอง /proto/production-groups ใช้เทียบ) */
+  desktopSort?: "select" | "toggle" | "none";
   /** สลับเฉพาะ "แถบตัวกรอง" ได้ โดยตารางยังเป็นชุดเดียวกับที่ลงของจริงไปแล้ว —
    *  หน้าลอง /proto/production-filter ใช้ช่องนี้เทียบแถบกรองสี่แบบบนตารางเดียวกัน
    *  ไม่ส่งมา = แถบชิป 5 มุมเหมือนตอนที่เบสเคาะแบบ C (ภาพเดิมของหน้าลองนี้ไม่เปลี่ยน) */
@@ -252,6 +255,7 @@ export function BarVariant({
       <WorklistToolbar
         state={state}
         leading={filter === undefined ? <FilterBar state={state} /> : filter}
+        desktopSort={desktopSort}
         freshness={<ProtoFreshness />}
         className="lg:border-b lg:border-divider lg:px-4 lg:py-3"
       />
