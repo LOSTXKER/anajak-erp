@@ -10,6 +10,8 @@ import {
   ListFilter,
   PackageCheck,
   SearchX,
+  Timer,
+  Truck,
   type LucideIcon,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +28,9 @@ import { MockupThumbnail } from "@/components/mockup/mockup-thumbnail";
 import { orderMockupCover } from "@/lib/mockup";
 import { cn, formatDateShort } from "@/lib/utils";
 import {
+  STATION_ALL,
+  STATION_LEGACY_QC,
+  STATION_QUEUE,
   type BoardJob,
   type BoardOrderLike,
   type BoardRailPoint,
@@ -45,6 +50,7 @@ import {
   type ProductionWorklistLens,
   type ProductionWorklistSort,
   type ProductionWorklistSortColumn,
+  type WorklistStationChip,
 } from "@/lib/production-worklist";
 
 /* ============================================================
@@ -55,6 +61,12 @@ import {
    ① ตัวกรอง 5 มุมเคยเป็นการ์ดตัวเลขสูง 87px วางเต็มแถวก่อนถึงงานใบแรก
       → ยุบเป็นแถบชิปแถวเดียวในแถบเครื่องมือ (ใช้ FilterChip ตัวจริงของระบบ)
       พื้นที่ที่ได้คืนไปให้ตัวงาน ซึ่งเป็นเนื้อหาจริงของหน้านี้
+      **แถบนั้นเปลี่ยนคำถามอีกรอบ 2026-08-31 (เบสเลือกแบบ A จาก /proto/production-filter):**
+      จาก "ใบไหนสถานะอะไร" → "ตอนนี้ค้างอยู่ขั้นไหน" · เหตุผลคือเกือบทุกใบในโรงงานนี้
+      มีสถานะ "กำลังผลิต" ตลอด (วันที่เบสเคาะ = 19 จาก 20 ใบ) ปุ่มตามสถานะจึงกดแล้ว
+      แทบไม่กรองอะไร และ "รอ QC" เป็น 0 แต่กินที่ทุกวัน · ตอนนี้เหลือชิปมุมสองอัน
+      (ทั้งหมด · ต้องจัดการ) แล้วต่อด้วยชิปขั้นงานจาก board.stations พร้อมจำนวน
+      และจำนวนที่เลยกำหนดรายขั้น ซึ่งแถบเดิมบอกไม่ได้เลย
    ② คอลัมน์ "ต้องทำต่อ" (เหตุผล + เจ้าของถัดไป + ป้ายสายงาน) ถูกตัดออก
       เบสสั่งคำต่อคำ: "ตารางไม่ต้องบอกรายละเอียด ต้องทำต่อ คือทำให้รู้ว่าตอนนี้
       สถานะอะไรก็พอ" → เหลือคอลัมน์ "สถานะ" ที่ใช้ป้ายกลาง StatusLabel
@@ -104,6 +116,36 @@ const WORKLIST_LENS_PRESENTATION = {
   }
 >;
 
+/* แถบกรองโชว์แค่สองมุมนี้ — เป็นคำถามข้ามสาย ("ดูทั้งหมด" / "อะไรเสี่ยง")
+   ส่วนมุม กำลังผลิต/รอ QC/แพ็ก ถูกแทนด้วยชิปขั้นงานตั้งแต่ 2026-08-31 (เบสเลือกแบบ A)
+   เพราะเกือบทุกใบมีสถานะ "กำลังผลิต" อยู่แล้ว กดแล้วแทบไม่กรองอะไร
+   ค่ามุมเดิมยังอยู่ใน PRODUCTION_WORKLIST_LENSES — ลิงก์เก่า `?view=qc` จึงไม่พัง */
+const WORKLIST_LENS_CHIPS = PRODUCTION_WORKLIST_LENSES.filter(
+  (lens) => lens.key === "all" || lens.key === "attention",
+);
+
+/** ไอคอนตามชนิดของขั้นงาน — คิวรอ / สายในโรงงาน / ร้านนอก / QC / แพ็ก-ส่ง */
+function stationIcon(key: string, isOutsource: boolean): LucideIcon {
+  if (key === STATION_QUEUE) return Timer;
+  if (key === "post:qc" || key === STATION_LEGACY_QC) return ClipboardCheck;
+  if (key === "post:pack" || key === "post:ship") return PackageCheck;
+  return isOutsource ? Truck : Factory;
+}
+
+/* สายร้านนอกแยกด้วย "ไอคอนรถ" ไม่ใช่สีใหม่ — จานสีของระบบมีแค่ slate/blue/red/amber/green
+   และสามสีหลังจองไว้ให้ความหมายอื่นแล้ว (เสีย/เตือน/ผ่าน) */
+function stationTone(key: string, isOutsource: boolean) {
+  if (key === STATION_QUEUE) return "text-muted";
+  if (key === "post:qc" || key === STATION_LEGACY_QC) {
+    return WORKLIST_LENS_PRESENTATION.qc.iconColor;
+  }
+  if (key === "post:pack" || key === "post:ship") {
+    return WORKLIST_LENS_PRESENTATION.packing.iconColor;
+  }
+  if (isOutsource) return "text-secondary";
+  return WORKLIST_LENS_PRESENTATION.production.iconColor;
+}
+
 const WORKLIST_FOCUS_STORAGE_KEY = "anajak:production-worklist:last-focus";
 
 function rememberWorklistFocus(orderId: string) {
@@ -142,8 +184,8 @@ function WorkProgress({
 }
 
 /**
- * สถานะของแถว — ชื่อสถานะจาก INTERNAL_STATUS_LABELS + จุดสีบอกสภาพงาน
- * บรรทัดรองบอกสายงานที่ยังค้าง (งานผสมมีได้หลายสาย) และซ่อนเองถ้าซ้ำกับบรรทัดบน
+ * สถานะของแถว — ขั้นที่ค้างอยู่จริง (งานผสมมีได้หลายสาย คั่นด้วย ·)
+ * พร้อมจุดสีบอกสภาพงาน · ชื่อสถานะหลักถูกตัดออกตามที่เบสสั่ง (ดูในตัวฟังก์ชัน)
  */
 function WorkStatus<S extends BoardStepLike, O extends BoardOrderLike<S>>({
   job,
@@ -380,10 +422,13 @@ export function ProductionControlWorklist<
   board,
   jobs,
   lens,
+  station,
+  stations,
   sort,
   searchDefault,
   searchInputRef,
   onSelectLens,
+  onSelectStation,
   onSelectSort,
   onSearchChange,
   canCreateProduction,
@@ -392,10 +437,15 @@ export function ProductionControlWorklist<
   board: ProductionBoard<O, S>;
   jobs: readonly BoardJob<O, S>[];
   lens: ProductionWorklistLens;
+  /** ขั้นงานที่กรองอยู่ (คีย์จาก board.stations) · ค่าว่าง = ไม่ได้กรองขั้นไหน */
+  station: string;
+  /** ชิปขั้นงานพร้อมจำนวน — นับจากงานที่ผ่านคำค้น/มุมแล้ว แต่ยังไม่กรองขั้น */
+  stations: readonly WorklistStationChip[];
   sort: ProductionWorklistSort;
   searchDefault: string;
   searchInputRef: Ref<HTMLInputElement>;
   onSelectLens: (lens: ProductionWorklistLens) => void;
+  onSelectStation: (station: string) => void;
   onSelectSort: (sort: ProductionWorklistSort) => void;
   onSearchChange: (value: string) => void;
   canCreateProduction: boolean;
@@ -443,13 +493,13 @@ export function ProductionControlWorklist<
               {freshness}
             </div>
           ) : null}
-          {/* ตัวกรอง 5 มุมเป็นแถบเดียว — เลขเกาะในชิป ไม่ใช่การ์ดตัวเลขเต็มแถวอีกต่อไป */}
+          {/* แถบกรอง: ทั้งหมด/ต้องจัดการ (มุมข้ามสาย) แล้วคั่น แล้วตามด้วยขั้นงานจริง */}
           <div
             role="group"
             aria-label="กรองรายการงาน"
             className="-mx-1 order-2 flex w-full items-center gap-4 overflow-x-auto border-b border-divider px-1 @2xl:order-1"
           >
-            {PRODUCTION_WORKLIST_LENSES.map((item) => {
+            {WORKLIST_LENS_CHIPS.map((item) => {
               const isOn = lens === item.key;
               const presentation = WORKLIST_LENS_PRESENTATION[item.key];
               const Icon = presentation.icon;
@@ -463,8 +513,12 @@ export function ProductionControlWorklist<
               return (
                 <FilterChip
                   key={item.key}
-                  selected={isOn}
-                  onClick={() => onSelectLens(isOn ? "all" : item.key)}
+                  selected={isOn && (item.key !== "all" || station === STATION_ALL)}
+                  onClick={() => {
+                    // กด "ทั้งหมด" = ล้างทุกตัวกรอง ไม่ใช่ล้างแค่มุม
+                    if (item.key === "all") onSelectStation(STATION_ALL);
+                    onSelectLens(isOn && item.key !== "all" ? "all" : item.key);
+                  }}
                   aria-label={actionLabel}
                   title={actionLabel}
                   icon={
@@ -484,6 +538,44 @@ export function ProductionControlWorklist<
                   >
                     {counts[item.key]}
                   </span>
+                </FilterChip>
+              );
+            })}
+
+            <span aria-hidden="true" className="h-5 w-px shrink-0 bg-divider" />
+
+            {stations.map((item) => {
+              const isOn = station === item.key;
+              const Icon = stationIcon(item.key, item.isOutsource);
+              const tone = stationTone(item.key, item.isOutsource);
+              const actionLabel = `${item.label} · ${item.count} งาน${
+                item.overdue > 0 ? ` · เลยกำหนด ${item.overdue}` : ""
+              } · ${isOn ? "เลือกอยู่ · กดซ้ำเพื่อล้างตัวกรอง" : "กดเพื่อกรอง"}`;
+
+              return (
+                <FilterChip
+                  key={item.key}
+                  selected={isOn}
+                  onClick={() => onSelectStation(isOn ? STATION_ALL : item.key)}
+                  aria-label={actionLabel}
+                  title={actionLabel}
+                  // ขั้นที่ไม่มีงานยังอยู่ในแถบแต่จาง — ถ้าซ่อน ปุ่มจะเต้นหายไปมาระหว่างกรอง
+                  className={cn(item.count === 0 && !isOn && "opacity-45")}
+                  icon={<Icon className={cn("h-4 w-4", tone)} strokeWidth={1.8} />}
+                >
+                  <span className="whitespace-nowrap">{item.label}</span>
+                  <span
+                    data-station-count=""
+                    className={cn("ml-1 text-2xs font-semibold tabular-nums", tone)}
+                  >
+                    {item.count}
+                  </span>
+                  {item.overdue > 0 ? (
+                    /* ไม่มีพื้นเม็ด — กติกา "ไม่มีกล่อง" ที่เบสเคาะไว้ 2026-08-31 สีแดงพอแล้ว */
+                    <span className="ml-1.5 text-2xs font-semibold tabular-nums text-red-700 dark:text-red-300">
+                      เลย {item.overdue}
+                    </span>
+                  ) : null}
                 </FilterChip>
               );
             })}

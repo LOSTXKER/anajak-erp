@@ -4,11 +4,12 @@ import type {
   BoardJob,
   BoardOrderLike,
   BoardRailPoint,
+  BoardStation,
   BoardStepLike,
   ProductionBoard,
 } from "@/lib/production-board";
 import { INTERNAL_STATUS_LABELS } from "@/lib/order-status";
-import { sortBoardJobs } from "@/lib/production-board";
+import { STATION_ALL, sortBoardJobs } from "@/lib/production-board";
 import { currentProductionProblemReason } from "@/lib/production-problem";
 
 /* ============================================================
@@ -298,6 +299,56 @@ export function productionWorklistStatus<
     tone,
     stations: uniqueText(job.spots.map((spot) => spot.stationLabel)),
   };
+}
+
+/* ============================================================
+   ตัวกรองตามสายงาน — แถบกรองของหน้านี้ตั้งแต่ 2026-08-31 (เบสเลือกแบบ A)
+
+   ก่อนหน้านี้แถบกรองถามว่า "ใบไหนสถานะอะไร" ซึ่งในโรงงานนี้เกือบทุกใบตอบ
+   เหมือนกันว่า "กำลังผลิต" (วันที่เบสเคาะคือ 19 จาก 20 ใบ) กดแล้วจึงแทบไม่กรอง
+   อะไร · แถบใหม่ถามว่า "ตอนนี้ค้างอยู่ขั้นไหน" ซึ่งเป็นคำถามจริงของหัวหน้าผลิต
+
+   รายชื่อสายมาจาก board.stations (buildProductionBoard ทำไว้แล้ว โชว์เฉพาะสาย
+   ที่มีงานจริง) และการกรองใช้ filterBoardJobs ตัวเดียวกับจอโรงงาน /factory
+   ============================================================ */
+
+export type WorklistStationChip = {
+  key: string;
+  label: string;
+  isOutsource: boolean;
+  /** จำนวนงานในสายนั้น นับจากรายการที่ผ่านคำค้น/มุมแล้ว — ตัวเลขจึงตรงกับสิ่งที่จะเห็นเมื่อกด */
+  count: number;
+  /** เลยกำหนดกี่ใบในสายนั้น — สิ่งที่แถบกรองแบบเดิมบอกไม่ได้เลย */
+  overdue: number;
+};
+
+export function worklistStationChips<
+  S extends BoardStepLike,
+  O extends BoardOrderLike<S>,
+>(
+  stations: readonly BoardStation[],
+  jobs: readonly BoardJob<O, S>[],
+): WorklistStationChip[] {
+  return stations.map((station) => {
+    const matched = jobs.filter((job) => job.stationKeys.includes(station.key));
+    return {
+      key: station.key,
+      label: station.label,
+      isOutsource: station.isOutsource,
+      count: matched.length,
+      overdue: matched.filter((job) => job.overdue).length,
+    };
+  });
+}
+
+/** สายที่ไม่มีอยู่จริงถือว่าไม่ได้กรอง (ลิงก์เก่า/มือแก้ URL) — กติกาเดียวกับ filterBoardJobs */
+export function resolveWorklistStation(
+  raw: string | null | undefined,
+  stations: readonly BoardStation[],
+): string {
+  return raw && stations.some((station) => station.key === raw)
+    ? raw
+    : STATION_ALL;
 }
 
 /* ============================================================

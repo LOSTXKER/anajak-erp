@@ -7,7 +7,7 @@ import { ProductionShell } from "../production-list/_shell";
 import { BarVariant } from "../production-list/_variants/bar";
 
 import { LensChips, StationChips, TwoChips } from "./_filters";
-import { useFilterProto } from "./_state";
+import { useWorklist } from "../production-list/_ui";
 
 export type ProductionFilterVariant = "current" | "lane" | "two" | "none";
 
@@ -19,7 +19,7 @@ function Inner({
   busy: boolean;
 }) {
   const board = busy ? PROTO_BOARD_BUSY : PROTO_BOARD;
-  const state = useFilterProto(board);
+  const state = useWorklist(board);
 
   return (
     <ProductionShell>

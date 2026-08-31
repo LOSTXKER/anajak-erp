@@ -24,7 +24,7 @@ import { STATION_ALL, STATION_QUEUE } from "@/lib/production-board";
 import { cn } from "@/lib/utils";
 
 import { LENSES, LENS_PRESENTATION } from "../production-list/_ui";
-import type { FilterProtoState } from "./_state";
+import type { WorklistState } from "../production-list/_ui";
 
 const BAR =
   "-mx-1 flex w-full items-center gap-4 overflow-x-auto border-b border-divider px-1";
@@ -32,7 +32,7 @@ const BAR =
 /* ------------------------------------------------- ของจริงตอนนี้: 5 มุมตามสถานะ */
 
 /** ยกมาจาก production-control-worklist.tsx ตัวจริง — รวมถึงเลขที่ไม่มีพื้นเม็ดแล้ว */
-export function LensChips({ state }: { state: FilterProtoState }) {
+export function LensChips({ state }: { state: WorklistState }) {
   return (
     <div role="group" aria-label="กรองรายการงาน" className={BAR}>
       {LENSES.map((item) => {
@@ -82,7 +82,7 @@ function stationTone(key: string, isOutsource: boolean) {
   return LENS_PRESENTATION.production.text;
 }
 
-export function StationChips({ state }: { state: FilterProtoState }) {
+export function StationChips({ state }: { state: WorklistState }) {
   const attention = LENS_PRESENTATION.attention;
   const attentionOn = state.lens === "attention";
 
@@ -174,7 +174,7 @@ function StationSelect({
   state,
   className,
 }: {
-  state: FilterProtoState;
+  state: WorklistState;
   className?: string;
 }) {
   return (
@@ -196,7 +196,7 @@ function StationSelect({
   );
 }
 
-export function TwoChips({ state }: { state: FilterProtoState }) {
+export function TwoChips({ state }: { state: WorklistState }) {
   const attentionOn = state.lens === "attention";
   const attention = LENS_PRESENTATION.attention;
 

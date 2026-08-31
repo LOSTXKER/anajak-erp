@@ -9,7 +9,9 @@ import {
   productionWorklistHref,
   productionWorklistStatus,
   resolveProductionWorklistSort,
+  resolveWorklistStation,
   sortProductionWorklist,
+  worklistStationChips,
 } from "./production-worklist";
 import type {
   BoardJob,
@@ -401,6 +403,42 @@ describe("สถานะของแถว (แทนคอลัมน์ \u20
       overdue: true,
     });
     expect(productionWorklistStatus(late).tone).toBe("success");
+  });
+});
+
+describe("ชิปกรองตามขั้นงาน (แถบกรองตั้งแต่ 2026-08-31 · เบสเลือกแบบ A)", () => {
+  const stations = [
+    { key: "queue", label: "รอเปิดใบผลิต", kind: "queue" as const, isOutsource: false, count: 0, overdue: 0 },
+    { key: "lane:DTF", label: "DTF", kind: "lane" as const, isOutsource: false, count: 0, overdue: 0 },
+    { key: "lane:EMBROIDERY", label: "ปัก", kind: "lane" as const, isOutsource: true, count: 0, overdue: 0 },
+  ];
+
+  it("นับงานต่อขั้นจากรายการที่ส่งเข้ามา และแยกจำนวนที่เลยกำหนด", () => {
+    const jobs = [
+      job({ id: "a", status: "PRODUCING", stationKey: "lane:DTF", overdue: true }),
+      job({ id: "b", status: "PRODUCING", stationKey: "lane:DTF" }),
+      job({ id: "c", status: "PRODUCTION_QUEUE", stationKey: "queue" }),
+    ];
+    expect(worklistStationChips(stations, jobs)).toEqual([
+      { key: "queue", label: "รอเปิดใบผลิต", isOutsource: false, count: 1, overdue: 0 },
+      { key: "lane:DTF", label: "DTF", isOutsource: false, count: 2, overdue: 1 },
+      // ขั้นที่ไม่มีงานยังอยู่ในแถบ (นับ 0) — ถ้าตัดทิ้ง ปุ่มจะเต้นหายไปมาระหว่างกรอง
+      { key: "lane:EMBROIDERY", label: "ปัก", isOutsource: true, count: 0, overdue: 0 },
+    ]);
+  });
+
+  it("งานผสมที่เดินสองสายพร้อมกันถูกนับในทุกสายที่มันค้างอยู่", () => {
+    const mixed = job({ id: "mixed", status: "PRODUCING", stationKey: "lane:DTF" });
+    mixed.stationKeys = ["lane:DTF", "lane:EMBROIDERY"];
+    const chips = worklistStationChips(stations, [mixed]);
+    expect(chips.find((chip) => chip.key === "lane:DTF")?.count).toBe(1);
+    expect(chips.find((chip) => chip.key === "lane:EMBROIDERY")?.count).toBe(1);
+  });
+
+  it("ขั้นที่ไม่มีอยู่จริง (ลิงก์เก่า/มือแก้ URL) ตกกลับเป็นไม่กรอง", () => {
+    expect(resolveWorklistStation("lane:DTF", stations)).toBe("lane:DTF");
+    expect(resolveWorklistStation("lane:ไม่มีจริง", stations)).toBe("");
+    expect(resolveWorklistStation(null, stations)).toBe("");
   });
 });
 

@@ -46,6 +46,7 @@ import {
   productionWorklistProgress,
   resolveProductionWorklistSort,
   sortProductionWorklist,
+  worklistStationChips,
   type ProductionWorklistLens,
   type ProductionWorklistSort,
   type ProductionWorklistSortColumn,
@@ -119,12 +120,24 @@ export function useWorklist(board: ProtoBoard) {
   const [lens, setLens] = useState<ProductionWorklistLens>("all");
   const [sort, setSort] = useState<ProductionWorklistSort>("attention");
   const [search, setSearch] = useState("");
+  /** ขั้นงานที่กรองอยู่ — ของจริงเก็บไว้ใน URL (`?station=`) หน้าลองเก็บในหน่วยความจำพอ */
+  const [station, setStation] = useState("");
+
+  /** งานที่ผ่านคำค้น+มุมแล้ว แต่ยังไม่กรองขั้น — ใช้เป็นฐานนับตัวเลขในชิปขั้นงาน */
+  const lensJobs = useMemo(() => {
+    const searched = filterBoardJobs(board.jobs, board.stations, "", search);
+    return filterProductionWorklist(board, searched, lens);
+  }, [board, search, lens]);
 
   const jobs = useMemo(() => {
-    const searched = filterBoardJobs(board.jobs, board.stations, "", search);
-    const lensed = filterProductionWorklist(board, searched, lens);
-    return sortProductionWorklist(board, lensed, sort);
-  }, [board, search, lens, sort]);
+    const stationed = filterBoardJobs(lensJobs, board.stations, station, "");
+    return sortProductionWorklist(board, stationed, sort);
+  }, [board, lensJobs, station, sort]);
+
+  const stations = useMemo(
+    () => worklistStationChips(board.stations, lensJobs),
+    [board.stations, lensJobs],
+  );
 
   const counts = useMemo(() => productionWorklistCounts(board), [board]);
   const exceptionByOrderId = useMemo(
@@ -147,6 +160,9 @@ export function useWorklist(board: ProtoBoard) {
   return {
     lens,
     setLens,
+    station,
+    setStation,
+    stations,
     sort,
     setSort,
     search,

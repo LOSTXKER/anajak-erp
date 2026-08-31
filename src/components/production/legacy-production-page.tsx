@@ -23,7 +23,9 @@ import {
   filterProductionWorklist,
   isProductionWorklistLens,
   resolveProductionWorklistSort,
+  resolveWorklistStation,
   sortProductionWorklist,
+  worklistStationChips,
 } from "@/lib/production-worklist";
 import { RefreshCw } from "lucide-react";
 import type { RouterOutput } from "@/lib/trpc";
@@ -76,6 +78,12 @@ function ProductionWorkspace() {
     [orders, dataUpdatedAt, me?.id, showBlocked],
   );
 
+  // ขั้นงานที่กรองอยู่ — สายที่ไม่มีอยู่จริง (ลิงก์เก่า/มือแก้ URL) ตกกลับเป็น "ทุกขั้น"
+  const station = resolveWorklistStation(
+    list.searchParams.get("station"),
+    board.stations,
+  );
+
   const searchedJobs = useMemo(
     () => filterBoardJobs(board.jobs, board.stations, "", list.search),
     [board.jobs, board.stations, list.search],
@@ -84,9 +92,18 @@ function ProductionWorkspace() {
     () => filterProductionWorklist(board, searchedJobs, lens),
     [board, searchedJobs, lens],
   );
+  // ตัวเลขในชิปขั้นงานนับก่อนกรองขั้น — ไม่งั้นพอกดสายหนึ่ง สายอื่นจะกลายเป็น 0 ทั้งแถบ
+  const stationChips = useMemo(
+    () => worklistStationChips(board.stations, lensJobs),
+    [board.stations, lensJobs],
+  );
+  const stationJobs = useMemo(
+    () => filterBoardJobs(lensJobs, board.stations, station, ""),
+    [lensJobs, board.stations, station],
+  );
   const visibleJobs = useMemo(
-    () => sortProductionWorklist(board, lensJobs, sort),
-    [board, lensJobs, sort],
+    () => sortProductionWorklist(board, stationJobs, sort),
+    [board, stationJobs, sort],
   );
   const hasStaleData =
     (isError && Boolean(orders)) || (meQuery.isError && Boolean(me));
@@ -141,6 +158,8 @@ function ProductionWorkspace() {
           board={board}
           jobs={visibleJobs}
           lens={lens}
+          station={station}
+          stations={stationChips}
           sort={sort}
           searchDefault={list.search}
           searchInputRef={list.searchInputRef}
@@ -149,6 +168,9 @@ function ProductionWorkspace() {
               view: value === "all" ? null : value,
               page: null,
             })
+          }
+          onSelectStation={(value) =>
+            list.replaceListState({ station: value || null, page: null })
           }
           onSearchChange={list.onSearchChange}
           onSelectSort={(value) =>

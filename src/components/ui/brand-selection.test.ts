@@ -139,6 +139,13 @@ describe("Anajak selected-state contract", () => {
     /* ตัวเลขในชิปไม่มีพื้นเม็ดแล้ว (เบสเคาะแบบ B "ไม่มีกล่อง" 2026-08-31)
        กติกาเดียวกับ `mark` ใน visual-tone.ts — ไอคอน/ตัวเลขนำหน้าหัวข้อไม่มีพื้น */
     expect(productionWorklistSource).toContain("countColor");
+    /* แถบกรองถามว่า "ค้างอยู่ขั้นไหน" ไม่ใช่ "ใบไหนสถานะอะไร" (เบสเลือกแบบ A 2026-08-31)
+       — เกือบทุกใบมีสถานะ "กำลังผลิต" อยู่แล้ว ปุ่มตามสถานะจึงแทบไม่กรองอะไร
+       เหลือชิปมุมแค่ ทั้งหมด/ต้องจัดการ แล้วต่อด้วยชิปขั้นงานจาก board.stations */
+    expect(productionWorklistSource).toContain("WORKLIST_LENS_CHIPS");
+    expect(productionWorklistSource).toContain("stations.map");
+    expect(productionWorklistSource).toContain('data-station-count=""');
+    expect(productionWorklistSource).not.toContain("PRODUCTION_WORKLIST_LENSES.map");
     expect(productionWorklistSource).not.toContain("iconChip");
     expect(productionWorklistSource).not.toContain("bg-module-brand-surface");
     expect(productionWorklistSource).not.toContain("bg-red-50");

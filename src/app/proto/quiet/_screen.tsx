@@ -40,10 +40,13 @@ function ProductionWorklistSample() {
       board={PROTO_BOARD}
       jobs={state.jobs}
       lens={state.lens}
+      station={state.station}
+      stations={state.stations}
       sort={state.sort}
       searchDefault={state.search}
       searchInputRef={null}
       onSelectLens={state.setLens}
+      onSelectStation={state.setStation}
       onSelectSort={state.setSort}
       onSearchChange={state.setSearch}
       canCreateProduction={false}
