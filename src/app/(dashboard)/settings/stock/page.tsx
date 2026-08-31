@@ -12,6 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { ToneMark } from "@/components/ui/section";
 import { RADIUS, TINT } from "@/components/ui/tokens";
 import { Badge } from "@/components/ui/badge";
 import { QueryError } from "@/components/ui/query-error";
@@ -225,7 +226,7 @@ export default function StockSettingsPage() {
           <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
-                <Database className="h-4 w-4" />
+                <ToneMark icon={Database} tone="system" />
                 ใช้สต๊อกทดสอบในเครื่อง
               </CardTitle>
               <CardDescription>
@@ -244,7 +245,7 @@ export default function StockSettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <Plug className="h-4 w-4" />
+              <ToneMark icon={Plug} tone="system" />
               การเชื่อมต่อ API
             </CardTitle>
             <CardDescription>
@@ -408,7 +409,7 @@ export default function StockSettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <RefreshCw className="h-4 w-4" />
+              <ToneMark icon={RefreshCw} tone="system" />
               Sync สินค้า
             </CardTitle>
           </CardHeader>
@@ -517,7 +518,7 @@ export default function StockSettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <ArrowRightLeft className="h-4 w-4" />
+              <ToneMark icon={ArrowRightLeft} tone="system" />
               การแมปหมวดหมู่
             </CardTitle>
             <CardDescription>
@@ -575,7 +576,7 @@ export default function StockSettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <Info className="h-4 w-4" />
+              <ToneMark icon={Info} tone="system" />
               วิธีเชื่อมต่อ
             </CardTitle>
           </CardHeader>

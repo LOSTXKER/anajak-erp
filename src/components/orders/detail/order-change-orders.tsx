@@ -2,6 +2,7 @@
 
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ToneMark } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 import { FileText, ArrowRight, AlertTriangle } from "lucide-react";
@@ -33,7 +34,7 @@ export function OrderChangeOrders({ orderId }: OrderChangeOrdersProps) {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
-          <FileText className="h-4 w-4" />
+          <ToneMark icon={FileText} tone="brand" />
           ใบแก้ไขออเดอร์
           {!!data?.length && (
             <Badge variant="secondary" className="ml-0.5">

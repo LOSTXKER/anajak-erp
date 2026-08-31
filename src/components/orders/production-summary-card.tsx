@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ToneMark } from "@/components/ui/section";
 import {
   STEP_TYPE_LABELS,
   OUTSOURCE_ACTIVE_STATUSES,
@@ -59,7 +60,7 @@ export function ProductionSummaryCard({
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
-          <Factory className="h-4 w-4" />
+          <ToneMark icon={Factory} tone="production" />
           การผลิต
         </CardTitle>
       </CardHeader>

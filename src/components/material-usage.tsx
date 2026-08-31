@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef } from "react";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ToneMark } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -185,7 +186,7 @@ export function MaterialUsage({
       <CardHeader className={cn("pb-3", embedded && "p-0 pb-2")}>
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-sm font-semibold text-strong">
-            <Package className="h-4 w-4 text-secondary" />
+            <ToneMark icon={Package} tone="product" />
             วัตถุดิบ
           </CardTitle>
           {!readOnly && (

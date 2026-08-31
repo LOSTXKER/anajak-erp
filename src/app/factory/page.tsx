@@ -15,6 +15,7 @@ import { trpc, type RouterOutput } from "@/lib/trpc";
 import { ManufacturingFactoryBoard } from "@/components/factory/manufacturing-factory-board";
 import { ProductionFreshness } from "@/components/production/production-freshness";
 import { useProductionV2Enabled } from "@/components/factory/production-v2-context";
+import { ToneMark } from "@/components/ui/section";
 import { cn, formatDateShort } from "@/lib/utils";
 
 // Factory TV — read-only pulse ของสายงานจริง 5 ด่าน
@@ -284,7 +285,10 @@ function StagePanel({
           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-border bg-surface text-xs font-semibold tabular-nums text-muted">
             {number}
           </span>
-          <Icon className="h-4 w-4 shrink-0 text-blue-400" aria-hidden="true" />
+          {/* ไอคอนขั้นงานเคยเป็นน้ำเงินแบรนด์ ทั้งที่จอนี้เป็นเรื่องผลิตล้วน — เปลี่ยนเป็น
+              กล่องสีของหมวด "ผลิต" ให้ตรงกับที่เหลือทั้งเว็บ (แบบ B · เบสเคาะ 2026-08-31)
+              น้ำเงินบนจอนี้เหลือไว้ที่ตรา Anajak กับป้าย "กำลังทำ" ซึ่งเป็นคนละความหมาย */}
+          <ToneMark icon={Icon} tone="production" />
           <h2 className="min-w-0 truncate text-base font-semibold text-strong">{title}</h2>
           <span className="ml-auto text-2xl font-semibold tabular-nums text-strong">{count}</span>
         </div>

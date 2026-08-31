@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { MoneyInput } from "@/components/ui/number-input";
-import { Section } from "@/components/ui/section";
+import { Calculator } from "lucide-react";
+import { Section, SectionTitle } from "@/components/ui/section";
 import { formatCurrency } from "@/lib/utils";
 import { itemHasContent, type OrderItemForm } from "@/types/order-form";
 import type { MarginEstimate } from "@/server/services/margin-estimate";
@@ -210,7 +211,16 @@ export function OrderPriceSummary({
   embedded = false,
 }: OrderPriceSummaryProps) {
   return (
-    <Section title="สรุปยอด" compact={!embedded} bordered={!embedded} headingLevel={embedded ? 3 : 2}>
+    <Section
+      title={
+        <SectionTitle icon={Calculator} tone="finance">
+          สรุปยอด
+        </SectionTitle>
+      }
+      compact={!embedded}
+      bordered={!embedded}
+      headingLevel={embedded ? 3 : 2}
+    >
       <div className="space-y-2">
         <Row
           label="รวมสินค้า"

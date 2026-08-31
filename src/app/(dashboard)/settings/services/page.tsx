@@ -9,6 +9,7 @@ import { Alert } from "@/components/ui/alert";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ToneMark } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/utils";
 import { Plus, Trash2, Pencil, X, Check, Settings } from "lucide-react";
@@ -193,7 +194,7 @@ export default function ServicesPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-base">
-            <Settings className="h-4 w-4" />
+            <ToneMark icon={Settings} tone="system" />
             {tabs.find((t) => t.key === activeTab)?.label}
           </CardTitle>
           <Button

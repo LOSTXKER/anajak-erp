@@ -6,10 +6,10 @@ import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidat
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { MoneyInput } from "@/components/ui/number-input";
-import { Section } from "@/components/ui/section";
+import { Section, SectionTitle } from "@/components/ui/section";
 import { formatCurrency } from "@/lib/utils";
 import { calculateFormItemSubtotal, calculateOrderSummary } from "@/lib/pricing";
-import { Loader2, Save } from "lucide-react";
+import { Coins, Loader2, Save } from "lucide-react";
 import { validateOrderItem, validateOrderItemProduct, itemHasContent } from "@/types/order-form";
 import {
   mapItemsToMutationInput,
@@ -372,7 +372,13 @@ export function OrderItemsEditor({
           </div>
         </section>
 
-        <Section title="ราคาและเงื่อนไข">
+        <Section
+          title={
+            <SectionTitle icon={Coins} tone="finance">
+              ราคาและเงื่อนไข
+            </SectionTitle>
+          }
+        >
           <div className="space-y-6">
             <OrderFeeSection
               fees={fees}

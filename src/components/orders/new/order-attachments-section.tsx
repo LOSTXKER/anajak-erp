@@ -4,7 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
-import { Section } from "@/components/ui/section";
+import { Section, SectionTitle } from "@/components/ui/section";
 import { uploadFile } from "@/lib/supabase";
 import { safeFileExt } from "@/lib/file-urls";
 import { PRINT_POSITIONS } from "@/types/order-form";
@@ -116,7 +116,11 @@ export function OrderAttachmentsSection({
       id={id}
       tabIndex={id ? -1 : undefined}
       className={className}
-      title={title}
+      title={
+        <SectionTitle icon={ImageIcon} tone="system">
+          {title}
+        </SectionTitle>
+      }
       meta={images.length > 0 ? `${images.length}/5 ไฟล์` : "สูงสุด 5 ไฟล์"}
       bordered={!embedded}
       headingLevel={embedded ? 3 : 2}

@@ -6,7 +6,7 @@ import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { MoneyInput } from "@/components/ui/number-input";
 import { Select } from "@/components/ui/select";
-import { Section } from "@/components/ui/section";
+import { Section, SectionTitle } from "@/components/ui/section";
 import { Plus, Trash2, Receipt } from "lucide-react";
 import { resolveFeeCatalogSelection } from "@/lib/order-item-composer";
 import type { OrderFeeForm } from "@/types/order-form";
@@ -74,7 +74,11 @@ export function OrderFeeSection({
 
   return (
     <Section
-      title={embedded ? "ค่าใช้จ่ายเพิ่มเติม" : "ค่าใช้จ่ายระดับออเดอร์"}
+      title={
+        <SectionTitle icon={Receipt} tone="finance">
+          {embedded ? "ค่าใช้จ่ายเพิ่มเติม" : "ค่าใช้จ่ายระดับออเดอร์"}
+        </SectionTitle>
+      }
       bordered={!embedded}
       headingLevel={embedded ? 3 : 2}
       action={fees.length > 0 ? (

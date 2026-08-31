@@ -10,6 +10,7 @@ import { useConfirm } from "@/components/ui/confirm-dialog";
 import { isImageUrl } from "@/lib/utils";
 import { artworkSpecGaps, ARTWORK_POSITION_LABELS } from "@/lib/artwork";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ToneMark } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -197,7 +198,7 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
       <CardHeader>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <CardTitle className="flex items-center gap-2 text-base">
-            <Palette className="h-4 w-4" />
+            <ToneMark icon={Palette} tone="production" />
             คลังลาย ({rows.length})
           </CardTitle>
           <div className="flex items-center gap-2">

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ToneMark } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -171,7 +172,7 @@ export default function PatternsPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-base">
-            <Scissors className="h-4 w-4" />
+            <ToneMark icon={Scissors} tone="product" />
             แพทเทิร์นทั้งหมด
           </CardTitle>
           {canCreate && (

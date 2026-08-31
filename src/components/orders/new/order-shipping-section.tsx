@@ -2,7 +2,8 @@
 
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Section } from "@/components/ui/section";
+import { Truck } from "lucide-react";
+import { Section, SectionTitle } from "@/components/ui/section";
 import { Field } from "@/components/ui/field";
 import { Switch } from "@/components/ui/switch";
 import { UseAddressButton } from "@/components/orders/use-address-button";
@@ -59,7 +60,11 @@ export function OrderShippingSection({
     <Section
       id={id}
       tabIndex={id ? -1 : undefined}
-      title={title}
+      title={
+        <SectionTitle icon={Truck} tone="production">
+          {title}
+        </SectionTitle>
+      }
       help={
         showGuidance
           ? alwaysOn

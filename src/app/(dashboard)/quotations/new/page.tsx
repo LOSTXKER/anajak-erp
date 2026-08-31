@@ -13,6 +13,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ToneMark } from "@/components/ui/section";
 import { ListPageSkeleton } from "@/components/ui/page-skeleton";
 import { formatCurrency } from "@/lib/utils";
 import { CustomerPicker } from "@/components/customers/customer-picker";
@@ -384,7 +385,7 @@ function QuotationFormPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-base">
-              <FileText className="h-4 w-4" />
+              <ToneMark icon={FileText} tone="product" />
               รายการสินค้า
             </CardTitle>
             <Button type="button" variant="outline" size="sm" onClick={addItem}>

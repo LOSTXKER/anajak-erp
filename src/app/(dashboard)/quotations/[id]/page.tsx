@@ -9,6 +9,7 @@ import { permAllows } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { useConfirm, usePromptText } from "@/components/ui/confirm-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ToneMark } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { Alert } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -402,7 +403,7 @@ export default function QuotationDetailPage({
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
-                <FileText className="h-4 w-4" />
+                <ToneMark icon={FileText} tone="product" />
                 รายการสินค้า ({quotation.items?.length ?? 0})
               </CardTitle>
             </CardHeader>
@@ -554,7 +555,7 @@ export default function QuotationDetailPage({
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
-                <User className="h-4 w-4" />
+                <ToneMark icon={User} tone="brand" />
                 ลูกค้า
               </CardTitle>
             </CardHeader>
@@ -593,7 +594,7 @@ export default function QuotationDetailPage({
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
-                <Calendar className="h-4 w-4" />
+                <ToneMark icon={Calendar} tone="brand" />
                 ข้อมูลใบเสนอราคา
               </CardTitle>
             </CardHeader>
