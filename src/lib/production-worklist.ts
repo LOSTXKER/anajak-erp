@@ -9,7 +9,17 @@ import type {
   ProductionBoard,
 } from "@/lib/production-board";
 import { INTERNAL_STATUS_LABELS } from "@/lib/order-status";
-import { STATION_ALL, sortBoardJobs } from "@/lib/production-board";
+import {
+  POST_SECTIONS,
+  STATION_ALL,
+  STATION_QUEUE,
+  sortBoardJobs,
+} from "@/lib/production-board";
+import {
+  LANE_LABELS,
+  LANE_ORDER,
+  OUTSOURCE_LANES,
+} from "@/lib/production-steps";
 import { currentProductionProblemReason } from "@/lib/production-problem";
 
 /* ============================================================
@@ -322,6 +332,37 @@ export type WorklistStationChip = {
   overdue: number;
 };
 
+/**
+ * ขั้นงานประจำของแถบกรอง — อยู่ครบทุกวันแม้วันนั้นไม่มีงาน (เบสสั่ง 2026-08-31:
+ * "สถานะไหนที่ไม่มีก็แสดง 0 ไปเลย") · แถบจึงเป็นชุดเดิมทุกครั้งที่เปิดหน้า
+ * หัวหน้าจำตำแหน่งปุ่มได้ และ "0" ก็เป็นข้อมูล (แปลว่าขั้นนั้นโล่ง)
+ *
+ * ⚠️ ตั้งใจไม่ใช้ board.stations ตรง ๆ เพราะ buildProductionBoard ตัดสายที่ไม่มีงานทิ้ง
+ * (ถูกแล้วสำหรับจอโรงงาน /factory ที่สายหนึ่ง = คอลัมน์หนึ่ง — คอลัมน์ว่างเปล่าไม่มีประโยชน์)
+ * ลำดับตามทางเดินงานจริง: คิวรอ → สายผลิต → หลังผลิต
+ */
+const WORKLIST_STATION_ORDER: readonly {
+  key: string;
+  label: string;
+  isOutsource: boolean;
+}[] = [
+  { key: STATION_QUEUE, label: "รอเปิดใบผลิต", isOutsource: false },
+  ...LANE_ORDER.filter(
+    // "อื่นๆ" กับ "แพ็ค" ในใบผลิตเป็นเศษของข้อมูลเก่า ไม่ใช่ขั้นประจำ —
+    // โผล่เองเมื่อมีงานจริง (ดูท้ายฟังก์ชันข้างล่าง) แต่ไม่ยืนกินที่ทุกวัน
+    (lane) => lane !== "OTHER" && lane !== "PACK",
+  ).map((lane) => ({
+    key: `lane:${lane}`,
+    label: LANE_LABELS[lane],
+    isOutsource: OUTSOURCE_LANES.has(lane),
+  })),
+  ...POST_SECTIONS.map((section) => ({
+    key: section.key as string,
+    label: section.label as string,
+    isOutsource: false,
+  })),
+];
+
 export function worklistStationChips<
   S extends BoardStepLike,
   O extends BoardOrderLike<S>,
@@ -329,26 +370,60 @@ export function worklistStationChips<
   stations: readonly BoardStation[],
   jobs: readonly BoardJob<O, S>[],
 ): WorklistStationChip[] {
-  return stations.map((station) => {
-    const matched = jobs.filter((job) => job.stationKeys.includes(station.key));
+  const countOf = (key: string) => {
+    const matched = jobs.filter((job) => job.stationKeys.includes(key));
     return {
-      key: station.key,
-      label: station.label,
-      isOutsource: station.isOutsource,
       count: matched.length,
       overdue: matched.filter((job) => job.overdue).length,
     };
-  });
+  };
+
+  const fixed = WORKLIST_STATION_ORDER.map((station) => ({
+    key: station.key,
+    label: station.label,
+    isOutsource: station.isOutsource,
+    ...countOf(station.key),
+  }));
+
+  // สายนอกรายการประจำที่ดันมีงานจริง (ข้อมูลเก่า เช่น "รอส่งเข้า QC" หรือ lane "อื่นๆ")
+  // ต้องไม่หายไปจากแถบ ไม่งั้นงานกองอยู่แต่ไม่มีปุ่มให้กดเข้าไปดู
+  const extra = stations
+    .filter((station) => !fixed.some((chip) => chip.key === station.key))
+    .map((station) => ({
+      key: station.key,
+      label: station.label,
+      isOutsource: station.isOutsource,
+      ...countOf(station.key),
+    }))
+    .filter((chip) => chip.count > 0);
+
+  return [...fixed, ...extra];
 }
 
-/** สายที่ไม่มีอยู่จริงถือว่าไม่ได้กรอง (ลิงก์เก่า/มือแก้ URL) — กติกาเดียวกับ filterBoardJobs */
+/**
+ * ขั้นที่ไม่มีอยู่ในแถบถือว่าไม่ได้กรอง (ลิงก์เก่า/มือแก้ URL)
+ *
+ * ⚠️ ตรวจกับ "ชิปในแถบ" ไม่ใช่ board.stations — ขั้นที่นับ 0 ยังกดได้และต้องกรองจริง
+ * (ถ้าตรวจกับ board.stations ซึ่งตัดสายที่ไม่มีงานทิ้ง การกดขั้นที่โล่งจะกลายเป็น
+ * "ไม่กรองอะไรเลย" = โชว์ทุกใบ ซึ่งตรงข้ามกับที่ผู้ใช้สั่ง)
+ */
 export function resolveWorklistStation(
   raw: string | null | undefined,
-  stations: readonly BoardStation[],
+  chips: readonly { key: string }[],
 ): string {
-  return raw && stations.some((station) => station.key === raw)
-    ? raw
-    : STATION_ALL;
+  return raw && chips.some((chip) => chip.key === raw) ? raw : STATION_ALL;
+}
+
+/** กรองตามขั้นงาน — ค่าว่างแปลว่าไม่กรอง · งานผสมเข้าเงื่อนไขถ้าค้างอยู่ในขั้นนั้นด้วย */
+export function filterWorklistByStation<
+  S extends BoardStepLike,
+  O extends BoardOrderLike<S>,
+>(
+  jobs: readonly BoardJob<O, S>[],
+  station: string,
+): BoardJob<O, S>[] {
+  if (!station) return [...jobs];
+  return jobs.filter((job) => job.stationKeys.includes(station));
 }
 
 /* ============================================================

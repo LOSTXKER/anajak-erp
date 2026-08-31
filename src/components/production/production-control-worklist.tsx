@@ -497,7 +497,10 @@ export function ProductionControlWorklist<
           <div
             role="group"
             aria-label="กรองรายการงาน"
-            className="-mx-1 order-2 flex w-full items-center gap-4 overflow-x-auto border-b border-divider px-1 @2xl:order-1"
+            /* จอกว้าง: ตัดขึ้นบรรทัดใหม่ให้เห็นครบทุกขั้นพร้อมกัน (12 ขั้นยาวเกินหนึ่งแถว
+               ตั้งแต่ให้ขั้นที่ไม่มีงานแสดง 0) · จอแคบ: เลื่อนแนวนอนเหมือนเดิม
+               เพราะ wrap บนมือถือจะกลายเป็นแถบสูง 4–5 แถวกินจอทั้งหน้า */
+            className="-mx-1 order-2 flex w-full flex-nowrap items-center gap-x-4 gap-y-1 overflow-x-auto border-b border-divider px-1 @2xl:order-1 @2xl:flex-wrap @2xl:overflow-x-visible"
           >
             {WORKLIST_LENS_CHIPS.map((item) => {
               const isOn = lens === item.key;
@@ -626,11 +629,23 @@ export function ProductionControlWorklist<
           items={jobs}
           label="งานผลิต"
           emptyState={
-            <EmptyState
-              icon={lens === "all" ? Factory : SearchX}
-              title={lens === "all" ? "ยังไม่มีงานในสายการผลิต" : "ไม่มีงานในมุมนี้"}
-              description={lens === "all" ? "ออเดอร์พร้อมผลิตจะปรากฏที่นี่" : "ลองเลือกมุมอื่นหรือค้นหาด้วยเลขออเดอร์"}
-            />
+            /* ขั้นที่ยังไม่มีงานกดได้ตั้งแต่ 2026-08-31 (ทุกขั้นอยู่ในแถบเสมอ)
+               จอว่างจึงต้องบอกว่า "ขั้นนี้โล่ง" ไม่ใช่ "โรงงานไม่มีงาน" ซึ่งคนละเรื่อง */
+            station !== STATION_ALL ? (
+              <EmptyState
+                icon={Factory}
+                title={`ยังไม่มีงานที่ขั้น “${
+                  stations.find((item) => item.key === station)?.label ?? "นี้"
+                }”`}
+                description="กดขั้นเดิมซ้ำเพื่อเลิกกรอง หรือเลือกขั้นอื่นในแถบด้านบน"
+              />
+            ) : (
+              <EmptyState
+                icon={lens === "all" ? Factory : SearchX}
+                title={lens === "all" ? "ยังไม่มีงานในสายการผลิต" : "ไม่มีงานในมุมนี้"}
+                description={lens === "all" ? "ออเดอร์พร้อมผลิตจะปรากฏที่นี่" : "ลองเลือกมุมอื่นหรือค้นหาด้วยเลขออเดอร์"}
+              />
+            )
           }
           renderDesktop={(items) => (
             <DesktopRows

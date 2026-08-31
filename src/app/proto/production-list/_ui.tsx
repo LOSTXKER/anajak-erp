@@ -41,6 +41,7 @@ import {
   PRODUCTION_WORKLIST_SORT_COLUMNS,
   PRODUCTION_WORKLIST_SORT_OPTIONS,
   filterProductionWorklist,
+  filterWorklistByStation,
   productionWorklistCounts,
   productionWorklistHref,
   productionWorklistProgress,
@@ -129,10 +130,11 @@ export function useWorklist(board: ProtoBoard) {
     return filterProductionWorklist(board, searched, lens);
   }, [board, search, lens]);
 
-  const jobs = useMemo(() => {
-    const stationed = filterBoardJobs(lensJobs, board.stations, station, "");
-    return sortProductionWorklist(board, stationed, sort);
-  }, [board, lensJobs, station, sort]);
+  const jobs = useMemo(
+    () =>
+      sortProductionWorklist(board, filterWorklistByStation(lensJobs, station), sort),
+    [board, lensJobs, station, sort],
+  );
 
   const stations = useMemo(
     () => worklistStationChips(board.stations, lensJobs),

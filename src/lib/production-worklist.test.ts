@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_PRODUCTION_WORKLIST_SORT,
   filterProductionWorklist,
+  filterWorklistByStation,
   groupProductionWorklist,
   productionWorklistAction,
   productionWorklistProgress,
@@ -419,12 +420,75 @@ describe("ชิปกรองตามขั้นงาน (แถบกร�
       job({ id: "b", status: "PRODUCING", stationKey: "lane:DTF" }),
       job({ id: "c", status: "PRODUCTION_QUEUE", stationKey: "queue" }),
     ];
-    expect(worklistStationChips(stations, jobs)).toEqual([
-      { key: "queue", label: "รอเปิดใบผลิต", isOutsource: false, count: 1, overdue: 0 },
-      { key: "lane:DTF", label: "DTF", isOutsource: false, count: 2, overdue: 1 },
-      // ขั้นที่ไม่มีงานยังอยู่ในแถบ (นับ 0) — ถ้าตัดทิ้ง ปุ่มจะเต้นหายไปมาระหว่างกรอง
-      { key: "lane:EMBROIDERY", label: "ปัก", isOutsource: true, count: 0, overdue: 0 },
+    const chips = worklistStationChips(stations, jobs);
+    expect(chips.find((chip) => chip.key === "queue")).toEqual({
+      key: "queue",
+      label: "รอเปิดใบผลิต",
+      isOutsource: false,
+      count: 1,
+      overdue: 0,
+    });
+    expect(chips.find((chip) => chip.key === "lane:DTF")).toEqual({
+      key: "lane:DTF",
+      label: "DTF",
+      isOutsource: false,
+      count: 2,
+      overdue: 1,
+    });
+  });
+
+  it("ขั้นประจำอยู่ครบทุกวันแม้ไม่มีงาน — แสดง 0 (เบสสั่ง 2026-08-31)", () => {
+    // ส่ง board.stations ว่างเปล่า = วันที่บอร์ดไม่มีสายไหนมีงานเลย แถบต้องยังครบ
+    const chips = worklistStationChips([], []);
+    const keys = chips.map((chip) => chip.key);
+    expect(keys).toEqual([
+      "queue",
+      "lane:PREP",
+      "lane:CUTSEW",
+      "lane:DTF",
+      "lane:DTG",
+      "lane:SILKSCREEN",
+      "lane:EMBROIDERY",
+      "lane:SUBLIMATION",
+      "lane:LABEL",
+      "post:qc",
+      "post:pack",
+      "post:ship",
     ]);
+    expect(chips.every((chip) => chip.count === 0 && chip.overdue === 0)).toBe(true);
+    // สายที่ส่งร้านนอกยังบอกได้ว่าเป็นร้านนอก (ใช้เลือกไอคอนในแถบ)
+    expect(chips.find((chip) => chip.key === "lane:EMBROIDERY")?.isOutsource).toBe(true);
+  });
+
+  it("ขั้นนอกรายการประจำโผล่เฉพาะเมื่อมีงานจริง (ข้อมูลเก่า เช่น รอส่งเข้า QC)", () => {
+    const legacyStations = [
+      {
+        key: "legacy:qc",
+        label: "รอส่งเข้า QC",
+        kind: "post" as const,
+        isOutsource: false,
+        count: 1,
+        overdue: 0,
+      },
+    ];
+    expect(
+      worklistStationChips(legacyStations, []).some((chip) => chip.key === "legacy:qc"),
+    ).toBe(false);
+
+    const stuck = job({ id: "stuck", status: "PRODUCING", stationKey: "legacy:qc" });
+    const chips = worklistStationChips(legacyStations, [stuck]);
+    expect(chips.at(-1)).toMatchObject({ key: "legacy:qc", count: 1 });
+  });
+
+  it("กรองตามขั้นงาน — ค่าว่างคือไม่กรอง และขั้นที่โล่งต้องได้รายการว่างจริง", () => {
+    const jobs = [
+      job({ id: "a", status: "PRODUCING", stationKey: "lane:DTF" }),
+      job({ id: "b", status: "QUALITY_CHECK", stationKey: "post:qc" }),
+    ];
+    expect(filterWorklistByStation(jobs, "").length).toBe(2);
+    expect(filterWorklistByStation(jobs, "lane:DTF").map((item) => item.key)).toEqual(["a"]);
+    // กดขั้นที่ไม่มีงาน = เห็นรายการว่าง ไม่ใช่เห็นทุกใบ
+    expect(filterWorklistByStation(jobs, "lane:DTG")).toEqual([]);
   });
 
   it("งานผสมที่เดินสองสายพร้อมกันถูกนับในทุกสายที่มันค้างอยู่", () => {
@@ -435,10 +499,13 @@ describe("ชิปกรองตามขั้นงาน (แถบกร�
     expect(chips.find((chip) => chip.key === "lane:EMBROIDERY")?.count).toBe(1);
   });
 
-  it("ขั้นที่ไม่มีอยู่จริง (ลิงก์เก่า/มือแก้ URL) ตกกลับเป็นไม่กรอง", () => {
-    expect(resolveWorklistStation("lane:DTF", stations)).toBe("lane:DTF");
-    expect(resolveWorklistStation("lane:ไม่มีจริง", stations)).toBe("");
-    expect(resolveWorklistStation(null, stations)).toBe("");
+  it("ขั้นที่ไม่มีในแถบ (ลิงก์เก่า/มือแก้ URL) ตกกลับเป็นไม่กรอง", () => {
+    const chips = worklistStationChips([], []);
+    expect(resolveWorklistStation("lane:DTF", chips)).toBe("lane:DTF");
+    // ขั้นที่นับ 0 ยังกดได้จริง ไม่ถูกตีว่าเป็นค่าเสีย
+    expect(resolveWorklistStation("lane:DTG", chips)).toBe("lane:DTG");
+    expect(resolveWorklistStation("lane:ไม่มีจริง", chips)).toBe("");
+    expect(resolveWorklistStation(null, chips)).toBe("");
   });
 });
 

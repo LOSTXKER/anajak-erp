@@ -166,7 +166,8 @@ export const STATION_ALL = "";
 export const STATION_QUEUE = "queue";
 export const STATION_LEGACY_QC = "legacy:qc";
 
-const POST_SECTIONS = [
+/** ช่วงหลังผลิต — เป็น "ขั้น" ที่ยึดกับสถานะออเดอร์ ไม่ใช่ขั้นในใบผลิต */
+export const POST_SECTIONS = [
   { key: "post:qc", label: "ตรวจ QC", status: "QUALITY_CHECK" },
   { key: "post:pack", label: "กำลังแพ็ค", status: "PACKING" },
   { key: "post:ship", label: "พร้อมส่ง", status: "READY_TO_SHIP" },

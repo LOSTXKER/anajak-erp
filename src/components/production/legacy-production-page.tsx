@@ -21,6 +21,7 @@ import {
 import {
   DEFAULT_PRODUCTION_WORKLIST_SORT,
   filterProductionWorklist,
+  filterWorklistByStation,
   isProductionWorklistLens,
   resolveProductionWorklistSort,
   resolveWorklistStation,
@@ -78,12 +79,6 @@ function ProductionWorkspace() {
     [orders, dataUpdatedAt, me?.id, showBlocked],
   );
 
-  // ขั้นงานที่กรองอยู่ — สายที่ไม่มีอยู่จริง (ลิงก์เก่า/มือแก้ URL) ตกกลับเป็น "ทุกขั้น"
-  const station = resolveWorklistStation(
-    list.searchParams.get("station"),
-    board.stations,
-  );
-
   const searchedJobs = useMemo(
     () => filterBoardJobs(board.jobs, board.stations, "", list.search),
     [board.jobs, board.stations, list.search],
@@ -97,9 +92,14 @@ function ProductionWorkspace() {
     () => worklistStationChips(board.stations, lensJobs),
     [board.stations, lensJobs],
   );
+  // ขั้นที่ไม่มีในแถบ (ลิงก์เก่า/มือแก้ URL) ตกกลับเป็น "ทุกขั้น"
+  const station = resolveWorklistStation(
+    list.searchParams.get("station"),
+    stationChips,
+  );
   const stationJobs = useMemo(
-    () => filterBoardJobs(lensJobs, board.stations, station, ""),
-    [lensJobs, board.stations, station],
+    () => filterWorklistByStation(lensJobs, station),
+    [lensJobs, station],
   );
   const visibleJobs = useMemo(
     () => sortProductionWorklist(board, stationJobs, sort),
