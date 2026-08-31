@@ -13,6 +13,14 @@ export type ProtoEntry = {
 
 export const PROTOS: ProtoEntry[] = [
   {
+    slug: "look",
+    title: "หน้าตาทั้งเว็บ — สีและลูกเล่น",
+    question:
+      "ทั้งเว็บควรมีสี/ลูกเล่นแค่ไหน และของที่ “พิเศษ” (ยอดสะสม · วงเงิน · สถานะ) ควรหน้าตาแบบไหนแทนบรรทัดตัวหนังสือเทา",
+    date: "2026-08-31",
+    status: "รอเคาะ",
+  },
+  {
     slug: "order-overview",
     title: "ภาพรวมออเดอร์ + ลาย/ม็อกอัพ",
     question:
