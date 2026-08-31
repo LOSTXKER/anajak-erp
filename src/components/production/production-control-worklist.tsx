@@ -151,13 +151,13 @@ function WorkStatus<S extends BoardStepLike, O extends BoardOrderLike<S>>({
   job: BoardJob<O, S>;
 }) {
   const status = productionWorklistStatus(job);
-  return (
-    <StatusLabel
-      label={status.label}
-      tone={status.tone}
-      sub={status.stations.length > 0 ? status.stations.join(" · ") : undefined}
-    />
-  );
+  /* เบสสั่ง 2026-08-31: "สถานะหลักไม่ต้องแสดง เพราะเรารู้อยู่แล้วว่ามันผลิต
+     แสดงแค่สถานะย่อย" — ทั้งหน้าคือกองงานที่เดินอยู่ ชื่อสถานะหลักจึงซ้ำทุกแถว
+     จนไม่บอกอะไร เหลือแค่ขั้นที่ค้างจริง (งานผสมมีได้หลายสาย คั่นด้วย ·)
+     จุดสียังบอกสภาพงานเหมือนเดิม: แดง=ขั้นงานพัง เหลือง=ติดรอของ น้ำเงิน=เดินอยู่
+     ชื่อสถานะหลักยังตกกลับมาใช้ได้ถ้าแถวไหนไม่มีจุดงาน (ไม่ควรเกิด แต่กันช่องว่าง) */
+  const stations = status.stations.join(" · ");
+  return <StatusLabel label={stations || status.label} tone={status.tone} />;
 }
 
 function OrderIdentity<S extends BoardStepLike, O extends BoardOrderLike<S>>({
