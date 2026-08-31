@@ -468,7 +468,16 @@ const hSm = CONTROL_H_SM.split(" ");
     !appShellSource.includes("SidebarGroupLabel") ||
     appShellSource.includes("data-active-group") ||
     appShellSource.includes('groupActive && "bg-surface-muted"') ||
-    appShellSource.includes("NAVIGATION_GROUP_TONE") ||
+    /* ⚠️ ข้อนี้เคยห้ามคำว่า NAVIGATION_GROUP_TONE ทั้งไฟล์ (ตั้งไว้ตอน "make sidebar
+       minimal" 23 ส.ค. ซึ่งถอดของสองอย่างออก: **แท่งสีทึบข้างหัวหมวด** กับไอคอน
+       ที่ได้สีเฉพาะตอนถูกเลือก) — ตั้งแต่เบสเคาะแบบ B "สีบอกหมวด" (31 ส.ค.)
+       เมนูซ้ายคือที่ที่สีหมวดทำงานหนักที่สุด ไอคอนจึงได้สีประจำหมวด **ตลอดเวลา**
+       (ไม่ใช่เฉพาะตอนเลือก — สีบอก "หมวดอะไร" ไม่ได้บอก "เลือกอยู่ไหม")
+
+       สิ่งที่ยังห้ามเหมือนเดิมและคือใจความจริงของข้อนี้: หมวดต้องไม่มีพื้นครอบ
+       และต้องไม่มีแท่งสีทึบข้างหัวหมวด — โครงเมนูยังแบน */
+    /\.solid\b/.test(appShellSource) ||
+    !appShellSource.includes("NAVIGATION_GROUP_TONE[item.group]") ||
     !appShellSource.includes('aria-label="เมนูหลักบนมือถือ"') ||
     !appShellSource.includes('groupedNavigationItems("sidebar", me?.permissions)')
   ) {
