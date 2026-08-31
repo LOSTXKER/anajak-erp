@@ -23,24 +23,17 @@ import { Phone, Mail, MessageCircle, MapPin, ShoppingCart, DollarSign, Building2
 import type { LucideIcon } from "lucide-react";
 import { Alert } from "@/components/ui/alert";
 import { RecordNotFound } from "@/components/ui/record-not-found";
-import { RADIUS } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
 import { VISUAL_TONE_CLASSES, type VisualTone } from "@/lib/visual-tone";
 
-/** ไอคอนนำหน้าแถวในการ์ด "สรุป" — กล่องสีอ่อนตามหมวด (แบบ B "สีบอกหมวด" · เบสเคาะ 2026-08-31)
- *  ใช้ชุดสีเดียวกับกล่องประวัติลูกค้าในใบงาน เพื่อให้ตัวเลขชุดเดียวกันหน้าตาเหมือนกันทั้งสองหน้า */
+/** ไอคอนนำหน้าแถวในการ์ด "สรุป" — ไอคอนสีตามหมวด ไม่มีพื้นกล่อง
+ *  (พื้นกล่องถูกถอดออกทั้งเว็บ 2026-08-31 เบสเคาะแบบ B จากหน้าลอง /proto/quiet) */
 function SummaryIcon({ icon: Icon, tone }: { icon: LucideIcon; tone: VisualTone }) {
   return (
-    <span
-      className={cn(
-        RADIUS.item,
-        "flex h-6 w-6 shrink-0 items-center justify-center",
-        VISUAL_TONE_CLASSES[tone].mark,
-      )}
+    <Icon
+      className={cn("h-4 w-4 shrink-0", VISUAL_TONE_CLASSES[tone].mark)}
       aria-hidden="true"
-    >
-      <Icon className="h-3.5 w-3.5" />
-    </span>
+    />
   );
 }
 

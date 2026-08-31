@@ -3,7 +3,7 @@ import type { LucideIcon } from "lucide-react";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { FOCUS_BUTTON, RADIUS } from "./tokens";
+import { FOCUS_BUTTON } from "./tokens";
 import { VISUAL_TONE_CLASSES, type VisualTone } from "@/lib/visual-tone";
 
 interface StatCardProps {
@@ -79,16 +79,11 @@ export function StatCard({
         </p>
         {Icon &&
           (toned ? (
-            <span
-              className={cn(
-                "flex h-8 w-8 shrink-0 items-center justify-center",
-                RADIUS.item,
-                VISUAL_TONE_CLASSES[toned].mark,
-              )}
+            <Icon
+              className={cn("h-4 w-4 shrink-0", VISUAL_TONE_CLASSES[toned].mark)}
+              strokeWidth={1.75}
               aria-hidden="true"
-            >
-              <Icon className="h-4 w-4" strokeWidth={1.75} />
-            </span>
+            />
           ) : (
             <Icon
               className="h-4 w-4 text-muted"

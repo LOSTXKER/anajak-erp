@@ -2,7 +2,6 @@ import * as React from "react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HelpTip } from "@/components/ui/help-tip";
-import { RADIUS } from "@/components/ui/tokens";
 import { VISUAL_TONE_CLASSES, type VisualTone } from "@/lib/visual-tone";
 
 interface SectionProps extends Omit<React.HTMLAttributes<HTMLElement>, "title"> {
@@ -79,10 +78,11 @@ export const Section = React.forwardRef<HTMLDivElement, SectionProps>(
               {Icon && !compact && (
                 <span
                   className={cn(
-                    "flex h-6 w-6 shrink-0 items-center justify-center",
+                    // mt ให้ไอคอนอยู่กึ่งกลางบรรทัดแรกของหัวข้อ ไม่ใช่ชิดขอบบนสุด
+                    "mt-0.5 flex shrink-0 items-center justify-center",
                     // สีประจำหมวด = ป้ายบอกทาง ไม่ใช่การประดับ (แบบ B · เบสเคาะ 2026-08-31)
                     // ไม่ส่ง tone มา = เทาเหมือนเดิมทุกประการ ของเก่าจึงไม่ขยับ
-                    tone ? cn(RADIUS.item, VISUAL_TONE_CLASSES[tone].mark) : "text-muted",
+                    tone ? VISUAL_TONE_CLASSES[tone].mark : "text-muted",
                   )}
                   aria-hidden="true"
                 >
@@ -166,13 +166,11 @@ export function ToneMark({
     <span
       className={cn(
         "flex shrink-0 items-center justify-center",
-        tone
-          ? cn("h-6 w-6", RADIUS.item, VISUAL_TONE_CLASSES[tone].mark)
-          : "text-muted",
+        tone ? VISUAL_TONE_CLASSES[tone].mark : "text-muted",
       )}
       aria-hidden="true"
     >
-      <Icon className="h-3.5 w-3.5" />
+      <Icon className="h-4.5 w-4.5" />
     </span>
   );
 }

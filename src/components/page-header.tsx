@@ -9,7 +9,6 @@ import { HelpTip } from "@/components/ui/help-tip";
 import {
   INTERACTIVE_PAGE_HOVER,
   INTERACTIVE_PAGE_PRESSED,
-  RADIUS,
 } from "@/components/ui/tokens";
 import {
   VISUAL_TONE_CLASSES,
@@ -119,8 +118,7 @@ export function PageHeader({
               **ห้ามกลับไปเป็นสีทึบ** — ด่าน verify:ui ล็อกไว้แล้ว */}
           <span
             className={cn(
-              "page-module-mark mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center",
-              RADIUS.item,
+              "page-module-mark mt-1.5 flex shrink-0 items-center justify-center",
               VISUAL_TONE_CLASSES[resolvedTone].mark,
             )}
             role={eyebrow ? "img" : undefined}
@@ -131,11 +129,11 @@ export function PageHeader({
               <>{/* component จาก caller เป็น contract คงที่ ไม่ได้สร้างจาก resolver ระหว่าง render */}
                 {(() => {
                   const Icon = icon;
-                  return <Icon className="h-5 w-5" strokeWidth={1.8} />;
+                  return <Icon className="h-6 w-6" strokeWidth={1.8} />;
                 })()}
               </>
             ) : (
-              <PageIdentityIcon label={identityLabel} className="h-5 w-5" strokeWidth={1.8} />
+              <PageIdentityIcon label={identityLabel} className="h-6 w-6" strokeWidth={1.8} />
             )}
           </span>
           <div className="min-w-0 space-y-1 pt-0.5">

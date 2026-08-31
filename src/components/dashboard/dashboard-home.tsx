@@ -215,19 +215,19 @@ function QuickLink({
           : cn("bg-surface", INTERACTIVE_HOVER, INTERACTIVE_PRESSED, "text-secondary"),
       )}
     >
-      <div
+      <span
         className={cn(
-          RADIUS.item,
-          "flex h-9 w-9 shrink-0 items-center justify-center",
+          "flex shrink-0 items-center justify-center",
           primary
-            ? "bg-white/15"
+            ? "text-white"
             : tone
               ? VISUAL_TONE_CLASSES[tone].mark
-              : "bg-surface-muted text-secondary",
+              : "text-secondary",
         )}
+        aria-hidden="true"
       >
-        <Icon className="h-4 w-4" />
-      </div>
+        <Icon className="h-5 w-5" />
+      </span>
       <p className="min-w-0 flex-1 text-pretty text-sm font-semibold">
         {label}
       </p>
@@ -255,16 +255,10 @@ function Metric({
       <div className="flex items-start justify-between gap-3">
         <p className="text-xs font-medium text-muted">{label}</p>
         {Icon && tone && (
-          <span
-            className={cn(
-              RADIUS.item,
-              "flex h-8 w-8 shrink-0 items-center justify-center",
-              VISUAL_TONE_CLASSES[tone].mark,
-            )}
+          <Icon
+            className={cn("h-4 w-4 shrink-0", VISUAL_TONE_CLASSES[tone].mark)}
             aria-hidden="true"
-          >
-            <Icon className="h-4 w-4" />
-          </span>
+          />
         )}
       </div>
       <p

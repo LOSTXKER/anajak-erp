@@ -197,9 +197,11 @@ export default function SettingsPage() {
                   href={link.href}
                   className={cn("group card-surface card-surface-hover flex items-center gap-3 rounded-2xl p-4 transition-colors", FOCUS_BUTTON)}
                 >
-                  <div className={cn("flex h-9 w-9 items-center justify-center rounded-lg transition-colors", VISUAL_TONE_CLASSES[link.tone].mark)}>
-                    <link.icon className="h-4 w-4" strokeWidth={1.75} />
-                  </div>
+                  <link.icon
+                    className={cn("h-5 w-5 shrink-0", VISUAL_TONE_CLASSES[link.tone].mark)}
+                    strokeWidth={1.75}
+                    aria-hidden="true"
+                  />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-strong">
                       {link.title}
