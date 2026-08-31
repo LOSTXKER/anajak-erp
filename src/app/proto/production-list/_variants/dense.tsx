@@ -9,7 +9,6 @@
  */
 
 import Link from "next/link";
-import { AlertTriangle } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/ui/data-table";
@@ -27,14 +26,11 @@ import {
   LENSES,
   LENS_PRESENTATION,
   ProgressSlim,
-  StationBadges,
+  StatusCell,
   WorklistEmpty,
   WorklistToolbar,
-  actionOf,
-  actionToneClass,
   jobHref,
   sortColumnProps,
-  stationLabels,
   type WorklistState,
 } from "../_ui";
 import { ProtoFreshness } from "../_shell";
@@ -119,7 +115,7 @@ function DesktopRows({
           >
             ออเดอร์
           </DataTable.SortableTh>
-          <DataTable.Th className={HEAD_CELL}>ต้องทำต่อ</DataTable.Th>
+          <DataTable.Th className={HEAD_CELL}>สถานะ</DataTable.Th>
           <DataTable.SortableTh
             {...sortColumnProps(state.sort, state.setSort, "progress")}
             className={HEAD_CELL}
@@ -146,8 +142,6 @@ function DesktopRows({
       </DataTable.Head>
       <DataTable.Body>
         {jobs.map((job) => {
-          const action = actionOf(job, state.exceptionByOrderId.get(job.order.id));
-          const stages = stationLabels(job);
           return (
             <DataTable.Row key={job.key} href={jobHref(job)} className="h-[60px]">
               <DataTable.Td className={cn(CELL, "min-w-44")}>
@@ -176,29 +170,8 @@ function DesktopRows({
                   </span>
                 </Link>
               </DataTable.Td>
-              <DataTable.Td className={cn(CELL, "min-w-56")}>
-                {/* เหตุผล + เจ้าของถัดไป + สายงาน อยู่บรรทัดเดียว — ข้อมูลครบเท่าเดิม */}
-                <span
-                  className={cn(
-                    "flex min-w-0 items-center gap-1.5 text-sm font-medium",
-                    actionToneClass(action.tone),
-                  )}
-                >
-                  {action.attention ? (
-                    <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                  ) : null}
-                  <span className="truncate">{action.reason}</span>
-                </span>
-                <span className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs leading-tight text-muted">
-                  <span className="shrink-0">ถัดไป:</span>
-                  <span className="truncate text-secondary">{action.owner}</span>
-                  {stages.length > 0 ? (
-                    <>
-                      <span aria-hidden="true">·</span>
-                      <span className="truncate">{stages.join(" · ")}</span>
-                    </>
-                  ) : null}
-                </span>
+              <DataTable.Td className={cn(CELL, "min-w-44")}>
+                <StatusCell job={job} />
               </DataTable.Td>
               <DataTable.Td className={cn(CELL, "w-32")}>
                 <ProgressSlim rail={job.rail} />
@@ -226,18 +199,10 @@ function DesktopRows({
   );
 }
 
-function MobileRows({
-  jobs,
-  state,
-}: {
-  jobs: readonly ProtoJobRow[];
-  state: WorklistState;
-}) {
+function MobileRows({ jobs }: { jobs: readonly ProtoJobRow[] }) {
   return (
     <ul aria-label="รายการงานผลิต" className="space-y-2">
-      {jobs.map((job) => {
-        const action = actionOf(job, state.exceptionByOrderId.get(job.order.id));
-        return (
+      {jobs.map((job) => (
           <li key={job.key}>
             <Link
               href={jobHref(job)}
@@ -265,20 +230,8 @@ function MobileRows({
                   <span className="mt-0.5 block truncate text-xs text-muted">
                     {job.order.customerName || "ไม่ระบุลูกค้า"}
                   </span>
-                  <span
-                    className={cn(
-                      "mt-1.5 flex min-w-0 items-center gap-1.5 text-sm font-medium",
-                      actionToneClass(action.tone),
-                    )}
-                  >
-                    {action.attention ? (
-                      <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                    ) : null}
-                    <span className="line-clamp-2">{action.reason}</span>
-                  </span>
-                  <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
-                    <span className="truncate text-secondary">{action.owner}</span>
-                    <StationBadges job={job} max={2} />
+                  <span className="mt-1.5 block">
+                    <StatusCell job={job} />
                   </span>
                   <span className="mt-2 flex items-center justify-between gap-3">
                     <ProgressSlim rail={job.rail} />
@@ -293,8 +246,7 @@ function MobileRows({
               </span>
             </Link>
           </li>
-        );
-      })}
+      ))}
     </ul>
   );
 }
@@ -314,7 +266,7 @@ export function DenseVariant({ state }: { state: WorklistState }) {
           label="งานผลิต"
           emptyState={<WorklistEmpty lens={state.lens} />}
           renderDesktop={(items) => <DesktopRows jobs={items} state={state} />}
-          renderMobile={(items) => <MobileRows jobs={items} state={state} />}
+          renderMobile={(items) => <MobileRows jobs={items} />}
         />
       </div>
     </div>

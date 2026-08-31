@@ -26,6 +26,7 @@ import {
 
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { StatusLabel, type StatusTone } from "@/components/ui/status-label";
 import { SearchInput } from "@/components/ui/search-input";
 import { Select } from "@/components/ui/select";
 import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
@@ -33,13 +34,13 @@ import { FOCUS_BUTTON, RADIUS } from "@/components/ui/tokens";
 import { MockupThumbnail } from "@/components/mockup/mockup-thumbnail";
 import { orderMockupCover } from "@/lib/mockup";
 import { cn, formatDateShort } from "@/lib/utils";
-import { filterBoardJobs, type BoardException, type BoardRailPoint } from "@/lib/production-board";
+import { INTERNAL_STATUS_LABELS } from "@/lib/order-status";
+import { filterBoardJobs, type BoardRailPoint } from "@/lib/production-board";
 import {
   PRODUCTION_WORKLIST_LENSES,
   PRODUCTION_WORKLIST_SORT_COLUMNS,
   PRODUCTION_WORKLIST_SORT_OPTIONS,
   filterProductionWorklist,
-  productionWorklistAction,
   productionWorklistCounts,
   productionWorklistHref,
   productionWorklistProgress,
@@ -289,30 +290,55 @@ export function stationLabels(job: ProtoJobRow) {
   return [...new Set(job.spots.map((spot) => spot.stationLabel).filter(Boolean))];
 }
 
-export function StationBadges({ job, max = 2 }: { job: ProtoJobRow; max?: number }) {
-  const stages = stationLabels(job);
+/* ------------------------------------------------------------------- สถานะ
+   เบสสั่ง 2026-08-31: "ตารางไม่ต้องบอกรายละเอียดต้องทำต่อ คือทำให้รู้ว่าตอนนี้
+   สถานะอะไรก็พอ" — คอลัมน์ "ต้องทำต่อ" (เหตุผล + เจ้าของถัดไป) จึงถูกตัดออกจาก
+   แบบ A/B/C ทั้งหมด เหลือสถานะของออเดอร์ที่ใช้ป้ายกลางของเว็บ (StatusLabel)
+
+   ชื่อสถานะยกมาจาก INTERNAL_STATUS_LABELS ตัวจริง ไม่ได้ตั้งใหม่
+   สีของจุดบอก "สภาพงาน" ไม่ใช่ "ต้องทำอะไร": แดง = มีขั้นงานพัง · เหลือง = ติดรอของ
+   · น้ำเงิน = เดินอยู่ · เขียว = พร้อมส่ง · เทา = ยังไม่เริ่ม */
+
+export type JobStatus = {
+  label: string;
+  tone: StatusTone;
+  stations: string[];
+};
+
+export function jobStatus(job: ProtoJobRow): JobStatus {
+  const failed = job.spots.some((spot) => spot.step?.status === "FAILED");
+  const waiting = job.spots.some((spot) => spot.waitingOn.length > 0);
+  const status = job.order.internalStatus;
+  const label =
+    INTERNAL_STATUS_LABELS[status as keyof typeof INTERNAL_STATUS_LABELS] ?? status;
+  const tone: StatusTone = failed
+    ? "danger"
+    : waiting
+      ? "warning"
+      : status === "READY_TO_SHIP"
+        ? "success"
+        : status === "PRODUCING" || status === "QUALITY_CHECK" || status === "PACKING"
+          ? "accent"
+          : "neutral";
+  return { label, tone, stations: stationLabels(job) };
+}
+
+export function StatusCell({
+  job,
+  showStation = true,
+}: {
+  job: ProtoJobRow;
+  /** ปิดเมื่อในแถวมีของอื่นบอกตำแหน่งอยู่แล้ว (แบบ B มีรางช่วงงาน) — กันพูดซ้ำ */
+  showStation?: boolean;
+}) {
+  const status = jobStatus(job);
   return (
-    <div className="flex min-w-0 flex-wrap gap-1.5">
-      {stages.slice(0, max).map((stage) => (
-        <Badge key={stage} variant="default" size="sm">
-          {stage}
-        </Badge>
-      ))}
-      {stages.length > max ? <Badge size="sm">+{stages.length - max}</Badge> : null}
-    </div>
+    <StatusLabel
+      label={status.label}
+      tone={status.tone}
+      sub={showStation && status.stations.length > 0 ? status.stations.join(" · ") : undefined}
+    />
   );
-}
-
-export function actionOf(job: ProtoJobRow, exception?: BoardException) {
-  return productionWorklistAction(job, exception);
-}
-
-export function actionToneClass(tone: "red" | "amber" | "neutral") {
-  return tone === "red"
-    ? "text-red-700 dark:text-red-300"
-    : tone === "amber"
-      ? "text-amber-700 dark:text-amber-300"
-      : "text-strong";
 }
 
 /** แถบความคืบหน้าแบบเดิม (ตัวเลข + เปอร์เซ็นต์ + แท่ง) */

@@ -9,7 +9,6 @@
  */
 
 import Link from "next/link";
-import { AlertTriangle } from "lucide-react";
 
 import { DataTable } from "@/components/ui/data-table";
 import { FilterChip } from "@/components/ui/filter-chip";
@@ -26,11 +25,9 @@ import {
   LENSES,
   LENS_PRESENTATION,
   ProgressBar,
-  StationBadges,
+  StatusCell,
   WorklistEmpty,
   WorklistToolbar,
-  actionOf,
-  actionToneClass,
   jobHref,
   sortColumnProps,
   type WorklistState,
@@ -126,7 +123,7 @@ function DesktopRows({
           <DataTable.SortableTh {...sortColumnProps(state.sort, state.setSort, "orderNumber")}>
             ออเดอร์
           </DataTable.SortableTh>
-          <DataTable.Th>ต้องทำต่อ</DataTable.Th>
+          <DataTable.Th>สถานะ</DataTable.Th>
           <DataTable.SortableTh {...sortColumnProps(state.sort, state.setSort, "progress")}>
             ความคืบหน้า
           </DataTable.SortableTh>
@@ -160,28 +157,13 @@ function DesktopRows({
             </th>
           </tr>
           {list.map((job) => {
-            const action = actionOf(job, state.exceptionByOrderId.get(job.order.id));
             return (
-              <DataTable.Row key={job.key} href={jobHref(job)} className="h-[74px]">
+              <DataTable.Row key={job.key} href={jobHref(job)} className="h-[70px]">
                 <DataTable.Td className="min-w-44">
                   <JobIdentity job={job} />
                 </DataTable.Td>
-                <DataTable.Td className="min-w-64">
-                  <p
-                    className={cn(
-                      "flex min-w-0 items-start gap-1.5 text-sm font-medium",
-                      actionToneClass(action.tone),
-                    )}
-                  >
-                    {action.attention ? (
-                      <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                    ) : null}
-                    <span className="line-clamp-2">{action.reason}</span>
-                  </p>
-                  <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
-                    <span className="truncate text-secondary">{action.owner}</span>
-                    <StationBadges job={job} />
-                  </p>
+                <DataTable.Td className="min-w-44">
+                  <StatusCell job={job} />
                 </DataTable.Td>
                 <DataTable.Td className="w-32">
                   <ProgressBar rail={job.rail} />
@@ -205,13 +187,7 @@ function DesktopRows({
   );
 }
 
-function MobileRows({
-  jobs,
-  state,
-}: {
-  jobs: readonly ProtoJobRow[];
-  state: WorklistState;
-}) {
+function MobileRows({ jobs }: { jobs: readonly ProtoJobRow[] }) {
   const groups = groupByBucket(jobs);
 
   return (
@@ -223,9 +199,7 @@ function MobileRows({
             <span className="font-normal tabular-nums text-muted">{list.length} ใบ</span>
           </p>
           <ul aria-label={BUCKET_LABEL[bucket]} className="space-y-2">
-            {list.map((job) => {
-              const action = actionOf(job, state.exceptionByOrderId.get(job.order.id));
-              return (
+            {list.map((job) => (
                 <li key={job.key}>
                   <Link
                     href={jobHref(job)}
@@ -238,20 +212,8 @@ function MobileRows({
                       <JobIdentity job={job} size="md" asLink={false} />
                       <ChevronCell />
                     </span>
-                    <span
-                      className={cn(
-                        "mt-3 flex min-w-0 items-start gap-1.5 text-sm font-medium",
-                        actionToneClass(action.tone),
-                      )}
-                    >
-                      {action.attention ? (
-                        <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                      ) : null}
-                      <span className="line-clamp-2">{action.reason}</span>
-                    </span>
-                    <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
-                      <span className="truncate text-secondary">{action.owner}</span>
-                      <StationBadges job={job} />
+                    <span className="mt-3 block">
+                      <StatusCell job={job} />
                     </span>
                     <span className="mt-3 grid grid-cols-[1fr_auto] items-end gap-4">
                       <ProgressBar rail={job.rail} />
@@ -266,8 +228,7 @@ function MobileRows({
                     </span>
                   </Link>
                 </li>
-              );
-            })}
+            ))}
           </ul>
         </section>
       ))}
@@ -289,7 +250,7 @@ export function BarVariant({ state }: { state: WorklistState }) {
         label="งานผลิต"
         emptyState={<WorklistEmpty lens={state.lens} />}
         renderDesktop={(items) => <DesktopRows jobs={items} state={state} />}
-        renderMobile={(items) => <MobileRows jobs={items} state={state} />}
+        renderMobile={(items) => <MobileRows jobs={items} />}
       />
     </div>
   );

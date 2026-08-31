@@ -6,13 +6,12 @@
  * วิธีคิด: ขนาดเท่าเดิม แต่จัดน้ำหนักใหม่ให้ความเร่งด่วนอ่านได้จากหางตา
  *  · การ์ดที่เลือกอยู่ = ย้อมพื้นทั้งใบ + ขีดสีบนหัว (ของเดิมเปลี่ยนแค่สีเส้นขอบ ซึ่งมองไม่เห็น)
  *  · การ์ดมีบรรทัดขยายว่า "ในกองนี้เลยกำหนดกี่ใบ" — ตัวเลขเดียวไม่พอตัดสินใจ
- *  · แถวมีแถบสีทางซ้าย (แดง/เหลือง) ตามโทนของงานถัดไป
+ *  · แถวมีแถบสีทางซ้าย (แดง = มีขั้นงานพัง · เหลือง = ติดรอของ) ตามสภาพงานจริง
  *  · เปลี่ยน "แท่งเปอร์เซ็นต์" เป็น "รางช่วงงาน" — % ของช่วงงานไม่บอกว่าค้างตรงไหน
  *    ข้อมูลชุดเดิม (job.rail) แต่ตอบคำถามที่หัวหน้าถามจริง
  */
 
 import Link from "next/link";
-import { AlertTriangle } from "lucide-react";
 
 import { DataTable } from "@/components/ui/data-table";
 import { ResponsiveList } from "@/components/ui/responsive-list";
@@ -28,12 +27,11 @@ import {
   LENSES,
   LENS_PRESENTATION,
   RailDots,
-  StationBadges,
+  StatusCell,
   WorklistEmpty,
   WorklistToolbar,
-  actionOf,
-  actionToneClass,
   jobHref,
+  jobStatus,
   sortColumnProps,
   type WorklistState,
 } from "../_ui";
@@ -119,10 +117,11 @@ function FilterCards({ state }: { state: WorklistState }) {
 
 /* ------------------------------------------------------------------ ตาราง */
 
-function rowEdge(tone: "red" | "amber" | "neutral") {
-  return tone === "red"
+/** แถบสีทางซ้ายของแถว — เอาโทนมาจากสถานะเดียวกับที่คอลัมน์สถานะใช้ ไม่ได้คิดสูตรใหม่ */
+function rowEdge(tone: ReturnType<typeof jobStatus>["tone"]) {
+  return tone === "danger"
     ? "border-l-[3px] border-l-red-500 dark:border-l-red-400"
-    : tone === "amber"
+    : tone === "warning"
       ? "border-l-[3px] border-l-amber-500 dark:border-l-amber-400"
       : "border-l-[3px] border-l-transparent";
 }
@@ -144,7 +143,7 @@ function DesktopRows({
           >
             ออเดอร์
           </DataTable.SortableTh>
-          <DataTable.Th>ต้องทำต่อ</DataTable.Th>
+          <DataTable.Th>สถานะ</DataTable.Th>
           <DataTable.SortableTh {...sortColumnProps(state.sort, state.setSort, "progress")}>
             ช่วงงาน
           </DataTable.SortableTh>
@@ -165,31 +164,15 @@ function DesktopRows({
       </DataTable.Head>
       <DataTable.Body>
         {jobs.map((job) => {
-          const action = actionOf(job, state.exceptionByOrderId.get(job.order.id));
+          const status = jobStatus(job);
           return (
-            <DataTable.Row key={job.key} href={jobHref(job)} className="h-[86px]">
-              <DataTable.Td className={cn("min-w-44 pl-[21px]", rowEdge(action.tone))}>
+            <DataTable.Row key={job.key} href={jobHref(job)} className="h-[76px]">
+              <DataTable.Td className={cn("min-w-44 pl-[21px]", rowEdge(status.tone))}>
                 <JobIdentity job={job} />
               </DataTable.Td>
-              <DataTable.Td className="min-w-72">
-                {/* คอลัมน์นี้คือคำตอบของหน้า จึงได้ที่มากที่สุดและตัวหนังสือหนาสุด */}
-                <p
-                  className={cn(
-                    "flex min-w-0 items-start gap-1.5 text-sm font-semibold",
-                    actionToneClass(action.tone),
-                  )}
-                >
-                  {action.attention ? (
-                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-                  ) : null}
-                  <span className="line-clamp-2">{action.reason}</span>
-                </p>
-                <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
-                  <span className="truncate">
-                    ถัดไปที่ <span className="text-secondary">{action.owner}</span>
-                  </span>
-                  <StationBadges job={job} />
-                </p>
+              <DataTable.Td className="min-w-40">
+                {/* รางช่วงงานข้าง ๆ บอกตำแหน่งอยู่แล้ว ช่องนี้จึงไม่ต้องซ้ำว่าอยู่สายไหน */}
+                <StatusCell job={job} showStation={false} />
               </DataTable.Td>
               <DataTable.Td className="w-40">
                 <RailDots job={job} />
@@ -216,17 +199,11 @@ function DesktopRows({
   );
 }
 
-function MobileRows({
-  jobs,
-  state,
-}: {
-  jobs: readonly ProtoJobRow[];
-  state: WorklistState;
-}) {
+function MobileRows({ jobs }: { jobs: readonly ProtoJobRow[] }) {
   return (
     <ul aria-label="รายการงานผลิต" className="space-y-2">
       {jobs.map((job) => {
-        const action = actionOf(job, state.exceptionByOrderId.get(job.order.id));
+        const status = jobStatus(job);
         return (
           <li key={job.key}>
             <Link
@@ -234,29 +211,15 @@ function MobileRows({
               className={cn(
                 FOCUS_BUTTON,
                 "card-surface card-surface-hover block min-h-11 rounded-2xl p-4 pl-[13px]",
-                rowEdge(action.tone),
+                rowEdge(status.tone),
               )}
             >
               <span className="flex items-start justify-between gap-3">
                 <JobIdentity job={job} size="md" asLink={false} />
                 <ChevronCell />
               </span>
-              <span
-                className={cn(
-                  "mt-3 flex min-w-0 items-start gap-1.5 text-sm font-semibold",
-                  actionToneClass(action.tone),
-                )}
-              >
-                {action.attention ? (
-                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-                ) : null}
-                <span className="line-clamp-2">{action.reason}</span>
-              </span>
-              <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
-                <span className="truncate">
-                  ถัดไปที่ <span className="text-secondary">{action.owner}</span>
-                </span>
-                <StationBadges job={job} />
+              <span className="mt-3 block">
+                <StatusCell job={job} showStation={false} />
               </span>
               <span className="mt-3 grid grid-cols-[1fr_auto] items-end gap-4">
                 <RailDots job={job} />
@@ -292,7 +255,7 @@ export function FocusVariant({ state }: { state: WorklistState }) {
           label="งานผลิต"
           emptyState={<WorklistEmpty lens={state.lens} />}
           renderDesktop={(items) => <DesktopRows jobs={items} state={state} />}
-          renderMobile={(items) => <MobileRows jobs={items} state={state} />}
+          renderMobile={(items) => <MobileRows jobs={items} />}
         />
       </div>
     </div>
