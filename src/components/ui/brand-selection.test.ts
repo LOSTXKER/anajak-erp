@@ -135,8 +135,13 @@ describe("Anajak selected-state contract", () => {
     expect(productionWorklistSource).toContain("WORKLIST_LENS_PRESENTATION");
     expect(productionWorklistSource).toContain("text-module-production-text");
     expect(productionWorklistSource).toContain("PackageCheck");
-    expect(productionWorklistSource).toContain("iconChip");
     expect(productionWorklistSource).toContain("iconColor");
+    /* ตัวเลขในชิปไม่มีพื้นเม็ดแล้ว (เบสเคาะแบบ B "ไม่มีกล่อง" 2026-08-31)
+       กติกาเดียวกับ `mark` ใน visual-tone.ts — ไอคอน/ตัวเลขนำหน้าหัวข้อไม่มีพื้น */
+    expect(productionWorklistSource).toContain("countColor");
+    expect(productionWorklistSource).not.toContain("iconChip");
+    expect(productionWorklistSource).not.toContain("bg-module-brand-surface");
+    expect(productionWorklistSource).not.toContain("bg-red-50");
     // ห้ามกลับไปเป็นการ์ดตัวเลขเต็มแถว
     expect(productionWorklistSource).not.toContain("selectedBorder");
     expect(productionWorklistSource).not.toContain("min-h-20");

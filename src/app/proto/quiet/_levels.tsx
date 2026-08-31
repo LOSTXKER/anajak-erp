@@ -18,62 +18,36 @@
  */
 
 export const QUIET_LEVELS = [
-  { value: "current", label: "ตอนนี้" },
-  { value: "soft", label: "A · กล่องจางลง" },
-  { value: "flat", label: "B · ไม่มีกล่อง" },
-  { value: "gray", label: "C · เทาหมด" },
+  { value: "current", label: "ตอนนี้ (แบบ B)" },
+  { value: "gray", label: "ถ้าอยากคลีนกว่านี้อีก · เทาหมด" },
 ] as const;
 
 export type QuietLevel = (typeof QUIET_LEVELS)[number]["value"];
 
 const TONES = ["brand", "production", "product", "finance", "system"] as const;
 
-/** A — พื้นกล่องจางลงเหลือ 40% ที่เหลือกลืนไปกับผิวการ์ด (ไอคอนยังสีเดิม) */
-const soft = TONES.map(
-  (tone) => `
-  [data-quiet="soft"] .bg-module-${tone}-surface {
-    background-color: color-mix(
-      in srgb,
-      var(--color-module-${tone}-surface) 40%,
-      transparent
-    ) !important;
-  }`,
-).join("\n");
+/* ระดับ "กล่องจางลง" กับ "ไม่มีกล่อง" ถูกถอดออกจากหน้านี้ 2026-08-31 หลังเบสเคาะ B
+   แล้วลงของจริง — กล่องไม่มีอยู่ในโค้ดแล้ว ปุ่มพวกนั้นจึงกดแล้วไม่เกิดอะไรขึ้น
+   เก็บไว้จะกลายเป็นหน้าลองที่โกหก · เหลือไว้เฉพาะขั้นที่ยังเดินต่อได้จริง */
 
-/** B — ไม่มีพื้นกล่อง เหลือไอคอนสีลอย */
-const flat = TONES.map(
-  (tone) => `
-  [data-quiet="flat"] .bg-module-${tone}-surface { background-color: transparent !important; }`,
-).join("\n");
-
-/** C — เทาหมด สีหมวดหายทั้งกล่องและตัวหนังสือ เหลือสีไว้ให้สถานะ/ปุ่มหลักเท่านั้น */
+/** เทาหมด — สีหมวดหายจากไอคอนและตัวเลข เหลือสีไว้ให้สถานะ/ปุ่มหลักเท่านั้น */
 const gray = TONES.map(
   (tone) => `
-  [data-quiet="gray"] .bg-module-${tone}-surface { background-color: transparent !important; }
   [data-quiet="gray"] .text-module-${tone}-text { color: var(--color-muted) !important; }`,
 ).join("\n");
 
-/* แกนที่ 2 — ถอนสีออกจากตัวเลขใหญ่ในการ์ดสรุป
-   เลือกด้วย `.tabular-nums` เพราะตัวเลขในการ์ดสรุปมีคลาสนี้ ส่วนกล่องไอคอนไม่มี
-   (ระดับ C ทำให้เทาอยู่แล้ว สวิตช์นี้จึงไม่มีผลเพิ่มตอนอยู่ที่ C) */
+/* แกนที่ 2 — ถอนสีออกจากตัวเลขใหญ่ในการ์ดสรุป (ยังไม่ได้เคาะ)
+   เลือกด้วย `.tabular-nums` เพราะตัวเลขในการ์ดสรุปมีคลาสนี้ ส่วนไอคอนไม่มี */
 const plainNumbers = TONES.map(
   (tone) => `
   [data-nums="plain"] .tabular-nums.text-module-${tone}-text { color: var(--color-strong) !important; }`,
 ).join("\n");
 
-/* เม็ดตัวเลขในแถบชิปกรองของหน้าผลิตใช้สีดิบ (red-50/amber-50/green-50) ไม่ได้ผ่าน
-   token หมวด จึงต้องสั่งแยก ไม่งั้นพอเลือก "เทาหมด" จะเหลือเม็ดสีค้างอยู่สามอัน */
+/** เม็ดตัวเลขในแถบชิปกรองหน้าผลิตใช้สีดิบ ไม่ได้ผ่าน token หมวด จึงต้องสั่งแยก */
 const lensPills = `
-  [data-quiet="soft"] [data-lens-count] {
-    background-color: color-mix(in srgb, currentColor 8%, transparent) !important;
-  }
-  [data-quiet="flat"] [data-lens-count] { background-color: transparent !important; }
-  [data-quiet="gray"] [data-lens-count] {
-    background-color: transparent !important;
-    color: var(--color-muted) !important;
-  }`;
+  [data-quiet="gray"] [data-lens-count] { color: var(--color-muted) !important; }`;
 
-export const QUIET_STYLE = `${soft}\n${flat}\n${gray}\n${plainNumbers}\n${lensPills}`;
+export const QUIET_STYLE = `${gray}\n${plainNumbers}\n${lensPills}`;
 
 export function QuietStyle() {
   return <style>{QUIET_STYLE}</style>;

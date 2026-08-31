@@ -83,7 +83,7 @@ export function StatCard({
               className={cn(
                 "flex h-8 w-8 shrink-0 items-center justify-center",
                 RADIUS.item,
-                VISUAL_TONE_CLASSES[toned].soft,
+                VISUAL_TONE_CLASSES[toned].mark,
               )}
               aria-hidden="true"
             >

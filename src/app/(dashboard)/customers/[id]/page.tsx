@@ -35,7 +35,7 @@ function SummaryIcon({ icon: Icon, tone }: { icon: LucideIcon; tone: VisualTone 
       className={cn(
         RADIUS.item,
         "flex h-6 w-6 shrink-0 items-center justify-center",
-        VISUAL_TONE_CLASSES[tone].soft,
+        VISUAL_TONE_CLASSES[tone].mark,
       )}
       aria-hidden="true"
     >

@@ -319,9 +319,11 @@ const hSm = CONTROL_H_SM.split(" ");
   );
   if (
     !headerHtml.includes("page-module-mark") ||
-    // สีประจำหมวดกลับมาแล้ว 2026-08-31 (แบบ B) — หน้าผลิตต้องได้โทน production
-    // แบบ "พื้นอ่อน" เท่านั้น · กล่องสีทึบ (.solid) ถูกปฏิเสธไปแล้ว 23 ส.ค. ห้ามกลับมา
-    !headerHtml.includes("bg-module-production-surface") ||
+    /* สีประจำหมวดยังอยู่ แต่ตั้งแต่ 2026-08-31 เป็น "ไอคอนสี ไม่มีพื้นกล่อง"
+       (เบสเคาะแบบ B จากหน้าลอง /proto/quiet — ก่อนหน้านั้นเป็นพื้นอ่อน)
+       ห้ามกลับไปมีพื้น ไม่ว่าจะพื้นอ่อน (.soft) หรือพื้นทึบ (.solid ที่ถูกปฏิเสธ 23 ส.ค.) */
+    !headerHtml.includes("text-module-production-text") ||
+    headerHtml.includes("bg-module-production-surface") ||
     !headerHtml.includes('data-page-description=""') ||
     !headerHtml.includes("ดูคิวผลิต งานที่ติดขัด และขั้นตอนที่ต้องจัดการต่อ") ||
     headerHtml.includes("bg-module-production-solid") ||

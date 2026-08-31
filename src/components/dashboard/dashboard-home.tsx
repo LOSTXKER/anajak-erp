@@ -222,7 +222,7 @@ function QuickLink({
           primary
             ? "bg-white/15"
             : tone
-              ? VISUAL_TONE_CLASSES[tone].soft
+              ? VISUAL_TONE_CLASSES[tone].mark
               : "bg-surface-muted text-secondary",
         )}
       >
@@ -259,7 +259,7 @@ function Metric({
             className={cn(
               RADIUS.item,
               "flex h-8 w-8 shrink-0 items-center justify-center",
-              VISUAL_TONE_CLASSES[tone].soft,
+              VISUAL_TONE_CLASSES[tone].mark,
             )}
             aria-hidden="true"
           >

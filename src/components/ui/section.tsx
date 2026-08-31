@@ -82,7 +82,7 @@ export const Section = React.forwardRef<HTMLDivElement, SectionProps>(
                     "flex h-6 w-6 shrink-0 items-center justify-center",
                     // สีประจำหมวด = ป้ายบอกทาง ไม่ใช่การประดับ (แบบ B · เบสเคาะ 2026-08-31)
                     // ไม่ส่ง tone มา = เทาเหมือนเดิมทุกประการ ของเก่าจึงไม่ขยับ
-                    tone ? cn(RADIUS.item, VISUAL_TONE_CLASSES[tone].soft) : "text-muted",
+                    tone ? cn(RADIUS.item, VISUAL_TONE_CLASSES[tone].mark) : "text-muted",
                   )}
                   aria-hidden="true"
                 >
@@ -167,7 +167,7 @@ export function ToneMark({
       className={cn(
         "flex shrink-0 items-center justify-center",
         tone
-          ? cn("h-6 w-6", RADIUS.item, VISUAL_TONE_CLASSES[tone].soft)
+          ? cn("h-6 w-6", RADIUS.item, VISUAL_TONE_CLASSES[tone].mark)
           : "text-muted",
       )}
       aria-hidden="true"

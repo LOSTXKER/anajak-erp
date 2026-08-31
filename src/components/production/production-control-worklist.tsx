@@ -65,41 +65,42 @@ import {
    ผ่าน mutation และ permission เดิมทั้งหมด
    ============================================================ */
 
-/* ไอคอนของแต่ละมุมมองยังใช้สีประจำหมวดชุดเดิม (แบบ B · สีบอกหมวด 2026-08-31)
-   เปลี่ยนแค่ที่วาง: จากกล่องสีในการ์ดใหญ่ มาเป็นไอคอนในชิปแถบเดียว
-   ตัวเลขเกาะอยู่ในชิปสีอ่อนเฉดเดียวกัน จึงยังอ่านออกว่าเป็นหมวดไหน */
+/* ไอคอนของแต่ละมุมมองยังใช้สีประจำหมวดชุดเดิม เปลี่ยนแค่ที่วาง: จากกล่องสีในการ์ดใหญ่
+   มาเป็นไอคอนในชิปแถบเดียว · ตัวเลขเกาะข้างชื่อมุมด้วยสีเฉดเดียวกัน **ไม่มีพื้นเม็ด**
+   ตั้งแต่ 2026-08-31 (เบสเคาะแบบ B "ไม่มีกล่อง" จากหน้าลอง /proto/quiet) —
+   กติกาเดียวกับ `mark` ใน visual-tone.ts: ไอคอน/ตัวเลขนำหน้าหัวข้อไม่ต้องมีพื้น */
 const WORKLIST_LENS_PRESENTATION = {
   all: {
     icon: ListFilter,
     iconColor: "text-module-brand-text",
-    iconChip: "bg-module-brand-surface text-module-brand-text",
+    countColor: "text-module-brand-text",
   },
   attention: {
     icon: AlertTriangle,
     iconColor: "text-red-600 dark:text-red-300",
-    iconChip: "bg-red-50 text-red-700 dark:bg-red-950/50 dark:text-red-300",
+    countColor: "text-red-700 dark:text-red-300",
   },
   production: {
     icon: Factory,
     iconColor: "text-module-production-text",
-    iconChip: "bg-module-production-surface text-module-production-text",
+    countColor: "text-module-production-text",
   },
   qc: {
     icon: ClipboardCheck,
     iconColor: "text-amber-700 dark:text-amber-300",
-    iconChip: "bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300",
+    countColor: "text-amber-700 dark:text-amber-300",
   },
   packing: {
     icon: PackageCheck,
     iconColor: "text-green-700 dark:text-green-300",
-    iconChip: "bg-green-50 text-green-700 dark:bg-green-950/50 dark:text-green-300",
+    countColor: "text-green-700 dark:text-green-300",
   },
 } satisfies Record<
   ProductionWorklistLens,
   {
     icon: LucideIcon;
     iconColor: string;
-    iconChip: string;
+    countColor: string;
   }
 >;
 
@@ -477,8 +478,8 @@ export function ProductionControlWorklist<
                   <span
                     data-lens-count=""
                     className={cn(
-                      "ml-1 rounded-full px-1.5 py-0.5 text-2xs font-semibold tabular-nums",
-                      presentation.iconChip,
+                      "ml-1 text-2xs font-semibold tabular-nums",
+                      presentation.countColor,
                     )}
                   >
                     {counts[item.key]}

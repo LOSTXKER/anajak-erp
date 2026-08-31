@@ -121,7 +121,7 @@ export function PageHeader({
             className={cn(
               "page-module-mark mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center",
               RADIUS.item,
-              VISUAL_TONE_CLASSES[resolvedTone].soft,
+              VISUAL_TONE_CLASSES[resolvedTone].mark,
             )}
             role={eyebrow ? "img" : undefined}
             aria-label={eyebrow}
