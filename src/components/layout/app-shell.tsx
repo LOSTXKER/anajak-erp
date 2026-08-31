@@ -25,11 +25,6 @@ import {
   groupedNavigationItems,
 } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
-import {
-  NAVIGATION_GROUP_TONE,
-  VISUAL_TONE_CLASSES,
-  type VisualTone,
-} from "@/lib/visual-tone";
 import { ROLE_LABELS } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
 import {
@@ -210,14 +205,7 @@ function SidebarCollapseButton({
   );
 }
 
-function sidebarNavIconClass(active: boolean, tone?: VisualTone) {
-  /* ไอคอนเมนู = สีประจำหมวดของมัน คงที่ไม่ว่าจะเลือกอยู่หรือไม่ (แบบ B "สีบอกหมวด"
-  เบสเคาะ 2026-08-31) — เมนูซ้ายคือที่ที่คนเลือก "หมวด" สีจึงทำงานหนักที่สุดตรงนี้
-  `NAVIGATION_GROUP_TONE` มีอยู่ใน visual-tone.ts มาตั้งแต่ P1.0 แต่ไม่เคยถูกเรียกใช้เลย
-
-  "เลือกอยู่ไหม" ยังบอกด้วยของเดิมทั้งหมด: พื้นเทา + ตัวหนา + ขีดน้ำเงิน — ไม่ได้ใช้สี
-  ของไอคอนมาบอก จึงไม่ไปแย่งกับกติกา "น้ำเงินสงวนให้สิ่งที่เลือก" */
-  if (tone) return VISUAL_TONE_CLASSES[tone].text;
+function sidebarNavIconClass(active: boolean) {
   return active
     ? "text-strong"
     : "text-muted group-hover/sidebar-item:text-secondary group-active/sidebar-item:text-strong";
@@ -283,10 +271,7 @@ function MoreMenu({
                       <item.icon
                         className={cn(
                           "h-4 w-4",
-                          sidebarNavIconClass(
-                            activeNavigationId === item.id,
-                            NAVIGATION_GROUP_TONE[item.group],
-                          ),
+                          sidebarNavIconClass(activeNavigationId === item.id),
                         )}
                         strokeWidth={1.75}
                       />
@@ -491,10 +476,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
                           })}
                         >
                           <item.icon
-                            className={cn(
-                              "h-4 w-4 shrink-0",
-                              sidebarNavIconClass(active, NAVIGATION_GROUP_TONE[item.group]),
-                            )}
+                            className={cn("h-4 w-4 shrink-0", sidebarNavIconClass(active))}
                             strokeWidth={1.75}
                           />
                           {!sidebarCollapsed && <span>{item.label}</span>}
@@ -642,13 +624,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
                     "flex h-6 min-w-10 items-center justify-center",
                   )}
                 >
-                  <item.icon
-                    className={cn(
-                      "h-5 w-5",
-                      sidebarNavIconClass(active, NAVIGATION_GROUP_TONE[item.group]),
-                    )}
-                    strokeWidth={active ? 2 : 1.75}
-                  />
+                  <item.icon className="h-5 w-5" strokeWidth={active ? 2 : 1.75} />
                 </span>
                 <span className="truncate">{item.label}</span>
               </Link>
