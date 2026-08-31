@@ -2377,6 +2377,43 @@ check(
       "หัวใบต้องเป็น minimal (ไม่มีพื้น/กรอบ/เส้นแบ่ง) และ CTA ที่ใช้บ่อยต้องเป็นปุ่มจริง ไม่ซ่อนในเมนู ⋯",
     );
   }
+  /* การ์ด "งานนี้พิมพ์อะไร" (เบสเคาะแบบ B จากหน้าลอง /proto/order-overview 2026-08-31)
+     — คำถามแรกของคนเปิดใบงานคือ "งานนี้พิมพ์ลายอะไร" เดิมต้องกดข้ามไปแท็บม็อกอัพทุกครั้ง
+     ข้อบังคับที่ห้ามหลุด:
+     ① การ์ดต้องอยู่บนสุดของคอลัมน์ซ้าย (มาก่อนการ์ดลูกค้าในลำดับ DOM = ลำดับที่มือถือซ้อน)
+     ② รูปต้องมาจาก MockupThumbRow ซึ่งใช้สูตรเลือกรูปกลาง — วาด <img> เองเมื่อไหร่
+        จอนี้จะโชว์คนละรูปกับแท็บม็อกอัพ/ใบสั่งผลิตทันที
+     ③ เป็น "ที่ดู" ไม่ใช่ "ที่จัดการ" — ห้ามมี mutation ของม็อกอัพ/ไฟล์ในการ์ดนี้
+        (ม็อกอัพมีบ้านเดียวคือแท็บม็อกอัพ & ไฟล์ · กติกาเดิมตั้งแต่ 2026-08-22)
+     ④ รายละเอียดงานอยู่ในการ์ดนี้ ไม่ใช่การ์ดตัวหนังสือลอยอีกใบ */
+  const artworkIndex = overviewSource.indexOf("{artwork}");
+  const artworkSource = readFileSync(
+    "src/components/orders/detail/order-artwork-card.tsx",
+    "utf8",
+  );
+  if (
+    artworkIndex < 0 ||
+    !(artworkIndex < customerIndex) ||
+    !overviewSource.includes("artwork?: React.ReactNode") ||
+    overviewSource.includes('data-order-overview-card="description"') ||
+    !artworkSource.includes('data-order-overview-card="artwork"') ||
+    !artworkSource.includes("MockupThumbRow") ||
+    /useMutation|design\.(upload|approve)|attachment\.(create|delete)/.test(artworkSource) ||
+    !detailSource.includes("<OrderArtworkCard")
+  ) {
+    problems.push(
+      "การ์ด “งานนี้พิมพ์อะไร” ต้องอยู่บนสุดคอลัมน์ซ้าย ใช้รูปย่อจากสูตรกลาง และห้ามมีปุ่มจัดการม็อกอัพ/ไฟล์",
+    );
+  }
+  /* ประวัติลูกค้าเป็นบรรทัดเดียวใต้ชื่อ (เบสเคาะแบบ B) — ห้ามกลับไปเป็นสี่ช่องท้ายการ์ด
+     และ gate เงินต้องอยู่ครบ: ช่างเห็นบรรทัดนี้ไม่ได้เลย */
+  if (
+    !overviewSource.includes("customerHistoryLine") ||
+    !overviewSource.includes("showMoney && hasCustomerHistory && customerHistoryLine") ||
+    overviewSource.includes('<Group label="ประวัติลูกค้า"')
+  ) {
+    problems.push("ประวัติลูกค้าต้องเป็นบรรทัดเดียวใต้ชื่อ และยัง gate ด้วย showMoney");
+  }
   if (
     !overviewSource.includes("if (!filled && !emptyText) return null") ||
     overviewSource.includes('emptyText ?? "-"') ||

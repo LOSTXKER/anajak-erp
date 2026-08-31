@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { User, Info, Truck, Palette, ArrowRight, FileText } from "lucide-react";
+import { User, Info, Truck, Palette, ArrowRight } from "lucide-react";
 import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -131,6 +131,10 @@ interface OrderOverviewTabProps {
   onOpenDelivery?: () => void;
   // เปิดฟอร์มแก้เต็มหน้าโดยโฟกัสการ์ดที่กด — ไม่ส่งมา = ไม่มีสิทธิ์แก้ ปุ่มไม่ต้องขึ้น
   onEditInfo?: (section: "info" | "shipping") => void;
+  /* การ์ด "งานนี้พิมพ์อะไร" (ม็อกอัพ + รายละเอียดงาน + สรุปไฟล์) — ส่งเข้ามาเป็นชิ้นสำเร็จ
+     เพราะแท็บนี้เป็น read surface ที่รับ props ล้วน ไม่ยิง query เอง ส่วนการ์ดนั้นต้องยิง
+     (ม็อกอัพ/ไฟล์อยู่คนละตาราง) · หน้าแม่จึงประกอบมาให้ แล้วที่นี่แค่วางตำแหน่ง */
+  artwork?: React.ReactNode;
   channelColor: { bg: string; text: string };
   isMarketplace: boolean;
 }
@@ -317,6 +321,7 @@ export function OrderOverviewTab({
   onOpenMoney,
   onOpenDelivery,
   onEditInfo,
+  artwork,
   channelColor,
   isMarketplace,
 }: OrderOverviewTabProps) {
@@ -382,6 +387,25 @@ export function OrderOverviewTab({
       customer.totalOrders > 0 ||
       customer.lastOrderAt),
   );
+  /* ประวัติลูกค้าเป็นบรรทัดเดียว — เรียงจาก "ตัวที่ใช้ตัดสินใจบ่อยสุด" ไปหาน้อยสุด
+     ช่องไหนไม่มีค่าก็หายไปจากบรรทัด ไม่เว้นช่องว่างหรือขีดคั่นลอย */
+  const customerHistoryLine = customer
+    ? [
+        customer.totalSpent != null
+          ? `ซื้อสะสม ${formatCurrency(customer.totalSpent)}`
+          : null,
+        customer.totalOrders > 0
+          ? `${customer.totalOrders.toLocaleString()} ครั้ง`
+          : null,
+        customer.lastOrderAt ? `ล่าสุด ${formatDate(customer.lastOrderAt)}` : null,
+        customer.creditLimit != null
+          ? `วงเงิน ${formatCurrency(customer.creditLimit)}`
+          : null,
+      ]
+        .filter(Boolean)
+        .join(" · ")
+    : "";
+
   const hasPricedWork = totalAmount !== 0 || totalQuantity > 0;
   const totalNeedsReview = totalQuantity > 0 && totalAmount === 0;
 
@@ -737,17 +761,10 @@ export function OrderOverviewTab({
         </div>
 
         <div className="space-y-5 xl:col-start-1 xl:row-start-1">
-          {order.description?.trim() && (
-            <Section
-              data-order-overview-card="description"
-              compact
-              title={<SectionTitle icon={FileText}>รายละเอียดงาน</SectionTitle>}
-            >
-              <p className="max-w-[75ch] text-sm leading-6 text-secondary [overflow-wrap:anywhere]">
-                {order.description}
-              </p>
-            </Section>
-          )}
+          {/* คำถามแรกที่คนเปิดใบงานถามคือ "งานนี้พิมพ์อะไร" — การ์ดลายจึงอยู่บนสุด
+              ของคอลัมน์ซ้าย และกินรายละเอียดงานเข้าไปด้วย (เบสเคาะแบบ B 2026-08-31)
+              ไม่ส่ง artwork มา (เช่น หน้าอื่นที่ยืม component นี้ไปใช้) = ไม่มีการ์ดนี้ */}
+          {artwork}
 
           <Section
             data-order-overview-card="customer"
@@ -771,6 +788,15 @@ export function OrderOverviewTab({
                     {customer.company && (
                       <p className="text-sm text-secondary [overflow-wrap:anywhere]">
                         {customer.company}
+                      </p>
+                    )}
+                    {/* ประวัติลูกค้าเคยกินสี่ช่องท้ายการ์ด ทั้งที่ไม่มีใครเอาไปตัดสินอะไร
+                        ต่อจากนี้เป็นบรรทัดเดียวใต้ชื่อ — ค่าครบเท่าเดิมทุกตัว ไม่ได้ตัดทิ้ง
+                        (เบสเคาะแบบ B 2026-08-31) · gate เงินเหมือนเดิมทุกประการ:
+                        showMoney && hasCustomerHistory ทั้งบรรทัด ช่างจึงไม่เห็นอะไรเลย */}
+                    {showMoney && hasCustomerHistory && customerHistoryLine && (
+                      <p className="mt-1 text-xs text-muted [overflow-wrap:anywhere]">
+                        {customerHistoryLine}
                       </p>
                     )}
                   </div>
@@ -879,37 +905,6 @@ export function OrderOverviewTab({
                   </FieldGrid>
                 </Group>
 
-                {/* เงินของลูกค้า — ห่อระดับ JSX ไม่ใช่ซ่อนด้วย CSS (แท็บนี้ forceMount) */}
-                {showMoney && hasCustomerHistory && (
-                  <Group label="ประวัติลูกค้า" divided>
-                    <FieldGrid>
-                      {customer.creditLimit != null && (
-                        <Field label="วงเงินเครดิต">
-                          <span className="tabular-nums">
-                            {formatCurrency(customer.creditLimit)}
-                          </span>
-                        </Field>
-                      )}
-                      {customer.totalSpent != null && (
-                        <Field label="ยอดซื้อสะสม">
-                          <span className="tabular-nums">
-                            {formatCurrency(customer.totalSpent)}
-                          </span>
-                        </Field>
-                      )}
-                      {customer.totalOrders > 0 && (
-                        <Field label="สั่งมาแล้ว">
-                          {customer.totalOrders.toLocaleString()} ครั้ง
-                        </Field>
-                      )}
-                      {customer.lastOrderAt && (
-                        <Field label="สั่งล่าสุด">
-                          {formatDate(customer.lastOrderAt)}
-                        </Field>
-                      )}
-                    </FieldGrid>
-                  </Group>
-                )}
               </div>
             ) : (
               <p className="text-sm text-muted">ใบนี้ยังไม่ผูกกับลูกค้า</p>

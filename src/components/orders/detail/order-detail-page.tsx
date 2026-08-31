@@ -75,6 +75,7 @@ import {
   OrderItemsDisplay,
   OrderStatusBar,
   OrderOverviewTab,
+  OrderArtworkCard,
   OrderFilesCard,
   OrderRevisions,
   OrderChangeOrders,
@@ -898,6 +899,13 @@ function OrderDetailContent({
                 canUseEditForm
                   ? (section) => openInfoEditPage(section, "overview")
                   : undefined
+              }
+              artwork={
+                <OrderArtworkCard
+                  orderId={id}
+                  description={order.description}
+                  onOpenFiles={() => changeTab("files")}
+                />
               }
               channelColor={channelColor}
               isMarketplace={isMarketplace}
