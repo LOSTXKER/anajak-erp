@@ -9,8 +9,13 @@ import { HelpTip } from "@/components/ui/help-tip";
 import {
   INTERACTIVE_PAGE_HOVER,
   INTERACTIVE_PAGE_PRESSED,
+  RADIUS,
 } from "@/components/ui/tokens";
-import type { VisualTone } from "@/lib/visual-tone";
+import {
+  VISUAL_TONE_CLASSES,
+  visualToneForLabel,
+  type VisualTone,
+} from "@/lib/visual-tone";
 
 export interface BreadcrumbItem {
   label: string;
@@ -53,6 +58,7 @@ export function PageHeader({
   titleBadge,
   back,
   icon,
+  tone,
   eyebrow,
   children,
 }: PageHeaderProps) {
@@ -63,6 +69,7 @@ export function PageHeader({
   const descriptionSource = [identityLabel, ...(breadcrumb?.map((item) => item.label) ?? [])]
     .filter(Boolean)
     .join(" ");
+  const resolvedTone = tone ?? visualToneForLabel(descriptionSource);
   const resolvedDescription =
     description === undefined
       ? pageDescriptionForLabel(descriptionSource)
@@ -102,10 +109,19 @@ export function PageHeader({
               </Link>
             </Button>
           )}
+          {/* เครื่องหมายประจำหมวดของหน้า — กลับมามีสีอีกครั้ง 2026-08-31 (แบบ B "สีบอกหมวด")
+              สีอนุมานจากชื่อหน้า/breadcrumb ด้วย visualToneForLabel ทุกหน้าจึงได้สีเองโดย
+              ไม่ต้องไล่แก้ทีละหน้า · หน้าไหนอยากกำหนดเองส่ง prop `tone` มาทับได้
+
+              ประวัติกันคนมาแก้ย้อน: 23 ส.ค. เคยเป็นกล่องสีทึบ 48px มีเงา → ถูกลดเหลือ
+              ไอคอนเส้นสีหมวด → แล้วถูกลดอีกเป็นเทาล้วนตอน "white canvas" วันเดียวกัน
+              รอบนี้กลับมาที่ "กล่องสีอ่อน + ไอคอนเส้น" ซึ่งอยู่ระหว่างสองอันนั้น
+              **ห้ามกลับไปเป็นสีทึบ** — ด่าน verify:ui ล็อกไว้แล้ว */}
           <span
             className={cn(
-              "page-module-mark mt-1 flex h-6 w-6 shrink-0 items-center justify-center",
-              "text-secondary",
+              "page-module-mark mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center",
+              RADIUS.item,
+              VISUAL_TONE_CLASSES[resolvedTone].soft,
             )}
             role={eyebrow ? "img" : undefined}
             aria-label={eyebrow}

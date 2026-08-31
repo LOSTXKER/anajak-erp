@@ -2,7 +2,8 @@ import * as React from "react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HelpTip } from "@/components/ui/help-tip";
-import type { VisualTone } from "@/lib/visual-tone";
+import { RADIUS } from "@/components/ui/tokens";
+import { VISUAL_TONE_CLASSES, type VisualTone } from "@/lib/visual-tone";
 
 interface SectionProps extends Omit<React.HTMLAttributes<HTMLElement>, "title"> {
   title?: React.ReactNode;
@@ -43,6 +44,7 @@ export const Section = React.forwardRef<HTMLDivElement, SectionProps>(
       compact = false,
       headingLevel = 2,
       icon: Icon,
+      tone,
       surface,
       className,
       children,
@@ -75,7 +77,15 @@ export const Section = React.forwardRef<HTMLDivElement, SectionProps>(
           >
             <div className="flex min-w-0 items-start gap-3">
               {Icon && !compact && (
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center text-muted" aria-hidden="true">
+                <span
+                  className={cn(
+                    "flex h-6 w-6 shrink-0 items-center justify-center",
+                    // สีประจำหมวด = ป้ายบอกทาง ไม่ใช่การประดับ (แบบ B · เบสเคาะ 2026-08-31)
+                    // ไม่ส่ง tone มา = เทาเหมือนเดิมทุกประการ ของเก่าจึงไม่ขยับ
+                    tone ? cn(RADIUS.item, VISUAL_TONE_CLASSES[tone].soft) : "text-muted",
+                  )}
+                  aria-hidden="true"
+                >
                   <Icon className="h-4.5 w-4.5" strokeWidth={1.8} />
                 </span>
               )}
@@ -115,3 +125,37 @@ export const Section = React.forwardRef<HTMLDivElement, SectionProps>(
   }
 );
 Section.displayName = "Section";
+
+/**
+ * หัวข้อการ์ดแบบ compact ที่มีไอคอนนำ — ก่อนหน้านี้ถูกเขียนซ้ำเองในไฟล์ที่ใช้
+ * (compact ไม่วาด prop `icon` ของ Section ให้ จึงต้องส่งไอคอนมาทาง title)
+ *
+ * ส่ง `tone` มา = กล่องไอคอนได้สีประจำหมวด (แบบ B "สีบอกหมวด" · เบสเคาะ 2026-08-31)
+ * ไม่ส่ง = เทาเหมือนเดิม — ของเก่าที่ยังไม่ได้ไล่สีจึงไม่ขยับสักจุด
+ */
+export function SectionTitle({
+  icon: Icon,
+  tone,
+  children,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  tone?: VisualTone;
+  children: React.ReactNode;
+}) {
+  return (
+    <span className="flex items-center gap-2">
+      <span
+        className={cn(
+          "flex shrink-0 items-center justify-center",
+          tone
+            ? cn("h-6 w-6", RADIUS.item, VISUAL_TONE_CLASSES[tone].soft)
+            : "text-muted",
+        )}
+        aria-hidden="true"
+      >
+        <Icon className="h-3.5 w-3.5" />
+      </span>
+      {children}
+    </span>
+  );
+}

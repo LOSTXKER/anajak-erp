@@ -319,7 +319,9 @@ const hSm = CONTROL_H_SM.split(" ");
   );
   if (
     !headerHtml.includes("page-module-mark") ||
-    !headerHtml.includes("text-secondary") ||
+    // สีประจำหมวดกลับมาแล้ว 2026-08-31 (แบบ B) — หน้าผลิตต้องได้โทน production
+    // แบบ "พื้นอ่อน" เท่านั้น · กล่องสีทึบ (.solid) ถูกปฏิเสธไปแล้ว 23 ส.ค. ห้ามกลับมา
+    !headerHtml.includes("bg-module-production-surface") ||
     !headerHtml.includes('data-page-description=""') ||
     !headerHtml.includes("ดูคิวผลิต งานที่ติดขัด และขั้นตอนที่ต้องจัดการต่อ") ||
     headerHtml.includes("bg-module-production-solid") ||
@@ -2405,14 +2407,22 @@ check(
       "การ์ด “งานนี้พิมพ์อะไร” ต้องอยู่บนสุดคอลัมน์ซ้าย ใช้รูปย่อจากสูตรกลาง และห้ามมีปุ่มจัดการม็อกอัพ/ไฟล์",
     );
   }
-  /* ประวัติลูกค้าเป็นบรรทัดเดียวใต้ชื่อ (เบสเคาะแบบ B) — ห้ามกลับไปเป็นสี่ช่องท้ายการ์ด
-     และ gate เงินต้องอยู่ครบ: ช่างเห็นบรรทัดนี้ไม่ได้เลย */
+  /* ประวัติลูกค้า = กล่องสีประจำหมวดสี่ช่อง (แบบ B "สีบอกหมวด" · เบสเคาะ 2026-08-31)
+     เดิมเป็นบรรทัดตัวหนังสือเทาใต้ชื่อ ซึ่งเบสทักเองว่าอ่านเป็น "text โง่ ๆ"
+     สองข้อที่ห้ามหลุดไม่ว่าหน้าตาจะเปลี่ยนอีกกี่รอบ:
+       ① gate เงินครอบทั้งก้อน — ช่างต้องไม่เห็นแม้แต่หัวข้อ
+       ② กล่องต้องใช้สีจาก VISUAL_TONE_CLASSES ไม่ใช่คลาสสีที่เขียนเอง */
   if (
-    !overviewSource.includes("customerHistoryLine") ||
-    !overviewSource.includes("showMoney && hasCustomerHistory && customerHistoryLine") ||
+    !overviewSource.includes("customerHistoryCells") ||
+    !overviewSource.includes(
+      "showMoney && hasCustomerHistory && customerHistoryCells.length > 0",
+    ) ||
+    !overviewSource.includes("VISUAL_TONE_CLASSES[cell.tone].soft") ||
     overviewSource.includes('<Group label="ประวัติลูกค้า"')
   ) {
-    problems.push("ประวัติลูกค้าต้องเป็นบรรทัดเดียวใต้ชื่อ และยัง gate ด้วย showMoney");
+    problems.push(
+      "ประวัติลูกค้าต้องเป็นกล่องสีประจำหมวด และยัง gate ด้วย showMoney ทั้งก้อน",
+    );
   }
   if (
     !overviewSource.includes("if (!filled && !emptyText) return null") ||

@@ -1,6 +1,16 @@
 import Link from "next/link";
-import { User, Info, Truck, Palette, ArrowRight } from "lucide-react";
-import { Section } from "@/components/ui/section";
+import {
+  User,
+  Info,
+  Truck,
+  Palette,
+  ArrowRight,
+  Wallet,
+  Repeat2,
+  CalendarClock,
+  CreditCard,
+} from "lucide-react";
+import { Section, SectionTitle } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ChatLink } from "@/components/customers/chat-link";
@@ -13,7 +23,8 @@ import {
   PRIORITY_LABELS,
 } from "@/lib/order-status";
 import { PAYMENT_TERMS_LABELS } from "@/lib/payment-terms";
-import { DISPLAY_AMOUNT, FOCUS_BUTTON } from "@/components/ui/tokens";
+import { DISPLAY_AMOUNT, FOCUS_BUTTON, RADIUS } from "@/components/ui/tokens";
+import { VISUAL_TONE_CLASSES, type VisualTone } from "@/lib/visual-tone";
 
 /* ============================================================
    แท็บ "ภาพรวม" — ที่รวมของที่ "ไม่ใช่รายการสินค้า" ทั้งหมด
@@ -44,6 +55,15 @@ import { DISPLAY_AMOUNT, FOCUS_BUTTON } from "@/components/ui/tokens";
    → ข้อมูลเงินต้อง gate ด้วย {showMoney && ...} ระดับ JSX เท่านั้น
    ห้ามซ่อนด้วยคลาส และห้าม fallback เป็น ฿0/— เพราะช่างจะเปิด DOM เห็นตัวเลขจริง
    ============================================================ */
+
+/** ช่องหนึ่งช่องของ "ประวัติลูกค้า" ในการ์ดลูกค้า (แบบ B · สีบอกหมวด) */
+type CustomerHistoryCell = {
+  key: string;
+  label: string;
+  value: string;
+  icon: React.ComponentType<{ className?: string }>;
+  tone: VisualTone;
+};
 
 interface OverviewCustomer {
   id: string;
@@ -142,21 +162,6 @@ interface OrderOverviewTabProps {
 // ============================================================
 // ชิ้นส่วนหน้าตา
 // ============================================================
-
-function SectionTitle({
-  icon: Icon,
-  children,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  children: React.ReactNode;
-}) {
-  return (
-    <span className="flex items-center gap-2">
-      <Icon className="h-3.5 w-3.5" />
-      {children}
-    </span>
-  );
-}
 
 /** กริดของช่องข้อมูลรอง — การ์ดล่างค่อยแยก 2 คอลัมน์เมื่อพื้นที่พอ */
 function FieldGrid({ children }: { children: React.ReactNode }) {
@@ -387,24 +392,55 @@ export function OrderOverviewTab({
       customer.totalOrders > 0 ||
       customer.lastOrderAt),
   );
-  /* ประวัติลูกค้าเป็นบรรทัดเดียว — เรียงจาก "ตัวที่ใช้ตัดสินใจบ่อยสุด" ไปหาน้อยสุด
-     ช่องไหนไม่มีค่าก็หายไปจากบรรทัด ไม่เว้นช่องว่างหรือขีดคั่นลอย */
-  const customerHistoryLine = customer
-    ? [
+  /* ประวัติลูกค้า = สี่ค่าที่คนถามจริงตอนเปิดใบงาน เรียงจากตัวที่ใช้ตัดสินใจบ่อยสุด
+     แต่ละช่องได้ "สีประจำหมวด" ของมันเอง (เงิน = การเงิน · จำนวนครั้ง = แบรนด์ ฯลฯ)
+     — แบบ B "สีบอกหมวด" เบสเคาะ 2026-08-31 จากหน้าลอง /proto/look
+
+     ก่อนหน้านี้เป็นบรรทัดตัวหนังสือเทาใต้ชื่อ ซึ่งเบสทักเองว่า "ของที่มันพิเศษ
+     ดันเขียนแค่ text โง่ ๆ" — ค่าเท่าเดิมทุกตัว เปลี่ยนแค่ที่ยืนของมัน
+
+     ช่องไหนไม่มีค่าก็หายไปทั้งช่อง (กติกาเดิมของแท็บนี้: optional ว่างต้องหาย
+     ไม่ใช่โชว์ "—" ให้เต็มกริด) · gate เงินยังครอบทั้งก้อนเหมือนเดิม */
+  const customerHistoryCells: CustomerHistoryCell[] = customer
+    ? ([
         customer.totalSpent != null
-          ? `ซื้อสะสม ${formatCurrency(customer.totalSpent)}`
+          ? {
+              key: "spent",
+              label: "ซื้อสะสม",
+              value: formatCurrency(customer.totalSpent),
+              icon: Wallet,
+              tone: "finance",
+            }
           : null,
         customer.totalOrders > 0
-          ? `${customer.totalOrders.toLocaleString()} ครั้ง`
+          ? {
+              key: "orders",
+              label: "สั่งมาแล้ว",
+              value: `${customer.totalOrders.toLocaleString()} ครั้ง`,
+              icon: Repeat2,
+              tone: "brand",
+            }
           : null,
-        customer.lastOrderAt ? `ล่าสุด ${formatDate(customer.lastOrderAt)}` : null,
+        customer.lastOrderAt
+          ? {
+              key: "last",
+              label: "สั่งล่าสุด",
+              value: formatDate(customer.lastOrderAt),
+              icon: CalendarClock,
+              tone: "system",
+            }
+          : null,
         customer.creditLimit != null
-          ? `วงเงิน ${formatCurrency(customer.creditLimit)}`
+          ? {
+              key: "credit",
+              label: "วงเงินเครดิต",
+              value: formatCurrency(customer.creditLimit),
+              icon: CreditCard,
+              tone: "finance",
+            }
           : null,
-      ]
-        .filter(Boolean)
-        .join(" · ")
-    : "";
+      ].filter(Boolean) as CustomerHistoryCell[])
+    : [];
 
   const hasPricedWork = totalAmount !== 0 || totalQuantity > 0;
   const totalNeedsReview = totalQuantity > 0 && totalAmount === 0;
@@ -439,7 +475,7 @@ export function OrderOverviewTab({
           <Section
             data-order-overview-card="summary"
             compact
-            title={<SectionTitle icon={Info}>ข้อมูลออเดอร์</SectionTitle>}
+            title={<SectionTitle icon={Info} tone="brand">ข้อมูลออเดอร์</SectionTitle>}
             action={editButton("info", "แก้ไขข้อมูลออเดอร์")}
           >
             <div className="space-y-5">
@@ -601,7 +637,7 @@ export function OrderOverviewTab({
           <Section
             data-order-overview-card="shipping"
             compact
-            title={<SectionTitle icon={Truck}>การจัดส่ง</SectionTitle>}
+            title={<SectionTitle icon={Truck} tone="production">การจัดส่ง</SectionTitle>}
             action={editButton(
               "shipping",
               hasShipping ? "แก้ไขที่อยู่จัดส่ง" : "เพิ่มที่อยู่จัดส่ง",
@@ -676,7 +712,7 @@ export function OrderOverviewTab({
             <Section
               data-order-overview-card="brand"
               compact
-              title={<SectionTitle icon={Palette}>แบรนด์ลูกค้า</SectionTitle>}
+              title={<SectionTitle icon={Palette} tone="product">แบรนด์ลูกค้า</SectionTitle>}
             >
               <FieldGrid>
                 <Field label="ชื่อแบรนด์">{order.brandProfile.brandName}</Field>
@@ -769,7 +805,7 @@ export function OrderOverviewTab({
           <Section
             data-order-overview-card="customer"
             compact
-            title={<SectionTitle icon={User}>ลูกค้าและผู้ติดต่อ</SectionTitle>}
+            title={<SectionTitle icon={User} tone="brand">ลูกค้าและผู้ติดต่อ</SectionTitle>}
             action={
               customer ? (
                 <Button asChild variant="ghost" size="sm">
@@ -790,22 +826,39 @@ export function OrderOverviewTab({
                         {customer.company}
                       </p>
                     )}
-                    {/* ประวัติลูกค้าเคยกินสี่ช่องท้ายการ์ด ทั้งที่ไม่มีใครเอาไปตัดสินอะไร
-                        ต่อจากนี้เป็นบรรทัดเดียวใต้ชื่อ — ค่าครบเท่าเดิมทุกตัว ไม่ได้ตัดทิ้ง
-                        (เบสเคาะแบบ B 2026-08-31) · gate เงินเหมือนเดิมทุกประการ:
-                        showMoney && hasCustomerHistory ทั้งบรรทัด ช่างจึงไม่เห็นอะไรเลย */}
-                    {showMoney && hasCustomerHistory && customerHistoryLine && (
-                      <p className="mt-1 text-xs text-muted [overflow-wrap:anywhere]">
-                        {customerHistoryLine}
-                      </p>
-                    )}
                   </div>
-                  <Badge variant="secondary" size="sm">
+                  <Badge variant="accent" size="sm">
                     {customer.customerType === "CORPORATE"
                       ? "นิติบุคคล"
                       : "บุคคลธรรมดา"}
                   </Badge>
                 </div>
+
+                {/* gate เงินเหมือนเดิมทุกประการ: showMoney && hasCustomerHistory ครอบ
+                    ทั้งก้อน ช่างจึงไม่เห็นอะไรเลยแม้แต่หัวข้อ (TabsContent forceMount
+                    → ต้อง gate ที่ JSX ห้ามซ่อนด้วยคลาส) */}
+                {showMoney && hasCustomerHistory && customerHistoryCells.length > 0 && (
+                  <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    {customerHistoryCells.map((cell) => (
+                      <div
+                        key={cell.key}
+                        className={cn(
+                          "px-3 py-3",
+                          RADIUS.inner,
+                          VISUAL_TONE_CLASSES[cell.tone].soft,
+                        )}
+                      >
+                        <dt className="flex items-center gap-1.5 text-xs">
+                          <cell.icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                          {cell.label}
+                        </dt>
+                        <dd className="mt-1 text-lg font-semibold tabular-nums [overflow-wrap:anywhere]">
+                          {cell.value}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                )}
 
                 <FieldGrid>
                   <Field
@@ -884,12 +937,17 @@ export function OrderOverviewTab({
                     {customer.tags.length > 0 && (
                       <Field label="ป้ายลูกค้า" wide>
                         <span className="flex flex-wrap gap-1.5">
+                          {/* ป้ายลูกค้าเป็นคำที่ทีมตั้งเอง ไม่มีความหมายเชิงสถานะ →
+                              ได้โทน "ระบบ" (เทาอมฟ้า) ไม่ใช่สีเตือน (แบบ B · 2026-08-31) */}
                           {customer.tags.map((tag) => (
                             <Badge
                               key={tag}
                               variant="secondary"
                               size="sm"
-                              className="max-w-full whitespace-normal [overflow-wrap:anywhere]"
+                              className={cn(
+                                "max-w-full whitespace-normal [overflow-wrap:anywhere]",
+                                VISUAL_TONE_CLASSES.system.soft,
+                              )}
                             >
                               {tag}
                             </Badge>

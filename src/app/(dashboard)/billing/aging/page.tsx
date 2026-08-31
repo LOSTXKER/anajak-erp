@@ -194,24 +194,24 @@ function AgingPageContent() {
       }
     >
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard
+        <StatCard moduleTone="finance"
           title="ลูกหนี้รวม"
           value={formatCurrency(data?.grandTotal ?? 0)}
           icon={DollarSign}
         />
         {/* เลขเสี่ยงของหน้านี้ — แดงเมื่อมีจริง ให้ตรงกับเซลล์แดงในตารางข้างล่าง (UX4.3) */}
-        <StatCard
+        <StatCard moduleTone="finance"
           title="เลยกำหนดแล้ว"
           value={formatCurrency(overdueTotal)}
           icon={AlertCircle}
           tone={overdueTotal > 0 ? "danger" : "muted"}
         />
-        <StatCard
+        <StatCard moduleTone="finance"
           title="ยังไม่ครบกำหนด"
           value={formatCurrency(data?.totals.current ?? 0)}
           icon={Hourglass}
         />
-        <StatCard title="ลูกหนี้" value={data?.rows.length ?? 0} icon={Users} caption="ราย" />
+        <StatCard moduleTone="finance" title="ลูกหนี้" value={data?.rows.length ?? 0} icon={Users} caption="ราย" />
       </div>
 
       {/* แถบเครื่องมือของกลาง — จุดตัดวัดจากความกว้างพื้นที่เนื้อหาจริง (@container)

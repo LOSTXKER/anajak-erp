@@ -3,7 +3,8 @@ import type { LucideIcon } from "lucide-react";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { FOCUS_BUTTON } from "./tokens";
+import { FOCUS_BUTTON, RADIUS } from "./tokens";
+import { VISUAL_TONE_CLASSES, type VisualTone } from "@/lib/visual-tone";
 
 interface StatCardProps {
   title: string;
@@ -30,6 +31,15 @@ interface StatCardProps {
   className?: string;
   /** override สไตล์ตัวเลข เช่น "text-xl" สำหรับแถวสถิติรองที่ไม่ควรแย่งสายตา */
   valueClassName?: string;
+  /**
+   * สีประจำหมวดของตัวเลขนี้ (แบบ B "สีบอกหมวด" · เบสเคาะ 2026-08-31)
+   * — ไอคอนได้กล่องสี และตัวเลขได้สีหมวด
+   *
+   * ⚠️ `tone` (danger/warning/success) ชนะเสมอ: สีที่แปลว่า "ต้องรีบ" ห้ามถูก
+   * สีประจำหมวดกลบ ไม่งั้นการ์ดค้างชำระจะดูเท่ากับการ์ดทั่วไป
+   * ไม่ส่งมา = หน้าตาเดิมทุกประการ
+   */
+  moduleTone?: VisualTone;
 }
 
 const TONE_CLASSES: Record<NonNullable<StatCardProps["tone"]>, string> = {
@@ -51,7 +61,10 @@ export function StatCard({
   className,
   valueClassName,
   changeSuffix,
+  moduleTone,
   }: StatCardProps) {
+  /* หมวดระบายสีได้เฉพาะการ์ดที่ไม่มีความหมายเชิงสถานะอยู่แล้ว */
+  const toned = moduleTone && tone === "default" ? moduleTone : undefined;
   const card = (
     <div
       className={cn(
@@ -64,17 +77,29 @@ export function StatCard({
         <p className="text-xs font-medium text-muted">
           {title}
         </p>
-        {Icon && (
-          <Icon
-            className="h-4 w-4 text-muted"
-            strokeWidth={1.75}
-          />
-        )}
+        {Icon &&
+          (toned ? (
+            <span
+              className={cn(
+                "flex h-8 w-8 shrink-0 items-center justify-center",
+                RADIUS.item,
+                VISUAL_TONE_CLASSES[toned].soft,
+              )}
+              aria-hidden="true"
+            >
+              <Icon className="h-4 w-4" strokeWidth={1.75} />
+            </span>
+          ) : (
+            <Icon
+              className="h-4 w-4 text-muted"
+              strokeWidth={1.75}
+            />
+          ))}
       </div>
       <p
         className={cn(
           "mt-2.5 text-3xl font-semibold tabular-nums",
-          TONE_CLASSES[tone],
+          toned ? VISUAL_TONE_CLASSES[toned].text : TONE_CLASSES[tone],
           valueClassName
         )}
       >

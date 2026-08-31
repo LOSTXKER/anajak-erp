@@ -131,7 +131,7 @@ function BillingPageContent() {
       ) : (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {/* สองใบแรกคือเลขเสี่ยง (UX4.3) — เด่น + กดไปดูรายการได้ · ศูนย์จริงลดเป็นสีจาง */}
-          <StatCard
+          <StatCard moduleTone="finance"
             title="ค้างชำระ"
             value={formatCurrency(stats.data?.totalUnpaid ?? 0)}
             icon={DollarSign}
@@ -139,7 +139,7 @@ function BillingPageContent() {
             href="/billing/aging"
             caption="ดูรายงานลูกหนี้"
           />
-          <StatCard
+          <StatCard moduleTone="finance"
             title="เกินกำหนด"
             value={stats.data?.overdueCount ?? 0}
             icon={AlertCircle}
@@ -147,12 +147,12 @@ function BillingPageContent() {
             tone={(stats.data?.overdueCount ?? 0) > 0 ? "danger" : "muted"}
             href="/billing?status=OVERDUE"
           />
-          <StatCard
+          <StatCard moduleTone="finance"
             title="รายได้เดือนนี้"
             value={formatCurrency(stats.data?.revenueThisMonth ?? 0)}
             icon={TrendingUp}
           />
-          <StatCard
+          <StatCard moduleTone="finance"
             title="รับชำระเดือนนี้"
             value={formatCurrency(stats.data?.paidThisMonth ?? 0)}
             icon={CreditCard}

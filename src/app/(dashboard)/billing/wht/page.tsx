@@ -225,21 +225,21 @@ function WhtRegisterPageContent() {
         />
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <StatCard
+          <StatCard moduleTone="finance"
             title="รอใบจากลูกค้า"
             value={stats.data?.pendingCount ?? 0}
             icon={Hourglass}
             caption="รายการ"
           />
           {/* ยอดรอใบ — เด่น amber เมื่อ >0 (UX4.3: StatCard รับ tone แล้ว เลิกการ์ดทำมือ) */}
-          <StatCard
+          <StatCard moduleTone="finance"
             title="ยอดหักที่ยังไม่มีใบ"
             value={formatCurrency(pendingAmount)}
             icon={AlertTriangle}
             tone={pendingAmount > 0 ? "warning" : "muted"}
             caption="ไม่ได้ใบ = เครดิตภาษีส่วนนี้หายฟรี"
           />
-          <StatCard
+          <StatCard moduleTone="finance"
             title="ได้ใบแล้วรวม"
             value={formatCurrency(stats.data?.receivedAmount ?? 0)}
             icon={CheckCircle2}

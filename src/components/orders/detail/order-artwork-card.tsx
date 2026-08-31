@@ -4,7 +4,7 @@ import { ArrowRight, Lock, Paperclip, Shirt } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Section } from "@/components/ui/section";
+import { Section, SectionTitle } from "@/components/ui/section";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MockupThumbRow } from "@/components/mockup/mockup-thumb-row";
 import { trpc } from "@/lib/trpc";
@@ -98,10 +98,9 @@ export function OrderArtworkCardView({
       data-order-overview-card="artwork"
       compact
       title={
-        <span className="flex items-center gap-2">
-          <Shirt className="h-3.5 w-3.5" />
+        <SectionTitle icon={Shirt} tone="production">
           งานนี้พิมพ์อะไร
-        </span>
+        </SectionTitle>
       }
       action={
         onOpenFiles ? (
