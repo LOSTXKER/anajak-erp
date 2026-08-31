@@ -124,28 +124,40 @@ describe("Anajak selected-state contract", () => {
     expect(userMenuSource).not.toContain("hover:scale");
   });
 
-  it("Production ใช้การ์ดตัวกรองเรียบและ selected คงสีประจำสถานะ", () => {
-    expect(productionWorklistSource).toContain("card-surface card-surface-hover");
-    expect(productionWorklistSource).not.toContain("INTERACTIVE_SELECTED");
+  it("Production ใช้แถบชิปตัวกรองแถวเดียว และตารางบอกสถานะ ไม่ใช่งานถัดไป", () => {
+    /* เบสเคาะแบบ C จากหน้าลอง /proto/production-list (2026-08-31)
+       ① การ์ดตัวกรอง 5 ใบ → แถบชิปแถวเดียวใน toolbar (FilterChip ของกลาง)
+       ② คอลัมน์ "ต้องทำต่อ" ถูกตัด — คำสั่งคำต่อคำ: "ตารางไม่ต้องบอกรายละเอียด
+          ต้องทำต่อ คือทำให้รู้ว่าตอนนี้สถานะอะไรก็พอ"
+       ③ ตารางแบ่งหัวข้อตามกำหนดส่ง แถวจึงไม่มีป้ายเลยกำหนด/ส่งวันนี้ซ้ำอีก
+       ล็อกไว้เพื่อไม่ให้ session ถัดไปเผลอคืนการ์ดหรือคืนคอลัมน์นั้นกลับมา */
+    expect(productionWorklistSource).toContain("<FilterChip");
     expect(productionWorklistSource).toContain("WORKLIST_LENS_PRESENTATION");
     expect(productionWorklistSource).toContain("text-module-production-text");
     expect(productionWorklistSource).toContain("PackageCheck");
-    /* ตัวการ์ดต้องยัง "เรียบ" — พื้นขาว + เส้นขอบตอนถูกเลือก ห้ามเป็นการ์ดพื้นสี
-       (นี่คือใจความเดิมของข้อนี้ ล็อกด้วยสูตรจริงแทนการห้ามคำว่า bg-module ทั้งไฟล์)
-       ส่วนไอคอนอยู่ในกล่องสีอ่อนได้ ตั้งแต่แบบ B "สีบอกหมวด" เบสเคาะ 2026-08-31
-       เพื่อให้แถบตัวเลขหน้านี้พูดภาษาเดียวกับหน้าแรกและหน้าการเงิน */
-    expect(productionWorklistSource).toContain(
-      'isOn && cn("bg-surface", presentation.selectedBorder)',
-    );
     expect(productionWorklistSource).toContain("iconChip");
-    expect(productionWorklistSource).toContain("selectedBorder");
-    expect(productionWorklistSource).toContain("border-red-600 dark:border-red-400");
-    expect(productionWorklistSource).toContain("border-module-production-solid");
-    expect(productionWorklistSource).toContain("border-amber-600 dark:border-amber-400");
-    expect(productionWorklistSource).toContain("border-green-600 dark:border-green-400");
-    expect(productionWorklistSource).toContain('isOn ? presentation.iconColor : "text-muted"');
+    expect(productionWorklistSource).toContain("iconColor");
+    // ห้ามกลับไปเป็นการ์ดตัวเลขเต็มแถว
+    expect(productionWorklistSource).not.toContain("selectedBorder");
+    expect(productionWorklistSource).not.toContain("min-h-20");
+    expect(productionWorklistSource).not.toContain('isOn && cn("bg-surface"');
+    // ตารางบอกสถานะ ไม่ใช่งานถัดไป
+    expect(productionWorklistSource).toContain("productionWorklistStatus");
+    expect(productionWorklistSource).toContain("<StatusLabel");
+    expect(productionWorklistSource).not.toContain("productionWorklistAction");
+    // เช็คที่โค้ด ไม่ใช่ที่คอมเมนต์ — หัวไฟล์จงใจอธิบายว่าตัดอะไรออกไป
+    expect(productionWorklistSource).not.toContain("action.owner");
+    expect(productionWorklistSource).not.toContain("action.reason");
+    // หัวข้อกลุ่มตามกำหนดส่งเป็นตัวบอกความเร่ง จึงไม่มีป้ายในแถว
+    expect(productionWorklistSource).toContain("groupProductionWorklist");
+    expect(productionWorklistSource).not.toContain("<DeadlineBadge");
+    // ของเดิมที่ยังต้องจริงอยู่
+    expect(productionWorklistSource).toContain("card-surface card-surface-hover");
+    expect(productionWorklistSource).not.toContain("INTERACTIVE_SELECTED");
     expect(productionWorklistSource).not.toContain("bg-blue-600 text-white");
-    expect(productionWorklistSource).toContain("aria-pressed={isOn}");
     expect(productionWorklistSource).not.toContain("<FlowFilterBar");
+    // ชิปต้องมีชื่อเต็มให้เสียงอ่าน เพราะข้อความในชิปเหลือแค่ "ชื่อมุม + ตัวเลข"
+    expect(productionWorklistSource).toContain("aria-label={actionLabel}");
+    expect(filterChipSource).toContain("aria-pressed={selected}");
   });
 });

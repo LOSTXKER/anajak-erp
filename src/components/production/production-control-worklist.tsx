@@ -15,16 +15,17 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
+import { FilterChip } from "@/components/ui/filter-chip";
 import { ResponsiveList } from "@/components/ui/responsive-list";
 import { SearchInput } from "@/components/ui/search-input";
 import { Select } from "@/components/ui/select";
+import { StatusLabel } from "@/components/ui/status-label";
 import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
-import { FOCUS_BUTTON, RADIUS } from "@/components/ui/tokens";
+import { FOCUS_BUTTON } from "@/components/ui/tokens";
 import { MockupThumbnail } from "@/components/mockup/mockup-thumbnail";
 import { orderMockupCover } from "@/lib/mockup";
 import { cn, formatDateShort } from "@/lib/utils";
 import {
-  type BoardException,
   type BoardJob,
   type BoardOrderLike,
   type BoardRailPoint,
@@ -35,54 +36,63 @@ import {
   PRODUCTION_WORKLIST_LENSES,
   PRODUCTION_WORKLIST_SORT_COLUMNS,
   PRODUCTION_WORKLIST_SORT_OPTIONS,
-  productionWorklistAction,
+  groupProductionWorklist,
   productionWorklistProgress,
   productionWorklistCounts,
   productionWorklistHref,
+  productionWorklistStatus,
   resolveProductionWorklistSort,
   type ProductionWorklistLens,
   type ProductionWorklistSort,
   type ProductionWorklistSortColumn,
 } from "@/lib/production-worklist";
 
-/* ไอคอนของแต่ละมุมมองเป็น "กล่องสีอ่อน" ตั้งแต่ 2026-08-31 (แบบ B · สีบอกหมวด)
-   เพื่อให้แถบตัวเลขหน้านี้พูดภาษาเดียวกับแถบตัวเลขหน้าแรกและการ์ดตัวเลขหน้าการเงิน
-   สีเดิมไม่เปลี่ยนสักเฉด เปลี่ยนแค่จาก "ไอคอนสีลอย" เป็น "ไอคอนในกล่องสีอ่อน" */
+/* ============================================================
+   รายการควบคุมการผลิต — แบบ C "แถบเดียว" (เบสเคาะจากหน้าลอง
+   /proto/production-list เมื่อ 2026-08-31)
+
+   สองอย่างที่เปลี่ยนจากของเดิม และเหตุผล:
+   ① ตัวกรอง 5 มุมเคยเป็นการ์ดตัวเลขสูง 87px วางเต็มแถวก่อนถึงงานใบแรก
+      → ยุบเป็นแถบชิปแถวเดียวในแถบเครื่องมือ (ใช้ FilterChip ตัวจริงของระบบ)
+      พื้นที่ที่ได้คืนไปให้ตัวงาน ซึ่งเป็นเนื้อหาจริงของหน้านี้
+   ② คอลัมน์ "ต้องทำต่อ" (เหตุผล + เจ้าของถัดไป + ป้ายสายงาน) ถูกตัดออก
+      เบสสั่งคำต่อคำ: "ตารางไม่ต้องบอกรายละเอียด ต้องทำต่อ คือทำให้รู้ว่าตอนนี้
+      สถานะอะไรก็พอ" → เหลือคอลัมน์ "สถานะ" ที่ใช้ป้ายกลาง StatusLabel
+   ③ ตารางแบ่งหัวข้อตามกำหนดส่ง เพราะคำถามจริงของหน้านี้คือ "อะไรจะไม่ทัน" —
+      หัวข้อกลุ่มบอกความเร่งแล้ว ในแถวจึงเหลือแค่วันที่ ไม่มีป้ายซ้ำ
+
+   หน้านี้ยังเป็น read/triage layer เท่านั้น: การเปลี่ยนสถานะทำในใบผลิต/ออเดอร์
+   ผ่าน mutation และ permission เดิมทั้งหมด
+   ============================================================ */
+
+/* ไอคอนของแต่ละมุมมองยังใช้สีประจำหมวดชุดเดิม (แบบ B · สีบอกหมวด 2026-08-31)
+   เปลี่ยนแค่ที่วาง: จากกล่องสีในการ์ดใหญ่ มาเป็นไอคอนในชิปแถบเดียว
+   ตัวเลขเกาะอยู่ในชิปสีอ่อนเฉดเดียวกัน จึงยังอ่านออกว่าเป็นหมวดไหน */
 const WORKLIST_LENS_PRESENTATION = {
   all: {
     icon: ListFilter,
     iconColor: "text-module-brand-text",
     iconChip: "bg-module-brand-surface text-module-brand-text",
-    count: "text-module-brand-text",
-    selectedBorder: "border-blue-600 dark:border-blue-400",
   },
   attention: {
     icon: AlertTriangle,
     iconColor: "text-red-600 dark:text-red-300",
     iconChip: "bg-red-50 text-red-700 dark:bg-red-950/50 dark:text-red-300",
-    count: "text-red-600 dark:text-red-300",
-    selectedBorder: "border-red-600 dark:border-red-400",
   },
   production: {
     icon: Factory,
     iconColor: "text-module-production-text",
     iconChip: "bg-module-production-surface text-module-production-text",
-    count: "text-module-production-text",
-    selectedBorder: "border-module-production-solid",
   },
   qc: {
     icon: ClipboardCheck,
     iconColor: "text-amber-700 dark:text-amber-300",
     iconChip: "bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300",
-    count: "text-amber-700 dark:text-amber-300",
-    selectedBorder: "border-amber-600 dark:border-amber-400",
   },
   packing: {
     icon: PackageCheck,
     iconColor: "text-green-700 dark:text-green-300",
     iconChip: "bg-green-50 text-green-700 dark:bg-green-950/50 dark:text-green-300",
-    count: "text-green-700 dark:text-green-300",
-    selectedBorder: "border-green-600 dark:border-green-400",
   },
 } satisfies Record<
   ProductionWorklistLens,
@@ -90,8 +100,6 @@ const WORKLIST_LENS_PRESENTATION = {
     icon: LucideIcon;
     iconColor: string;
     iconChip: string;
-    count: string;
-    selectedBorder: string;
   }
 >;
 
@@ -103,23 +111,6 @@ function rememberWorklistFocus(orderId: string) {
   } catch {
     // sessionStorage อาจถูกปิดโดย browser policy — การนำทางยังทำงานตามปกติ
   }
-}
-
-function unique(values: readonly string[]) {
-  return [...new Set(values.filter(Boolean))];
-}
-
-function DeadlineBadge<S extends BoardStepLike, O extends BoardOrderLike<S>>({
-  job,
-}: {
-  job: BoardJob<O, S>;
-}) {
-  if (job.overdue) return <Badge variant="destructive">เลยกำหนด</Badge>;
-  if (job.bucket === "today") return <Badge variant="warning">ส่งวันนี้</Badge>;
-  if (job.bucket === "tomorrow" || job.dueSoon) {
-    return <Badge variant="warning">ใกล้กำหนด</Badge>;
-  }
-  return null;
 }
 
 function WorkProgress({
@@ -149,68 +140,94 @@ function WorkProgress({
   );
 }
 
-function currentWork<S extends BoardStepLike, O extends BoardOrderLike<S>>(
-  job: BoardJob<O, S>,
-) {
-  return unique(job.spots.map((spot) => spot.stationLabel));
-}
-
-function WorkBadges<S extends BoardStepLike, O extends BoardOrderLike<S>>({
+/**
+ * สถานะของแถว — ชื่อสถานะจาก INTERNAL_STATUS_LABELS + จุดสีบอกสภาพงาน
+ * บรรทัดรองบอกสายงานที่ยังค้าง (งานผสมมีได้หลายสาย) และซ่อนเองถ้าซ้ำกับบรรทัดบน
+ */
+function WorkStatus<S extends BoardStepLike, O extends BoardOrderLike<S>>({
   job,
 }: {
   job: BoardJob<O, S>;
 }) {
-  const stages = currentWork(job);
+  const status = productionWorklistStatus(job);
   return (
-    <div className="flex min-w-0 flex-wrap gap-1.5">
-      {stages.slice(0, 2).map((stage) => (
-        <Badge key={stage} variant="default" size="sm">
-          {stage}
-        </Badge>
-      ))}
-      {stages.length > 2 ? <Badge size="sm">+{stages.length - 2}</Badge> : null}
-    </div>
+    <StatusLabel
+      label={status.label}
+      tone={status.tone}
+      sub={status.stations.length > 0 ? status.stations.join(" · ") : undefined}
+    />
   );
 }
 
-function WorkAction<S extends BoardStepLike, O extends BoardOrderLike<S>>({
+function OrderIdentity<S extends BoardStepLike, O extends BoardOrderLike<S>>({
   job,
-  exception,
+  href,
+  size = "sm",
+  /** ปิดเมื่อการ์ดทั้งใบเป็นลิงก์อยู่แล้ว — ลิงก์ซ้อนลิงก์ทำให้เบราว์เซอร์ตัด DOM */
+  asLink = true,
 }: {
   job: BoardJob<O, S>;
-  exception?: BoardException;
+  href: string;
+  size?: "sm" | "md";
+  asLink?: boolean;
 }) {
-  const action = productionWorklistAction(job, exception);
-  const tone = action.tone === "red"
-    ? "text-red-700 dark:text-red-300"
-    : action.tone === "amber"
-      ? "text-amber-700 dark:text-amber-300"
-      : "text-strong";
+  const body = (
+    <>
+      {/* รูปม็อกอัพนำหน้า — หัวหน้าไล่คิวจำงานจากภาพได้เร็วกว่าอ่านเลขออเดอร์ */}
+      <MockupThumbnail
+        cover={orderMockupCover(job.order)}
+        alt={`ม็อกอัพของ ${job.order.orderNumber}`}
+        size={size}
+      />
+      <span className="flex min-w-0 flex-col justify-center">
+        <span className="flex flex-wrap items-center gap-1.5 font-semibold tabular-nums text-strong">
+          {job.order.orderNumber}
+          {job.order.priority === "URGENT" ? (
+            <Badge variant="destructive" size="sm">ด่วน</Badge>
+          ) : null}
+        </span>
+        <span className="max-w-48 truncate text-xs text-muted">
+          {job.order.customerName || "ไม่ระบุลูกค้า"}
+        </span>
+      </span>
+    </>
+  );
+
+  if (!asLink) {
+    return <span className="flex min-w-0 items-center gap-3">{body}</span>;
+  }
 
   return (
-    <div className="min-w-0">
-      <p className={cn("flex min-w-0 items-center gap-1.5 text-sm font-medium", tone)}>
-        {action.attention ? (
-          <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-        ) : null}
-        <span className="line-clamp-2">{action.reason}</span>
-      </p>
-      <p className="mt-0.5 truncate text-xs text-muted">
-        เจ้าของถัดไป: <span className="text-secondary">{action.owner}</span>
-      </p>
-    </div>
+    <Link
+      data-production-worklist-order={job.order.id}
+      href={href}
+      onClick={() => rememberWorklistFocus(job.order.id)}
+      className={cn(
+        FOCUS_BUTTON,
+        "inline-flex min-h-11 min-w-0 items-center gap-3 rounded-lg",
+      )}
+    >
+      {body}
+    </Link>
+  );
+}
+
+function GroupHeading({ label, count }: { label: string; count: number }) {
+  return (
+    <>
+      <span className="font-semibold text-secondary">{label}</span>
+      <span className="ml-2 font-normal tabular-nums text-muted">{count} ใบ</span>
+    </>
   );
 }
 
 function DesktopRows<S extends BoardStepLike, O extends BoardOrderLike<S>>({
   jobs,
-  exceptionByOrderId,
   canCreateProduction,
   sort,
   onSelectSort,
 }: {
   jobs: readonly BoardJob<O, S>[];
-  exceptionByOrderId: Map<string, BoardException>;
   canCreateProduction: boolean;
   sort: ProductionWorklistSort;
   onSelectSort: (sort: ProductionWorklistSort) => void;
@@ -226,6 +243,7 @@ function DesktopRows<S extends BoardStepLike, O extends BoardOrderLike<S>>({
       onSort: (direction: "asc" | "desc") => onSelectSort(config[direction]),
     };
   };
+  const groups = groupProductionWorklist(jobs);
 
   return (
     <DataTable.Root bordered={false}>
@@ -234,13 +252,13 @@ function DesktopRows<S extends BoardStepLike, O extends BoardOrderLike<S>>({
           <DataTable.SortableTh {...sortColumn("orderNumber")}>
             ออเดอร์
           </DataTable.SortableTh>
-          <DataTable.Th>ต้องทำต่อ</DataTable.Th>
+          <DataTable.Th>สถานะ</DataTable.Th>
           <DataTable.SortableTh {...sortColumn("progress")}>
             ความคืบหน้า
           </DataTable.SortableTh>
           <DataTable.SortableTh
             {...sortColumn("totalQuantity")}
-            className="hidden xl:table-cell"
+            className="hidden lg:table-cell"
             align="right"
           >
             จำนวน
@@ -251,135 +269,106 @@ function DesktopRows<S extends BoardStepLike, O extends BoardOrderLike<S>>({
           <DataTable.Th className="w-12"><span className="sr-only">เปิด</span></DataTable.Th>
         </tr>
       </DataTable.Head>
-      <DataTable.Body>
-        {jobs.map((job) => {
-          const exception = exceptionByOrderId.get(job.order.id);
-          const href = productionWorklistHref(job, canCreateProduction);
-          return (
-            <DataTable.Row
-              key={job.key}
-              href={href}
-              onClick={() => rememberWorklistFocus(job.order.id)}
-              className="h-[82px]"
-            >
-              <DataTable.Td className="min-w-44">
-                <Link
-                  data-production-worklist-order={job.order.id}
-                  href={href}
-                  onClick={() => rememberWorklistFocus(job.order.id)}
-                  className={cn(
-                    FOCUS_BUTTON,
-                    "inline-flex min-h-11 min-w-0 items-center gap-3 rounded-lg",
-                  )}
-                >
-                  {/* รูปม็อกอัพนำหน้า — หัวหน้าไล่คิวจำงานจากภาพได้เร็วกว่าอ่านเลขออเดอร์ */}
-                  <MockupThumbnail
-                    cover={orderMockupCover(job.order)}
-                    alt={`ม็อกอัพของ ${job.order.orderNumber}`}
-                    size="sm"
-                  />
-                  <span className="flex min-w-0 flex-col justify-center">
-                    <span className="flex items-center gap-1.5 font-semibold tabular-nums text-strong">
-                      {job.order.orderNumber}
-                      {job.order.priority === "URGENT" ? (
-                        <Badge variant="destructive" size="sm">ด่วน</Badge>
-                      ) : null}
-                    </span>
-                    <span className="max-w-48 truncate text-xs text-muted">
-                      {job.order.customerName || "ไม่ระบุลูกค้า"}
-                    </span>
+      {groups.map((group) => (
+        <DataTable.Body key={group.key}>
+          {/* หัวข้อกลุ่มคือสิ่งที่บอกความเร่ง แถวข้างล่างจึงไม่ต้องมีป้ายซ้ำอีก */}
+          <tr className="border-t border-divider bg-surface-muted/70">
+            <th scope="colgroup" colSpan={6} className="px-6 py-1.5 text-left text-xs">
+              <GroupHeading label={group.label} count={group.jobs.length} />
+            </th>
+          </tr>
+          {group.jobs.map((job) => {
+            const href = productionWorklistHref(job, canCreateProduction);
+            return (
+              <DataTable.Row
+                key={job.key}
+                href={href}
+                onClick={() => rememberWorklistFocus(job.order.id)}
+                className="h-[70px]"
+              >
+                <DataTable.Td className="min-w-44">
+                  <OrderIdentity job={job} href={href} />
+                </DataTable.Td>
+                <DataTable.Td className="min-w-44">
+                  <WorkStatus job={job} />
+                </DataTable.Td>
+                <DataTable.Td className="w-32">
+                  <WorkProgress rail={job.rail} />
+                </DataTable.Td>
+                <DataTable.Td className="hidden tabular-nums lg:table-cell" align="right">
+                  {(job.order.totalQuantity ?? 0).toLocaleString("th-TH")}
+                </DataTable.Td>
+                <DataTable.Td className="min-w-24">
+                  <span className={cn("block tabular-nums", job.overdue && "font-medium text-red-700 dark:text-red-300")}>
+                    {job.order.deadline ? formatDateShort(job.order.deadline) : "ไม่กำหนด"}
                   </span>
-                </Link>
-              </DataTable.Td>
-              <DataTable.Td className="min-w-56">
-                <WorkAction job={job} exception={exception} />
-                <div className="mt-1.5"><WorkBadges job={job} /></div>
-              </DataTable.Td>
-              <DataTable.Td className="w-32">
-                <WorkProgress rail={job.rail} />
-              </DataTable.Td>
-              <DataTable.Td className="hidden tabular-nums xl:table-cell" align="right">
-                {(job.order.totalQuantity ?? 0).toLocaleString("th-TH")}
-              </DataTable.Td>
-              <DataTable.Td className="min-w-28">
-                <span className={cn("block tabular-nums", job.overdue && "font-medium text-red-700 dark:text-red-300")}>
-                  {job.order.deadline ? formatDateShort(job.order.deadline) : "ไม่กำหนด"}
-                </span>
-                <span className="mt-1 block"><DeadlineBadge job={job} /></span>
-              </DataTable.Td>
-              <DataTable.Td className="text-muted">
-                <ChevronRight className="h-4 w-4" aria-hidden="true" />
-              </DataTable.Td>
-            </DataTable.Row>
-          );
-        })}
-      </DataTable.Body>
+                </DataTable.Td>
+                <DataTable.Td className="text-muted">
+                  <ChevronRight className="h-4 w-4" aria-hidden="true" />
+                </DataTable.Td>
+              </DataTable.Row>
+            );
+          })}
+        </DataTable.Body>
+      ))}
     </DataTable.Root>
   );
 }
 
 function MobileRows<S extends BoardStepLike, O extends BoardOrderLike<S>>({
   jobs,
-  exceptionByOrderId,
   canCreateProduction,
 }: {
   jobs: readonly BoardJob<O, S>[];
-  exceptionByOrderId: Map<string, BoardException>;
   canCreateProduction: boolean;
 }) {
+  const groups = groupProductionWorklist(jobs);
+
   return (
-    <ul aria-label="รายการงานผลิต" className="space-y-2">
-      {jobs.map((job) => {
-        const href = productionWorklistHref(job, canCreateProduction);
-        const exception = exceptionByOrderId.get(job.order.id);
-        return (
-          <li key={job.key}>
-            <Link
-              data-production-worklist-order={job.order.id}
-              href={href}
-              onClick={() => rememberWorklistFocus(job.order.id)}
-              className={cn(
-                FOCUS_BUTTON,
-                "card-surface card-surface-hover block min-h-11 rounded-2xl p-4",
-              )}
-            >
-              <span className="flex items-start justify-between gap-3">
-                <span className="flex min-w-0 items-start gap-3">
-                  <MockupThumbnail
-                    cover={orderMockupCover(job.order)}
-                    alt={`ม็อกอัพของ ${job.order.orderNumber}`}
-                    size="md"
-                  />
-                  <span className="min-w-0">
-                    <span className="flex flex-wrap items-center gap-1.5 font-semibold tabular-nums text-strong">
-                      {job.order.orderNumber}
-                      <DeadlineBadge job={job} />
+    <div className="space-y-4">
+      {groups.map((group) => (
+        <section key={group.key}>
+          <p className="mb-1.5 px-1 text-xs">
+            <GroupHeading label={group.label} count={group.jobs.length} />
+          </p>
+          <ul aria-label={group.label} className="space-y-2">
+            {group.jobs.map((job) => {
+              const href = productionWorklistHref(job, canCreateProduction);
+              return (
+                <li key={job.key}>
+                  <Link
+                    data-production-worklist-order={job.order.id}
+                    href={href}
+                    onClick={() => rememberWorklistFocus(job.order.id)}
+                    className={cn(
+                      FOCUS_BUTTON,
+                      "card-surface card-surface-hover block min-h-11 rounded-2xl p-4",
+                    )}
+                  >
+                    <span className="flex items-start justify-between gap-3">
+                      <OrderIdentity job={job} href={href} size="md" asLink={false} />
+                      <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
                     </span>
-                    <span className="mt-0.5 block truncate text-sm text-secondary">
-                      {job.order.customerName || "ไม่ระบุลูกค้า"}
+                    <span className="mt-3 block"><WorkStatus job={job} /></span>
+                    <span className="mt-3 grid grid-cols-[1fr_auto] items-end gap-4">
+                      <WorkProgress rail={job.rail} />
+                      <span className="text-right text-xs text-muted">
+                        <span className="block tabular-nums">
+                          {job.order.deadline ? formatDateShort(job.order.deadline) : "ไม่กำหนดส่ง"}
+                        </span>
+                        <span className="block tabular-nums">
+                          {(job.order.totalQuantity ?? 0).toLocaleString("th-TH")} ตัว
+                        </span>
+                      </span>
                     </span>
-                  </span>
-                </span>
-                <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
-              </span>
-              <span className="mt-3 block"><WorkAction job={job} exception={exception} /></span>
-              <span className="mt-2 block"><WorkBadges job={job} /></span>
-              <span className="mt-3 grid grid-cols-[1fr_auto] items-end gap-4">
-                <WorkProgress rail={job.rail} />
-                <span className="text-right text-xs text-muted">
-                  <span className="block tabular-nums">
-                    {job.order.deadline ? formatDateShort(job.order.deadline) : "ไม่กำหนดส่ง"}
-                  </span>
-                  <span className="block tabular-nums">
-                    {(job.order.totalQuantity ?? 0).toLocaleString("th-TH")} ตัว
-                  </span>
-                </span>
-              </span>
-            </Link>
-          </li>
-        );
-      })}
-    </ul>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ))}
+    </div>
   );
 }
 
@@ -412,7 +401,6 @@ export function ProductionControlWorklist<
   freshness?: ReactNode;
 }) {
   const counts = productionWorklistCounts(board);
-  const exceptionByOrderId = new Map(board.exceptions.map((item) => [item.orderId, item]));
   const desktopSortValue = sort === "attention" || sort === "urgent"
     ? sort
     : "__column__";
@@ -447,87 +435,66 @@ export function ProductionControlWorklist<
 
   return (
     <div className="space-y-4" data-production-worklist>
-      <section
-        aria-label="กรองรายการงาน"
-        className="grid grid-cols-2 gap-2 md:grid-cols-5"
-      >
-        {PRODUCTION_WORKLIST_LENSES.map((item) => {
-          const isOn = lens === item.key;
-          const presentation = WORKLIST_LENS_PRESENTATION[item.key];
-          const Icon = presentation.icon;
-          const action = item.key === "all" && isOn
-            ? "กำลังแสดงทั้งหมด"
-            : isOn
-              ? "เลือกอยู่ · กดซ้ำเพื่อล้างตัวกรอง"
-              : "กดเพื่อกรอง";
-          const actionLabel = `${item.label} · ${counts[item.key]} งาน · ${action}`;
+      <div className="space-y-3 lg:space-y-0 lg:overflow-hidden lg:rounded-lg lg:border lg:border-border lg:bg-surface">
+        <Toolbar className="lg:border-b lg:border-divider lg:px-4 lg:py-3">
+          {freshness ? (
+            <div className="order-1 flex justify-end @2xl:order-4 @2xl:ml-auto">
+              {freshness}
+            </div>
+          ) : null}
+          {/* ตัวกรอง 5 มุมเป็นแถบเดียว — เลขเกาะในชิป ไม่ใช่การ์ดตัวเลขเต็มแถวอีกต่อไป */}
+          <div
+            role="group"
+            aria-label="กรองรายการงาน"
+            className="-mx-1 order-2 flex w-full items-center gap-4 overflow-x-auto border-b border-divider px-1 @2xl:order-1"
+          >
+            {PRODUCTION_WORKLIST_LENSES.map((item) => {
+              const isOn = lens === item.key;
+              const presentation = WORKLIST_LENS_PRESENTATION[item.key];
+              const Icon = presentation.icon;
+              const action = item.key === "all" && isOn
+                ? "กำลังแสดงทั้งหมด"
+                : isOn
+                  ? "เลือกอยู่ · กดซ้ำเพื่อล้างตัวกรอง"
+                  : "กดเพื่อกรอง";
+              const actionLabel = `${item.label} · ${counts[item.key]} งาน · ${action}`;
 
-          return (
-            <button
-              key={item.key}
-              type="button"
-              aria-label={actionLabel}
-              aria-pressed={isOn}
-              title={actionLabel}
-              onClick={() => onSelectLens(isOn ? "all" : item.key)}
-              className={cn(
-                FOCUS_BUTTON,
-                "card-surface card-surface-hover flex min-h-20 w-full flex-col justify-between rounded-2xl p-4 text-left",
-                item.key === "all" && "col-span-2 md:col-span-1",
-                isOn && cn("bg-surface", presentation.selectedBorder),
-              )}
-            >
-              <span className="flex w-full items-center justify-between gap-3">
-                <span className="min-w-0">
+              return (
+                <FilterChip
+                  key={item.key}
+                  selected={isOn}
+                  onClick={() => onSelectLens(isOn ? "all" : item.key)}
+                  aria-label={actionLabel}
+                  title={actionLabel}
+                  icon={
+                    <Icon
+                      className={cn("h-4 w-4", presentation.iconColor)}
+                      strokeWidth={1.8}
+                    />
+                  }
+                >
+                  <span className="whitespace-nowrap">{item.label}</span>
                   <span
                     className={cn(
-                      "block text-xs font-medium",
-                      isOn ? presentation.iconColor : "text-muted",
-                    )}
-                  >
-                    {item.label}
-                  </span>
-                  <span
-                    className={cn(
-                      "mt-1 block text-2xl font-semibold tabular-nums",
-                      presentation.count,
+                      "ml-1 rounded-full px-1.5 py-0.5 text-2xs font-semibold tabular-nums",
+                      presentation.iconChip,
                     )}
                   >
                     {counts[item.key]}
                   </span>
-                </span>
-                <span
-                  aria-hidden="true"
-                  className={cn(
-                    RADIUS.item,
-                    "flex h-9 w-9 shrink-0 items-center justify-center",
-                    presentation.iconChip,
-                  )}
-                >
-                  <Icon className="h-5 w-5" strokeWidth={1.8} />
-                </span>
-              </span>
-            </button>
-          );
-        })}
-      </section>
-
-      <div className="space-y-3 lg:space-y-0 lg:overflow-hidden lg:rounded-lg lg:border lg:border-border lg:bg-surface">
-        <Toolbar className="lg:border-b lg:border-divider lg:px-4 lg:py-3">
-          {freshness ? (
-            <div className="order-1 flex justify-end @2xl:order-3 @2xl:ml-auto">
-              {freshness}
-            </div>
-          ) : null}
+                </FilterChip>
+              );
+            })}
+          </div>
           <SearchInput
             ref={searchInputRef}
             defaultValue={searchDefault}
             onChange={(event) => onSearchChange(event.target.value)}
             placeholder="ค้นหาเลขออเดอร์ หรือลูกค้า"
             surface="raised"
-            containerClassName="order-2 w-full @2xl:order-1 @2xl:max-w-md"
+            containerClassName="order-3 w-full @2xl:order-2 @2xl:max-w-md"
           />
-          <ToolbarGroup className="order-3 w-full @2xl:order-2 @2xl:w-auto">
+          <ToolbarGroup className="order-4 w-full @2xl:order-3 @2xl:w-auto">
             {/* มือถือไม่มีหัวตาราง จึงต้องเข้าถึงทุกวิธีเรียงจาก Select */}
             <Select
               value={sort}
@@ -574,7 +541,6 @@ export function ProductionControlWorklist<
           renderDesktop={(items) => (
             <DesktopRows
               jobs={items}
-              exceptionByOrderId={exceptionByOrderId}
               canCreateProduction={canCreateProduction}
               sort={sort}
               onSelectSort={onSelectSort}
@@ -583,7 +549,6 @@ export function ProductionControlWorklist<
           renderMobile={(items) => (
             <MobileRows
               jobs={items}
-              exceptionByOrderId={exceptionByOrderId}
               canCreateProduction={canCreateProduction}
             />
           )}

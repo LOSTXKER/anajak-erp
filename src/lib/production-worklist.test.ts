@@ -2,10 +2,12 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_PRODUCTION_WORKLIST_SORT,
   filterProductionWorklist,
+  groupProductionWorklist,
   productionWorklistAction,
   productionWorklistProgress,
   productionWorklistCounts,
   productionWorklistHref,
+  productionWorklistStatus,
   resolveProductionWorklistSort,
   sortProductionWorklist,
 } from "./production-worklist";
@@ -29,6 +31,9 @@ function job({
   priority = "NORMAL",
   totalQuantity = 0,
   rail = [],
+  bucket = "none",
+  waitingOn = [],
+  stepStatus = null,
 }: {
   id: string;
   status: string;
@@ -39,6 +44,9 @@ function job({
   priority?: string;
   totalQuantity?: number;
   rail?: TestJob["rail"];
+  bucket?: TestJob["bucket"];
+  waitingOn?: string[];
+  stepStatus?: string | null;
 }): TestJob {
   const order: TestOrder = {
     id,
@@ -54,7 +62,7 @@ function job({
   return {
     key: id,
     order,
-    bucket: "none",
+    bucket,
     overdue,
     dueSoon: false,
     stationKeys: [stationKey],
@@ -65,11 +73,18 @@ function job({
         stationLabel: stationKey,
         kind: stationKey === "queue" ? "queue" : stationKey.startsWith("post:") ? "post" : "lane",
         productionId,
-        step: null,
+        step: stepStatus
+          ? {
+              id: `${id}-step`,
+              stepType: "DTF_PRINT",
+              status: stepStatus,
+              sortOrder: 1,
+            }
+          : null,
         doneSteps: 0,
         totalSteps: 0,
-        waitingOn: [],
-        ready: true,
+        waitingOn,
+        ready: waitingOn.length === 0,
       },
     ],
     rail,
@@ -336,5 +351,73 @@ describe("production worklist", () => {
 
     const legacyQc = job({ id: "legacy-qc", status: "QUALITY_CHECK", stationKey: "post:qc" });
     expect(productionWorklistHref(legacyQc, true)).toBe("/production");
+  });
+});
+
+describe("สถานะของแถว (แทนคอลัมน์ \u201cต้องทำต่อ\u201d ตั้งแต่ 2026-08-31)", () => {
+  it("ใช้ชื่อสถานะกลางของระบบ และบอกสายงานที่ยังค้างเป็นบรรทัดรอง", () => {
+    expect(
+      productionWorklistStatus(
+        job({ id: "a", status: "PRODUCING", stationKey: "DTF", productionId: "p-a" }),
+      ),
+    ).toEqual({ label: "กำลังผลิต", tone: "accent", stations: ["DTF"] });
+  });
+
+  it("ขั้นงานพังมาก่อนทุกอย่าง แล้วรองลงมาคือรอของ", () => {
+    const failed = job({
+      id: "failed",
+      status: "PRODUCING",
+      stationKey: "DTF",
+      productionId: "p-failed",
+      stepStatus: "FAILED",
+      waitingOn: ["รอเสื้อ"],
+    });
+    expect(productionWorklistStatus(failed).tone).toBe("danger");
+
+    const waiting = job({
+      id: "waiting",
+      status: "PRODUCING",
+      stationKey: "DTF",
+      productionId: "p-waiting",
+      waitingOn: ["รอเสื้อ — เตรียมเสื้อ/งานร้านนอกยังไม่จบ"],
+    });
+    expect(productionWorklistStatus(waiting).tone).toBe("warning");
+  });
+
+  it("แยกงานที่เดินอยู่ · พร้อมส่ง · ยังไม่เริ่ม ออกจากกันด้วยโทน", () => {
+    const toneOf = (status: string, stationKey: string) =>
+      productionWorklistStatus(job({ id: status, status, stationKey })).tone;
+    expect(toneOf("QUALITY_CHECK", "post:qc")).toBe("accent");
+    expect(toneOf("PACKING", "post:pack")).toBe("accent");
+    expect(toneOf("READY_TO_SHIP", "post:ship")).toBe("success");
+    expect(toneOf("PRODUCTION_QUEUE", "queue")).toBe("neutral");
+  });
+
+  it("เลยกำหนดไม่ทำให้โทนเปลี่ยน — เรื่องเวลาอยู่ที่คอลัมน์กำหนดส่ง", () => {
+    const late = job({
+      id: "late",
+      status: "READY_TO_SHIP",
+      stationKey: "post:ship",
+      overdue: true,
+    });
+    expect(productionWorklistStatus(late).tone).toBe("success");
+  });
+});
+
+describe("หัวข้อกลุ่มตามกำหนดส่ง", () => {
+  it("เรียงกลุ่มตามความเร่ง ตัดกลุ่มว่างทิ้ง และคงลำดับเดิมภายในกลุ่ม", () => {
+    const grouped = groupProductionWorklist([
+      job({ id: "w1", status: "PRODUCING", stationKey: "DTF", bucket: "week" }),
+      job({ id: "late", status: "PRODUCING", stationKey: "DTF", bucket: "late" }),
+      job({ id: "w2", status: "PRODUCING", stationKey: "DTF", bucket: "week" }),
+      job({ id: "none", status: "PRODUCING", stationKey: "DTF", bucket: "none" }),
+    ]);
+    expect(grouped.map((group) => group.key)).toEqual(["late", "week", "none"]);
+    expect(grouped[1]!.label).toBe("ภายในสัปดาห์นี้");
+    expect(grouped[1]!.jobs.map((item) => item.key)).toEqual(["w1", "w2"]);
+  });
+
+  it("รายการว่างคืนกลุ่มว่าง ไม่ใช่หัวข้อเปล่า", () => {
+    expect(groupProductionWorklist([])).toEqual([]);
   });
 });

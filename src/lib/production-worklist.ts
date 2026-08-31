@@ -1,4 +1,5 @@
 import type {
+  BoardBucketKey,
   BoardException,
   BoardJob,
   BoardOrderLike,
@@ -6,6 +7,7 @@ import type {
   BoardStepLike,
   ProductionBoard,
 } from "@/lib/production-board";
+import { INTERNAL_STATUS_LABELS } from "@/lib/order-status";
 import { sortBoardJobs } from "@/lib/production-board";
 import { currentProductionProblemReason } from "@/lib/production-problem";
 
@@ -135,6 +137,12 @@ function uniqueText(values: readonly (string | null | undefined)[]) {
 /**
  * คำตอบสั้นสำหรับหัวหน้า: แถวนี้ต้องทำอะไร และใครเป็นเจ้าของการส่งต่อถัดไป
  * เป็น presentation จาก board truth เท่านั้น ไม่สร้างสถานะหรืออนุมาน mutation ใหม่
+ *
+ * ⚠️ ตั้งแต่ 2026-08-31 **ไม่มีหน้าไหนเรียกใช้แล้ว** — เบสสั่งจากหน้าลอง
+ * /proto/production-list ว่า "ตารางไม่ต้องบอกรายละเอียดต้องทำต่อ คือทำให้รู้ว่า
+ * ตอนนี้สถานะอะไรก็พอ" ตารางจึงเปลี่ยนไปใช้ `productionWorklistStatus()` แทน
+ * เก็บฟังก์ชันนี้ไว้พร้อมเทสต์เพราะมันคือความรู้ว่า "ใครต้องรับไม้ต่อ" ซึ่งจอสถานี
+ * และหน้าปัญหาอาจต้องใช้ — ถ้าครบรอบแล้วยังไม่มีใครเรียก ให้ลบทั้งฟังก์ชันและเทสต์
  */
 export function productionWorklistAction<
   S extends BoardStepLike,
@@ -236,6 +244,90 @@ export function productionWorklistAction<
     attention,
     tone: "neutral",
   };
+}
+
+/* ============================================================
+   สถานะของแถว — "ตอนนี้งานใบนี้อยู่สถานะอะไร" (เบสเคาะ 2026-08-31)
+
+   ชื่อสถานะยกมาจาก INTERNAL_STATUS_LABELS ที่ทั้งระบบใช้ ไม่ตั้งคำใหม่
+   โทนบอก "สภาพงาน" ไม่ใช่ "ต้องทำอะไร" — จงใจแยกจาก productionWorklistAction:
+     danger  = มีขั้นงานพัง (FAILED)
+     warning = ลงมือไม่ได้เพราะรอของ/รอด่าน (spot.waitingOn)
+     success = พร้อมส่งมอบ
+     accent  = เดินอยู่ในสาย (ผลิต/QC/แพ็ค)
+     neutral = ยังไม่เริ่มเดิน (คิวรอเปิดใบผลิต)
+   "เลยกำหนด/ส่งวันนี้" ไม่รวมอยู่ในนี้ — มันเป็นเรื่องเวลา อยู่ที่คอลัมน์กำหนดส่ง
+   ============================================================ */
+
+export type ProductionWorklistStatusTone =
+  | "neutral"
+  | "accent"
+  | "success"
+  | "warning"
+  | "danger";
+
+export type ProductionWorklistStatus = {
+  label: string;
+  tone: ProductionWorklistStatusTone;
+  /** สายงานที่ยังค้างอยู่จริง — บรรทัดรองใต้ชื่อสถานะ (งานผสมมีได้หลายสาย) */
+  stations: string[];
+};
+
+export function productionWorklistStatus<
+  S extends BoardStepLike,
+  O extends BoardOrderLike<S>,
+>(job: BoardJob<O, S>): ProductionWorklistStatus {
+  const failed = job.spots.some((spot) => spot.step?.status === "FAILED");
+  const waiting = job.spots.some((spot) => spot.waitingOn.length > 0);
+  const status = job.order.internalStatus;
+  const label =
+    INTERNAL_STATUS_LABELS[status as keyof typeof INTERNAL_STATUS_LABELS] ?? status;
+  const tone: ProductionWorklistStatusTone = failed
+    ? "danger"
+    : waiting
+      ? "warning"
+      : status === "READY_TO_SHIP"
+        ? "success"
+        : status === "PRODUCING" ||
+            status === "QUALITY_CHECK" ||
+            status === "PACKING"
+          ? "accent"
+          : "neutral";
+  return {
+    label,
+    tone,
+    stations: uniqueText(job.spots.map((spot) => spot.stationLabel)),
+  };
+}
+
+/* ============================================================
+   หัวข้อกลุ่มตามกำหนดส่ง — โครงของตารางตั้งแต่ 2026-08-31 (เบสเลือกแบบ C)
+
+   คำถามจริงของหน้านี้คือ "อะไรจะไม่ทัน" การจัดกลุ่มจึงตอบด้วยรูปร่างของตาราง
+   แทนที่จะให้ผู้ใช้ไปอ่านป้ายทีละแถว · ลำดับต้องตรงกับ BoardBucketKey เสมอ
+   ============================================================ */
+
+export const PRODUCTION_WORKLIST_BUCKETS = [
+  { key: "late", label: "เลยกำหนดแล้ว" },
+  { key: "today", label: "ส่งวันนี้" },
+  { key: "tomorrow", label: "ส่งพรุ่งนี้" },
+  { key: "week", label: "ภายในสัปดาห์นี้" },
+  { key: "later", label: "หลังจากนั้น" },
+  { key: "none", label: "ยังไม่กำหนดส่ง" },
+] as const satisfies readonly { key: BoardBucketKey; label: string }[];
+
+/** แบ่งรายการที่เรียงมาแล้วเป็นกลุ่มตามกำหนดส่ง โดยคงลำดับเดิมภายในกลุ่ม */
+export function groupProductionWorklist<
+  S extends BoardStepLike,
+  O extends BoardOrderLike<S>,
+>(
+  jobs: readonly BoardJob<O, S>[],
+): { key: BoardBucketKey; label: string; jobs: BoardJob<O, S>[] }[] {
+  return PRODUCTION_WORKLIST_BUCKETS.map((bucket) => ({
+    key: bucket.key as BoardBucketKey,
+    label: bucket.label,
+    jobs: jobs.filter((job) => job.bucket === bucket.key),
+  })).filter((group) => group.jobs.length > 0);
 }
 
 function isProductionStatus(status: string) {
