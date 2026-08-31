@@ -8,7 +8,6 @@ import { trpc } from "@/lib/trpc";
 import { permAllows } from "@/lib/permissions";
 import { canCreateOrderWithPricing } from "@/lib/order-access";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { SearchInput } from "@/components/ui/search-input";
 import { Toolbar } from "@/components/ui/toolbar";
@@ -20,6 +19,8 @@ import { DataTable } from "@/components/ui/data-table";
 import { ResponsiveList } from "@/components/ui/responsive-list";
 import { OrderStatusBadge } from "@/components/order-status-badge";
 import { cn, formatDate, formatBaht } from "@/lib/utils";
+import { RADIUS } from "@/components/ui/tokens";
+import { VISUAL_TONE_CLASSES, type VisualTone } from "@/lib/visual-tone";
 import {
   CUSTOMER_STATUS_LABELS,
   INTERNAL_STATUS_LABELS,
@@ -63,6 +64,25 @@ function OrderMockupMark({
   orderNumber: string;
 }) {
   return <MockupThumbnail cover={cover} alt={`ม็อกอัพ ${orderNumber}`} size="sm" />;
+}
+
+/* ป้ายประเภทงาน = "หมวด" ไม่ใช่ "สถานะ" — จึงเป็นชิปพื้นสีอ่อนได้ (แบบ B · เบสเคาะ 2026-08-31)
+   โดยไม่ไปแย่งกับจุดสีสถานะในแถวเดียวกัน ซึ่งยังเป็นจุด+ข้อความเหมือนเดิม
+   ลำดับที่ตั้งใจให้ต่างกัน: พื้นสีอ่อน = หมวด (เงียบ อ่านผ่าน) · จุดสี = สถานะ (ดัง ต้องเห็น)
+   สั่งทำ = โทนแบรนด์ · สำเร็จรูป = โทนสินค้า ตรงกับสีหมวดในเมนูซ้าย */
+function OrderTypeChip({ orderType }: { orderType: OrderType }) {
+  const tone: VisualTone = orderType === "CUSTOM" ? "brand" : "product";
+  return (
+    <span
+      className={cn(
+        RADIUS.item,
+        "inline-flex items-center whitespace-nowrap px-2 py-0.5 text-xs font-medium",
+        VISUAL_TONE_CLASSES[tone].soft,
+      )}
+    >
+      {ORDER_TYPE_UI_LABELS[orderType]}
+    </span>
+  );
 }
 
 // ────────────────────────────────────────────────────────────
@@ -681,12 +701,7 @@ function OrdersPageContent() {
                     </div>
                   </DataTable.Td>
                   <DataTable.Td className="whitespace-nowrap">
-                    <Badge
-                      variant={order.orderType === "CUSTOM" ? "accent" : "outline"}
-                      size="sm"
-                    >
-                      {ORDER_TYPE_UI_LABELS[order.orderType]}
-                    </Badge>
+<OrderTypeChip orderType={order.orderType} />
                   </DataTable.Td>
                   <DataTable.Td className="hidden text-xs text-secondary min-[1360px]:table-cell">
                     {CHANNEL_LABELS[order.channel] ?? order.channel}
@@ -773,9 +788,7 @@ function OrdersPageContent() {
                       showInternalStatus={false}
                     />
                     {order.orderType === "CUSTOM" && (
-                      <Badge variant="accent" size="sm">
-                        {ORDER_TYPE_UI_LABELS[order.orderType]}
-                      </Badge>
+                      <OrderTypeChip orderType={order.orderType} />
                     )}
                   </div>
 

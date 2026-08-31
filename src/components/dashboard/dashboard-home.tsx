@@ -43,6 +43,7 @@ import {
   INTERACTIVE_PRESSED,
   RADIUS,
 } from "@/components/ui/tokens";
+import { VISUAL_TONE_CLASSES, type VisualTone } from "@/lib/visual-tone";
 
 const ATTENTION_ICONS: Record<DashboardAttentionKind, ComponentType<{ className?: string }>> = {
   "overdue-order": CalendarClock,
@@ -193,11 +194,14 @@ function QuickLink({
   icon: Icon,
   label,
   primary,
+  tone,
 }: {
   href: string;
   icon: ComponentType<{ className?: string }>;
   label: string;
   primary?: boolean;
+  /** สีของหมวดที่ทางลัดนี้พาไป — ตรงกับสีในเมนูซ้ายและหัวหน้าปลายทาง */
+  tone?: VisualTone;
 }) {
   return (
     <Link
@@ -215,7 +219,11 @@ function QuickLink({
         className={cn(
           RADIUS.item,
           "flex h-9 w-9 shrink-0 items-center justify-center",
-          primary ? "bg-white/15" : "bg-surface-muted text-secondary",
+          primary
+            ? "bg-white/15"
+            : tone
+              ? VISUAL_TONE_CLASSES[tone].soft
+              : "bg-surface-muted text-secondary",
         )}
       >
         <Icon className="h-4 w-4" />
@@ -227,11 +235,46 @@ function QuickLink({
   );
 }
 
-function Metric({ label, value, note }: { label: string; value: ReactNode; note?: string }) {
+/** ช่องตัวเลขสรุปบนหน้าแรก — ได้สีประจำหมวดของตัวเลขนั้น (แบบ B · เบสเคาะ 2026-08-31)
+ *  ไม่ส่ง tone มา = เทา/ดำเหมือนเดิม */
+function Metric({
+  label,
+  value,
+  note,
+  icon: Icon,
+  tone,
+}: {
+  label: string;
+  value: ReactNode;
+  note?: string;
+  icon?: ComponentType<{ className?: string }>;
+  tone?: VisualTone;
+}) {
   return (
     <div className="min-w-0 bg-surface p-4 sm:p-5">
-      <p className="text-xs font-medium text-muted">{label}</p>
-      <p className="mt-2 text-2xl font-semibold tabular-nums text-strong">{value}</p>
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-xs font-medium text-muted">{label}</p>
+        {Icon && tone && (
+          <span
+            className={cn(
+              RADIUS.item,
+              "flex h-8 w-8 shrink-0 items-center justify-center",
+              VISUAL_TONE_CLASSES[tone].soft,
+            )}
+            aria-hidden="true"
+          >
+            <Icon className="h-4 w-4" />
+          </span>
+        )}
+      </div>
+      <p
+        className={cn(
+          "mt-2 text-2xl font-semibold tabular-nums",
+          tone ? VISUAL_TONE_CLASSES[tone].text : "text-strong",
+        )}
+      >
+        {value}
+      </p>
       {note && <p className="mt-1 truncate text-xs text-muted">{note}</p>}
     </div>
   );
@@ -313,16 +356,19 @@ export function DashboardHome() {
               icon={UserRoundCheck}
               label="งานของฉัน"
               primary={!canCreateOrder}
+              tone="brand"
             />
             <QuickLink
               href="/production"
               icon={Factory}
               label="การผลิต"
+              tone="production"
             />
             <QuickLink
               href={canViewBilling ? "/billing" : "/customers"}
               icon={canViewBilling ? FileClock : Users}
               label={canViewBilling ? "บิล" : "ลูกค้า"}
+              tone={canViewBilling ? "finance" : "brand"}
             />
           </div>
         </Section>
@@ -330,15 +376,17 @@ export function DashboardHome() {
 
       <Section title="ภาพรวม" compact flush>
         <div className="grid grid-cols-2 gap-px overflow-hidden bg-divider lg:grid-cols-4">
-          <Metric label="ออเดอร์กำลังเดิน" value={data?.activeOrders ?? 0} />
-          <Metric label="ปิดงานเดือนนี้" value={data?.completedThisMonth ?? 0} />
-          <Metric label="ลูกค้าทั้งหมด" value={data?.totalCustomers ?? 0} note={data?.newCustomersThisMonth ? `+${data.newCustomersThisMonth} เดือนนี้` : undefined} />
+          <Metric label="ออเดอร์กำลังเดิน" value={data?.activeOrders ?? 0} icon={ShoppingCart} tone="brand" />
+          <Metric label="ปิดงานเดือนนี้" value={data?.completedThisMonth ?? 0} icon={CheckCircle2} tone="production" />
+          <Metric label="ลูกค้าทั้งหมด" value={data?.totalCustomers ?? 0} icon={Users} tone="brand" note={data?.newCustomersThisMonth ? `+${data.newCustomersThisMonth} เดือนนี้` : undefined} />
           {data?.revenueThisMonth != null ? (
-            <Metric label="มูลค่าออเดอร์ที่เปิดเดือนนี้" value={formatBaht(data.revenueThisMonth)} />
+            <Metric label="มูลค่าออเดอร์ที่เปิดเดือนนี้" value={formatBaht(data.revenueThisMonth)} icon={ReceiptText} tone="finance" />
           ) : (
             <Metric
               label="ขั้นผลิตค้างทั้งหมด"
               value={pulseQuery.data?.todayQueue.open ?? "—"}
+              icon={Factory}
+              tone="production"
             />
           )}
         </div>

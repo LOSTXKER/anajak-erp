@@ -19,7 +19,7 @@ import { ResponsiveList } from "@/components/ui/responsive-list";
 import { SearchInput } from "@/components/ui/search-input";
 import { Select } from "@/components/ui/select";
 import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
-import { FOCUS_BUTTON } from "@/components/ui/tokens";
+import { FOCUS_BUTTON, RADIUS } from "@/components/ui/tokens";
 import { MockupThumbnail } from "@/components/mockup/mockup-thumbnail";
 import { orderMockupCover } from "@/lib/mockup";
 import { cn, formatDateShort } from "@/lib/utils";
@@ -45,40 +45,54 @@ import {
   type ProductionWorklistSortColumn,
 } from "@/lib/production-worklist";
 
+/* ไอคอนของแต่ละมุมมองเป็น "กล่องสีอ่อน" ตั้งแต่ 2026-08-31 (แบบ B · สีบอกหมวด)
+   เพื่อให้แถบตัวเลขหน้านี้พูดภาษาเดียวกับแถบตัวเลขหน้าแรกและการ์ดตัวเลขหน้าการเงิน
+   สีเดิมไม่เปลี่ยนสักเฉด เปลี่ยนแค่จาก "ไอคอนสีลอย" เป็น "ไอคอนในกล่องสีอ่อน" */
 const WORKLIST_LENS_PRESENTATION = {
   all: {
     icon: ListFilter,
     iconColor: "text-module-brand-text",
+    iconChip: "bg-module-brand-surface text-module-brand-text",
     count: "text-module-brand-text",
     selectedBorder: "border-blue-600 dark:border-blue-400",
   },
   attention: {
     icon: AlertTriangle,
     iconColor: "text-red-600 dark:text-red-300",
+    iconChip: "bg-red-50 text-red-700 dark:bg-red-950/50 dark:text-red-300",
     count: "text-red-600 dark:text-red-300",
     selectedBorder: "border-red-600 dark:border-red-400",
   },
   production: {
     icon: Factory,
     iconColor: "text-module-production-text",
+    iconChip: "bg-module-production-surface text-module-production-text",
     count: "text-module-production-text",
     selectedBorder: "border-module-production-solid",
   },
   qc: {
     icon: ClipboardCheck,
     iconColor: "text-amber-700 dark:text-amber-300",
+    iconChip: "bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300",
     count: "text-amber-700 dark:text-amber-300",
     selectedBorder: "border-amber-600 dark:border-amber-400",
   },
   packing: {
     icon: PackageCheck,
     iconColor: "text-green-700 dark:text-green-300",
+    iconChip: "bg-green-50 text-green-700 dark:bg-green-950/50 dark:text-green-300",
     count: "text-green-700 dark:text-green-300",
     selectedBorder: "border-green-600 dark:border-green-400",
   },
 } satisfies Record<
   ProductionWorklistLens,
-  { icon: LucideIcon; iconColor: string; count: string; selectedBorder: string }
+  {
+    icon: LucideIcon;
+    iconColor: string;
+    iconChip: string;
+    count: string;
+    selectedBorder: string;
+  }
 >;
 
 const WORKLIST_FOCUS_STORAGE_KEY = "anajak:production-worklist:last-focus";
@@ -485,8 +499,9 @@ export function ProductionControlWorklist<
                 <span
                   aria-hidden="true"
                   className={cn(
+                    RADIUS.item,
                     "flex h-9 w-9 shrink-0 items-center justify-center",
-                    presentation.iconColor,
+                    presentation.iconChip,
                   )}
                 >
                   <Icon className="h-5 w-5" strokeWidth={1.8} />

@@ -40,7 +40,12 @@ describe("Orders scan-first registry contract", () => {
     expect(tableSource).toContain("[&_td]:text-sm");
     expect(tableSource).toContain(":not(:is(button");
     expect(pageSource).toContain("<DataTable.Th>ประเภทงาน</DataTable.Th>");
-    expect(pageSource).toContain('variant={order.orderType === "CUSTOM" ? "accent" : "outline"}');
+    /* ประเภทงานเป็นชิปพื้นสีอ่อนตามหมวดตั้งแต่ 2026-08-31 (แบบ B "สีบอกหมวด")
+       ใจความเดิมที่ยังต้องจริง: คอลัมน์นี้ยังอยู่ และสั่งทำกับสำเร็จรูปต้องแยกออกจากกันด้วยสี
+       — โดยไม่ไปแย่งกับจุดสีสถานะ ซึ่งยังเป็นจุด+ข้อความไม่มีพื้นสี */
+    expect(pageSource).toContain("<OrderTypeChip orderType={order.orderType} />");
+    expect(pageSource).toContain('orderType === "CUSTOM" ? "brand" : "product"');
+    expect(badgeSource).not.toContain("bg-module");
     expect(pageSource).not.toContain('secondaryTitle || order.orderType === "CUSTOM"');
   });
 

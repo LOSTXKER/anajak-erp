@@ -20,8 +20,29 @@ import { CustomerCommLogDialog } from "@/components/customers/customer-comm-log-
 import { commChannelLabel } from "@/lib/comm-channels";
 import { PageHeader } from "@/components/page-header";
 import { Phone, Mail, MessageCircle, MapPin, ShoppingCart, DollarSign, Building2, User, CreditCard, FileText, Pencil, MessageSquarePlus, Plus } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Alert } from "@/components/ui/alert";
 import { RecordNotFound } from "@/components/ui/record-not-found";
+import { RADIUS } from "@/components/ui/tokens";
+import { cn } from "@/lib/utils";
+import { VISUAL_TONE_CLASSES, type VisualTone } from "@/lib/visual-tone";
+
+/** ไอคอนนำหน้าแถวในการ์ด "สรุป" — กล่องสีอ่อนตามหมวด (แบบ B "สีบอกหมวด" · เบสเคาะ 2026-08-31)
+ *  ใช้ชุดสีเดียวกับกล่องประวัติลูกค้าในใบงาน เพื่อให้ตัวเลขชุดเดียวกันหน้าตาเหมือนกันทั้งสองหน้า */
+function SummaryIcon({ icon: Icon, tone }: { icon: LucideIcon; tone: VisualTone }) {
+  return (
+    <span
+      className={cn(
+        RADIUS.item,
+        "flex h-6 w-6 shrink-0 items-center justify-center",
+        VISUAL_TONE_CLASSES[tone].soft,
+      )}
+      aria-hidden="true"
+    >
+      <Icon className="h-3.5 w-3.5" />
+    </span>
+  );
+}
 
 // แก้ข้อมูล/จดบันทึกการคุย = ทีมขาย-บัญชี-บริหาร (ตรง customerEditors ฝั่ง server)
 
@@ -163,13 +184,13 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
             <CardHeader><CardTitle className="text-base">สรุป</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="flex items-center gap-2 text-sm text-muted"><ShoppingCart className="h-4 w-4" /> ออเดอร์ทั้งหมด</span>
-                <span className="font-semibold tabular-nums">{customer._count.orders}</span>
+                <span className="flex items-center gap-2 text-sm text-muted"><SummaryIcon icon={ShoppingCart} tone="brand" /> ออเดอร์ทั้งหมด</span>
+                <span className="font-semibold tabular-nums text-module-brand-text">{customer._count.orders}</span>
               </div>
               {canSeeMoney && (
                 <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-2 text-sm text-muted"><DollarSign className="h-4 w-4" /> ยอดสั่งรวม</span>
-                  <span className="font-semibold tabular-nums">{formatCurrency(customer.totalSpent ?? 0)}</span>
+                  <span className="flex items-center gap-2 text-sm text-muted"><SummaryIcon icon={DollarSign} tone="finance" /> ยอดสั่งรวม</span>
+                  <span className="font-semibold tabular-nums text-module-finance-text">{formatCurrency(customer.totalSpent ?? 0)}</span>
                 </div>
               )}
               {creditLoading && (
@@ -204,7 +225,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
               )}
               {canSeeMoney && credit && (
                 <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-2 text-sm text-muted"><FileText className="h-4 w-4" /> ค้างชำระ</span>
+                  <span className="flex items-center gap-2 text-sm text-muted"><SummaryIcon icon={FileText} tone="finance" /> ค้างชำระ</span>
                   <span
                     className={`text-base font-semibold tabular-nums ${
                       credit.invoiceOutstanding > 0 ? "text-red-600 dark:text-red-400" : ""
@@ -216,7 +237,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
               )}
               {canSeeMoney && credit && (
                 <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-2 text-sm text-muted"><ShoppingCart className="h-4 w-4" /> งานยังไม่ปิด</span>
+                  <span className="flex items-center gap-2 text-sm text-muted"><SummaryIcon icon={ShoppingCart} tone="production" /> งานยังไม่ปิด</span>
                   <span className="font-semibold tabular-nums">
                     {credit.openOrders > 0 ? `${credit.openOrders} งาน` : "—"}
                   </span>
@@ -263,7 +284,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                 {customer.creditLimit != null && (
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 text-secondary">
-                      <CreditCard className="h-4 w-4" /> วงเงินเครดิต: {formatCurrency(customer.creditLimit)}
+                      <SummaryIcon icon={CreditCard} tone="finance" /> วงเงินเครดิต: {formatCurrency(customer.creditLimit)}
                     </div>
                     {creditLoading && (
                       <div role="status" aria-label="กำลังโหลดภาระหนี้" className="pl-6 pt-1">

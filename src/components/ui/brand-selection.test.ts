@@ -130,8 +130,14 @@ describe("Anajak selected-state contract", () => {
     expect(productionWorklistSource).toContain("WORKLIST_LENS_PRESENTATION");
     expect(productionWorklistSource).toContain("text-module-production-text");
     expect(productionWorklistSource).toContain("PackageCheck");
-    expect(productionWorklistSource).not.toContain("bg-module-production-surface");
-    expect(productionWorklistSource).not.toContain("bg-module-brand-surface");
+    /* ตัวการ์ดต้องยัง "เรียบ" — พื้นขาว + เส้นขอบตอนถูกเลือก ห้ามเป็นการ์ดพื้นสี
+       (นี่คือใจความเดิมของข้อนี้ ล็อกด้วยสูตรจริงแทนการห้ามคำว่า bg-module ทั้งไฟล์)
+       ส่วนไอคอนอยู่ในกล่องสีอ่อนได้ ตั้งแต่แบบ B "สีบอกหมวด" เบสเคาะ 2026-08-31
+       เพื่อให้แถบตัวเลขหน้านี้พูดภาษาเดียวกับหน้าแรกและหน้าการเงิน */
+    expect(productionWorklistSource).toContain(
+      'isOn && cn("bg-surface", presentation.selectedBorder)',
+    );
+    expect(productionWorklistSource).toContain("iconChip");
     expect(productionWorklistSource).toContain("selectedBorder");
     expect(productionWorklistSource).toContain("border-red-600 dark:border-red-400");
     expect(productionWorklistSource).toContain("border-module-production-solid");
