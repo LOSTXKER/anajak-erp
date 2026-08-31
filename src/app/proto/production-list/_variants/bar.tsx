@@ -8,6 +8,7 @@
  * ไปให้ตาราง — พร้อมแบ่งหัวข้อตามกำหนดส่ง เพราะคำถามจริงของหน้านี้คือ "อะไรจะไม่ทัน"
  */
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 
 import { DataTable } from "@/components/ui/data-table";
@@ -236,12 +237,21 @@ function MobileRows({ jobs }: { jobs: readonly ProtoJobRow[] }) {
   );
 }
 
-export function BarVariant({ state }: { state: WorklistState }) {
+export function BarVariant({
+  state,
+  filter,
+}: {
+  state: WorklistState;
+  /** สลับเฉพาะ "แถบตัวกรอง" ได้ โดยตารางยังเป็นชุดเดียวกับที่ลงของจริงไปแล้ว —
+   *  หน้าลอง /proto/production-filter ใช้ช่องนี้เทียบแถบกรองสี่แบบบนตารางเดียวกัน
+   *  ไม่ส่งมา = แถบชิป 5 มุมเหมือนตอนที่เบสเคาะแบบ C (ภาพเดิมของหน้าลองนี้ไม่เปลี่ยน) */
+  filter?: ReactNode;
+}) {
   return (
     <div className="space-y-3 lg:space-y-0 lg:overflow-hidden lg:rounded-lg lg:border lg:border-border lg:bg-surface">
       <WorklistToolbar
         state={state}
-        leading={<FilterBar state={state} />}
+        leading={filter === undefined ? <FilterBar state={state} /> : filter}
         freshness={<ProtoFreshness />}
         className="lg:border-b lg:border-divider lg:px-4 lg:py-3"
       />

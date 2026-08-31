@@ -331,12 +331,15 @@ export function StatusCell({
   /** ปิดเมื่อในแถวมีของอื่นบอกตำแหน่งอยู่แล้ว (แบบ B มีรางช่วงงาน) — กันพูดซ้ำ */
   showStation?: boolean;
 }) {
+  /* อัปเดตตามของจริง 2026-08-31 (รอบที่สอง) — เบสสั่ง "สถานะหลักไม่ต้องแสดง
+     เพราะเรารู้อยู่แล้วว่ามันผลิต แสดงแค่สถานะย่อย" → เหลือขั้นที่ค้างอยู่บรรทัดเดียว
+     แถวที่มีของอื่นบอกตำแหน่งแล้ว (แบบ B) ยังโชว์ชื่อสถานะเหมือนเดิม ไม่งั้นพูดซ้ำ */
   const status = jobStatus(job);
+  const stations = status.stations.join(" · ");
   return (
     <StatusLabel
-      label={status.label}
+      label={showStation && stations ? stations : status.label}
       tone={status.tone}
-      sub={showStation && status.stations.length > 0 ? status.stations.join(" · ") : undefined}
     />
   );
 }
