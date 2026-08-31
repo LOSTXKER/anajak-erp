@@ -10,7 +10,6 @@ import {
   ListFilter,
   PackageCheck,
   SearchX,
-  Timer,
   Truck,
   type LucideIcon,
 } from "lucide-react";
@@ -124,16 +123,8 @@ const WORKLIST_LENS_CHIPS = PRODUCTION_WORKLIST_LENSES.filter(
   (lens) => lens.key === "all" || lens.key === "attention",
 );
 
-/** ไอคอนตามชนิดของขั้นงาน — คิวรอ / สายในโรงงาน / ร้านนอก / QC / แพ็ก-ส่ง */
-function stationIcon(key: string, isOutsource: boolean): LucideIcon {
-  if (key === STATION_QUEUE) return Timer;
-  if (key === "post:qc" || key === STATION_LEGACY_QC) return ClipboardCheck;
-  if (key === "post:pack" || key === "post:ship") return PackageCheck;
-  return isOutsource ? Truck : Factory;
-}
-
-/* สายร้านนอกแยกด้วย "ไอคอนรถ" ไม่ใช่สีใหม่ — จานสีของระบบมีแค่ slate/blue/red/amber/green
-   และสามสีหลังจองไว้ให้ความหมายอื่นแล้ว (เสีย/เตือน/ผ่าน) */
+/* สีของตัวเลขบอกช่วงของงาน · สายร้านนอกแยกด้วย "ไอคอนรถ" ไม่ใช่สีใหม่ —
+   จานสีของระบบมีแค่ slate/blue/red/amber/green และสามสีหลังจองความหมายอื่นแล้ว */
 function stationTone(key: string, isOutsource: boolean) {
   if (key === STATION_QUEUE) return "text-muted";
   if (key === "post:qc" || key === STATION_LEGACY_QC) {
@@ -452,10 +443,6 @@ export function ProductionControlWorklist<
   freshness?: ReactNode;
 }) {
   const counts = productionWorklistCounts(board);
-  const desktopSortValue = sort === "attention" || sort === "urgent"
-    ? sort
-    : "__column__";
-
   useEffect(() => {
     let orderId: string | null = null;
     try {
@@ -547,39 +534,56 @@ export function ProductionControlWorklist<
 
             <span aria-hidden="true" className="h-5 w-px shrink-0 bg-divider" />
 
-            {stations.map((item) => {
+            {stations.map((item, index) => {
               const isOn = station === item.key;
-              const Icon = stationIcon(item.key, item.isOutsource);
               const tone = stationTone(item.key, item.isOutsource);
               const actionLabel = `${item.label} · ${item.count} งาน${
                 item.overdue > 0 ? ` · เลยกำหนด ${item.overdue}` : ""
               } · ${isOn ? "เลือกอยู่ · กดซ้ำเพื่อล้างตัวกรอง" : "กดเพื่อกรอง"}`;
 
               return (
-                <FilterChip
-                  key={item.key}
-                  selected={isOn}
-                  onClick={() => onSelectStation(isOn ? STATION_ALL : item.key)}
-                  aria-label={actionLabel}
-                  title={actionLabel}
-                  // ขั้นที่ไม่มีงานยังอยู่ในแถบแต่จาง — ถ้าซ่อน ปุ่มจะเต้นหายไปมาระหว่างกรอง
-                  className={cn(item.count === 0 && !isOn && "opacity-45")}
-                  icon={<Icon className={cn("h-4 w-4", tone)} strokeWidth={1.8} />}
-                >
-                  <span className="whitespace-nowrap">{item.label}</span>
-                  <span
-                    data-station-count=""
-                    className={cn("ml-1 text-2xs font-semibold tabular-nums", tone)}
-                  >
-                    {item.count}
-                  </span>
-                  {item.overdue > 0 ? (
-                    /* ไม่มีพื้นเม็ด — กติกา "ไม่มีกล่อง" ที่เบสเคาะไว้ 2026-08-31 สีแดงพอแล้ว */
-                    <span className="ml-1.5 text-2xs font-semibold tabular-nums text-red-700 dark:text-red-300">
-                      เลย {item.overdue}
+                <span key={item.key} className="flex shrink-0 items-center gap-1">
+                  {/* ลูกศรคั่นให้อ่านแถบเป็นสายพาน ไม่ใช่รายการปุ่มที่เท่ากันหมด */}
+                  {index > 0 ? (
+                    <span aria-hidden="true" className="text-xs text-divider">
+                      ›
                     </span>
                   ) : null}
-                </FilterChip>
+                  <FilterChip
+                    selected={isOn}
+                    onClick={() => onSelectStation(isOn ? STATION_ALL : item.key)}
+                    aria-label={actionLabel}
+                    title={actionLabel}
+                    // ขั้นที่ไม่มีงานยังอยู่ในแถบแต่จาง — ถ้าซ่อน ปุ่มจะเต้นหายไปมาระหว่างกรอง
+                    className={cn(item.count === 0 && !isOn && "opacity-45")}
+                  >
+                    {/* ตัวเลขนำ ชื่อรอง — กวาดตารอบเดียวเห็นว่ากองบวมช่วงไหนของสาย */}
+                    <span
+                      data-station-count=""
+                      className={cn("text-sm font-semibold tabular-nums", tone)}
+                    >
+                      {item.count}
+                    </span>
+                    {/* ชื่อขั้นเป็น text-xs ตามกฎ typography ของเว็บ (11px สงวนให้ตัวเลข/สถานะ) */}
+                    <span className="ml-1 whitespace-nowrap text-xs text-secondary">
+                      {item.label}
+                    </span>
+                    {/* หมวดบอกที่ตัวขั้น ไม่ใช่ด้วยตำแหน่ง — วันที่ย้ายมาทำเอง ไอคอนหายไปเอง */}
+                    {item.isOutsource ? (
+                      <Truck
+                        aria-hidden="true"
+                        className="ml-1 h-3 w-3 shrink-0 text-muted"
+                        strokeWidth={1.8}
+                      />
+                    ) : null}
+                    {item.overdue > 0 ? (
+                      /* ไม่มีพื้นเม็ด — กติกา "ไม่มีกล่อง" ที่เบสเคาะไว้ 2026-08-31 สีแดงพอแล้ว */
+                      <span className="ml-1 text-2xs font-semibold tabular-nums text-red-700 dark:text-red-300">
+                        เลย {item.overdue}
+                      </span>
+                    ) : null}
+                  </FilterChip>
+                </span>
               );
             })}
           </div>
@@ -591,8 +595,10 @@ export function ProductionControlWorklist<
             surface="raised"
             containerClassName="order-3 w-full @2xl:order-2 @2xl:max-w-md"
           />
-          <ToolbarGroup className="order-4 w-full @2xl:order-3 @2xl:w-auto">
-            {/* มือถือไม่มีหัวตาราง จึงต้องเข้าถึงทุกวิธีเรียงจาก Select */}
+          {/* บนคอมไม่มีช่องเรียงแล้ว (เบสสั่ง 2026-09-01 หลังถามว่า "แล้วนี่มีทำไม") —
+              เรียงจากหัวตารางแทน · บนมือถือยังต้องมี เพราะไม่มีหัวตารางให้กด
+              ค่า sort ยังอยู่ใน URL เหมือนเดิม ลิงก์เก่า `?sort=urgent` จึงไม่พัง */}
+          <ToolbarGroup className="order-4 w-full @2xl:order-3 @2xl:hidden">
             <Select
               value={sort}
               onChange={(event) =>
@@ -601,26 +607,11 @@ export function ProductionControlWorklist<
               aria-label="เรียงรายการงาน"
               shape="pill"
               surface="raised"
-              className="w-full @2xl:hidden"
+              className="w-full"
             >
               {PRODUCTION_WORKLIST_SORT_OPTIONS.map((item) => (
                 <option key={item.value} value={item.value}>{item.label}</option>
               ))}
-            </Select>
-            {/* desktop ใช้หัวตารางกับ column sort และเหลือเฉพาะ preset ข้ามคอลัมน์ */}
-            <Select
-              value={desktopSortValue}
-              onChange={(event) =>
-                onSelectSort(resolveProductionWorklistSort(event.target.value))
-              }
-              aria-label="ลำดับพิเศษ"
-              shape="pill"
-              surface="raised"
-              className="hidden @2xl:flex @2xl:w-52"
-            >
-              <option value="__column__" disabled>เรียงจากหัวตาราง</option>
-              <option value="attention">ต้องจัดการก่อน</option>
-              <option value="urgent">ด่วนก่อน</option>
             </Select>
           </ToolbarGroup>
         </Toolbar>

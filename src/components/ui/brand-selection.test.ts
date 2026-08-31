@@ -146,6 +146,13 @@ describe("Anajak selected-state contract", () => {
     expect(productionWorklistSource).toContain("stations.map");
     expect(productionWorklistSource).toContain('data-station-count=""');
     expect(productionWorklistSource).not.toContain("PRODUCTION_WORKLIST_LENSES.map");
+    /* แถบอ่านเป็น "สายพาน": ลูกศรคั่น + ตัวเลขนำหน้าชื่อขั้น (เบสเลือกแบบ D 2026-09-01)
+       และช่องเรียงบนคอมถูกเอาออก เหลือเฉพาะบนมือถือที่ไม่มีหัวตารางให้กด */
+    expect(productionWorklistSource).toContain("›");
+    expect(productionWorklistSource).not.toContain('aria-label="ลำดับพิเศษ"');
+    // เช็คที่โค้ด ไม่ใช่ที่คอมเมนต์ — หัวข้อในคอมเมนต์ยังพูดถึงการเรียงจากหัวตารางได้
+    expect(productionWorklistSource).not.toContain('value="__column__"');
+    expect(productionWorklistSource).toContain("PRODUCTION_WORKLIST_SORT_OPTIONS.map");
     expect(productionWorklistSource).not.toContain("iconChip");
     expect(productionWorklistSource).not.toContain("bg-module-brand-surface");
     expect(productionWorklistSource).not.toContain("bg-red-50");
