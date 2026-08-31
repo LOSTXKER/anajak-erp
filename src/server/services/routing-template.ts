@@ -365,6 +365,19 @@ export async function releaseRoutingVersion(
     ),
   });
 
+  /* ทุกขั้นต้องมีศูนย์งาน — ไม่ใช่กฎของหน้านี้ แต่เป็นเงื่อนไขของการเปิดใบสั่งผลิต
+     (manufacturing-work-order.ts: "Routing ทุกขั้นต้องระบุศูนย์งานก่อนเปิดใบสั่งผลิต")
+     ถ้าปล่อยให้ประกาศใช้ทั้งที่ยังว่าง สูตรจะดูใช้งานได้แต่เปิดใบจริงไม่ได้ =
+     ไปพังตอนหน้างาน แทนที่จะพังตรงนี้ที่ยังแก้ง่าย */
+  const missingCenter = operations.filter((operation) => !operation.workCenterId);
+  if (missingCenter.length > 0) {
+    fail(
+      `ยังไม่ได้เลือกศูนย์งานให้ขั้น: ${missingCenter
+        .map((operation) => operation.name)
+        .join(" · ")} — ต้องเลือกครบก่อนเริ่มใช้ ไม่งั้นเปิดใบสั่งผลิตไม่ได้`,
+    );
+  }
+
   await prisma.routingVersion.update({
     where: { id: versionId },
     data: { state: "RELEASED", releasedAt: new Date(), releasedById },

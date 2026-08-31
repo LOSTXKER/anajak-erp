@@ -135,7 +135,7 @@ function DraftRow({
             </Select>
           </label>
           <label className="block sm:col-span-2" htmlFor={`${fieldId}-center`}>
-            <span className="mb-1 block text-xs text-secondary">ศูนย์งาน (ไม่บังคับ)</span>
+            <span className="mb-1 block text-xs text-secondary">ศูนย์งาน (ต้องเลือกก่อนเริ่มใช้สูตร)</span>
             <Select
               id={`${fieldId}-center`}
               value={operation.workCenterId ?? ""}
@@ -144,7 +144,7 @@ function DraftRow({
               }
               aria-label="ศูนย์งาน"
             >
-              <option value="">— ไม่ระบุ —</option>
+              <option value="">— ยังไม่เลือก —</option>
               {workCenters.map((center) => (
                 <option key={center.id} value={center.id}>
                   {center.name}
