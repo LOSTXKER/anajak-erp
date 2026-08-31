@@ -475,6 +475,7 @@ export function ProductionControlWorklist<
                 >
                   <span className="whitespace-nowrap">{item.label}</span>
                   <span
+                    data-lens-count=""
                     className={cn(
                       "ml-1 rounded-full px-1.5 py-0.5 text-2xs font-semibold tabular-nums",
                       presentation.iconChip,
