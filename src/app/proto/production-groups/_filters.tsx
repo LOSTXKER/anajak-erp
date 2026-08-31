@@ -265,6 +265,160 @@ export function TwoRowBar({ state }: { state: WorklistState }) {
   );
 }
 
+/* ------------------------------------------------------ D · เส้นทางงาน
+
+   ไม่ได้จัดกลุ่มด้วยหัวข้อ แต่เรียงเป็น "สายพาน" ตามทางเดินงานจริง แล้วให้ตัวเลข
+   นำหน้าชื่อ — กวาดตารอบเดียวเห็นว่ากองบวมอยู่ช่วงไหนของสาย ไม่ต้องอ่านทีละปุ่ม
+   หมวดบอกด้วย "ไอคอนรถ" ที่ตัวขั้น ไม่ใช่ด้วยตำแหน่ง → วันที่โรงงานทำปักเอง
+   ไอคอนหายไปเองจากข้อมูล ไม่ต้องย้ายปุ่มหรือรื้อโครงแถบ */
+
+export function PipelineBar({ state }: { state: WorklistState }) {
+  return (
+    <div
+      role="group"
+      aria-label="กรองรายการงาน"
+      className={cn(
+        BAR_BASE,
+        "flex-nowrap overflow-x-auto border-b border-divider @2xl:flex-wrap @2xl:overflow-x-visible",
+      )}
+    >
+      <LensChips state={state} />
+      <span aria-hidden="true" className="h-5 w-px shrink-0 bg-divider" />
+      {state.stations.map((chip, index) => {
+        const isOn = state.station === chip.key;
+        const tone = stationTone(chip.key, chip.isOutsource);
+        const actionLabel = `${chip.label} · ${chip.count} งาน${
+          chip.overdue > 0 ? ` · เลยกำหนด ${chip.overdue}` : ""
+        } · ${isOn ? "เลือกอยู่ · กดซ้ำเพื่อล้างตัวกรอง" : "กดเพื่อกรอง"}`;
+
+        return (
+          <span key={chip.key} className="flex shrink-0 items-center gap-1">
+            {index > 0 ? (
+              <span aria-hidden="true" className="text-2xs text-divider">
+                ›
+              </span>
+            ) : null}
+            <FilterChip
+              selected={isOn}
+              onClick={() => state.setStation(isOn ? STATION_ALL : chip.key)}
+              aria-label={actionLabel}
+              title={actionLabel}
+              className={cn(chip.count === 0 && !isOn && "opacity-45")}
+            >
+              {/* ตัวเลขนำ ชื่อรอง — ต่างจากแบบอื่นที่อ่านชื่อก่อนแล้วค่อยเจอเลข */}
+              <span className={cn("text-sm font-semibold tabular-nums", tone)}>
+                {chip.count}
+              </span>
+              <span className="ml-1 whitespace-nowrap text-2xs text-secondary">
+                {chip.label}
+              </span>
+              {chip.isOutsource ? (
+                <Truck
+                  aria-hidden="true"
+                  className="ml-1 h-3 w-3 shrink-0 text-muted"
+                  strokeWidth={1.8}
+                />
+              ) : null}
+              {chip.overdue > 0 ? (
+                <span className="ml-1 text-2xs font-semibold tabular-nums text-red-700 dark:text-red-300">
+                  เลย {chip.overdue}
+                </span>
+              ) : null}
+            </FilterChip>
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+/* --------------------------------------------- E · หมวดยุบได้ทุกหมวด
+
+   ชั้นบนคือ 4 หมวด (กดกรองทั้งหมวดได้เลย) ชั้นล่างกางขั้นในหมวดที่เปิดอยู่
+   ต่างจากแบบ C ที่ยุบเฉพาะร้านนอก — อันนี้ทุกหมวดเท่ากันหมด จึงไม่ผูกโครงแถบ
+   เข้ากับคำว่า "ร้านนอก" · วันที่ปักย้ายมาทำเอง มันแค่ย้ายหมวดตามข้อมูล */
+
+const ALL_GROUPS: StationGroup[] = ["queue", "factory", "outsource", "post"];
+
+const GROUP_ICON: Record<StationGroup, LucideIcon> = {
+  queue: Timer,
+  factory: Factory,
+  outsource: Truck,
+  post: PackageCheck,
+};
+
+export function GroupFirstBar({ state }: { state: WorklistState }) {
+  const openFromStation = state.stations.find((chip) => chip.key === state.station);
+  const [openGroup, setOpenGroup] = useState<StationGroup | null>(null);
+  const active = openFromStation ? groupOf(openFromStation) : openGroup;
+  const chips = active ? groupChips(state, active) : [];
+
+  return (
+    <div className="w-full border-b border-divider">
+      <div
+        role="group"
+        aria-label="กรองรายการงาน"
+        className={cn(BAR_BASE, "flex-nowrap overflow-x-auto @2xl:flex-wrap")}
+      >
+        <LensChips state={state} />
+        <span aria-hidden="true" className="h-5 w-px shrink-0 bg-divider" />
+        {ALL_GROUPS.map((group) => {
+          const Icon = GROUP_ICON[group];
+          const { count, overdue } = state.groupCounts[group];
+          const isOpen = active === group;
+          return (
+            <FilterChip
+              key={group}
+              selected={isOpen}
+              onClick={() => {
+                setOpenGroup(isOpen ? null : group);
+                if (isOpen) state.setStation(STATION_ALL);
+              }}
+              aria-expanded={isOpen}
+              aria-label={`${GROUP_LABEL[group]} · ${count} งาน${
+                overdue > 0 ? ` · เลยกำหนด ${overdue}` : ""
+              } · กดเพื่อกางขั้นงานในหมวดนี้`}
+              className={cn(count === 0 && !isOpen && "opacity-45")}
+              icon={<Icon className="h-4 w-4 text-secondary" strokeWidth={1.8} />}
+            >
+              <span className="whitespace-nowrap">{GROUP_LABEL[group]}</span>
+              <span className="ml-1 text-2xs font-semibold tabular-nums text-secondary">
+                {count}
+              </span>
+              {overdue > 0 ? (
+                <span className="ml-1.5 text-2xs font-semibold tabular-nums text-red-700 dark:text-red-300">
+                  เลย {overdue}
+                </span>
+              ) : null}
+              <ChevronDown
+                aria-hidden="true"
+                className={cn(
+                  "ml-1 h-3.5 w-3.5 text-muted transition-transform",
+                  isOpen && "rotate-180",
+                )}
+              />
+            </FilterChip>
+          );
+        })}
+      </div>
+      {active ? (
+        <div
+          role="group"
+          aria-label={`กรองตามขั้นงานในหมวด ${GROUP_LABEL[active]}`}
+          className={cn(BAR_BASE, "flex-nowrap overflow-x-auto pb-1 @2xl:flex-wrap")}
+        >
+          <span className="shrink-0 pl-1 text-2xs font-medium uppercase tracking-wide text-muted">
+            {GROUP_LABEL[active]}
+          </span>
+          {chips.map((chip) => (
+            <StationChip key={chip.key} chip={chip} state={state} />
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 /* ------------------------------------------- C · ยุบร้านนอกเป็นปุ่มเดียว */
 
 export function FoldedBar({ state }: { state: WorklistState }) {

@@ -7,9 +7,22 @@ import { ProductionShell } from "../production-list/_shell";
 import { useWorklist } from "../production-list/_ui";
 import { BarVariant } from "../production-list/_variants/bar";
 
-import { FlatBar, FoldedBar, LabelledBar, TwoRowBar } from "./_filters";
+import {
+  FlatBar,
+  FoldedBar,
+  GroupFirstBar,
+  LabelledBar,
+  PipelineBar,
+  TwoRowBar,
+} from "./_filters";
 
-export type ProductionGroupVariant = "current" | "label" | "rows" | "fold";
+export type ProductionGroupVariant =
+  | "current"
+  | "label"
+  | "rows"
+  | "fold"
+  | "pipeline"
+  | "groupfirst";
 export type ProductionSortControl = "select" | "toggle" | "none";
 
 function Inner({
@@ -36,6 +49,10 @@ function Inner({
             <TwoRowBar state={state} />
           ) : variant === "fold" ? (
             <FoldedBar state={state} />
+          ) : variant === "pipeline" ? (
+            <PipelineBar state={state} />
+          ) : variant === "groupfirst" ? (
+            <GroupFirstBar state={state} />
           ) : (
             <FlatBar state={state} />
           )

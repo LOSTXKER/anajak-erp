@@ -10,7 +10,14 @@ import {
   type ProductionSortControl,
 } from "../_preview";
 
-const VARIANTS: ProductionGroupVariant[] = ["current", "label", "rows", "fold"];
+const VARIANTS: ProductionGroupVariant[] = [
+  "current",
+  "label",
+  "rows",
+  "fold",
+  "pipeline",
+  "groupfirst",
+];
 const SORTS: ProductionSortControl[] = ["select", "toggle", "none"];
 
 export default async function ProductionGroupsProtoView({
