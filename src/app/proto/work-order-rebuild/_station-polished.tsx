@@ -94,7 +94,7 @@ function QueueCircle({ step, size = "sm" }: { step: DensityOperation; size?: "sm
   );
 }
 
-function GroupLabel({ icon: Icon, children }: { icon: typeof History; children: React.ReactNode }) {
+export function GroupLabel({ icon: Icon, children }: { icon: typeof History; children: React.ReactNode }) {
   return (
     <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-muted">
       <Icon className={cn("h-3.5 w-3.5", MARK)} aria-hidden="true" />
@@ -142,14 +142,14 @@ function FactCell({
   );
 }
 
-function FactCells({ workOrder }: { workOrder: DensityWorkOrder }) {
+export function FactCells({ workOrder, columns = 2 }: { workOrder: DensityWorkOrder; columns?: 2 | 4 }) {
   const open = openExceptionCount(workOrder);
   const done = doneCount(workOrder);
   const total = workOrder.operations.length;
   const firstStep = workOrder.operations[0];
   const variants = firstStep ? linesOf(workOrder, firstStep.id).length : 0;
   return (
-    <dl className="grid grid-cols-2 gap-2">
+    <dl className={cn("grid grid-cols-2 gap-2", columns === 4 && "lg:grid-cols-4")}>
       <FactCell icon={CalendarDays} label="กำหนดส่ง" value={workOrder.deadline}>
         {priorityBadge(workOrder.priorityLabel)}
       </FactCell>
@@ -292,7 +292,7 @@ function StepperList({
 
 /* ───────────────────────────── คอลัมน์กลาง: หัวขั้น + โซนลงมือ + แท็บ */
 
-function FocusHeader({ step }: { step: DensityOperation }) {
+export function FocusHeader({ step }: { step: DensityOperation }) {
   const meta = STATE_META[step.state];
   return (
     <div className="flex items-start gap-3">
@@ -337,7 +337,7 @@ function FocusHeader({ step }: { step: DensityOperation }) {
   );
 }
 
-function ActionZone({ workOrder, step }: { workOrder: DensityWorkOrder; step: DensityOperation }) {
+export function ActionZone({ workOrder, step }: { workOrder: DensityWorkOrder; step: DensityOperation }) {
   const idle = step.commands.length === 0 && step.state !== "COMPLETED";
   return (
     <div className={cn("space-y-3 p-4 ring-1 ring-inset ring-border", RADIUS.inner, SUNK_PANEL)}>
@@ -368,7 +368,7 @@ function ActionZone({ workOrder, step }: { workOrder: DensityWorkOrder; step: De
   );
 }
 
-function StepTabs({ workOrder, step }: { workOrder: DensityWorkOrder; step: DensityOperation }) {
+export function StepTabs({ workOrder, step }: { workOrder: DensityWorkOrder; step: DensityOperation }) {
   const lines = linesOf(workOrder, step.id);
   const problems = stepProblems(workOrder, step);
   const open = problems.filter((item) => item.status.tone !== "success").length;

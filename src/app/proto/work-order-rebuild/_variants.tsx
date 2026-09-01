@@ -43,6 +43,7 @@ import {
 } from "../work-order-density/_data";
 import { CurrentVariant } from "../work-order-density/_variants";
 import { StationPolishedVariant } from "./_station-polished";
+import { R3Variant } from "./_r3";
 import {
   BlockingBar,
   EventList,
@@ -833,6 +834,7 @@ export const VARIANT_COMPONENTS = {
   station: StationVariant,
   station2: StationPolishedVariant,
   rail: RailVariant,
+  r3: R3Variant,
 } as const;
 
 export type WorkOrderRebuildVariant = keyof typeof VARIANT_COMPONENTS;
