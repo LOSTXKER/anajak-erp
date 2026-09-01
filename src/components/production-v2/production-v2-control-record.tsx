@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useMemo } from "react";
+import { use, useMemo, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import {
@@ -18,6 +18,8 @@ import {
   Route,
   ShieldCheck,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { ProductionV2FlowMap } from "./production-v2-flow-map";
 import type { RouterOutput } from "@/lib/trpc";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
@@ -133,9 +135,13 @@ function IdentityStrip({ workOrder }: { workOrder: WorkOrder }) {
 function OperationLedger({
   workOrder,
   stale,
+  selectedId,
+  onSelect,
 }: {
   workOrder: WorkOrder;
   stale: boolean;
+  selectedId: string | null;
+  onSelect: (id: string) => void;
 }) {
   const operationsById = new Map(workOrder.operations.map((operation) => [operation.id, operation]));
   const dependenciesBySuccessor = new Map<string, string[]>();
@@ -155,6 +161,15 @@ function OperationLedger({
       {workOrder.operations.length === 0 ? (
         <EmptyState density="compact" icon={Route} title="ยังไม่มีเส้นทางการผลิต" description="เลือกเส้นทางก่อนปล่อยใบสั่งผลิต" />
       ) : (
+        <>
+        {/* ผังสายพานคู่เป็นตัวนำทาง — ปุ่มสั่งงานทั้งหมดยังอยู่ในรายการข้างล่างที่เดียว */}
+        <div className="mb-4 border-b border-divider pb-4">
+          <ProductionV2FlowMap
+            workOrder={workOrder}
+            selectedId={selectedId}
+            onSelect={onSelect}
+          />
+        </div>
         <ol className="space-y-1">
           {workOrder.operations.map((operation, index) => {
             const status = operationStatusMeta(operation.state);
@@ -163,7 +178,14 @@ function OperationLedger({
               (id) => operationsById.get(id)?.name ?? "ขั้นงานจากใบผลิตที่เกี่ยวข้อง",
             );
             return (
-              <li key={operation.id} className="relative grid gap-3 rounded-lg px-3 py-4 hover:bg-interactive-hover sm:grid-cols-[2rem_minmax(0,1fr)_auto]">
+              <li
+                key={operation.id}
+                id={`operation-${operation.id}`}
+                className={cn(
+                  "relative grid gap-3 rounded-lg px-3 py-4 hover:bg-interactive-hover sm:grid-cols-[2rem_minmax(0,1fr)_auto]",
+                  selectedId === operation.id && "bg-interactive-pressed",
+                )}
+              >
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-surface-muted text-xs font-semibold tabular-nums text-secondary" aria-label={`คิวที่ ${queueNumber}`}>{queueNumber}</div>
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -220,6 +242,7 @@ function OperationLedger({
             );
           })}
         </ol>
+        </>
       )}
     </Section>
   );
@@ -677,6 +700,8 @@ export function ProductionV2ControlRecord({
   });
   const workOrder = query.data;
   const status = workOrder ? workOrderStatusMeta(workOrder.state) : null;
+  /* ขั้นที่กำลังโฟกัส — ผังด้านบนกับรายการด้านล่างชี้ไปที่เดียวกัน ไม่ใช่สองสถานะแยกกัน */
+  const [selectedOperationId, setSelectedOperationId] = useState<string | null>(null);
   const operationNames = useMemo(
     () =>
       new Map(
@@ -842,6 +867,14 @@ export function ProductionV2ControlRecord({
             <OperationLedger
               workOrder={workOrder}
               stale={stale}
+              selectedId={selectedOperationId}
+              onSelect={(id) => {
+                setSelectedOperationId(id);
+                // กดในผังแล้วต้องพาไปถึงแถวจริง ไม่ใช่แค่ไฮไลต์ที่มองไม่เห็นเพราะอยู่นอกจอ
+                document
+                  .getElementById(`operation-${id}`)
+                  ?.scrollIntoView({ behavior: "smooth", block: "center" });
+              }}
             />
             <ReferenceControl workOrder={workOrder} />
           </div>
