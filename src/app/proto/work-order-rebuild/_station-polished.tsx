@@ -1,17 +1,22 @@
 "use client";
 
 /* ============================================================
-   B+ · จอสถานีของหัวหน้า — ขัดหน้าตาแล้ว
+   B+ · จอสถานีของหัวหน้า — ขัดหน้าตาแล้ว (รอบสอง)
 
-   เบสเลือก B แล้วตำหนิ (2026-09-02 คำต่อคำ): "มันดีได้กว่านี้ … อะไรๆ ก็ทำเป็น text ธรรมดา
-   มันดูธรรมดาไป เพราะบางอย่างมันใส่อะไรให้มันดูสวย ดูโฟกัสได้"
-   → โครงสามคอลัมน์เท่า B ทุกชิ้นอยู่ที่เดิม เปลี่ยนเฉพาะ "น้ำหนักทางสายตา":
-   ① คอลัมน์ขวา: ข้อเท็จจริงที่ใช้ตัดสินใจ (กำหนดส่ง · ปัญหาค้าง · ผ่านแล้ว · จำนวน)
-      เป็นกล่องสี 4 ช่องแบบเดียวกับกล่องประวัติลูกค้าในใบงาน (แบบ B ของ /proto/look)
-   ② คอลัมน์ซ้าย: รายการขั้นเป็นบันไดมีเลขคิวบนราง ขั้นที่เลือกมีขีดน้ำเงินริมซ้าย
-      และมีแถบความคืบหน้าเล็กใต้ชื่อ
-   ③ คอลัมน์กลาง: หัวขั้นมีเลขคิวในวงกลมสีสถานะ + บรรทัดข้อมูลมีไอคอน ·
-      ปุ่มกับช่องกรอกอยู่ใน "โซนลงมือ" พื้นจมของตัวเอง ไม่ลอยปนกับข้อความ
+   รอบแรก (2026-09-02) เบสตำหนิว่า "อะไรๆ ก็ทำเป็น text ธรรมดา ดูธรรมดาไป" → ฉันใส่กล่องสี
+   4 ช่องคนละสีหมวด + วงกลมเลขคิวสีทึบ → เบสตีกลับ **"งานแบบชุ้ยมาก ธีมสีอะไรก็ไม่เข้ากับเว็บเลย"**
+   สิ่งที่ผิด: เอาสีหมวด (น้ำเงิน/เขียว/เหลือง) มาเป็นพื้นกล่องในหน้าเดียวกันจนเป็นพรมสี ทั้งที่กติกา
+   DESIGN.md บอกว่าสีหมวดเป็น cue บนไอคอนเท่านั้น สีสถานะใช้เฉพาะความหมายจริง และน้ำเงิน
+   สงวนให้ primary/selected
+
+   รอบนี้ยึดภาษาสีของเว็บจริง:
+   · กล่องตัวเลข = พื้นจม `bg-surface-muted` ไอคอนสีหมวดผลิต ตัวเลขใหญ่สีเข้ม — แดงเฉพาะ
+     "ปัญหาค้าง" ตอนมีเรื่องจริง (สีสถานะตามความหมาย)
+   · วงกลมเลขคิว = แบบเดียวกับรายการขั้นของหน้าจริง (พื้นจม ตัวเลขเทา) สถานะบอกด้วยจุด
+     `StatusLabel` ตัวจริง ไม่ระบายวงกลม
+   · ขั้นที่เลือก = พื้นฟ้าอ่อน `INTERACTIVE_SELECTED` + ขีดน้ำเงินริมซ้าย (สูตรเดียวกับเมนูซ้าย)
+   · โซนลงมือ = พื้นจม + เส้นขอบ ไม่มีสี
+   โครงสามคอลัมน์และตำแหน่งของทุกชิ้นเท่า B — ต่างกันแค่ลำดับความสำคัญที่มองเห็นได้
    ============================================================ */
 
 import { useState } from "react";
@@ -20,6 +25,7 @@ import {
   AlertTriangle,
   ArrowRight,
   CalendarDays,
+  Check,
   Clock,
   ExternalLink,
   Factory,
@@ -37,7 +43,7 @@ import { Badge } from "@/components/ui/badge";
 import { Section } from "@/components/ui/section";
 import { StatusLabel } from "@/components/ui/status-label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FOCUS_BUTTON, RADIUS, SUNK_PANEL, TINT } from "@/components/ui/tokens";
+import { FOCUS_BUTTON, INTERACTIVE_SELECTED, RADIUS, SUNK_PANEL } from "@/components/ui/tokens";
 import { VISUAL_TONE_CLASSES } from "@/lib/visual-tone";
 import { cn } from "@/lib/utils";
 
@@ -48,7 +54,6 @@ import {
   openExceptionCount,
   totalQuantity,
   type DensityOperation,
-  type DensityState,
   type DensityWorkOrder,
 } from "../work-order-density/_data";
 import {
@@ -68,39 +73,37 @@ import {
   stepProblems,
 } from "./_shared";
 
-/* ─────────────────────────────────────── วงกลมเลขคิว ย้อมตามสถานะ */
+const MARK = VISUAL_TONE_CLASSES.production.mark;
 
-function queueCircleClass(state: DensityState) {
-  switch (state) {
-    case "COMPLETED":
-      return "bg-green-600 text-white dark:bg-green-400 dark:text-black";
-    case "RUNNING":
-      return "bg-amber-500 text-white ring-4 ring-amber-500/20";
-    case "BLOCKED":
-      return "bg-red-600 text-white dark:bg-red-400 dark:text-black";
-    case "READY":
-      return "bg-blue-600 text-white dark:bg-blue-400 dark:text-black";
-    default:
-      return "bg-surface text-muted ring-1 ring-inset ring-border";
-  }
-}
+/* ───────────────────────────── วงกลมเลขคิว — สูตรเดียวกับรายการขั้นของหน้าจริง */
 
 function QueueCircle({ step, size = "sm" }: { step: DensityOperation; size?: "sm" | "lg" }) {
+  const done = step.state === "COMPLETED";
   return (
     <span
       aria-hidden="true"
       className={cn(
         "flex shrink-0 items-center justify-center rounded-full font-semibold tabular-nums",
-        size === "lg" ? "h-10 w-10 text-sm" : "h-7 w-7 text-xs",
-        queueCircleClass(step.state),
+        SUNK_PANEL,
+        size === "lg" ? "h-10 w-10 text-sm text-strong" : "h-7 w-7 text-xs text-secondary",
+        done && "text-green-700 dark:text-green-300",
       )}
     >
-      {step.queue}
+      {done ? <Check className={size === "lg" ? "h-5 w-5" : "h-3.5 w-3.5"} strokeWidth={2.5} /> : step.queue}
     </span>
   );
 }
 
-/* ───────────────────────────────── คอลัมน์ขวา: กล่องสี 4 ช่อง + ออเดอร์ */
+function GroupLabel({ icon: Icon, children }: { icon: typeof History; children: React.ReactNode }) {
+  return (
+    <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-muted">
+      <Icon className={cn("h-3.5 w-3.5", MARK)} aria-hidden="true" />
+      {children}
+    </p>
+  );
+}
+
+/* ───────────────────────────── คอลัมน์ขวา: ตัวเลข 4 ช่องบนพื้นจม + ออเดอร์ */
 
 function priorityBadge(label: string) {
   if (label === "ด่วนมาก") return <Badge variant="destructive" size="sm">{label}</Badge>;
@@ -108,56 +111,59 @@ function priorityBadge(label: string) {
   return <Badge size="sm">{label}</Badge>;
 }
 
+function FactCell({
+  icon: Icon,
+  label,
+  value,
+  unit,
+  danger = false,
+  children,
+}: {
+  icon: typeof History;
+  label: string;
+  value: string;
+  unit?: string;
+  /** สีสถานะตามความหมายจริงเท่านั้น — ใช้กับปัญหาค้างตอนมีเรื่อง */
+  danger?: boolean;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div className={cn("px-3 py-3", RADIUS.inner, SUNK_PANEL)}>
+      <dt className="flex items-center gap-1.5 text-xs text-muted">
+        <Icon className={cn("h-3.5 w-3.5 shrink-0", danger ? "text-red-600 dark:text-red-400" : MARK)} aria-hidden="true" />
+        {label}
+      </dt>
+      <dd className={cn("mt-1 text-lg font-semibold tabular-nums", danger ? "text-red-700 dark:text-red-300" : "text-strong")}>
+        {value}
+        {unit ? <span className="ml-1 text-xs font-normal text-muted">{unit}</span> : null}
+      </dd>
+      {children ? <dd className="mt-1.5">{children}</dd> : null}
+    </div>
+  );
+}
+
 function FactCells({ workOrder }: { workOrder: DensityWorkOrder }) {
   const open = openExceptionCount(workOrder);
   const done = doneCount(workOrder);
   const total = workOrder.operations.length;
-  const cell = "px-3 py-3";
+  const firstStep = workOrder.operations[0];
+  const variants = firstStep ? linesOf(workOrder, firstStep.id).length : 0;
   return (
-    <dl className="grid grid-cols-2 gap-3">
-      <div className={cn(cell, RADIUS.inner, VISUAL_TONE_CLASSES.brand.soft)}>
-        <dt className="flex items-center gap-1.5 text-xs">
-          <CalendarDays className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-          กำหนดส่ง
-        </dt>
-        <dd className="mt-1 text-lg font-semibold tabular-nums">{workOrder.deadline}</dd>
-        <dd className="mt-1">{priorityBadge(workOrder.priorityLabel)}</dd>
-      </div>
-      <div className={cn(cell, RADIUS.inner, "border", open > 0 ? TINT.error : TINT.neutral)}>
-        <dt className="flex items-center gap-1.5 text-xs">
-          <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-          ปัญหาค้าง
-        </dt>
-        <dd className="mt-1 text-lg font-semibold tabular-nums">
-          {open.toLocaleString("th-TH")}
-          <span className="ml-1 text-xs font-normal">รายการ</span>
-        </dd>
-        <dd className="mt-1 text-xs">{open > 0 ? "ยังไม่จบ ต้องจัดการ" : "ไม่มีเรื่องค้าง"}</dd>
-      </div>
-      <div className={cn(cell, RADIUS.inner, VISUAL_TONE_CLASSES.production.soft)}>
-        <dt className="flex items-center gap-1.5 text-xs">
-          <Route className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-          ผ่านแล้ว
-        </dt>
-        <dd className="mt-1 text-lg font-semibold tabular-nums">
-          {done}/{total}
-          <span className="ml-1 text-xs font-normal">ขั้น</span>
-        </dd>
-        <dd className="mt-2">
-          <ProgressBar done={done} total={total} />
-        </dd>
-      </div>
-      <div className={cn(cell, RADIUS.inner, VISUAL_TONE_CLASSES.product.soft)}>
-        <dt className="flex items-center gap-1.5 text-xs">
-          <PackageCheck className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-          จำนวนทั้งใบ
-        </dt>
-        <dd className="mt-1 text-lg font-semibold tabular-nums">
-          {totalQuantity(workOrder).toLocaleString("th-TH")}
-          <span className="ml-1 text-xs font-normal">ตัว</span>
-        </dd>
-        <dd className="mt-1 text-xs">{linesOf(workOrder, workOrder.operations[0]?.id ?? "").length || "–"} สี/ไซซ์</dd>
-      </div>
+    <dl className="grid grid-cols-2 gap-2">
+      <FactCell icon={CalendarDays} label="กำหนดส่ง" value={workOrder.deadline}>
+        {priorityBadge(workOrder.priorityLabel)}
+      </FactCell>
+      <FactCell icon={AlertTriangle} label="ปัญหาค้าง" value={open.toLocaleString("th-TH")} unit="รายการ" danger={open > 0}>
+        <span className={cn("text-xs", open > 0 ? "text-red-700 dark:text-red-300" : "text-muted")}>
+          {open > 0 ? "ยังไม่จบ ต้องจัดการ" : "ไม่มีเรื่องค้าง"}
+        </span>
+      </FactCell>
+      <FactCell icon={Route} label="ผ่านแล้ว" value={`${done}/${total}`} unit="ขั้น">
+        <ProgressBar done={done} total={total} />
+      </FactCell>
+      <FactCell icon={PackageCheck} label="จำนวนทั้งใบ" value={totalQuantity(workOrder).toLocaleString("th-TH")} unit="ตัว">
+        <span className="text-xs text-muted">{variants > 0 ? `${variants} สี/ไซซ์` : "ไม่นับชิ้น"}</span>
+      </FactCell>
     </dl>
   );
 }
@@ -179,16 +185,7 @@ function OrderLine({ workOrder }: { workOrder: DensityWorkOrder }) {
   );
 }
 
-function GroupLabel({ icon: Icon, children }: { icon: typeof History; children: React.ReactNode }) {
-  return (
-    <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-muted">
-      <Icon className="h-3.5 w-3.5" aria-hidden="true" />
-      {children}
-    </p>
-  );
-}
-
-/* ───────────────────────────────── คอลัมน์ซ้าย: บันไดขั้นงานบนราง */
+/* ───────────────────────────── คอลัมน์ซ้าย: บันไดขั้นงานบนราง */
 
 function StepperList({
   workOrder,
@@ -207,27 +204,24 @@ function StepperList({
     if (steps.length === 0) return null;
     return (
       <div className="py-2">
-        <p
-          className={cn(
-            "flex items-center gap-1.5 px-4 pb-1 pt-2 text-xs font-medium",
-            outsource ? "text-secondary" : "text-module-production-text",
-          )}
-        >
+        <p className="flex items-center gap-1.5 px-4 pb-1 pt-2 text-xs font-medium text-muted">
           {outsource ? (
-            <Truck className="h-3.5 w-3.5" aria-hidden="true" />
+            <Truck className={cn("h-3.5 w-3.5", MARK)} aria-hidden="true" />
           ) : (
-            <Factory className="h-3.5 w-3.5" aria-hidden="true" />
+            <Factory className={cn("h-3.5 w-3.5", MARK)} aria-hidden="true" />
           )}
           {title}
         </p>
         <ol className="relative">
-          {/* รางเส้นตั้งร้อยวงกลมเลขคิว */}
+          {/* รางเส้นตั้งร้อยวงกลมเลขคิว — บอกว่าเป็นลำดับ ไม่ใช่รายการลอย ๆ */}
           <span aria-hidden="true" className="absolute bottom-4 left-[1.875rem] top-4 w-px bg-divider" />
           {steps.map((step) => {
             const selected = selectedId === step.id;
+            const meta = STATE_META[step.state];
             const lines = linesOf(workOrder, step.id);
             const planned = lines.reduce((sum, line) => sum + line.planned, 0);
             const good = lines.reduce((sum, line) => sum + line.good, 0);
+            const percent = planned > 0 ? Math.round((good / planned) * 100) : 0;
             return (
               <li key={step.id} className="relative">
                 <button
@@ -238,23 +232,20 @@ function StepperList({
                     "relative flex w-full items-start gap-3 px-4 py-2.5 text-left transition-colors",
                     FOCUS_BUTTON,
                     selected
-                      ? "bg-interactive-selected before:absolute before:inset-y-2 before:left-0 before:w-0.5 before:rounded-r-full before:bg-blue-600 before:content-[''] dark:before:bg-blue-400"
+                      ? cn(
+                          INTERACTIVE_SELECTED,
+                          "before:absolute before:inset-y-2 before:left-0 before:w-0.5 before:rounded-r-full before:bg-blue-600 before:content-[''] dark:before:bg-blue-400",
+                        )
                       : "hover:bg-interactive-hover",
                   )}
                 >
                   <QueueCircle step={step} />
                   <span className="min-w-0 flex-1">
-                    <span
-                      className={cn(
-                        "block text-sm font-medium",
-                        selected ? "text-interactive-selected-text" : "text-strong",
-                      )}
-                    >
+                    <span className={cn("block text-sm font-medium", selected ? "" : "text-strong")}>
                       {step.name}
                     </span>
-                    <span className={cn("block text-xs", selected ? "text-interactive-selected-text opacity-80" : "text-muted")}>
-                      {STATE_META[step.state].label}
-                      {step.assignee ? ` · ${step.assignee}` : ""}
+                    <span className="mt-0.5 block">
+                      <StatusLabel label={meta.label} tone={meta.tone} sub={step.assignee ?? undefined} />
                     </span>
                     {step.blockers.map((blocker) => (
                       <span key={blocker} className="mt-0.5 flex items-center gap-1 text-xs font-medium text-red-700 dark:text-red-300">
@@ -264,17 +255,14 @@ function StepperList({
                     ))}
                     {planned > 0 ? (
                       <span className="mt-1.5 block">
-                        <span className={cn("flex items-center justify-between text-xs tabular-nums", selected ? "text-interactive-selected-text opacity-80" : "text-muted")}>
+                        <span className="flex items-center justify-between text-xs tabular-nums text-muted">
                           <span>
                             {good}/{planned} ตัว
                           </span>
-                          <span>{Math.round((good / planned) * 100)}%</span>
+                          <span>{percent}%</span>
                         </span>
                         <span className="mt-1 block h-1 overflow-hidden rounded-full bg-surface-muted">
-                          <span
-                            className="block h-full rounded-full bg-blue-600 dark:bg-blue-400"
-                            style={{ width: `${Math.round((good / planned) * 100)}%` }}
-                          />
+                          <span className="block h-full rounded-full bg-blue-600 dark:bg-blue-400" style={{ width: `${percent}%` }} />
                         </span>
                       </span>
                     ) : null}
@@ -302,7 +290,7 @@ function StepperList({
   );
 }
 
-/* ───────────────────────────────── คอลัมน์กลาง: หัวขั้น + โซนลงมือ + แท็บ */
+/* ───────────────────────────── คอลัมน์กลาง: หัวขั้น + โซนลงมือ + แท็บ */
 
 function FocusHeader({ step }: { step: DensityOperation }) {
   const meta = STATE_META[step.state];
@@ -314,7 +302,7 @@ function FocusHeader({ step }: { step: DensityOperation }) {
           <h2 className="text-lg font-semibold text-strong">{step.name}</h2>
           <StatusLabel label={meta.label} tone={meta.tone} emphasize />
           {step.outsourced ? (
-            <Badge variant="teal" size="sm">
+            <Badge size="sm">
               <Truck className="h-3 w-3" aria-hidden="true" /> ร้านนอก
             </Badge>
           ) : null}
@@ -352,9 +340,9 @@ function FocusHeader({ step }: { step: DensityOperation }) {
 function ActionZone({ workOrder, step }: { workOrder: DensityWorkOrder; step: DensityOperation }) {
   const idle = step.commands.length === 0 && step.state !== "COMPLETED";
   return (
-    <div className={cn("space-y-3 rounded-lg p-4", SUNK_PANEL, "ring-1 ring-inset ring-border")}>
-      <p className="flex items-center gap-1.5 text-xs font-medium text-module-production-text">
-        <Zap className="h-3.5 w-3.5" aria-hidden="true" />
+    <div className={cn("space-y-3 p-4 ring-1 ring-inset ring-border", RADIUS.inner, SUNK_PANEL)}>
+      <p className="flex items-center gap-1.5 text-xs font-medium text-muted">
+        <Zap className={cn("h-3.5 w-3.5", MARK)} aria-hidden="true" />
         ลงมือกับขั้นนี้
       </p>
       {step.blockers.length > 0 ? (
