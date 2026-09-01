@@ -13,6 +13,14 @@ export type ProtoEntry = {
 
 export const PROTOS: ProtoEntry[] = [
   {
+    slug: "factory-canvas",
+    title: "จอรวมการผลิตแบบ canvas",
+    question:
+      "จอรวมการผลิตควรเห็นทั้งโรงงานในภาพเดียวแบบไหน — ผังสายการผลิตมีเส้นเชื่อม / แผนที่โรงงานแบ่งโซนโดยงานร้านนอกอยู่นอกกรอบ / กระดานตามสถานีที่เห็นตัวใบงาน",
+    date: "2026-09-01",
+    status: "รอเคาะ",
+  },
+  {
     slug: "production-row",
     title: "หน้ารวมการผลิต — ต้องปรับตามผังใบงานไหม",
     question:
