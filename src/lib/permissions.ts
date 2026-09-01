@@ -1,5 +1,5 @@
 /**
- * PERM — ระบบสิทธิ์รายคน (เบสเคาะ 2026-07-06 · spec: docs/spec-user-permissions.md)
+ * PERM — ระบบสิทธิ์รายคน (เบสเคาะ 2026-07-06 · spec เดิม docs/spec-user-permissions.md ลบออกจาก repo 2026-09-02 หลังจบงาน — ดูใน git history · กติกาที่ยังใช้สรุปอยู่ในไฟล์นี้)
  *
  * โครง: ตำแหน่ง (Role) = ชุดสิทธิ์เริ่มต้น (ตารางล่าง — ถอดจากด่าน requireRole จริงทั้งระบบ
  * ณ 2026-07-07 ห้าม drift) + override รายคนใน users.permissionOverrides (JSON) —

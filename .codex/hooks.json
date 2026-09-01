@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node '/Users/lostxker/dev/Git/anajak-erp/.codex/hooks/progress-on-start.mjs'"
+            "command": "node '/Users/lostxker/dev/Git/anajak-erp/.claude/hooks/progress-on-start.mjs'"
           }
         ]
       }
