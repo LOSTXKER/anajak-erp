@@ -9,7 +9,7 @@ import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Section } from "@/components/ui/section";
 import { SegmentedControl } from "@/components/ui/segmented";
-import { ArrowRight, ClipboardList, Factory, Info, Maximize2 } from "lucide-react";
+import { ArrowRight, ClipboardList, Factory, Info, Maximize2, Route } from "lucide-react";
 
 import {
   PROTO_WORK_ORDER,
@@ -24,6 +24,7 @@ import {
   QuantityGrid,
   WorkOrderHeader,
 } from "./_pieces";
+import { FlowHint, HorizontalFlow, TwoLaneFlow, VerticalRail } from "./_flow";
 
 /** ขั้นที่ควรถูกเลือกไว้ก่อน — งานที่กำลังทำ ถ้าไม่มีก็ขั้นแรกที่พร้อมทำ */
 function defaultOperation() {
@@ -468,6 +469,90 @@ export function FocusVariant() {
   );
 }
 
+/* ============================================================
+   R · "เส้นทางการผลิต" ที่รู้สึกเป็นเส้นทางจริง (เบสสั่ง 2026-09-01)
+   โครง B เหมือนเดิม — เปลี่ยนแค่ฝั่งซ้ายจากตารางเป็นผังเส้นทาง
+   ============================================================ */
+
+function RailLayout({
+  title,
+  meta,
+  children,
+  selected,
+  hint = true,
+}: {
+  title: string;
+  meta: string;
+  children: React.ReactNode;
+  selected: ProtoOperation;
+  hint?: boolean;
+}) {
+  return (
+    <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_400px]">
+      <Section title={title} icon={Route} tone="production" meta={meta}>
+        {children}
+        {hint ? <FlowHint /> : null}
+      </Section>
+      <div className="xl:sticky xl:top-4 xl:self-start">
+        <Section title="ลงมือทำ" icon={Factory} tone="production" meta="ขั้นที่เลือกจากผัง">
+          <WorkPanel operation={selected} />
+        </Section>
+      </div>
+    </div>
+  );
+}
+
+/** R1 · รางแนวตั้ง — ขั้นที่ขนานกันแตกออกข้าง ๆ กันบนรางเดียว */
+export function RailVariant() {
+  const [selected, setSelected] = useState<ProtoOperation>(defaultOperation());
+  return (
+    <div className="space-y-4">
+      <WorkOrderHeader />
+      <RailLayout
+        title="เส้นทางการผลิต"
+        meta="อ่านจากบนลงล่างตามลำดับงานจริง"
+        selected={selected}
+      >
+        <VerticalRail onSelect={setSelected} selectedId={selected.id} />
+      </RailLayout>
+    </div>
+  );
+}
+
+/** R2 · ผังแนวนอน — เดินซ้ายไปขวาเป็นช่วง ๆ มีลูกศรเชื่อม */
+export function FlowVariantHorizontal() {
+  const [selected, setSelected] = useState<ProtoOperation>(defaultOperation());
+  return (
+    <div className="space-y-4">
+      <WorkOrderHeader />
+      <RailLayout
+        title="เส้นทางการผลิต"
+        meta="ไล่ซ้ายไปขวา · แต่ละช่วงเดินพร้อมกันได้"
+        selected={selected}
+      >
+        <HorizontalFlow onSelect={setSelected} selectedId={selected.id} />
+      </RailLayout>
+    </div>
+  );
+}
+
+/** R3 · สายพานคู่ — สายเรากับสายร้านนอกแยกราง แล้วมาบรรจบที่รีดร้อน */
+export function TwoLaneVariant() {
+  const [selected, setSelected] = useState<ProtoOperation>(defaultOperation());
+  return (
+    <div className="space-y-4">
+      <WorkOrderHeader />
+      <RailLayout
+        title="เส้นทางการผลิต"
+        meta="สองสายเดินขนาน แล้วมาบรรจบ"
+        selected={selected}
+      >
+        <TwoLaneFlow onSelect={setSelected} selectedId={selected.id} />
+      </RailLayout>
+    </div>
+  );
+}
+
 export const VARIANT_COMPONENTS = {
   current: CurrentVariant,
   inline: InlineVariant,
@@ -477,6 +562,9 @@ export const VARIANT_COMPONENTS = {
   flow: FlowVariant,
   batch: BatchVariant,
   focus: FocusVariant,
+  rail: RailVariant,
+  flowmap: FlowVariantHorizontal,
+  twolane: TwoLaneVariant,
 } as const;
 
 export type WorkOrderControlVariant = keyof typeof VARIANT_COMPONENTS;

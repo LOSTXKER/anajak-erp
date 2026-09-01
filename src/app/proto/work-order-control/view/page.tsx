@@ -15,6 +15,9 @@ const VARIANTS: WorkOrderControlVariant[] = [
   "flow",
   "batch",
   "focus",
+  "rail",
+  "flowmap",
+  "twolane",
 ];
 
 export default async function WorkOrderControlProtoView({
