@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProductionV2FlowMap } from "./production-v2-flow-map";
+import { ProductionV2WorkPanel } from "./production-v2-work-panel";
 import type { RouterOutput } from "@/lib/trpc";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
@@ -876,7 +877,19 @@ export function ProductionV2ControlRecord({
                   ?.scrollIntoView({ behavior: "smooth", block: "center" });
               }}
             />
-            <ReferenceControl workOrder={workOrder} />
+            <div className="space-y-5">
+              {/* แผงลงมือ — ครึ่งขวาของแบบ R3 ที่เบสเลือก */}
+              <ProductionV2WorkPanel
+                workOrder={workOrder}
+                operation={
+                  selectedOperationId
+                    ? (operationsById.get(selectedOperationId) ?? null)
+                    : null
+                }
+                stale={stale}
+              />
+              <ReferenceControl workOrder={workOrder} />
+            </div>
           </div>
           <QuantityLedger
             lines={workOrder.quantityLines}
