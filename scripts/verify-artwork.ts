@@ -353,12 +353,12 @@ async function main() {
       { position: "FRONT", designImageUrl: "/api/files/designs/orders/art-verify/c.png" },
     ]);
     orderIds.push(C.id);
-    // Gate B4: เข้าแพ็คมือต้องมีผลตรวจนับก่อน — นับบางส่วน (3/5 ไม่ครบ ไม่เด้งเอง
-    // = เคสจริงลูกค้ารับของไม่ครบ) แล้วดัน PACKING ด้วยมือผ่าน updateStatus
+    // Gate B4: เข้าแพ็คมือต้องมีผลตรวจนับครบยอดเหมือนเส้น QC ปกติ
+    // แล้วจึงดัน PACKING ด้วยมือผ่าน updateStatus เพื่อยืนยันว่า promote ยังวิ่ง
     await caller.qc.create({
       orderId: C.id,
       idempotencyKey: "verify-artwork-qc-c",
-      qtyGood: 3,
+      qtyGood: 5,
       defects: [],
       notes: `${MARK}`,
     });
