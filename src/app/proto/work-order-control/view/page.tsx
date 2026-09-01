@@ -6,7 +6,16 @@
 import { WorkOrderControlPreview } from "../_preview";
 import type { WorkOrderControlVariant } from "../_variants";
 
-const VARIANTS: WorkOrderControlVariant[] = ["current", "inline", "side", "bottom", "tabs"];
+const VARIANTS: WorkOrderControlVariant[] = [
+  "current",
+  "inline",
+  "side",
+  "bottom",
+  "tabs",
+  "flow",
+  "batch",
+  "focus",
+];
 
 export default async function WorkOrderControlProtoView({
   searchParams,

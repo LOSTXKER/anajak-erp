@@ -3,12 +3,13 @@
 /* สี่แบบที่กำลังเทียบ — โจทย์เดียว: หัวหน้าคุมงานจบในหน้าใบงาน ไม่ต้องสลับไปจอสถานี
    ทุกแบบใช้ข้อมูลชุดเดียวกันและ component จริงชุดเดียวกัน ต่างกันแค่ "ปุ่มลงมืออยู่ตรงไหน" */
 
+import type * as React from "react";
 import { useState } from "react";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Section } from "@/components/ui/section";
 import { SegmentedControl } from "@/components/ui/segmented";
-import { ArrowRight, ClipboardList, Factory, Info } from "lucide-react";
+import { ArrowRight, ClipboardList, Factory, Info, Maximize2 } from "lucide-react";
 
 import {
   PROTO_WORK_ORDER,
@@ -254,12 +255,228 @@ export function TabsVariant() {
   );
 }
 
+
+/* ============================================================
+   ต่อยอดจากแบบ B (เบสชอบ B แล้ว 2026-09-01) — สามทางที่ยืนบนโครงเดิม
+   ทุกแบบยังเป็น "ซ้ายภาพรวม ขวาลงมือ" เหมือน B เปลี่ยนแค่วิธีทำงานกับแผงขวา
+   ============================================================ */
+
+/** แผงลงมือ — ตัวเดียวกับ B ใช้ซ้ำในทุกแบบต่อยอด */
+function WorkPanel({
+  operation,
+  footer,
+}: {
+  operation: ProtoOperation;
+  footer?: React.ReactNode;
+}) {
+  const totals = quantityTotals(operation);
+  return (
+    <div className="space-y-3">
+      <div>
+        <p className="text-base font-semibold text-strong">{operation.name}</p>
+        <OperationMeta operation={operation} />
+      </div>
+      <OperationStatus operation={operation} />
+      {operation.gate ? (
+        <Alert variant="warning" title="ขั้นนี้มีเงื่อนไขเฉพาะ">{operation.gate}</Alert>
+      ) : null}
+      {operation.problem ? (
+        <Alert variant="error" title="มีปัญหาค้างอยู่">{operation.problem}</Alert>
+      ) : null}
+      {operation.state === "PLANNED" ? (
+        <p className="text-sm text-secondary">
+          ยังเริ่มไม่ได้ — รอ{" "}
+          {operation.waitsFor
+            .map((code) => PROTO_WORK_ORDER.operations.find((item) => item.code === code)?.name ?? code)
+            .join(" · ")}
+        </p>
+      ) : (
+        <>
+          {totals.planned > 0 ? <QuantityGrid operation={operation} compact /> : null}
+          <OperationActions operation={operation} size="lg" full />
+        </>
+      )}
+      {footer}
+    </div>
+  );
+}
+
+/* --------------------------- B1 · จบขั้นแล้วไหลไปขั้นถัดไปเอง */
+
+export function FlowVariant() {
+  const [selected, setSelected] = useState<ProtoOperation>(defaultOperation());
+  const nextUp = PROTO_WORK_ORDER.operations.find(
+    (operation) =>
+      operation.id !== selected.id &&
+      (operation.state === "READY" || operation.state === "RUNNING"),
+  );
+
+  return (
+    <div className="space-y-4">
+      <WorkOrderHeader />
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_400px]">
+        <Section title="เส้นทางการผลิต" icon={ClipboardList} tone="production">
+          <OperationTable onSelect={setSelected} selectedId={selected.id} />
+        </Section>
+        <div className="xl:sticky xl:top-4 xl:self-start">
+          <Section title="ลงมือทำ" icon={Factory} tone="production" meta="ปิดขั้นแล้วไปต่อได้ทันที">
+            <WorkPanel
+              operation={selected}
+              footer={
+                nextUp ? (
+                  /* หัวใจของแบบนี้: ไม่ต้องกลับไปหาในตารางว่าจะทำอะไรต่อ */
+                  <div className="rounded-xl border border-dashed border-border p-3">
+                    <p className="text-xs text-muted">พอปิดขั้นนี้แล้ว ทำต่อได้เลยที่</p>
+                    <div className="mt-1.5 flex items-center justify-between gap-2">
+                      <span className="min-w-0">
+                        <span className="block text-sm font-medium text-strong">{nextUp.name}</span>
+                        <OperationMeta operation={nextUp} />
+                      </span>
+                      <Button variant="outline" size="sm" onClick={() => setSelected(nextUp)}>
+                        ไปต่อ
+                        <ArrowRight />
+                      </Button>
+                    </div>
+                  </div>
+                ) : null
+              }
+            />
+          </Section>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ----------------------- B2 · ติ๊กหลายขั้นแล้วสั่งพร้อมกัน */
+
+export function BatchVariant() {
+  const [selected, setSelected] = useState<ProtoOperation>(defaultOperation());
+  const [checked, setChecked] = useState<string[]>([]);
+  const startable = PROTO_WORK_ORDER.operations.filter(
+    (operation) => operation.state === "READY",
+  );
+
+  return (
+    <div className="space-y-4">
+      <WorkOrderHeader />
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_400px]">
+        <Section
+          title="เส้นทางการผลิต"
+          icon={ClipboardList}
+          tone="production"
+          meta={`เริ่มพร้อมกันได้ ${startable.length} ขั้น`}
+        >
+          {/* แถวติ๊ก — เฉพาะขั้นที่พร้อมทำ (ขั้นอื่นติ๊กไม่ได้ ระบบบังคับอยู่แล้ว) */}
+          <div className="mb-3 space-y-1.5 rounded-xl border border-border p-3">
+            {startable.map((operation) => {
+              const on = checked.includes(operation.id);
+              return (
+                <label
+                  key={operation.id}
+                  className="flex cursor-pointer items-center gap-2 text-sm text-strong"
+                >
+                  <input
+                    type="checkbox"
+                    checked={on}
+                    onChange={() =>
+                      setChecked((list) =>
+                        on ? list.filter((id) => id !== operation.id) : [...list, operation.id],
+                      )
+                    }
+                  />
+                  {operation.name}
+                  <span className="text-xs text-muted">{operation.workCenter}</span>
+                </label>
+              );
+            })}
+            <div className="flex justify-end pt-1">
+              <Button size="sm" disabled={checked.length === 0}>
+                เริ่มงาน {checked.length > 0 ? `${checked.length} ขั้นพร้อมกัน` : "ที่เลือก"}
+              </Button>
+            </div>
+          </div>
+          <OperationTable onSelect={setSelected} selectedId={selected.id} />
+        </Section>
+        <div className="xl:sticky xl:top-4 xl:self-start">
+          <Section title="ลงมือทำ" icon={Factory} tone="production" meta="ทีละขั้นแบบละเอียด">
+            <WorkPanel operation={selected} />
+          </Section>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* --------------------- B3 · โหมดหน้างาน (แผงขยายเต็มจอ) */
+
+export function FocusVariant() {
+  const [selected, setSelected] = useState<ProtoOperation>(defaultOperation());
+  const [focus, setFocus] = useState(false);
+
+  if (focus) {
+    return (
+      <div className="space-y-4">
+        {/* โหมดหน้างาน: ตัวหนังสือใหญ่ ปุ่มใหญ่ ไม่มีอะไรให้กดผิด — เอาไปตั้งข้างเครื่องได้ */}
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm text-muted">
+            โหมดหน้างาน · {PROTO_WORK_ORDER.workOrderNumber}
+          </p>
+          <Button variant="outline" onClick={() => setFocus(false)}>
+            กลับหน้าควบคุม
+          </Button>
+        </div>
+        <div className="card-surface rounded-2xl p-6">
+          <p className="text-2xl font-semibold text-strong">{selected.name}</p>
+          <p className="mt-1 text-base text-secondary">
+            {selected.workCenter}
+            {selected.assignee ? ` · ${selected.assignee}` : ""}
+          </p>
+          <div className="mt-4 space-y-4 text-base">
+            <QuantityGrid operation={selected} />
+            <OperationActions operation={selected} size="lg" full />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <WorkOrderHeader />
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_400px]">
+        <Section title="เส้นทางการผลิต" icon={ClipboardList} tone="production">
+          <OperationTable onSelect={setSelected} selectedId={selected.id} />
+        </Section>
+        <div className="xl:sticky xl:top-4 xl:self-start">
+          <Section
+            title="ลงมือทำ"
+            icon={Factory}
+            tone="production"
+            action={
+              <Button variant="outline" size="sm" onClick={() => setFocus(true)}>
+                <Maximize2 />
+                โหมดหน้างาน
+              </Button>
+            }
+          >
+            <WorkPanel operation={selected} />
+          </Section>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export const VARIANT_COMPONENTS = {
   current: CurrentVariant,
   inline: InlineVariant,
   side: SideVariant,
   bottom: BottomBarVariant,
   tabs: TabsVariant,
+  flow: FlowVariant,
+  batch: BatchVariant,
+  focus: FocusVariant,
 } as const;
 
 export type WorkOrderControlVariant = keyof typeof VARIANT_COMPONENTS;
