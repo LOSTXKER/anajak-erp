@@ -6,7 +6,7 @@
 import { WorkOrderRebuildPreview } from "../_preview";
 import type { WorkOrderRebuildVariant } from "../_variants";
 
-const VARIANTS: WorkOrderRebuildVariant[] = ["current", "table", "station", "rail"];
+const VARIANTS: WorkOrderRebuildVariant[] = ["current", "table", "station", "station2", "rail"];
 
 export default async function WorkOrderRebuildProtoView({
   searchParams,

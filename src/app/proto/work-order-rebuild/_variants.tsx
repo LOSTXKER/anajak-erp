@@ -42,6 +42,7 @@ import {
   type DensityWorkOrder,
 } from "../work-order-density/_data";
 import { CurrentVariant } from "../work-order-density/_variants";
+import { StationPolishedVariant } from "./_station-polished";
 import {
   BlockingBar,
   EventList,
@@ -830,6 +831,7 @@ export const VARIANT_COMPONENTS = {
   current: CurrentVariant,
   table: TableVariant,
   station: StationVariant,
+  station2: StationPolishedVariant,
   rail: RailVariant,
 } as const;
 
