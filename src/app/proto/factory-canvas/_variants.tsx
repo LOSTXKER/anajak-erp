@@ -29,7 +29,7 @@ import { cn } from "@/lib/utils";
 
 import { PROTO_BOARD } from "../production-list/_data";
 
-type StationNode = {
+export type StationNode = {
   key: string;
   label: string;
   count: number;
@@ -38,7 +38,7 @@ type StationNode = {
 };
 
 /** สถานีทั้งหมดที่มีงานอยู่ตอนนี้ — ยกจาก board ตัวจริง */
-function stations(): StationNode[] {
+export function stations(): StationNode[] {
   return PROTO_BOARD.stations.map((station) => ({
     key: station.key,
     label: station.label,
@@ -49,7 +49,7 @@ function stations(): StationNode[] {
 }
 
 /** คืน element ไม่ใช่ตัว component — react-compiler ห้ามประกอบ component ตอน render */
-function stationIcon(key: string, isOutsource: boolean, className: string) {
+export function stationIcon(key: string, isOutsource: boolean, className: string) {
   const Icon: LucideIcon =
     key === "queue"
       ? Timer
@@ -77,7 +77,7 @@ function flowWidth(count: number) {
 
 /* -------------------------------------------------- การ์ด node */
 
-function NodeCard({
+export function NodeCard({
   node,
   size = "md",
 }: {

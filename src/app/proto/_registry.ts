@@ -13,6 +13,14 @@ export type ProtoEntry = {
 
 export const PROTOS: ProtoEntry[] = [
   {
+    slug: "production-canvas-filter",
+    title: "ผังโรงงานเป็นตัวกรองของหน้ารวมการผลิต",
+    question:
+      "แทนแถบ 4 มุมเดิมด้วยผังโรงงานที่กดกรองได้เลยดีไหม — ผังเต็ม (มีแถบภาระ) หรือผังย่อ (ชิปบรรทัดเดียว) · ได้ทั้งกรองงานและเห็นโครงสร้างการผลิตในที่เดียว",
+    date: "2026-09-01",
+    status: "รอเคาะ",
+  },
+  {
     slug: "factory-canvas",
     title: "จอรวมการผลิตแบบ canvas",
     question:
