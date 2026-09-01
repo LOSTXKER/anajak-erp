@@ -147,29 +147,62 @@ function rememberWorklistFocus(orderId: string) {
   }
 }
 
+/* สีของแต่ละช่วงบนแถบ — ชุดเดียวกับผังเส้นทางในใบงาน เพื่อให้สองหน้าพูดภาษาเดียวกัน */
+const RAIL_SEGMENT_CLASS: Record<string, string> = {
+  done: "bg-green-600 dark:bg-green-400",
+  now: "bg-amber-500",
+  stuck: "bg-amber-500/70",
+  failed: "bg-red-600 dark:bg-red-400",
+  wait: "bg-border",
+};
+
+const RAIL_STATE_WORD: Record<string, string> = {
+  done: "ผ่านแล้ว",
+  now: "กำลังทำ",
+  stuck: "ติดรอของ",
+  failed: "มีปัญหา",
+  wait: "ยังไม่ถึง",
+};
+
+/**
+ * เส้นทางงานของแถว — แถบเดียวแบ่งเป็นช่วงตามขั้นจริง แล้วย้อมสีตามสถานะแต่ละช่วง
+ * (เบสเลือกแบบ C จากหน้าลอง /proto/production-row เมื่อ 2026-09-01)
+ *
+ * เดิมเป็นแถบเปอร์เซ็นต์เส้นเดียว ซึ่งบอกว่าไปได้เท่าไรแต่ไม่บอกว่าค้างตรงไหน ·
+ * ชื่อขั้นที่ค้างไม่ต้องเขียนซ้ำใต้แถบ เพราะคอลัมน์ "สถานะ" ข้าง ๆ บอกอยู่แล้ว
+ */
 function WorkProgress({
   rail,
 }: {
   rail: readonly BoardRailPoint[];
 }) {
-  const { completed, total, percent } = productionWorklistProgress(rail);
+  const { completed, total } = productionWorklistProgress(rail);
+  const points = rail.filter((point) => point.state !== "na");
 
   return (
     <div className="min-w-24">
-      <div className="flex items-center justify-between gap-2 text-xs text-muted">
-        <span>{completed}/{total} ช่วง</span>
-        <span>{percent}%</span>
-      </div>
       <div
         role="progressbar"
         aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={percent}
+        aria-valuemax={total}
+        aria-valuenow={completed}
         aria-label={`ผ่านแล้ว ${completed} จาก ${total} ช่วง`}
-        className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-muted"
+        className="flex h-1.5 overflow-hidden rounded-full bg-surface-muted"
       >
-        <div className="h-full rounded-full bg-blue-600 transition-[width] duration-[var(--duration-base)] ease-out" style={{ width: `${percent}%` }} />
+        {points.map((point) => (
+          <span
+            key={point.key}
+            title={`${point.label} · ${RAIL_STATE_WORD[point.state] ?? point.state}`}
+            className={cn(
+              "h-full flex-1 border-r border-surface last:border-r-0",
+              RAIL_SEGMENT_CLASS[point.state] ?? "bg-border",
+            )}
+          />
+        ))}
       </div>
+      <p className="mt-1.5 text-xs tabular-nums text-muted">
+        {completed}/{total} ช่วง
+      </p>
     </div>
   );
 }
@@ -288,7 +321,7 @@ function DesktopRows<S extends BoardStepLike, O extends BoardOrderLike<S>>({
           </DataTable.SortableTh>
           <DataTable.Th>สถานะ</DataTable.Th>
           <DataTable.SortableTh {...sortColumn("progress")}>
-            ความคืบหน้า
+            เส้นทางงาน
           </DataTable.SortableTh>
           <DataTable.SortableTh
             {...sortColumn("totalQuantity")}
