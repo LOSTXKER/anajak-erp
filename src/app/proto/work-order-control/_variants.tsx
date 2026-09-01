@@ -25,6 +25,7 @@ import {
   WorkOrderHeader,
 } from "./_pieces";
 import { FlowHint, HorizontalFlow, TwoLaneFlow, VerticalRail } from "./_flow";
+import { TwoLaneFullVariant } from "./_r3-page";
 
 /** ขั้นที่ควรถูกเลือกไว้ก่อน — งานที่กำลังทำ ถ้าไม่มีก็ขั้นแรกที่พร้อมทำ */
 function defaultOperation() {
@@ -565,6 +566,7 @@ export const VARIANT_COMPONENTS = {
   rail: RailVariant,
   flowmap: FlowVariantHorizontal,
   twolane: TwoLaneVariant,
+  twolanefull: TwoLaneFullVariant,
 } as const;
 
 export type WorkOrderControlVariant = keyof typeof VARIANT_COMPONENTS;
