@@ -119,10 +119,6 @@ function ProductionDesk() {
             ? `งานในโรงงาน ${board.totalJobs.toLocaleString("th-TH")} ใบ · รอเปิดใบผลิต ${awaiting.toLocaleString("th-TH")} ใบ`
             : "ดูว่างานไหนต้องจัดการก่อน อยู่ขั้นไหน และของร้านนอกกลับเมื่อไร"
         }
-        // สถานะรีเฟรชอยู่ใต้หัว ไม่ปนกับแถบกรอง (เบสทัก 2026-09-02) · ใช้ headerChildren เพราะ meta อยู่ใน <p>
-        headerChildren={
-          <ProductionFreshness updatedAt={dataUpdatedAt} isFetching={isFetching && !isLoading} stale={hasStaleData} className="-mt-3" />
-        }
         action={
           canCreateProduction ? (
             // กรองไปกอง "รอเปิดใบผลิต" — แถวในกองนั้นกดแล้วเปิด dialog สร้างใบ (ทางเดิม ?create=)
@@ -194,6 +190,16 @@ function ProductionDesk() {
                 : "ไม่มีงานตรงตัวกรองนี้ — กดตัวเลขหรือขั้นงานอีกครั้งเพื่อดูทั้งหมด"
             }
           />
+          {/* สถานะรีเฟรช = ข้อมูลประกอบ (ชั้น 3) อยู่ท้ายตารางชิดขวา — เบสทัก 2026-09-02 ว่าไว้บนหัวแล้ว "ดูแปลก ๆ"
+              และไว้ในแถบกรองแล้ว "อัด" · ยกเว้นตอนข้อมูลค้าง (stale) ซึ่งมี Alert บอกที่หัวหน้าอยู่แล้ว */}
+          <div className="flex justify-end">
+            <ProductionFreshness
+              updatedAt={dataUpdatedAt}
+              isFetching={isFetching && !isLoading}
+              stale={hasStaleData}
+              className="text-xs [&_p]:text-xs"
+            />
+          </div>
         </div>
       </PageShell>
 
