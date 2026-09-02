@@ -27,7 +27,6 @@ import { DueTag } from "@/components/ui/due-tag";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { InfoChip, InfoChipRow } from "@/components/ui/info-chip";
 import { SearchInput } from "@/components/ui/search-input";
-import { Select } from "@/components/ui/select";
 import { MockupThumbnail } from "@/components/mockup/mockup-thumbnail";
 import { orderMockupCover } from "@/lib/mockup";
 import type { BoardOrderLike, BoardRailPoint } from "@/lib/production-board";
@@ -119,7 +118,8 @@ function ChipCount({ count, overdue }: { count: number; overdue: number }) {
 
 /**
  * แถบกรอง 2 แถว (เบสเคาะ 2026-09-02 หลังลอง 3 รอบ): แถวบน = ช่องค้นหาสั้น 240px + สถานะอัปเดตชิดขวา
- * แถวล่าง = ชิปขั้นงาน · ร้านนอก 6 ประเภทยุบเป็นชิป "ร้านนอก" ชิปเดียว กดแล้วค่อยเลือกประเภทร้าน
+ * แถวล่าง = ชิปขั้นงาน · ร้านนอก 6 ประเภทยุบเป็นชิป "ร้านนอก" ชิปเดียว กดแล้วประเภทร้านโผล่เป็น
+ * ชิปย่อยแถวเล็กข้างล่าง (เบสไม่เอา dropdown 2026-09-02)
  * ⚠️ ความกว้างช่องค้นหาล็อกเป็น w-60 ตรง ๆ ไม่ใช้ sm:w-* — รอบก่อนจอเบสยังเห็นเต็มแถว
  */
 export function DeskToolbar({
@@ -162,7 +162,7 @@ export function DeskToolbar({
         />
         {freshness ? <div className="ml-auto">{freshness}</div> : null}
       </div>
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-1 border-b border-divider">
+      <div className={cn("flex flex-wrap items-center gap-x-5 gap-y-1", !outsourceActive && "border-b border-divider")}>
         <FilterChip selected={station === ""} onClick={() => onSelectStation("")}>
           ทุกขั้น <ChipCount count={total} overdue={0} />
         </FilterChip>
@@ -177,35 +177,34 @@ export function DeskToolbar({
           </FilterChip>
         ))}
         {outsource.length > 0 ? (
-          <span className="inline-flex items-center gap-2">
-            <FilterChip
-              selected={outsourceActive}
-              onClick={() => onSelectStation(STATION_OUTSOURCE_ALL)}
-              icon={<Truck className="h-4 w-4" />}
-              aria-label={`ร้านนอกทุกประเภท ${outsourceCount} งาน${outsourceOverdue ? ` เลยกำหนด ${outsourceOverdue}` : ""} · กดเพื่อกรอง`}
-            >
-              ร้านนอก <ChipCount count={outsourceCount} overdue={outsourceOverdue} />
-            </FilterChip>
-            {outsourceActive ? (
-              <Select
-                shape="pill"
-                surface="raised"
-                aria-label="เลือกประเภทร้านนอก"
-                value={station === STATION_OUTSOURCE_ALL ? "" : station}
-                onChange={(event) => onSelectStation(event.target.value || STATION_OUTSOURCE_ALL)}
-                className="min-w-40"
-              >
-                <option value="">ทุกประเภทร้าน</option>
-                {outsource.map((chip) => (
-                  <option key={chip.key} value={chip.key}>
-                    {chip.label} ({chip.count})
-                  </option>
-                ))}
-              </Select>
-            ) : null}
-          </span>
+          <FilterChip
+            selected={outsourceActive}
+            onClick={() => onSelectStation(STATION_OUTSOURCE_ALL)}
+            icon={<Truck className="h-4 w-4" />}
+            aria-label={`ร้านนอกทุกประเภท ${outsourceCount} งาน${outsourceOverdue ? ` เลยกำหนด ${outsourceOverdue}` : ""} · กดเพื่อกรอง`}
+          >
+            ร้านนอก <ChipCount count={outsourceCount} overdue={outsourceOverdue} />
+          </FilterChip>
         ) : null}
       </div>
+      {outsourceActive ? (
+        // ประเภทร้านเป็นชิปย่อยแถวเล็ก โผล่เฉพาะตอนกด "ร้านนอก" — แถวหลักจึงไม่อัด
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-divider pl-6" data-production-desk-outsource-types="">
+          <FilterChip selected={station === STATION_OUTSOURCE_ALL} onClick={() => onSelectStation(STATION_OUTSOURCE_ALL)}>
+            ทุกประเภทร้าน <ChipCount count={outsourceCount} overdue={outsourceOverdue} />
+          </FilterChip>
+          {outsource.map((chip) => (
+            <FilterChip
+              key={chip.key}
+              selected={station === chip.key}
+              onClick={() => onSelectStation(chip.key)}
+              aria-label={`${chip.label} ${chip.count} งาน${chip.overdue ? ` เลยกำหนด ${chip.overdue}` : ""} · กดเพื่อกรอง`}
+            >
+              {chip.label} <ChipCount count={chip.count} overdue={chip.overdue} />
+            </FilterChip>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
