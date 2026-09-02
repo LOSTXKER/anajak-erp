@@ -219,6 +219,10 @@
     "dots": 1,
     "muted": 6
   },
+  "src/components/factory/station-garment-preview.tsx": {
+    "dots": 1,
+    "muted": 5
+  },
   "src/components/goods-receipt/goods-receipt-dialog.tsx": {
     "dots": 0,
     "muted": 2
@@ -238,6 +242,10 @@
   "src/components/layout/user-menu.tsx": {
     "dots": 0,
     "muted": 2
+  },
+  "src/components/material-usage.tsx": {
+    "dots": 0,
+    "muted": 11
   },
   "src/components/mockup/mockup-gallery.tsx": {
     "dots": 0,
@@ -387,9 +395,29 @@
     "dots": 0,
     "muted": 4
   },
+  "src/components/production/garment-pick-card.tsx": {
+    "dots": 0,
+    "muted": 4
+  },
+  "src/components/production/production-design-card.tsx": {
+    "dots": 0,
+    "muted": 1
+  },
   "src/components/production/production-desk-view.tsx": {
     "dots": 0,
     "muted": 2
+  },
+  "src/components/production/production-mockup-tab.tsx": {
+    "dots": 0,
+    "muted": 4
+  },
+  "src/components/production/step-update-dialog.tsx": {
+    "dots": 0,
+    "muted": 1
+  },
+  "src/components/production/work-order-page.tsx": {
+    "dots": 0,
+    "muted": 3
   },
   "src/components/providers.tsx": {
     "dots": 0,

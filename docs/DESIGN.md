@@ -313,7 +313,7 @@ Production V2 ใช้ `manufacturing` read/command contract เป็นแห
 | บ้าน | เจ้าของและสิ่งที่ทำได้ |
 |---|---|
 | `/production` | **โต๊ะงานหัวหน้า แบบ A (2026-09-02)**: ตัวเลข 4 ช่องเป็นตัวกรอง (เลยกำหนด · ติดปัญหา · ของร้านนอกครบกำหนด · พร้อมส่ง) · ชิปขั้นงาน · `DataTable` 8 คอลัมน์ กองตามความรีบเป็นหัวกลุ่ม · ไม่มีปุ่มในแถว กดทั้งแถวเปิดใบผลิต · ตัวเลข/ป้ายกำหนดส่ง/ชิปขั้น = ชั้น 1 ตาม §ลำดับความสำคัญทางสายตา |
-| `/production/[id]` | **ถอดออก 2026-09-02 รอออกแบบใหม่** (`ROADMAP.md` §A) — เดิม: Control Record identity/due risk/routing snapshot/operation ledger/readiness/quantity/exception/assignment/resequence/audit |
+| `/production/[id]` | **ใบผลิตแบบ D “แท็บ + 2 คอลัมน์” (2026-09-03)**: หัวใบตัวเลข 4 ช่อง (จำนวน · กำหนดส่ง · ผ่านแล้ว · ติดปัญหา) + การ์ดปัญหาแดง เห็นทุกแท็บ → แท็บ ขั้นงาน / ทำอะไร / ข้อมูลใบ / ประวัติ ทุกแท็บ 2 คอลัมน์ · แท็บขั้นงาน: รายการขั้นซ้าย (กดเลือก) · ขั้นที่เลือกขวา = ตัวเลขทำแล้ว + ร้านนอก + **โซนลงมือมาตรฐาน** (ข้อกำหนดของขั้น → ปุ่มหลักปุ่มเดียวจาก `selectNowSteps` → แจ้งปัญหา) · ไม่มีปุ่มลงมือแทนพนักงานนอกโซนนี้ |
 | `/factory/station` | **ถอดออก 2026-09-02 รอออกแบบใหม่** (`ROADMAP.md` §A2) — กติกาที่จอใหม่ต้องรักษาอยู่ §Station work center และ flow ด้านล่าง |
 | `/factory` | TV อ่านอย่างเดียว แสดง WIP/load/late/exception ของ Work Center โดยไม่มี link, button หรือ mutation |
 | Order / My Tasks | Order Production tab เหลือ summary+deep link; My Tasks ทุกบทบาทเข้า Control Record จนกว่าจอสถานีใหม่จะมา (เดิม route ตาม role ไป exact Station job) |

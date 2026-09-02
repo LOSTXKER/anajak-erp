@@ -9,7 +9,7 @@ src/app/            หน้าจอ (Next.js App Router · Turbopack)
   (auth)/login      หน้า login
   (dashboard)/      ทุกหน้าหลังบ้าน — ผ่าน Proxy + layout guard (orders/quotations/customers/products/
                     production/billing/analytics/my-tasks/notifications/settings/*)
-                    /production = โต๊ะงานหัวหน้าแบบ A (2026-09-02 · production-desk-page/-view + lib/production-desk) · /production/[id] + print-runs/films//outsource ถอดออกแล้ว รอออกแบบใหม่ (ROADMAP §A §A3)
+                    /production = โต๊ะงานหัวหน้าแบบ A (2026-09-02 · production-desk-page/-view + lib/production-desk) · /production/[id] = ใบผลิตแบบ D (work-order-page.tsx + lib/work-order-standards) · print-runs/films//outsource ถอดออกแล้ว (ROADMAP §A3)
   (public)/         หน้าลูกค้า/ร้านนอกถือ token ไม่ต้อง login: approve/design · status · upload · quote · job
   (print)/print/    เอกสาร A4 light-only: invoice · quotation · billing-note · job-ticket · packing-list
   (v2)/v2/*         compatibility redirect ไป URL หลัก (คง query)
