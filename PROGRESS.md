@@ -4,21 +4,25 @@
 > ประวัติละเอียดทุกรอบก่อน 2026-09-02 (1 MB) อยู่ใน git: `git show 61575af:PROGRESS.md`
 
 ## ตอนนี้ (2026-09-02)
-- **ถอดจอสถานี `/factory/station` ออกทั้งชุด — รอออกแบบใหม่** (เบสสั่ง 09-02 · branch `remove/factory-station-2026-09-02` · ROADMAP §A2): ลบ route + UI legacy/V2 (station-mode-screen, manufacturing-station-screen, dtf-batch-dialog, station-queue/current/order-workspace/shell) + lib ที่ใช้เฉพาะจอนี้ (`manufacturing-station` `station-continuation`) + test 16 ไฟล์ · ทางเข้าทุกจุดชี้ใบผลิต `/production/[id]` แทน (เมนูข้าง · เมนูโมดูลผลิต · My Tasks · ปุ่ม "เปิดบริบทสถานี" ในใบผลิต · ลิงก์ในแจ้งเตือน · QR ใบงานพิมพ์ → หน้าออเดอร์) · ด่าน `verify:ui` ที่อ่านไฟล์ที่ลบไปถอดตามไป
-- **ยังเก็บไว้ให้จอใหม่ต่อ (ไม่ได้ลบ):** จอโรงงาน `/factory` (TV) · server `factory.station*` / `manufacturing.station*` + read model + `factory-scan` · โหมด `surface="station"` ที่ฝังใน `production-detail-screen` / `print-runs-screen` (ไม่มีใครเรียกแล้ว) · `station-garment-preview` (การ์ดลายในใบผลิตใช้) · กติกาใน `docs/DESIGN.md` §Station work center
-- ด่านที่ผ่านรอบนี้: typecheck · eslint 0 error · unit 1659/1659 (ลดจาก 1682 เพราะลบ test ของจอที่ถอด) · verify:ui ผ่านครบ · **ยังไม่ได้รัน `npm run build`** เพราะ dev demo (`:3100`) เปิดค้างอยู่ — ต้องรันก่อน merge main
-- **หน้าใบสั่งผลิต `/production/[id]`**: ล้างหน้าลอง 20+ แบบออกหมดแล้ว (09-02) · หน้าเหมือนก่อนเริ่มเรื่องนี้ทุกอย่าง · รอเบสตั้งโจทย์ใหม่
-- **Production V2**: โค้ด / migration / seed / `/settings/routings` ครบ · ซ้อมบนฐาน demo ผ่านถึงกลางทาง (ใบ MO-2609-0001 เปิดได้ครบ 9 ขั้น) · **การซ้อมที่เหลือต้องกดในจอสถานี → ค้างจนกว่าจอใหม่จะเสร็จ** · ของจริงบน Vercel ยังเป็น legacy (`PRODUCTION_V2_ENABLED=0`)
+- **ถอดโมดูลผลิตออกเกือบทั้งหมด — รอออกแบบใหม่** (เบสสั่ง 09-02 · branch `remove/factory-station-2026-09-02` · ROADMAP §A2 + §A3): 
+  - จอสถานี `/factory/station` (legacy + V2) — commit `13b68f4`
+  - หน้ารายการผลิต `/production` + รอบพิมพ์ DTF `/production/print-runs` + คลังฟิล์ม `/production/films` + คิวร้านนอก `/outsource` (legacy + V2) + dialog เปิดใบผลิต + lib worklist/board/print-run-workspace + หน้าลอง proto ของหน้ารายการ 5 ชุด — commit นี้
+  - **เหลือ**: ใบผลิต `/production/[id]` (เข้าจากหน้าออเดอร์ / My Tasks) · จอโรงงาน `/factory` (TV) · หน้าตั้งค่า `/settings/routings`
+- **เบสเคาะ "ลบเกลี้ยง ยอมพังชั่วคราว"** — ผลที่เห็น: เมนู "การผลิต" หายจากเมนูข้าง/แดชบอร์ด · **เปิดใบผลิตจากออเดอร์ไม่ได้** (ปุ่มถูกถอด ข้อความบอกว่ากำลังทำใหม่) · ลิงก์ที่เคยชี้มาหน้าเหล่านี้ (My Tasks · ปุ่มกลับในใบผลิต · การ์ดผลิตในออเดอร์ · แจ้งเตือน · QR ใบงาน) ชี้ไปหน้าออเดอร์/ใบผลิต/My Tasks แทน · ปุ่ม "รอบพิมพ์ DTF" ในใบผลิตซ่อนไว้ (prop `printRunsHref` เป็น null)
+- **ยังเก็บไว้ให้หน้าใหม่ต่อ (ไม่ได้ลบ):** server ทั้งหมด (`production.kanban` · `manufacturing.controlList/station*` · router print-run/film-stock/outsource/factory) · `lib/outsource-ui` · โหมด `surface="station"` ที่ฝังใน `production-detail-screen` (ไม่มีใครเรียก) · `station-garment-preview` · กติกาเดิมใน `SPEC.md`/`docs/DESIGN.md` (ทำเครื่องหมาย "ถอดออก" ไว้แล้ว)
+- ด่านที่ผ่านรอบนี้: typecheck · eslint 0 error · unit 1610/1610 (ลดจาก 1682 เพราะลบ test ของหน้าที่ถอด) · verify:ui ผ่านครบ · **ยังไม่ได้รัน `npm run build`** (dev :3000 เปิดอยู่) — ต้องรันก่อน merge main
+- **หน้าใบสั่งผลิต `/production/[id]`**: ล้างหน้าลอง 20+ แบบออกหมดแล้ว (09-02) · หน้าเหมือนก่อนเริ่มเรื่องนี้ · รอเบสตั้งโจทย์ใหม่
+- **Production V2**: โค้ด / migration / seed / `/settings/routings` ครบ · ซ้อมบนฐาน demo ผ่านถึงกลางทาง · **การซ้อมที่เหลือต้องกดในจอสถานี → ค้างจนกว่าจอใหม่จะเสร็จ** · ของจริงบน Vercel ยังเป็น legacy (`PRODUCTION_V2_ENABLED=0`)
 - เว็บจริง: แก้ build พังจาก `/proto/quiet` แล้ว (09-02) · กติกาใหม่ `npm run build` ก่อน push main ทุกครั้ง (SPEC §ด่าน)
 
 ## NEXT
-1. เบสตั้งโจทย์ **จอสถานีใหม่** → หน้าลอง `/proto` 2-4 ทาง → เคาะ → ลงของจริง (ROADMAP §A2) · ตอนลงของจริงค่อยถอดโหมด `surface="station"` ที่ค้างในหน้าใบผลิต/รอบพิมพ์
-2. เบสตั้งโจทย์หน้าใบสั่งผลิตใหม่ → หน้าลอง → เคาะ → ลงของจริง (§A)
-3. merge branch `remove/factory-station-2026-09-02` เข้า main: ปิด dev demo → `npm run build` → push (เบสอนุมัติ)
+1. เบสตั้งโจทย์ **โมดูลผลิตใหม่** (หน้ารายการ + จอสถานี + ที่อยู่ของรอบพิมพ์/คลังฟิล์ม/คิวร้านนอก + ทางเปิดใบผลิต) → หน้าลอง `/proto` 2-4 ทาง → เคาะ → ลงของจริง (ROADMAP §A2/§A3)
+2. เบสตั้งโจทย์หน้าใบสั่งผลิตใหม่ (§A)
+3. merge branch `remove/factory-station-2026-09-02` เข้า main: ปิด dev → `npm run build` → push (เบสอนุมัติ) — **ระหว่างยังไม่ merge เว็บจริงยังมีหน้าเดิมครบ**
 4. ซ้อม V2 ต่อเมื่อจอสถานีใหม่ใช้ได้ (§B) · ว่างค่อย MFG1-3 (§C)
 
 ## เสร็จแล้ว (ล่าสุดก่อน · milestone เท่านั้น — ใบงานเต็ม `ROADMAP.md` §เสร็จแล้ว)
-- 09-02 ถอดจอสถานี `/factory/station` ทั้งชุด (รอออกแบบใหม่) · ลบ proto ใบสั่งผลิตทั้งหมด · คอลัมน์เส้นทางงานแบบ C · ด่านตรวจงานลายใช้ยอดตรวจนับครบ · เก็บกวาด repo
+- 09-02 ถอดจอสถานี `/factory/station` + โมดูลรายการผลิต (`/production` · รอบพิมพ์ · คลังฟิล์ม · `/outsource`) ทั้งชุด (รอออกแบบใหม่) · ลบ proto ใบสั่งผลิตทั้งหมด · คอลัมน์เส้นทางงานแบบ C · ด่านตรวจงานลายใช้ยอดตรวจนับครบ · เก็บกวาด repo
 - 09-01 แถบกรองเส้นทางงาน D (ถอดช่องเรียงบนคอม) · seed สูตรขั้นงานมาตรฐาน · หน้าตั้งค่า routings · V2 บนฐาน demo · หน้าลอง factory-canvas / production-canvas-filter (พับ)
 - 08-31 สีบอกหมวดแบบ B ทั้งเว็บ (เมนูซ้ายไม่เอาสี) · `/production` แบบ C · แถบกรองแบบ A · ภาพรวมออเดอร์เห็นลายทันที (B)
 - 08-30 ถอดระบบชื่องาน (migration drop) · หน้าใบงานหน้าตาใหม่ · work-board → เบสเลือก "ปัจจุบัน"

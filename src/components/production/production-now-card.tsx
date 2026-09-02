@@ -49,7 +49,7 @@ export function ProductionNowCard({
   onQuickPass,
   onOpenStep,
   canOpenStep = () => true,
-  printRunsHref = "/production/print-runs",
+  printRunsHref = null,
   embedded = false,
   focused = false,
   stationMode = false,
@@ -68,7 +68,8 @@ export function ProductionNowCard({
   onQuickPass: (step: ProductionStep) => void;
   onOpenStep: (step: ProductionStep) => void;
   canOpenStep?: (step: ProductionStep) => boolean;
-  printRunsHref?: string;
+  /** หน้ารอบพิมพ์ DTF ถอดออก 2026-09-02 (รอออกแบบใหม่) — null = ไม่แสดงปุ่มเปิดรอบพิมพ์ */
+  printRunsHref?: string | null;
   /** วางใน work workspace ก้อนเดียวกับคำสั่งงาน โดยไม่สร้าง card ซ้อน */
   embedded?: boolean;
   /** แสดง action ของขั้นที่ผู้ใช้เลือกเพียงขั้นเดียว โดยคง action policy เดิม */
@@ -164,7 +165,7 @@ export function ProductionNowCard({
         ) : note ? (
           <div className="space-y-2">
             <p className="text-sm text-muted">{note}</p>
-            {step.stepType === "DTF_PRINT" && step.status !== "FAILED" ? (
+            {step.stepType === "DTF_PRINT" && step.status !== "FAILED" && printRunsHref ? (
               <Button
                 size="lg"
                 asChild

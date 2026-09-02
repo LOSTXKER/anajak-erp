@@ -23,24 +23,13 @@ describe("manufacturingTaskHref", () => {
     expect(manufacturingTaskHref(base)).toBe("/production/wo-1");
   });
 
-  it("ส่งผู้ประสานงาน Outsource ไป worklist ใน Production", () => {
+  it("งานร้านนอกก็เข้าใบผลิต — หน้าคิวร้านนอกถอดออกพร้อมหน้ารายการผลิต 2026-09-02", () => {
     expect(
       manufacturingTaskHref({
         ...base,
         executionMode: "OUTSOURCE",
         workCenterCode: "OUTSOURCE",
         stepId: "op-outsource",
-      }),
-    ).toBe("/production?view=outsource&q=ORD-001");
-  });
-
-  it("หัวหน้าที่ดูงานร้านนอกยังเข้า Control Record ไม่ใช่ worklist", () => {
-    expect(
-      manufacturingTaskHref({
-        ...base,
-        canSupervise: true,
-        executionMode: "OUTSOURCE",
-        workCenterCode: "OUTSOURCE",
       }),
     ).toBe("/production/wo-1");
   });

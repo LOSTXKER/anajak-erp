@@ -4,8 +4,8 @@
  * ตัวอย่าง "หนึ่งหน้าจอของเว็บ" ที่รวมทุกที่ที่มีสีประจำหมวดไว้ในสายตาเดียว
  *
  * ทุกชิ้นเป็น component ตัวจริง — หัวหน้า (PageHeader) · การ์ดตัวเลข (StatCard) ·
- * หัวการ์ด (SectionTitle/ToneMark) · แถบชิปกรองกับตารางของหน้าผลิต
- * (ProductionControlWorklist ตัวจริง ผ่านข้อมูลปลอมชุดเดียวกับ /proto/production-list)
+ * หัวการ์ด (SectionTitle/ToneMark) · (ตารางหน้าผลิตที่เคยอยู่ท้ายหน้าถูกถอดออก 2026-09-02
+ * พร้อมโมดูลรายการผลิต — รอออกแบบใหม่)
  *
  * ที่เลือกมาสี่หมวดพร้อมกัน เพราะโจทย์คือ "ทั้งเว็บดูเด่นไป" ซึ่งตัดสินจากหน้าเดียว
  * ที่มีสีเดียวไม่ได้ — ต้องเห็นตอนสีหลายหมวดอยู่ในจอเดียวกัน
@@ -25,35 +25,6 @@ import {
 import { PageHeader } from "@/components/page-header";
 import { Section, SectionTitle } from "@/components/ui/section";
 import { StatCard } from "@/components/ui/stat-card";
-
-import { ProductionControlWorklist } from "@/components/production/production-control-worklist";
-
-import { PROTO_BOARD } from "../production-list/_data";
-import { ProtoFreshness } from "../production-list/_shell";
-import { useWorklist } from "../production-list/_ui";
-
-/** เรียก ProductionControlWorklist ตัวจริง โดยไม่ต้องมีหัวหน้าซ้ำอีกอัน */
-function ProductionWorklistSample() {
-  const state = useWorklist(PROTO_BOARD);
-  return (
-    <ProductionControlWorklist
-      board={PROTO_BOARD}
-      jobs={state.jobs}
-      lens={state.lens}
-      station={state.station}
-      stations={state.stations}
-      sort={state.sort}
-      searchDefault={state.search}
-      searchInputRef={null}
-      onSelectLens={state.setLens}
-      onSelectStation={state.setStation}
-      onSelectSort={state.setSort}
-      onSearchChange={state.setSearch}
-      canCreateProduction={false}
-      freshness={<ProtoFreshness />}
-    />
-  );
-}
 
 export function QuietScreen() {
   return (
@@ -97,9 +68,6 @@ export function QuietScreen() {
           </p>
         </Section>
       </div>
-
-      {/* หน้าผลิตของจริง (แบบ C ที่เพิ่งลง) — มีทั้งชิปสีและจุดสีสถานะในที่เดียว */}
-      <ProductionWorklistSample />
     </div>
   );
 }

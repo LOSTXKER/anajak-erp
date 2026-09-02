@@ -127,7 +127,7 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
       key: `step:${queue.stepId}`,
       href: queue.productionId
         ? `/production/${queue.productionId}`
-        : `/production?q=${encodeURIComponent(queue.orderNumber)}`,
+        : `/orders/${queue.orderId}`,
       title: queue.orderNumber,
       description: queue.customerName,
       deadline: queue.deadline,
@@ -142,7 +142,7 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
   for (const order of data.awaitingProduction) {
     items.push({
       key: `order:${order.id}`,
-      href: `/production?create=${order.id}`,
+      href: `/orders/${order.id}`,
       title: order.orderNumber,
       description: order.customer.name,
       deadline: order.deadline,
@@ -175,7 +175,7 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
   for (const outsource of admin.outsourceDue.items) {
     items.push({
       key: `outsource:${outsource.id}`,
-      href: "/production?view=outsource",
+      href: `/orders/${outsource.orderId}`,
       title: `รับงานกลับจาก ${outsource.vendorName}`,
       description: outsource.orderNumber,
       deadline: outsource.expectedBackAt,

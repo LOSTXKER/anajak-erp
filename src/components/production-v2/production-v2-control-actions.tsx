@@ -772,13 +772,6 @@ export function CreateOutsourceOrderAction({
   return (
     <>
       <div className="flex flex-wrap justify-start gap-2 sm:justify-end">
-        {openOrders.length > 0 ? (
-          <Button asChild variant="ghost" size="sm">
-            <Link href="/production?view=outsource">
-              <Truck /> ดูใบงานที่เปิดแล้ว
-            </Link>
-          </Button>
-        ) : null}
         <Button
           variant="outline"
           size="sm"

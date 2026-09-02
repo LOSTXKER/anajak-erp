@@ -278,12 +278,12 @@ Production V2 ใช้ `manufacturing` read/command contract เป็นแห
 
 | บ้าน | เจ้าของและสิ่งที่ทำได้ |
 |---|---|
-| `/production` | หัวหน้า/ออฟฟิศค้นทุกใบผลิต, filter/sort/paginate และเปิดมุม Work Center, Exception, Outsource ภายในหน้าเดียว |
+| `/production` | **ถอดออก 2026-09-02 รอออกแบบใหม่** (`ROADMAP.md` §A3) — เดิม: หัวหน้า/ออฟฟิศค้นทุกใบผลิต, filter/sort/paginate และเปิดมุม Work Center, Exception, Outsource ภายในหน้าเดียว |
 | `/production/[id]` | Control Record สำหรับ identity/due risk/routing snapshot/operation ledger/readiness/quantity/exception/assignment/resequence/audit; ไม่มี execution command ของพนักงาน |
 | `/factory/station` | **ถอดออก 2026-09-02 รอออกแบบใหม่** (`ROADMAP.md` §A2) — กติกาที่จอใหม่ต้องรักษาอยู่ §Station work center และ flow ด้านล่าง |
 | `/factory` | TV อ่านอย่างเดียว แสดง WIP/load/late/exception ของ Work Center โดยไม่มี link, button หรือ mutation |
 | Order / My Tasks | Order Production tab เหลือ summary+deep link; My Tasks ทุกบทบาทเข้า Control Record จนกว่าจอสถานีใหม่จะมา (เดิม route ตาม role ไป exact Station job) |
-| route legacy | print runs, films และ outsource redirect เข้า `/production`; component เก่า mount ได้เฉพาะเมื่อ flag ปิดใน rollback window |
+| route legacy | print runs, films และ outsource **ถอดออก 2026-09-02** พร้อมหน้ารายการผลิต (เดิม redirect เข้า `/production` เมื่อเปิด V2) |
 
 ### Data, command และ state contract
 
@@ -308,22 +308,22 @@ Production V2 ใช้ `manufacturing` read/command contract เป็นแห
 ## Legacy factory rollback contract (ใช้เฉพาะเมื่อปิด `PRODUCTION_V2_ENABLED`)
 
 > งานโรงงานเป็นโมดูลเดียวที่ใช้ record, permission, readiness และ transition ฝั่ง server ชุดเดียวกัน แต่แยกคำถามตามจอ:
-> หัวหน้าตัดสินลำดับที่ `/production`, พนักงานลงมือที่จอสถานี (ถอดออก 2026-09-02 รอออกแบบใหม่ — ระหว่างนี้ผ่านใบผลิต) และทั้งโรงงานดู pulse แบบอ่านอย่างเดียวที่ `/factory` ·
+> หัวหน้าตัดสินลำดับที่ `/production` (ถอดออก 2026-09-02 รอออกแบบใหม่ §A3), พนักงานลงมือที่จอสถานี (ถอดออก 2026-09-02 รอออกแบบใหม่ — ระหว่างนี้ผ่านใบผลิต) และทั้งโรงงานดู pulse แบบอ่านอย่างเดียวที่ `/factory` ·
 > presentation ห้ามสร้าง controller, lifecycle หรือข้อมูลตัวอย่างอีกชุด
 
 ### Route, shell และ local navigation contract
 
 | Route | Shell | หน้าที่ของจอ |
 |---|---|---|
-| `/production` | shared dashboard `AppShell` | worklist แบบ exception-first หนึ่งออเดอร์ต่อหนึ่งแถว สำหรับตอบว่า “งานไหนต้องจัดการก่อน” |
+| `/production` | — | **ถอดออก 2026-09-02** รอออกแบบใหม่ (เดิม: worklist แบบ exception-first หนึ่งออเดอร์ต่อหนึ่งแถว สำหรับตอบว่า “งานไหนต้องจัดการก่อน”) |
 | `/production/[id]` | shared dashboard `AppShell` | exception control record ของหัวหน้า: attention, plan/actual, owner, blocker, readiness, handoff และหลักฐานทั้งใบ; routine execution ไป Station · inspector มีแท็บ **เสื้อและวัตถุดิบ / ม็อกอัพ / เส้นทางทั้งหมด** |
-| `/production/print-runs` | shared dashboard `AppShell` | workspace รอบ DTF ตามลำดับ **กำลังพิมพ์ → ตัดแยก/ติดป้าย → คิวพิมพ์ → ประวัติ 7 วัน** |
-| `/production/films` | shared dashboard `AppShell` | คลังฟิล์มแบบ compact: ลาย/ลูกค้า, ต้นทาง, คงเหลือ และการหยิบใช้ |
-| `/outsource` | shared dashboard `AppShell` | คิวส่งร้าน/รับกลับ/**ตรวจรับจากร้าน**/ประวัติ; การตรวจรับนี้มาก่อน QC ขั้นสุดท้ายของออเดอร์ |
+| `/production/print-runs` | — | **ถอดออก 2026-09-02** (เดิม: workspace รอบ DTF ตามลำดับ **กำลังพิมพ์ → ตัดแยก/ติดป้าย → คิวพิมพ์ → ประวัติ 7 วัน**) |
+| `/production/films` | — | **ถอดออก 2026-09-02** (เดิม: คลังฟิล์มแบบ compact: ลาย/ลูกค้า, ต้นทาง, คงเหลือ และการหยิบใช้) |
+| `/outsource` | — | **ถอดออก 2026-09-02** (เดิม: คิวส่งร้าน/รับกลับ/**ตรวจรับจากร้าน**/ประวัติ; การตรวจรับนี้มาก่อน QC ขั้นสุดท้ายของออเดอร์ — กติกานี้ยังใช้กับหน้าใหม่) |
 | `/factory/station` | — | **ถอดออก 2026-09-02** route ไม่มีแล้ว รอออกแบบใหม่ (เดิม: full-screen Dark ไม่มี sidebar · เลือกหนึ่งใน 5 สถานีแล้วลงมือเฉพาะ action ของสถานี) |
 | `/factory` | full-screen Dark TV | pulse 5 ด่านแบบ read-only หนึ่ง viewport; ไม่มี action หรือ mutation path |
 
-- สี่หน้ารวม/พื้นที่หัวหน้าใน `AppShell` ใช้ `ProductionModuleNav` ชุดเดียวและลำดับเดียว: **คิวผลิต / รอบพิมพ์ DTF / คลังฟิล์ม / งานร้านนอก**; ทางเข้าเสริม **จอโรงงาน** อยู่ท้ายแถบและไม่สร้าง sidebar ฝ่ายผลิตอีกชุด (โหมดสถานีถอดออก 2026-09-02 — จอใหม่มาค่อยใส่ทางเข้าคืน) · control record `/production/[id]` มี breadcrumb กลับคิวและ handoff ไป work center ที่เกี่ยวข้อง แต่ไม่เพิ่ม local nav ซ้ำ
+- (กติกาของหน้ารายการเดิม — ถอดออก 2026-09-02 · เก็บไว้ให้หน้าใหม่ยึด) สี่หน้ารวม/พื้นที่หัวหน้าใน `AppShell` ใช้ `ProductionModuleNav` ชุดเดียวและลำดับเดียว: **คิวผลิต / รอบพิมพ์ DTF / คลังฟิล์ม / งานร้านนอก**; ทางเข้าเสริม **จอโรงงาน** อยู่ท้ายแถบและไม่สร้าง sidebar ฝ่ายผลิตอีกชุด (โหมดสถานีถอดออก 2026-09-02 — จอใหม่มาค่อยใส่ทางเข้าคืน) · control record `/production/[id]` มี breadcrumb กลับคิวและ handoff ไป work center ที่เกี่ยวข้อง แต่ไม่เพิ่ม local nav ซ้ำ
 - `/production` ใช้ `production.kanban` กับ `user.me`; filter `ทั้งหมด`, `ต้องจัดการ`, `กำลังผลิต`, `รอ QC`, `แพ็ก / พร้อมส่ง`, จำนวน, search และ sort derive จาก board ชุดเดียว โดยเก็บ `view`, `q`, `sort` ใน URL
 - `/production` มีสรุปวันนี้ 3 ตัวเลขเหนือชิปตัวกรอง: **เลยกำหนด / ครบกำหนดวันนี้ / กำลังลงมือ** — นับจาก `board.jobs` ทั้งกระดาน **ห้ามนับจากรายการที่กรองแล้ว** ไม่งั้นตัวเลขที่ใช้ตัดสินใจขยับใต้มือทุกครั้งที่เปลี่ยนมุมมอง · ห้ามเพิ่มยอดเงินหรือสถิติรายเดือนในแถบนี้ (หน้านี้ตัดสินลำดับงานวันนี้ ไม่ใช่รายงานผู้บริหาร)
 - ทุกแถวคิว (ทั้งตาราง desktop และการ์ดมือถือ) นำหน้าด้วยรูปม็อกอัพผ่าน `MockupThumbnail` + `orderMockupCover` — หัวหน้าจำงานจากภาพเร็วกว่าเลขออเดอร์ · ไม่มีม็อกอัพอนุมัติให้ถอยไปรูปลาย/คลังลาย ไม่มีเลยจึงเป็นกรอบว่าง
@@ -360,7 +360,7 @@ Production V2 ใช้ `manufacturing` read/command contract เป็นแห
 - composition ตั้งต้นที่ desktop `1440×900` และจอทัช `1024×768`; `390px` เป็น regression guard ที่ยังต้องใช้ flow ได้ครบและไม่เลื่อนแนวนอน · control บน mobile/`pointer: coarse` ≥44×44px ส่วน fine-pointer desktop ใช้ density 36px ได้
 - ทุก `/factory*` ต้องมี session และทุก query เป็น protected procedure; mutation control ต้อง **fail closed** จนรู้ permission และ server guard เป็นด่านสุดท้ายเสมอ
 - ไม่มี `manage_production` = Station/print run/film เป็น read-only; `supervise_operations` จึงเห็นงานข้ามผู้รับผิดชอบ และการตัดสินตรวจรับร้านนอกต้องมีทั้ง `manage_production` + `supervise_operations`; final pack ที่สร้าง delivery ต้องมี `manage_production` + `manage_delivery` และการเปลี่ยนเป็นพร้อมส่งต้องมี `update_order_status_production` เพิ่ม
-- live queue (`/production`, print runs, Station และ TV) poll ทุก 30 วินาทีตามจอที่กำหนดและ refetch เมื่อ focus/reconnect; initial loading, initial error+retry, empty, blocked และ read-only ต้องแยกกัน · background error ต้องคง cached data พร้อมคำเตือนแทนการล้างจอ
+- live queue (`/production`, print runs, Station — ทั้งสามถอดออก 2026-09-02 รอออกแบบใหม่ — และ TV) poll ทุก 30 วินาทีตามจอที่กำหนดและ refetch เมื่อ focus/reconnect; initial loading, initial error+retry, empty, blocked และ read-only ต้องแยกกัน · background error ต้องคง cached data พร้อมคำเตือนแทนการล้างจอ
 - TV เตือน stale เมื่อไม่ได้ refresh สำเร็จเกิน 2 นาทีและคง snapshot ล่าสุด; pending action ใช้ข้อความ “กำลัง…” + `aria-busy`, error/retry มี label ที่อ่านได้ และ focus/keyboard/reduced-motion ไม่พึ่ง hover
 - worklist, control record, print run, film และ outsource ไม่เพิ่มราคา/ยอดออเดอร์/ค่าจ้าง · Station/TV ต้องไม่ขนส่งหรือ render เงินแม้ role เป็น OWNER, ไม่ mount `MaterialUsage` และ final pack ไม่ส่ง shipping cost มาที่ client; compatibility deep link ของ ERP อาจเปิดข้อมูลวัตถุดิบเดิมได้เฉพาะ `see_finance` แต่ไม่อยู่บน default control surface
 

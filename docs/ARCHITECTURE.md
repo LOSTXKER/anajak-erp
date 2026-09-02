@@ -8,7 +8,8 @@
 src/app/            หน้าจอ (Next.js App Router · Turbopack)
   (auth)/login      หน้า login
   (dashboard)/      ทุกหน้าหลังบ้าน — ผ่าน Proxy + layout guard (orders/quotations/customers/products/
-                    production/outsource/billing/analytics/my-tasks/notifications/settings/*)
+                    production/[id]/billing/analytics/my-tasks/notifications/settings/*)
+                    ⚠️ หน้ารายการผลิต /production + print-runs + films + /outsource ถอดออก 2026-09-02 รอออกแบบใหม่ (ROADMAP §A3)
   (public)/         หน้าลูกค้า/ร้านนอกถือ token ไม่ต้อง login: approve/design · status · upload · quote · job
   (print)/print/    เอกสาร A4 light-only: invoice · quotation · billing-note · job-ticket · packing-list
   (v2)/v2/*         compatibility redirect ไป URL หลัก (คง query)

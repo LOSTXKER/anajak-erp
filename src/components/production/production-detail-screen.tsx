@@ -663,11 +663,7 @@ export function ProductionDetailScreen({
       onQuickPass={handleQuickPass}
       onOpenStep={openOperationStep}
       canOpenStep={canOpenStepDetails}
-      printRunsHref={
-        surface === "station"
-          ? "/factory/station?station=dtf-print"
-          : "/production/print-runs"
-      }
+      printRunsHref={null}
       embedded={surface === "erp"}
       focused={focused}
       stationMode={surface === "station"}
@@ -979,11 +975,7 @@ export function ProductionDetailScreen({
           onQuickPass={handleQuickPass}
           onStartStep={handleStartStep}
           onCompleteStep={handleCompleteStep}
-          printRunsHref={
-            surface === "station"
-              ? "/factory/station?station=dtf-print"
-              : "/production/print-runs"
-          }
+          printRunsHref={null}
         />
       ) : (
         <p className="text-sm text-muted">ใบผลิตนี้ยังไม่มีขั้นตอน</p>
@@ -1038,7 +1030,7 @@ export function ProductionDetailScreen({
           ? undefined
           : surface === "station"
             ? { href: stationHref, label: "กลับคิวสถานี" }
-            : { href: "/production", label: "กลับคิวผลิต" }
+            : { href: order ? `/orders/${order.id}` : "/orders", label: "กลับหน้าออเดอร์" }
       }
       titleBadge={
         surface === "station" && order ? (
@@ -1190,8 +1182,8 @@ export function ProductionDetailScreen({
       ) : (
         <RecordNotFound
           what="งานผลิตใบนี้"
-          backHref={surface === "station" ? stationHref : "/production"}
-          backLabel={surface === "station" ? "กลับจอประจำสถานี" : "กลับไปการผลิต"}
+          backHref={surface === "station" ? stationHref : "/orders"}
+          backLabel={surface === "station" ? "กลับจอประจำสถานี" : "กลับไปออเดอร์"}
         />
       )}
     </PageShell>

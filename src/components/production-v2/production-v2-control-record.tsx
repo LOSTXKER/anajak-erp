@@ -739,7 +739,7 @@ export function ProductionV2ControlRecord({
           ? `${workOrder.order.orderNumber} · ${workOrder.order.customerName}`
           : "ข้อมูลควบคุมการผลิต"
       }
-      back={{ href: "/production", label: "กลับไปรายการผลิต" }}
+      back={{ href: workOrder ? `/orders/${workOrder.order.id}` : "/orders", label: "กลับหน้าออเดอร์" }}
       titleBadge={
         status ? <StatusLabel label={status.label} tone={status.tone} /> : undefined
       }
@@ -781,8 +781,8 @@ export function ProductionV2ControlRecord({
       {notFound ? (
         <RecordNotFound
           what="ใบสั่งผลิตนี้"
-          backHref="/production"
-          backLabel="กลับไปรายการผลิต"
+          backHref="/orders"
+          backLabel="กลับไปออเดอร์"
         />
       ) : workOrder ? (
         <div className="space-y-5">

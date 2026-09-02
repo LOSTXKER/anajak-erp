@@ -6,7 +6,6 @@ const read = (relativePath: string) =>
 
 const popoverSource = read("./filter-popover.tsx");
 const ordersSource = read("../orders/orders-page.tsx");
-const productionSource = read("../production-v2/production-v2-workspace.tsx");
 
 describe("FilterPopover visual contract", () => {
   it("ใช้ hierarchy กลางและไม่ autofocus ปุ่มปิดตอนเปิด", () => {
@@ -31,6 +30,5 @@ describe("FilterPopover visual contract", () => {
     expect(ordersSource.match(/surface="raised"/g)?.length).toBeGreaterThanOrEqual(3);
     expect(ordersSource).toContain("const clearToolbarFilters = () =>");
     expect(ordersSource).toContain("ล้างตัวกรอง");
-    expect(productionSource.match(/<FilterPopoverField/g)).toHaveLength(3);
   });
 });

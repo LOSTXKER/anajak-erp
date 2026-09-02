@@ -40,6 +40,6 @@ npm run dev:demo
 1. เปิดใบผลิต `/production/demo-production-stock-pick-ready` (`ORD-2608-0015`) — จอสถานีถอดออก 2026-09-02 จึงลองผ่านใบผลิตแทน
 2. กด **เบิกเสื้อที่ยังขาด 24 ตัว** ค่าเริ่มต้นเผื่อเสียเป็น 9/9/9; ledger จะออกเลข `DEMO-ISSUE-*` และขั้นปิดที่ 24/24
 3. เปิด `/production/demo-production-stock-pick-ready?tab=inventory` แล้วกด **คืนเศษ** เพื่อคืนส่วนเกิน; ledger จะออกเลข `DEMO-RETURN-*`
-4. ค้น `ORD-2608-0008` ที่ `/production` แล้วเปิดใบผลิต เพื่อดูงานติดปัญหาจากสต๊อก L ที่ขาดจริง โดยไม่มีปุ่มลงมือ
+4. เปิดออเดอร์ `ORD-2608-0008` จาก `/orders` แล้วกดเข้าใบผลิต เพื่อดูงานติดปัญหาจากสต๊อก L ที่ขาดจริง โดยไม่มีปุ่มลงมือ (หน้ารายการผลิตถอดออก 2026-09-02)
 
 การเบิก/คืนเปลี่ยน `ProductVariant.stock`, `ProductVariant.totalStock`, `Product.totalStock`, MaterialUsage และ audit ใน transaction เดียว พร้อมกันยอดจองของออเดอร์อื่นไว้ หากต้องการเริ่มใหม่ให้รัน `npm run db:seed:demo` อีกครั้ง

@@ -27,7 +27,7 @@ import {
 
 import { cn } from "@/lib/utils";
 
-import { PROTO_BOARD } from "../production-list/_data";
+import { PROTO_BOARD } from "./_data";
 
 export type StationNode = {
   key: string;

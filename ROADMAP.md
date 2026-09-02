@@ -26,6 +26,12 @@
 - [ ] รอเบสตั้งโจทย์จอสถานีใหม่ → หน้าลอง `/proto` 2-4 ทาง → เคาะ → ลงของจริง
 - เก็บไว้ให้จอใหม่ต่อ (ยังไม่ลบ): server `factory.station*` / `manufacturing.station*` + read model · กติกาใน `docs/DESIGN.md` §Station work center · โหมด `surface="station"` ที่ฝังในหน้าใบผลิต/รอบพิมพ์ (ไม่มีใครเรียกแล้ว — ถอดตอนจอใหม่เคาะ) · `station-garment-preview` ยังใช้ในการ์ดลายของใบผลิต
 
+### A3. หน้ารายการผลิต `/production` + รอบพิมพ์ + คลังฟิล์ม + คิวร้านนอก — ถอดออกแล้ว เริ่มใหม่จากศูนย์ (เบสสั่ง 2026-09-02)
+- [x] ถอด route + UI ทั้งโมดูลรายการ (legacy + V2): `/production` · `/production/print-runs` · `/production/films` · `/outsource` + dialog เปิดใบผลิต + lib worklist/board + หน้าลอง proto ของหน้ารายการ 5 ชุด (production-list/row/groups/filter/canvas-filter) · เหลือใบผลิต `/production/[id]` กับจอโรงงาน `/factory`
+- [x] เบสยอมพังชั่วคราว: เมนู "การผลิต" หายจากเมนูข้าง/แดชบอร์ด · **เปิดใบผลิตจากออเดอร์ไม่ได้** จนกว่าหน้าใหม่จะมา · ลิงก์ที่เคยชี้มา (My Tasks · ปุ่มกลับในใบผลิต · การ์ดผลิตในออเดอร์ · แจ้งเตือนร้านนอก) ชี้ไปหน้าออเดอร์/My Tasks แทน
+- [ ] รอเบสตั้งโจทย์หน้ารายการผลิตใหม่ → หน้าลอง `/proto` 2-4 ทาง → เคาะ → ลงของจริง (ต้องคืนทางเปิดใบผลิต + ทางเข้าคิวร้านนอก/รอบพิมพ์/คลังฟิล์ม หรือตัดสินว่าไปอยู่ที่ไหน)
+- เก็บไว้ให้หน้าใหม่ต่อ (ยังไม่ลบ): server `production.kanban` · `manufacturing.controlList/workCenterLoad` · router print-run / film-stock / outsource · `lib/outsource-ui` · กติกาเดิมใน `SPEC.md` §UI และ `docs/DESIGN.md`
+
 ### B. Cutover Production V2 (PV2.8 / P5.6) — เสี่ยงสูง ทำเป็นขั้น เบสอนุมัติทุกขั้น
 > โค้ด + migration + seed สูตรมาตรฐาน + หน้าตั้งค่า `/settings/routings` ครบแล้ว (`SPEC.md` §Production V2) · ของจริงบน Vercel ยังเป็น **legacy** (`PRODUCTION_V2_ENABLED=0`) · ฐาน demo (`npm run dev:demo`) เปิด V2 ไว้ซ้อม · ฐานจริงยังไม่ seed routing/work center
 - [ ] B1 เบสซ้อมบนฐาน demo: เปิดใบจากสูตรมาตรฐาน → กดทีละขั้นในจอสถานี (**รอจอสถานีใหม่ §A2** — ของเดิมถอดแล้ว 09-02) (รวมส่งร้านนอก · QC fail/rework · แพ็กแยกไซซ์) → บอกว่าอะไรไม่ตรงหน้างาน
@@ -73,8 +79,8 @@ Customer portal เต็ม (สถานะ/ประวัติ/เอกส
 GL/งบการเงิน · job costing/ต้นทุนต่อออเดอร์ · DTF auto-nesting (RIP ทำแล้ว) · in-app chat (ลูกค้าอยู่ LINE) · online designer เต็มรูป (เว็บสกรีน = เลือก/อัปโหลด + ดีไซเนอร์ช่วย) · ใบกำกับอย่างย่อ · time-clock/payroll (hr-platform-v2) · WMS/PR-PO-GRN (Anajak Stock) · mockup generator · CMMS เต็ม · anomaly detection · capacity planning เต็มรูป (ใช้ปฏิทินภาระงานเบา) · Block reuse/BOM เต็มรูป (ไม่มีบล็อกในบ้าน)
 
 ## ลองแล้วไม่เอา (อย่าเสนอซ้ำ)
-- หน้าทำงานหลักรวมออเดอร์ + ผลิต (`/proto/work-board` A/B/C) → เบสเลือก "แบบปัจจุบันยังดีกว่า" (08-30) — คงสองหน้า `/orders` + `/production`
-- ผังโรงงานเป็นตัวกรอง `/production` (`production-canvas-filter`) → "เอาแบบเดิมก่อน" (09-02) · จอ canvas ทั้งโรงงาน (`factory-canvas`) เก็บเป็นวัตถุดิบอนาคต
+- หน้าทำงานหลักรวมออเดอร์ + ผลิต (`/proto/work-board` A/B/C) → เบสเลือก "แบบปัจจุบันยังดีกว่า" (08-30) — คงสองหน้า `/orders` + `/production` (ต่อมา `/production` ถูกถอดทั้งหน้า 09-02 §A3)
+- ผังโรงงานเป็นตัวกรอง `/production` (`production-canvas-filter`) → "เอาแบบเดิมก่อน" (09-02) · จอ canvas ทั้งโรงงาน (`factory-canvas`) เก็บเป็นวัตถุดิบอนาคต · หน้าลองของหน้ารายการผลิตทั้ง 5 ชุด (list/row/groups/filter/canvas-filter) ลบไปพร้อมหน้า 09-02 — ดูได้ใน git ก่อน commit นี้
 - ใบสั่งผลิตแบบผังสายพาน/จอสถานี/แผงลงมือ 20+ แบบ (08-30 → 09-02) → ลบทั้งหมด เริ่มใหม่
 - เมนูซ้ายมีสีหมวด → ถอยกลับ (08-31) · ตารางไม่มีกล่องครอบ → กลับคำ (08-26) · ราคาและเงื่อนไขแบ่ง 2 ฝั่ง · CTA ต่อท้ายหัวข้อ (08-04)
 - Order Workbench / Command Center redesign ทั้งระบบทีเดียว (08-14, 08-29) → ปฏิเสธเพราะเสนอทางเดียว + รื้อก่อนตกลงทิศ

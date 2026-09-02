@@ -55,7 +55,8 @@ interface ProductionStepsListProps {
   // ปุ่มเร็ว UX1 — ยิง updateStep เดิมเท่านั้น (เริ่ม/เสร็จ · server auto-claim ให้ช่างเอง)
   onStartStep: (step: ProductionStep) => void;
   onCompleteStep: (step: ProductionStep) => void;
-  printRunsHref?: string;
+  /** หน้ารอบพิมพ์ DTF ถอดออก 2026-09-02 (รอออกแบบใหม่) — null = ไม่แสดงลิงก์รอบพิมพ์ */
+  printRunsHref?: string | null;
   /** Station Mode ส่ง true เฉพาะขั้นที่อยู่ตรงสถานีปัจจุบัน; ขั้นอื่นอ่านได้แต่กดไม่ได้ */
   canActOnStep?: (step: ProductionStep) => boolean;
   canOpenStepDetails?: (step: ProductionStep) => boolean;
@@ -78,7 +79,7 @@ export function ProductionStepsList({
   onQuickPass,
   onStartStep,
   onCompleteStep,
-  printRunsHref = "/production/print-runs",
+  printRunsHref = null,
   canActOnStep = () => true,
   canOpenStepDetails = () => true,
 }: ProductionStepsListProps) {
@@ -194,7 +195,7 @@ function StepRow({
   onQuickPass: (step: ProductionStep) => void;
   onStartStep: (step: ProductionStep) => void;
   onCompleteStep: (step: ProductionStep) => void;
-  printRunsHref: string;
+  printRunsHref: string | null;
 }) {
   const latestOutsource = step.outsourceOrders[0];
 
@@ -355,7 +356,7 @@ function StepRow({
       </div>
 
       <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-        {!readOnly && actionAllowed && step.stepType === "DTF_PRINT" && step.status !== "COMPLETED" && (
+        {!readOnly && actionAllowed && step.stepType === "DTF_PRINT" && step.status !== "COMPLETED" && printRunsHref && (
           <Button variant="outline" size="sm" asChild className="gap-1.5">
             <Link href={printRunsHref}>
               <Printer />
@@ -440,13 +441,20 @@ function StepRow({
             </p>
           ) : activePrintRun ? (
             // ขั้นอยู่ในรอบพิมพ์ค้าง — updateStep ถูก server บล็อก จึงเป็นลิงก์ไปหน้ารอบแทน
-            // (pattern เดียวกับการ์ดบอร์ดเลน — เดิมหน้านี้เงียบ ช่างเข้า dialog แล้วเจอ error)
-            <Button variant="outline" size="sm" asChild className="w-full gap-1.5 sm:w-auto">
-              <Link href={printRunsHref}>
-                <Printer />
-                รอบพิมพ์ {activePrintRun.runNumber}
-              </Link>
-            </Button>
+            // (หน้ารอบพิมพ์ถอดออก 2026-09-02 — ไม่มีลิงก์ก็บอกเลขรอบไว้ ไม่ปล่อยให้ช่างเข้า dialog แล้วเจอ error)
+            printRunsHref ? (
+              <Button variant="outline" size="sm" asChild className="w-full gap-1.5 sm:w-auto">
+                <Link href={printRunsHref}>
+                  <Printer />
+                  รอบพิมพ์ {activePrintRun.runNumber}
+                </Link>
+              </Button>
+            ) : (
+              <p className="inline-flex items-center gap-1.5 text-xs text-muted">
+                <Printer className="h-3.5 w-3.5 shrink-0" />
+                อยู่ในรอบพิมพ์ {activePrintRun.runNumber}
+              </p>
+            )
           ) : step.status === "IN_PROGRESS" ? (
             <Button
               size="sm"

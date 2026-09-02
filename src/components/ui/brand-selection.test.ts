@@ -9,8 +9,6 @@ const tabsSource = read("./tabs.tsx");
 const filterChipSource = read("./filter-chip.tsx");
 const flowFilterSource = read("./flow-filter-bar.tsx");
 const shellSource = read("../layout/app-shell.tsx");
-const productionNavSource = read("../production/production-module-nav.tsx");
-const productionWorklistSource = read("../production/production-control-worklist.tsx");
 const ordersSource = read("../orders/orders-page.tsx");
 
 describe("Anajak selected-state contract", () => {
@@ -56,10 +54,6 @@ describe("Anajak selected-state contract", () => {
     expect(shellSource).toContain("before:bg-blue-600");
     expect(shellSource).toContain("dark:before:bg-blue-400");
     expect(shellSource).not.toContain("text-interactive-selected-text");
-    expect(productionNavSource).toContain(
-      'active && "bg-interactive-selected font-medium text-interactive-selected-text"',
-    );
-    expect(productionNavSource).not.toContain("data-production-module-nav");
     expect(ordersSource).toContain(
       "border-b-2 border-blue-600",
     );
@@ -124,59 +118,4 @@ describe("Anajak selected-state contract", () => {
     expect(userMenuSource).not.toContain("hover:scale");
   });
 
-  it("Production ใช้แถบชิปตัวกรองแถวเดียว และตารางบอกสถานะ ไม่ใช่งานถัดไป", () => {
-    /* เบสเคาะแบบ C จากหน้าลอง /proto/production-list (2026-08-31)
-       ① การ์ดตัวกรอง 5 ใบ → แถบชิปแถวเดียวใน toolbar (FilterChip ของกลาง)
-       ② คอลัมน์ "ต้องทำต่อ" ถูกตัด — คำสั่งคำต่อคำ: "ตารางไม่ต้องบอกรายละเอียด
-          ต้องทำต่อ คือทำให้รู้ว่าตอนนี้สถานะอะไรก็พอ"
-       ③ ตารางแบ่งหัวข้อตามกำหนดส่ง แถวจึงไม่มีป้ายเลยกำหนด/ส่งวันนี้ซ้ำอีก
-       ล็อกไว้เพื่อไม่ให้ session ถัดไปเผลอคืนการ์ดหรือคืนคอลัมน์นั้นกลับมา */
-    expect(productionWorklistSource).toContain("<FilterChip");
-    expect(productionWorklistSource).toContain("WORKLIST_LENS_PRESENTATION");
-    expect(productionWorklistSource).toContain("text-module-production-text");
-    expect(productionWorklistSource).toContain("PackageCheck");
-    expect(productionWorklistSource).toContain("iconColor");
-    /* ตัวเลขในชิปไม่มีพื้นเม็ดแล้ว (เบสเคาะแบบ B "ไม่มีกล่อง" 2026-08-31)
-       กติกาเดียวกับ `mark` ใน visual-tone.ts — ไอคอน/ตัวเลขนำหน้าหัวข้อไม่มีพื้น */
-    expect(productionWorklistSource).toContain("countColor");
-    /* แถบกรองถามว่า "ค้างอยู่ขั้นไหน" ไม่ใช่ "ใบไหนสถานะอะไร" (เบสเลือกแบบ A 2026-08-31)
-       — เกือบทุกใบมีสถานะ "กำลังผลิต" อยู่แล้ว ปุ่มตามสถานะจึงแทบไม่กรองอะไร
-       เหลือชิปมุมแค่ ทั้งหมด/ต้องจัดการ แล้วต่อด้วยชิปขั้นงานจาก board.stations */
-    expect(productionWorklistSource).toContain("WORKLIST_LENS_CHIPS");
-    expect(productionWorklistSource).toContain("stations.map");
-    expect(productionWorklistSource).toContain('data-station-count=""');
-    expect(productionWorklistSource).not.toContain("PRODUCTION_WORKLIST_LENSES.map");
-    /* แถบอ่านเป็น "สายพาน": ลูกศรคั่น + ตัวเลขนำหน้าชื่อขั้น (เบสเลือกแบบ D 2026-09-01)
-       และช่องเรียงบนคอมถูกเอาออก เหลือเฉพาะบนมือถือที่ไม่มีหัวตารางให้กด */
-    expect(productionWorklistSource).toContain("›");
-    expect(productionWorklistSource).not.toContain('aria-label="ลำดับพิเศษ"');
-    // เช็คที่โค้ด ไม่ใช่ที่คอมเมนต์ — หัวข้อในคอมเมนต์ยังพูดถึงการเรียงจากหัวตารางได้
-    expect(productionWorklistSource).not.toContain('value="__column__"');
-    expect(productionWorklistSource).toContain("PRODUCTION_WORKLIST_SORT_OPTIONS.map");
-    expect(productionWorklistSource).not.toContain("iconChip");
-    expect(productionWorklistSource).not.toContain("bg-module-brand-surface");
-    expect(productionWorklistSource).not.toContain("bg-red-50");
-    // ห้ามกลับไปเป็นการ์ดตัวเลขเต็มแถว
-    expect(productionWorklistSource).not.toContain("selectedBorder");
-    expect(productionWorklistSource).not.toContain("min-h-20");
-    expect(productionWorklistSource).not.toContain('isOn && cn("bg-surface"');
-    // ตารางบอกสถานะ ไม่ใช่งานถัดไป
-    expect(productionWorklistSource).toContain("productionWorklistStatus");
-    expect(productionWorklistSource).toContain("<StatusLabel");
-    expect(productionWorklistSource).not.toContain("productionWorklistAction");
-    // เช็คที่โค้ด ไม่ใช่ที่คอมเมนต์ — หัวไฟล์จงใจอธิบายว่าตัดอะไรออกไป
-    expect(productionWorklistSource).not.toContain("action.owner");
-    expect(productionWorklistSource).not.toContain("action.reason");
-    // หัวข้อกลุ่มตามกำหนดส่งเป็นตัวบอกความเร่ง จึงไม่มีป้ายในแถว
-    expect(productionWorklistSource).toContain("groupProductionWorklist");
-    expect(productionWorklistSource).not.toContain("<DeadlineBadge");
-    // ของเดิมที่ยังต้องจริงอยู่
-    expect(productionWorklistSource).toContain("card-surface card-surface-hover");
-    expect(productionWorklistSource).not.toContain("INTERACTIVE_SELECTED");
-    expect(productionWorklistSource).not.toContain("bg-blue-600 text-white");
-    expect(productionWorklistSource).not.toContain("<FlowFilterBar");
-    // ชิปต้องมีชื่อเต็มให้เสียงอ่าน เพราะข้อความในชิปเหลือแค่ "ชื่อมุม + ตัวเลข"
-    expect(productionWorklistSource).toContain("aria-label={actionLabel}");
-    expect(filterChipSource).toContain("aria-pressed={selected}");
-  });
 });

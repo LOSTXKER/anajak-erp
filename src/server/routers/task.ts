@@ -262,7 +262,7 @@ export const taskRouter = router({
                   vendor: { select: { name: true } },
                   productionStep: {
                     select: {
-                      production: { select: { order: { select: { orderNumber: true } } } },
+                      production: { select: { order: { select: { id: true, orderNumber: true } } } },
                     },
                   },
                 },
@@ -322,6 +322,7 @@ export const taskRouter = router({
               outsourceDueRaw.map((o) => ({
                 id: o.id,
                 vendorName: o.vendor.name,
+                orderId: o.productionStep.production.order.id,
                 orderNumber: o.productionStep.production.order.orderNumber,
                 expectedBackAt: o.expectedBackAt,
               }))

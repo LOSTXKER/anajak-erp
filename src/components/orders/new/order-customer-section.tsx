@@ -165,16 +165,7 @@ export function OrderCustomerSection({
             )}
           {selectedCustomer && filmCount > 0 && (
             <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
-              🎞️ ลูกค้ามีฟิล์มพร้อมรีดค้าง {filmCount} รายการ — เช็คที่{" "}
-              <a
-                href={`/production/films?search=${encodeURIComponent(selectedCustomer.name)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline"
-              >
-                คลังฟิล์ม
-              </a>{" "}
-              ก่อนเปิดรอบพิมพ์ใหม่
+              🎞️ ลูกค้ามีฟิล์มพร้อมรีดค้าง {filmCount} รายการ — เช็คคลังฟิล์มก่อนเปิดรอบพิมพ์ใหม่
             </p>
           )}
           {selectedCustomer && artworkCount > 0 && (
