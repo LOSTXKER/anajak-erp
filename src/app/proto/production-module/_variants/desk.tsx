@@ -179,7 +179,7 @@ export function DeskVariant({
 
       <JobTable
         groups={piles.map((pile) => ({ key: pile.key, label: pile.label, items: pile.items }))}
-        actionFor={(job) => (job.station ? STATIONS.find((s) => s.key === job.station)!.action : "เปิดใบ")}
+        mode="view"
         emptyLabel="ไม่มีงานในกองนี้ — กดตัวเลขข้างบนอีกครั้งเพื่อดูทั้งหมด"
       />
     </div>
