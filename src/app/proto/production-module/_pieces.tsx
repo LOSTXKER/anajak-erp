@@ -10,7 +10,7 @@
  */
 
 import { Fragment } from "react";
-import { AlertTriangle, CalendarCheck, ChevronRight, Truck, UserRound, Wrench } from "lucide-react";
+import { AlertTriangle, CalendarCheck, Truck, UserRound, Wrench } from "lucide-react";
 import { ActionZone } from "@/components/ui/action-zone";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -279,28 +279,17 @@ function OutsourceCell({ job }: { job: ProductionJob }) {
   );
 }
 
-type JobTableProps = {
+export function JobTable({
+  groups,
+  actionFor,
+  emptyLabel = "ไม่มีงาน",
+}: {
   groups: JobTableGroup[];
+  /** ป้ายปุ่มลงมือของแถวนั้น (ตามสถานีที่ใบอยู่) */
+  actionFor: (job: ProductionJob) => string;
   emptyLabel?: string;
-} & (
-  | {
-      /** A ใช้หน้าตาแถวสำหรับเปิดดู โดยไม่มี CTA ท้ายแถว */
-      mode: "view";
-      actionFor?: never;
-    }
-  | {
-      /** B ยังใช้ปุ่มลงมือตามสถานี และต้องส่งป้ายปุ่มมาเสมอ */
-      mode?: "work";
-      actionFor: (job: ProductionJob) => string;
-    }
-);
-
-export function JobTable(props: JobTableProps) {
-  const { groups, emptyLabel = "ไม่มีงาน" } = props;
-  const mode = props.mode ?? "work";
+}) {
   const total = groups.reduce((sum, group) => sum + group.items.length, 0);
-  // A แทนคอลัมน์ลงมือด้วยผู้รับผิดชอบ จึงยังคงเจ็ดคอลัมน์เท่ากับ B
-  const columnCount = 7;
   return (
     <DataTable.Root className="[&_td]:px-4 [&_th:not([aria-sort])]:px-4">
       <DataTable.Head>
@@ -309,16 +298,15 @@ export function JobTable(props: JobTableProps) {
           <DataTable.Th align="right">จำนวน</DataTable.Th>
           <DataTable.Th>กำหนดส่ง</DataTable.Th>
           <DataTable.Th>เส้นทางงาน</DataTable.Th>
-          <DataTable.Th>{mode === "view" ? "ตอนนี้อยู่ที่" : "ตอนนี้อยู่ที่ · ผู้รับผิดชอบ"}</DataTable.Th>
-          {mode === "view" ? <DataTable.Th>ผู้รับผิดชอบ</DataTable.Th> : null}
+          <DataTable.Th>ตอนนี้อยู่ที่ · ผู้รับผิดชอบ</DataTable.Th>
           <DataTable.Th>ร้านนอก</DataTable.Th>
-          {mode === "work" ? <DataTable.Th align="right">ลงมือ</DataTable.Th> : null}
+          <DataTable.Th align="right">ลงมือ</DataTable.Th>
         </tr>
       </DataTable.Head>
       <DataTable.Body>
         {total === 0 ? (
           <tr>
-            <DataTable.Td colSpan={columnCount} align="center" className="py-10 text-muted">
+            <DataTable.Td colSpan={7} align="center" className="py-10 text-muted">
               {emptyLabel}
             </DataTable.Td>
           </tr>
@@ -330,7 +318,7 @@ export function JobTable(props: JobTableProps) {
               {groups.length > 1 ? (
                 <tr className="bg-surface-muted">
                   <th
-                    colSpan={columnCount}
+                    colSpan={7}
                     scope="rowgroup"
                     className="px-4 py-2 text-left text-xs font-semibold text-strong"
                   >
@@ -340,14 +328,7 @@ export function JobTable(props: JobTableProps) {
                 </tr>
               ) : null}
               {group.items.map((job) => (
-                <DataTable.Row
-                  key={job.id}
-                  title={mode === "view" ? `กดเพื่อดูใบผลิต ${job.orderNumber}` : undefined}
-                  className={cn(
-                    job.problem && "bg-red-50/40 dark:bg-red-950/15",
-                    mode === "view" && "cursor-pointer",
-                  )}
-                >
+                <DataTable.Row key={job.id} className={cn(job.problem && "bg-red-50/40 dark:bg-red-950/15")}>
                   <DataTable.Td className="min-w-56">
                     <div className="flex items-center gap-3">
                       <MockupThumbnail cover={job.mockup} alt={`ม็อกอัพ ${job.orderNumber}`} size="md" />
@@ -375,7 +356,7 @@ export function JobTable(props: JobTableProps) {
                     <RouteBar route={job.route} />
                   </DataTable.Td>
                   <DataTable.Td className="min-w-44 max-w-60">
-                    <div className={cn(mode === "work" && "space-y-1.5")}>
+                    <div className="space-y-1.5">
                       <InfoChipRow>
                         <CurrentStepChip job={job} />
                         {job.problem ? (
@@ -384,40 +365,18 @@ export function JobTable(props: JobTableProps) {
                           </InfoChip>
                         ) : null}
                       </InfoChipRow>
-                      {mode === "work" ? (
-                        <p className="flex items-center gap-1.5 text-xs text-secondary">
-                          <UserRound className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden="true" />
-                          <span className="truncate">{job.next.owner}</span>
-                        </p>
-                      ) : null}
-                    </div>
-                  </DataTable.Td>
-                  {mode === "view" ? (
-                    <DataTable.Td className="min-w-40 max-w-52">
-                      <p className="flex items-center gap-2 font-medium text-strong">
-                        <UserRound className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
+                      <p className="flex items-center gap-1.5 text-xs text-secondary">
+                        <UserRound className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden="true" />
                         <span className="truncate">{job.next.owner}</span>
                       </p>
-                    </DataTable.Td>
-                  ) : null}
-                  <DataTable.Td className="min-w-40 max-w-52">
-                    <div className="flex items-center gap-3">
-                      <div className="min-w-0 flex-1">
-                        <OutsourceCell job={job} />
-                      </div>
-                      {mode === "view" ? (
-                        <ChevronRight
-                          className="h-4 w-4 shrink-0 text-muted transition-[color,transform] group-hover:translate-x-0.5 group-hover:text-strong"
-                          aria-hidden="true"
-                        />
-                      ) : null}
                     </div>
                   </DataTable.Td>
-                  {props.mode !== "view" ? (
-                    <DataTable.Td align="right" className="whitespace-nowrap">
-                      <RowAction job={job} action={props.actionFor(job)} />
-                    </DataTable.Td>
-                  ) : null}
+                  <DataTable.Td className="min-w-40 max-w-52">
+                    <OutsourceCell job={job} />
+                  </DataTable.Td>
+                  <DataTable.Td align="right" className="whitespace-nowrap">
+                    <RowAction job={job} action={actionFor(job)} />
+                  </DataTable.Td>
                 </DataTable.Row>
               ))}
             </Fragment>
