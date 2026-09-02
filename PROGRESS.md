@@ -8,7 +8,8 @@
 - **หน้าใบสั่งผลิต `/production/[id]`**: ล้างหน้าลอง 20+ แบบออกหมด คืน `production-v2-control-record.tsx` เป็นเวอร์ชันก่อนแตะ (เบสสั่ง "ลืมให้หมด เริ่มใหม่" 09-02) → หน้า `/production/[id]` เหมือนก่อนเริ่มเรื่องนี้ทุกอย่าง
 - **Production V2**: โค้ด / migration / seed สูตรมาตรฐาน / หน้าตั้งค่า `/settings/routings` ครบ · ซ้อมบนฐาน demo (`npm run dev:demo` → `localhost:3100`) ผ่านถึงกลางทาง — ใบ MO-2609-0001 เปิดได้ครบ 9 ขั้น · ที่เหลือต้องกดในจอจริง `/factory/station` (รายงานผลผลิตต้องแยก quantity line · DTF ต้องเริ่มจากรอบพิมพ์) · **ของจริงบน Vercel ยังเป็น legacy** (`PRODUCTION_V2_ENABLED=0`) · ฐานจริงยังไม่ seed routing
 - **ตัวกรอง `/production`**: คงแบบเดิม (เบส "เอาแบบเดิมก่อน" 09-02) · คอลัมน์ "เส้นทางงาน" แบบ C ลงของจริงแล้ว
-- ด่านล่าสุดที่ผ่านบน main (`61575af`): typecheck · eslint 0 error · unit ทั้งชุด · verify:ui
+- **🔥 เว็บจริงเดี้ยงเงียบตั้งแต่ 08-31 — แก้แล้วในรอบนี้**: ทุก deploy บน Vercel ตั้งแต่ commit `8d79749` (หน้าลอง `/proto/quiet`) ล้มเหลวทั้งหมด รวม main 09-01/09-02 · เว็บจริงค้างอยู่ที่ `f70cc40` (08-31) · สาเหตุ: `view/page.tsx` (server component) import ค่า `QUIET_LEVELS` จากไฟล์ `"use client"` → ตอน build ได้ client reference ไม่ใช่ array (`QUIET_LEVELS.map is not a function`) · dev/typecheck/lint/unit ไม่จับ มีแต่ `npm run build` ที่จับ และไม่มีใครรัน build ตั้งแต่ 08-26 · แก้: แยกข้อมูลไป `_levels-data.ts` (ไม่มี "use client") · **กติกาใหม่: `npm run build` ก่อน push main ทุกครั้ง** (อยู่ใน SPEC §ด่าน)
+- ด่านที่ผ่านก่อน push main รอบนี้: typecheck · eslint 0 error · unit 1682/1682 · verify:ui · **`npm run build` 62 หน้า**
 
 ## NEXT
 1. เบสตั้งโจทย์หน้าใบสั่งผลิตใหม่ → หน้าลอง `/proto` 2-4 ทาง → เคาะ → ลงของจริง (`ROADMAP.md` §A)

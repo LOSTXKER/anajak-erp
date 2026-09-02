@@ -4,7 +4,8 @@
  * แล้วเห็นแบบที่กดมาตั้งแต่เฟรมแรก ไม่ใช่เห็น "ตอนนี้" แว้บหนึ่งก่อน
  */
 
-import { QUIET_LEVELS, QuietStyle, type QuietLevel } from "../_levels";
+import { QUIET_LEVELS, type QuietLevel } from "../_levels-data";
+import { QuietStyle } from "../_levels";
 import { QuietScreen } from "../_screen";
 
 const VALUES = QUIET_LEVELS.map((level) => level.value);

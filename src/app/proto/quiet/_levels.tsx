@@ -17,12 +17,10 @@
  * ⚠️ `!important` ใช้ได้เพราะนี่คือหน้าลอง — ตอนลงของจริงจะไปแก้ที่ token ไม่ใช่ทับด้วย CSS
  */
 
-export const QUIET_LEVELS = [
-  { value: "current", label: "ตอนนี้ (แบบ B)" },
-  { value: "gray", label: "ถ้าอยากคลีนกว่านี้อีก · เทาหมด" },
-] as const;
-
-export type QuietLevel = (typeof QUIET_LEVELS)[number]["value"];
+/* ข้อมูลระดับอยู่ใน `_levels-data.ts` (ไม่มี "use client") เพราะ `view/page.tsx` เป็น server component —
+   import ค่าจากโมดูล client ตอน build จะได้ client reference ไม่ใช่ array (`QUIET_LEVELS.map is not a function`) */
+import { QUIET_LEVELS, type QuietLevel } from "./_levels-data";
+export { QUIET_LEVELS, type QuietLevel };
 
 const TONES = ["brand", "production", "product", "finance", "system"] as const;
 
