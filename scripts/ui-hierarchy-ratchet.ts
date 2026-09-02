@@ -15,11 +15,17 @@ import { join } from "node:path";
 const BASELINE = "scripts/ui-hierarchy-baseline.json";
 const DOT_CHAIN = / · [^\n]* · /;
 
+function isProtoProse(path: string) {
+  return path.startsWith("src/app/proto/") && (path.endsWith("/page.tsx") || path.endsWith("/removed.tsx"));
+}
+
 function walk(dir: string, out: string[] = []) {
   for (const name of readdirSync(dir)) {
     const path = join(dir, name);
     if (statSync(path).isDirectory()) walk(path, out);
-    else if (path.endsWith(".tsx") && !path.includes(".test.")) out.push(path);
+    // หน้าลอง: ไฟล์คำอธิบาย (page.tsx ที่มี COPY/NOTES · _variants/removed.tsx ที่สรุปของเดิม) เป็นร้อยแก้ว
+    // ที่คั่นด้วยจุดตามปกติของภาษาเขียน ไม่ใช่แถวข้อมูล — ตัววาดของหน้าลอง (_pieces/_variants อื่น) ยังโดนด่านเต็ม
+    else if (path.endsWith(".tsx") && !path.includes(".test.") && !isProtoProse(path)) out.push(path);
   }
   return out;
 }

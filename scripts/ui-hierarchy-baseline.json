@@ -115,17 +115,9 @@
     "dots": 0,
     "muted": 6
   },
-  "src/app/proto/factory-canvas/page.tsx": {
-    "dots": 2,
-    "muted": 1
-  },
   "src/app/proto/look/_blocks.tsx": {
     "dots": 2,
     "muted": 12
-  },
-  "src/app/proto/look/page.tsx": {
-    "dots": 12,
-    "muted": 2
   },
   "src/app/proto/order-detail/_variants/calm.tsx": {
     "dots": 0,
@@ -139,10 +131,6 @@
     "dots": 0,
     "muted": 1
   },
-  "src/app/proto/order-detail/page.tsx": {
-    "dots": 13,
-    "muted": 2
-  },
   "src/app/proto/order-overview/_ui.tsx": {
     "dots": 0,
     "muted": 4
@@ -154,14 +142,6 @@
   "src/app/proto/order-overview/_variants/pair.tsx": {
     "dots": 0,
     "muted": 3
-  },
-  "src/app/proto/order-overview/page.tsx": {
-    "dots": 11,
-    "muted": 4
-  },
-  "src/app/proto/page.tsx": {
-    "dots": 0,
-    "muted": 1
   },
   "src/app/proto/production-module/_pieces.tsx": {
     "dots": 0,
@@ -175,25 +155,13 @@
     "dots": 2,
     "muted": 3
   },
-  "src/app/proto/production-module/_variants/removed.tsx": {
-    "dots": 4,
-    "muted": 0
-  },
   "src/app/proto/production-module/_variants/schedule.tsx": {
     "dots": 1,
-    "muted": 2
-  },
-  "src/app/proto/production-module/page.tsx": {
-    "dots": 11,
     "muted": 2
   },
   "src/app/proto/quiet/_screen.tsx": {
     "dots": 3,
     "muted": 0
-  },
-  "src/app/proto/quiet/page.tsx": {
-    "dots": 7,
-    "muted": 2
   },
   "src/app/proto/work-board/_variants/board.tsx": {
     "dots": 0,
@@ -211,9 +179,17 @@
     "dots": 0,
     "muted": 5
   },
-  "src/app/proto/work-board/page.tsx": {
-    "dots": 6,
-    "muted": 2
+  "src/app/proto/work-order/_pieces.tsx": {
+    "dots": 0,
+    "muted": 1
+  },
+  "src/app/proto/work-order/_variants/focus.tsx": {
+    "dots": 0,
+    "muted": 1
+  },
+  "src/app/proto/work-order/_variants/table.tsx": {
+    "dots": 0,
+    "muted": 1
   },
   "src/components/customers/chat-link.tsx": {
     "dots": 0,
