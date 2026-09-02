@@ -27,6 +27,7 @@ import { DueTag } from "@/components/ui/due-tag";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { InfoChip, InfoChipRow } from "@/components/ui/info-chip";
 import { SearchInput } from "@/components/ui/search-input";
+import { Select } from "@/components/ui/select";
 import { MockupThumbnail } from "@/components/mockup/mockup-thumbnail";
 import { orderMockupCover } from "@/lib/mockup";
 import type { BoardOrderLike, BoardRailPoint } from "@/lib/production-board";
@@ -104,6 +105,23 @@ export function DeskTiles({
 
 /* ───────────────────────── แถบค้นหา + ชิปขั้นงาน ───────────────────────── */
 
+/** ค่าตัวกรอง "ร้านนอกทุกประเภท" — ชิปเดียวแทน 6 ประเภทร้าน (เบสทัก 2026-09-02 "ส่วน filter ดูอัดไป") */
+export const STATION_OUTSOURCE_ALL = "outsource";
+
+function ChipCount({ count, overdue }: { count: number; overdue: number }) {
+  return (
+    <>
+      <span className="tabular-nums text-muted">{count}</span>
+      {overdue > 0 ? <span className="tabular-nums text-red-600 dark:text-red-400">· {overdue}</span> : null}
+    </>
+  );
+}
+
+/**
+ * แถบกรอง 2 แถว: ค้นหา + สถานะรีเฟรช / ชิปขั้นงาน
+ * ร้านนอก 6 ประเภทยุบเป็นชิป "ร้านนอก" ชิปเดียว — กดแล้วค่อยเลือกประเภทร้านจากช่องเลือกข้าง ๆ
+ * (เดิม 13 ชิปพันกับช่องค้นหาในแถวเดียว จนล้นเป็น 2 บรรทัด)
+ */
 export function DeskToolbar({
   searchDefault,
   searchInputRef,
@@ -123,37 +141,70 @@ export function DeskToolbar({
   total: number;
   freshness?: ReactNode;
 }) {
+  const inHouse = stations.filter((chip) => !chip.isOutsource);
+  const outsource = stations.filter((chip) => chip.isOutsource);
+  const outsourceCount = outsource.reduce((sum, chip) => sum + chip.count, 0);
+  const outsourceOverdue = outsource.reduce((sum, chip) => sum + chip.overdue, 0);
+  const outsourceActive = station === STATION_OUTSOURCE_ALL || outsource.some((chip) => chip.key === station);
+
   return (
-    <div className="flex flex-wrap items-center gap-3">
-      <SearchInput
-        ref={searchInputRef}
-        surface="raised"
-        placeholder="ค้นเลขออเดอร์ / ลูกค้า"
-        defaultValue={searchDefault}
-        onChange={(event) => onSearchChange(event.target.value)}
-        containerClassName="w-full sm:w-72"
-        aria-label="ค้นหางานผลิต"
-      />
-      <div className="-mb-px flex min-w-0 flex-1 flex-wrap items-center gap-x-3 border-b border-divider">
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <SearchInput
+          ref={searchInputRef}
+          surface="raised"
+          placeholder="ค้นเลขออเดอร์ / ลูกค้า"
+          defaultValue={searchDefault}
+          onChange={(event) => onSearchChange(event.target.value)}
+          containerClassName="w-full sm:w-80"
+          aria-label="ค้นหางานผลิต"
+        />
+        {freshness}
+      </div>
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-1 border-b border-divider">
         <FilterChip selected={station === ""} onClick={() => onSelectStation("")}>
-          ทุกขั้น <span className="tabular-nums text-muted">{total}</span>
+          ทุกขั้น <ChipCount count={total} overdue={0} />
         </FilterChip>
-        {stations.map((chip) => (
+        {inHouse.map((chip) => (
           <FilterChip
             key={chip.key}
             selected={station === chip.key}
             onClick={() => onSelectStation(chip.key)}
-            icon={chip.isOutsource ? <Truck className="h-4 w-4" /> : undefined}
             aria-label={`${chip.label} ${chip.count} งาน${chip.overdue ? ` เลยกำหนด ${chip.overdue}` : ""} · กดเพื่อกรอง`}
           >
-            {chip.label} <span className="tabular-nums text-muted">{chip.count}</span>
-            {chip.overdue > 0 ? (
-              <span className="tabular-nums text-red-600 dark:text-red-400">· {chip.overdue}</span>
-            ) : null}
+            {chip.label} <ChipCount count={chip.count} overdue={chip.overdue} />
           </FilterChip>
         ))}
+        {outsource.length > 0 ? (
+          <span className="inline-flex items-center gap-2">
+            <FilterChip
+              selected={outsourceActive}
+              onClick={() => onSelectStation(STATION_OUTSOURCE_ALL)}
+              icon={<Truck className="h-4 w-4" />}
+              aria-label={`ร้านนอกทุกประเภท ${outsourceCount} งาน${outsourceOverdue ? ` เลยกำหนด ${outsourceOverdue}` : ""} · กดเพื่อกรอง`}
+            >
+              ร้านนอก <ChipCount count={outsourceCount} overdue={outsourceOverdue} />
+            </FilterChip>
+            {outsourceActive ? (
+              <Select
+                shape="pill"
+                surface="raised"
+                aria-label="เลือกประเภทร้านนอก"
+                value={station === STATION_OUTSOURCE_ALL ? "" : station}
+                onChange={(event) => onSelectStation(event.target.value || STATION_OUTSOURCE_ALL)}
+                className="min-w-40"
+              >
+                <option value="">ทุกประเภทร้าน</option>
+                {outsource.map((chip) => (
+                  <option key={chip.key} value={chip.key}>
+                    {chip.label} ({chip.count})
+                  </option>
+                ))}
+              </Select>
+            ) : null}
+          </span>
+        ) : null}
       </div>
-      {freshness ? <div className="ml-auto">{freshness}</div> : null}
     </div>
   );
 }

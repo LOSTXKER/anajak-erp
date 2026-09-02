@@ -36,7 +36,7 @@ import {
   resolveWorklistStation,
   worklistStationChips,
 } from "@/lib/production-worklist";
-import { DeskTable, DeskTiles, DeskToolbar } from "./production-desk-view";
+import { DeskTable, DeskTiles, DeskToolbar, STATION_OUTSOURCE_ALL } from "./production-desk-view";
 
 type KanbanOrder = RouterOutput["production"]["kanban"][number];
 type KanbanStep = KanbanOrder["productions"][number]["steps"][number];
@@ -90,11 +90,18 @@ function ProductionDesk() {
     () => worklistStationChips(board.stations, lensRows.map((row) => row.job)),
     [board.stations, lensRows],
   );
-  const station = resolveWorklistStation(list.searchParams.get("station"), stationChips);
+  // "ร้านนอก" ชิปเดียว = ทุกประเภทร้าน (ค่า virtual ไม่มีใน board.stations) · ประเภทเฉพาะยังเป็น lane:<LANE> เดิม
+  const rawStation = list.searchParams.get("station");
+  const station =
+    rawStation === STATION_OUTSOURCE_ALL ? STATION_OUTSOURCE_ALL : resolveWorklistStation(rawStation, stationChips);
   const visibleRows = useMemo(() => {
+    if (station === STATION_OUTSOURCE_ALL) {
+      const outsourceKeys = new Set(stationChips.filter((chip) => chip.isOutsource).map((chip) => chip.key));
+      return lensRows.filter((row) => row.job.stationKeys.some((key) => outsourceKeys.has(key)));
+    }
     const keys = new Set(filterWorklistByStation(lensRows.map((row) => row.job), station).map((job) => job.key));
     return lensRows.filter((row) => keys.has(row.job.key));
-  }, [lensRows, station]);
+  }, [lensRows, station, stationChips]);
   const groups = useMemo(() => groupDeskRows(visibleRows), [visibleRows]);
 
   const hasStaleData = (isError && Boolean(orders)) || (meQuery.isError && Boolean(me));
