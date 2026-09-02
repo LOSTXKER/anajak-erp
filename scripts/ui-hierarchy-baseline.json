@@ -191,6 +191,10 @@
     "dots": 0,
     "muted": 1
   },
+  "src/app/proto/work-order/_variants/tabs.tsx": {
+    "dots": 0,
+    "muted": 1
+  },
   "src/components/customers/chat-link.tsx": {
     "dots": 0,
     "muted": 1
