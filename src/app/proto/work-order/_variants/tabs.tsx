@@ -34,7 +34,7 @@ import {
 
 /* ───────────────────────── แท็บ ขั้นงาน ───────────────────────── */
 
-function StepPicker({ selected, onSelect }: { selected: string; onSelect: (id: string) => void }) {
+export function StepPicker({ selected, onSelect }: { selected: string; onSelect: (id: string) => void }) {
   return (
     <Section title="ขั้นงานทั้งหมด" meta={`${STEPS.filter((s) => s.state === "done").length}/${STEPS.length} ผ่านแล้ว`} icon={Wrench} tone="production" flush>
       <ol className="divide-y divide-divider">
@@ -98,7 +98,7 @@ function StepDetail({ step, touch }: { step: WorkStep; touch: boolean }) {
 
 /* ───────────────────────── แท็บ ทำอะไร ───────────────────────── */
 
-function ItemsColumn() {
+export function ItemsColumn() {
   return (
     <Section title="สินค้า สี ไซซ์" meta={`${ITEMS.length} รายการ · ${WORK_ORDER.qty} ตัว`} icon={Shirt} tone="product">
       <ul className="divide-y divide-divider">
@@ -130,7 +130,7 @@ function ItemsColumn() {
   );
 }
 
-function PrintsColumn() {
+export function PrintsColumn() {
   const prints = ITEMS.flatMap((item) => item.prints.map((p) => ({ ...p, color: item.color, mockup: item.mockup })));
   const unique = prints.filter((p, i) => prints.findIndex((q) => q.position === p.position && q.technique === p.technique) === i);
   return (
@@ -149,7 +149,7 @@ function PrintsColumn() {
 
 /* ───────────────────────── แท็บ ข้อมูลใบ ───────────────────────── */
 
-function OrderFactsColumn() {
+export function OrderFactsColumn() {
   return (
     <Section title="ออเดอร์และสูตร" icon={ClipboardCheck} tone="production">
       <FactList columns={2}>
@@ -163,7 +163,7 @@ function OrderFactsColumn() {
   );
 }
 
-function GarmentColumn() {
+export function GarmentColumn() {
   const g = WORK_ORDER.garment;
   const outs = STEPS.filter((s) => s.outsource);
   return (
@@ -205,7 +205,7 @@ function GarmentColumn() {
 
 /* ───────────────────────── แท็บ ประวัติ ───────────────────────── */
 
-function EventsColumn() {
+export function EventsColumn() {
   return (
     <Section title="เหตุการณ์ทั้งหมด" icon={History} tone="system" meta={`${EVENTS.length} รายการ`}>
       <ol className="space-y-3">
@@ -225,7 +225,7 @@ function EventsColumn() {
   );
 }
 
-function PlanColumn() {
+export function PlanColumn() {
   return (
     <Section title="แผน vs จริง ต่อขั้น" icon={CalendarCheck} tone="production">
       <ol className="divide-y divide-divider">
@@ -253,7 +253,7 @@ function PlanColumn() {
 
 /* ───────────────────────── หน้า ───────────────────────── */
 
-const TABS = [
+export const TABS = [
   { value: "steps", label: "ขั้นงาน" },
   { value: "make", label: "ทำอะไร" },
   { value: "info", label: "ข้อมูลใบ" },
