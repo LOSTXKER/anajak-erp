@@ -180,6 +180,14 @@ function ProductionDesk() {
             stations={stationChips}
             onSelectStation={(value) => list.replaceListState({ station: value || null, page: null })}
             total={lensRows.length}
+            freshness={
+              <ProductionFreshness
+                updatedAt={dataUpdatedAt}
+                isFetching={isFetching && !isLoading}
+                stale={hasStaleData}
+                className="text-xs"
+              />
+            }
           />
           <DeskTable
             groups={groups}
@@ -190,16 +198,6 @@ function ProductionDesk() {
                 : "ไม่มีงานตรงตัวกรองนี้ — กดตัวเลขหรือขั้นงานอีกครั้งเพื่อดูทั้งหมด"
             }
           />
-          {/* สถานะรีเฟรช = ข้อมูลประกอบ (ชั้น 3) อยู่ท้ายตารางชิดขวา — เบสทัก 2026-09-02 ว่าไว้บนหัวแล้ว "ดูแปลก ๆ"
-              และไว้ในแถบกรองแล้ว "อัด" · ยกเว้นตอนข้อมูลค้าง (stale) ซึ่งมี Alert บอกที่หัวหน้าอยู่แล้ว */}
-          <div className="flex justify-end">
-            <ProductionFreshness
-              updatedAt={dataUpdatedAt}
-              isFetching={isFetching && !isLoading}
-              stale={hasStaleData}
-              className="text-xs [&_p]:text-xs"
-            />
-          </div>
         </div>
       </PageShell>
 
