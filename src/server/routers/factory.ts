@@ -14,6 +14,7 @@ import { assertOrderPackingReadyToShip } from "@/server/services/packing-readine
 import { transitionOrder } from "@/server/services/order-status";
 import { createAuditLog } from "@/server/helpers";
 import { canUseStationShirtDiagram } from "@/lib/station-work-visual";
+import { orderMockupCover } from "@/lib/mockup";
 
 const productionTeam = requirePermission("manage_production");
 
@@ -140,7 +141,32 @@ const stationQueueOrderSelect = {
   priority: true,
   blindShip: true,
   customer: { select: { name: true } },
-  items: { select: { totalQuantity: true } },
+  // รูปปกม็อกอัพ + รูปลาย — จอสถานีใหม่ (2026-09-03) ให้ช่างจำงานจากภาพ · เอาเฉพาะ URL ไม่มีเงิน/token
+  designs: {
+    where: { approvalStatus: "APPROVED" as const },
+    orderBy: { versionNumber: "desc" as const },
+    take: 1,
+    select: {
+      versionNumber: true,
+      fileUrl: true,
+      thumbnailUrl: true,
+      files: {
+        orderBy: { sortOrder: "asc" as const },
+        select: { fileUrl: true, thumbnailUrl: true, position: true },
+      },
+    },
+  },
+  items: {
+    select: {
+      totalQuantity: true,
+      prints: {
+        select: {
+          designImageUrl: true,
+          artwork: { select: { imageUrl: true } },
+        },
+      },
+    },
+  },
   productions: {
     select: {
       id: true,
@@ -157,6 +183,24 @@ const stationQueueOrderSelect = {
           notes: true,
           qcNotes: true,
           assignedTo: { select: { id: true, name: true } },
+          // ร้านนอกที่ยังไม่กลับ + รอบพิมพ์ค้าง — จอสถานีต้องรู้ว่าใบนี้ "รอของ" หรือ "อยู่ในรอบ"
+          // (ชุดเดียวกับ production.kanban · ไม่มีค่าจ้าง/ราคา)
+          outsourceOrders: {
+            orderBy: { createdAt: "desc" as const },
+            take: 1,
+            select: {
+              id: true,
+              status: true,
+              expectedBackAt: true,
+              description: true,
+              quantity: true,
+              vendor: { select: { name: true } },
+            },
+          },
+          printRunItems: {
+            where: { printRun: { status: { in: ["PRINTING", "PRINTED"] } } },
+            select: { printRun: { select: { runNumber: true, status: true } } },
+          },
         },
         orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
       },
@@ -274,6 +318,8 @@ function toStationQueueItem(row: StationQueueOrderRow) {
     blindShip: row.blindShip,
     customerName: row.customer.name,
     totalQuantity: row.items.reduce((sum, item) => sum + item.totalQuantity, 0),
+    // รูปเดียวแทนงาน — คำนวณที่นี่เพื่อไม่ส่งรายการไฟล์ทั้งชุดลงจอ
+    mockupCover: orderMockupCover(row),
     productions: row.productions,
     // จอสถานีไม่เปิดงานใหม่ จึงไม่ต้องรับ readiness ฝั่งชำระเงินแม้แต่ข้อความ
     readiness: null,

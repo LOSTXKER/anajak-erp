@@ -8,8 +8,9 @@
  */
 
 import { Suspense, useMemo } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Factory, Plus, RefreshCw } from "lucide-react";
+import { Factory, MonitorSmartphone, Plus, RefreshCw } from "lucide-react";
 
 import { trpc, type RouterOutput } from "@/lib/trpc";
 import { permAllows } from "@/lib/permissions";
@@ -120,12 +121,20 @@ function ProductionDesk() {
             : "ดูว่างานไหนต้องจัดการก่อน อยู่ขั้นไหน และของร้านนอกกลับเมื่อไร"
         }
         action={
-          canCreateProduction ? (
-            // กรองไปกอง "รอเปิดใบผลิต" — แถวในกองนั้นกดแล้วเปิด dialog สร้างใบ (ทางเดิม ?create=)
-            <Button onClick={() => list.replaceListState({ view: null, station: STATION_QUEUE, page: null })}>
-              <Plus /> เปิดใบผลิต{awaiting > 0 ? ` (${awaiting.toLocaleString("th-TH")})` : ""}
+          <>
+            {/* จอสถานี (แบบ A · 2026-09-03) — จอทัชหน้าเครื่องของช่าง / แผงสถานีของหัวหน้า */}
+            <Button variant="outline" asChild>
+              <Link href="/station">
+                <MonitorSmartphone /> จอสถานี
+              </Link>
             </Button>
-          ) : undefined
+            {canCreateProduction ? (
+              // กรองไปกอง "รอเปิดใบผลิต" — แถวในกองนั้นกดแล้วเปิด dialog สร้างใบ (ทางเดิม ?create=)
+              <Button onClick={() => list.replaceListState({ view: null, station: STATION_QUEUE, page: null })}>
+                <Plus /> เปิดใบผลิต{awaiting > 0 ? ` (${awaiting.toLocaleString("th-TH")})` : ""}
+              </Button>
+            ) : null}
+          </>
         }
         loading={isLoading || meQuery.isLoading}
         skeleton={
