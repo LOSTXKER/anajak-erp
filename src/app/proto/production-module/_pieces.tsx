@@ -10,7 +10,7 @@
  */
 
 import { Fragment } from "react";
-import { AlertTriangle, CalendarCheck, Truck, UserRound, Wrench } from "lucide-react";
+import { AlertTriangle, CalendarCheck, ChevronRight, Truck, UserRound, Wrench } from "lucide-react";
 import { ActionZone } from "@/components/ui/action-zone";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -281,12 +281,9 @@ function OutsourceCell({ job }: { job: ProductionJob }) {
 
 export function JobTable({
   groups,
-  actionFor,
   emptyLabel = "ไม่มีงาน",
 }: {
   groups: JobTableGroup[];
-  /** ป้ายปุ่มลงมือของแถวนั้น (ตามสถานีที่ใบอยู่) */
-  actionFor: (job: ProductionJob) => string;
   emptyLabel?: string;
 }) {
   const total = groups.reduce((sum, group) => sum + group.items.length, 0);
@@ -298,15 +295,18 @@ export function JobTable({
           <DataTable.Th align="right">จำนวน</DataTable.Th>
           <DataTable.Th>กำหนดส่ง</DataTable.Th>
           <DataTable.Th>เส้นทางงาน</DataTable.Th>
-          <DataTable.Th>ตอนนี้อยู่ที่ · ผู้รับผิดชอบ</DataTable.Th>
+          <DataTable.Th>ตอนนี้อยู่ที่</DataTable.Th>
           <DataTable.Th>ร้านนอก</DataTable.Th>
-          <DataTable.Th align="right">ลงมือ</DataTable.Th>
+          <DataTable.Th>ผู้รับผิดชอบ</DataTable.Th>
+          <DataTable.Th align="right">
+            <span className="sr-only">เปิดใบผลิต</span>
+          </DataTable.Th>
         </tr>
       </DataTable.Head>
       <DataTable.Body>
         {total === 0 ? (
           <tr>
-            <DataTable.Td colSpan={7} align="center" className="py-10 text-muted">
+            <DataTable.Td colSpan={8} align="center" className="py-10 text-muted">
               {emptyLabel}
             </DataTable.Td>
           </tr>
@@ -318,7 +318,7 @@ export function JobTable({
               {groups.length > 1 ? (
                 <tr className="bg-surface-muted">
                   <th
-                    colSpan={7}
+                    colSpan={8}
                     scope="rowgroup"
                     className="px-4 py-2 text-left text-xs font-semibold text-strong"
                   >
@@ -328,7 +328,12 @@ export function JobTable({
                 </tr>
               ) : null}
               {group.items.map((job) => (
-                <DataTable.Row key={job.id} className={cn(job.problem && "bg-red-50/40 dark:bg-red-950/15")}>
+                <DataTable.Row
+                  key={job.id}
+                  href={`/production/${job.id}`}
+                  aria-label={`เปิดใบผลิต ${job.orderNumber}`}
+                  className={cn("group/row", job.problem && "bg-red-50/40 dark:bg-red-950/15")}
+                >
                   <DataTable.Td className="min-w-56">
                     <div className="flex items-center gap-3">
                       <MockupThumbnail cover={job.mockup} alt={`ม็อกอัพ ${job.orderNumber}`} size="md" />
@@ -356,26 +361,30 @@ export function JobTable({
                     <RouteBar route={job.route} />
                   </DataTable.Td>
                   <DataTable.Td className="min-w-44 max-w-60">
-                    <div className="space-y-1.5">
-                      <InfoChipRow>
-                        <CurrentStepChip job={job} />
-                        {job.problem ? (
-                          <InfoChip size="sm" tone="error" strong icon={AlertTriangle} title={job.problem} className="max-w-52">
-                            {job.problem}
-                          </InfoChip>
-                        ) : null}
-                      </InfoChipRow>
-                      <p className="flex items-center gap-1.5 text-xs text-secondary">
-                        <UserRound className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden="true" />
-                        <span className="truncate">{job.next.owner}</span>
-                      </p>
-                    </div>
+                    <InfoChipRow>
+                      <CurrentStepChip job={job} />
+                      {job.problem ? (
+                        <InfoChip size="sm" tone="error" strong icon={AlertTriangle} title={job.problem} className="max-w-52">
+                          {job.problem}
+                        </InfoChip>
+                      ) : null}
+                    </InfoChipRow>
                   </DataTable.Td>
                   <DataTable.Td className="min-w-40 max-w-52">
                     <OutsourceCell job={job} />
                   </DataTable.Td>
-                  <DataTable.Td align="right" className="whitespace-nowrap">
-                    <RowAction job={job} action={actionFor(job)} />
+                  <DataTable.Td className="whitespace-nowrap">
+                    <span className="inline-flex items-center gap-1.5 text-secondary">
+                      <UserRound className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
+                      {job.next.owner}
+                    </span>
+                  </DataTable.Td>
+                  <DataTable.Td align="right" className="w-12 pl-0">
+                    {/* ลูกศรบอกว่าแถวนี้กดเปิดได้ — เข้มขึ้นตอนชี้ทั้งแถว */}
+                    <ChevronRight
+                      className="ml-auto h-4 w-4 text-muted transition-colors group-hover/row:text-strong"
+                      aria-hidden="true"
+                    />
                   </DataTable.Td>
                 </DataTable.Row>
               ))}

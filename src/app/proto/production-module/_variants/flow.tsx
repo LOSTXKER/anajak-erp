@@ -244,7 +244,6 @@ export function FlowVariant({
       </div>
       <JobTable
         groups={[{ key: String(node), label: title, items: queue }]}
-        actionFor={() => action}
         emptyLabel={`ไม่มีงานที่${title} — เลือกสถานีอื่นในสายพาน`}
       />
 
