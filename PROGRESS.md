@@ -10,15 +10,16 @@
   - **เหลือ**: ใบผลิต `/production/[id]` (เข้าจากหน้าออเดอร์ / My Tasks) · จอโรงงาน `/factory` (TV) · หน้าตั้งค่า `/settings/routings`
 - **เบสเคาะ "ลบเกลี้ยง ยอมพังชั่วคราว"** — ผลที่เห็น: เมนู "การผลิต" หายจากเมนูข้าง/แดชบอร์ด · **เปิดใบผลิตจากออเดอร์ไม่ได้** (ปุ่มถูกถอด ข้อความบอกว่ากำลังทำใหม่) · ลิงก์ที่เคยชี้มาหน้าเหล่านี้ (My Tasks · ปุ่มกลับในใบผลิต · การ์ดผลิตในออเดอร์ · แจ้งเตือน · QR ใบงาน) ชี้ไปหน้าออเดอร์/ใบผลิต/My Tasks แทน · ปุ่ม "รอบพิมพ์ DTF" ในใบผลิตซ่อนไว้ (prop `printRunsHref` เป็น null)
 - **ยังเก็บไว้ให้หน้าใหม่ต่อ (ไม่ได้ลบ):** server ทั้งหมด (`production.kanban` · `manufacturing.controlList/station*` · router print-run/film-stock/outsource/factory) · `lib/outsource-ui` · โหมด `surface="station"` ที่ฝังใน `production-detail-screen` (ไม่มีใครเรียก) · `station-garment-preview` · กติกาเดิมใน `SPEC.md`/`docs/DESIGN.md` (ทำเครื่องหมาย "ถอดออก" ไว้แล้ว)
-- ด่านที่ผ่านรอบนี้: typecheck · eslint 0 error · unit 1610/1610 (ลดจาก 1682 เพราะลบ test ของหน้าที่ถอด) · verify:ui ผ่านครบ · **ยังไม่ได้รัน `npm run build`** (dev :3000 เปิดอยู่) — ต้องรันก่อน merge main
+- ด่านที่ผ่าน: typecheck · eslint 0 error · unit 1610/1610 · verify:ui ผ่านครบ · `npm run build` ผ่าน → **merge main + push แล้ว 09-02** (เบสสั่ง) · Vercel deploy ตาม
+- **หน้าลองโมดูลผลิตใหม่ `/proto/production-module`** (branch `proto/production-module-2026-09-02`): 3 ทาง (A โต๊ะงานหัวหน้า · B สายพาน · C ตารางเวลา) + สรุปของที่ถอดไป · ทุกทางมี "โหมดหน้างาน" (จอทัช) · "งานล้น" · ธีม · ข้อมูลปลอมจาก `_kit/demo-jobs` + เส้นทางงาน/ร้านนอกใน `_data.ts` · เปิดดูเองแล้วทั้ง 1440 / 1024×768 / 390 ทั้ง 3 ทาง · typecheck + eslint ผ่าน
 - **หน้าใบสั่งผลิต `/production/[id]`**: ล้างหน้าลอง 20+ แบบออกหมดแล้ว (09-02) · หน้าเหมือนก่อนเริ่มเรื่องนี้ · รอเบสตั้งโจทย์ใหม่
 - **Production V2**: โค้ด / migration / seed / `/settings/routings` ครบ · ซ้อมบนฐาน demo ผ่านถึงกลางทาง · **การซ้อมที่เหลือต้องกดในจอสถานี → ค้างจนกว่าจอใหม่จะเสร็จ** · ของจริงบน Vercel ยังเป็น legacy (`PRODUCTION_V2_ENABLED=0`)
 - เว็บจริง: แก้ build พังจาก `/proto/quiet` แล้ว (09-02) · กติกาใหม่ `npm run build` ก่อน push main ทุกครั้ง (SPEC §ด่าน)
 
 ## NEXT
-1. เบสตั้งโจทย์ **โมดูลผลิตใหม่** (หน้ารายการ + จอสถานี + ที่อยู่ของรอบพิมพ์/คลังฟิล์ม/คิวร้านนอก + ทางเปิดใบผลิต) → หน้าลอง `/proto` 2-4 ทาง → เคาะ → ลงของจริง (ROADMAP §A2/§A3)
+1. **เบสเคาะหน้าลอง `/proto/production-module`** (branch `proto/production-module-2026-09-02` · เปิด dev แล้วดูที่ `localhost:3000/proto/production-module`) — A โต๊ะงานหัวหน้า / B สายพาน / C ตารางเวลา · แต่ละทางมีสวิตช์ "โหมดหน้างาน" + "งานล้น" + ธีม · เคาะแล้ว → ลงของจริง (ROADMAP §A2/§A3)
 2. เบสตั้งโจทย์หน้าใบสั่งผลิตใหม่ (§A)
-3. merge branch `remove/factory-station-2026-09-02` เข้า main: ปิด dev → `npm run build` → push (เบสอนุมัติ) — **ระหว่างยังไม่ merge เว็บจริงยังมีหน้าเดิมครบ**
+3. ~~merge เข้า main~~ ทำแล้ว 09-02 (build ผ่าน 61 หน้า → push main → Vercel deploy) — **เว็บจริงไม่มีหน้ารายการผลิต/จอสถานีแล้ว** ตามที่เบสยอมรับ
 4. ซ้อม V2 ต่อเมื่อจอสถานีใหม่ใช้ได้ (§B) · ว่างค่อย MFG1-3 (§C)
 
 ## เสร็จแล้ว (ล่าสุดก่อน · milestone เท่านั้น — ใบงานเต็ม `ROADMAP.md` §เสร็จแล้ว)

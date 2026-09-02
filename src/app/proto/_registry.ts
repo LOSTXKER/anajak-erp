@@ -13,6 +13,14 @@ export type ProtoEntry = {
 
 export const PROTOS: ProtoEntry[] = [
   {
+    slug: "production-module",
+    title: "โมดูลผลิตใหม่ — หน้าแรก + จอหน้างาน",
+    question:
+      "หลังถอดของเดิม 6 หน้าออกหมด (2 ก.ย.) เปิดโมดูลผลิตมา 3 วินาทีแรกควรเห็นอะไร และช่างลงมือจากหน้าไหน — โต๊ะงานหัวหน้า / สายพาน / ตารางเวลา",
+    date: "2026-09-02",
+    status: "รอเคาะ",
+  },
+  {
     slug: "factory-canvas",
     title: "จอรวมการผลิตแบบ canvas",
     question:
