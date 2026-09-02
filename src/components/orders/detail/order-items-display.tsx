@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SectionTitle, ToneMark } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
+import { Fact, FactList } from "@/components/ui/fact";
+import { InfoChip, InfoChipRow } from "@/components/ui/info-chip";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { cn, formatCurrency, isImageUrl } from "@/lib/utils";
@@ -200,10 +202,16 @@ export function OrderItemsDisplay({
               <span className="[overflow-wrap:anywhere]">
                 รายการสินค้า
                 {!isSingleItem && !isEmpty ? ` (${items.length})` : ""}
-                {orderTotalQty > 0 ? ` · ${orderTotalQty} ชิ้น` : ""}
               </span>
+              {orderTotalQty > 0 ? (
+                <InfoChip size="sm" strong>
+                  {orderTotalQty} ชิ้น
+                </InfoChip>
+              ) : null}
               {showMoney && singleSubtotal != null && (
-                <span className="tabular-nums">· {formatCurrency(singleSubtotal)}</span>
+                <InfoChip size="sm" className="tabular-nums">
+                  {formatCurrency(singleSubtotal)}
+                </InfoChip>
               )}
             </CardTitle>
             {onEditItems && !isEmpty && (
@@ -303,23 +311,18 @@ export function OrderItemsDisplay({
                                     )}
                                     {prod.material && <Badge variant="outline">{prod.material}</Badge>}
                                   </div>
-                                  {(prod.fabricType || prod.fabricWeight || prod.fabricColor) && (
-                                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
-                                      {prod.fabricType && <span>ผ้า: {FABRIC_TYPES[prod.fabricType] ?? prod.fabricType}</span>}
-                                      {prod.fabricWeight && <span>น้ำหนัก: {prod.fabricWeight}</span>}
-                                      {prod.fabricColor && <span>สีผ้า: {prod.fabricColor}</span>}
-                                    </div>
-                                  )}
-                                  {(prod.collarType || prod.sleeveType || prod.bodyFit) && (
-                                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
-                                      {prod.collarType && <span>ทรงคอ: {COLLAR_TYPES[prod.collarType] ?? prod.collarType}</span>}
-                                      {prod.sleeveType && <span>แขน: {SLEEVE_TYPES[prod.sleeveType] ?? prod.sleeveType}</span>}
-                                      {prod.bodyFit && <span>ฟิต: {BODY_FITS[prod.bodyFit] ?? prod.bodyFit}</span>}
-                                      {prod.patternNote && <span>หมายเหตุ: {prod.patternNote}</span>}
-                                    </div>
-                                  )}
-                                  {prod.packagingOption && (
-                                    <div className="text-xs text-muted">แพ็คเกจ: {prod.packagingOption.name}</div>
+                                  {(prod.fabricType || prod.fabricWeight || prod.fabricColor || prod.collarType || prod.sleeveType || prod.bodyFit || prod.packagingOption) && (
+                                    // สเปกเสื้อเป็นข้อเท็จจริงมีโครง (ป้าย/ค่า แยกช่อง) ไม่ใช่บรรทัดเทาต่อกัน
+                                    <FactList columns={4} className="pt-1">
+                                      {prod.fabricType && <Fact size="sm" label="ผ้า" value={FABRIC_TYPES[prod.fabricType] ?? prod.fabricType} />}
+                                      {prod.fabricWeight && <Fact size="sm" label="น้ำหนัก" value={prod.fabricWeight} />}
+                                      {prod.fabricColor && <Fact size="sm" label="สีผ้า" value={prod.fabricColor} />}
+                                      {prod.collarType && <Fact size="sm" label="ทรงคอ" value={COLLAR_TYPES[prod.collarType] ?? prod.collarType} />}
+                                      {prod.sleeveType && <Fact size="sm" label="แขน" value={SLEEVE_TYPES[prod.sleeveType] ?? prod.sleeveType} />}
+                                      {prod.bodyFit && <Fact size="sm" label="ฟิต" value={BODY_FITS[prod.bodyFit] ?? prod.bodyFit} />}
+                                      {prod.packagingOption && <Fact size="sm" label="แพ็คเกจ" value={prod.packagingOption.name} />}
+                                      {prod.patternNote && <Fact size="sm" label="หมายเหตุ" value={prod.patternNote} className="sm:col-span-2" />}
+                                    </FactList>
                                   )}
                                 </div>
                                 {showMoney && (
@@ -622,9 +625,10 @@ export function OrderItemsDisplay({
                         <p className="text-sm font-medium text-secondary [overflow-wrap:anywhere]">
                           {item.description || `รายการที่ ${itemIndex + 1}`}
                         </p>
-                        <p className="text-xs text-muted">
-                          {item.products?.length ?? 0} สินค้า · {itemTotalQty} ชิ้น
-                        </p>
+                        <InfoChipRow>
+                          <InfoChip size="sm">{item.products?.length ?? 0} สินค้า</InfoChip>
+                          <InfoChip size="sm" strong>{itemTotalQty} ชิ้น</InfoChip>
+                        </InfoChipRow>
                         {item.notes && (
                           <p className="text-xs text-muted [overflow-wrap:anywhere]">{item.notes}</p>
                         )}

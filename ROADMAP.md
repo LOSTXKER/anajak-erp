@@ -58,6 +58,13 @@
 - [ ] C5 UX ops เก็บตก (ส่วนใหญ่ถูกทับด้วย Station V2 — ตรวจอีกทีหลัง cutover ว่าเหลืออะไร)
 - [ ] C6 LINE OA notify (ระหว่างนี้ template ก๊อปส่ง)
 
+### E2. ลำดับความสำคัญทางสายตา — refactor ของเก่าให้ผ่านกฎ 3 ชั้น (เบสสั่ง 2026-09-02 "แก้ราก + refactor ด้วย")
+> ราก: กฎมีแต่ "ห้าม" ไม่มี "ต้องเด่น" + ไม่มีชิ้นส่วนนำเสนอข้อมูล → ทั้งเว็บเป็นตัวเทาต่อจุด · แก้รากแล้ว: `docs/DESIGN.md` §ลำดับความสำคัญทางสายตา · primitive 5 ชิ้น (`Fact` `Metric` `InfoChip` `DueTag` `ActionZone`) · ด่าน `scripts/ui-hierarchy-ratchet.ts` ใน `verify:ui` (baseline ห้ามเพิ่ม) · AGENTS §วงจร 3 บังคับผ่าน impeccable
+- [x] รอบ 1 (09-02): หน้าลอง `/proto/production-module` ทั้ง 3 ทาง · `production-steps-list` (ร้านนอก/กำหนดรับเป็นชิป) · แถวสินค้าตอนเปิดออเดอร์ (`product-table-row` `product-card-mobile`) · รายการสินค้าในใบงาน (`order-items-display` สเปกเสื้อเป็น FactList) · ใบผลิต `production-control-record` + `station-garment-preview` (ไซส์/สีเป็นชิป)
+- [ ] รอบ 2 — ไฟล์ที่ยังมี `text-xs text-muted` เยอะสุด (ratchet baseline): `production-v2-control-record` 16 · `order-qc-section` 13 · `material-usage` 11 · `order-files-card` 8 · `billing/tax` 7 · `billing/page` 7 · `job-share-view` 7 · `order-billing-section` 6 · `manufacturing-factory-board` 6 — แตะไฟล์ไหนให้แปลง "ป้าย: ค่า" เป็น `Fact` · ตัวเลขนำเป็น `Metric` · กำหนดส่ง/กำหนดรับเป็น `DueTag` แล้ว `npx tsx scripts/ui-hierarchy-ratchet.ts --update`
+- [ ] รอบ 3 — หน้าออเดอร์ `/orders/[id]` แท็บภาพรวม + แถบสถานะ (เบสเห็นบ่อยสุด) · ทำเป็นหน้าลองก่อนเพราะเคาะแบบ B ไปแล้ว 08-31
+- ห้าม: โฟกัสด้วยสี (เบสตีกลับ 09-02) · primitive ใหม่ซ้ำหน้าที่ · ลด baseline ด้วยการลบข้อมูลออก
+
 ### F. หนี้ที่จดไว้ (ทำตอนแตะไฟล์นั้น หรือเปิดใบงานเมื่อถึงคิว — **อย่าแก้เงียบ**)
 - **UI**: `/factory` สี alpha ดิบ 13 จุด (อ่านถูกบนจอจริง ไม่รีบ) · hairline alpha ค่าเดียว · ยังไม่ตรวจจอทัชโรงงานจริง (แสงสะท้อน เงาจางกว่า) · แถบ "ยังไม่อ่าน"/ราง `SegmentedControl` · ธีมมืดบันไดแคบกว่าสว่าง
 - **pattern เก่า**: `/quotations/new` ยัง Card/form row รุ่นเก่า → migrate เป็น `Section`/`Field` โดยคง conversion logic · settings company/cost-rates/patterns/services/users ยังมี raw label · dashboard home ซ่อน `max-w-6xl` ใน className → เคาะ width role

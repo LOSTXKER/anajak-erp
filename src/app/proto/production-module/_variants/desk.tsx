@@ -165,7 +165,7 @@ export function DeskVariant({
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <SearchInput placeholder="ค้นเลขออเดอร์ / ลูกค้า" containerClassName="w-full sm:w-72" readOnly />
+        <SearchInput placeholder="ค้นเลขออเดอร์ / ลูกค้า" surface="raised" containerClassName="w-full sm:w-72" readOnly />
         <div className="flex flex-wrap items-center gap-3 border-b border-divider">
           <FilterChip selected={lens === "all"} onClick={() => setLens("all")}>
             ทั้งหมด <span className="tabular-nums text-muted">{counts.all}</span>

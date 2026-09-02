@@ -1,0 +1,546 @@
+{
+  "src/app/(dashboard)/analytics/page.tsx": {
+    "dots": 0,
+    "muted": 2
+  },
+  "src/app/(dashboard)/billing/aging/page.tsx": {
+    "dots": 0,
+    "muted": 3
+  },
+  "src/app/(dashboard)/billing/notes/page.tsx": {
+    "dots": 0,
+    "muted": 4
+  },
+  "src/app/(dashboard)/billing/page.tsx": {
+    "dots": 0,
+    "muted": 7
+  },
+  "src/app/(dashboard)/billing/tax/page.tsx": {
+    "dots": 0,
+    "muted": 7
+  },
+  "src/app/(dashboard)/billing/wht/page.tsx": {
+    "dots": 1,
+    "muted": 1
+  },
+  "src/app/(dashboard)/customers/[id]/page.tsx": {
+    "dots": 0,
+    "muted": 5
+  },
+  "src/app/(dashboard)/customers/page.tsx": {
+    "dots": 0,
+    "muted": 5
+  },
+  "src/app/(dashboard)/notifications/page.tsx": {
+    "dots": 0,
+    "muted": 1
+  },
+  "src/app/(dashboard)/products/[id]/page.tsx": {
+    "dots": 0,
+    "muted": 2
+  },
+  "src/app/(dashboard)/products/page.tsx": {
+    "dots": 0,
+    "muted": 4
+  },
+  "src/app/(dashboard)/quotations/[id]/page.tsx": {
+    "dots": 0,
+    "muted": 2
+  },
+  "src/app/(dashboard)/quotations/page.tsx": {
+    "dots": 0,
+    "muted": 3
+  },
+  "src/app/(dashboard)/settings/audit/page.tsx": {
+    "dots": 0,
+    "muted": 2
+  },
+  "src/app/(dashboard)/settings/cost-rates/page.tsx": {
+    "dots": 0,
+    "muted": 5
+  },
+  "src/app/(dashboard)/settings/packaging/page.tsx": {
+    "dots": 0,
+    "muted": 2
+  },
+  "src/app/(dashboard)/settings/page.tsx": {
+    "dots": 8,
+    "muted": 1
+  },
+  "src/app/(dashboard)/settings/patterns/page.tsx": {
+    "dots": 0,
+    "muted": 1
+  },
+  "src/app/(dashboard)/settings/routings/page.tsx": {
+    "dots": 0,
+    "muted": 4
+  },
+  "src/app/(dashboard)/settings/stock/page.tsx": {
+    "dots": 0,
+    "muted": 2
+  },
+  "src/app/(dashboard)/settings/users/page.tsx": {
+    "dots": 0,
+    "muted": 1
+  },
+  "src/app/(dashboard)/settings/vendors/page.tsx": {
+    "dots": 0,
+    "muted": 2
+  },
+  "src/app/(public)/job/[token]/job-share-view.tsx": {
+    "dots": 0,
+    "muted": 7
+  },
+  "src/app/(public)/quote/[token]/page.tsx": {
+    "dots": 0,
+    "muted": 2
+  },
+  "src/app/(public)/status/[token]/page.tsx": {
+    "dots": 0,
+    "muted": 4
+  },
+  "src/app/(public)/upload/[token]/page.tsx": {
+    "dots": 0,
+    "muted": 2
+  },
+  "src/app/factory/page.tsx": {
+    "dots": 0,
+    "muted": 4
+  },
+  "src/app/proto/_kit/pieces.tsx": {
+    "dots": 0,
+    "muted": 2
+  },
+  "src/app/proto/factory-canvas/_variants.tsx": {
+    "dots": 0,
+    "muted": 6
+  },
+  "src/app/proto/factory-canvas/page.tsx": {
+    "dots": 2,
+    "muted": 1
+  },
+  "src/app/proto/look/_blocks.tsx": {
+    "dots": 2,
+    "muted": 12
+  },
+  "src/app/proto/look/page.tsx": {
+    "dots": 12,
+    "muted": 2
+  },
+  "src/app/proto/order-detail/_variants/calm.tsx": {
+    "dots": 0,
+    "muted": 8
+  },
+  "src/app/proto/order-detail/_variants/dense.tsx": {
+    "dots": 0,
+    "muted": 2
+  },
+  "src/app/proto/order-detail/_variants/lead.tsx": {
+    "dots": 0,
+    "muted": 1
+  },
+  "src/app/proto/order-detail/page.tsx": {
+    "dots": 13,
+    "muted": 2
+  },
+  "src/app/proto/order-overview/_ui.tsx": {
+    "dots": 0,
+    "muted": 4
+  },
+  "src/app/proto/order-overview/_variants/cover.tsx": {
+    "dots": 0,
+    "muted": 3
+  },
+  "src/app/proto/order-overview/_variants/pair.tsx": {
+    "dots": 0,
+    "muted": 3
+  },
+  "src/app/proto/order-overview/page.tsx": {
+    "dots": 11,
+    "muted": 4
+  },
+  "src/app/proto/page.tsx": {
+    "dots": 0,
+    "muted": 1
+  },
+  "src/app/proto/production-module/_variants/desk.tsx": {
+    "dots": 1,
+    "muted": 1
+  },
+  "src/app/proto/production-module/_variants/flow.tsx": {
+    "dots": 2,
+    "muted": 4
+  },
+  "src/app/proto/production-module/_variants/removed.tsx": {
+    "dots": 4,
+    "muted": 0
+  },
+  "src/app/proto/production-module/_variants/schedule.tsx": {
+    "dots": 1,
+    "muted": 2
+  },
+  "src/app/proto/production-module/page.tsx": {
+    "dots": 11,
+    "muted": 2
+  },
+  "src/app/proto/quiet/_screen.tsx": {
+    "dots": 3,
+    "muted": 0
+  },
+  "src/app/proto/quiet/page.tsx": {
+    "dots": 7,
+    "muted": 2
+  },
+  "src/app/proto/work-board/_variants/board.tsx": {
+    "dots": 0,
+    "muted": 5
+  },
+  "src/app/proto/work-board/_variants/current.tsx": {
+    "dots": 0,
+    "muted": 3
+  },
+  "src/app/proto/work-board/_variants/pane.tsx": {
+    "dots": 0,
+    "muted": 4
+  },
+  "src/app/proto/work-board/_variants/today.tsx": {
+    "dots": 0,
+    "muted": 5
+  },
+  "src/app/proto/work-board/page.tsx": {
+    "dots": 6,
+    "muted": 2
+  },
+  "src/components/customers/chat-link.tsx": {
+    "dots": 0,
+    "muted": 1
+  },
+  "src/components/customers/customer-artworks-card.tsx": {
+    "dots": 0,
+    "muted": 2
+  },
+  "src/components/customers/customer-form-fields.tsx": {
+    "dots": 1,
+    "muted": 0
+  },
+  "src/components/customers/customer-picker.tsx": {
+    "dots": 0,
+    "muted": 1
+  },
+  "src/components/dashboard/dashboard-home.tsx": {
+    "dots": 0,
+    "muted": 4
+  },
+  "src/components/factory/manufacturing-factory-board.tsx": {
+    "dots": 1,
+    "muted": 6
+  },
+  "src/components/factory/station-garment-preview.tsx": {
+    "dots": 1,
+    "muted": 5
+  },
+  "src/components/goods-receipt/goods-receipt-dialog.tsx": {
+    "dots": 0,
+    "muted": 2
+  },
+  "src/components/goods-receipt/order-goods-receipt-section.tsx": {
+    "dots": 0,
+    "muted": 2
+  },
+  "src/components/layout/app-shell.tsx": {
+    "dots": 1,
+    "muted": 0
+  },
+  "src/components/layout/command-palette.tsx": {
+    "dots": 0,
+    "muted": 2
+  },
+  "src/components/layout/user-menu.tsx": {
+    "dots": 0,
+    "muted": 2
+  },
+  "src/components/material-usage.tsx": {
+    "dots": 0,
+    "muted": 11
+  },
+  "src/components/mockup/mockup-gallery.tsx": {
+    "dots": 0,
+    "muted": 1
+  },
+  "src/components/mockup/mockup-handoff.tsx": {
+    "dots": 0,
+    "muted": 2
+  },
+  "src/components/mockup/mockup-panel.tsx": {
+    "dots": 0,
+    "muted": 5
+  },
+  "src/components/mockup/mockup-thumb-row.tsx": {
+    "dots": 0,
+    "muted": 1
+  },
+  "src/components/orders/billing/create-invoice-dialog.tsx": {
+    "dots": 0,
+    "muted": 2
+  },
+  "src/components/orders/billing/record-payment-dialog.tsx": {
+    "dots": 0,
+    "muted": 2
+  },
+  "src/components/orders/delivery/create-delivery-dialog.tsx": {
+    "dots": 0,
+    "muted": 3
+  },
+  "src/components/orders/detail/order-artwork-card.tsx": {
+    "dots": 0,
+    "muted": 3
+  },
+  "src/components/orders/detail/order-change-orders.tsx": {
+    "dots": 0,
+    "muted": 2
+  },
+  "src/components/orders/detail/order-detail-page.tsx": {
+    "dots": 1,
+    "muted": 0
+  },
+  "src/components/orders/detail/order-files-card.tsx": {
+    "dots": 0,
+    "muted": 8
+  },
+  "src/components/orders/detail/order-items-display.tsx": {
+    "dots": 0,
+    "muted": 8
+  },
+  "src/components/orders/detail/order-money-tab.tsx": {
+    "dots": 0,
+    "muted": 1
+  },
+  "src/components/orders/detail/order-overview-tab.tsx": {
+    "dots": 0,
+    "muted": 2
+  },
+  "src/components/orders/detail/order-revisions.tsx": {
+    "dots": 0,
+    "muted": 1
+  },
+  "src/components/orders/new/add-product-popover.tsx": {
+    "dots": 0,
+    "muted": 1
+  },
+  "src/components/orders/new/custom-made-detail.tsx": {
+    "dots": 0,
+    "muted": 2
+  },
+  "src/components/orders/new/order-create-page.tsx": {
+    "dots": 1,
+    "muted": 2
+  },
+  "src/components/orders/new/order-customer-section.tsx": {
+    "dots": 0,
+    "muted": 5
+  },
+  "src/components/orders/new/order-fee-section.tsx": {
+    "dots": 1,
+    "muted": 0
+  },
+  "src/components/orders/new/order-item-card.tsx": {
+    "dots": 1,
+    "muted": 1
+  },
+  "src/components/orders/new/order-price-summary.tsx": {
+    "dots": 0,
+    "muted": 4
+  },
+  "src/components/orders/new/print-card-mobile.tsx": {
+    "dots": 0,
+    "muted": 1
+  },
+  "src/components/orders/new/print-table-row.tsx": {
+    "dots": 0,
+    "muted": 2
+  },
+  "src/components/orders/new/product-adaptive-card.tsx": {
+    "dots": 0,
+    "muted": 2
+  },
+  "src/components/orders/new/product-card-mobile.tsx": {
+    "dots": 0,
+    "muted": 6
+  },
+  "src/components/orders/new/product-table-row.tsx": {
+    "dots": 0,
+    "muted": 3
+  },
+  "src/components/orders/new/size-matrix.tsx": {
+    "dots": 0,
+    "muted": 2
+  },
+  "src/components/orders/order-billing-section.tsx": {
+    "dots": 0,
+    "muted": 6
+  },
+  "src/components/orders/order-delivery-section.tsx": {
+    "dots": 0,
+    "muted": 5
+  },
+  "src/components/orders/order-info-edit-dialog.tsx": {
+    "dots": 0,
+    "muted": 1
+  },
+  "src/components/orders/order-items-editor.tsx": {
+    "dots": 0,
+    "muted": 2
+  },
+  "src/components/orders/orders-page.tsx": {
+    "dots": 2,
+    "muted": 4
+  },
+  "src/components/orders/production-summary-card.tsx": {
+    "dots": 0,
+    "muted": 1
+  },
+  "src/components/orders/use-address-button.tsx": {
+    "dots": 1,
+    "muted": 0
+  },
+  "src/components/page-header.tsx": {
+    "dots": 1,
+    "muted": 0
+  },
+  "src/components/product-picker.tsx": {
+    "dots": 0,
+    "muted": 4
+  },
+  "src/components/production-v2/production-v2-control-actions.tsx": {
+    "dots": 0,
+    "muted": 3
+  },
+  "src/components/production-v2/production-v2-control-record.tsx": {
+    "dots": 2,
+    "muted": 16
+  },
+  "src/components/production/garment-pick-card.tsx": {
+    "dots": 0,
+    "muted": 4
+  },
+  "src/components/production/production-control-record.tsx": {
+    "dots": 1,
+    "muted": 6
+  },
+  "src/components/production/production-design-card.tsx": {
+    "dots": 0,
+    "muted": 1
+  },
+  "src/components/production/production-detail-screen.tsx": {
+    "dots": 0,
+    "muted": 2
+  },
+  "src/components/production/production-mockup-tab.tsx": {
+    "dots": 0,
+    "muted": 4
+  },
+  "src/components/production/production-now-card.tsx": {
+    "dots": 0,
+    "muted": 1
+  },
+  "src/components/production/production-route-rail.tsx": {
+    "dots": 0,
+    "muted": 1
+  },
+  "src/components/production/production-step-navigator.tsx": {
+    "dots": 0,
+    "muted": 1
+  },
+  "src/components/production/production-steps-list.tsx": {
+    "dots": 0,
+    "muted": 1
+  },
+  "src/components/production/step-update-dialog.tsx": {
+    "dots": 0,
+    "muted": 1
+  },
+  "src/components/providers.tsx": {
+    "dots": 0,
+    "muted": 1
+  },
+  "src/components/public/public-page.tsx": {
+    "dots": 0,
+    "muted": 1
+  },
+  "src/components/qc/order-qc-section.tsx": {
+    "dots": 1,
+    "muted": 13
+  },
+  "src/components/sync-dialog.tsx": {
+    "dots": 0,
+    "muted": 5
+  },
+  "src/components/ui/add-card.tsx": {
+    "dots": 0,
+    "muted": 1
+  },
+  "src/components/ui/checkbox.tsx": {
+    "dots": 1,
+    "muted": 0
+  },
+  "src/components/ui/date-range-picker.tsx": {
+    "dots": 1,
+    "muted": 0
+  },
+  "src/components/ui/dialog-submit-footer.tsx": {
+    "dots": 1,
+    "muted": 0
+  },
+  "src/components/ui/dialog.tsx": {
+    "dots": 1,
+    "muted": 0
+  },
+  "src/components/ui/fact.tsx": {
+    "dots": 1,
+    "muted": 0
+  },
+  "src/components/ui/filter-chip.tsx": {
+    "dots": 1,
+    "muted": 0
+  },
+  "src/components/ui/flow-filter-bar.tsx": {
+    "dots": 1,
+    "muted": 0
+  },
+  "src/components/ui/info-chip.tsx": {
+    "dots": 1,
+    "muted": 0
+  },
+  "src/components/ui/metric.tsx": {
+    "dots": 1,
+    "muted": 1
+  },
+  "src/components/ui/record-not-found.tsx": {
+    "dots": 1,
+    "muted": 0
+  },
+  "src/components/ui/section.tsx": {
+    "dots": 0,
+    "muted": 1
+  },
+  "src/components/ui/select.tsx": {
+    "dots": 1,
+    "muted": 0
+  },
+  "src/components/ui/spinner.tsx": {
+    "dots": 1,
+    "muted": 0
+  },
+  "src/components/ui/status-label.tsx": {
+    "dots": 0,
+    "muted": 1
+  },
+  "src/components/ui/table-pagination.tsx": {
+    "dots": 0,
+    "muted": 1
+  },
+  "src/components/ui/toolbar.tsx": {
+    "dots": 1,
+    "muted": 0
+  }
+}

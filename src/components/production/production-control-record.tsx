@@ -27,6 +27,7 @@ import {
   type ProductionControlTone,
 } from "@/lib/production-control";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
+import { InfoChip, InfoChipRow } from "@/components/ui/info-chip";
 import { mockupCoverImage, mockupImageCount } from "@/lib/mockup";
 import { productionWorkflowSteps } from "@/lib/production-steps";
 import { cn, formatDate, formatDateTime } from "@/lib/utils";
@@ -436,15 +437,11 @@ export function ProductionControlRecord({
                             ? `เสื้อขาด ${missingGarmentLines.length.toLocaleString("th-TH")} รายการ`
                             : selectedGarmentLine.productName}
                         </p>
-                        <p className="mt-0.5 text-sm text-secondary">
-                          {selectedGarmentLine.productName}
-                          {selectedGarmentLine.size
-                            ? ` · ไซส์ ${selectedGarmentLine.size}`
-                            : ""}
-                          {selectedGarmentLine.color
-                            ? ` · สี ${selectedGarmentLine.color}`
-                            : ""}
-                        </p>
+                        <InfoChipRow className="mt-1.5">
+                          <InfoChip size="sm">{selectedGarmentLine.productName}</InfoChip>
+                          {selectedGarmentLine.size ? <InfoChip size="sm">ไซส์ {selectedGarmentLine.size}</InfoChip> : null}
+                          {selectedGarmentLine.color ? <InfoChip size="sm">สี {selectedGarmentLine.color}</InfoChip> : null}
+                        </InfoChipRow>
                       </div>
                     ) : null}
                     <dl className="grid grid-cols-3 divide-x divide-divider overflow-hidden rounded-lg border border-border text-center tabular-nums">

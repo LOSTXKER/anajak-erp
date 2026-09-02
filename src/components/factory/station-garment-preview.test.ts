@@ -111,7 +111,9 @@ describe("StationGarmentPreview", () => {
     expect(html).toContain("21 × 29.7 ซม. · 2 สี");
     expect(html).toContain("กึ่งกลางอกตามแบบ");
     expect(html).toContain("Anajak Oversize CVC");
-    expect(html).toContain("L · ดำ");
+    // ไซส์/สีเป็นชิปคนละชิ้นแล้ว (2026-09-02) ไม่ต่อกันด้วยจุด
+    expect(html).toContain("ไซส์ L");
+    expect(html).toContain("สี ดำ");
     expect(html).toContain("×12");
   });
 

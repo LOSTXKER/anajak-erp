@@ -16,7 +16,6 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
 
-import { DueText } from "../../_kit/pieces";
 import {
   STATIONS,
   STATION_LABEL,
@@ -259,12 +258,7 @@ export function FlowVariant({
               >
                 <JobCell job={job} />
                 <RouteBar route={job.route} />
-                <div className="min-w-0 text-xs">
-                  <WhereNow job={job} />
-                  <p className="mt-1 text-muted">
-                    ส่ง: <DueText job={job} />
-                  </p>
-                </div>
+                <WhereNow job={job} />
                 <RowAction job={job} action={action} />
               </li>
             ))}

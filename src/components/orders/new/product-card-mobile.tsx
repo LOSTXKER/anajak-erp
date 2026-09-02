@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { InfoChip, InfoChipRow } from "@/components/ui/info-chip";
 import { Select } from "@/components/ui/select";
 import { cn, formatCurrency } from "@/lib/utils";
 import { ImageIcon, LayoutGrid } from "lucide-react";
@@ -99,7 +100,11 @@ export function ProductCardMobile({
           />
           <div className="flex flex-wrap items-center gap-1.5">
             {multi ? (
-              <span className="text-xs text-muted">หลายไซส์ · รวม {totalQty} ตัว{variant.color ? ` · ${variant.color}` : ""}</span>
+              <InfoChipRow>
+                <InfoChip size="sm" icon={LayoutGrid}>หลายไซส์</InfoChip>
+                <InfoChip size="sm" strong>รวม {totalQty} ตัว</InfoChip>
+                {variant.color ? <InfoChip size="sm">{variant.color}</InfoChip> : null}
+              </InfoChipRow>
             ) : (
               <>
                 {/* การ์ดนี้โผล่เฉพาะจอเล็ก — text-xs เปล่า (12px) ทำให้ iOS ซูมจอทุกครั้งที่แตะ

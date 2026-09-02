@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { InfoChip, InfoChipRow } from "@/components/ui/info-chip";
 import {
   Dialog,
   DialogContent,
@@ -506,10 +507,11 @@ function StationGarmentSummary({
           >
             <div className="min-w-0">
               <p className="font-semibold text-strong">{line.product}</p>
-              <p className="mt-0.5 text-sm text-secondary">
-                {[line.size, line.color].filter(Boolean).join(" · ") ||
-                  "ไม่ระบุไซส์/สี"}
-              </p>
+              <InfoChipRow className="mt-1">
+                {line.size ? <InfoChip size="sm">ไซส์ {line.size}</InfoChip> : null}
+                {line.color ? <InfoChip size="sm">สี {line.color}</InfoChip> : null}
+                {!line.size && !line.color ? <InfoChip size="sm">ไม่ระบุไซส์/สี</InfoChip> : null}
+              </InfoChipRow>
             </div>
             <p className="text-lg font-semibold tabular-nums text-strong">
               ×{line.quantity}

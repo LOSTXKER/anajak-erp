@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MoneyInput, NumberInput } from "@/components/ui/number-input";
 import { Badge } from "@/components/ui/badge";
+import { InfoChip, InfoChipRow } from "@/components/ui/info-chip";
 import { Select } from "@/components/ui/select";
 import { cn, formatCurrency } from "@/lib/utils";
 import {
@@ -103,7 +104,11 @@ export function ProductTableRow({
               />
               <div className="flex flex-wrap items-center gap-1.5">
                 {multi ? (
-                  <span className="text-xs text-muted">หลายไซส์ · รวม {totalQty} ตัว{variant.color ? ` · ${variant.color}` : ""}</span>
+                  <InfoChipRow>
+                    <InfoChip size="sm" icon={LayoutGrid}>หลายไซส์</InfoChip>
+                    <InfoChip size="sm" strong>รวม {totalQty} ตัว</InfoChip>
+                    {variant.color ? <InfoChip size="sm">{variant.color}</InfoChip> : null}
+                  </InfoChipRow>
                 ) : (
                   <>
                     <Input aria-label={`สีสินค้า ${prodIdx + 1}`} value={variant.color} onChange={(e) => updateVariantField("color", e.target.value)} placeholder="สี" size="dense" className="w-20 px-2" />

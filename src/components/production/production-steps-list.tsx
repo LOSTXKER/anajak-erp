@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { InfoChip, InfoChipRow } from "@/components/ui/info-chip";
 import { formatDate } from "@/lib/utils";
 import { STEP_STATUS_LABELS, STEP_STATUS_VARIANTS } from "@/lib/status-config";
 import {
@@ -226,21 +227,10 @@ function StepRow({
               </span>
             )}
             {step.assignedTo && (
-              <span className="text-xs text-muted">ผู้รับผิดชอบ {step.assignedTo.name}</span>
+              <span className="text-xs text-secondary">ผู้รับผิดชอบ {step.assignedTo.name}</span>
             )}
           </div>
-          {latestOutsource && (
-            <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted">
-              <Truck className="h-3 w-3 shrink-0" />
-              {latestOutsource.vendor.name} ·{" "}
-              {OUTSOURCE_STATUS_LABELS[latestOutsource.status] ?? latestOutsource.status}
-              {latestOutsource.expectedBackAt &&
-                !["QC_PASSED", "QC_FAILED"].includes(latestOutsource.status) &&
-                ` · กำหนดรับ ${formatDate(latestOutsource.expectedBackAt)}`}
-              {step.outsourceOrders.length > 1 &&
-                ` (รอบที่ ${step.outsourceOrders.length})`}
-            </p>
-          )}
+          {latestOutsource && <OutsourceChips step={step} outsource={latestOutsource} />}
         </div>
 
         <div className="col-start-2 mt-1.5 flex flex-wrap items-center gap-1.5 sm:col-start-3 sm:mt-0 sm:justify-end">
@@ -340,19 +330,9 @@ function StepRow({
           )}
         </p>
         {step.assignedTo && (
-          <span className="text-xs text-muted">{step.assignedTo.name}</span>
+          <span className="text-xs text-secondary">{step.assignedTo.name}</span>
         )}
-        {latestOutsource && (
-          <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted">
-            <Truck className="h-3 w-3 shrink-0" />
-            {latestOutsource.vendor.name} ·{" "}
-            {OUTSOURCE_STATUS_LABELS[latestOutsource.status] ?? latestOutsource.status}
-            {latestOutsource.expectedBackAt &&
-              !["QC_PASSED", "QC_FAILED"].includes(latestOutsource.status) &&
-              ` · กำหนดรับ ${formatDate(latestOutsource.expectedBackAt)}`}
-            {step.outsourceOrders.length > 1 && ` (รอบที่ ${step.outsourceOrders.length})`}
-          </p>
-        )}
+        {latestOutsource && <OutsourceChips step={step} outsource={latestOutsource} />}
       </div>
 
       <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
@@ -481,5 +461,44 @@ function StepRow({
         </div>
       )}
     </div>
+  );
+}
+
+/** เลยวันที่กำหนดแล้ว (นับเป็นวัน ไม่ใช่ชั่วโมง) — สูตรเดียวกับ isOverdue ของจอโรงงาน */
+function isPastDay(date: Date) {
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  return date.getTime() < startOfToday.getTime();
+}
+
+/**
+ * งานร้านนอกของขั้น — ร้าน / สถานะ / กำหนดรับ เป็นชิปคนละชิ้น (เดิมต่อกันด้วยจุดในบรรทัดเทา
+ * → เบสทัก 2026-09-02 · docs/DESIGN.md §ลำดับความสำคัญทางสายตา) · กำหนดรับที่เลยวันนี้แล้วขึ้นแดง
+ */
+function OutsourceChips({
+  step,
+  outsource,
+}: {
+  step: ProductionStep;
+  outsource: NonNullable<ProductionStep["outsourceOrders"][number]>;
+}) {
+  const awaiting = !["QC_PASSED", "QC_FAILED"].includes(outsource.status);
+  const back = outsource.expectedBackAt ? new Date(outsource.expectedBackAt) : null;
+  const overdue = awaiting && back !== null && isPastDay(back);
+  return (
+    <InfoChipRow className="mt-1.5">
+      <InfoChip icon={Truck} size="sm" title={outsource.vendor.name}>
+        {outsource.vendor.name}
+        {step.outsourceOrders.length > 1 ? ` (รอบที่ ${step.outsourceOrders.length})` : ""}
+      </InfoChip>
+      <InfoChip size="sm" tone={awaiting ? "info" : "success"}>
+        {OUTSOURCE_STATUS_LABELS[outsource.status] ?? outsource.status}
+      </InfoChip>
+      {awaiting && back ? (
+        <InfoChip size="sm" tone={overdue ? "error" : "neutral"} strong={overdue}>
+          {overdue ? "เลยกำหนดรับ" : "กำหนดรับ"} {formatDate(back)}
+        </InfoChip>
+      ) : null}
+    </InfoChipRow>
   );
 }

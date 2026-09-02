@@ -45,7 +45,7 @@
     "verify:moneygate": "tsx --env-file=.env scripts/verify-money-gate.ts",
     "verify:manufacturing-v2": "tsx --env-file=.env scripts/verify-manufacturing-v2.ts",
     "key:agent": "tsx --env-file=.env scripts/create-agent-key.ts",
-    "verify:ui": "tsx scripts/verify-ui-tokens.tsx",
+    "verify:ui": "tsx scripts/verify-ui-tokens.tsx && tsx scripts/ui-hierarchy-ratchet.ts",
     "verify:docsnap": "tsx --env-file=.env scripts/verify-doc-snapshot.ts"
   },
   "dependencies": {

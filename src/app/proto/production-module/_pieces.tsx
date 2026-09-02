@@ -3,14 +3,23 @@
 /**
  * ชิ้นส่วนที่ทั้งสามทางใช้ร่วมกัน — เขียนเองเฉพาะ "แถบเส้นทางงาน" กับ "การ์ดใบงานบนจอทัช"
  * เพราะเป็นของที่กำลังเทียบ · ปุ่ม ป้าย รูปย่อ หัวหน้า ใช้ component ตัวจริงจาก src/components
+ *
+ * ทำใหม่ 2026-09-02 หลังเบสทัก "อัดหลายอย่างติดกันไม่มีการจัด อะไร ๆ ก็เป็น text ธรรมดา":
+ * ข้อเท็จจริงทุกชิ้นผ่าน Fact / InfoChip / DueTag / Metric / ActionZone (ชิ้นส่วนกลางชุดใหม่)
+ * ไม่มีบรรทัดไหนต่อข้อมูล 3 อย่างด้วยจุดอีก
  */
 
-import { AlertTriangle, Truck } from "lucide-react";
+import { AlertTriangle, CalendarCheck, Truck, Wrench } from "lucide-react";
+import { ActionZone } from "@/components/ui/action-zone";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DueTag } from "@/components/ui/due-tag";
+import { Fact, FactList } from "@/components/ui/fact";
+import { InfoChip, InfoChipRow } from "@/components/ui/info-chip";
+import { Metric } from "@/components/ui/metric";
 import { MockupThumbnail } from "@/components/mockup/mockup-thumbnail";
 import { cn } from "@/lib/utils";
-import { BigMockup, DueBadge, DueText } from "../_kit/pieces";
+import { BigMockup } from "../_kit/pieces";
 import { formatQty } from "../_kit/demo-jobs";
 import { STEP_TONE, type ProductionJob, type RouteStep } from "./_data";
 
@@ -41,72 +50,89 @@ export function RouteBar({
         ))}
       </div>
       <p className={cn("mt-1 tabular-nums text-muted", size === "lg" ? "text-xs" : "text-2xs")}>
-        {done}/{route.length} ช่วง
+        ผ่านแล้ว {done} จาก {route.length} ช่วง
       </p>
     </div>
   );
 }
 
-/** บรรทัด "ตอนนี้อยู่ที่" — ขั้นปัจจุบัน + ร้านนอก (ถ้ามี) อ่านจบในบรรทัดเดียว */
-export function WhereNow({ job, className }: { job: ProductionJob; className?: string }) {
+function outsourceReturn(job: ProductionJob) {
+  const o = job.outsource;
+  if (!o) return null;
+  if (o.backInDays < 0) return { text: `เลยนัดรับ ${Math.abs(o.backInDays)} วัน`, tone: "error" as const, strong: true };
+  if (o.backInDays === 0) return { text: "นัดรับวันนี้", tone: "warning" as const, strong: true };
+  return { text: `กลับ ${o.backLabel}`, tone: "info" as const, strong: false };
+}
+
+/**
+ * "ตอนนี้อยู่ที่" — ขั้นปัจจุบันเป็นชิปนำ · ร้านนอกเป็นข้อเท็จจริงมีโครง (ร้าน / งาน / วันกลับ)
+ * · ปัญหาเป็นชิปแดง — ไม่มีอะไรต่อกันด้วยจุด
+ */
+export function WhereNow({
+  job,
+  size = "md",
+  className,
+}: {
+  job: ProductionJob;
+  size?: "md" | "lg";
+  className?: string;
+}) {
   const step = job.current;
   const tone = STEP_TONE[step.state];
+  const back = outsourceReturn(job);
+  const chipSize = size === "lg" ? "lg" : "md";
   return (
-    <div className={cn("min-w-0 text-xs", className)}>
-      <p className="flex min-w-0 items-center gap-1.5">
-        <span aria-hidden className={cn("h-2 w-2 shrink-0 rounded-full", tone.bar)} />
-        <span className="truncate font-medium text-strong">
-          {step.key === "outsource" ? "อยู่ร้านนอก" : step.label}
-        </span>
-        <span className="shrink-0 text-muted">· {tone.label}</span>
-      </p>
-      {job.outsource ? (
-        <p
-          className={cn(
-            "mt-0.5 flex min-w-0 items-center gap-1 truncate",
-            job.outsource.backInDays < 0 ? "font-medium text-red-700 dark:text-red-300" : "text-secondary",
-          )}
+    <div className={cn("min-w-0 space-y-2", className)}>
+      <InfoChipRow>
+        <InfoChip
+          size={chipSize}
+          tone={step.state === "blocked" ? "error" : step.state === "active" ? "info" : "neutral"}
+          strong={step.state !== "todo"}
+          icon={step.key === "outsource" ? Truck : Wrench}
         >
-          <Truck className="h-3 w-3 shrink-0" aria-hidden="true" />
-          <span className="truncate">
-            {job.outsource.vendor} · {job.outsource.work} ·{" "}
-            {job.outsource.backInDays < 0
-              ? `เลยนัดรับ ${Math.abs(job.outsource.backInDays)} วัน (${job.outsource.backLabel})`
-              : job.outsource.backInDays === 0
-                ? "นัดรับวันนี้"
-                : `กลับ ${job.outsource.backLabel}`}
-          </span>
-        </p>
-      ) : null}
-      {job.problem ? (
-        <p className="mt-0.5 flex min-w-0 items-start gap-1 text-red-700 dark:text-red-300">
-          <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" aria-hidden="true" />
-          <span className="line-clamp-2">{job.problem}</span>
-        </p>
+          {step.key === "outsource" ? "อยู่ร้านนอก" : step.label}
+          <span className="ml-1 font-normal opacity-80">{tone.label}</span>
+        </InfoChip>
+        {back ? (
+          <InfoChip size={chipSize} tone={back.tone} strong={back.strong} icon={CalendarCheck}>
+            {back.text}
+          </InfoChip>
+        ) : null}
+        {job.problem ? (
+          <InfoChip size={chipSize} tone="error" strong icon={AlertTriangle} title={job.problem}>
+            {job.problem}
+          </InfoChip>
+        ) : null}
+      </InfoChipRow>
+      {job.outsource ? (
+        <FactList columns={2}>
+          <Fact icon={Truck} label="ร้านนอก" value={job.outsource.vendor} size={size === "lg" ? "md" : "sm"} />
+          <Fact label="งานที่ส่ง" value={job.outsource.work} size={size === "lg" ? "md" : "sm"} />
+        </FactList>
       ) : null}
     </div>
   );
 }
 
-/** แถวใบงานบนคอม — รูปย่อตัวจริงของระบบ + เลขใบ + ลูกค้า + จำนวน */
+/** แถวใบงานบนคอม — รูปย่อตัวจริง · เลขใบหนัก · ลูกค้า · จำนวนเป็นตัวเลข · กำหนดส่งเป็นป้าย */
 export function JobCell({ job }: { job: ProductionJob }) {
   return (
-    <div className="flex min-w-0 items-center gap-3">
-      <MockupThumbnail cover={job.mockup} alt={`ม็อกอัพ ${job.orderNumber}`} size="md" />
-      <div className="min-w-0">
+    <div className="flex min-w-0 items-start gap-3">
+      <MockupThumbnail cover={job.mockup} alt={`ม็อกอัพ ${job.orderNumber}`} size="lg" />
+      <div className="min-w-0 space-y-1">
         <p className="flex flex-wrap items-center gap-1.5">
-          <span className="text-sm font-semibold tabular-nums text-strong">{job.orderNumber}</span>
+          <span className="text-base font-semibold tabular-nums text-strong">{job.orderNumber}</span>
           {job.urgent ? (
             <Badge variant="destructive" size="sm">
               ด่วน
             </Badge>
           ) : null}
-          <DueBadge job={job} />
         </p>
-        <p className="truncate text-xs text-secondary">{job.company}</p>
-        <p className="truncate text-2xs text-muted">
-          {job.title} · {formatQty(job.qty)} ตัว
-        </p>
+        <p className="truncate text-sm text-secondary">{job.company}</p>
+        <InfoChipRow>
+          <DueTag dueInDays={job.dueInDays} dateLabel={job.dueLabel} size="sm" />
+          <InfoChip size="sm">{formatQty(job.qty)} ตัว</InfoChip>
+        </InfoChipRow>
       </div>
     </div>
   );
@@ -114,7 +140,7 @@ export function JobCell({ job }: { job: ProductionJob }) {
 
 /**
  * การ์ดใบงานบนจอทัชหน้างาน — ทุกทางใช้การ์ดเดียวกันเมื่อเปิด "โหมดหน้างาน"
- * เป้ากด 56px · หนึ่งใบ = หนึ่งปุ่ม · ไม่มีเงินโดยโครงสร้าง
+ * ตัวเลขจำนวนคือจุดโฟกัส · ข้อเท็จจริงมีโครง · โซนลงมือมีพื้นของตัวเอง · หนึ่งใบ = หนึ่งปุ่มหลัก
  */
 export function TouchJobCard({
   job,
@@ -139,39 +165,48 @@ export function TouchJobCard({
           alt={`ม็อกอัพ ${job.orderNumber}`}
           className={compact ? "h-16 w-16 shrink-0" : "h-24 w-24 shrink-0"}
         />
-        <div className="min-w-0 flex-1">
-          <p className="flex flex-wrap items-center gap-2">
-            <span className="text-lg font-semibold tabular-nums text-strong">{job.orderNumber}</span>
-            {job.urgent ? <Badge variant="destructive">ด่วน</Badge> : null}
-            <DueBadge job={job} />
-          </p>
-          <p className="truncate text-sm text-secondary">{job.company}</p>
-          <p className="mt-1 text-2xl font-semibold tabular-nums text-strong">
-            {formatQty(job.qty)} <span className="text-sm font-normal text-muted">ตัว</span>
-          </p>
-          <p className="mt-1 text-xs text-muted">
-            ส่ง: <DueText job={job} />
-          </p>
-          <WhereNow job={job} className="mt-2" />
-          {job.note ? (
-            <p className="mt-2 rounded-md bg-amber-50 px-2 py-1 text-xs text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
-              {job.note}
+        <div className="min-w-0 flex-1 space-y-3">
+          <div>
+            <p className="flex flex-wrap items-center gap-2">
+              <span className="text-lg font-semibold tabular-nums text-strong">{job.orderNumber}</span>
+              {job.urgent ? <Badge variant="destructive">ด่วน</Badge> : null}
             </p>
+            <p className="truncate text-sm text-secondary">{job.company}</p>
+          </div>
+          <div className="flex flex-wrap items-end gap-x-6 gap-y-2">
+            <Metric value={formatQty(job.qty)} unit="ตัว" label="จำนวน" size={compact ? "md" : "lg"} />
+            <DueTag dueInDays={job.dueInDays} dateLabel={job.dueLabel} size="lg" />
+          </div>
+          <WhereNow job={job} size="lg" />
+          {job.note ? (
+            <InfoChip tone="warning" size="lg" icon={AlertTriangle} className="whitespace-normal">
+              {job.note}
+            </InfoChip>
           ) : null}
         </div>
       </div>
-      <div className="mt-4 flex flex-wrap gap-2">
+      <ActionZone
+        touch
+        className="mt-4"
+        note={
+          blocked
+            ? job.current.state === "waiting"
+              ? "รอของกลับจากร้านนอกก่อน จึงลงมือขั้นนี้ได้"
+              : "ติดปัญหา — รอหัวหน้าตัดสินก่อน"
+            : undefined
+        }
+      >
         {blocked ? (
-          <Button variant="outline" className="h-14 flex-1 text-base" disabled>
-            {job.current.state === "waiting" ? "รอของกลับจากร้านนอก" : "ติดปัญหา — รอหัวหน้าแก้"}
+          <Button variant="outline" className="h-14 text-base" disabled>
+            {action}
           </Button>
         ) : (
-          <Button className="h-14 flex-1 text-base">{action}</Button>
+          <Button className="h-14 text-base">{action}</Button>
         )}
-        <Button variant="outline" className="h-14 px-5 text-base">
+        <Button variant="outline" className="h-14 text-base">
           แจ้งปัญหา
         </Button>
-      </div>
+      </ActionZone>
     </li>
   );
 }
