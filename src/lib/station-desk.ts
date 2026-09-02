@@ -20,7 +20,7 @@ import {
   type BoardStepLike,
   type ProductionBoard,
 } from "@/lib/production-board";
-import { LANE_LABELS, LANE_ORDER, OUTSOURCE_LANES, STEP_TYPE_LABELS } from "@/lib/production-steps";
+import { LANE_LABELS, LANE_ORDER, OUTSOURCE_LANES, STEP_TYPE_LABELS, laneOf } from "@/lib/production-steps";
 
 export const STATION_OUTSOURCE = "outsource";
 
@@ -83,6 +83,14 @@ export function stationDefs(board: Pick<ProductionBoard<unknown, BoardStepLike>,
       spotKeys: [station.key],
     }));
   return [...FIXED_STATIONS, ...extra];
+}
+
+/** ขั้นชนิดนี้ขึ้นคิวที่สถานีไหน — ใบผลิตใช้บอกหัวหน้าว่างานอยู่ที่ไหน (ชื่อชุดเดียวกับโหมดหน้างาน) */
+export function stationForStep(stepType: string): Pick<StationDef, "key" | "label"> {
+  const lane = laneOf(stepType);
+  const key = OUTSOURCE_LANES.has(lane) ? STATION_OUTSOURCE : `lane:${lane}`;
+  const def = FIXED_STATIONS.find((s) => s.key === key);
+  return def ? { key: def.key, label: def.label } : { key, label: LANE_LABELS[lane] ?? lane };
 }
 
 export function resolveStation(raw: string | null | undefined, defs: readonly StationDef[]): StationDef | null {

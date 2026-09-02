@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { permAllows } from "@/lib/permissions";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
-import { useConfirm, usePromptText } from "@/components/ui/confirm-dialog";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { GoodsReceiptDialog } from "@/components/goods-receipt/goods-receipt-dialog";
 import { StepOutsourceDialog } from "@/components/production/step-outsource-dialog";
@@ -46,7 +46,6 @@ export function useWorkOrderController(id: string) {
   const meQuery = trpc.user.me.useQuery();
   const me = meQuery.data;
   const confirm = useConfirm();
-  const promptText = usePromptText();
   const utils = trpc.useUtils();
 
   const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
@@ -147,26 +146,6 @@ export function useWorkOrderController(id: string) {
     });
     if (!ok) return;
     quickPass.mutate({ stepId: step.id, status: "COMPLETED" });
-  }
-  /** แจ้งปัญหาแบบพิมพ์เหตุเอง (ใบผลิต) — จอสถานีใช้ reportProblem ตรงกับเหตุที่กดเลือก */
-  async function handleReportProblem(step: ProductionStep) {
-    const reason = await promptText({
-      title: "แจ้งปัญหาของขั้นนี้",
-      description: "ระบุสิ่งที่พบให้หัวหน้าตัดสินใจ ขั้นนี้จะหยุดไว้จนกว่าจะแก้",
-      label: "รายละเอียดปัญหา",
-      placeholder: "เช่น เสื้อไม่ครบ 1 ตัว หรือฟิล์มมีตำหนิ",
-      confirmText: "แจ้งปัญหา",
-      required: true,
-      minLength: 3,
-      validationMessage: "กรุณาระบุปัญหาอย่างน้อย 3 ตัวอักษร",
-      destructive: true,
-    });
-    if (reason === null) return;
-    if (reason.trim().length < 3) {
-      toast.error("กรุณาระบุปัญหาอย่างน้อย 3 ตัวอักษร");
-      return;
-    }
-    reportProblem.mutate({ stepId: step.id, reason: reason.trim() });
   }
   /** หัวหน้าพักงาน / ผ่านขั้นแทนช่าง — ยืนยันก่อน แล้วยิง updateStep เดิม (server จดชื่อผู้กดใน audit) */
   async function handleSupervisorStatus(step: ProductionStep, status: "ON_HOLD" | "COMPLETED" | "PENDING") {
@@ -300,7 +279,6 @@ export function useWorkOrderController(id: string) {
     quickPass,
     reportProblem,
     legacyFinalize,
-    handleReportProblem,
     handleSupervisorStatus,
     openEdit: (step: ProductionStep, mode: "operation" | "manager") => setEditStep({ step, mode }),
     openQty: (stepId: string) => setQtyStepId(stepId),

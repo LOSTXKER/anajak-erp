@@ -9,6 +9,7 @@ import {
   stationQueue,
   visibleCards,
   type StationStepLike,
+  stationForStep,
 } from "@/lib/station-desk";
 
 const NOW = new Date("2026-08-30T07:00:00.000Z");
@@ -139,5 +140,14 @@ describe("visibleCards + stationCounts", () => {
     const prep = counts.find((c) => c.key === "lane:PREP")!;
     expect(prep).toMatchObject({ doing: 1, ready: 0, blocked: 1, total: 2 });
     expect(counts.find((c) => c.key === "post:pack")).toMatchObject({ total: 0 });
+  });
+});
+
+describe("stationForStep — ขั้นชนิดนี้อยู่สถานีไหน (ใบผลิตใช้ชื่อเดียวกับโหมดหน้างาน)", () => {
+  it("ขั้นในโรงงานชี้สถานีประจำ · ร้านนอกทุกประเภทยุบเป็นสถานีเดียว", () => {
+    expect(stationForStep("GARMENT_PICK").key).toBe("lane:PREP");
+    expect(stationForStep("HEAT_PRESS").key).toBe("lane:DTF");
+    expect(stationForStep("EMBROIDERY")).toEqual({ key: "outsource", label: "ร้านนอก" });
+    expect(stationForStep("DTF_PRINT").key).toBe("lane:DTF");
   });
 });

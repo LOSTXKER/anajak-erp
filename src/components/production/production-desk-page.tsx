@@ -14,6 +14,7 @@ import { Factory, MonitorSmartphone, Plus, RefreshCw } from "lucide-react";
 
 import { trpc, type RouterOutput } from "@/lib/trpc";
 import { permAllows } from "@/lib/permissions";
+import { FLOOR_HREF } from "@/lib/production-surface";
 import { useListPageState } from "@/hooks/use-list-page-state";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -122,10 +123,10 @@ function ProductionDesk() {
         }
         action={
           <>
-            {/* จอสถานี (แบบ A · 2026-09-03) — จอทัชหน้าเครื่องของช่าง / แผงสถานีของหัวหน้า */}
+            {/* โหมดหน้างาน (หนึ่งโมดูล สองสายตา · 2026-09-03) — จอทัชหน้าเครื่อง: ช่างเห็นคิวของตน · หัวหน้าเห็นแผงสถานี */}
             <Button variant="outline" asChild>
-              <Link href="/station">
-                <MonitorSmartphone /> จอสถานี
+              <Link href={FLOOR_HREF}>
+                <MonitorSmartphone /> โหมดหน้างาน
               </Link>
             </Button>
             {canCreateProduction ? (

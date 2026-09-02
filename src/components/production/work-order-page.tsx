@@ -7,11 +7,14 @@
  *   แท็บ: ขั้นงาน / ทำอะไร / ข้อมูลใบ / ประวัติ — ทุกแท็บ 2 คอลัมน์
  *   ขั้นงาน: ซ้าย = รายการขั้น (กดเลือก) · ขวา = ขั้นที่เลือก + โซนลงมือมาตรฐาน (ข้อกำหนด → ปุ่มเดียว)
  *
- * เครื่องยนต์ (query · สิทธิ์ · mutation · dialog) อยู่ work-order-controller.tsx — จอสถานี `/station` ใช้ตัวเดียวกัน
- * ชิ้นส่วนอ่านอย่างเดียวอยู่ work-order-pieces.tsx
+ * โครง "หนึ่งโมดูล สองสายตา" (เบสเคาะ 09-03): หัวหน้าทำได้ครบในหน้านี้ — ลงมือ · แจ้งปัญหา (กดเลือกเหตุ) · "แก้ให้" · วางแผน
+ * และทุกขั้นบอกว่าอยู่สถานีไหน · ช่างเปิดใบเดียวกันจะถูกพาไปหน้าลงมือของโหมดหน้างาน (/production/floor) แทน
+ *
+ * เครื่องยนต์ (query · สิทธิ์ · mutation · dialog) อยู่ work-order-controller.tsx — โหมดหน้างานใช้ตัวเดียวกัน
+ * ชิ้นส่วนอ่านอย่างเดียวอยู่ work-order-pieces.tsx · dialog แจ้งปัญหา/แก้ให้อยู่ step-command-dialogs.tsx
  */
 
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import { AlertTriangle, CalendarCheck, CheckCircle2, ClipboardCheck, Factory, History, Shirt, Truck, UserRound, Wrench } from "lucide-react";
 
 import { PageShell } from "@/components/page-shell";
@@ -32,13 +35,16 @@ import { MaterialUsage } from "@/components/material-usage";
 import { GarmentPickCard } from "@/components/production/garment-pick-card";
 import { ProductionDesignCard } from "@/components/production/production-design-card";
 import { ProductionMockupTab } from "@/components/production/production-mockup-tab";
+import { FixDialog, ProblemDialog } from "@/components/production/step-command-dialogs";
+import { STATION_ICON } from "@/components/station/station-pieces";
 import type { ProductionDetail, ProductionStep } from "@/components/production/types";
 import { PRIORITY_LABELS } from "@/lib/order-status";
 import type { NowStep } from "@/lib/production-step-actions";
 import { isOutsourceStep } from "@/lib/production-steps";
+import { stationForStep } from "@/lib/station-desk";
 import { workOrderStandards } from "@/lib/work-order-standards";
 import { cn, formatDate, formatDateTime } from "@/lib/utils";
-import { useWorkOrderController } from "./work-order-controller";
+import { useWorkOrderController, type WorkOrderController } from "./work-order-controller";
 import { ItemsSection, OutsourceFacts, Owner, ProblemCard, Qty, StateChip, activeOutsource, daysFromNow, stepLabel, viewOf } from "./work-order-pieces";
 
 /* ───────────────────────── หน้า ───────────────────────── */
@@ -177,6 +183,7 @@ function WorkOrder({ id }: { id: string }) {
                           const view = viewOf(step, nowById.get(step.id));
                           const on = selectedStep?.id === step.id;
                           const outsource = isOutsourceStep(step.stepType);
+                          const st = stationForStep(step.stepType);
                           return (
                             <li key={step.id}>
                               <button
@@ -195,6 +202,9 @@ function WorkOrder({ id }: { id: string }) {
                                   <span className={cn("block truncate text-sm", on ? "font-semibold text-strong" : "font-medium text-strong")}>{stepLabel(step)}</span>
                                   <span className="mt-1 flex flex-wrap items-center gap-1.5">
                                     <StateChip view={view} kind={outsource ? "outsource" : "inhouse"} />
+                                    <InfoChip size="sm" icon={STATION_ICON[st.key] ?? Wrench}>
+                                      {st.label}
+                                    </InfoChip>
                                     {step.assignedTo ? <InfoChip size="sm">{step.assignedTo.name}</InfoChip> : null}
                                   </span>
                                 </span>
@@ -208,12 +218,14 @@ function WorkOrder({ id }: { id: string }) {
 
                     {selectedStep ? (
                       <StepDetail
+                        key={selectedStep.id}
+                        c={c}
                         step={selectedStep}
                         now={selectedNow}
                         nowMs={nowMs}
                         primary={c.primaryButton(selectedStep, selectedNow)}
                         canReport={c.canUpdateStep && c.canOwnOrSupervise(selectedStep) && selectedStep.status !== "COMPLETED" && selectedStep.status !== "FAILED"}
-                        onReport={() => void c.handleReportProblem(selectedStep)}
+                        canFix={c.canSuperviseStep && c.hasProductionPermission && selectedStep.status !== "COMPLETED"}
                         canEdit={c.canUpdateStep && c.canOwnOrSupervise(selectedStep) && selectedStep.status !== "COMPLETED"}
                         onEdit={() => c.openEdit(selectedStep, "operation")}
                         garment={
@@ -332,30 +344,36 @@ function WorkOrder({ id }: { id: string }) {
 
 /* ───────────────────────── ขั้นที่เลือก + โซนลงมือมาตรฐาน ───────────────────────── */
 
-function StepDetail({
+export function StepDetail({
+  c,
   step,
   now,
   nowMs,
   primary,
   canReport,
-  onReport,
+  canFix,
   canEdit,
   onEdit,
   garment,
 }: {
+  c: WorkOrderController;
   step: ProductionStep;
   now: NowStep<ProductionStep> | undefined;
   nowMs: number;
   primary: React.ReactNode;
   canReport: boolean;
-  onReport: () => void;
+  /** หัวหน้า "แก้ให้" — ยอด · คน · พัก · คืนคิว · ผ่านแทน (dialog ชุดเดียวกับโหมดหน้างาน) */
+  canFix: boolean;
   canEdit: boolean;
   onEdit: () => void;
   garment: React.ReactNode;
 }) {
   const view = viewOf(step, now);
   const outsource = isOutsourceStep(step.stepType);
+  const st = stationForStep(step.stepType);
   const standards = workOrderStandards(step.stepType);
+  const [problemOpen, setProblemOpen] = useState(false);
+  const [fixOpen, setFixOpen] = useState(false);
   const blockedReason =
     step.status === "COMPLETED"
       ? `ปิดขั้นแล้ว${step.completedAt ? ` ${formatDateTime(step.completedAt)}` : ""}${step.assignedTo ? ` · โดย ${step.assignedTo.name}` : ""}`
@@ -369,7 +387,14 @@ function StepDetail({
   return (
     <Section
       title={stepLabel(step)}
-      meta={<StateChip view={view} kind={outsource ? "outsource" : "inhouse"} size="md" />}
+      meta={
+        <InfoChipRow>
+          <StateChip view={view} kind={outsource ? "outsource" : "inhouse"} size="md" />
+          <InfoChip size="md" icon={STATION_ICON[st.key] ?? Wrench}>
+            {st.label}
+          </InfoChip>
+        </InfoChipRow>
+      }
       action={<Owner step={step} />}
       tone="production"
     >
@@ -423,12 +448,19 @@ function StepDetail({
             </Button>
           ) : null}
           {canReport ? (
-            <Button variant="outline" onClick={onReport}>
-              แจ้งปัญหา
+            <Button variant="outline" onClick={() => setProblemOpen(true)}>
+              <AlertTriangle /> แจ้งปัญหา
+            </Button>
+          ) : null}
+          {canFix ? (
+            <Button variant="outline" onClick={() => setFixOpen(true)}>
+              <Wrench /> แก้ให้
             </Button>
           ) : null}
         </ActionZone>
       </div>
+      <ProblemDialog open={problemOpen} onClose={() => setProblemOpen(false)} step={step} c={c} />
+      <FixDialog open={fixOpen} onClose={() => setFixOpen(false)} step={step} c={c} />
     </Section>
   );
 }

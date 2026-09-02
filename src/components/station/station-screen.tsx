@@ -1,11 +1,13 @@
 "use client";
 
 /**
- * จอสถานี `/station` — แบบ A "หยิบงานเอง" (เบสเคาะ 2026-09-03 จากหน้าลอง /proto/station)
+ * โหมดหน้างาน `/production/floor` — แบบ A "หยิบงานเอง" (เบสเคาะ 2026-09-03 จากหน้าลอง /proto/station)
+ * โครง "หนึ่งโมดูล สองสายตา" (เบสเคาะ 09-03): นี่คือสายตาของช่าง · หัวหน้าเดินโรงงานเปิดจอเดียวกันเป็นแผงสถานี · โต๊ะงานอยู่ /production
  *
  *   ชั้น 1 เลือกสถานี (ช่าง) / แผงสถานีทั้งโรงงาน (หัวหน้า)  →  ชั้น 2 คิวของสถานี 3 กลุ่ม  →  ชั้น 3 หน้าลงมือ (station-job)
  *   ข้อมูล: factory.stationQueue (no-money โดยโครงสร้าง) → buildProductionBoard สูตรเดิม → lib/station-desk
  *   สถานะการเดินอยู่ใน URL: ?st=<สถานี> &s=job &job=<productionId> &step=<stepId> (&fix=1 = หัวหน้ากดแก้ให้จากคิว)
+ *   ไม่มี st แต่มี job = ลิงก์จากใบผลิต/redirect ของช่าง → หาสถานีให้จากคิว
  *   สถานีที่ช่างเลือกล่าสุดจำไว้ในเครื่อง (localStorage) — จอเดิมเปิดมาก็อยู่สถานีเดิม
  */
 
@@ -24,6 +26,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { buildProductionBoard } from "@/lib/production-board";
 import { daysFromNow } from "@/lib/production-desk";
 import { resolveStation, stationCards, stationCounts, stationDefs, stationQueue, visibleCards } from "@/lib/station-desk";
+import { FLOOR_HREF } from "@/lib/production-surface";
 import { formatDate, formatDateTime } from "@/lib/utils";
 import { QueueGroups, StationIcon, StationShell, StationTile, WhoChip } from "./station-pieces";
 import { StationJob } from "./station-job";
@@ -80,6 +83,14 @@ function Screen() {
   );
   const defs = useMemo(() => stationDefs(board), [board]);
   const station = resolveStation(st, defs);
+  // เปิดหน้าลงมือจาก URL โดยไม่รู้สถานี (ลิงก์จากใบผลิต · ช่างถูกพามาจาก /production/[id]) — หาสถานีให้จากคิว
+  const jobStation = useMemo(() => {
+    if (station || screen !== "job" || !jobId) return null;
+    for (const def of defs) {
+      if (stationCards(board, def).some((card) => card.spot.productionId === jobId && (!stepId || card.step?.id === stepId))) return def;
+    }
+    return null;
+  }, [station, screen, jobId, stepId, defs, board]);
   const clock = queueQuery.dataUpdatedAt > 0 ? formatDateTime(new Date(queueQuery.dataUpdatedAt)) : null;
 
   // ช่างเปิดจอมาแล้วอยู่สถานีเดิมเลย (หัวหน้าเปิดมาเจอแผงทั้งโรงงานเสมอ)
@@ -98,7 +109,7 @@ function Screen() {
     const supabase = createClient();
     await supabase.auth.signOut();
     rememberStation(null);
-    router.replace("/login?next=/station");
+    router.replace(`/login?next=${FLOOR_HREF}`);
     router.refresh();
   };
   const who = <WhoChip name={me?.name ?? "…"} boss={canSupervise} onChange={me ? () => void changeUser() : undefined} />;
@@ -106,7 +117,7 @@ function Screen() {
   /* ── โหลด / พัง / ไม่มีสิทธิ์ ── */
   if (meQuery.isLoading || (queueQuery.isLoading && !orders)) {
     return (
-      <StationShell title="จอสถานี" who={who}>
+      <StationShell title="หน้างาน" who={who}>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {Array.from({ length: 5 }, (_, i) => (
             <Skeleton key={i} className="h-40 rounded-2xl" />
@@ -117,21 +128,21 @@ function Screen() {
   }
   if (meQuery.isError && !me) {
     return (
-      <StationShell title="จอสถานี" who={who}>
+      <StationShell title="หน้างาน" who={who}>
         <EmptyState icon={AlertTriangle} title="โหลดสิทธิ์ไม่สำเร็จ" action={<Button size="lg" onClick={() => meQuery.refetch()}>ลองใหม่</Button>} />
       </StationShell>
     );
   }
   if (!canProduce) {
     return (
-      <StationShell title="จอสถานี" who={who}>
-        <EmptyState icon={ShieldX} title="บัญชีนี้ไม่มีสิทธิ์งานผลิต" description="จอสถานีใช้ได้เฉพาะบัญชีที่มีสิทธิ์งานผลิต — เปลี่ยนคนที่มุมขวาบน" />
+      <StationShell title="หน้างาน" who={who}>
+        <EmptyState icon={ShieldX} title="บัญชีนี้ไม่มีสิทธิ์งานผลิต" description="โหมดหน้างานใช้ได้เฉพาะบัญชีที่มีสิทธิ์งานผลิต — เปลี่ยนคนที่มุมขวาบน" />
       </StationShell>
     );
   }
   if (queueQuery.isError && !orders) {
     return (
-      <StationShell title="จอสถานี" who={who}>
+      <StationShell title="หน้างาน" who={who}>
         <EmptyState icon={AlertTriangle} title="โหลดคิวงานไม่สำเร็จ" action={<Button size="lg" onClick={() => queueQuery.refetch()}>ลองใหม่</Button>} />
       </StationShell>
     );
@@ -149,12 +160,12 @@ function Screen() {
   ) : null;
 
   /* ── ชั้น 3: หน้าลงมือ ── */
-  if (station && screen === "job" && jobId) {
+  if (screen === "job" && jobId) {
     return (
       <StationJob
         productionId={jobId}
         stepId={stepId}
-        station={station}
+        station={station ?? jobStation}
         boss={canSupervise}
         autoFix={autoFix && canSupervise}
         onBack={() => list.replaceListState({ s: null, job: null, step: null, fix: null })}
@@ -168,7 +179,19 @@ function Screen() {
   if (!station) {
     const counts = stationCounts(board, viewer);
     return (
-      <StationShell title={canSupervise ? "แผงสถานี — ทั้งโรงงาน" : "วันนี้คุณอยู่สถานีไหน"} eyebrow={canSupervise ? "โหมดหัวหน้า — เห็นทุกคน แก้ให้ได้ทุกใบ" : "จอสถานี"} who={who} clock={clock}>
+      <StationShell
+        title={canSupervise ? "แผงสถานี — ทั้งโรงงาน" : "วันนี้คุณอยู่สถานีไหน"}
+        eyebrow={canSupervise ? "โหมดหน้างาน — เห็นทุกคน แก้ให้ได้ทุกใบ" : "โหมดหน้างาน — งานของฉัน"}
+        right={
+          canSupervise ? (
+            <Button variant="outline" size="lg" onClick={() => router.push("/production")}>
+              <Factory /> โต๊ะงาน
+            </Button>
+          ) : null
+        }
+        who={who}
+        clock={clock}
+      >
         {staleAlert}
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {counts.map((count) => {
@@ -178,7 +201,7 @@ function Screen() {
         </div>
         {canSupervise ? (
           <p className="mt-6 text-sm text-secondary">
-            สถานีตามสายงานในใบผลิต — ตรวจ QC และแพ็กสุดท้ายยังทำในหน้าออเดอร์ (กดการ์ดแล้วไปต่อได้) · โต๊ะงานหัวหน้าอยู่ที่{" "}
+            สถานีตามสายงานในใบผลิต — ตรวจ QC และแพ็กสุดท้ายยังทำในหน้าออเดอร์ (กดการ์ดแล้วไปต่อได้) · ดูทั้งใบ/วางแผน/แก้ให้จากโต๊ะได้ที่{" "}
             <Button variant="link" className="h-auto p-0 text-sm" onClick={() => router.push("/production")}>
               หน้าการผลิต
             </Button>
@@ -205,7 +228,7 @@ function Screen() {
           <StationIcon stationKey={station.key} className="h-6 w-6 text-strong" /> {station.label}
         </span>
       }
-      eyebrow={canSupervise ? "โหมดหัวหน้า — แก้ให้ได้ทุกใบ" : "งานที่สถานีนี้"}
+      eyebrow={canSupervise ? "โหมดหน้างาน — แก้ให้ได้ทุกใบ" : "งานที่สถานีนี้"}
       onBack={() => {
         if (!canSupervise) rememberStation(null);
         list.replaceListState({ st: null, s: null, job: null, step: null, fix: null });
