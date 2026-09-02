@@ -23,7 +23,7 @@ import {
   type ProductionJob,
   type StationKey,
 } from "../_data";
-import { JobCell, RouteBar, RowAction, TouchJobCard, WhereNow } from "../_pieces";
+import { JobTable, TouchJobCard } from "../_pieces";
 
 type Node = StationKey | `vendor:${string}`;
 
@@ -231,40 +231,22 @@ export function FlowVariant({
 
       {strip}
 
-      <section className="card-surface overflow-hidden rounded-2xl">
-        <header className="flex flex-wrap items-center gap-2 border-b border-divider bg-surface-muted px-4 py-2.5">
-          <h2 className="text-sm font-semibold text-strong">
-            {selectedStation ? `คิว${selectedStation.label}` : `งานที่ ${title}`}
-          </h2>
-          <span className="text-xs tabular-nums text-muted">{queue.length} ใบ</span>
-          {selectedVendor ? (
-            <span className="ml-auto text-xs text-muted">
-              ร้านดูงานผ่านลิงก์ · นัดรับใกล้สุด {selectedVendor.nextBack.backLabel}
-            </span>
-          ) : (
-            <span className="ml-auto text-xs text-muted">
-              เรียง: ติดปัญหา → เลยกำหนด → กำหนดส่ง
-            </span>
-          )}
-        </header>
-        {queue.length === 0 ? (
-          <EmptyState icon={PackageCheck} title={`ไม่มีงานที่${title}`} description="เลือกสถานีอื่นในสายพาน" density="compact" />
-        ) : (
-          <ul className="divide-y divide-divider">
-            {queue.map((job) => (
-              <li
-                key={job.id}
-                className="grid gap-3 px-4 py-3 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1.2fr)_auto] sm:items-center"
-              >
-                <JobCell job={job} />
-                <RouteBar route={job.route} />
-                <WhereNow job={job} />
-                <RowAction job={job} action={action} />
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      <div className="flex flex-wrap items-center gap-2">
+        <h2 className="text-sm font-semibold text-strong">
+          {selectedStation ? `คิว${selectedStation.label}` : `งานที่ ${title}`}
+        </h2>
+        <span className="text-xs tabular-nums text-muted">{queue.length} ใบ</span>
+        <span className="ml-auto text-xs text-muted">
+          {selectedVendor
+            ? `ร้านดูงานผ่านลิงก์ · นัดรับใกล้สุด ${selectedVendor.nextBack.backLabel}`
+            : "เรียง: ติดปัญหา → เลยกำหนด → กำหนดส่ง"}
+        </span>
+      </div>
+      <JobTable
+        groups={[{ key: String(node), label: title, items: queue }]}
+        actionFor={() => action}
+        emptyLabel={`ไม่มีงานที่${title} — เลือกสถานีอื่นในสายพาน`}
+      />
 
       <p className="text-xs text-muted">
         สถานีที่กำลังดู: {selectedStation ? STATION_LABEL[selectedStation.key] : title} — บนจอทัชหน้างาน

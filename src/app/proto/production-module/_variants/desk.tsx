@@ -19,7 +19,6 @@ import { FilterChip } from "@/components/ui/filter-chip";
 import { SearchInput } from "@/components/ui/search-input";
 import { cn } from "@/lib/utils";
 
-import { NextAction } from "../../_kit/pieces";
 import {
   STATIONS,
   STATION_LABEL,
@@ -28,7 +27,7 @@ import {
   type ProductionJob,
   type StationKey,
 } from "../_data";
-import { JobCell, RouteBar, RowAction, TouchJobCard, WhereNow } from "../_pieces";
+import { JobTable, TouchJobCard } from "../_pieces";
 
 type Lens = "all" | "late" | "blocked" | "outsource" | "ready";
 
@@ -178,41 +177,11 @@ export function DeskVariant({
         </div>
       </div>
 
-      {piles.length === 0 ? (
-        <div className="card-surface rounded-2xl">
-          <EmptyState icon={PackageCheck} title="ไม่มีงานในกองนี้" description="กดตัวเลขข้างบนอีกครั้งเพื่อดูทั้งหมด" />
-        </div>
-      ) : (
-        piles.map((pile) => (
-          <section key={pile.key} className="card-surface overflow-hidden rounded-2xl">
-            <header className="flex items-center gap-2 border-b border-divider bg-surface-muted px-4 py-2.5">
-              <h2 className="text-sm font-semibold text-strong">{pile.label}</h2>
-              <span className="text-xs tabular-nums text-muted">{pile.items.length} ใบ</span>
-            </header>
-            <ul className="divide-y divide-divider">
-              {pile.items.map((job) => (
-                <li
-                  key={job.id}
-                  className="grid gap-3 px-4 py-3 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1.2fr)_auto] sm:items-center"
-                >
-                  <JobCell job={job} />
-                  <RouteBar route={job.route} />
-                  <div className="min-w-0">
-                    <WhereNow job={job} />
-                    <div className="mt-1.5">
-                      <NextAction job={job} size="sm" />
-                    </div>
-                  </div>
-                  <RowAction
-                    job={job}
-                    action={job.station ? STATIONS.find((s) => s.key === job.station)!.action : "เปิดใบ"}
-                  />
-                </li>
-              ))}
-            </ul>
-          </section>
-        ))
-      )}
+      <JobTable
+        groups={piles.map((pile) => ({ key: pile.key, label: pile.label, items: pile.items }))}
+        actionFor={(job) => (job.station ? STATIONS.find((s) => s.key === job.station)!.action : "เปิดใบ")}
+        emptyLabel="ไม่มีงานในกองนี้ — กดตัวเลขข้างบนอีกครั้งเพื่อดูทั้งหมด"
+      />
     </div>
   );
 }
