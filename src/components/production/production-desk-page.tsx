@@ -119,6 +119,10 @@ function ProductionDesk() {
             ? `งานในโรงงาน ${board.totalJobs.toLocaleString("th-TH")} ใบ · รอเปิดใบผลิต ${awaiting.toLocaleString("th-TH")} ใบ`
             : "ดูว่างานไหนต้องจัดการก่อน อยู่ขั้นไหน และของร้านนอกกลับเมื่อไร"
         }
+        // สถานะรีเฟรชอยู่ใต้หัว ไม่ปนกับแถบกรอง (เบสทัก 2026-09-02) · ใช้ headerChildren เพราะ meta อยู่ใน <p>
+        headerChildren={
+          <ProductionFreshness updatedAt={dataUpdatedAt} isFetching={isFetching && !isLoading} stale={hasStaleData} className="-mt-3" />
+        }
         action={
           canCreateProduction ? (
             // กรองไปกอง "รอเปิดใบผลิต" — แถวในกองนั้นกดแล้วเปิด dialog สร้างใบ (ทางเดิม ?create=)
@@ -180,13 +184,6 @@ function ProductionDesk() {
             stations={stationChips}
             onSelectStation={(value) => list.replaceListState({ station: value || null, page: null })}
             total={lensRows.length}
-            freshness={
-              <ProductionFreshness
-                updatedAt={dataUpdatedAt}
-                isFetching={isFetching && !isLoading}
-                stale={hasStaleData}
-              />
-            }
           />
           <DeskTable
             groups={groups}

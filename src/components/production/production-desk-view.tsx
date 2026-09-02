@@ -9,7 +9,7 @@
  * กฎ 3 ชั้น docs/DESIGN.md §ลำดับความสำคัญทางสายตา: ตัวเลข/ป้ายกำหนดส่ง/ชิปขั้น = ชั้น 1
  */
 
-import { Fragment, type ReactNode, type RefObject } from "react";
+import { Fragment, type RefObject } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
   AlertTriangle,
@@ -118,9 +118,9 @@ function ChipCount({ count, overdue }: { count: number; overdue: number }) {
 }
 
 /**
- * แถบกรอง 2 แถว: ค้นหา + สถานะรีเฟรช / ชิปขั้นงาน
+ * แถบกรองแถวเดียว: ช่องค้นหาสั้น + ชิปขั้นงาน (เบสทัก 2026-09-02 "ช่องค้นหาไม่ต้องยาว
+ * และสถานะอัปเดตอยู่ที่อื่นก็ได้" → สถานะรีเฟรชย้ายไปหัวหน้าใน PageShell meta)
  * ร้านนอก 6 ประเภทยุบเป็นชิป "ร้านนอก" ชิปเดียว — กดแล้วค่อยเลือกประเภทร้านจากช่องเลือกข้าง ๆ
- * (เดิม 13 ชิปพันกับช่องค้นหาในแถวเดียว จนล้นเป็น 2 บรรทัด)
  */
 export function DeskToolbar({
   searchDefault,
@@ -130,7 +130,6 @@ export function DeskToolbar({
   stations,
   onSelectStation,
   total,
-  freshness,
 }: {
   searchDefault: string;
   searchInputRef: RefObject<HTMLInputElement | null> | null;
@@ -139,7 +138,6 @@ export function DeskToolbar({
   stations: readonly WorklistStationChip[];
   onSelectStation: (station: string) => void;
   total: number;
-  freshness?: ReactNode;
 }) {
   const inHouse = stations.filter((chip) => !chip.isOutsource);
   const outsource = stations.filter((chip) => chip.isOutsource);
@@ -148,20 +146,17 @@ export function DeskToolbar({
   const outsourceActive = station === STATION_OUTSOURCE_ALL || outsource.some((chip) => chip.key === station);
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <SearchInput
-          ref={searchInputRef}
-          surface="raised"
-          placeholder="ค้นเลขออเดอร์ / ลูกค้า"
-          defaultValue={searchDefault}
-          onChange={(event) => onSearchChange(event.target.value)}
-          containerClassName="w-full sm:w-80"
-          aria-label="ค้นหางานผลิต"
-        />
-        {freshness}
-      </div>
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-1 border-b border-divider">
+    <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+      <SearchInput
+        ref={searchInputRef}
+        surface="raised"
+        placeholder="ค้นเลขออเดอร์ / ลูกค้า"
+        defaultValue={searchDefault}
+        onChange={(event) => onSearchChange(event.target.value)}
+        containerClassName="w-full sm:w-60"
+        aria-label="ค้นหางานผลิต"
+      />
+      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-5 gap-y-1 border-b border-divider">
         <FilterChip selected={station === ""} onClick={() => onSelectStation("")}>
           ทุกขั้น <ChipCount count={total} overdue={0} />
         </FilterChip>
