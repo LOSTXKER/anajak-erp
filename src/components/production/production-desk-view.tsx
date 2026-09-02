@@ -38,6 +38,7 @@ import {
   type DeskSummary,
 } from "@/lib/production-desk";
 import { productionWorklistProgress, type WorklistStationChip } from "@/lib/production-worklist";
+import { RADIUS, SUNK_PANEL } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
 
 /* ───────────────────────── ตัวเลข 4 ช่อง = ตัวกรอง ───────────────────────── */
@@ -162,7 +163,7 @@ export function DeskToolbar({
         />
         {freshness ? <div className="ml-auto">{freshness}</div> : null}
       </div>
-      <div className={cn("flex flex-wrap items-center gap-x-5 gap-y-1", !outsourceActive && "border-b border-divider")}>
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-1 border-b border-divider">
         <FilterChip selected={station === ""} onClick={() => onSelectStation("")}>
           ทุกขั้น <ChipCount count={total} overdue={0} />
         </FilterChip>
@@ -188,10 +189,16 @@ export function DeskToolbar({
         ) : null}
       </div>
       {outsourceActive ? (
-        // ประเภทร้านเป็นชิปย่อยแถวเล็ก โผล่เฉพาะตอนกด "ร้านนอก" — แถวหลักจึงไม่อัด
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-divider pl-6" data-production-desk-outsource-types="">
+        // ประเภทร้าน = แถบพื้นจมใต้แถวหลัก มีป้ายนำ — โผล่เฉพาะตอนกด "ร้านนอก" (เบสทัก 09-02 ว่าแถวย่อยลอย ๆ "ต้องจัดดี ๆ")
+        <div
+          className={cn("flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-1", SUNK_PANEL, RADIUS.inner)}
+          data-production-desk-outsource-types=""
+        >
+          <span className="inline-flex items-center gap-1.5 pr-1 text-xs font-medium text-muted">
+            <Truck className="h-4 w-4" aria-hidden="true" /> ประเภทร้าน
+          </span>
           <FilterChip selected={station === STATION_OUTSOURCE_ALL} onClick={() => onSelectStation(STATION_OUTSOURCE_ALL)}>
-            ทุกประเภทร้าน <ChipCount count={outsourceCount} overdue={outsourceOverdue} />
+            ทุกประเภท <ChipCount count={outsourceCount} overdue={outsourceOverdue} />
           </FilterChip>
           {outsource.map((chip) => (
             <FilterChip
