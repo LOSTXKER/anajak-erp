@@ -157,14 +157,9 @@ const updateStepResultSelect = {
   updatedAt: true,
 } as const;
 
-function productionStepWorkLink(
-  stepType: string,
-  productionId: string,
-): string {
-  const station = factoryStationKeyForStep(stepType);
-  return station
-    ? `/factory/station?station=${encodeURIComponent(station)}&productionId=${encodeURIComponent(productionId)}`
-    : `/production/${encodeURIComponent(productionId)}`;
+// ลิงก์ในแจ้งเตือนชี้ใบผลิตเสมอ — จอสถานี (/factory/station) ถูกถอดออก 2026-09-02 รอออกแบบใหม่
+function productionStepWorkLink(productionId: string): string {
+  return `/production/${encodeURIComponent(productionId)}`;
 }
 
 /**
@@ -1085,10 +1080,7 @@ export const productionRouter = router({
               type: "PRODUCTION",
               title: `แก้ปัญหาแล้ว — ${order.orderNumber}`,
               message: `${stepDisplayName(existing)} · ${input.resolutionReason}`,
-              link: productionStepWorkLink(
-                existing.stepType,
-                existing.productionId,
-              ),
+              link: productionStepWorkLink(existing.productionId),
               entityType: "PRODUCTION_STEP",
               entityId: input.stepId,
             });
@@ -1184,10 +1176,7 @@ export const productionRouter = router({
             type: "PRODUCTION",
             title: `ได้รับมอบหมายงาน — ${order.orderNumber}`,
             message: stepDisplayName(existing),
-            link: productionStepWorkLink(
-              existing.stepType,
-              existing.productionId,
-            ),
+            link: productionStepWorkLink(existing.productionId),
             entityType: "PRODUCTION_STEP",
             entityId: input.stepId,
           });

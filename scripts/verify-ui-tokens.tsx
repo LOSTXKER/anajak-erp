@@ -482,37 +482,30 @@ const hSm = CONTROL_H_SM.split(" ");
 }
 
 {
-  /* หัวจอสองตัวนี้เคยถูกล็อกด้วยกฎเดียวกัน ("ไอคอนเส้นล้วน ไม่มีพื้น") แต่บทบาทของมันคนละอย่าง
-     - จอสถานี: ไอคอนคือ "สถานีไหน" — เปลี่ยนตามสถานีจริง จึงเป็นไอคอนโมดูลและต้องเป็นเส้นล้วนต่อไป
-     - Factory TV: ไอคอนเดิมเป็นรูปโรงงานประดับเฉย ๆ ไม่ได้บอกอะไร · ตั้งแต่ 2026-08-26 ที่ตรงนั้น
-       คือ "ตราสัญลักษณ์" เพราะจอนี้ไม่มี sidebar/topbar ทั้งจอจึงไม่เคยมีคำว่า Anajak อยู่เลย
-       ตราไม่อยู่ใต้กติกาสงวนสี (เหตุผลเดียวกับที่โลโก้บนแถบบนหลุดไปเป็นเทาแล้วต้องคืน)
-     ข้อห้ามพื้นโมดูลทึบกับเงายังใช้กับทั้งคู่เหมือนเดิม */
-  const stationShellSource = readFileSync(
-    "src/components/factory/station-mode-shell.tsx",
-    "utf8",
-  );
+  /* Factory TV: ไอคอนเดิมเป็นรูปโรงงานประดับเฉย ๆ ไม่ได้บอกอะไร · ตั้งแต่ 2026-08-26 ที่ตรงนั้น
+     คือ "ตราสัญลักษณ์" เพราะจอนี้ไม่มี sidebar/topbar ทั้งจอจึงไม่เคยมีคำว่า Anajak อยู่เลย
+     ตราไม่อยู่ใต้กติกาสงวนสี (เหตุผลเดียวกับที่โลโก้บนแถบบนหลุดไปเป็นเทาแล้วต้องคืน)
+     (จอสถานี /factory/station ถูกถอดออก 2026-09-02 รอออกแบบใหม่ — ด่านของมันถอดตามไปแล้ว) */
   const factoryBoardSources = [
     readFileSync("src/app/factory/page.tsx", "utf8"),
     readFileSync("src/components/factory/manufacturing-factory-board.tsx", "utf8"),
   ];
-  const noSolidModuleFill = [stationShellSource, ...factoryBoardSources].every(
+  const noSolidModuleFill = factoryBoardSources.every(
     (source) =>
       !source.includes("bg-module-production-solid") && !source.includes("shadow-sm"),
   );
   if (
     !noSolidModuleFill ||
-    !stationShellSource.includes("text-module-production-text") ||
     !factoryBoardSources.every(
       (source) => source.includes("bg-blue-600 text-white") && source.includes("Anajak Print"),
     )
   ) {
     failed++;
     console.log(
-      "❌ หัวจอสถานีต้องเป็นไอคอนเส้นล้วน · หัว Factory TV ต้องมีตรา Anajak · ห้ามพื้นโมดูลทึบหรือเงา",
+      "❌ หัว Factory TV ต้องมีตรา Anajak · ห้ามพื้นโมดูลทึบหรือเงา",
     );
   } else {
-    console.log("✅ หัวจอสถานีเป็นไอคอนเส้นล้วน · หัว Factory TV มีตรา Anajak");
+    console.log("✅ หัว Factory TV มีตรา Anajak");
   }
 }
 
@@ -1791,12 +1784,7 @@ check(
     "utf8",
   );
   const stationPanelSources = [
-    "src/components/factory/station-mode-screen.tsx",
-    "src/components/factory/station-current-layout.tsx",
-    "src/components/factory/station-queue-view.tsx",
-    "src/components/factory/manufacturing-station-screen.tsx",
     "src/components/factory/manufacturing-factory-board.tsx",
-    "src/components/factory/dtf-batch-dialog.tsx",
     "src/components/production-v2/production-v2-workspace.tsx",
     "src/components/production-v2/production-v2-control-record.tsx",
     "src/components/production-v2/production-v2-control-actions.tsx",
@@ -2652,10 +2640,6 @@ check(
     "src/components/production-v2/production-v2-control-record.tsx",
     "utf8",
   );
-  const manufacturingStationSource = readFileSync(
-    "src/components/factory/manufacturing-station-screen.tsx",
-    "utf8",
-  );
   const manufacturingFactorySource = readFileSync(
     "src/components/factory/manufacturing-factory-board.tsx",
     "utf8",
@@ -2678,21 +2662,10 @@ check(
     !productionV2WorkspaceSource.includes("query.fetchNextPage()") ||
     !productionV2WorkspaceSource.includes("QueryError") ||
     !productionV2ControlSource.includes("trpc.manufacturing.workOrder.useQuery") ||
-    !manufacturingStationSource.includes("availableCommands") ||
-    !manufacturingStationSource.includes("primaryStationCommand") ||
-    !manufacturingStationSource.includes(
-      "trpc.manufacturing.stationHandoff.useQuery",
-    ) ||
-    !manufacturingStationSource.includes(
-      "trpc.manufacturing.stationOrderContext.useQuery",
-    ) ||
-    manufacturingStationSource.includes(
-      "trpc.manufacturing.workOrder.useQuery",
-    ) ||
     !manufacturingFactorySource.includes("trpc.manufacturing.workCenterLoad.useQuery")
   ) {
     problems.push(
-      "Production V2 ต้องมี canonical list/control/station/TV หลัง flag และ legacy route ต้องเหลือแค่ rollback/redirect",
+      "Production V2 ต้องมี canonical list/control/TV หลัง flag และ legacy route ต้องเหลือแค่ rollback/redirect (จอสถานีถอดออก 2026-09-02 รอออกแบบใหม่)",
     );
   }
 
@@ -3330,345 +3303,6 @@ check(
     problems.forEach((problem) => console.log(`   ${problem}`));
   } else {
     console.log("✅ รอบพิมพ์เรียงตามหน้างานและเห็นรอบกับคิวพร้อมกัน");
-  }
-}
-
-/* ── Station Mode: current job + ready/blocked rail ไม่มี sidebar/เงิน ───────
-   Scan เปิดบริบทเท่านั้น; current ถูกตัดออกจาก rail และ blocked ต้องแสดงเหตุจริง
-   แยกจาก ready ส่วน mutation ทุกก้อนยังผ่าน service/server guard เฉพาะทาง */
-{
-  const stationPageSource = readFileSync(
-    "src/components/factory/station-mode-screen.tsx",
-    "utf8",
-  );
-  const stationShellSource = readFileSync(
-    "src/components/factory/station-mode-shell.tsx",
-    "utf8",
-  );
-  const stationCurrentLayoutSource = readFileSync(
-    "src/components/factory/station-current-layout.tsx",
-    "utf8",
-  );
-  const stationQueueSource = readFileSync(
-    "src/components/factory/station-queue-view.tsx",
-    "utf8",
-  );
-  const stationOrderSource = readFileSync(
-    "src/components/factory/station-order-workspace.tsx",
-    "utf8",
-  );
-  const stationGarmentPreviewSource = readFileSync(
-    "src/components/factory/station-garment-preview.tsx",
-    "utf8",
-  );
-  const factoryRouterSource = readFileSync(
-    "src/server/routers/factory.ts",
-    "utf8",
-  );
-  const orderRouterSource = readFileSync(
-    "src/server/routers/order.ts",
-    "utf8",
-  );
-  const productionRouterSource = readFileSync(
-    "src/server/routers/production.ts",
-    "utf8",
-  );
-  const deliveryDialogSource = readFileSync(
-    "src/components/orders/delivery/create-delivery-dialog.tsx",
-    "utf8",
-  );
-  const packingReadinessSource = readFileSync(
-    "src/server/services/packing-readiness.ts",
-    "utf8",
-  );
-  const jobTicketSource = readFileSync(
-    "src/app/(print)/print/job-ticket/[id]/page.tsx",
-    "utf8",
-  );
-  const productionSummarySource = readFileSync(
-    "src/components/orders/production-summary-card.tsx",
-    "utf8",
-  );
-  const factoryBoardSource = readFileSync(
-    "src/server/services/factory-board.ts",
-    "utf8",
-  );
-  const ownerPulseSource = readFileSync(
-    "src/server/services/owner-pulse.ts",
-    "utf8",
-  );
-  const productionDetailSource = readFileSync(
-    "src/components/production/production-detail-screen.tsx",
-    "utf8",
-  );
-  const stepQtySource = readFileSync(
-    "src/components/production/step-qty-sheet.tsx",
-    "utf8",
-  );
-  const qcSource = readFileSync(
-    "src/components/qc/order-qc-section.tsx",
-    "utf8",
-  );
-  const garmentServiceSource = readFileSync(
-    "src/server/services/garment-pick.ts",
-    "utf8",
-  );
-  const problems: string[] = [];
-
-  if (
-    stationPageSource.includes("AppShell") ||
-    stationPageSource.includes("Sidebar") ||
-    !stationShellSource.includes('href="/production"') ||
-    !stationShellSource.includes("จอประจำสถานี")
-  ) {
-    problems.push("Station Mode ต้องเต็มจอ ไม่มี sidebar ใหม่ และกลับ ERP ได้");
-  }
-  if (
-    !stationPageSource.includes('htmlFor="factory-station-scan"') ||
-    !stationPageSource.includes("resolveStationScan.fetch({ value })") ||
-    !stationPageSource.includes("data-station-scan=") ||
-    stationPageSource.includes("resolveStationScan.useMutation")
-  ) {
-    problems.push("สแกนต้องมีชื่อช่องและเปิดข้อมูลแบบ read-only เท่านั้น");
-  }
-  if (
-    !stationPageSource.includes(
-      "const nextStation = station ?? result.station;",
-    )
-  ) {
-    problems.push("สแกนต้องคงสถานีที่เลือกไว้ และใช้สถานีจาก QR เฉพาะเมื่อยังไม่ได้เลือก");
-  }
-  if (
-    !stationPageSource.includes("trpc.factory.stationQueue.useQuery") ||
-    stationPageSource.includes("trpc.production.kanban.useQuery") ||
-    !stationPageSource.includes("const permissionStale = meQuery.isError && Boolean(me)") ||
-    !stationPageSource.includes("!permissionStale && permAllows") ||
-    !stationPageSource.includes("canManageProduction &&")
-  ) {
-    problems.push("คิว Station ต้องเป็น no-money DTO และทุก action ต้องเริ่มจากสิทธิ์ผลิต");
-  }
-  if (
-    !stationPageSource.includes("<ProductionDetailScreen") ||
-    !stationPageSource.includes('surface="station"') ||
-    !stationPageSource.includes("station={station}") ||
-    !stationPageSource.includes('<PrintRunsScreen surface="station"') ||
-    !stationOrderSource.includes("<OrderQcSection") ||
-    !stationOrderSource.includes("showShippingCost={false}") ||
-    !stationOrderSource.includes("trpc.factory.markReadyToShip.useMutation") ||
-    stationOrderSource.includes("trpc.order.updateStatus.useMutation")
-  ) {
-    problems.push("ใบผลิต/รอบ DTF/QC/แพ็กต้องใช้ controller จริงร่วมกับ ERP และไม่มีเงิน");
-  }
-  if (
-    !stationPageSource.includes("<StationCurrentLayout") ||
-    !stationPageSource.includes(
-      "selection={{ productionId, orderId, stepId: selectedStepId }}",
-    ) ||
-    !stationPageSource.includes("showBlocked: true") ||
-    !stationPageSource.includes("renderScanPanel(true)") ||
-    !stationPageSource.includes("renderScanPanel(false)") ||
-    !stationPageSource.includes('variant={compact ? "outline" : "default"}') ||
-    !stationCurrentLayoutSource.includes('data-station-region="current"') ||
-    !stationCurrentLayoutSource.includes("data-station-queue-rail") ||
-    !stationQueueSource.includes("groupStationQueueItems") ||
-    !stationQueueSource.includes('status: "active" | "ready" | "blocked"') ||
-    !stationQueueSource.includes("[...item.waitingOn, item.note]") ||
-    !productionDetailSource.includes("lg:min-h-[calc(100dvh-8rem)]")
-  ) {
-    problems.push("Station ต้องให้งานปัจจุบันนำ ตัดงานซ้ำออกจาก rail และแยก ready/blocked จากเหตุจริง");
-  }
-  if (
-    !stationPageSource.includes('canCountQc={canManageProduction}') ||
-    !stationPageSource.includes('canCreateDelivery={canCreateDelivery}') ||
-    !stationPageSource.includes('canAdvancePacking={canAdvancePacking}') ||
-    !stationOrderSource.includes(
-      'canCount={canCountQc && station === "qc" && !contextStale}',
-    ) ||
-    !stationOrderSource.includes('canUseStation={station === "final-pack"}') ||
-    !stationOrderSource.includes("เปิดสถานี QC ก่อน") ||
-    !stationOrderSource.includes("เปิดสถานีแพ็กสุดท้ายก่อน") ||
-    !stationPageSource.includes('aria-live="polite"') ||
-    !stationPageSource.includes("productionChoiceSummary") ||
-    !stationPageSource.includes("setMultiple(null)") ||
-    !productionDetailSource.includes("factoryStationKeyForStep(step.stepType) === station") ||
-    !productionDetailSource.includes("stationBlockMessage") ||
-    !productionDetailSource.includes('order?.internalStatus === "PRODUCING"') ||
-    !productionDetailSource.includes("trpc.production.reportStationProblem") ||
-    !productionRouterSource.includes("reportStationProblem: protectedProcedure") ||
-    !productionRouterSource.includes("factoryStationKeyForStep(existing.stepType)") ||
-    !productionRouterSource.includes('source: "STATION"') ||
-    !productionRouterSource.includes('operation: "REPORT_PROBLEM"')
-  ) {
-    problems.push("action Station ต้องตรงสถานี/สถานะและตัวเลือกหลายใบต้องแยกกันชัด");
-  }
-  if (
-    !stationOrderSource.includes('["ON_HOLD", "CANCELLED"]') ||
-    !stationOrderSource.includes("ห้ามเริ่ม เบิก ปิดขั้น หรือแพ็กต่อ") ||
-    !productionRouterSource.includes('liveOrder.internalStatus !== "PRODUCING"') ||
-    !garmentServiceSource.includes('liveOrder.internalStatus !== "PRODUCING"')
-  ) {
-    problems.push("งานพัก/ยกเลิกต้องอ่านได้แต่เขียน step หรือเบิกเสื้อต่อไม่ได้");
-  }
-  if (
-    !stepQtySource.includes("validateStepQtyInput(value, remaining)") ||
-    !stepQtySource.includes("aria-invalid={validation.error !== null || undefined}") ||
-    !productionRouterSource.includes("nextQtyDone > nextQtyTotal") ||
-    !qcSource.includes("qtyGoodOverLimit") ||
-    !qcSource.includes("ของดีสะสมครบยอด — งานจะเข้าคิวแพ็ก") ||
-    !qcSource.includes("[idempotencyKey, setIdempotencyKey]") ||
-    !qcSource.includes("setIdempotencyKey(crypto.randomUUID())") ||
-    !qcSource.includes("idempotencyKey,")
-  ) {
-    problems.push("จำนวนผลิต/QC เกินต้องถูกปฏิเสธ คำอธิบายต้องตรง server และ QC retry ต้องใช้ key เดิมเฉพาะรอบนั้น");
-  }
-  if (
-    !stationOrderSource.includes("StationQcReference") ||
-    !stationOrderSource.includes("<StationGarmentPreview") ||
-    !stationOrderSource.includes("BLIND SHIP — ห้ามใส่เอกสารหรือชื่อ Anajak ในกล่อง") ||
-    !factoryRouterSource.includes("approvedDesign: row.designs[0] ?? null") ||
-    !factoryRouterSource.includes("const workGroups = row.items.map") ||
-    !factoryRouterSource.includes("workGroups,") ||
-    !stationGarmentPreviewSource.includes('data-station-approved-reference=""') ||
-    // เดิมด่านนี้ล็อกทั้งประโยค "ใช้เป็นไฟล์อ้างอิงเท่านั้น ห้ามวางตำแหน่งจากภาพนี้" ซึ่งครึ่งแรก
-    // ผูกกับข้อจำกัดที่หมดไปแล้ว (2026-08-22: ม็อกอัพระบุตำแหน่งต่อรูปได้ ระบบไม่ได้เดาอีกต่อไป)
-    // สิ่งที่ต้องกันไม่ให้หลุดคือคำสั่ง "ห้ามวางตำแหน่งจากภาพนี้" — ช่างต้องยึดตัวเลขในใบงาน
-    !stationGarmentPreviewSource.includes("ห้ามวางตำแหน่งจากภาพนี้") ||
-    !stationGarmentPreviewSource.includes("แผนภาพบอกด้านเท่านั้น · ไม่ระบุตำแหน่งย่อย") ||
-    !stationGarmentPreviewSource.includes("รูปลายแยกในใบงาน · ไม่ใช่ภาพวางบนเสื้อ") ||
-    !stationGarmentPreviewSource.includes("ห้ามเดาจุดวาง") ||
-    !stationGarmentPreviewSource.includes("data-station-work-group") ||
-    !stationGarmentPreviewSource.includes("data-station-no-shirt-diagram")
-  ) {
-    problems.push("โต๊ะ QC ต้องเห็นแบบอนุมัติ/ตำแหน่งอย่างซื่อสัตย์ และโต๊ะแพ็กต้องคงคำเตือน blind ship");
-  }
-  if (
-    !factoryRouterSource.includes("stationOrderSelect") ||
-    /totalAmount|shippingCost|estimatedCost/.test(
-      factoryRouterSource.slice(
-        factoryRouterSource.indexOf("const stationOrderSelect"),
-        factoryRouterSource.indexOf("const scannedProductionSelect"),
-      ),
-    ) ||
-    !stationOrderSource.includes("nonReturnedDeliveryCount") ||
-    !orderRouterSource.includes("assertOrderPackingReadyToShip") ||
-    !productionRouterSource.includes("const updateStepResultSelect") ||
-    !deliveryDialogSource.includes("? { shippingCost: parseFloat(shippingCost) || 0 }") ||
-    !deliveryDialogSource.includes(": {}")
-  ) {
-    problems.push("station payload ต้องไม่มีเงิน และพร้อมส่งต้องมีหลักฐานแพ็กฝั่ง server");
-  }
-  if (
-    !stationShellSource.includes("min-h-11") ||
-    !stationPageSource.includes("canManageProduction") ||
-    !stationPageSource.includes("canCreateDelivery") ||
-    !stationPageSource.includes("canAdvancePacking") ||
-    !stationOrderSource.includes(
-      "const canWritePack = canUseStation && !writeBlocked && !packStale;",
-    ) ||
-    !stationOrderSource.includes("disabled={!canWritePack || !canCreateDelivery}") ||
-    !stationOrderSource.includes("disabled={!canWritePack || !canAdvancePacking || !complete")
-  ) {
-    problems.push("จอทัชและ read-only ต้องคง target 44px พร้อม fail-closed ทุก action");
-  }
-  if (
-    !factoryRouterSource.includes('live.internalStatus !== "PACKING"') ||
-    !factoryRouterSource.includes("factoryStationKeyForOrderStatus(row.internalStatus)") ||
-    !packingReadinessSource.includes("packingLineKey(line.description") ||
-    !packingReadinessSource.includes("packingLineKey(product.description")
-  ) {
-    problems.push("สแกนหลังผลิตและด่านแพ็กต้องใช้สถานะสดพร้อมแยกสินค้า/ไซส์/สี");
-  }
-  if (
-    !jobTicketSource.includes("productionWorkflowSteps(") ||
-    !productionSummarySource.includes("productionWorkflowSteps(") ||
-    !factoryBoardSource.includes('stepType: { not: "PACKAGING" }') ||
-    !ownerPulseSource.includes('stepType: { not: "PACKAGING" }')
-  ) {
-    problems.push("PACKAGING รุ่นเก่าต้องไม่กลับมาเป็นคำสั่งผลิตก่อน QC บนทุกผิวงาน");
-  }
-
-  const { StationQueueView } = require(
-    "../src/components/factory/station-queue-view",
-  );
-  const { Shirt } = require("lucide-react");
-  const now = "2099-08-16T00:00:00.000Z";
-  const queueHtml = renderToStaticMarkup(
-    React.createElement(StationQueueView, {
-      stationLabel: "เตรียมเสื้อ",
-      stationDescription: "fixture",
-      icon: Shirt,
-      onOpen: () => {},
-      items: [
-        {
-          key: "active",
-          orderId: "order-active",
-          productionId: "production-active",
-          orderNumber: "ORD-STATION-ACTIVE",
-          title: "กำลังทำ",
-          customerName: "ลูกค้า A",
-          deadline: now,
-          priority: "NORMAL",
-          stepLabel: "เบิกเสื้อ",
-          status: "active",
-          qtyDone: 10,
-          qtyTotal: 20,
-          overdue: false,
-          waitingOn: [],
-          note: null,
-        },
-        {
-          key: "ready",
-          orderId: "order-ready",
-          productionId: "production-ready",
-          orderNumber: "ORD-STATION-READY",
-          title: "พร้อมทำ",
-          customerName: "ลูกค้า B",
-          deadline: now,
-          priority: "NORMAL",
-          stepLabel: "เบิกเสื้อ",
-          status: "ready",
-          qtyDone: 0,
-          qtyTotal: 20,
-          overdue: false,
-          waitingOn: [],
-          note: null,
-        },
-        {
-          key: "blocked",
-          orderId: "order-blocked",
-          productionId: "production-blocked",
-          orderNumber: "ORD-STATION-BLOCKED",
-          title: "ติดปัญหา",
-          customerName: "ลูกค้า C",
-          deadline: now,
-          priority: "NORMAL",
-          stepLabel: "รีดร้อน",
-          status: "blocked",
-          qtyDone: 0,
-          qtyTotal: 20,
-          overdue: false,
-          waitingOn: ["รอเสื้อจากสถานีเตรียมเสื้อ"],
-          note: null,
-        },
-      ],
-    }),
-  );
-  if (
-    queueHtml.indexOf("กำลังทำ") < 0 ||
-    queueHtml.indexOf("คิวพร้อมทำ") < queueHtml.indexOf("กำลังทำ") ||
-    queueHtml.indexOf("ORD-STATION-ACTIVE") > queueHtml.indexOf("ORD-STATION-READY") ||
-    queueHtml.indexOf("งานติดปัญหา") < queueHtml.indexOf("คิวพร้อมทำ") ||
-    !queueHtml.includes("รอเสื้อจากสถานีเตรียมเสื้อ")
-  ) {
-    problems.push("DOM คิวสถานีต้องเรียงกำลังทำ → พร้อม → blocked และแสดงเหตุจริง");
-  }
-
-  if (problems.length) {
-    failed++;
-    console.log("❌ Station Mode หลุด current/rail/scan/permission/ลำดับงาน");
-    problems.forEach((problem) => console.log(`   ${problem}`));
-  } else {
-    console.log("✅ Station Mode ไม่มี sidebar/เงิน และแยก current/ready/blocked จากข้อมูลจริง");
   }
 }
 

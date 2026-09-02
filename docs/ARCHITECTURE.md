@@ -12,7 +12,7 @@ src/app/            หน้าจอ (Next.js App Router · Turbopack)
   (public)/         หน้าลูกค้า/ร้านนอกถือ token ไม่ต้อง login: approve/design · status · upload · quote · job
   (print)/print/    เอกสาร A4 light-only: invoice · quotation · billing-note · job-ticket · packing-list
   (v2)/v2/*         compatibility redirect ไป URL หลัก (คง query)
-  factory/          จอโรงงาน: /factory (TV อ่านอย่างเดียว) · /factory/station (พนักงานลงมือ)
+  factory/          จอโรงงาน: /factory (TV อ่านอย่างเดียว) · จอสถานี /factory/station ถอดออก 2026-09-02 รอออกแบบใหม่ (ROADMAP §A2)
   proto/            หน้าลองเทียบทางเลือก UI ให้เบสเคาะ — ทะเบียน proto/_registry.ts (skill /proto)
   api/trpc/         endpoint เดียวของ tRPC
   api/files/        อ่านไฟล์ private bucket ผ่าน signed URL (เช็ค User + isActive)

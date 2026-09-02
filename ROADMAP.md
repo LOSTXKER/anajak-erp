@@ -21,9 +21,14 @@
 - [ ] รอเบสตั้งโจทย์ใหม่ · **ห้ามยึดกับ 20+ แบบที่ลบไป** (ย้อนดูได้ที่ commit `ab7d4f8`–`19aeadb` แต่อย่าเสนอซ้ำ)
 - [ ] ได้โจทย์ → หน้าลอง `/proto` 2-4 ทาง → เบสเลือก → ลงของจริง (presentation เท่านั้น)
 
+### A2. จอสถานี `/factory/station` — ถอดออกแล้ว เริ่มใหม่จากศูนย์ (เบสสั่ง 2026-09-02)
+- [x] ถอด route + UI ทั้งชุด (legacy + V2) + ด่าน verify ของจอเดิม (branch `remove/factory-station-2026-09-02`) · ทางเข้าจากเมนูข้าง/เมนูผลิต/My Tasks/ใบผลิต/แจ้งเตือน ชี้ไปใบผลิต `/production/[id]` แทน · จอโรงงาน `/factory` (TV) ยังอยู่
+- [ ] รอเบสตั้งโจทย์จอสถานีใหม่ → หน้าลอง `/proto` 2-4 ทาง → เคาะ → ลงของจริง
+- เก็บไว้ให้จอใหม่ต่อ (ยังไม่ลบ): server `factory.station*` / `manufacturing.station*` + read model · กติกาใน `docs/DESIGN.md` §Station work center · โหมด `surface="station"` ที่ฝังในหน้าใบผลิต/รอบพิมพ์ (ไม่มีใครเรียกแล้ว — ถอดตอนจอใหม่เคาะ) · `station-garment-preview` ยังใช้ในการ์ดลายของใบผลิต
+
 ### B. Cutover Production V2 (PV2.8 / P5.6) — เสี่ยงสูง ทำเป็นขั้น เบสอนุมัติทุกขั้น
 > โค้ด + migration + seed สูตรมาตรฐาน + หน้าตั้งค่า `/settings/routings` ครบแล้ว (`SPEC.md` §Production V2) · ของจริงบน Vercel ยังเป็น **legacy** (`PRODUCTION_V2_ENABLED=0`) · ฐาน demo (`npm run dev:demo`) เปิด V2 ไว้ซ้อม · ฐานจริงยังไม่ seed routing/work center
-- [ ] B1 เบสซ้อมบนฐาน demo: เปิดใบจากสูตรมาตรฐาน → กดทีละขั้นใน `/factory/station` (รวมส่งร้านนอก · QC fail/rework · แพ็กแยกไซซ์) → บอกว่าอะไรไม่ตรงหน้างาน
+- [ ] B1 เบสซ้อมบนฐาน demo: เปิดใบจากสูตรมาตรฐาน → กดทีละขั้นในจอสถานี (**รอจอสถานีใหม่ §A2** — ของเดิมถอดแล้ว 09-02) (รวมส่งร้านนอก · QC fail/rework · แพ็กแยกไซซ์) → บอกว่าอะไรไม่ตรงหน้างาน
 - [ ] B2 แก้ตามที่ซ้อมเจอ (เขียนใบงานย่อยใต้ข้อนี้)
 - [ ] B3 seed routing + work center ลงฐานจริง (additive) → backup → เปิด flag บน production → ลบ legacy UI/writer เก่าตามสัญญา rollout window
 - [ ] B4 หนี้ที่ V2 ยังขาด (Phase 2 parity — ปิดหลัง cutover): QC rework target work center · DTF partial/waste/reprint event · owner/plan/SLA/audit actor read model · supervisor material recovery · WIP ownership ของ QC/final pack

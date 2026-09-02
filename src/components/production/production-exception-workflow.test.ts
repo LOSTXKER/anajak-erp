@@ -17,10 +17,6 @@ const garmentSource = readFileSync(
   "src/components/production/garment-pick-card.tsx",
   "utf8",
 );
-const stationModeSource = readFileSync(
-  "src/components/factory/station-mode-screen.tsx",
-  "utf8",
-);
 
 describe("production exception UI contract", () => {
   it("แยก manager commands จาก operation update และไม่ให้ manager กรอก status/qty/QC", () => {
@@ -78,6 +74,5 @@ describe("production exception UI contract", () => {
     expect(garmentSource).toContain('data.stockMode === "demo-local"');
     expect(garmentSource).toContain("สต๊อกทดสอบในเครื่อง");
     expect(garmentSource).toContain("l.available");
-    expect(stationModeSource).toContain("currentProductionProblemReason(spot.step)");
   });
 });

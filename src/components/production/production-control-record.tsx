@@ -59,15 +59,6 @@ function StatusPill({ tone, children }: { tone: ProductionControlTone; children:
   );
 }
 
-function stationHref(productionId: string, target: { station: string | null } | null) {
-  if (!target?.station) return null;
-  const params = new URLSearchParams({
-    station: target.station,
-    productionId,
-  });
-  return `/factory/station?${params.toString()}`;
-}
-
 function completedHandoff(status: string) {
   switch (status) {
     case "QUALITY_CHECK":
@@ -171,7 +162,6 @@ export function ProductionControlRecord({
   const latestMockup = order.designs[0] ?? null;
   const mockupCount = latestMockup ? mockupImageCount(latestMockup) : 0;
   const attentionStep = attention?.step ?? null;
-  const stationHandoffHref = stationHref(production.id, attention);
   const missingGarmentLines = garment?.lines.filter(
     (line) => line.issued - line.returned < line.needed,
   ) ?? [];
@@ -489,29 +479,22 @@ export function ProductionControlRecord({
                   </div>
                 </dl>
 
-                {(canSupervise && selectedStep.status !== "COMPLETED") || (selectedHasAttention && stationHandoffHref) ? (
+                {canSupervise && selectedStep.status !== "COMPLETED" ? (
                   <div className="mt-5 flex flex-col items-start gap-3 border-t border-divider pt-4 sm:flex-row sm:flex-wrap sm:items-center">
-                    {canSupervise && selectedStep.status !== "COMPLETED" ? (
-                      <Button
-                        type="button"
-                        variant={selectedStep.status === "FAILED" ? "destructive" : "outline"}
-                        className="w-full sm:w-auto"
-                        disabled={writeDataStale}
-                        onClick={() => onManageStep(selectedStep)}
-                      >
-                        <UserRound />
-                        {selectedStep.status === "FAILED"
-                          ? "จัดการปัญหา"
-                          : selectedStep.assignedTo
-                            ? "เปลี่ยนผู้รับผิดชอบ"
-                            : "มอบหมายผู้รับผิดชอบ"}
-                      </Button>
-                    ) : null}
-                    {selectedHasAttention && stationHandoffHref ? (
-                      <Button variant="outline" asChild className="w-full sm:w-auto">
-                        <Link href={stationHandoffHref}>เปิดบริบทสถานี <ArrowRight /></Link>
-                      </Button>
-                    ) : null}
+                    <Button
+                      type="button"
+                      variant={selectedStep.status === "FAILED" ? "destructive" : "outline"}
+                      className="w-full sm:w-auto"
+                      disabled={writeDataStale}
+                      onClick={() => onManageStep(selectedStep)}
+                    >
+                      <UserRound />
+                      {selectedStep.status === "FAILED"
+                        ? "จัดการปัญหา"
+                        : selectedStep.assignedTo
+                          ? "เปลี่ยนผู้รับผิดชอบ"
+                          : "มอบหมายผู้รับผิดชอบ"}
+                    </Button>
                   </div>
                 ) : null}
               </div>

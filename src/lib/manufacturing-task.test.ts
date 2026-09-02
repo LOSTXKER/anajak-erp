@@ -19,10 +19,8 @@ describe("manufacturingTaskHref", () => {
     );
   });
 
-  it("ส่งพนักงาน QC เข้า Station จาก Work Center V2 ไม่ใช่ CUSTOM legacy", () => {
-    expect(manufacturingTaskHref(base)).toBe(
-      "/factory/station?station=FINAL_QC&jobId=op-qc",
-    );
+  it("พนักงานเข้าใบผลิตเดียวกับหัวหน้า — จอสถานีถูกถอดออก 2026-09-02 รอออกแบบใหม่", () => {
+    expect(manufacturingTaskHref(base)).toBe("/production/wo-1");
   });
 
   it("ส่งผู้ประสานงาน Outsource ไป worklist ใน Production", () => {
@@ -36,7 +34,18 @@ describe("manufacturingTaskHref", () => {
     ).toBe("/production?view=outsource&q=ORD-001");
   });
 
-  it("คงเส้นทาง Station เดิมให้ขั้น legacy ที่มี mapping", () => {
+  it("หัวหน้าที่ดูงานร้านนอกยังเข้า Control Record ไม่ใช่ worklist", () => {
+    expect(
+      manufacturingTaskHref({
+        ...base,
+        canSupervise: true,
+        executionMode: "OUTSOURCE",
+        workCenterCode: "OUTSOURCE",
+      }),
+    ).toBe("/production/wo-1");
+  });
+
+  it("ขั้น legacy ที่เคยมี mapping สถานี ก็เข้าใบผลิตเช่นกัน", () => {
     expect(
       manufacturingTaskHref({
         ...base,
@@ -46,8 +55,6 @@ describe("manufacturingTaskHref", () => {
         stepType: "HEAT_PRESS",
         stepId: "legacy-press",
       }),
-    ).toBe(
-      "/factory/station?station=heat-press&productionId=wo-1&focusStepId=legacy-press",
-    );
+    ).toBe("/production/wo-1");
   });
 });

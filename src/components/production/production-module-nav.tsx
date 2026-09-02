@@ -11,7 +11,6 @@ import {
   LayoutList,
   MonitorUp,
   Printer,
-  ScanLine,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CONTROL_MIN_H } from "@/components/ui/control-size";
@@ -30,8 +29,8 @@ const MODULE_ITEMS = [
   { href: "/outsource", label: "งานร้านนอก", icon: Handshake },
 ] as const;
 
+// จอสถานี (/factory/station) ถูกถอดออก 2026-09-02 — รอออกแบบใหม่ก่อนค่อยกลับมาใส่ทางเข้า
 const WORKSPACE_ITEMS = [
-  { href: "/factory/station", label: "โหมดสถานี", icon: ScanLine },
   { href: "/factory", label: "จอโรงงาน", icon: MonitorUp },
 ] as const;
 

@@ -280,9 +280,9 @@ Production V2 ใช้ `manufacturing` read/command contract เป็นแห
 |---|---|
 | `/production` | หัวหน้า/ออฟฟิศค้นทุกใบผลิต, filter/sort/paginate และเปิดมุม Work Center, Exception, Outsource ภายในหน้าเดียว |
 | `/production/[id]` | Control Record สำหรับ identity/due risk/routing snapshot/operation ledger/readiness/quantity/exception/assignment/resequence/audit; ไม่มี execution command ของพนักงาน |
-| `/factory/station` | พนักงานเลือก Work Center แล้วทำ current job, ดู approved mockup+quantity, ใช้ primary action เดียว, แจ้งปัญหา และไป same-order handoff |
+| `/factory/station` | **ถอดออก 2026-09-02 รอออกแบบใหม่** (`ROADMAP.md` §A2) — กติกาที่จอใหม่ต้องรักษาอยู่ §Station work center และ flow ด้านล่าง |
 | `/factory` | TV อ่านอย่างเดียว แสดง WIP/load/late/exception ของ Work Center โดยไม่มี link, button หรือ mutation |
-| Order / My Tasks | Order Production tab เหลือ summary+deep link; My Tasks route ตาม role ไป Control Record หรือ exact Station job |
+| Order / My Tasks | Order Production tab เหลือ summary+deep link; My Tasks ทุกบทบาทเข้า Control Record จนกว่าจอสถานีใหม่จะมา (เดิม route ตาม role ไป exact Station job) |
 | route legacy | print runs, films และ outsource redirect เข้า `/production`; component เก่า mount ได้เฉพาะเมื่อ flag ปิดใน rollback window |
 
 ### Data, command และ state contract
@@ -308,7 +308,7 @@ Production V2 ใช้ `manufacturing` read/command contract เป็นแห
 ## Legacy factory rollback contract (ใช้เฉพาะเมื่อปิด `PRODUCTION_V2_ENABLED`)
 
 > งานโรงงานเป็นโมดูลเดียวที่ใช้ record, permission, readiness และ transition ฝั่ง server ชุดเดียวกัน แต่แยกคำถามตามจอ:
-> หัวหน้าตัดสินลำดับที่ `/production`, พนักงานลงมือที่ `/factory/station` และทั้งโรงงานดู pulse แบบอ่านอย่างเดียวที่ `/factory` ·
+> หัวหน้าตัดสินลำดับที่ `/production`, พนักงานลงมือที่จอสถานี (ถอดออก 2026-09-02 รอออกแบบใหม่ — ระหว่างนี้ผ่านใบผลิต) และทั้งโรงงานดู pulse แบบอ่านอย่างเดียวที่ `/factory` ·
 > presentation ห้ามสร้าง controller, lifecycle หรือข้อมูลตัวอย่างอีกชุด
 
 ### Route, shell และ local navigation contract
@@ -320,21 +320,21 @@ Production V2 ใช้ `manufacturing` read/command contract เป็นแห
 | `/production/print-runs` | shared dashboard `AppShell` | workspace รอบ DTF ตามลำดับ **กำลังพิมพ์ → ตัดแยก/ติดป้าย → คิวพิมพ์ → ประวัติ 7 วัน** |
 | `/production/films` | shared dashboard `AppShell` | คลังฟิล์มแบบ compact: ลาย/ลูกค้า, ต้นทาง, คงเหลือ และการหยิบใช้ |
 | `/outsource` | shared dashboard `AppShell` | คิวส่งร้าน/รับกลับ/**ตรวจรับจากร้าน**/ประวัติ; การตรวจรับนี้มาก่อน QC ขั้นสุดท้ายของออเดอร์ |
-| `/factory/station` | full-screen Dark; ไม่มี ERP sidebar/top bar | เลือกหนึ่งใน 5 สถานี แล้วลงมือเฉพาะ action ของสถานีและสถานะปัจจุบัน |
+| `/factory/station` | — | **ถอดออก 2026-09-02** route ไม่มีแล้ว รอออกแบบใหม่ (เดิม: full-screen Dark ไม่มี sidebar · เลือกหนึ่งใน 5 สถานีแล้วลงมือเฉพาะ action ของสถานี) |
 | `/factory` | full-screen Dark TV | pulse 5 ด่านแบบ read-only หนึ่ง viewport; ไม่มี action หรือ mutation path |
 
-- สี่หน้ารวม/พื้นที่หัวหน้าใน `AppShell` ใช้ `ProductionModuleNav` ชุดเดียวและลำดับเดียว: **คิวผลิต / รอบพิมพ์ DTF / คลังฟิล์ม / งานร้านนอก**; ทางเข้าเสริม **โหมดสถานี / จอโรงงาน** อยู่ท้ายแถบและไม่สร้าง sidebar ฝ่ายผลิตอีกชุด · control record `/production/[id]` มี breadcrumb กลับคิวและ handoff ไป work center ที่เกี่ยวข้อง แต่ไม่เพิ่ม local nav ซ้ำ
+- สี่หน้ารวม/พื้นที่หัวหน้าใน `AppShell` ใช้ `ProductionModuleNav` ชุดเดียวและลำดับเดียว: **คิวผลิต / รอบพิมพ์ DTF / คลังฟิล์ม / งานร้านนอก**; ทางเข้าเสริม **จอโรงงาน** อยู่ท้ายแถบและไม่สร้าง sidebar ฝ่ายผลิตอีกชุด (โหมดสถานีถอดออก 2026-09-02 — จอใหม่มาค่อยใส่ทางเข้าคืน) · control record `/production/[id]` มี breadcrumb กลับคิวและ handoff ไป work center ที่เกี่ยวข้อง แต่ไม่เพิ่ม local nav ซ้ำ
 - `/production` ใช้ `production.kanban` กับ `user.me`; filter `ทั้งหมด`, `ต้องจัดการ`, `กำลังผลิต`, `รอ QC`, `แพ็ก / พร้อมส่ง`, จำนวน, search และ sort derive จาก board ชุดเดียว โดยเก็บ `view`, `q`, `sort` ใน URL
 - `/production` มีสรุปวันนี้ 3 ตัวเลขเหนือชิปตัวกรอง: **เลยกำหนด / ครบกำหนดวันนี้ / กำลังลงมือ** — นับจาก `board.jobs` ทั้งกระดาน **ห้ามนับจากรายการที่กรองแล้ว** ไม่งั้นตัวเลขที่ใช้ตัดสินใจขยับใต้มือทุกครั้งที่เปลี่ยนมุมมอง · ห้ามเพิ่มยอดเงินหรือสถิติรายเดือนในแถบนี้ (หน้านี้ตัดสินลำดับงานวันนี้ ไม่ใช่รายงานผู้บริหาร)
 - ทุกแถวคิว (ทั้งตาราง desktop และการ์ดมือถือ) นำหน้าด้วยรูปม็อกอัพผ่าน `MockupThumbnail` + `orderMockupCover` — หัวหน้าจำงานจากภาพเร็วกว่าเลขออเดอร์ · ไม่มีม็อกอัพอนุมัติให้ถอยไปรูปลาย/คลังลาย ไม่มีเลยจึงเป็นกรอบว่าง
 - worklist เรียง exception ก่อนและไม่ทำให้ออเดอร์ผสมซ้ำหลายแถว; แถวเปิดปลายทางจริงตามสถานะ: ใบผลิต, หน้าออเดอร์แท็บผลิต/QC, หน้า delivery หรือ dialog เปิดใบผลิตตามสิทธิ์
-- `/production/[id]` ฝั่ง ERP เป็น **exception control record**: หัวใบกระชับแสดงสถานะ จำนวน ความคืบหน้า และ deadline; attention แสดงข้อยกเว้นจริงเพียงเรื่องนำ; operation ledger แสดงทุก lane พร้อม actual/owner/blocker; readiness/handoff/activity เป็นข้อมูลรองเพื่อให้หัวหน้าตัดสินใจโดยไม่ทำ routine operation แทนสถานี · ฟิลด์ที่ schema/DTO ยังไม่มี เช่น production owner, per-operation plan/SLA และ audit actor/source ห้ามสร้างข้อมูลตัวอย่างหรือแสดงกรอบ data-gap ของทีมพัฒนาบน default surface: ซ่อนเมื่อไม่ช่วยตัดสินใจ และบอกขอบเขตหลักฐานด้วยภาษาผู้ใช้แบบข้อความรองเมื่อจำเป็น · งานร้านนอกที่ยัง active และเลย `expectedBackAt` ต้องยกเป็น warning attention ก่อน `IN_PROGRESS` ทั่วไป · ปุ่มบน default surface จำกัดที่มอบหมาย/แก้ exception และเปิดบริบท Station; operation ที่ยังไม่มี parity เช่น QC rework ที่ไม่มี target work center หรือ DTF deviation ที่ยังไม่มี event model ต้องเป็น read-only/หนี้ Phase ถัดไป ไม่คืน routine fallback บน ERP · compatibility inventory deep link คงได้เฉพาะ supervisor recovery ที่มี audit และไม่อยู่บน default control surface
-- `/factory/station` เป็น **current-job-first execution surface**: งานที่เปิดอยู่เป็นผืนหลักพร้อม operation/จำนวน/spec และ one primary action; rail ขวาที่ 1024px แยกกำลังทำอื่น/พร้อมถัดไป/ติดปัญหาและตัด record ปัจจุบันออก; scan อยู่ใน railเมื่อมี current และอยู่ใต้ queueเมื่อยังไม่ได้เปิดงาน · `GARMENT_PICK` เดินผ่านบริการเบิก/คืน Stock, `GARMENT_RECEIVE` เดินผ่าน Goods Receipt evidence, DTF เดินผ่าน Print Run, QC/Pack ใช้ controller เฉพาะ และ `HEAT_PRESS` คง readiness gate · `แจ้งปัญหา` เป็น semantic command ที่ server derive work center/source จาก step, lock step→production→order, ตรวจ PRODUCING/ownership, บันทึก FAILED+เหตุผล+audit+notification ใน transaction เดียว และไม่รับ station/source จาก client
+- `/production/[id]` ฝั่ง ERP เป็น **exception control record**: หัวใบกระชับแสดงสถานะ จำนวน ความคืบหน้า และ deadline; attention แสดงข้อยกเว้นจริงเพียงเรื่องนำ; operation ledger แสดงทุก lane พร้อม actual/owner/blocker; readiness/handoff/activity เป็นข้อมูลรองเพื่อให้หัวหน้าตัดสินใจโดยไม่ทำ routine operation แทนสถานี · ฟิลด์ที่ schema/DTO ยังไม่มี เช่น production owner, per-operation plan/SLA และ audit actor/source ห้ามสร้างข้อมูลตัวอย่างหรือแสดงกรอบ data-gap ของทีมพัฒนาบน default surface: ซ่อนเมื่อไม่ช่วยตัดสินใจ และบอกขอบเขตหลักฐานด้วยภาษาผู้ใช้แบบข้อความรองเมื่อจำเป็น · งานร้านนอกที่ยัง active และเลย `expectedBackAt` ต้องยกเป็น warning attention ก่อน `IN_PROGRESS` ทั่วไป · ปุ่มบน default surface จำกัดที่มอบหมาย/แก้ exception (ปุ่มเปิดบริบท Station ถอดออกพร้อมจอสถานี 2026-09-02); operation ที่ยังไม่มี parity เช่น QC rework ที่ไม่มี target work center หรือ DTF deviation ที่ยังไม่มี event model ต้องเป็น read-only/หนี้ Phase ถัดไป ไม่คืน routine fallback บน ERP · compatibility inventory deep link คงได้เฉพาะ supervisor recovery ที่มี audit และไม่อยู่บน default control surface
+- (กติกาของจอสถานีเดิม — จอถอดออก 2026-09-02 · เก็บไว้ให้จอใหม่ยึด) `/factory/station` เป็น **current-job-first execution surface**: งานที่เปิดอยู่เป็นผืนหลักพร้อม operation/จำนวน/spec และ one primary action; rail ขวาที่ 1024px แยกกำลังทำอื่น/พร้อมถัดไป/ติดปัญหาและตัด record ปัจจุบันออก; scan อยู่ใน railเมื่อมี current และอยู่ใต้ queueเมื่อยังไม่ได้เปิดงาน · `GARMENT_PICK` เดินผ่านบริการเบิก/คืน Stock, `GARMENT_RECEIVE` เดินผ่าน Goods Receipt evidence, DTF เดินผ่าน Print Run, QC/Pack ใช้ controller เฉพาะ และ `HEAT_PRESS` คง readiness gate · `แจ้งปัญหา` เป็น semantic command ที่ server derive work center/source จาก step, lock step→production→order, ตรวจ PRODUCING/ownership, บันทึก FAILED+เหตุผล+audit+notification ใน transaction เดียว และไม่รับ station/source จาก client
 - `/production/print-runs` คงลำดับ DOM ตามงานจริง: พิมพ์ก่อน ตัดแยก+ติดป้าย ถัดมาคิว และประวัติท้ายหน้า; desktop เป็น workspace สองฝั่ง ส่วนจอแคบเรียงตาม DOM เดิม
 - `/production/print-runs` ใช้ Sidebar + `ProductionModuleNav` เป็นลำดับชั้นนำทางอยู่แล้ว จึงไม่วาด breadcrumb ซ้ำเหนือชื่อหน้า
 - `/production/films` เป็น inventory หนาแน่นพอดี ไม่ใช้สถิติ hero; `/outsource` เรียงคิวรับกลับตามกำหนดและเรียก `QC_*` เดิมใน data layer ว่า “ตรวจรับ” ใน UI เพื่อไม่ให้สับสนกับ final QC หลัง production
 
-### Station work center และ flow
+### Station work center และ flow (กติกาที่จอสถานีใหม่ต้องรักษา — จอเดิมถอดออก 2026-09-02)
 
 สถานีมี 5 ค่าแบบล็อก ไม่สร้าง lane ตามข้อมูลหน้างานเอง:
 

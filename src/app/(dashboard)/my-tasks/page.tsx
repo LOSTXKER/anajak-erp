@@ -93,9 +93,7 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
   for (const queue of data.printQueue) {
     items.push({
       key: `step:${queue.stepId}`,
-      href: data.canSupervise
-        ? `/production/${queue.productionId}`
-        : `/factory/station?station=dtf-print&productionId=${encodeURIComponent(queue.productionId)}&focusStepId=${encodeURIComponent(queue.stepId)}`,
+      href: `/production/${queue.productionId}`,
       title: queue.orderNumber,
       description: queue.customerName,
       deadline: queue.dueDate,
@@ -110,9 +108,7 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
   for (const queue of data.pressQueue) {
     items.push({
       key: `step:${queue.stepId}`,
-      href: data.canSupervise
-        ? `/production/${queue.productionId}`
-        : `/factory/station?station=heat-press&productionId=${encodeURIComponent(queue.productionId)}&focusStepId=${encodeURIComponent(queue.stepId)}`,
+      href: `/production/${queue.productionId}`,
       title: queue.orderNumber,
       description: queue.customerName,
       deadline: queue.deadline,
@@ -129,13 +125,9 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
   for (const queue of data.packQueue) {
     items.push({
       key: `step:${queue.stepId}`,
-      href: data.canSupervise
-        ? queue.productionId
-          ? `/production/${queue.productionId}`
-          : `/production?q=${encodeURIComponent(queue.orderNumber)}`
-        : queue.productionId
-          ? `/factory/station?station=final-pack&jobId=${encodeURIComponent(queue.stepId)}`
-          : `/factory/station?station=final-pack&orderId=${encodeURIComponent(queue.orderId)}`,
+      href: queue.productionId
+        ? `/production/${queue.productionId}`
+        : `/production?q=${encodeURIComponent(queue.orderNumber)}`,
       title: queue.orderNumber,
       description: queue.customerName,
       deadline: queue.deadline,

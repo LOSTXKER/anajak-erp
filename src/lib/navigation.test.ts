@@ -30,23 +30,12 @@ describe("navigation registry", () => {
     const dashboard = NAVIGATION_ITEMS.find((item) => item.id === "dashboard")!;
     expect(dashboard.label).toBe("แดชบอร์ด");
     expect(dashboard.aliases).toContain("dashboard");
-
-    const station = NAVIGATION_ITEMS.find((item) => item.id === "station")!;
-    expect(station.label).toBe("โหมดสถานี");
-    expect(station.aliases).toContain("station");
   });
 
   it("กรอง surface และ permission จาก registry เดียว", () => {
     const noPermissions = navigationItemsForSurface("sidebar", []);
     expect(noPermissions.some((item) => item.id === "billing")).toBe(false);
-    expect(noPermissions.some((item) => item.id === "station")).toBe(false);
     expect(noPermissions.some((item) => item.id === "notifications")).toBe(false);
-
-    const supervisor = navigationItemsForSurface("sidebar", ["supervise_operations"]);
-    expect(supervisor.some((item) => item.id === "station")).toBe(false);
-
-    const operator = navigationItemsForSurface("sidebar", ["manage_production"]);
-    expect(operator.some((item) => item.id === "station")).toBe(true);
   });
 
   it("จัด Sidebar เป็นหมวดครบและเรียงงานผลิตตามทางเดินจริง", () => {
@@ -97,6 +86,6 @@ describe("navigation registry", () => {
     const operatorGroups = groupedNavigationItems("sidebar", ["manage_production"]);
     expect(
       operatorGroups.find((group) => group.id === "production")?.items.map((item) => item.id),
-    ).toEqual(["production", "station"]);
+    ).toEqual(["production"]);
   });
 });

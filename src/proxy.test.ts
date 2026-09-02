@@ -47,7 +47,7 @@ describe("Proxy route boundary", () => {
     "/login",
     "/orders?status=CONFIRMED",
     "/production",
-    "/factory/station?station=heat-press",
+    "/factory",
     "/api/trpc/user.me",
     "/api/files/order/example.pdf",
   ])("refreshes the session for %s", (url) => {

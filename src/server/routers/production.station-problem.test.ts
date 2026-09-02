@@ -527,7 +527,7 @@ describe("production.resolveStationProblem", () => {
     { stepType: "DTF_PRINT", station: "dtf-print" },
   ])(
     "หัวหน้า recover ขั้น guarded $stepType จาก FAILED กลับ safe PENDING พร้อม trail เดิม",
-    async ({ stepType, station }) => {
+    async ({ stepType }) => {
       const harness = makeHarness({
         role: "MANAGER",
         userId: "manager-2",
@@ -566,7 +566,7 @@ describe("production.resolveStationProblem", () => {
       expect(harness.tx.notification.create).toHaveBeenCalledOnce();
       expect(harness.tx.notification.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
-          link: `/factory/station?station=${station}&productionId=production-1`,
+          link: "/production/production-1",
         }),
       });
       expectSharedProductionLockOrder(harness.tx.$queryRaw);
@@ -647,7 +647,7 @@ describe("production.assignProductionStep", () => {
         userId: "sales-with-production",
         title: "ได้รับมอบหมายงาน — ORD-2608-0041",
         message: "รีดร้อน",
-        link: "/factory/station?station=heat-press&productionId=production-1",
+        link: "/production/production-1",
         entityType: "PRODUCTION_STEP",
         entityId: "step-1",
       }),

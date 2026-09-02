@@ -102,13 +102,11 @@ export default async function PrintJobTicketPage({
     ? mockupImages(approvedDesign).filter((image) => image.previewUrl)
     : [];
 
-  // Station Mode: QR ใหม่เปิดจอหน้างานโดยตรง แต่ parser ยังรับ QR เก่า /production/<id>
-  // เสมอ · ยังไม่มีใบผลิตให้เปิดบริบทออเดอร์เพื่อบอกตรง ๆ ว่างานอยู่ขั้นไหน
+  // QR เปิดหน้าออเดอร์ตรง ๆ (ป้ายใต้ QR บอกว่า "สแกนเปิดออเดอร์") — จอสถานีที่เคยรับ
+  // orderId แล้วให้เลือกใบผลิตถูกถอดออก 2026-09-02 รอออกแบบใหม่ · จอใหม่มาค่อยชี้กลับ
   // ต้องเป็น URL เต็ม (ตั้ง NEXT_PUBLIC_APP_URL ตอน deploy)
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  // ใบนี้เป็นระดับออเดอร์และอาจมีหลายใบผลิต จึงส่ง orderId ให้ Station Mode เป็นคน
-  // แสดงตัวเลือกทุกใบแทนการหยิบ productions[0] เงียบ ๆ
-  const qrTarget = `${baseUrl}/factory/station?orderId=${order.id}`;
+  const qrTarget = `${baseUrl}/orders/${order.id}`;
   const qrSvg = await QRCode.toString(qrTarget, {
     type: "svg",
     margin: 0,
