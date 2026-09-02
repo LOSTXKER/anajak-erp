@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 
 import { useProtoFlag, useProtoVariant } from "../_kit/use-proto-variant";
 import { ENTRANCES, STRUCTURE } from "./_data";
-import { OPTIONS, Preview, VALUES, type Variant } from "./_preview";
+import { DETAIL_OPTIONS, DETAIL_VALUES, OPTIONS, Preview, VALUES, type DetailMode, type Variant } from "./_preview";
 
 /* กติกา: ปัจจุบันมาก่อน · ทุกทางมีข้อแลก · ต่างกันที่วิธีคิด ไม่ใช่สี */
 
@@ -36,9 +36,9 @@ const COPY: Record<Variant, { name: string; idea: string; summary: string; trade
     name: "B · ตารางแผนทั้งใบ — ขั้นงานเป็นตารางเดียวเหมือนหน้าการผลิต",
     idea: "ไม่มีปุ่มลงมือแล้ว 2 คอลัมน์ไม่จำเป็น — ทุกขั้นเป็นแถว เห็น 7 ขั้นพร้อมกันว่าอยู่สถานีไหน ใครทำ ควรเสร็จเมื่อไร",
     summary:
-      "ตาราง 6 คอลัมน์ (ขั้น · สถานี · คนทำ · ยอด · ควรเสร็จ · ตอนนี้อยู่ไหน) กวาดตาทีเดียวรู้ทั้งใบ ต่อเนื่องกับหน้าการผลิตที่เบสเคาะ (ตาราง ไม่มีปุ่มในแถว) · กดแถว = การ์ดที่ยืนแบบย่อกางใต้ตาราง มีปุ่มวางแผน + ไปทำที่จอสถานี · แท็บอื่นเหมือน D",
+      "ตาราง 6 คอลัมน์ (ขั้น · สถานี · คนทำ · ยอด · ควรเสร็จ · ตอนนี้อยู่ไหน) กวาดตาทีเดียวรู้ทั้งใบ ต่อเนื่องกับหน้าการผลิตที่เบสเคาะ (ตาราง ไม่มีปุ่มในแถว) · กดแถว = รายละเอียดขั้น (ปัญหา · ร้านนอก · การ์ดที่ยืน + ปุ่มวางแผน + ไปทำที่จอสถานี) โผล่ตามสวิตช์ด้านบน — กางใต้แถวที่กด (แนะนำ: ตาไม่ต้องย้าย กดซ้ำเพื่อหุบ) / หน้าต่างเด้ง (ตารางนิ่ง แต่บังหน้า) / แถบใต้ตาราง (แบบแรกที่เบสทักว่าไม่ดี) · แท็บอื่นเหมือน D",
     tradeoff:
-      "รายละเอียดของขั้น (ร้านนอก ตัวเลข หมายเหตุ) ไม่ได้อยู่ข้างตารางแต่อยู่ใต้ตาราง ต้องเลื่อนตาลง · แถวตารางมีเป้ากดเล็กกว่าการ์ด (หน้านี้ใช้บนคอมเท่านั้น จึงรับได้) · บนมือถือตารางเลื่อนแนวนอน",
+      "กางใต้แถว: ตารางยืดลง แถวข้างล่างขยับ (เปิดได้ทีละขั้น) · หน้าต่างเด้ง: ต้องปิดก่อนถึงกดขั้นอื่นได้ และเปิดหน้ามาไม่มีอะไรเลือกไว้ · แถวตารางมีเป้ากดเล็กกว่าการ์ด (หน้านี้ใช้บนคอมเท่านั้น จึงรับได้) · บนมือถือตารางเลื่อนแนวนอน",
   },
 };
 
@@ -61,13 +61,14 @@ const getTrue = () => true;
 const getFalse = () => false;
 
 export default function DeskStationProtoPage() {
-  const [variant, setVariant] = useProtoVariant<Variant>("v", VALUES, "plan");
+  const [variant, setVariant] = useProtoVariant<Variant>("v", VALUES, "table");
+  const [detail, setDetail] = useProtoVariant<DetailMode>("d", DETAIL_VALUES, "row");
   const [boss, toggleBoss] = useProtoFlag("boss", true);
   const { resolvedTheme, setTheme } = useTheme();
   const mounted = useSyncExternalStore(subscribeNever, getTrue, getFalse);
   const isDark = mounted && resolvedTheme === "dark";
   const copy = COPY[variant];
-  const src = `/proto/desk-station/view?v=${variant}&boss=${boss ? "1" : "0"}`;
+  const src = `/proto/desk-station/view?v=${variant}&boss=${boss ? "1" : "0"}&d=${detail}`;
 
   return (
     <main className="min-h-screen bg-surface-muted px-4 py-8 text-strong sm:px-6 lg:px-10">
@@ -131,6 +132,12 @@ export default function DeskStationProtoPage() {
             <Button variant={boss ? "default" : "outline"} size="sm" onClick={toggleBoss} disabled={variant === "now"}>
               <UserRound /> {boss ? "มองเป็นหัวหน้า" : "มองเป็นช่าง"}
             </Button>
+            {variant === "table" ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-medium text-muted">กดแถวแล้วรายละเอียดโผล่ที่:</span>
+                <SegmentedControl options={DETAIL_OPTIONS.map((o) => ({ ...o }))} value={detail} onChange={setDetail} aria-label="กดแถวแล้วรายละเอียดโผล่ที่ไหน" className="min-w-max" />
+              </div>
+            ) : null}
           </div>
           <Button variant="outline" size="icon-sm" aria-label={isDark ? "ดูแบบโหมดสว่าง" : "ดูแบบโหมดมืด"} onClick={() => setTheme(isDark ? "light" : "dark")}>
             {isDark ? <Moon /> : <Sun />}
@@ -172,7 +179,7 @@ export default function DeskStationProtoPage() {
             </span>
           </div>
           <div className={cn("overflow-hidden rounded-2xl bg-bg px-4 py-6 ring-1 ring-inset ring-border sm:px-6 lg:px-8")}>
-            <Preview variant={variant} boss={boss} />
+            <Preview variant={variant} boss={boss} detail={detail} />
           </div>
         </section>
 
