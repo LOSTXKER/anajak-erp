@@ -312,7 +312,7 @@ Production V2 ใช้ `manufacturing` read/command contract เป็นแห
 
 | บ้าน | เจ้าของและสิ่งที่ทำได้ |
 |---|---|
-| `/production` | **ถอดออก 2026-09-02 รอออกแบบใหม่** (`ROADMAP.md` §A3) — เดิม: หัวหน้า/ออฟฟิศค้นทุกใบผลิต, filter/sort/paginate และเปิดมุม Work Center, Exception, Outsource ภายในหน้าเดียว |
+| `/production` | **โต๊ะงานหัวหน้า แบบ A (2026-09-02)**: ตัวเลข 4 ช่องเป็นตัวกรอง (เลยกำหนด · ติดปัญหา · ของร้านนอกครบกำหนด · พร้อมส่ง) · ชิปขั้นงาน · `DataTable` 8 คอลัมน์ กองตามความรีบเป็นหัวกลุ่ม · ไม่มีปุ่มในแถว กดทั้งแถวเปิดใบผลิต · ตัวเลข/ป้ายกำหนดส่ง/ชิปขั้น = ชั้น 1 ตาม §ลำดับความสำคัญทางสายตา |
 | `/production/[id]` | Control Record สำหรับ identity/due risk/routing snapshot/operation ledger/readiness/quantity/exception/assignment/resequence/audit; ไม่มี execution command ของพนักงาน |
 | `/factory/station` | **ถอดออก 2026-09-02 รอออกแบบใหม่** (`ROADMAP.md` §A2) — กติกาที่จอใหม่ต้องรักษาอยู่ §Station work center และ flow ด้านล่าง |
 | `/factory` | TV อ่านอย่างเดียว แสดง WIP/load/late/exception ของ Work Center โดยไม่มี link, button หรือ mutation |
@@ -349,7 +349,7 @@ Production V2 ใช้ `manufacturing` read/command contract เป็นแห
 
 | Route | Shell | หน้าที่ของจอ |
 |---|---|---|
-| `/production` | — | **ถอดออก 2026-09-02** รอออกแบบใหม่ (เดิม: worklist แบบ exception-first หนึ่งออเดอร์ต่อหนึ่งแถว สำหรับตอบว่า “งานไหนต้องจัดการก่อน”) |
+| `/production` | shared dashboard `AppShell` | โต๊ะงานหัวหน้า: ตัวเลขใหญ่ 4 ช่อง → ตาราง 8 คอลัมน์ กองตามความรีบ (ติดปัญหา → ของร้านนอกครบกำหนด → รอเปิดใบ → ลงมือได้ → รอของ → พร้อมส่ง) ตอบว่า “งานไหนต้องจัดการก่อน อยู่ขั้นไหน ของร้านนอกกลับเมื่อไร” |
 | `/production/[id]` | shared dashboard `AppShell` | exception control record ของหัวหน้า: attention, plan/actual, owner, blocker, readiness, handoff และหลักฐานทั้งใบ; routine execution ไป Station · inspector มีแท็บ **เสื้อและวัตถุดิบ / ม็อกอัพ / เส้นทางทั้งหมด** |
 | `/production/print-runs` | — | **ถอดออก 2026-09-02** (เดิม: workspace รอบ DTF ตามลำดับ **กำลังพิมพ์ → ตัดแยก/ติดป้าย → คิวพิมพ์ → ประวัติ 7 วัน**) |
 | `/production/films` | — | **ถอดออก 2026-09-02** (เดิม: คลังฟิล์มแบบ compact: ลาย/ลูกค้า, ต้นทาง, คงเหลือ และการหยิบใช้) |

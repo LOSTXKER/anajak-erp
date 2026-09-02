@@ -127,7 +127,7 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
       key: `step:${queue.stepId}`,
       href: queue.productionId
         ? `/production/${queue.productionId}`
-        : `/orders/${queue.orderId}`,
+        : `/production?q=${encodeURIComponent(queue.orderNumber)}`,
       title: queue.orderNumber,
       description: queue.customerName,
       deadline: queue.deadline,
@@ -142,7 +142,7 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
   for (const order of data.awaitingProduction) {
     items.push({
       key: `order:${order.id}`,
-      href: `/orders/${order.id}`,
+      href: `/production?create=${order.id}`,
       title: order.orderNumber,
       description: order.customer.name,
       deadline: order.deadline,

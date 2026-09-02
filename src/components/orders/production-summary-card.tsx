@@ -9,7 +9,7 @@ import {
   OUTSOURCE_ACTIVE_STATUSES,
   productionWorkflowSteps,
 } from "@/lib/production-steps";
-import { Factory, ArrowRight, Truck, User } from "lucide-react";
+import { Factory, Plus, ArrowRight, Truck, User } from "lucide-react";
 import type { RouterOutput } from "@/lib/trpc";
 
 // การ์ดสรุปการผลิตบนหน้าออเดอร์ — อ่านอย่างเดียว ไม่มี dialog/ไม่มีเงิน
@@ -69,9 +69,16 @@ export function ProductionSummaryCard({
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-muted">
               ยังไม่มีใบผลิต
-              {/* หน้าเปิดใบผลิต (/production) ถอดออก 2026-09-02 รอออกแบบใหม่ — ปุ่มเปิดใบผลิตกลับมาพร้อมหน้าใหม่ */}
-              {canCreate && " — หน้าเปิดใบผลิตกำลังทำใหม่"}
+              {canCreate && " — เปิดได้ที่หน้าการผลิต"}
             </p>
+            {canCreate && (
+              <Button size="sm" asChild className="gap-1.5">
+                <Link href={`/production?create=${orderId}`}>
+                  <Plus />
+                  เปิดใบผลิต
+                </Link>
+              </Button>
+            )}
           </div>
         ) : (
           <div className="space-y-4">

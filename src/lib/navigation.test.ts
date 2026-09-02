@@ -51,6 +51,7 @@ describe("navigation registry", () => {
     expect(groups.map(({ id, label }) => ({ id, label }))).toEqual([
       { id: "main", label: "ภาพรวม" },
       { id: "sales", label: "งานขาย" },
+      { id: "production", label: "การผลิต" },
       { id: "products", label: null },
       { id: "finance", label: "การเงิน" },
       { id: "system", label: null },
@@ -59,6 +60,7 @@ describe("navigation registry", () => {
     expect(groups.map((group) => group.id)).toEqual([
       "main",
       "sales",
+      "production",
       "products",
       "finance",
       "system",
@@ -68,17 +70,22 @@ describe("navigation registry", () => {
       "quotations",
       "customers",
     ]);
-    // เมนู "การผลิต" ถอดออกพร้อมหน้ารายการผลิต 2026-09-02 (รอออกแบบใหม่) — กลุ่มจึงหายทั้งกลุ่ม
-    expect(groups.some((group) => group.id === "production")).toBe(false);
+    expect(
+      groups.find((group) => group.id === "production")?.items.map((item) => item.id),
+    ).toEqual(["production"]);
   });
 
   it("ซ่อนเฉพาะหมวดที่ไม่มีสิทธิ์ ไม่ซ่อนเมนูที่มีสิทธิ์ไว้หลัง disclosure", () => {
     const groups = groupedNavigationItems("sidebar", []);
 
     expect(groups.some((group) => group.id === "finance")).toBe(false);
-    expect(groups.some((group) => group.id === "products")).toBe(true);
+    expect(groups.find((group) => group.id === "production")?.items.map((item) => item.id)).toEqual([
+      "production",
+    ]);
 
     const operatorGroups = groupedNavigationItems("sidebar", ["manage_production"]);
-    expect(operatorGroups.some((group) => group.id === "production")).toBe(false);
+    expect(
+      operatorGroups.find((group) => group.id === "production")?.items.map((item) => item.id),
+    ).toEqual(["production"]);
   });
 });

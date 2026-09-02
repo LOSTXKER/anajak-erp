@@ -1030,7 +1030,7 @@ export function ProductionDetailScreen({
           ? undefined
           : surface === "station"
             ? { href: stationHref, label: "กลับคิวสถานี" }
-            : { href: order ? `/orders/${order.id}` : "/orders", label: "กลับหน้าออเดอร์" }
+            : { href: "/production", label: "กลับหน้าการผลิต" }
       }
       titleBadge={
         surface === "station" && order ? (
@@ -1182,8 +1182,8 @@ export function ProductionDetailScreen({
       ) : (
         <RecordNotFound
           what="งานผลิตใบนี้"
-          backHref={surface === "station" ? stationHref : "/orders"}
-          backLabel={surface === "station" ? "กลับจอประจำสถานี" : "กลับไปออเดอร์"}
+          backHref={surface === "station" ? stationHref : "/production"}
+          backLabel={surface === "station" ? "กลับจอประจำสถานี" : "กลับหน้าการผลิต"}
         />
       )}
     </PageShell>

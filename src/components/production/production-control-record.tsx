@@ -244,10 +244,10 @@ export function ProductionControlRecord({
             <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
               <nav aria-label="ตำแหน่งปัจจุบัน" className="flex items-center gap-1.5 text-xs text-muted">
                 <Link
-                  href={`/orders/${order.id}`}
+                  href="/production"
                   className="inline-flex min-h-11 items-center font-medium text-blue-700 hover:underline dark:text-blue-300"
                 >
-                  ออเดอร์
+                  การผลิต
                 </Link>
                 <span aria-hidden="true">/</span>
                 <span>{order.orderNumber}</span>

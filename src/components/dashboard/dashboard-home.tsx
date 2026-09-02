@@ -353,6 +353,12 @@ export function DashboardHome() {
               tone="brand"
             />
             <QuickLink
+              href="/production"
+              icon={Factory}
+              label="การผลิต"
+              tone="production"
+            />
+            <QuickLink
               href={canViewBilling ? "/billing" : "/customers"}
               icon={canViewBilling ? FileClock : Users}
               label={canViewBilling ? "บิล" : "ลูกค้า"}

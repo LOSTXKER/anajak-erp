@@ -74,8 +74,8 @@ export function buildDashboardAttentionItems(
           ? `เลยกำหนดรับ ${pulse.outsource.overduePickup} งาน`
           : "กำลังรอรับงานกลับ",
       count: pulse.outsource.pending,
-      // หน้าคิวร้านนอกถอดออก 2026-09-02 พร้อมโมดูลรายการผลิต — ระหว่างรอ ให้ไปดูรายการที่ My Tasks
-      href: "/my-tasks",
+      // โต๊ะงานหัวหน้า กรองไปช่อง "ของร้านนอกครบกำหนด"
+      href: "/production?view=outsource",
       tone: pulse.outsource.overduePickup > 0 ? "danger" : "warning",
       priority: pulse.outsource.overduePickup > 0 ? 90 : 60,
     });

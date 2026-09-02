@@ -4,6 +4,7 @@ import {
   Bell,
   ClipboardList,
   Cloud,
+  Factory,
   FileStack,
   FileText,
   Hourglass,
@@ -109,8 +110,15 @@ export const NAVIGATION_ITEMS: readonly NavigationItem[] = [
     aliases: ["customer", "crm", "ผู้ติดต่อ"],
     surfaces: BOTH,
   },
-  // เมนู "การผลิต" (/production) ถอดออก 2026-09-02 พร้อมโมดูลรายการผลิต — รอออกแบบใหม่
-  // ใบผลิต /production/[id] ยังเปิดได้จากหน้าออเดอร์และ My Tasks
+  {
+    id: "production",
+    label: "การผลิต",
+    href: "/production",
+    icon: Factory,
+    group: "production",
+    aliases: ["production", "ผลิต", "คิวผลิต", "โต๊ะงาน"],
+    surfaces: BOTH,
+  },
   {
     id: "products",
     label: "สินค้า",
