@@ -236,7 +236,6 @@ const hSm = CONTROL_H_SM.split(" ");
   const statusMicroFiles = new Set([
     "src/components/ui/status-label.tsx",
     "src/components/orders/detail/order-status-bar.tsx",
-    "src/components/production/production-route-rail.tsx",
     "src/components/production/production-freshness.tsx",
   ]);
   /* หน้าลอง (/proto) ไม่อยู่ในด่านนี้ — เป็นที่ทดลอง "หน้าตา" ก่อนเคาะ จึงต้อง
@@ -1775,15 +1774,14 @@ check(
     console.log("✅ primitive panel/alert/context ใช้มุม 16px เงามาจาก card-surface ชุดเดียว และจังหวะขอบ 20px");
   }
 
+  /* ใบผลิต /production/[id] ถอดออก 2026-09-02 รอออกแบบใหม่ — เหลือหน้าการผลิตใหม่กับ TV ในด่านนี้ */
   const productionPanelSource = readFileSync(
-    "src/components/production/production-control-record.tsx",
+    "src/components/production/production-desk-view.tsx",
     "utf8",
   );
   const stationPanelSources = [
     "src/components/factory/manufacturing-factory-board.tsx",
-    "src/components/production-v2/production-v2-control-record.tsx",
-    "src/components/production-v2/production-v2-control-actions.tsx",
-    "src/components/production/legacy-production-detail-page.tsx",
+    "src/components/production/production-desk-page.tsx",
   ].map((path) => [path, readFileSync(path, "utf8")] as const);
   /* มุมการ์ดเป็น 16px (rounded-2xl) ทั้งระบบแล้ว 2026-08-26 · ที่ยังห้ามคือ utility เงา
      เพราะเงาต้องมาจาก .card-surface ชุดเดียว และห้าม rounded-3xl ที่เลยความเป็นการ์ด */
@@ -1792,7 +1790,7 @@ check(
   );
   if (
     /rounded-3xl|shadow-sm|shadow-md|shadow-lg/.test(productionPanelSource) ||
-    !productionPanelSource.includes('className="card-surface overflow-hidden rounded-2xl"') ||
+    !productionPanelSource.includes("card-surface card-surface-hover rounded-2xl") ||
     stationPanelOffenders.length > 0
   ) {
     failed++;
@@ -1808,7 +1806,6 @@ check(
     "src/components/orders/billing/record-payment-dialog.tsx",
     "src/components/orders/delivery/create-delivery-dialog.tsx",
     "src/components/orders/order-info-edit-dialog.tsx",
-    "src/components/production/step-outsource-dialog.tsx",
     "src/components/goods-receipt/goods-receipt-dialog.tsx",
     "src/components/sync-dialog.tsx",
   ].map((path) => [path, readFileSync(path, "utf8")] as const);
@@ -2499,252 +2496,6 @@ check(
     problems.forEach((problem) => console.log(`   ${problem}`));
   } else {
     console.log("✅ action bar แยกจากพื้นที่กรอกทุกขนาดจอ");
-  }
-}
-
-/* ── Production Control + Station current-job contract ─────────────────────
-   ERP เป็น exception/control record; routine execution อยู่ Station และทั้งสอง
-   ต้อง fail-closed จากข้อมูล/สิทธิ์จริง ไม่สร้าง readiness หรือ owner ปลอม */
-{
-  const productionDetailSource = readFileSync(
-    "src/components/production/production-detail-screen.tsx",
-    "utf8",
-  );
-  const productionControlSource = readFileSync(
-    "src/components/production/production-control-record.tsx",
-    "utf8",
-  );
-  const productionRouteRailSource = readFileSync(
-    "src/components/production/production-route-rail.tsx",
-    "utf8",
-  );
-  const productionControlProjectionSource = readFileSync(
-    "src/lib/production-control.ts",
-    "utf8",
-  );
-  const stepUpdateDialogSource = readFileSync(
-    "src/components/production/step-update-dialog.tsx",
-    "utf8",
-  );
-  const productionDetailRouteSource = readFileSync(
-    "src/app/(dashboard)/production/[id]/page.tsx",
-    "utf8",
-  );
-  const productionDetailPageSource = readFileSync(
-    "src/components/production/legacy-production-detail-page.tsx",
-    "utf8",
-  );
-  const productionDetailTabsSource = readFileSync(
-    "src/lib/production-detail-tabs.ts",
-    "utf8",
-  );
-  const pageShellSource = readFileSync("src/components/page-shell.tsx", "utf8");
-  const productionStepActionsSource = readFileSync(
-    "src/lib/production-step-actions.ts",
-    "utf8",
-  );
-  const garmentPickSource = readFileSync(
-    "src/components/production/garment-pick-card.tsx",
-    "utf8",
-  );
-  const materialUsageSource = readFileSync(
-    "src/components/material-usage.tsx",
-    "utf8",
-  );
-  const stockSyncSource = readFileSync(
-    "src/server/routers/stock-sync.ts",
-    "utf8",
-  );
-  const productRouterSource = readFileSync(
-    "src/server/routers/product.ts",
-    "utf8",
-  );
-  const controlSizeSource = readFileSync(
-    "src/components/ui/control-size.ts",
-    "utf8",
-  );
-  const buttonSource = readFileSync("src/components/ui/button.tsx", "utf8");
-  const dialogSource = readFileSync("src/components/ui/dialog.tsx", "utf8");
-  const dialogFooterSource = readFileSync(
-    "src/components/ui/dialog-submit-footer.tsx",
-    "utf8",
-  );
-  const productionDesignSource = readFileSync(
-    "src/components/production/production-design-card.tsx",
-    "utf8",
-  );
-  const productionV2ControlSource = readFileSync(
-    "src/components/production-v2/production-v2-control-record.tsx",
-    "utf8",
-  );
-  const manufacturingFactorySource = readFileSync(
-    "src/components/factory/manufacturing-factory-board.tsx",
-    "utf8",
-  );
-  const problems: string[] = [];
-
-  /* หน้ารายการผลิต /production (+ รอบพิมพ์ · คลังฟิล์ม · คิวร้านนอก) ถอดออก 2026-09-02
-     รอออกแบบใหม่ — ด่านของหน้าเหล่านั้นถอดตามไป เหลือเฉพาะใบผลิต /production/[id] กับ TV */
-  if (
-    !productionDetailRouteSource.includes("<ProductionV2ControlRecord") ||
-    !productionDetailRouteSource.includes("<LegacyProductionDetailPage") ||
-    !productionV2ControlSource.includes("trpc.manufacturing.workOrder.useQuery") ||
-    !manufacturingFactorySource.includes("trpc.manufacturing.workCenterLoad.useQuery")
-  ) {
-    problems.push(
-      "ใบผลิต V2/legacy ต้องสลับหลัง flag และ TV ต้องอ่าน workCenterLoad (หน้ารายการผลิตถอดออก 2026-09-02)",
-    );
-  }
-
-  if (
-    (productionDetailSource.match(/<PageShell\b/g) ?? []).length !== 1 ||
-    !productionDetailSource.includes('width="full"') ||
-    !productionDetailSource.includes("header={<></>}") ||
-    !pageShellSource.includes("header?: ReactNode") ||
-    !pageShellSource.includes("{header ?? (") ||
-    productionDetailSource.includes("ProductionModuleNav") ||
-    productionDetailSource.includes("PageHeader") ||
-    !productionDetailSource.includes("<ProductionControlRecord") ||
-    !productionDetailSource.includes('data-station-current-job=""') ||
-    !productionDetailSource.includes(
-      "loading={productionQuery.isLoading || meQuery.isLoading}",
-    ) ||
-    !productionDetailSource.includes("meQuery.isError && !me") ||
-    !productionDetailSource.includes(
-      "productionQuery.isError && !production && !productionNotFound",
-    ) ||
-    !productionDetailSource.includes(
-      'productionQuery.error?.data?.code === "NOT_FOUND"',
-    ) ||
-    !productionDetailSource.includes('error.data?.code !== "NOT_FOUND"') ||
-    !productionDetailSource.includes("onRetry: () => meQuery.refetch()") ||
-    !productionDetailSource.includes("onRetry: () => productionQuery.refetch()") ||
-    !productionDetailSource.includes("<RecordNotFound") ||
-    !productionControlSource.includes('data-production-control-record=""') ||
-    !productionControlSource.includes('data-production-step-flow=""') ||
-    !productionControlSource.includes("selectedStepId={selectedStep.id}") ||
-    !productionControlSource.includes("ขั้นก่อนหน้า") ||
-    !productionControlSource.includes("ขั้นถัดไป") ||
-    !productionRouteRailSource.includes('aria-current={selected ? "step" : undefined}') ||
-    productionRouteRailSource.includes("<button") ||
-    productionRouteRailSource.includes("onSelectStep") ||
-    productionControlSource.includes("บันทึกเส้นทางการผลิต") ||
-    productionControlSource.includes("กิจกรรมและหลักฐาน") ||
-    productionControlSource.includes("border-dashed") ||
-    productionControlSource.includes("ข้อมูลที่ต้องเพิ่ม")
-  ) {
-    problems.push(
-      "ใบผลิตต้องแยก ERP control record กับ Station current job, ไม่เผย developer data-gap และคง loading/error/permission fail-closed",
-    );
-  }
-
-  if (
-    !productionDetailPageSource.includes("normalizeProductionDetailTab(rawTab)") ||
-    !productionDetailSource.includes('surface === "erp" ? (') ||
-    !productionDetailSource.includes("onManageStep={openManagerStep}") ||
-    !productionDetailSource.includes("mode={selectedStepMode}") ||
-    !stepUpdateDialogSource.includes('mode?: "operation" | "manager"') ||
-    !stepUpdateDialogSource.includes('const managerOnly = mode === "manager"') ||
-    !stepUpdateDialogSource.includes("trpc.production.assignProductionStep") ||
-    !stepUpdateDialogSource.includes("trpc.production.resolveStationProblem") ||
-    !stepUpdateDialogSource.includes("ผู้รับผิดชอบปัจจุบัน") ||
-    !stepUpdateDialogSource.includes("แก้ปัญหาแล้ว ส่งกลับสถานี") ||
-    !stepUpdateDialogSource.includes("{!managerOnly ? (") ||
-    stepUpdateDialogSource.includes('managerOnly ? "หมายเหตุสำหรับทีม"') ||
-    !productionDetailSource.includes("canReportStationProblem") ||
-    !productionDetailSource.includes("trpc.production.reportStationProblem") ||
-    !productionDetailSource.includes("<GoodsReceiptDialog") ||
-    !productionDetailSource.includes('receiptType="CUSTOMER_GARMENT"') ||
-    !productionDetailSource.includes('stationCurrentNowStep?.group === "current"') ||
-    !productionDetailSource.includes("stationCurrentNowStep.waitingOn.length === 0") ||
-    !productionDetailSource.includes("stationCurrentActionTarget?.printRunItems.length === 0") ||
-    !productionDetailSource.includes("factoryStationKeyForStep(stationProblemTarget.stepType) === station") ||
-    !productionDetailSource.includes("legacyReadinessUnknown={legacyGarmentReadinessUnknown}") ||
-    !productionControlSource.includes("GarmentControlEvidence") ||
-    !productionControlSource.includes('kind: "unknown"') ||
-    !productionControlProjectionSource.includes('kind: "not-applicable"') ||
-    !productionControlProjectionSource.includes('kind: "known"') ||
-    !productionControlProjectionSource.includes("requiresAttention") ||
-    !productionControlProjectionSource.includes("factoryStationKeyForStep") ||
-    !productionControlProjectionSource.includes("overdueOutsourceDays") ||
-    !productionControlProjectionSource.includes("OUTSOURCE_AWAITING_RETURN_STATUSES") ||
-    !productionControlProjectionSource.includes('activeOutsource.status === "RECEIVED_BACK"') ||
-    !productionStepActionsSource.includes('["DTF_PRINT", "GARMENT_RECEIVE"]') ||
-    !productionDetailTabsSource.includes('{ key: "inventory", label: "เบิกของ" }') ||
-    (productionDetailSource.match(/<MaterialUsage\b/g) ?? []).length !== 1 ||
-    !materialUsageSource.includes('const Surface = embedded ? "div" : Card;')
-  ) {
-    problems.push(
-      "ERP ต้องแสดง evidence/exception จริง ส่วน Station ใช้ command และ service เฉพาะทางโดยไม่ข้าม readiness",
-    );
-  }
-
-  if (
-    !garmentPickSource.includes("garmentPickQuery.isLoading") ||
-    !garmentPickSource.includes(
-      "garmentPickQuery.isError && !garmentPickQuery.data",
-    ) ||
-    !garmentPickSource.includes("garmentPickQuery.refetch()") ||
-    !garmentPickSource.includes("legacyReadinessUnknown?: boolean") ||
-    !garmentPickSource.includes("ไม่มีรายการเสื้อที่ตรวจยอดจากสต๊อคได้") ||
-    !garmentPickSource.includes("const totalNeeded = data.lines.reduce") ||
-    !garmentPickSource.includes("const fulfilledQty = data.lines.reduce") ||
-    !garmentPickSource.includes("const missingQty = data.lines.reduce") ||
-    !garmentPickSource.includes("เบิกสุทธิ") ||
-    !garmentPickSource.includes("ยังขาด") ||
-    !materialUsageSource.includes("materialsQuery.isLoading") ||
-    !materialUsageSource.includes("materialsQuery.isError && !materialsQuery.data") ||
-    !materialUsageSource.includes("materialsQuery.data !== undefined") ||
-    !materialUsageSource.includes("searchQuery.isError && !searchQuery.data") ||
-    !materialUsageSource.includes("searchQuery.data !== undefined") ||
-    !materialUsageSource.includes("searchQuery.refetch()") ||
-    !materialUsageSource.includes("readOnly?: boolean") ||
-    !materialUsageSource.includes("!readOnly && localMaterials.length > 0")
-  ) {
-    problems.push("ข้อมูลเสื้อ/วัตถุดิบต้องแยก loading, error+retry และ success-empty");
-  }
-
-  if (
-    !stockSyncSource.includes('"see_finance"') ||
-    !stockSyncSource.includes("redactCostFields(") ||
-    !productRouterSource.includes('"see_finance"') ||
-    !productRouterSource.includes("variants: product.variants.map") ||
-    !productRouterSource.includes("redactCostFields(variant, false)")
-  ) {
-    problems.push("API วัตถุดิบต้องตัดต้นทุนทั้งรายการหลักและ variant ก่อนถึง browser ช่าง");
-  }
-
-  if (
-    (controlSizeSource.match(/\[@media\(pointer:coarse\)\]:min-h-11/g) ?? [])
-      .length < 3 ||
-    !buttonSource.includes("[@media(pointer:coarse)]:min-w-11") ||
-    !dialogSource.includes("[@media(pointer:coarse)]:w-11")
-  ) {
-    problems.push("control/ปุ่มปิด dialog ต้องคงเป้ากด 44px บน pointer coarse ทุกความกว้าง");
-  }
-
-  if (
-    !dialogFooterSource.includes("pendingLabel?: ReactNode") ||
-    !dialogFooterSource.includes("aria-busy={pending || undefined}") ||
-    !dialogFooterSource.includes("pending ? (pendingLabel ?? submitLabel) : submitLabel")
-  ) {
-    problems.push("dialog mutation ต้องประกาศ busy และมีข้อความ pending ที่ไม่พึ่ง spinner");
-  }
-
-  if (
-    !productionDesignSource.includes("missingApprovalIsReference?: boolean") ||
-    !productionDesignSource.includes("ไม่บล็อกขั้นปัจจุบัน") ||
-    productionDesignSource.includes('text-slate-400">{pr.designNote}')
-  ) {
-    problems.push("ข้อความรองและขอบ control บนหน้าผลิตต้องใช้ token ที่ผ่าน contrast");
-  }
-
-  if (problems.length) {
-    failed++;
-    console.log("❌ หน้าผลิตหลักยังแยก state/permission/touch contract ไม่ครบ");
-    problems.forEach((problem) => console.log(`   ${problem}`));
-  } else {
-    console.log("✅ หน้าผลิตหลักแยก state/permission และคง touch target บนจอทัช");
   }
 }
 

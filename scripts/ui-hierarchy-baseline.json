@@ -239,10 +239,6 @@
     "dots": 1,
     "muted": 6
   },
-  "src/components/factory/station-garment-preview.tsx": {
-    "dots": 1,
-    "muted": 5
-  },
   "src/components/goods-receipt/goods-receipt-dialog.tsx": {
     "dots": 0,
     "muted": 2
@@ -262,10 +258,6 @@
   "src/components/layout/user-menu.tsx": {
     "dots": 0,
     "muted": 2
-  },
-  "src/components/material-usage.tsx": {
-    "dots": 0,
-    "muted": 11
   },
   "src/components/mockup/mockup-gallery.tsx": {
     "dots": 0,
@@ -415,57 +407,9 @@
     "dots": 0,
     "muted": 4
   },
-  "src/components/production-v2/production-v2-control-actions.tsx": {
-    "dots": 0,
-    "muted": 3
-  },
-  "src/components/production-v2/production-v2-control-record.tsx": {
-    "dots": 2,
-    "muted": 16
-  },
-  "src/components/production/garment-pick-card.tsx": {
-    "dots": 0,
-    "muted": 4
-  },
-  "src/components/production/production-control-record.tsx": {
-    "dots": 1,
-    "muted": 6
-  },
-  "src/components/production/production-design-card.tsx": {
-    "dots": 0,
-    "muted": 1
-  },
   "src/components/production/production-desk-view.tsx": {
     "dots": 0,
     "muted": 2
-  },
-  "src/components/production/production-detail-screen.tsx": {
-    "dots": 0,
-    "muted": 2
-  },
-  "src/components/production/production-mockup-tab.tsx": {
-    "dots": 0,
-    "muted": 4
-  },
-  "src/components/production/production-now-card.tsx": {
-    "dots": 0,
-    "muted": 1
-  },
-  "src/components/production/production-route-rail.tsx": {
-    "dots": 0,
-    "muted": 1
-  },
-  "src/components/production/production-step-navigator.tsx": {
-    "dots": 0,
-    "muted": 1
-  },
-  "src/components/production/production-steps-list.tsx": {
-    "dots": 0,
-    "muted": 1
-  },
-  "src/components/production/step-update-dialog.tsx": {
-    "dots": 0,
-    "muted": 1
   },
   "src/components/providers.tsx": {
     "dots": 0,

@@ -17,7 +17,9 @@
 
 ## 🔥 เปิดอยู่ตอนนี้ (เรียงตามลำดับที่ควรทำ)
 
-### A. หน้าใบสั่งผลิต `/production/[id]` — เริ่มใหม่จากศูนย์ (เบสสั่ง 2026-09-02)
+### A. หน้าใบสั่งผลิต `/production/[id]` — ถอดออกแล้ว เริ่มใหม่จากศูนย์ (เบสสั่ง 2026-09-02)
+- [x] ถอด route + UI ใบผลิตทั้ง legacy และ V2 (09-02 ดึก · 32 ไฟล์: detail-screen · control-record · route-rail · now-card · steps-list · step-navigator · mockup-tab · design-card · garment-pick · step dialogs · v2-control-record/actions · presenter · lib production-control/detail-tabs · material-usage · station-garment-preview + test) · ด่าน verify ของหน้านั้นถอดตาม · **ลิงก์ที่ชี้ `/production/[id]` (แถวในหน้าการผลิต · My Tasks · ออเดอร์ · แจ้งเตือน) ยังชี้ที่เดิม = ไม่พบหน้า จนกว่าหน้าใหม่จะมา** (เบสยอมพังชั่วคราวเหมือน §A2/§A3)
+- เก็บไว้ให้หน้าใหม่ต่อ: server ทั้งหมด (`production.*` `manufacturing.*` · `lib/production-step-actions` `production-problem` ที่ router ใช้) · `create-production-dialog` (หน้าการผลิตใช้เปิดใบ) · `goods-receipt-dialog` (ออเดอร์ใช้)
 - [ ] รอเบสตั้งโจทย์ใหม่ · **ห้ามยึดกับ 20+ แบบที่ลบไป** (ย้อนดูได้ที่ commit `ab7d4f8`–`19aeadb` แต่อย่าเสนอซ้ำ)
 - [ ] ได้โจทย์ → หน้าลอง `/proto` 2-4 ทาง → เบสเลือก → ลงของจริง (presentation เท่านั้น)
 
