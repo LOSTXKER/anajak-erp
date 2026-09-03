@@ -282,22 +282,31 @@ function OutsourceCell({ job }: { job: ProductionJob }) {
 export function JobTable({
   groups,
   emptyLabel = "ไม่มีงาน",
+  onOpen,
+  selectedId = null,
+  compact = false,
 }: {
   groups: JobTableGroup[];
   emptyLabel?: string;
+  /** มี = กดแถวแล้วเปิดในที่ (แผงข้าง) แทนการเด้งไปหน้าใบผลิต — หน้าลอง work-desk แบบ B */
+  onOpen?: (job: ProductionJob) => void;
+  selectedId?: string | null;
+  /** ย่อคอลัมน์เมื่อมีแผงข้างกินที่ (ตัด จำนวน · เส้นทาง · ร้านนอก) */
+  compact?: boolean;
 }) {
   const total = groups.reduce((sum, group) => sum + group.items.length, 0);
+  const cols = compact ? 4 : 8;
   return (
     <DataTable.Root className="[&_td]:px-4 [&_th:not([aria-sort])]:px-4">
       <DataTable.Head>
         <tr>
           <DataTable.Th>ใบงาน</DataTable.Th>
-          <DataTable.Th align="right">จำนวน</DataTable.Th>
+          {!compact ? <DataTable.Th align="right">จำนวน</DataTable.Th> : null}
           <DataTable.Th>กำหนดส่ง</DataTable.Th>
-          <DataTable.Th>เส้นทางงาน</DataTable.Th>
+          {!compact ? <DataTable.Th>เส้นทางงาน</DataTable.Th> : null}
           <DataTable.Th>ตอนนี้อยู่ที่</DataTable.Th>
-          <DataTable.Th>ร้านนอก</DataTable.Th>
-          <DataTable.Th>ผู้รับผิดชอบ</DataTable.Th>
+          {!compact ? <DataTable.Th>ร้านนอก</DataTable.Th> : null}
+          {!compact ? <DataTable.Th>ผู้รับผิดชอบ</DataTable.Th> : null}
           <DataTable.Th align="right">
             <span className="sr-only">เปิดใบผลิต</span>
           </DataTable.Th>
@@ -306,7 +315,7 @@ export function JobTable({
       <DataTable.Body>
         {total === 0 ? (
           <tr>
-            <DataTable.Td colSpan={8} align="center" className="py-10 text-muted">
+            <DataTable.Td colSpan={cols} align="center" className="py-10 text-muted">
               {emptyLabel}
             </DataTable.Td>
           </tr>
@@ -318,7 +327,7 @@ export function JobTable({
               {groups.length > 1 ? (
                 <tr className="bg-surface-muted">
                   <th
-                    colSpan={8}
+                    colSpan={cols}
                     scope="rowgroup"
                     className="px-4 py-2 text-left text-xs font-semibold text-strong"
                   >
@@ -330,9 +339,15 @@ export function JobTable({
               {group.items.map((job) => (
                 <DataTable.Row
                   key={job.id}
-                  href={`/production/${job.id}`}
+                  href={onOpen ? undefined : `/production/${job.id}`}
+                  onClick={onOpen ? () => onOpen(job) : undefined}
                   aria-label={`เปิดใบผลิต ${job.orderNumber}`}
-                  className={cn("group/row", job.problem && "bg-red-50/40 dark:bg-red-950/15")}
+                  aria-selected={onOpen ? job.id === selectedId : undefined}
+                  className={cn(
+                    "group/row",
+                    onOpen && "cursor-pointer",
+                    job.id === selectedId ? "bg-interactive-selected" : job.problem && "bg-red-50/40 dark:bg-red-950/15",
+                  )}
                 >
                   <DataTable.Td className="min-w-56">
                     <div className="flex items-center gap-3">
@@ -350,16 +365,20 @@ export function JobTable({
                       </div>
                     </div>
                   </DataTable.Td>
-                  <DataTable.Td align="right" className="whitespace-nowrap">
-                    <span className="text-base font-semibold tabular-nums text-strong">{formatQty(job.qty)}</span>
-                    <span className="ml-1 text-xs text-muted">ตัว</span>
-                  </DataTable.Td>
+                  {!compact ? (
+                    <DataTable.Td align="right" className="whitespace-nowrap">
+                      <span className="text-base font-semibold tabular-nums text-strong">{formatQty(job.qty)}</span>
+                      <span className="ml-1 text-xs text-muted">ตัว</span>
+                    </DataTable.Td>
+                  ) : null}
                   <DataTable.Td className="whitespace-nowrap">
                     <DueTag dueInDays={job.dueInDays} dateLabel={job.dueLabel} size="sm" />
                   </DataTable.Td>
-                  <DataTable.Td className="w-32 min-w-28">
-                    <RouteBar route={job.route} />
-                  </DataTable.Td>
+                  {!compact ? (
+                    <DataTable.Td className="w-32 min-w-28">
+                      <RouteBar route={job.route} />
+                    </DataTable.Td>
+                  ) : null}
                   <DataTable.Td className="min-w-44 max-w-60">
                     <InfoChipRow>
                       <CurrentStepChip job={job} />
@@ -370,15 +389,19 @@ export function JobTable({
                       ) : null}
                     </InfoChipRow>
                   </DataTable.Td>
-                  <DataTable.Td className="min-w-40 max-w-52">
-                    <OutsourceCell job={job} />
-                  </DataTable.Td>
-                  <DataTable.Td className="whitespace-nowrap">
-                    <span className="inline-flex items-center gap-1.5 text-secondary">
-                      <UserRound className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
-                      {job.next.owner}
-                    </span>
-                  </DataTable.Td>
+                  {!compact ? (
+                    <DataTable.Td className="min-w-40 max-w-52">
+                      <OutsourceCell job={job} />
+                    </DataTable.Td>
+                  ) : null}
+                  {!compact ? (
+                    <DataTable.Td className="whitespace-nowrap">
+                      <span className="inline-flex items-center gap-1.5 text-secondary">
+                        <UserRound className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
+                        {job.next.owner}
+                      </span>
+                    </DataTable.Td>
+                  ) : null}
                   <DataTable.Td align="right" className="w-12 pl-0">
                     {/* ลูกศรบอกว่าแถวนี้กดเปิดได้ — เข้มขึ้นตอนชี้ทั้งแถว */}
                     <ChevronRight
