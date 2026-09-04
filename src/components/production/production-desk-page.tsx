@@ -158,11 +158,12 @@ function ProductionDesk() {
         }
       >
         {hasStaleData ? (
-          <Alert variant="warning" title="ข้อมูลล่าสุดอาจยังไม่ครบ">
-            <span className="flex flex-wrap items-center justify-between gap-2">
-              <span>กำลังแสดงข้อมูลเดิมที่โหลดไว้ คุณยังเปิดดูงานได้ตามปกติ</span>
+          <Alert
+            variant="warning"
+            title="ข้อมูลล่าสุดอาจยังไม่ครบ"
+            action={
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
                 onClick={() => {
                   void refetch();
@@ -172,7 +173,9 @@ function ProductionDesk() {
                 <RefreshCw />
                 ลองใหม่
               </Button>
-            </span>
+            }
+          >
+            <span>กำลังแสดงข้อมูลเดิมที่โหลดไว้ คุณยังเปิดดูงานได้ตามปกติ</span>
           </Alert>
         ) : null}
 

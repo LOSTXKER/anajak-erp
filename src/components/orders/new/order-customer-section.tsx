@@ -126,18 +126,15 @@ export function OrderCustomerSection({
             </div>
           )}
           {creditError && (
-            <Alert variant="error" className="text-xs">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <span>โหลดสถานะเครดิตไม่สำเร็จ</span>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => void creditStatus.refetch()}
-                >
+            <Alert
+              variant="error"
+              action={
+                <Button type="button" variant="outline" size="sm" onClick={() => void creditStatus.refetch()}>
                   ลองใหม่
                 </Button>
-              </div>
+              }
+            >
+              โหลดสถานะเครดิตไม่สำเร็จ
             </Alert>
           )}
           {shouldLoadCredit && creditStatus.data?.available != null && (

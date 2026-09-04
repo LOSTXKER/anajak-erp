@@ -145,15 +145,18 @@ function WorkOrder({ id }: { id: string }) {
             ) : null}
 
             {c.legacyPackagingReadyForQc ? (
-              <Alert variant="success" title="ทุกขั้นผลิตเสร็จแล้ว">
-                <span className="flex flex-wrap items-center justify-between gap-2">
-                  <span>ส่งงานเข้าตรวจ QC เพื่อไปต่อขั้นแพ็กและจัดส่ง</span>
-                  {c.canUpdateStep ? (
+              <Alert
+                variant="success"
+                title="ทุกขั้นผลิตเสร็จแล้ว"
+                action={
+                  c.canUpdateStep ? (
                     <Button size="sm" onClick={() => c.legacyFinalize.mutate({ productionId: production.id })} disabled={c.legacyFinalize.isPending}>
                       ส่งเข้า QC
                     </Button>
-                  ) : null}
-                </span>
+                  ) : undefined
+                }
+              >
+                ส่งงานเข้าตรวจ QC เพื่อไปต่อขั้นแพ็กและจัดส่ง
               </Alert>
             ) : null}
 

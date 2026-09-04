@@ -104,9 +104,12 @@ export function ProblemCard({ step }: { step: ProductionStep }) {
   const reason = currentProductionProblemReason(step);
   const title = step.status === "FAILED" ? "งานติดปัญหา" : "งานถูกพักไว้";
   return (
-    <Alert variant="error" title={`${title} — ${stepLabel(step)}`}>
-      <p>{reason ?? step.notes ?? "ยังไม่ระบุเหตุ"}</p>
-      {step.assignedTo ? <p className="mt-1 text-xs opacity-80">ผู้รับผิดชอบ {step.assignedTo.name}</p> : null}
+    <Alert
+      variant="error"
+      title={title}
+      meta={[{ label: "ขั้น", value: stepLabel(step) }, ...(step.assignedTo ? [{ label: "ผู้รับผิดชอบ", value: step.assignedTo.name }] : [])]}
+    >
+      {reason ?? step.notes ?? "ยังไม่ระบุเหตุ"}
     </Alert>
   );
 }

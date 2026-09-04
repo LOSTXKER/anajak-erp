@@ -14,15 +14,16 @@ export function OrderCatalogAlert({
   if (!hasError) return null;
 
   return (
-    <Alert variant="warning">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="text-sm">
-          โหลดแค็ตตาล็อกลาย/ส่วนเสริม/ค่าใช้จ่ายไม่สำเร็จ — ตัวเลือกจากแค็ตตาล็อกจะไม่ขึ้น
-        </span>
+    <Alert
+      variant="warning"
+      title="โหลดแค็ตตาล็อกไม่สำเร็จ"
+      action={
         <Button type="button" variant="outline" size="sm" onClick={onRetry}>
           ลองใหม่
         </Button>
-      </div>
+      }
+    >
+      ลาย/ส่วนเสริม/ค่าใช้จ่ายจากแค็ตตาล็อกจะไม่ขึ้นเป็นตัวเลือก
     </Alert>
   );
 }

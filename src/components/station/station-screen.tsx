@@ -149,13 +149,17 @@ function Screen() {
   }
   const stale = queueQuery.isError && Boolean(orders);
   const staleAlert = stale ? (
-    <Alert variant="warning" title="ข้อมูลล่าสุดอาจยังไม่ครบ" className="mb-4">
-      <span className="flex flex-wrap items-center justify-between gap-2">
-        <span>กำลังแสดงคิวเดิมที่โหลดไว้</span>
-        <Button variant="ghost" size="sm" onClick={() => queueQuery.refetch()}>
+    <Alert
+      variant="warning"
+      title="ข้อมูลล่าสุดอาจยังไม่ครบ"
+      className="mb-4"
+      action={
+        <Button variant="outline" size="sm" onClick={() => queueQuery.refetch()}>
           ลองใหม่
         </Button>
-      </span>
+      }
+    >
+      กำลังแสดงคิวเดิมที่โหลดไว้
     </Alert>
   ) : null;
 
