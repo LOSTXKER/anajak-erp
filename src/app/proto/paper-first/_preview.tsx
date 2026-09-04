@@ -38,7 +38,7 @@ function PreviewInner({ variant, out, boss }: { variant: Variant; out: boolean; 
       <section className="space-y-2">
         <Label>ใบผลิต — แท็บขั้นงาน (ซ้าย รายการ · ขวา ขั้นที่เลือก + โซนลงมือ)</Label>
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]">
-          <StepList variant={variant} steps={steps} selected={selected.id} onSelect={setSelectedId} />
+          <StepList variant={variant} steps={steps} selected={selected.id} boss={boss} onSelect={setSelectedId} />
           <StepDetail variant={variant} step={selected} boss={boss} onOpenForm={() => setFormOpen(true)} />
         </div>
         {variant === "batch" && formOpen ? <BatchForm steps={steps} onClose={() => setFormOpen(false)} /> : null}

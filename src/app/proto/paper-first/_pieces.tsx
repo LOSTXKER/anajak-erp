@@ -1,10 +1,16 @@
 "use client";
 
 /**
- * ชิ้นส่วนที่กำลังเทียบ: (1) ใบผลิตแท็บขั้นงาน — ขั้นไหนต้องกดจอ ขั้นไหนเดินตามกระดาษ
+ * ชิ้นส่วนที่กำลังเทียบ: (1) ใบผลิตแท็บขั้นงาน — ขั้นไหนต้องกดจอ ขั้นไหนจดบนกระดาษ
  *                        (2) ใบสั่งงานกระดาษ — ช่องอะไรอยู่บนกระดาษ
  * กรอบการ์ด/ชิป/ตัวเลข/โซนลงมือ/เมนู/ช่องกรอก = component ตัวจริงทั้งหมด
  * ใบกระดาษวาดเองเพราะของจริง (/print/job-ticket) เป็น server component ที่อ่าน DB — ใช้คลาส `print-page` ชุดเดียวกัน
+ *
+ * รอบ 2 (2026-09-05 หลัง ux-review + impeccable critique) — ทาง A ปรับ 8 จุด:
+ *  P1 ปัญหา/คนทำ โชว์ทุกโหมด (โหมดจดคุมแค่ยอดกับเวลา) · P2 แถวที่จดในระบบไม่มีช่องยอดบนกระดาษ (ไม่เขียน 2 ที่)
+ *  P3 ช่วงงานที่อนุมานได้ + "ถือว่าผ่าน" · P4 ฉบับกระดาษ + วันพิมพ์ + QR ผูกฉบับ · P5 ปุ่มพิมพ์อยู่ในใบผลิต
+ *  P6 ถอดปุ่ม "จดเวลาเสร็จ (ไม่บังคับ)" ไปอยู่ในเมนูหัวหน้า · P7 กระดาษแยก "ทำในโรงงาน" / "ของจากร้านนอก (เดินคู่ขนาน)"
+ *  P8 ลดคำว่า "กระดาษ" ซ้ำ · ชิปโหมดไม่ดังกว่าชิปสถานะ · ช่องติ๊กใหญ่ขึ้น
  */
 
 import { AlertTriangle, CheckCircle2, ClipboardList, Clock, FileText, MonitorSmartphone, Pencil, Printer, Square, UserRound, Wrench } from "lucide-react";
@@ -20,7 +26,7 @@ import { DocumentStamp } from "@/components/print/print-document";
 import { DASHED, TABLE_HEAD_SURFACE } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
 import { OutsourceFacts, OwnerText, ProblemCard, StepQty, StepStateChip } from "../work-order/_pieces";
-import { AUTO_NOTE, BATCH_NOTE, ITEMS, MODE_LABEL, PAPER_NOTE, PRINT_RUN, QR_SVG, SCREEN_ACTION, WHY_SCREEN, WORK_ORDER, modeOf, requiredTaps, totalTaps, type RecordMode, type Variant, type WorkStep } from "./_data";
+import { AUTO_NOTE, BATCH_NOTE, INFERRED_STAGE, ITEMS, MODE_LABEL, PAPER_NOTE, PRINT_RUN, QR_SVG, SCREEN_ACTION, TICKET, WHY_SCREEN, WORK_ORDER, modeOf, requiredTaps, totalTaps, type RecordMode, type Variant, type WorkStep } from "./_data";
 
 const noop = () => {};
 
@@ -32,12 +38,12 @@ export function TapSummary({ variant, steps }: { variant: Variant; steps: WorkSt
     variant === "now"
       ? ["ทุกขั้นเริ่ม/จบ", "ถ้าช่างกดจริง"]
       : variant === "three"
-        ? ["DTF เสร็จ", "ผล QC", "แพ็กเสร็จ", "ของไป/กลับร้านนอก"]
+        ? ["เบิกเสื้อ (ตัดสต็อก)", "DTF เสร็จ", "ผล QC", "แพ็กเสร็จ", "ของไป/กลับร้านนอก"]
         : ["ตอนหัวหน้ากรอกปิดวัน", "ช้าครึ่งวัน"];
   return (
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
       <div className="card-surface rounded-2xl p-4">
-        <Metric label="ช่างแตะจอต่อใบ" value={taps} unit="ครั้ง" size="lg" icon={MonitorSmartphone} tone={taps === 0 ? "muted" : "default"} />
+        <Metric label="แตะจอต่อใบ (ทุกคนรวมกัน)" value={taps} unit="ครั้ง" size="lg" icon={MonitorSmartphone} tone={taps === 0 ? "muted" : "default"} />
       </div>
       <div className="card-surface rounded-2xl p-4">
         {variant === "batch" ? (
@@ -68,32 +74,64 @@ export function TapSummary({ variant, steps }: { variant: Variant; steps: WorkSt
 const MODE_ICON = { screen: MonitorSmartphone, paper: FileText, auto: Printer } as const;
 const MODE_TONE = { screen: "info", paper: "neutral", auto: "success" } as const;
 
+/** โหมดจดเป็นค่าตั้งคงที่ — ไม่ strong เพื่อไม่แย่งชั้น 1 กับชิปสถานะสด (รีวิวรอบ 2) */
 export function ModeChip({ mode, size = "sm" }: { mode: RecordMode; size?: "sm" | "md" }) {
   return (
-    <InfoChip size={size} tone={MODE_TONE[mode]} strong={mode === "screen"} icon={MODE_ICON[mode]}>
+    <InfoChip size={size} tone={MODE_TONE[mode]} icon={MODE_ICON[mode]}>
       {MODE_LABEL[mode]}
     </InfoChip>
   );
 }
 
+/* ───────────────────────── แถบใบกระดาษ + ช่วงงานที่อนุมานได้ (ทาง A · P3/P4/P5) ───────────────────────── */
+
+function TicketStrip({ boss, hasOutsource }: { boss: boolean; hasOutsource: boolean }) {
+  return (
+    <div className="space-y-2 border-b border-divider px-4 py-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <FileText className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
+        <span className="text-sm font-medium text-strong">ใบสั่งงานกระดาษ ฉบับ {TICKET.issue}</span>
+        <InfoChip size="sm">พิมพ์ {TICKET.printedAt}</InfoChip>
+        <InfoChip size="sm" tone="success" icon={CheckCircle2}>
+          ม็อกอัพ {TICKET.mockup} ตรงกับปัจจุบัน
+        </InfoChip>
+        {boss ? (
+          <Button variant="outline" size="sm" className="ml-auto">
+            <Printer /> พิมพ์ใหม่
+          </Button>
+        ) : null}
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <InfoChip size="md" tone="info" strong icon={Clock}>
+          ตอนนี้: {INFERRED_STAGE.now}
+        </InfoChip>
+        <span className="text-xs text-muted">{hasOutsource ? INFERRED_STAGE.detail : INFERRED_STAGE.detailNoOutsource}</span>
+      </div>
+    </div>
+  );
+}
+
 /* ───────────────────────── รายการขั้น (ซ้าย) ───────────────────────── */
 
-export function StepList({ variant, steps, selected, onSelect }: { variant: Variant; steps: WorkStep[]; selected: string; onSelect: (id: string) => void }) {
+export function StepList({ variant, steps, selected, boss, onSelect }: { variant: Variant; steps: WorkStep[]; selected: string; boss: boolean; onSelect: (id: string) => void }) {
   const done = steps.filter((s) => s.state === "done").length;
   const screenCount = steps.filter((s) => modeOf(variant, s) === "screen").length;
   return (
     <Section
       title="ขั้นงานทั้งหมด"
-      meta={variant === "three" ? `จดในระบบ ${screenCount} จุด · ${steps.length} ขั้น` : `${done}/${steps.length} ผ่านแล้ว`}
+      meta={variant === "three" ? `ผ่านแล้ว ${done}/${steps.length} · จดในระบบ ${screenCount} จุด` : `${done}/${steps.length} ผ่านแล้ว`}
       icon={Wrench}
       tone="production"
       flush
     >
+      {variant === "three" ? <TicketStrip boss={boss} hasOutsource={steps.some((s) => s.kind === "outsource")} /> : null}
       <ol className="divide-y divide-divider">
         {steps.map((step) => {
           const on = step.id === selected;
           const mode = modeOf(variant, step);
           const quiet = variant === "three" && mode === "paper";
+          // โหมดจดคุมแค่ยอด/เวลา — ปัญหา สถานะติด คนทำ โชว์ทุกโหมด (P1)
+          const showState = !quiet || step.state === "blocked" || step.state === "done";
           return (
             <li key={step.id}>
               <button
@@ -111,22 +149,22 @@ export function StepList({ variant, steps, selected, onSelect }: { variant: Vari
                 <span className="min-w-0">
                   <span className={cn("block truncate text-sm", on ? "font-semibold" : "font-medium", quiet ? "text-secondary" : "text-strong")}>{step.label}</span>
                   <span className="mt-1 flex flex-wrap items-center gap-1.5">
-                    {variant === "three" ? <ModeChip mode={mode} /> : <StepStateChip step={step} />}
-                    {variant === "three" && mode === "screen" ? <StepStateChip step={step} /> : null}
+                    {variant === "three" ? <ModeChip mode={mode} /> : null}
+                    {showState ? <StepStateChip step={step} /> : null}
                     {variant === "batch" && step.state !== "done" ? (
                       <InfoChip size="sm" icon={ClipboardList}>
                         กรอกจากกระดาษ
                       </InfoChip>
                     ) : null}
-                    {step.owner && !quiet ? <InfoChip size="sm">{step.owner}</InfoChip> : null}
-                    {step.problem && !quiet ? (
+                    {step.owner ? <InfoChip size="sm">{step.owner}</InfoChip> : null}
+                    {step.problem ? (
                       <InfoChip size="sm" tone="error" strong>
                         มีปัญหา
                       </InfoChip>
                     ) : null}
                   </span>
                 </span>
-                {quiet ? <span className="text-xs text-muted">บนกระดาษ</span> : <StepQty step={step} />}
+                {quiet ? <span className="text-xs text-muted">ดูจากกระดาษ</span> : <StepQty step={step} />}
               </button>
             </li>
           );
@@ -146,12 +184,15 @@ const FIX_ITEMS: Omit<MoreMenuItem, "onSelect">[] = [
   { key: "pass", label: "ผ่านขั้นนี้แทนช่าง", icon: CheckCircle2, danger: true },
 ];
 
+/** ขั้นที่จดบนกระดาษ: หัวหน้าจดว่าเสร็จได้จากเมนู ไม่ใช่ปุ่มลอยในโซน (P6) */
+const PAPER_DONE_ITEM: Omit<MoreMenuItem, "onSelect"> = { key: "paper-done", label: "จดว่าเสร็จแล้ว (จากกระดาษ)", hint: "ใส่วันเวลาที่ช่างเขียนไว้ — ไม่บังคับ", icon: FileText };
+
 function Standards({ step, onPaper }: { step: WorkStep; onPaper: boolean }) {
   return (
     <div>
       <p className="flex items-center justify-between text-xs font-medium text-muted">
         <span>ข้อกำหนดมาตรฐานของขั้นนี้</span>
-        {onPaper ? <span>พิมพ์เป็นช่องติ๊กบนกระดาษ</span> : null}
+        {onPaper ? <span>ช่องติ๊กอยู่บนใบสั่งงาน</span> : null}
       </p>
       <ul className="mt-1.5 space-y-1">
         {step.checklist.map((c) => (
@@ -165,12 +206,13 @@ function Standards({ step, onPaper }: { step: WorkStep; onPaper: boolean }) {
   );
 }
 
+/** หน้าลองเท่านั้น — ห้ามพอร์ตลงของจริง (คำอธิบายให้เบสเทียบ) */
 function TapHint({ variant, step }: { variant: Variant; step: WorkStep }) {
   const taps = requiredTaps(variant, step);
-  if (taps.length === 0) return <p className="text-xs text-muted">ช่างไม่ต้องแตะจอในขั้นนี้</p>;
+  if (taps.length === 0) return <p className="text-xs text-muted">ไม่ต้องแตะจอในขั้นนี้</p>;
   return (
     <p className="text-xs text-muted">
-      ช่างแตะจอในขั้นนี้ {taps.length} ครั้ง: {taps.join(" → ")}
+      แตะจอในขั้นนี้ {taps.length} ครั้ง: {taps.join(" → ")}
     </p>
   );
 }
@@ -179,7 +221,9 @@ export function StepDetail({ variant, step, boss, onOpenForm }: { variant: Varia
   const mode = modeOf(variant, step);
   const done = step.state === "done";
   const stuck = step.state === "blocked";
-  const menu = boss && !done ? <MoreMenu items={FIX_ITEMS.map((item) => ({ ...item, onSelect: noop }))} /> : null;
+  const paper = variant === "three" && mode === "paper";
+  const menuItems = [...(paper ? [PAPER_DONE_ITEM] : []), ...FIX_ITEMS];
+  const menu = boss && !done ? <MoreMenu items={menuItems.map((item) => ({ ...item, onSelect: noop }))} /> : null;
   const report = !done && !stuck ? (
     <Button variant="ghost">
       <AlertTriangle /> แจ้งปัญหา
@@ -187,20 +231,19 @@ export function StepDetail({ variant, step, boss, onOpenForm }: { variant: Varia
   ) : null;
 
   let zone: React.ReactNode;
-  if (variant === "three" && mode === "paper") {
+  if (paper) {
     zone = (
       <ActionZone note={PAPER_NOTE} icon={FileText} tone="neutral" menu={menu}>
-        <Button variant="outline">จดเวลาเสร็จ (ไม่บังคับ)</Button>
         {report}
       </ActionZone>
     );
   } else if (variant === "three" && mode === "auto") {
     zone = <ActionZone note={AUTO_NOTE} icon={Printer} tone="success" />;
   } else if (variant === "three") {
-    const primary = SCREEN_ACTION[step.id] ?? step.action;
+    const primary = stuck ? (boss ? "ปลดปัญหา / เปลี่ยนคน" : null) : (SCREEN_ACTION[step.id] ?? step.action);
     zone = (
-      <ActionZone note={WHY_SCREEN[step.id] ?? "จุดที่ระบบต้องรู้"} icon={MonitorSmartphone} tone={stuck ? "error" : "info"} menu={menu}>
-        <Button variant={stuck ? "destructive" : "default"}>{primary}</Button>
+      <ActionZone note={stuck ? "แก้ปัญหาก่อน จึงลงมือขั้นนี้ต่อได้" : (WHY_SCREEN[step.id] ?? "จุดที่ระบบต้องรู้")} icon={stuck ? AlertTriangle : MonitorSmartphone} tone={stuck ? "error" : "info"} menu={menu}>
+        {primary ? <Button variant={stuck ? "destructive" : "default"}>{primary}</Button> : null}
         {report}
       </ActionZone>
     );
@@ -234,25 +277,24 @@ export function StepDetail({ variant, step, boss, onOpenForm }: { variant: Varia
     );
   }
 
-  const quietFacts = variant === "three" && mode === "paper";
   return (
     <Section
       title={`ขั้น ${step.order} · ${step.label}`}
       meta={
         <span className="inline-flex flex-wrap items-center gap-1.5">
           {variant === "three" ? <ModeChip mode={mode} size="md" /> : null}
-          {!quietFacts ? <StepStateChip step={step} size="md" /> : null}
+          {!paper || stuck || done ? <StepStateChip step={step} size="md" /> : null}
         </span>
       }
-      action={quietFacts ? <span className="text-muted">คนทำอยู่บนกระดาษ</span> : <OwnerText step={step} />}
+      action={<OwnerText step={step} />}
       tone="production"
     >
       <div className="space-y-5">
-        {step.problem && !quietFacts ? <ProblemCard step={step} /> : null}
-        {quietFacts ? (
+        {step.problem ? <ProblemCard step={step} /> : null}
+        {paper ? (
           <FactList columns={2}>
-            <Fact icon={FileText} label="บันทึกที่" value="กระดาษใบงาน" sub="ยอดดี/เสีย เวลา และลงชื่อ" />
             <Fact label="ควรเสร็จ" value={step.planEnd} />
+            <Fact icon={FileText} label="ยอดและเวลาจริง" value={`ใบสั่งงาน ฉบับ ${TICKET.issue}`} sub="ช่างเขียนตอนทำ" />
           </FactList>
         ) : (
           <FactList columns={3}>
@@ -263,13 +305,13 @@ export function StepDetail({ variant, step, boss, onOpenForm }: { variant: Varia
             <Fact label={step.completedAt ? "เสร็จจริง" : "เริ่มเมื่อ"} value={step.completedAt ?? step.startedAt ?? "ยังไม่เริ่ม"} tone={step.startedAt ? "default" : "muted"} />
           </FactList>
         )}
-        {step.outsource && !quietFacts ? <OutsourceFacts step={step} /> : null}
+        {step.outsource ? <OutsourceFacts step={step} /> : null}
         {variant === "three" && mode === "auto" ? (
           <InfoChip tone="info" strong icon={Printer}>
             อยู่ในรอบพิมพ์ {PRINT_RUN}
           </InfoChip>
         ) : null}
-        {step.note && !quietFacts ? <p className="text-sm text-secondary">{step.note}</p> : null}
+        {step.note && !paper ? <p className="text-sm text-secondary">{step.note}</p> : null}
         <Standards step={step} onPaper={variant !== "now"} />
         {zone}
         <TapHint variant={variant} step={step} />
@@ -334,12 +376,13 @@ function Blank({ w = "w-16" }: { w?: string }) {
   return <span className={cn("inline-block border-b border-slate-400 align-baseline", w)}>&nbsp;</span>;
 }
 
+/** ช่องติ๊กสำหรับปากกา — ≥ 14px และตัวอักษรไม่ต่ำกว่าใบจริง (รีวิวรอบ 2) */
 function TickBoxes({ step }: { step: WorkStep }) {
   return (
-    <ul className="space-y-0.5">
+    <ul className="space-y-1">
       {step.checklist.map((c) => (
-        <li key={c.label} className="flex items-start gap-1 text-2xs leading-tight">
-          <Square className="mt-px h-3 w-3 shrink-0 text-slate-500" aria-hidden="true" />
+        <li key={c.label} className="flex items-start gap-1.5 text-xs leading-tight">
+          <Square className="mt-px h-3.5 w-3.5 shrink-0 text-slate-500" aria-hidden="true" />
           <span>{c.label}</span>
         </li>
       ))}
@@ -347,8 +390,77 @@ function TickBoxes({ step }: { step: WorkStep }) {
   );
 }
 
+function PaperHead() {
+  return (
+    <thead className={TABLE_HEAD_SURFACE}>
+      <tr className="border-y border-slate-400 text-left">
+        <th className="w-8 py-1 pr-2 text-center font-semibold">#</th>
+        <th className="py-1 pr-2 font-semibold">ขั้นตอน</th>
+        <th className="py-1 pr-2 font-semibold">ข้อกำหนด (ติ๊กเมื่อทำแล้ว)</th>
+        <th className="w-24 py-1 pr-2 font-semibold">ยอดดี / เสีย</th>
+        <th className="w-24 py-1 pr-2 font-semibold">เสร็จ</th>
+        <th className="w-20 py-1 font-semibold">ลงชื่อ</th>
+      </tr>
+    </thead>
+  );
+}
+
+/** แถวขั้นบนกระดาษ — โหมดจอ: ไม่มีช่องยอด/เสร็จ/ลงชื่อ (P2 ไม่เขียน 2 ที่) · โหมดกระดาษ: ช่องว่างให้เขียน · ผ่านเอง: ไม่มีช่อง */
+function PaperRow({ step, variant, note }: { step: WorkStep; variant: Variant; note?: string }) {
+  const mode = modeOf(variant, step);
+  const screen = variant === "three" && mode === "screen";
+  const auto = variant === "three" && mode === "auto";
+  return (
+    <tr className={cn("border-b border-slate-200 align-top", screen && "bg-slate-100")}>
+      <td className="py-2 pr-2 text-center text-slate-500">{step.order}</td>
+      <td className="py-2 pr-2">
+        <p className="font-semibold leading-tight">{step.label}</p>
+        {step.outsource ? (
+          <p className="text-2xs text-slate-600">
+            {step.outsource.vendor} — ส่ง {step.outsource.sentOn} นัดรับ {step.outsource.backLabel}
+          </p>
+        ) : null}
+        {note ? <p className="text-2xs text-slate-600">{note}</p> : null}
+        {screen ? (
+          <p className="mt-1 inline-flex items-center gap-1 rounded border border-slate-700 px-1.5 py-0.5 text-2xs font-bold">
+            <MonitorSmartphone className="h-3 w-3" aria-hidden="true" /> จดในระบบ
+          </p>
+        ) : null}
+        {auto ? <p className="mt-1 text-2xs text-slate-500">ผ่านเองเมื่อปิดรอบพิมพ์ — ไม่ต้องเซ็น</p> : null}
+      </td>
+      <td className="py-2 pr-2">{auto ? <span className="text-slate-400">—</span> : <TickBoxes step={step} />}</td>
+      {screen ? (
+        <td colSpan={3} className="py-2 text-xs text-slate-600">
+          <span className="inline-flex items-start gap-1">
+            <MonitorSmartphone className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            <span>
+              ยอดและเวลาบันทึกในระบบ — สแกน QR หัวใบ
+              <br />
+              <span className="text-slate-500">ไม่ต้องเขียนยอดบนใบนี้</span>
+            </span>
+          </span>
+        </td>
+      ) : auto ? (
+        <td colSpan={3} className="py-2 text-slate-400">
+          —
+        </td>
+      ) : (
+        <>
+          <td className="py-2 pr-2 text-slate-500">
+            <Blank w="w-8" /> / <Blank w="w-8" />
+          </td>
+          <td className="py-2 pr-2 text-slate-300">___ / ___</td>
+          <td className="py-2 text-slate-300">________</td>
+        </>
+      )}
+    </tr>
+  );
+}
+
 export function PaperTicket({ variant, steps }: { variant: Variant; steps: WorkStep[] }) {
   const prints = ITEMS[0]!.prints;
+  const inhouse = steps.filter((s) => s.kind !== "outsource");
+  const outsource = steps.filter((s) => s.kind === "outsource");
   return (
     <div className="overflow-x-auto rounded-2xl bg-[#e9e9ec] p-3 sm:p-6">
       {/* กระดาษเป็นกระดาษทุกธีม — ล็อก token ข้อความรอง/เส้นคั่นให้เป็นเทาเอกสาร (print-page ของจริงล็อกเฉพาะ slate) */}
@@ -366,7 +478,7 @@ export function PaperTicket({ variant, steps }: { variant: Variant; steps: WorkS
             <span className="mt-1 rounded border-2 border-red-600 px-2.5 py-1 text-sm font-bold text-red-600">สำคัญ</span>
             <div className="text-center">
               <div className="h-[92px] w-[92px]" dangerouslySetInnerHTML={{ __html: QR_SVG }} />
-              <p className="mt-0.5 text-2xs text-slate-500">{variant === "now" ? "สแกนเปิดออเดอร์" : "สแกนเปิดใบผลิต"}</p>
+              <p className="mt-0.5 text-2xs text-slate-500">{variant === "now" ? "สแกนเปิดออเดอร์" : "สแกน = เปิดใบนี้ในระบบ"}</p>
             </div>
           </div>
         </div>
@@ -443,87 +555,75 @@ export function PaperTicket({ variant, steps }: { variant: Variant; steps: WorkS
 
         {/* ตารางขั้นตอน — ส่วนที่ต่างกันในแต่ละทาง */}
         <div className="mt-4">
-          <div className="mb-1 flex flex-wrap items-baseline justify-between gap-2">
-            <p className="text-sm font-bold">ขั้นตอนผลิต</p>
-            {variant === "three" ? (
-              <p className="flex items-center gap-1 text-2xs text-slate-600">
-                <MonitorSmartphone className="h-3 w-3" aria-hidden="true" /> แถวที่มีเครื่องหมายนี้ ต้องบันทึกในระบบด้วย · ที่เหลือจดบนใบนี้พอ
-              </p>
-            ) : null}
-          </div>
           {variant === "now" ? (
-            <table className="w-full border-collapse text-xs">
-              <thead className={TABLE_HEAD_SURFACE}>
-                <tr className="border-y border-slate-400 text-left">
-                  <th className="w-8 py-1 pr-2 text-center font-semibold">#</th>
-                  <th className="py-1 pr-2 font-semibold">ขั้นตอน</th>
-                  <th className="w-28 py-1 pr-2 font-semibold">ผู้รับผิดชอบ</th>
-                  <th className="w-28 py-1 pr-2 font-semibold">เสร็จวันที่</th>
-                  <th className="w-24 py-1 font-semibold">ลงชื่อ</th>
-                </tr>
-              </thead>
-              <tbody>
-                {steps.map((step) => (
-                  <tr key={step.id} className="border-b border-slate-200">
-                    <td className="py-2 pr-2 text-center text-slate-500">{step.order}</td>
-                    <td className="py-2 pr-2">
-                      {step.label}
-                      {step.outsource ? ` (outsource: ${step.outsource.vendor})` : ""}
-                    </td>
-                    <td className="py-2 pr-2">{step.owner ?? ""}</td>
-                    <td className="py-2 pr-2 text-slate-300">____ / ____ / ____</td>
-                    <td className="py-2 text-slate-300">______________</td>
+            <>
+              <p className="mb-1 text-sm font-bold">ขั้นตอนผลิต</p>
+              <table className="w-full border-collapse text-xs">
+                <thead className={TABLE_HEAD_SURFACE}>
+                  <tr className="border-y border-slate-400 text-left">
+                    <th className="w-8 py-1 pr-2 text-center font-semibold">#</th>
+                    <th className="py-1 pr-2 font-semibold">ขั้นตอน</th>
+                    <th className="w-28 py-1 pr-2 font-semibold">ผู้รับผิดชอบ</th>
+                    <th className="w-28 py-1 pr-2 font-semibold">เสร็จวันที่</th>
+                    <th className="w-24 py-1 font-semibold">ลงชื่อ</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <table className="w-full border-collapse text-xs">
-              <thead className={TABLE_HEAD_SURFACE}>
-                <tr className="border-y border-slate-400 text-left">
-                  <th className="w-8 py-1 pr-2 text-center font-semibold">#</th>
-                  <th className="py-1 pr-2 font-semibold">ขั้นตอน</th>
-                  <th className="py-1 pr-2 font-semibold">ข้อกำหนด (ติ๊กเมื่อทำแล้ว)</th>
-                  <th className="w-24 py-1 pr-2 font-semibold">ยอดดี / เสีย</th>
-                  <th className="w-24 py-1 pr-2 font-semibold">เสร็จ</th>
-                  <th className="w-20 py-1 font-semibold">ลงชื่อ</th>
-                </tr>
-              </thead>
-              <tbody>
-                {steps.map((step) => {
-                  const mode = modeOf(variant, step);
-                  const screen = variant === "three" && mode === "screen";
-                  const auto = variant === "three" && mode === "auto";
-                  return (
-                    <tr key={step.id} className={cn("border-b border-slate-200 align-top", screen && "bg-slate-100")}>
+                </thead>
+                <tbody>
+                  {steps.map((step) => (
+                    <tr key={step.id} className="border-b border-slate-200">
                       <td className="py-2 pr-2 text-center text-slate-500">{step.order}</td>
                       <td className="py-2 pr-2">
-                        <p className="font-semibold leading-tight">{step.label}</p>
-                        {step.outsource ? <p className="text-2xs text-slate-600">{step.outsource.vendor}</p> : null}
-                        {screen ? (
-                          <p className="mt-1 inline-flex items-center gap-1 rounded border border-slate-700 px-1.5 py-0.5 text-2xs font-bold">
-                            <MonitorSmartphone className="h-3 w-3" aria-hidden="true" /> จดในระบบ
-                          </p>
-                        ) : null}
-                        {auto ? <p className="mt-1 text-2xs text-slate-500">ผ่านเองเมื่อปิดรอบพิมพ์ — ไม่ต้องเซ็น</p> : null}
+                        {step.label}
+                        {step.outsource ? ` (outsource: ${step.outsource.vendor})` : ""}
                       </td>
-                      <td className="py-2 pr-2">{auto ? <span className="text-slate-400">—</span> : <TickBoxes step={step} />}</td>
-                      <td className="py-2 pr-2 text-slate-500">
-                        {auto ? (
-                          <span className="text-slate-400">—</span>
-                        ) : (
-                          <>
-                            <Blank w="w-8" /> / <Blank w="w-8" />
-                          </>
-                        )}
-                      </td>
-                      <td className="py-2 pr-2 text-slate-300">{auto ? "" : "___ / ___"}</td>
-                      <td className="py-2 text-slate-300">{auto ? "" : "________"}</td>
+                      <td className="py-2 pr-2">{step.owner ?? ""}</td>
+                      <td className="py-2 pr-2 text-slate-300">____ / ____ / ____</td>
+                      <td className="py-2 text-slate-300">______________</td>
                     </tr>
-                  );
-                })}
-              </tbody>
-              {variant === "batch" ? (
+                  ))}
+                </tbody>
+              </table>
+            </>
+          ) : variant === "three" ? (
+            <>
+              <div className="mb-1 flex flex-wrap items-baseline justify-between gap-2">
+                <p className="text-sm font-bold">ขั้นตอนผลิต — ทำในโรงงาน (ตามลำดับ)</p>
+                <p className="flex items-center gap-1 text-2xs text-slate-600">
+                  <MonitorSmartphone className="h-3 w-3" aria-hidden="true" /> แถวที่มีเครื่องหมายนี้ = ยอดและเวลาอยู่ในระบบ ไม่ต้องเขียนบนใบ
+                </p>
+              </div>
+              <table className="w-full border-collapse text-xs">
+                <PaperHead />
+                <tbody>
+                  {inhouse.map((step) => (
+                    <PaperRow key={step.id} step={step} variant={variant} note={step.kind === "qc" && outsource.length > 0 ? "เริ่มได้เมื่อของจากร้านนอกกลับครบ" : undefined} />
+                  ))}
+                </tbody>
+              </table>
+              {outsource.length > 0 ? (
+                <>
+                  <p className="mb-1 mt-3 text-sm font-bold">ของจากร้านนอก — เดินคู่ขนาน ระบบตามให้</p>
+                  <table className="w-full border-collapse text-xs">
+                    <PaperHead />
+                    <tbody>
+                      {outsource.map((step) => (
+                        <PaperRow key={step.id} step={step} variant={variant} />
+                      ))}
+                    </tbody>
+                  </table>
+                </>
+              ) : null}
+            </>
+          ) : (
+            <>
+              <p className="mb-1 text-sm font-bold">ขั้นตอนผลิต</p>
+              <table className="w-full border-collapse text-xs">
+                <PaperHead />
+                <tbody>
+                  {steps.map((step) => (
+                    <PaperRow key={step.id} step={step} variant={variant} />
+                  ))}
+                </tbody>
                 <tfoot>
                   <tr className="border-t-2 border-slate-400">
                     <td colSpan={6} className="py-2 text-xs">
@@ -531,8 +631,8 @@ export function PaperTicket({ variant, steps }: { variant: Variant; steps: WorkS
                     </td>
                   </tr>
                 </tfoot>
-              ) : null}
-            </table>
+              </table>
+            </>
           )}
         </div>
 
@@ -545,6 +645,16 @@ export function PaperTicket({ variant, steps }: { variant: Variant; steps: WorkS
           บันทึกหน้างาน
           <div className="h-10" />
         </div>
+
+        {/* ท้ายใบ: ฉบับ + วันพิมพ์ + ม็อกอัพ — ให้จับกระดาษเก่าได้ (P4) · ทางปัจจุบันไม่มีบรรทัดนี้ */}
+        {variant !== "now" ? (
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-slate-300 pt-2 text-2xs text-slate-500">
+            <span className="font-semibold text-slate-700">ฉบับ {TICKET.issue}</span>
+            <span>พิมพ์ {TICKET.printedAt} โดย {TICKET.printedBy}</span>
+            <span>ม็อกอัพ {TICKET.mockup}</span>
+            <span>QR ผูกฉบับนี้ — สแกนใบเก่าระบบจะเตือน</span>
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -562,6 +672,12 @@ function MetaCell({ label, value, strong }: { label: string; value: string; stro
 /** สิ่งที่ต่างจากใบสั่งงานที่พิมพ์ได้ตอนนี้ — เขียนบอกข้างกระดาษ ไม่ปนในกระดาษ */
 export const PAPER_DIFF: Record<Variant, readonly string[]> = {
   now: ["ใบนี้คือใบที่พิมพ์ได้ตอนนี้ (/print/job-ticket) — QR เปิดหน้าออเดอร์", "ตาราง “ขั้นตอนผลิต” มีช่องเสร็จวันที่/ลงชื่อทุกขั้น ทั้งที่ช่างต้องกดจอทุกขั้นอยู่แล้ว = จด 2 ที่", "ข้อกำหนดมาตรฐานไม่อยู่บนกระดาษ (อยู่ในจอเท่านั้น)"],
-  three: ["QR เปิดใบผลิต ไม่ใช่หน้าออเดอร์ — สแกนแล้วเห็นขั้นและปุ่มของใบนี้เลย", "ข้อกำหนดมาตรฐานพิมพ์เป็นช่องติ๊กต่อขั้น พร้อมช่องยอดดี/เสียและลงชื่อ — กระดาษคือบันทึกของขั้นที่ไม่จดในระบบ", "แถวที่ต้องจดในระบบมีเครื่องหมายจอ (QC, แพ็ก, ร้านนอก) — ช่างรู้จากกระดาษว่าจุดไหนต้องไปแตะจอ", "ขั้นพิมพ์ DTF ไม่มีช่องเซ็น — ระบบรู้จากรอบพิมพ์อยู่แล้ว", "เพิ่มช่อง “สูตรขั้นงาน” แทน “จำนวนรายการ”"],
-  batch: ["เหมือนทาง A แต่ทุกแถวเซ็นบนกระดาษเท่ากัน ไม่มีเครื่องหมายจอ", "แถวท้ายให้หัวหน้าเซ็นว่า “กรอกเข้าระบบแล้ว” กันกรอกซ้ำ/ตกหล่น", "QR เปิดใบผลิตเหมือน A"],
+  three: [
+    "QR เปิดใบนี้ในระบบ — หัวหน้าเห็นใบผลิต ช่างถูกพาไปหน้าลงมือของสถานีตัวเอง และ QR ผูกฉบับที่พิมพ์ สแกนใบเก่าระบบเตือน",
+    "แถวที่จดในระบบ (เบิกเสื้อ, QC, แพ็ก, ร้านนอก) ไม่มีช่องยอด/เสร็จ/ลงชื่อ — ยอดเขียนที่จอที่เดียว ไม่ลอกซ้ำ ยังมีช่องติ๊กข้อกำหนดเพราะเป็นวิธีทำงาน",
+    "แถวที่จดบนกระดาษ (รีดร้อน) มีช่องยอดดี/เสีย เสร็จ ลงชื่อ — กระดาษคือบันทึกจริงของขั้นนี้",
+    "งานร้านนอกแยกตารางล่าง บอกว่าเดินคู่ขนาน + วันส่ง/นัดรับ — ช่างรีดไม่ต้องรอปักกลับ และแถว QC บอกว่าเริ่มได้เมื่อของกลับครบ",
+    "ท้ายใบมีฉบับ วันพิมพ์ ม็อกอัพ — กระดาษเก่าตอนแบบเปลี่ยนจับได้ และขั้นพิมพ์ DTF ไม่มีช่องเซ็น",
+  ],
+  batch: ["เหมือนทาง A แต่ทุกแถวเซ็นบนกระดาษเท่ากัน ไม่มีเครื่องหมายจอ", "แถวท้ายให้หัวหน้าเซ็นว่า “กรอกเข้าระบบแล้ว” กันกรอกซ้ำ/ตกหล่น", "QR เปิดใบนี้ในระบบเหมือน A"],
 };
