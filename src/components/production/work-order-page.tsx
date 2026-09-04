@@ -391,12 +391,13 @@ export function StepDetail({
     <Section
       title={stepLabel(step)}
       meta={
-        <InfoChipRow>
+        // Section วาง meta ไว้ใน <p> — ต้องเป็น span ห้ามใช้ InfoChipRow (div) ไม่งั้น hydration พัง
+        <span className="inline-flex flex-wrap items-center gap-1.5">
           <StateChip view={view} kind={outsource ? "outsource" : "inhouse"} size="md" />
           <InfoChip size="md" icon={STATION_ICON[st.key] ?? Wrench}>
             {st.label}
           </InfoChip>
-        </InfoChipRow>
+        </span>
       }
       action={<Owner step={step} />}
       tone="production"
