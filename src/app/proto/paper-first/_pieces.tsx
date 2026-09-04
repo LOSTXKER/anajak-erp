@@ -47,19 +47,17 @@ export function TapSummary({ variant, steps }: { variant: Variant; steps: WorkSt
         )}
       </div>
       <div className="card-surface rounded-2xl p-4 lg:col-span-2">
-        <Fact
-          icon={Clock}
-          label="ระบบรู้ทันทีเมื่อ"
-          value={
-            <InfoChipRow>
-              {knows.map((k) => (
-                <InfoChip key={k} size="md" tone={variant === "batch" ? "warning" : "info"} strong={variant !== "now"}>
-                  {k}
-                </InfoChip>
-              ))}
-            </InfoChipRow>
-          }
-        />
+        {/* Fact วางค่าใน <p> — แถวชิปเป็น div จึงวางเองแบบช่อง "กำหนดส่ง" ในใบผลิตจริง */}
+        <p className="flex items-center gap-1.5 text-xs font-medium text-muted">
+          <Clock className="h-4 w-4" aria-hidden="true" /> ระบบรู้ทันทีเมื่อ
+        </p>
+        <InfoChipRow className="mt-2">
+          {knows.map((k) => (
+            <InfoChip key={k} size="md" tone={variant === "batch" ? "warning" : "info"} strong={variant !== "now"}>
+              {k}
+            </InfoChip>
+          ))}
+        </InfoChipRow>
       </div>
     </div>
   );
