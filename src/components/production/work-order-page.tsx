@@ -15,7 +15,7 @@
  */
 
 import { Suspense, useState } from "react";
-import { AlertTriangle, CalendarCheck, CheckCircle2, ClipboardCheck, Factory, History, Shirt, Truck, UserRound, Wrench } from "lucide-react";
+import { AlertTriangle, CalendarCheck, CheckCircle2, ClipboardCheck, Clock, Factory, History, Pencil, Shirt, Truck, UserRound, Wrench } from "lucide-react";
 
 import { PageShell } from "@/components/page-shell";
 import { ActionZone } from "@/components/ui/action-zone";
@@ -27,6 +27,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Fact, FactList } from "@/components/ui/fact";
 import { InfoChip, InfoChipRow } from "@/components/ui/info-chip";
 import { Metric } from "@/components/ui/metric";
+import { MoreMenu, type MoreMenuItem } from "@/components/ui/more-menu";
 import { RecordNotFound } from "@/components/ui/record-not-found";
 import { Section } from "@/components/ui/section";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -35,7 +36,7 @@ import { MaterialUsage } from "@/components/material-usage";
 import { GarmentPickCard } from "@/components/production/garment-pick-card";
 import { ProductionDesignCard } from "@/components/production/production-design-card";
 import { ProductionMockupTab } from "@/components/production/production-mockup-tab";
-import { FixDialog, ProblemDialog } from "@/components/production/step-command-dialogs";
+import { ProblemDialog, fixCommands } from "@/components/production/step-command-dialogs";
 import { STATION_ICON } from "@/components/station/station-pieces";
 import type { ProductionDetail, ProductionStep } from "@/components/production/types";
 import { PRIORITY_LABELS } from "@/lib/order-status";
@@ -376,7 +377,8 @@ export function StepDetail({
   const st = stationForStep(step.stepType);
   const standards = workOrderStandards(step.stepType);
   const [problemOpen, setProblemOpen] = useState(false);
-  const [fixOpen, setFixOpen] = useState(false);
+  const done = step.status === "COMPLETED";
+  const stuck = step.status === "FAILED" || step.status === "ON_HOLD";
   const blockedReason =
     step.status === "COMPLETED"
       ? `ปิดขั้นแล้ว${step.completedAt ? ` ${formatDateTime(step.completedAt)}` : ""}${step.assignedTo ? ` · โดย ${step.assignedTo.name}` : ""}`
@@ -438,33 +440,37 @@ export function StepDetail({
             ))}
           </ul>
         </div>
-        <ActionZone note={blockedReason ?? (active ? `ร้านนอก: ${active.vendor.name}` : undefined)}>
-          {primary ?? (
-            step.stepType === "GARMENT_PICK" ? null : (
-              <Button variant="outline" disabled>
-                ลงมือไม่ได้ตอนนี้
-              </Button>
-            )
-          )}
-          {canEdit ? (
-            <Button variant="outline" onClick={onEdit}>
-              บันทึกรายละเอียด
+        {/* แบบ A (เบสเคาะ 09-03): ประโยคสถานะบน · ปุ่มหลัก 1 · แจ้งปัญหาเบา · ที่เหลืออยู่ในเมนู "เพิ่มเติม" · ไม่มีปุ่มที่กดไม่ได้ */}
+        <ActionZone
+          note={blockedReason ?? (active ? `ร้านนอก: ${active.vendor.name}` : primary ? "พร้อมลงมือ — ทำครบข้อกำหนดแล้วค่อยกดปุ่ม" : undefined)}
+          icon={done ? CheckCircle2 : stuck ? AlertTriangle : primary ? Wrench : Clock}
+          tone={done ? "success" : stuck ? "error" : primary ? "info" : "neutral"}
+          menu={
+            !done ? (
+              <MoreMenu
+                items={[
+                  ...(canEdit ? [{ key: "edit", label: "บันทึกรายละเอียด", hint: "แก้ยอด หมายเหตุ และเวลาของขั้นนี้", icon: Pencil, onSelect: onEdit } satisfies MoreMenuItem] : []),
+                  ...(canFix
+                    ? fixCommands(step, c).map<MoreMenuItem>((row) => ({ key: row.key, label: row.label, hint: row.enabled ? row.desc : row.why, icon: Wrench, danger: row.danger, disabled: !row.enabled, onSelect: row.run }))
+                    : []),
+                ]}
+              />
+            ) : null
+          }
+        >
+          {primary ?? (stuck && canFix ? (
+            <Button variant="destructive" onClick={() => c.openEdit(step, "manager")}>
+              <Wrench /> ปลดปัญหา / เปลี่ยนคน
             </Button>
-          ) : null}
+          ) : null)}
           {canReport ? (
-            <Button variant="outline" onClick={() => setProblemOpen(true)}>
+            <Button variant="ghost" onClick={() => setProblemOpen(true)}>
               <AlertTriangle /> แจ้งปัญหา
-            </Button>
-          ) : null}
-          {canFix ? (
-            <Button variant="outline" onClick={() => setFixOpen(true)}>
-              <Wrench /> แก้ให้
             </Button>
           ) : null}
         </ActionZone>
       </div>
       <ProblemDialog open={problemOpen} onClose={() => setProblemOpen(false)} step={step} c={c} />
-      <FixDialog open={fixOpen} onClose={() => setFixOpen(false)} step={step} c={c} />
     </Section>
   );
 }

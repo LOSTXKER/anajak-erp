@@ -8,7 +8,7 @@
  */
 
 import { useState, type ReactNode } from "react";
-import { AlertTriangle, CheckCircle2, Circle, Wrench } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Circle, Clock, Wrench } from "lucide-react";
 import { ActionZone } from "@/components/ui/action-zone";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -276,14 +276,9 @@ function StepZone({
         </div>
       </div>
 
-      <ActionZone touch note={note}>
-        {primary ?? (
-          step.stepType === "GARMENT_PICK" ? null : (
-            <Button variant="outline" className="h-16 text-lg" disabled>
-              ลงมือไม่ได้ตอนนี้
-            </Button>
-          )
-        )}
+      {/* ไม่มีปุ่มที่กดไม่ได้ — ลงมือไม่ได้ให้ประโยคสถานะบอก (เบสเคาะ A 09-03) */}
+      <ActionZone touch note={note} icon={done ? CheckCircle2 : stuck ? AlertTriangle : now ? Wrench : Clock} tone={done ? "success" : stuck ? "error" : now && !gated ? "info" : "neutral"}>
+        {primary}
         {canReport ? (
           <Button variant="outline" className="h-16 text-lg" onClick={() => setProblemOpen(true)}>
             <AlertTriangle /> แจ้งปัญหา

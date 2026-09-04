@@ -78,14 +78,15 @@ export function ProblemDialog({ open, onClose, step, c }: { open: boolean; onClo
 
 /* ───────────────────────── หัวหน้าแก้ให้ ───────────────────────── */
 
-type FixRow = { key: string; label: string; desc: string; enabled: boolean; why?: string; danger?: boolean; run: () => void };
+export type FixCommand = { key: string; label: string; desc: string; enabled: boolean; why?: string; danger?: boolean; run: () => void };
 
-export function FixDialog({ open, onClose, step, c }: { open: boolean; onClose: () => void; step: ProductionStep; c: WorkOrderController }) {
+/** รายการ "แก้ให้" ของหัวหน้า — ชุดเดียวใช้ทั้ง FixDialog (หน้างาน จอทัช) และเมนู "เพิ่มเติม" (ใบผลิต) */
+export function fixCommands(step: ProductionStep, c: WorkOrderController): FixCommand[] {
   const done = step.status === "COMPLETED";
   const stuck = step.status === "FAILED" || step.status === "ON_HOLD";
   const live = step.status === "PENDING" || step.status === "IN_PROGRESS";
   const serviceOwned = ["GARMENT_PICK", "GARMENT_RECEIVE", "DTF_PRINT"].includes(step.stepType);
-  const rows: FixRow[] = [
+  return [
     {
       key: "qty",
       label: "แก้ยอดที่บันทึก",
@@ -136,6 +137,10 @@ export function FixDialog({ open, onClose, step, c }: { open: boolean; onClose: 
       run: () => undefined,
     },
   ];
+}
+
+export function FixDialog({ open, onClose, step, c }: { open: boolean; onClose: () => void; step: ProductionStep; c: WorkOrderController }) {
+  const rows = fixCommands(step, c);
   return (
     <Dialog open={open} onOpenChange={(o) => (o ? null : onClose())}>
       <DialogContent className="max-w-xl">
