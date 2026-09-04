@@ -25,7 +25,7 @@ import { SegmentedControl } from "@/components/ui/segmented";
 import { Skeleton } from "@/components/ui/skeleton";
 import { buildProductionBoard } from "@/lib/production-board";
 import { daysFromNow } from "@/lib/production-desk";
-import { resolveStation, stationCards, stationCounts, stationDefs, stationQueue, visibleCards } from "@/lib/station-desk";
+import { findStationForJob, resolveStation, stationCards, stationCounts, stationDefs, stationQueue, visibleCards } from "@/lib/station-desk";
 import { FLOOR_HREF } from "@/lib/production-surface";
 import { formatDate, formatDateTime } from "@/lib/utils";
 import { QueueGroups, StationIcon, StationShell, StationTile, WhoChip } from "./station-pieces";
@@ -84,13 +84,10 @@ function Screen() {
   const defs = useMemo(() => stationDefs(board), [board]);
   const station = resolveStation(st, defs);
   // เปิดหน้าลงมือจาก URL โดยไม่รู้สถานี (ลิงก์จากใบผลิต · ช่างถูกพามาจาก /production/[id]) — หาสถานีให้จากคิว
-  const jobStation = useMemo(() => {
-    if (station || screen !== "job" || !jobId) return null;
-    for (const def of defs) {
-      if (stationCards(board, def).some((card) => card.spot.productionId === jobId && (!stepId || card.step?.id === stepId))) return def;
-    }
-    return null;
-  }, [station, screen, jobId, stepId, defs, board]);
+  const jobStation = useMemo(
+    () => (station || screen !== "job" || !jobId ? null : findStationForJob(board, defs, jobId, stepId)),
+    [station, screen, jobId, stepId, defs, board],
+  );
   const clock = queueQuery.dataUpdatedAt > 0 ? formatDateTime(new Date(queueQuery.dataUpdatedAt)) : null;
 
   // ช่างเปิดจอมาแล้วอยู่สถานีเดิมเลย (หัวหน้าเปิดมาเจอแผงทั้งโรงงานเสมอ)

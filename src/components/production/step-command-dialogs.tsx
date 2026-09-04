@@ -18,7 +18,8 @@ import { RADIUS, SUNK_PANEL, TINT } from "@/components/ui/tokens";
 import type { ProductionStep } from "@/components/production/types";
 import type { WorkOrderController } from "@/components/production/work-order-controller";
 import { stepLabel } from "@/components/production/work-order-pieces";
-import { STATION_PROBLEM_REASONS } from "@/lib/station-desk";
+import { PROBLEM_REASON_MIN_LENGTH, STATION_PROBLEM_REASONS, composeProblemReason } from "@/lib/station-desk";
+import { buildFixCommands, type FixCommand } from "@/lib/step-fix-commands";
 import { cn, formatDateTime } from "@/lib/utils";
 
 /* ───────────────────────── แจ้งปัญหาแบบกดเลือก ───────────────────────── */
@@ -27,8 +28,8 @@ export function ProblemDialog({ open, onClose, step, c }: { open: boolean; onClo
   const [reason, setReason] = useState<string | null>(null);
   const [detail, setDetail] = useState("");
   const other = reason === "other";
-  const text = other ? detail.trim() : reason ? `${reason}${detail.trim() ? ` — ${detail.trim()}` : ""}` : "";
-  const ready = text.length >= 3;
+  const text = composeProblemReason(reason, detail);
+  const ready = text.length >= PROBLEM_REASON_MIN_LENGTH;
   return (
     <Dialog open={open} onOpenChange={(o) => (o ? null : onClose())}>
       <DialogContent className="max-w-lg">
@@ -78,65 +79,13 @@ export function ProblemDialog({ open, onClose, step, c }: { open: boolean; onClo
 
 /* ───────────────────────── หัวหน้าแก้ให้ ───────────────────────── */
 
-export type FixCommand = { key: string; label: string; desc: string; enabled: boolean; why?: string; danger?: boolean; run: () => void };
-
-/** รายการ "แก้ให้" ของหัวหน้า — ชุดเดียวใช้ทั้ง FixDialog (หน้างาน จอทัช) และเมนู "เพิ่มเติม" (ใบผลิต) */
+/** รายการ "แก้ให้" ผูกกับเครื่องยนต์ของใบ — กติกาอยู่ lib/step-fix-commands (ทดสอบแยกได้) */
 export function fixCommands(step: ProductionStep, c: WorkOrderController): FixCommand[] {
-  const done = step.status === "COMPLETED";
-  const stuck = step.status === "FAILED" || step.status === "ON_HOLD";
-  const live = step.status === "PENDING" || step.status === "IN_PROGRESS";
-  const serviceOwned = ["GARMENT_PICK", "GARMENT_RECEIVE", "DTF_PRINT"].includes(step.stepType);
-  return [
-    {
-      key: "qty",
-      label: "แก้ยอดที่บันทึก",
-      desc: "นับผิดหรือกดเลขผิด — ใส่ยอดที่ถูกแทน",
-      enabled: live && !!step.qtyTotal && !serviceOwned,
-      why: done ? "ขั้นปิดแล้ว" : serviceOwned ? "ขั้นนี้แก้ยอดผ่านเมนูเฉพาะ (เบิก/ตรวจรับ/รอบพิมพ์)" : !step.qtyTotal ? "ขั้นนี้ไม่นับตัว" : undefined,
-      run: () => c.openQty(step.id),
-    },
-    {
-      key: "assign",
-      label: stuck ? "ปลดปัญหา / เปลี่ยนคนทำ" : "เปลี่ยนคนทำ",
-      desc: stuck ? "บอกวิธีที่แก้แล้ว หรือย้ายงานให้คนอื่น" : "ย้ายให้คนอื่น หรือปลดชื่อคนที่กดรับงานผิด",
-      enabled: !done,
-      why: done ? "ขั้นปิดแล้ว" : undefined,
-      run: () => c.openEdit(step, "manager"),
-    },
-    {
-      key: "hold",
-      label: "พักงานนี้ไว้ก่อน",
-      desc: "เอาออกจากคิวชั่วคราว ช่างจะไม่เห็นในคิวพร้อมทำ",
-      enabled: live && !serviceOwned,
-      why: !live ? "พักได้เฉพาะขั้นที่รอ/กำลังทำ" : serviceOwned ? "ขั้นนี้เดินผ่านเมนูเฉพาะ" : undefined,
-      run: () => void c.handleSupervisorStatus(step, "ON_HOLD"),
-    },
-    {
-      key: "requeue",
-      label: "คืนกลับคิวพร้อมทำ",
-      desc: "ช่างกดเริ่มผิดใบ — เอากลับเป็นรอทำ",
-      enabled: step.status === "IN_PROGRESS" && !serviceOwned,
-      why: step.status !== "IN_PROGRESS" ? "ใช้กับขั้นที่กำลังทำเท่านั้น" : serviceOwned ? "ขั้นนี้เดินผ่านเมนูเฉพาะ" : undefined,
-      run: () => void c.handleSupervisorStatus(step, "PENDING"),
-    },
-    {
-      key: "skip",
-      label: "ผ่านขั้นนี้แทนช่าง",
-      desc: "ทำแล้วจริงแต่ไม่ได้กดในระบบ — ปิดขั้นให้ในชื่อหัวหน้า",
-      enabled: live && !serviceOwned,
-      why: !live ? "ผ่านได้เฉพาะขั้นที่รอ/กำลังทำ" : serviceOwned ? "ขั้นนี้ปิดผ่านเมนูเฉพาะเท่านั้น" : undefined,
-      danger: true,
-      run: () => void c.handleSupervisorStatus(step, "COMPLETED"),
-    },
-    {
-      key: "reopen",
-      label: "ย้อนขั้นที่ปิดแล้วกลับ",
-      desc: "ช่างกดปิดผิด — เปิดขั้นกลับมาทำต่อ",
-      enabled: false,
-      why: "ระบบยังไม่รองรับ — ขั้นที่ปิดแล้วแก้ย้อนหลังไม่ได้ (จดไว้ทำเพิ่ม)",
-      run: () => undefined,
-    },
-  ];
+  return buildFixCommands(step, {
+    openQty: c.openQty,
+    openManagerEdit: (s) => c.openEdit(s, "manager"),
+    setStatus: (s, status) => void c.handleSupervisorStatus(s, status),
+  });
 }
 
 export function FixDialog({ open, onClose, step, c }: { open: boolean; onClose: () => void; step: ProductionStep; c: WorkOrderController }) {

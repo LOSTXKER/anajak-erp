@@ -10,6 +10,9 @@ import {
   visibleCards,
   type StationStepLike,
   stationForStep,
+  findStationForJob,
+  composeProblemReason,
+  PROBLEM_REASON_MIN_LENGTH,
 } from "@/lib/station-desk";
 
 const NOW = new Date("2026-08-30T07:00:00.000Z");
@@ -149,5 +152,32 @@ describe("stationForStep — ขั้นชนิดนี้อยู่สถ
     expect(stationForStep("HEAT_PRESS").key).toBe("lane:DTF");
     expect(stationForStep("EMBROIDERY")).toEqual({ key: "outsource", label: "ร้านนอก" });
     expect(stationForStep("DTF_PRINT").key).toBe("lane:DTF");
+  });
+});
+
+describe("composeProblemReason — ข้อความแจ้งปัญหาจากปุ่มเลือกเหตุ", () => {
+  it("เลือกเหตุอย่างเดียว = ส่งเหตุนั้น · มีรายละเอียดต่อท้ายด้วยขีด", () => {
+    expect(composeProblemReason("เครื่องเสีย", "")).toBe("เครื่องเสีย");
+    expect(composeProblemReason("เครื่องเสีย", "  หัวพิมพ์ตัน ")).toBe("เครื่องเสีย — หัวพิมพ์ตัน");
+  });
+  it("อื่น ๆ ต้องพิมพ์เอง · ยังไม่เลือกอะไร = ส่งไม่ได้", () => {
+    expect(composeProblemReason("other", " ฟิล์มหมด ")).toBe("ฟิล์มหมด");
+    expect(composeProblemReason("other", "")).toBe("");
+    expect(composeProblemReason(null, "อะไรก็ได้")).toBe("");
+    expect("ab".length < PROBLEM_REASON_MIN_LENGTH).toBe(true);
+  });
+});
+
+describe("findStationForJob — เปิดหน้าลงมือจากลิงก์ที่ไม่รู้สถานี", () => {
+  it("หาสถานีจากใบ/ขั้นที่อยู่ในคิว · ไม่ระบุขั้นก็เจอ · ใบที่ไม่อยู่ในคิว = null", () => {
+    const b = board();
+    const defs = stationDefs(b);
+    const prep = defs.find((d) => d.key === "lane:PREP")!;
+    const card = stationCards(b, prep).find((c) => c.step?.id === "s1")!;
+    expect(findStationForJob(b, defs, card.spot.productionId!, "s1")?.key).toBe("lane:PREP");
+    expect(findStationForJob(b, defs, card.spot.productionId!, null)?.key).toBe("lane:PREP");
+    const outsource = stationCards(b, defs.find((d) => d.key === STATION_OUTSOURCE)!).find((c) => c.step?.id === "s5")!;
+    expect(findStationForJob(b, defs, outsource.spot.productionId!, "s5")?.key).toBe(STATION_OUTSOURCE);
+    expect(findStationForJob(b, defs, "ไม่มีใบนี้", null)).toBeNull();
   });
 });

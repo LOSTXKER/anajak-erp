@@ -218,6 +218,29 @@ export function stationCounts<S extends StationStepLike, O extends BoardOrderLik
   });
 }
 
+/** เปิดหน้าลงมือจาก URL โดยไม่รู้สถานี (ลิงก์จากใบผลิต · ช่างถูกพามาจาก /production/[id]) — หาสถานีที่ใบ/ขั้นนั้นอยู่ในคิว */
+export function findStationForJob<S extends StationStepLike, O extends BoardOrderLike<S>>(
+  board: Pick<ProductionBoard<O, S>, "jobs">,
+  defs: readonly StationDef[],
+  productionId: string,
+  stepId: string | null,
+): StationDef | null {
+  for (const def of defs) {
+    if (stationCards(board, def).some((card) => card.spot.productionId === productionId && (!stepId || card.step?.id === stepId))) return def;
+  }
+  return null;
+}
+
+/** ข้อความแจ้งปัญหาที่ส่งเข้า server จากปุ่มเลือกเหตุ + ช่องรายละเอียด — "" = ยังส่งไม่ได้ */
+export function composeProblemReason(reason: string | null, detail: string): string {
+  const extra = detail.trim();
+  if (reason === "other") return extra;
+  if (!reason) return "";
+  return extra ? `${reason} — ${extra}` : reason;
+}
+
+export const PROBLEM_REASON_MIN_LENGTH = 3;
+
 /** เหตุผลแจ้งปัญหาแบบกดเลือก — ช่างไม่ต้องพิมพ์ (ข้อความไปลง reportStationProblem.reason ตรง ๆ) */
 export const STATION_PROBLEM_REASONS = [
   "เสื้อไม่พอ / ไม่ตรงใบงาน",
