@@ -15,7 +15,8 @@
  */
 
 import { Suspense, useState } from "react";
-import { AlertTriangle, CalendarCheck, CheckCircle2, ClipboardCheck, Clock, Factory, History, Pencil, Shirt, Truck, UserRound, Wrench } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { AlertTriangle, CalendarCheck, CheckCircle2, ClipboardCheck, Clock, Factory, FileText, History, MonitorSmartphone, Pencil, Printer, Shirt, Truck, UserRound, Wrench } from "lucide-react";
 
 import { PageShell } from "@/components/page-shell";
 import { ActionZone } from "@/components/ui/action-zone";
@@ -42,7 +43,9 @@ import type { ProductionDetail, ProductionStep } from "@/components/production/t
 import { PRIORITY_LABELS } from "@/lib/order-status";
 import type { NowStep } from "@/lib/production-step-actions";
 import { isOutsourceStep } from "@/lib/production-steps";
+import { latestPlainProductionNote } from "@/lib/production-problem";
 import { stationForStep } from "@/lib/station-desk";
+import { PAPER_STEP_NOTE, RECORD_MODE_LABEL, inferredStage, isInferredDone, recordModeOf, whyRecordOnScreen, type RecordMode } from "@/lib/work-order-record-mode";
 import { workOrderStandards } from "@/lib/work-order-standards";
 import { cn, formatDate, formatDateTime } from "@/lib/utils";
 import { useWorkOrderController, type WorkOrderController } from "./work-order-controller";
@@ -53,6 +56,11 @@ import { ItemsSection, OutsourceFacts, Owner, ProblemCard, Qty, StateChip, activ
 function WorkOrder({ id }: { id: string }) {
   const c = useWorkOrderController(id);
   const { production, order, me, productionQuery, meQuery, workflowSteps, nowById, nowMs, selectedStep, selectedNow } = c;
+  // กระดาษเป็นหลัก (ROADMAP §A5): QR บนใบสั่งงานพกเวอร์ชันม็อกอัพที่พิมพ์ (?mockup=n) — สแกนใบเก่าแล้วต้องรู้ทันที
+  const scannedMockup = Number(useSearchParams().get("mockup") ?? "");
+  const approvedMockup = order?.designs[0]?.versionNumber ?? null;
+  const stalePaper = Number.isFinite(scannedMockup) && scannedMockup > 0 && approvedMockup !== null && scannedMockup < approvedMockup;
+  const stage = inferredStage(workflowSteps);
 
   return (
     <>
@@ -113,6 +121,41 @@ function WorkOrder({ id }: { id: string }) {
             {c.writeDataStale ? (
               <Alert variant="warning" title="ข้อมูลล่าสุดอาจยังไม่ครบ">
                 กำลังแสดงข้อมูลเดิมที่โหลดไว้ — ปุ่มลงมือถูกปิดจนกว่าจะโหลดใหม่สำเร็จ
+              </Alert>
+            ) : null}
+            {stalePaper ? (
+              <Alert
+                variant="error"
+                title="กระดาษที่สแกนเป็นฉบับเก่า"
+                meta={[
+                  { label: "บนกระดาษ", value: `ม็อกอัพ v${scannedMockup}` },
+                  { label: "ตอนนี้", value: `ม็อกอัพ v${approvedMockup}` },
+                ]}
+                action={
+                  <Button asChild size="sm">
+                    <a href={`/print/job-ticket/${order.id}?production=${production.id}`} target="_blank" rel="noreferrer">
+                      <Printer /> พิมพ์ใบใหม่
+                    </a>
+                  </Button>
+                }
+              >
+                แบบเปลี่ยนหลังพิมพ์ใบนี้ — พิมพ์ใบใหม่แล้วเก็บใบเก่าออกจากกองเสื้อก่อนทำต่อ
+              </Alert>
+            ) : null}
+            {c.readyForQcViaPaper ? (
+              <Alert
+                variant="success"
+                title="ขั้นที่จดในระบบครบแล้ว"
+                meta={c.paperStepsPending.map((s) => ({ label: "จดบนกระดาษ", value: stepLabel(s) }))}
+                action={
+                  c.canUpdateStep ? (
+                    <Button size="sm" onClick={() => c.sendToQc.mutate({ productionId: production.id })} disabled={c.sendToQc.isPending}>
+                      ส่งเข้า QC
+                    </Button>
+                  ) : undefined
+                }
+              >
+                กดส่งเข้า QC แล้วระบบจะถือว่าขั้นบนกระดาษผ่าน (ขึ้นเป็น “ถือว่าผ่าน” สีเทา) — ยอดจริงอยู่บนใบสั่งงาน
               </Alert>
             ) : null}
 
@@ -182,12 +225,48 @@ function WorkOrder({ id }: { id: string }) {
                 ) : (
                   <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]">
                     <Section title="ขั้นงานทั้งหมด" meta={`${c.completedSteps}/${workflowSteps.length} ผ่านแล้ว`} icon={Wrench} tone="production" flush>
+                      {/* กระดาษเป็นหลัก: ใบสั่งงานพิมพ์จากใบผลิต + ช่วงงานที่อนุมานได้จากจุดที่จด (ROADMAP §A5) */}
+                      <div className="space-y-2 border-b border-divider px-4 py-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <FileText className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
+                          <span className="text-sm font-medium text-strong">ใบสั่งงานกระดาษ</span>
+                          {approvedMockup !== null ? (
+                            <InfoChip size="sm" tone="success" icon={CheckCircle2}>
+                              ม็อกอัพอนุมัติ v{approvedMockup}
+                            </InfoChip>
+                          ) : (
+                            <InfoChip size="sm" tone="warning">
+                              ยังไม่มีม็อกอัพอนุมัติ
+                            </InfoChip>
+                          )}
+                          <Button asChild variant="outline" size="sm" className="ml-auto">
+                            <a href={`/print/job-ticket/${order.id}?production=${production.id}`} target="_blank" rel="noreferrer" aria-label="พิมพ์ใบสั่งงาน (เปิดแท็บใหม่)">
+                              <Printer /> พิมพ์ใบสั่งงาน
+                            </a>
+                          </Button>
+                        </div>
+                        {stage ? (
+                          <div className="flex flex-wrap items-center gap-2">
+                            <InfoChip size="md" tone="info" strong icon={Clock}>
+                              ตอนนี้: {stage.now}
+                            </InfoChip>
+                            {stage.detail ? (
+                              <InfoChip size="md" icon={FileText}>
+                                {stage.detail}
+                              </InfoChip>
+                            ) : null}
+                          </div>
+                        ) : null}
+                      </div>
                       <ol className="divide-y divide-divider">
                         {workflowSteps.map((step, index) => {
                           const view = viewOf(step, nowById.get(step.id));
                           const on = selectedStep?.id === step.id;
                           const outsource = isOutsourceStep(step.stepType);
                           const st = stationForStep(step.stepType);
+                          const mode = recordModeOf(step);
+                          const inferred = isInferredDone(step);
+                          const quiet = mode === "paper" && step.status !== "COMPLETED" && step.status !== "FAILED" && step.status !== "ON_HOLD";
                           return (
                             <li key={step.id}>
                               <button
@@ -205,14 +284,21 @@ function WorkOrder({ id }: { id: string }) {
                                 <span className="min-w-0">
                                   <span className={cn("block truncate text-sm", on ? "font-semibold text-strong" : "font-medium text-strong")}>{stepLabel(step)}</span>
                                   <span className="mt-1 flex flex-wrap items-center gap-1.5">
-                                    <StateChip view={view} kind={outsource ? "outsource" : "inhouse"} />
+                                    {inferred ? (
+                                      <InfoChip size="sm" icon={FileText}>
+                                        ถือว่าผ่าน
+                                      </InfoChip>
+                                    ) : quiet ? null : (
+                                      <StateChip view={view} kind={outsource ? "outsource" : "inhouse"} />
+                                    )}
+                                    <RecordModeChip mode={mode} />
                                     <InfoChip size="sm" icon={STATION_ICON[st.key] ?? Wrench}>
                                       {st.label}
                                     </InfoChip>
                                     {step.assignedTo ? <InfoChip size="sm">{step.assignedTo.name}</InfoChip> : null}
                                   </span>
                                 </span>
-                                <Qty step={step} />
+                                {quiet ? <span className="text-xs text-secondary">ดูจากกระดาษ</span> : <Qty step={step} />}
                               </button>
                             </li>
                           );
@@ -346,6 +432,20 @@ function WorkOrder({ id }: { id: string }) {
   );
 }
 
+/* ───────────────────────── ชิปโหมดจด (กระดาษเป็นหลัก) ───────────────────────── */
+
+const RECORD_MODE_ICON = { screen: MonitorSmartphone, paper: FileText, auto: Printer } as const;
+const RECORD_MODE_TONE = { screen: "info", paper: "neutral", auto: "success" } as const;
+
+/** ค่าตั้งคงที่ของขั้น — ไม่ strong เพื่อไม่แย่งชั้น 1 กับชิปสถานะสด */
+export function RecordModeChip({ mode, size = "sm" }: { mode: RecordMode; size?: "sm" | "md" }) {
+  return (
+    <InfoChip size={size} tone={RECORD_MODE_TONE[mode]} icon={RECORD_MODE_ICON[mode]}>
+      {RECORD_MODE_LABEL[mode]}
+    </InfoChip>
+  );
+}
+
 /* ───────────────────────── ขั้นที่เลือก + โซนลงมือมาตรฐาน ───────────────────────── */
 
 export function StepDetail({
@@ -379,15 +479,27 @@ export function StepDetail({
   const [problemOpen, setProblemOpen] = useState(false);
   const done = step.status === "COMPLETED";
   const stuck = step.status === "FAILED" || step.status === "ON_HOLD";
+  // กระดาษเป็นหลัก (ROADMAP §A5): ขั้นที่จดบนกระดาษไม่มีปุ่มหลัก — ช่างติ๊ก/ยอด/ลงชื่อบนใบสั่งงาน · หัวหน้าจดให้ได้จากเมนู
+  const mode = recordModeOf(step);
+  const inferred = isInferredDone(step);
+  const onPaper = mode === "paper" && !done && !stuck;
+  const effectivePrimary = onPaper ? null : primary;
   const blockedReason =
     step.status === "COMPLETED"
-      ? `ปิดขั้นแล้ว${step.completedAt ? ` ${formatDateTime(step.completedAt)}` : ""}${step.assignedTo ? ` · โดย ${step.assignedTo.name}` : ""}`
+      ? inferred
+        ? `ถือว่าผ่านตอนส่งเข้า QC${step.completedAt ? ` ${formatDateTime(step.completedAt)}` : ""} — ยอดจริงอยู่บนใบสั่งงาน`
+        : `ปิดขั้นแล้ว${step.completedAt ? ` ${formatDateTime(step.completedAt)}` : ""}${step.assignedTo ? ` · โดย ${step.assignedTo.name}` : ""}`
       : step.status === "FAILED" || step.status === "ON_HOLD"
         ? "แก้ปัญหาก่อน จึงลงมือขั้นนี้ต่อได้"
         : now && now.waitingOn.length > 0
           ? now.waitingOn.join(" · ")
-          : now?.note ?? (now ? null : "ยังไม่ถึงคิวขั้นนี้ — ทำขั้นก่อนหน้าให้จบก่อน");
+          : onPaper
+            ? PAPER_STEP_NOTE
+            : now?.note ?? (now ? null : "ยังไม่ถึงคิวขั้นนี้ — ทำขั้นก่อนหน้าให้จบก่อน");
   const active = activeOutsource(step);
+  const why = whyRecordOnScreen(step);
+  // notes เก็บ trail (แจ้งปัญหา/แก้แล้ว/ถือว่าผ่าน) — โชว์เฉพาะหมายเหตุที่คนพิมพ์ ไม่ใช่ marker
+  const plainNote = latestPlainProductionNote(step.notes);
 
   return (
     <Section
@@ -395,7 +507,14 @@ export function StepDetail({
       meta={
         // Section วาง meta ไว้ใน <p> — ต้องเป็น span ห้ามใช้ InfoChipRow (div) ไม่งั้น hydration พัง
         <span className="inline-flex flex-wrap items-center gap-1.5">
-          <StateChip view={view} kind={outsource ? "outsource" : "inhouse"} size="md" />
+          {inferred ? (
+            <InfoChip size="md" icon={FileText}>
+              ถือว่าผ่าน
+            </InfoChip>
+          ) : onPaper && !(now && now.waitingOn.length > 0) ? null : (
+            <StateChip view={view} kind={outsource ? "outsource" : "inhouse"} size="md" />
+          )}
+          <RecordModeChip mode={mode} size="md" />
           <InfoChip size="md" icon={STATION_ICON[st.key] ?? Wrench}>
             {st.label}
           </InfoChip>
@@ -423,14 +542,17 @@ export function StepDetail({
             อยู่ในรอบพิมพ์ {step.printRunItems[0]!.printRun.runNumber}
           </InfoChip>
         ) : null}
-        {step.notes && step.status !== "FAILED" && step.status !== "ON_HOLD" ? <p className="text-sm text-secondary">{step.notes}</p> : null}
+        {plainNote && step.status !== "FAILED" && step.status !== "ON_HOLD" ? <p className="text-sm text-secondary">{plainNote}</p> : null}
         {step.qcNotes ? <p className="text-sm text-secondary">QC: {step.qcNotes}</p> : null}
 
         {garment}
 
         {/* โซนลงมือมาตรฐาน — เหมือนกันทุกขั้น */}
         <div>
-          <p className="text-xs font-medium text-muted">ข้อกำหนดมาตรฐานของขั้นนี้</p>
+          <p className="flex items-center justify-between text-xs font-medium text-muted">
+            <span>ข้อกำหนดมาตรฐานของขั้นนี้</span>
+            {mode === "paper" ? <span>ช่องติ๊กอยู่บนใบสั่งงาน</span> : null}
+          </p>
           <ul className="mt-1.5 space-y-1">
             {standards.map((item) => (
               <li key={item} className="flex items-start gap-2 text-sm">
@@ -442,23 +564,32 @@ export function StepDetail({
         </div>
         {/* แบบ A (เบสเคาะ 09-03): ประโยคสถานะบน · ปุ่มหลัก 1 · แจ้งปัญหาเบา · ที่เหลืออยู่ในเมนู "เพิ่มเติม" · ไม่มีปุ่มที่กดไม่ได้ */}
         <ActionZone
-          note={blockedReason ?? (active ? `ร้านนอก: ${active.vendor.name}` : primary ? "พร้อมลงมือ — ทำครบข้อกำหนดแล้วค่อยกดปุ่ม" : undefined)}
-          icon={done ? CheckCircle2 : stuck ? AlertTriangle : primary ? Wrench : Clock}
-          tone={done ? "success" : stuck ? "error" : primary ? "info" : "neutral"}
+          note={blockedReason ?? (active ? `ร้านนอก: ${active.vendor.name}` : effectivePrimary ? (why ?? "พร้อมลงมือ — ทำครบข้อกำหนดแล้วค่อยกดปุ่ม") : undefined)}
+          icon={done ? (inferred ? FileText : CheckCircle2) : stuck ? AlertTriangle : onPaper ? FileText : effectivePrimary ? (mode === "screen" ? MonitorSmartphone : Wrench) : Clock}
+          tone={done ? "success" : stuck ? "error" : effectivePrimary ? "info" : "neutral"}
           menu={
             !done ? (
               <MoreMenu
                 items={[
                   ...(canEdit ? [{ key: "edit", label: "บันทึกรายละเอียด", hint: "แก้ยอด หมายเหตุ และเวลาของขั้นนี้", icon: Pencil, onSelect: onEdit } satisfies MoreMenuItem] : []),
                   ...(canFix
-                    ? fixCommands(step, c).map<MoreMenuItem>((row) => ({ key: row.key, label: row.label, hint: row.enabled ? row.desc : row.why, icon: Wrench, danger: row.danger, disabled: !row.enabled, onSelect: row.run }))
+                    ? fixCommands(step, c).map<MoreMenuItem>((row) => ({
+                        key: row.key,
+                        // ขั้นกระดาษ: "ผ่านแทนช่าง" คือการจดตามที่ช่างเขียนไว้ ไม่ใช่ทางลัด
+                        label: onPaper && row.key === "skip" ? "จดว่าเสร็จแล้ว (จากกระดาษ)" : row.label,
+                        hint: row.enabled ? (onPaper && row.key === "skip" ? "ใส่ตามที่ช่างเขียนไว้ — ไม่บังคับ ส่งเข้า QC ก็ถือว่าผ่านให้" : row.desc) : row.why,
+                        icon: onPaper && row.key === "skip" ? FileText : Wrench,
+                        danger: onPaper && row.key === "skip" ? false : row.danger,
+                        disabled: !row.enabled,
+                        onSelect: row.run,
+                      }))
                     : []),
                 ]}
               />
             ) : null
           }
         >
-          {primary ?? (stuck && canFix ? (
+          {effectivePrimary ?? (stuck && canFix ? (
             <Button variant="destructive" onClick={() => c.openEdit(step, "manager")}>
               <Wrench /> ปลดปัญหา / เปลี่ยนคน
             </Button>

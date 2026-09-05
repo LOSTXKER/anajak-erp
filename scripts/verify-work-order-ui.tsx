@@ -58,11 +58,23 @@ ok("ขั้นที่รออยู่: ไม่มีปุ่มเท�
 ok("ขั้นที่รออยู่: ประโยคสถานะบอกว่ารออะไร", waiting.includes("รอเสื้อ"));
 ok("ขั้นที่รออยู่: ไม่มีปุ่มหลักน้ำเงิน แต่มีเมนูเพิ่มเติม", !waiting.includes("บันทึกยอด") && waiting.includes("เพิ่มเติม"));
 
-const ready = stepDetail({ id: "r", stepType: "HEAT_PRESS", status: "IN_PROGRESS", qtyDone: 96, assignedTo: { id: "u", name: "บาส" } }, { now: { action: "record-qty", group: "current", waitingOn: [], note: undefined }, primary: <Button>บันทึกยอด / ปิดขั้น</Button>, boss: true });
-ok("ขั้นกำลังทำ: มีปุ่มหลัก 1 ตัว", (ready.match(/บันทึกยอด \/ ปิดขั้น/g) ?? []).length === 1);
-ok("ขั้นกำลังทำ: ปุ่มแจ้งปัญหา + เมนูเพิ่มเติม อยู่ครบ", /แจ้งปัญหา<\/button>/.test(ready) && ready.includes("เพิ่มเติม"));
-ok("ขั้นกำลังทำ: 'แก้ให้' ไม่ใช่ปุ่มลอยอีก (อยู่ในเมนู)", !/>\s*แก้ให้\s*</.test(ready.replace(/<svg[\s\S]*?<\/svg>/g, "")));
-ok("ขั้นกำลังทำ: ชิปสถานีของขั้นอยู่ที่หัว", ready.includes("พิมพ์ DTF / รีดร้อน"));
+/* ── กระดาษเป็นหลัก (เบสเคาะ A 09-05 · ROADMAP §A5): รีดร้อน = จดบนกระดาษ ไม่มีปุ่มหลักแม้ระบบจะให้ · ร้านนอก = จดในระบบ มีปุ่มหลัก 1 ── */
+const paper = stepDetail({ id: "r", stepType: "HEAT_PRESS", status: "IN_PROGRESS", qtyDone: 96, assignedTo: { id: "u", name: "บาส" } }, { now: { action: "record-qty", group: "current", waitingOn: [], note: undefined }, primary: <Button>บันทึกยอด / ปิดขั้น</Button>, boss: true });
+ok("ขั้นกระดาษ (รีดร้อน): ไม่มีปุ่มหลัก — ช่างจดบนใบสั่งงาน", !paper.includes("บันทึกยอด / ปิดขั้น"));
+ok("ขั้นกระดาษ: ประโยคสถานะบอกว่าจดบนใบสั่งงานและถือว่าผ่านตอนส่งเข้า QC", paper.includes("จดบนใบสั่งงาน") && paper.includes("ส่งเข้า QC"));
+ok("ขั้นกระดาษ: ชิปโหมด 'จดบนกระดาษ' + ข้อกำหนดบอกว่าช่องติ๊กอยู่บนใบ", paper.includes(">จดบนกระดาษ<") && paper.includes("ช่องติ๊กอยู่บนใบสั่งงาน"));
+ok("ขั้นกระดาษ: ปุ่มแจ้งปัญหา + เมนูเพิ่มเติม (หัวหน้าจดว่าเสร็จได้จากเมนู) อยู่ครบ", /แจ้งปัญหา<\/button>/.test(paper) && paper.includes("เพิ่มเติม"));
+ok("ขั้นกระดาษ: 'แก้ให้' ไม่ใช่ปุ่มลอยอีก (อยู่ในเมนู)", !/>\s*แก้ให้\s*</.test(paper.replace(/<svg[\s\S]*?<\/svg>/g, "")));
+ok("ขั้นกระดาษ: ชิปสถานีของขั้นอยู่ที่หัว", paper.includes("พิมพ์ DTF / รีดร้อน"));
+
+const ready = stepDetail({ id: "e", stepType: "EMBROIDERY", status: "IN_PROGRESS", qtyDone: 0, assignedTo: { id: "u3", name: "พี่ก้อย" } }, { now: { action: "send-outsource", group: "current", waitingOn: [], note: undefined }, primary: <Button>ส่งร้าน</Button>, boss: true });
+ok("ขั้นจดในระบบ (ร้านนอก): มีปุ่มหลัก 1 ตัว", (ready.match(/>ส่งร้าน</g) ?? []).length === 1);
+ok("ขั้นจดในระบบ: ประโยคสถานะบอกว่าทำไมต้องแตะจอ (ของออกจากโรงงาน)", ready.includes("ของออกจากโรงงาน"));
+ok("ขั้นจดในระบบ: ชิปโหมด 'จดในระบบ'", ready.includes(">จดในระบบ<"));
+ok("ขั้นจดในระบบ: ปุ่มแจ้งปัญหา + เมนูเพิ่มเติม อยู่ครบ", /แจ้งปัญหา<\/button>/.test(ready) && ready.includes("เพิ่มเติม"));
+
+const inferred = stepDetail({ id: "i", stepType: "HEAT_PRESS", status: "COMPLETED", qtyDone: 240, completedAt: new Date("2026-09-02T16:10:00"), notes: "[ถือว่าผ่าน] ปิดให้ตอนส่งเข้า QC" }, { boss: true });
+ok("ขั้นกระดาษที่ถือว่าผ่าน: ชิป 'ถือว่าผ่าน' ไม่ใช่ 'ผ่านแล้ว' และประโยคบอกที่มา", inferred.includes(">ถือว่าผ่าน<") && !inferred.includes(">ผ่านแล้ว<") && inferred.includes("ถือว่าผ่านตอนส่งเข้า QC"));
 
 const problemBoss = stepDetail({ id: "p", stepType: "GARMENT_PICK", status: "FAILED", notes: "ไซซ์ L ขาด 60 ตัว", assignedTo: { id: "u2", name: "เนส" } }, { boss: true });
 ok("ขั้นติดปัญหา (หัวหน้า): ปุ่มหลักเป็น 'ปลดปัญหา / เปลี่ยนคน'", problemBoss.includes("ปลดปัญหา / เปลี่ยนคน"));

@@ -1,6 +1,9 @@
 // Job Ticket — ใบสั่งงานหน้างาน (พิมพ์ติดแฟ้มงาน/ส่งเข้าไลน์ผลิต)
 // กติกาสำคัญ: "ไม่มีราคา/เงินใดๆ บนใบนี้" — พนักงานหน้างานไม่เห็นเงิน (RBAC เดียวกับระบบ)
-// QR สแกนเปิดหน้าออเดอร์ในระบบจากมือถือหน้าเครื่อง
+// กระดาษเป็นหลัก (เบสเคาะ A 2026-09-05 · ROADMAP §A5): ใบนี้คือบันทึกจริงของขั้นที่ "จดบนกระดาษ" (รีดร้อน ฯลฯ)
+//   · ทุกขั้นพิมพ์ข้อกำหนดมาตรฐานเป็นช่องติ๊ก · ขั้นที่จดในระบบ (เบิกเสื้อ/ร้านนอก) ไม่มีช่องยอด — ไม่ให้เขียน 2 ที่
+//   · งานร้านนอกแยกตาราง "เดินคู่ขนาน" · ท้ายใบมีวันพิมพ์ + ม็อกอัพเวอร์ชัน กันกระดาษเก่า
+// QR สแกนเปิดใบผลิตในระบบ (?production=<id>) และพกเวอร์ชันม็อกอัพที่พิมพ์ — สแกนใบเก่าแล้วใบผลิตเตือน
 import { notFound } from "next/navigation";
 import QRCode from "qrcode";
 import { prisma } from "@/lib/prisma";
@@ -15,13 +18,16 @@ import {
 import { PRIORITY_LABELS, CHANNEL_LABELS } from "@/lib/order-status";
 import {
   STEP_TYPE_LABELS,
+  isOutsourceStep,
   productionWorkflowSteps,
 } from "@/lib/production-steps";
 import { isImageUrl } from "@/lib/utils";
 import { mockupImages } from "@/lib/mockup";
 import { PrintPage, NotesBlock, formatDocDate, DocumentStamp } from "@/components/print/print-document";
 import { PrintActions } from "@/components/print/print-actions";
-import { ShieldAlert } from "lucide-react";
+import { MonitorSmartphone, ShieldAlert, Square } from "lucide-react";
+import { RECORD_MODE_LABEL, recordModeOf } from "@/lib/work-order-record-mode";
+import { workOrderStandards } from "@/lib/work-order-standards";
 
 function MetaCell({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
   return (
@@ -32,12 +38,108 @@ function MetaCell({ label, value, strong }: { label: string; value: string; stro
   );
 }
 
+type TicketStep = {
+  id: string;
+  stepType: string;
+  customStepName: string | null;
+  executionMode: string;
+  assignedTo: { name: string } | null;
+  outsourceOrders: Array<{ sentAt: Date | null; expectedBackAt: Date | null; vendor: { name: string } }>;
+};
+
+function stepTitle(step: TicketStep) {
+  return `${STEP_TYPE_LABELS[step.stepType] ?? step.stepType}${step.customStepName ? ` — ${step.customStepName}` : ""}`;
+}
+
+function TickBoxes({ stepType }: { stepType: string }) {
+  return (
+    <ul className="space-y-1">
+      {workOrderStandards(stepType).map((item) => (
+        <li key={item} className="flex items-start gap-1.5 text-[12px] leading-tight">
+          <Square className="mt-px h-3.5 w-3.5 shrink-0 text-slate-500" aria-hidden="true" />
+          <span>{item}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function StepsHead() {
+  return (
+    <thead>
+      <tr className="border-y border-slate-400 text-left">
+        <th className="w-8 py-1 pr-2 text-center font-semibold">#</th>
+        <th className="py-1 pr-2 font-semibold">ขั้นตอน</th>
+        <th className="py-1 pr-2 font-semibold">ข้อกำหนด (ติ๊กเมื่อทำแล้ว)</th>
+        <th className="w-24 py-1 pr-2 font-semibold">ยอดดี / เสีย</th>
+        <th className="w-24 py-1 pr-2 font-semibold">เสร็จ</th>
+        <th className="w-20 py-1 font-semibold">ลงชื่อ</th>
+      </tr>
+    </thead>
+  );
+}
+
+/** แถวขั้นบนกระดาษ — จดในระบบ: ไม่มีช่องยอด/เสร็จ/ลงชื่อ · จดบนกระดาษ: ช่องว่างให้เขียน · ผ่านเอง (DTF): ไม่มีช่อง */
+function StepRow({ step, index, note }: { step: TicketStep; index: number; note?: string }) {
+  const mode = recordModeOf(step);
+  const outsource = step.outsourceOrders[0];
+  return (
+    <tr className={`border-b border-slate-200 align-top${mode === "screen" ? " bg-slate-100" : ""}`}>
+      <td className="py-2 pr-2 text-center text-slate-500">{index}</td>
+      <td className="py-2 pr-2">
+        <p className="font-semibold leading-tight">{stepTitle(step)}</p>
+        {step.assignedTo ? <p className="text-[10.5px] text-slate-600">{step.assignedTo.name}</p> : null}
+        {outsource ? (
+          <p className="text-[10.5px] text-slate-600">
+            {outsource.vendor.name}
+            {outsource.sentAt ? ` — ส่ง ${formatDocDate(outsource.sentAt)}` : ""}
+            {outsource.expectedBackAt ? ` นัดรับ ${formatDocDate(outsource.expectedBackAt)}` : ""}
+          </p>
+        ) : null}
+        {note ? <p className="text-[10.5px] text-slate-600">{note}</p> : null}
+        {mode === "screen" ? (
+          <p className="mt-1 inline-flex items-center gap-1 rounded border border-slate-700 px-1.5 py-0.5 text-[10px] font-bold">
+            <MonitorSmartphone className="h-3 w-3" aria-hidden="true" /> {RECORD_MODE_LABEL.screen}
+          </p>
+        ) : null}
+        {mode === "auto" ? <p className="mt-1 text-[10.5px] text-slate-500">ผ่านเองเมื่อปิดรอบพิมพ์ — ไม่ต้องเซ็น</p> : null}
+      </td>
+      <td className="py-2 pr-2">{mode === "auto" ? <span className="text-slate-400">—</span> : <TickBoxes stepType={step.stepType} />}</td>
+      {mode === "screen" ? (
+        <td colSpan={3} className="py-2 text-[11.5px] text-slate-600">
+          <span className="inline-flex items-start gap-1">
+            <MonitorSmartphone className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            <span>
+              ยอดและเวลาบันทึกในระบบ — สแกน QR หัวใบ
+              <br />
+              <span className="text-slate-500">ไม่ต้องเขียนยอดบนใบนี้</span>
+            </span>
+          </span>
+        </td>
+      ) : mode === "auto" ? (
+        <td colSpan={3} className="py-2 text-slate-400">
+          —
+        </td>
+      ) : (
+        <>
+          <td className="py-2 pr-2 text-slate-400">____ / ____</td>
+          <td className="py-2 pr-2 text-slate-300">___ / ___</td>
+          <td className="py-2 text-slate-300">________</td>
+        </>
+      )}
+    </tr>
+  );
+}
+
 export default async function PrintJobTicketPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<{ production?: string }>;
 }) {
   const { id } = await params;
+  const { production: productionParam } = (await searchParams) ?? {};
 
   const order = await prisma.order.findUnique({
     where: { id },
@@ -64,12 +166,16 @@ export default async function PrintJobTicketPage({
         include: {
           steps: {
             orderBy: { sortOrder: "asc" },
-            include: {
+            select: {
+              id: true,
+              stepType: true,
+              customStepName: true,
+              executionMode: true,
               assignedTo: { select: { name: true } },
               outsourceOrders: {
                 orderBy: { createdAt: "desc" },
                 take: 1,
-                include: { vendor: { select: { name: true } } },
+                select: { sentAt: true, expectedBackAt: true, vendor: { select: { name: true } } },
               },
             },
           },
@@ -102,11 +208,14 @@ export default async function PrintJobTicketPage({
     ? mockupImages(approvedDesign).filter((image) => image.previewUrl)
     : [];
 
-  // QR เปิดหน้าออเดอร์ตรง ๆ (ป้ายใต้ QR บอกว่า "สแกนเปิดออเดอร์") — จอสถานีที่เคยรับ
-  // orderId แล้วให้เลือกใบผลิตถูกถอดออก 2026-09-02 รอออกแบบใหม่ · จอใหม่มาค่อยชี้กลับ
+  // QR เปิดใบผลิตในระบบ (หัวหน้าเห็นใบผลิต · ช่างถูกพาไปหน้าลงมือของสถานีตัวเอง) และพกเวอร์ชันม็อกอัพที่พิมพ์
+  // ใบผลิตที่จะชี้: ?production=<id> จากปุ่มในใบผลิต · ไม่ระบุ = ใบเดียวของออเดอร์ · หลายใบ = หน้าออเดอร์
   // ต้องเป็น URL เต็ม (ตั้ง NEXT_PUBLIC_APP_URL ตอน deploy)
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  const qrTarget = `${baseUrl}/orders/${order.id}`;
+  const targetProduction =
+    order.productions.find((p) => p.id === productionParam) ?? (order.productions.length === 1 ? order.productions[0] : null);
+  const mockupQuery = approvedDesign ? `?mockup=${approvedDesign.versionNumber}` : "";
+  const qrTarget = targetProduction ? `${baseUrl}/production/${targetProduction.id}${mockupQuery}` : `${baseUrl}/orders/${order.id}`;
   const qrSvg = await QRCode.toString(qrTarget, {
     type: "svg",
     margin: 0,
@@ -116,8 +225,11 @@ export default async function PrintJobTicketPage({
   const totalQty = order.items.reduce((s, it) => s + it.totalQuantity, 0);
   // PACKAGING รุ่นเก่าเคยอยู่ก่อน QC — ห้ามพิมพ์เป็นช่องให้ช่างติ๊กว่าแพ็กแล้ว
   // เพราะแพ็กสุดท้ายเกิดหลัง QC ผ่าน Delivery เท่านั้น
-  const steps = productionWorkflowSteps(order.productions.flatMap((p) => p.steps));
+  const steps: TicketStep[] = productionWorkflowSteps((targetProduction ? [targetProduction] : order.productions).flatMap((p) => p.steps));
+  const inhouseSteps = steps.filter((s) => recordModeOf(s) !== "screen" || !(isOutsourceStep(s.stepType) || s.executionMode === "OUTSOURCE" || s.outsourceOrders.length > 0));
+  const outsourceSteps = steps.filter((s) => !inhouseSteps.includes(s));
   const isUrgent = order.priority === "URGENT" || order.priority === "HIGH";
+  const printedAt = new Intl.DateTimeFormat("th-TH", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Bangkok" }).format(new Date());
 
   return (
     <div className="print-viewport">
@@ -146,7 +258,7 @@ export default async function PrintJobTicketPage({
                 className="h-[92px] w-[92px]"
                 dangerouslySetInnerHTML={{ __html: qrSvg }}
               />
-              <p className="mt-0.5 text-[9.5px] text-slate-500">สแกนเปิดออเดอร์</p>
+              <p className="mt-0.5 text-[9.5px] text-slate-500">{targetProduction ? "สแกน = เปิดใบนี้ในระบบ" : "สแกนเปิดออเดอร์"}</p>
             </div>
           </div>
         </div>
@@ -343,37 +455,57 @@ export default async function PrintJobTicketPage({
           </div>
         ))}
 
-        {/* ขั้นตอนผลิต — checklist ให้ติ๊ก/เซ็นหน้างาน */}
+        {/* ขั้นตอนผลิต — กระดาษเป็นหลัก: ทำในโรงงาน (ตามลำดับ) แยกจากของจากร้านนอก (เดินคู่ขนาน ระบบตามให้) */}
         <div className="mt-4">
-          <p className="mb-1 text-[13px] font-bold">ขั้นตอนผลิต</p>
+          <div className="mb-1 flex flex-wrap items-baseline justify-between gap-2">
+            <p className="text-[13px] font-bold">ขั้นตอนผลิต — ทำในโรงงาน (ตามลำดับ)</p>
+            <p className="flex items-center gap-1 text-[10.5px] text-slate-600">
+              <MonitorSmartphone className="h-3 w-3" aria-hidden="true" /> แถวที่มีเครื่องหมายนี้ = ยอดและเวลาอยู่ในระบบ ไม่ต้องเขียนบนใบ
+            </p>
+          </div>
           <table className="w-full border-collapse text-[12px]">
-            <thead>
-              <tr className="border-y border-slate-400 text-left">
-                <th className="w-8 py-1 pr-2 text-center font-semibold">#</th>
-                <th className="py-1 pr-2 font-semibold">ขั้นตอน</th>
-                <th className="w-32 py-1 pr-2 font-semibold">ผู้รับผิดชอบ</th>
-                <th className="w-28 py-1 pr-2 font-semibold">เสร็จวันที่</th>
-                <th className="w-24 py-1 font-semibold">ลงชื่อ</th>
-              </tr>
-            </thead>
+            <StepsHead />
             <tbody>
-              {(steps.length > 0 ? steps : Array.from({ length: 4 }, () => null)).map(
-                (step, idx) => (
-                  <tr key={step?.id ?? idx} className="border-b border-slate-200">
-                    <td className="py-2 pr-2 text-center text-slate-500">{idx + 1}</td>
-                    <td className="py-2 pr-2">
-                      {step
-                        ? `${STEP_TYPE_LABELS[step.stepType] ?? step.stepType}${step.customStepName ? ` — ${step.customStepName}` : ""}${step.outsourceOrders[0] ? ` (outsource: ${step.outsourceOrders[0].vendor.name})` : ""}`
-                        : " "}
-                    </td>
-                    <td className="py-2 pr-2">{step?.assignedTo?.name ?? ""}</td>
-                    <td className="py-2 pr-2 text-slate-300">____ / ____ / ____</td>
-                    <td className="py-2 text-slate-300">______________</td>
-                  </tr>
-                )
+              {inhouseSteps.length > 0 ? (
+                inhouseSteps.map((step, idx) => <StepRow key={step.id} step={step} index={idx + 1} />)
+              ) : (
+                <tr className="border-b border-slate-200">
+                  <td colSpan={6} className="py-3 text-center text-slate-400">
+                    ยังไม่มีขั้นผลิตในใบนี้
+                  </td>
+                </tr>
               )}
+              <tr className="border-b border-slate-200 align-top bg-slate-100">
+                <td className="py-2 pr-2 text-center text-slate-500">{inhouseSteps.length + 1}</td>
+                <td className="py-2 pr-2">
+                  <p className="font-semibold leading-tight">ตรวจ QC</p>
+                  {outsourceSteps.length > 0 ? <p className="text-[10.5px] text-slate-600">เริ่มได้เมื่อของจากร้านนอกกลับครบ</p> : null}
+                  <p className="mt-1 inline-flex items-center gap-1 rounded border border-slate-700 px-1.5 py-0.5 text-[10px] font-bold">
+                    <MonitorSmartphone className="h-3 w-3" aria-hidden="true" /> {RECORD_MODE_LABEL.screen}
+                  </p>
+                </td>
+                <td className="py-2 pr-2">
+                  <TickBoxes stepType="FINAL_QC" />
+                </td>
+                <td colSpan={3} className="py-2 text-[11.5px] text-slate-600">
+                  ยอดดี/เสียบันทึกในระบบ — ส่งเข้า QC แล้วขั้นที่จดบนกระดาษถือว่าผ่าน
+                </td>
+              </tr>
             </tbody>
           </table>
+          {outsourceSteps.length > 0 && (
+            <>
+              <p className="mb-1 mt-3 text-[13px] font-bold">ของจากร้านนอก — เดินคู่ขนาน ระบบตามให้</p>
+              <table className="w-full border-collapse text-[12px]">
+                <StepsHead />
+                <tbody>
+                  {outsourceSteps.map((step, idx) => (
+                    <StepRow key={step.id} step={step} index={inhouseSteps.length + 1 + idx + 1} />
+                  ))}
+                </tbody>
+              </table>
+            </>
+          )}
         </div>
 
         {order.notes && <NotesBlock title="หมายเหตุออเดอร์">{order.notes}</NotesBlock>}
@@ -381,6 +513,13 @@ export default async function PrintJobTicketPage({
         <div className="mt-4 rounded border border-dashed border-slate-400 px-3 py-2 text-[11px] text-slate-400">
           บันทึกหน้างาน
           <div className="h-14" />
+        </div>
+
+        {/* ท้ายใบ: วันพิมพ์ + ม็อกอัพเวอร์ชัน — กระดาษเก่าตอนแบบเปลี่ยนจับได้ · QR พกเวอร์ชันนี้ไปด้วย */}
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-slate-300 pt-2 text-[10.5px] text-slate-500">
+          <span className="font-semibold text-slate-700">พิมพ์ {printedAt}</span>
+          <span>{approvedDesign ? `ม็อกอัพ v${approvedDesign.versionNumber}` : "ยังไม่มีม็อกอัพอนุมัติ"}</span>
+          {targetProduction ? <span>QR ผูกเวอร์ชันนี้ — สแกนใบเก่าระบบจะเตือน</span> : null}
         </div>
       </PrintPage>
     </div>

@@ -1,5 +1,7 @@
 const STATION_REPORT_PREFIX = "[แจ้งปัญหาจากสถานี] ";
 const STATION_RESOLVED_PREFIX = "[แก้ปัญหาแล้ว] ";
+/** ขั้นจดบนกระดาษที่ระบบปิดให้ตอนส่งเข้า QC (กระดาษเป็นหลัก · ROADMAP §A5) — ไม่ใช่เหตุปัญหา ต้องไม่โผล่เป็นหมายเหตุล่าสุด */
+export const PAPER_DONE_PREFIX = "[ถือว่าผ่าน] ";
 
 export const normalizedProblemReason = (reason: string) =>
   reason.replace(/\s+/g, " ").trim();
@@ -63,7 +65,8 @@ export function latestPlainProductionNote(
       (line) =>
         line.length > 0 &&
         !line.startsWith(STATION_REPORT_PREFIX) &&
-        !line.startsWith(STATION_RESOLVED_PREFIX),
+        !line.startsWith(STATION_RESOLVED_PREFIX) &&
+        !line.startsWith(PAPER_DONE_PREFIX),
     );
   return lines.at(-1) ?? null;
 }

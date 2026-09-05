@@ -13,9 +13,11 @@ import {
   evaluateHeatPressGate,
   OUTSOURCE_ACTIVE_STATUSES,
   productionWorkflowSteps,
+  STEP_TYPE_LABELS,
 } from "@/lib/production-steps";
 import { factoryStationKeyForStep } from "@/lib/factory-station";
 import { firstPendingStepIdsByLane } from "@/lib/production-step-actions";
+import { paperDoneMarker, paperStepsToClose, stepsBlockingQc } from "@/lib/work-order-record-mode";
 import {
   activeStationProblemReason,
   normalizedProblemReason,
@@ -1603,6 +1605,126 @@ export const productionRouter = router({
         return {
           finalized: true,
           alreadyFinalized: false,
+          movedToQc: after.internalStatus === "QUALITY_CHECK",
+          orderStatus: after.internalStatus,
+        };
+      });
+    }),
+
+  // กระดาษเป็นหลัก (เบสเคาะ A 2026-09-05 · ROADMAP §A5): ขั้นที่ "จดบนกระดาษ" (รีดร้อน ฯลฯ) ช่างไม่กดในระบบ
+  // จุดถัดไปที่จดคือ QC — ปุ่ม "ส่งเข้า QC" จึงเป็นคนปิดขั้นกระดาษให้เป็น "ถือว่าผ่าน" (marker ใน notes)
+  // แล้ว finalize ใบตามทางเดิม · ขั้นที่จดในระบบ (เบิก/ตรวจรับ/ร้านนอก/รอบพิมพ์) ต้องปิดจริงก่อน ห้ามถือว่าผ่านแทน
+  sendToQc: protectedProcedure
+    .use(productionTeam)
+    .input(z.object({ productionId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      return ctx.prisma.$transaction(async (tx) => {
+        const reference = await tx.production.findUniqueOrThrow({
+          where: { id: input.productionId },
+          select: { orderId: true },
+        });
+        await lockProductionTopology(tx, reference.orderId);
+        await tx.$queryRaw`SELECT id FROM production_steps WHERE production_id = ${input.productionId} ORDER BY id FOR UPDATE`;
+        await tx.$queryRaw`SELECT id FROM productions WHERE id = ${input.productionId} FOR UPDATE`;
+        await lockOrderRow(tx, reference.orderId);
+        const current = await tx.production.findUniqueOrThrow({
+          where: { id: input.productionId },
+          select: {
+            status: true,
+            orderId: true,
+            steps: {
+              select: {
+                id: true,
+                stepType: true,
+                customStepName: true,
+                status: true,
+                executionMode: true,
+                executionEnabled: true,
+                notes: true,
+                qtyDone: true,
+                qtyTotal: true,
+                startedAt: true,
+                outsourceOrders: { select: { id: true } },
+              },
+            },
+          },
+        });
+        if (current.orderId !== reference.orderId) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "โครงใบผลิตเปลี่ยนจากอีกหน้าจอแล้ว — กรุณาโหลดใหม่",
+          });
+        }
+        if (current.steps.some((step) => step.executionEnabled)) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Production V2 ต้องปิด Operation Job ผ่านคำสั่ง Manufacturing เท่านั้น",
+          });
+        }
+        const liveOrder = await tx.order.findUniqueOrThrow({
+          where: { id: current.orderId },
+          select: { internalStatus: true },
+        });
+        if (liveOrder.internalStatus !== "PRODUCING") {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `ส่งเข้า QC ไม่ได้ — ออเดอร์อยู่สถานะ ${INTERNAL_STATUS_LABELS[liveOrder.internalStatus] ?? liveOrder.internalStatus}`,
+          });
+        }
+        const workflow = productionWorkflowSteps(current.steps);
+        const blocking = stepsBlockingQc(workflow);
+        if (blocking.length > 0) {
+          const names = blocking.map((s) => s.customStepName || STEP_TYPE_LABELS[s.stepType] || s.stepType).join(", ");
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `ยังส่งเข้า QC ไม่ได้ — ${names} ต้องปิดในระบบก่อน (ขั้นที่จดในระบบ หรือขั้นที่ติดปัญหา/พักอยู่)`,
+          });
+        }
+        const toClose = paperStepsToClose(workflow);
+        if (toClose.length === 0) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "ไม่มีขั้นที่จดบนกระดาษให้ถือว่าผ่าน — ใบนี้ปิดครบทุกขั้นในระบบแล้ว",
+          });
+        }
+        const completedAt = new Date();
+        const marker = paperDoneMarker();
+        for (const step of toClose) {
+          await tx.productionStep.update({
+            where: { id: step.id },
+            data: {
+              status: "COMPLETED",
+              completedAt,
+              startedAt: step.startedAt ?? completedAt,
+              // ยอดจริงอยู่บนกระดาษ — ระบบถือว่าครบตามที่ต้องทำ (แก้ทีหลังได้จาก "บันทึกรายละเอียด")
+              qtyDone: step.qtyTotal != null && step.qtyTotal > 0 ? Math.max(step.qtyDone, step.qtyTotal) : step.qtyDone,
+              notes: step.notes ? `${step.notes}\n${marker}` : marker,
+            },
+          });
+        }
+        const finalized = await finalizeProductionIfComplete(tx, {
+          productionId: input.productionId,
+          changedBy: ctx.userId,
+        });
+        if (!finalized) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "ปิดขั้นกระดาษแล้วแต่ยังปิดใบไม่ได้ — โหลดใหม่แล้วดูว่าขั้นไหนยังค้าง",
+          });
+        }
+        await createAuditLog(tx, {
+          userId: ctx.userId,
+          action: "UPDATE",
+          entityType: "PRODUCTION",
+          entityId: input.productionId,
+          newValue: { sendToQc: true, paperStepsClosed: toClose.map((s) => s.id) },
+        });
+        const after = await tx.order.findUniqueOrThrow({
+          where: { id: current.orderId },
+          select: { internalStatus: true },
+        });
+        return {
+          closed: toClose.length,
           movedToQc: after.internalStatus === "QUALITY_CHECK",
           orderStatus: after.internalStatus,
         };

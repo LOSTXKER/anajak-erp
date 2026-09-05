@@ -27,6 +27,7 @@ import { useWorkOrderController, type WorkOrderController } from "@/components/p
 import { OutsourceFacts, Owner, ProblemCard, StateChip, daysFromNow, stepLabel, viewOf } from "@/components/production/work-order-pieces";
 import { isOutsourceStep } from "@/lib/production-steps";
 import type { StationDef } from "@/lib/station-desk";
+import { PAPER_STEP_NOTE, RECORD_MODE_LABEL, isInferredDone, recordModeOf } from "@/lib/work-order-record-mode";
 import { workOrderStandards } from "@/lib/work-order-standards";
 import { cn, formatDate, formatDateTime } from "@/lib/utils";
 import { StationShell } from "./station-pieces";
@@ -161,11 +162,19 @@ function StepZone({
   const allTicked = ticks.every(Boolean);
   const done = step.status === "COMPLETED";
   const stuck = step.status === "FAILED" || step.status === "ON_HOLD";
-  const gated = !done && !stuck && TICK_GATED.has(now?.action ?? "") && !allTicked;
+  // กระดาษเป็นหลัก (ROADMAP §A5): ขั้นที่จดบนกระดาษไม่มีปุ่มหลักให้ช่าง — ติ๊ก/ยอด/ลงชื่ออยู่บนใบสั่งงาน
+  const recordMode = recordModeOf(step);
+  const onPaper = recordMode === "paper" && !done && !stuck;
+  const inferredDone = isInferredDone(step);
+  const gated = !onPaper && !done && !stuck && TICK_GATED.has(now?.action ?? "") && !allTicked;
 
   const canReport = c.canUpdateStep && c.canOwnOrSupervise(step) && !done && step.status !== "FAILED";
   const note = done
-    ? `ปิดขั้นแล้ว${step.completedAt ? ` ${formatDateTime(step.completedAt)}` : ""}${step.assignedTo ? ` โดย ${step.assignedTo.name}` : ""}`
+    ? inferredDone
+      ? `ถือว่าผ่านตอนส่งเข้า QC${step.completedAt ? ` ${formatDateTime(step.completedAt)}` : ""} — ยอดจริงอยู่บนใบสั่งงาน`
+      : `ปิดขั้นแล้ว${step.completedAt ? ` ${formatDateTime(step.completedAt)}` : ""}${step.assignedTo ? ` โดย ${step.assignedTo.name}` : ""}`
+    : onPaper && !(now && now.waitingOn.length > 0)
+      ? PAPER_STEP_NOTE
     : stuck
       ? boss
         ? "ติดปัญหาอยู่ — กด “จัดการปัญหา” เพื่อปลดให้ช่างทำต่อ"
@@ -180,7 +189,7 @@ function StepZone({
               ? "ติ๊กข้อกำหนดให้ครบก่อน ปุ่มหลักถึงจะกดได้"
               : undefined;
 
-  const primary = gated ? (
+  const primary = onPaper ? null : gated ? (
     <Button className="h-16 text-lg" disabled>
       {now?.action === "quick-pass" ? "ผ่านรวด" : "บันทึกยอด / ปิดขั้น"}
     </Button>
@@ -199,6 +208,9 @@ function StepZone({
             <h2 className="text-2xl font-semibold text-strong">{stepLabel(step)}</h2>
             <InfoChipRow className="mt-2">
               <StateChip view={view} kind={isOutsourceStep(step.stepType) ? "outsource" : "inhouse"} size="lg" />
+              <InfoChip size="md" tone={recordMode === "screen" ? "info" : recordMode === "auto" ? "success" : "neutral"}>
+                {inferredDone ? "ถือว่าผ่าน" : RECORD_MODE_LABEL[recordMode]}
+              </InfoChip>
               <InfoChip size="md">
                 <Owner step={step} />
               </InfoChip>

@@ -24,6 +24,7 @@ import { StepUpdateDialog } from "@/components/production/step-update-dialog";
 import type { ProductionStep } from "@/components/production/types";
 import { selectNowSteps, type NowStep } from "@/lib/production-step-actions";
 import { evaluateHeatPressGate, productionWorkflowSteps } from "@/lib/production-steps";
+import { canSendToQc, paperStepsToClose } from "@/lib/work-order-record-mode";
 import { cn } from "@/lib/utils";
 import { stepLabel } from "./work-order-pieces";
 
@@ -87,6 +88,16 @@ export function useWorkOrderController(id: string) {
     },
     onError: (err: { message?: string }) => toast.error(err.message ?? "ส่งงานเข้า QC ไม่สำเร็จ"),
   });
+  // กระดาษเป็นหลัก (ROADMAP §A5): ขั้นที่จดบนกระดาษถือว่าผ่านตอนส่งเข้า QC — server ปิดให้ + finalize ใบ
+  const sendToQc = useMutationWithInvalidation(trpc.production.sendToQc, {
+    invalidate: [...invalidate, utils.factory.stationContext],
+    onSuccess: (data: { closed: number; orderStatus: string }) => {
+      const closed = data.closed > 0 ? `ถือว่าผ่านขั้นกระดาษ ${data.closed} ขั้น · ` : "";
+      if (data.orderStatus === "QUALITY_CHECK") toast.success(`${closed}ส่งงานเข้า QC แล้ว`);
+      else toast.success(`${closed}ปิดใบผลิตนี้แล้ว — ยังมีใบผลิตอื่นค้างอยู่`);
+    },
+    onError: (err: { message?: string }) => toast.error(err.message ?? "ส่งงานเข้า QC ไม่สำเร็จ"),
+  });
 
   const order = production?.order;
   const workflowSteps = productionWorkflowSteps(production?.steps ?? []);
@@ -115,6 +126,9 @@ export function useWorkOrderController(id: string) {
   const problemSteps = workflowSteps.filter((s) => s.status === "FAILED" || s.status === "ON_HOLD");
   const hasPendingLegacyPackaging = production?.steps.some((s) => s.stepType === "PACKAGING" && s.status !== "COMPLETED") ?? false;
   const legacyPackagingReadyForQc = orderCanProduce && hasPendingLegacyPackaging && workflowSteps.every((s) => s.status === "COMPLETED");
+  /** ขั้นกระดาษที่ยังเปิด + ทุกขั้นที่จดในระบบปิดแล้ว → ปุ่ม "ส่งเข้า QC" (ถือว่าผ่านให้) */
+  const paperStepsPending = paperStepsToClose(workflowSteps);
+  const readyForQcViaPaper = orderCanProduce && !writeDataStale && canSendToQc(workflowSteps);
 
   const defaultStepId =
     problemSteps[0]?.id ??
@@ -266,6 +280,8 @@ export function useWorkOrderController(id: string) {
     completedSteps,
     problemSteps,
     legacyPackagingReadyForQc,
+    paperStepsPending,
+    readyForQcViaPaper,
     canSeeCost,
     canSuperviseOperations,
     hasProductionPermission,
@@ -279,6 +295,7 @@ export function useWorkOrderController(id: string) {
     quickPass,
     reportProblem,
     legacyFinalize,
+    sendToQc,
     handleSupervisorStatus,
     openEdit: (step: ProductionStep, mode: "operation" | "manager") => setEditStep({ step, mode }),
     openQty: (stepId: string) => setQtyStepId(stepId),
