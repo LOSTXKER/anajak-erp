@@ -920,6 +920,7 @@ function OrderDetailContent({
               onEditItems={canEditItems && canUseEditForm ? openItemsEditPage : undefined}
               showMoney={canSeeMoney}
               canEditReceiveTracking={canEditReceiveTracking}
+              totals={{ discount, taxRate: order.taxRate, taxAmount: order.taxAmount, totalAmount }}
             />
             <OrderChangeOrders orderId={id} />
           </TabsContent>}

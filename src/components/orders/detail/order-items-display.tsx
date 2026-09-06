@@ -5,7 +5,7 @@ import { trpc } from "@/lib/trpc";
 import type { RouterOutput } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { SectionTitle, ToneMark } from "@/components/ui/section";
+import { Section, SectionTitle, ToneMark } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { Fact, FactList } from "@/components/ui/fact";
 import { InfoChip } from "@/components/ui/info-chip";
@@ -28,8 +28,8 @@ import type { PricingType } from "@/types/order-form";
 import { buildItemPriceLines, orderItemFormToPricingItem, sumOrderQuantity } from "@/lib/pricing";
 import type { PriceLine } from "@/lib/pricing";
 import { getProductSourcePresentation } from "@/lib/order-item-composer";
-import { Package, Receipt, PlusCircle, Edit3, Check, ImageIcon } from "lucide-react";
-import { FOCUS_BUTTON, RADIUS, SUNK_PANEL, TABLE_HEAD_SURFACE, TINT } from "@/components/ui/tokens";
+import { Package, Receipt, PlusCircle, Edit3, Check, ImageIcon, Calculator } from "lucide-react";
+import { DISPLAY_AMOUNT, FOCUS_BUTTON, RADIUS, SUNK_PANEL, TABLE_HEAD_SURFACE, TINT } from "@/components/ui/tokens";
 import { Alert } from "@/components/ui/alert";
 
 type OrderData = RouterOutput["order"]["getById"];
@@ -121,7 +121,10 @@ function ReceiveTrackingInline({ product, onSuccess, readOnly }: {
 // แต่เป็นตัวหนังสืออ่านอย่างเดียว — เบสเห็นของเดิม (ก้อนต่อเสื้อ + ตารางย่อยหลายชั้น)
 // แล้วบอก "แสดงผลได้งงมาก แสดงเหมือนตอนแก้ไขจะมองง่ายกว่า"
 //   · หนึ่งชุดงาน = หนึ่งการ์ด `card-surface` (ไม่มีการ์ดใหญ่ครอบ — เหมือนหน้าแก้ไข)
-//   · ลำดับหมวดตามฟอร์ม (มติ 2026-08-14): ลาย → เสื้อ → ส่วนเสริม → หมายเหตุ → สรุปราคา
+//   · ลำดับหมวดตามฟอร์ม (มติ 2026-08-14): ลาย → เสื้อ → ส่วนเสริม → หมายเหตุ
+//   · จอกว้าง (xl) วาง 2 คอลัมน์: การ์ดชุดงานซ้าย · "สรุปราคา" ทั้งใบก้อนเดียวขวา (sticky)
+//     — เบสสั่ง 2026-09-06 "ปรับเป็น 2 คอลัมน์ สรุปต่อรายการไม่ต้องมี สรุปทีเดียวด้านขวาเลย"
+//     ค่าธรรมเนียมจึงเป็นบรรทัดในสรุปเดียวกัน (การ์ดค่าธรรมเนียมแยกเหลือเฉพาะ role ที่ไม่เห็นเงิน)
 //   · ตาราง 3 หมวดใช้ความกว้างคอลัมน์ชุดเดียวกับ `ItemTableCols` ของฟอร์ม (ตัดช่องปุ่ม 44px ทิ้ง)
 //   · เสื้อสต๊อกล้วน = ตาราง · มีเสื้อตัดเย็บ/ลูกค้าส่งมา = กล่องจมแบบ `ProductAdaptiveCard`
 //   · จอแคบ (< @2xl ของกล่อง) สลับเป็นการ์ดเหมือน `ProductCardMobile`/`PrintCardMobile`
@@ -139,6 +142,15 @@ interface OrderItemsDisplayProps {
   showMoney?: boolean;
   // Production V2 ให้จุดเตรียมงานเป็นเจ้าของหลักฐานรับเสื้อ หน้า Order อ่านอย่างเดียว
   canEditReceiveTracking?: boolean;
+  // ยอดท้ายบิลจาก order (ส่วนลด/VAT/ยอดรวม) — ไม่ส่ง = คิดจากรายการ+ค่าธรรมเนียมตรงๆ (หน้าลอง)
+  totals?: OrderTotals;
+}
+
+interface OrderTotals {
+  discount: number;
+  taxRate: number;
+  taxAmount: number | null;
+  totalAmount: number;
 }
 
 const GROUP_HEADING = "text-sm font-semibold text-strong";
@@ -585,50 +597,102 @@ function AddonCardNarrow({ addon, showMoney }: { addon: OrderItemAddon; showMone
   );
 }
 
-/* ------------------------------------------------------------ สรุปราคา */
+/* ------------------------------------------------------- สรุปราคา (ทั้งใบ) */
 
-/** ทุกบรรทัดบวกกันแล้วต้องเท่า item.subtotal ที่ server คิดมา */
-function ItemPriceSummary({ item }: { item: OrderItem }) {
-  const lines = itemPriceLines(item);
-  const totalQty = itemQty(item);
-  if (lines.length === 0) return null;
+function SummaryRow({ label, value }: { label: React.ReactNode; value: React.ReactNode }) {
   return (
-    <div className="border-t border-border/70 pt-3">
-      <p className={cn(GROUP_HEADING, "mb-2")}>สรุปราคารายการ</p>
-      <table className="w-full text-xs">
-        <tbody className="text-secondary">
-          {lines.map((line) => {
-            const { label, detail } = priceLineText(item, line);
-            return (
-              <tr key={`${line.kind}-${line.index}`}>
-                <td className="py-1 [overflow-wrap:anywhere]">
-                  <span className="text-secondary">{label}</span>
-                  {detail && <span className="ml-1 text-muted">({detail})</span>}
-                </td>
-                <td className={cn("px-2 py-1 text-right text-muted", NUM)}>{formatCurrency(line.unitPrice)}</td>
-                <td className={cn("px-2 py-1 text-right text-muted", NUM)}>×{line.quantity}</td>
-                <td className={cn("py-1 text-right", NUM)}>{formatCurrency(line.total)}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-        <tfoot>
-          <tr className="border-t border-border/70">
-            <td colSpan={2} className="pt-2 text-sm font-semibold text-strong">รวมทั้งหมด</td>
-            <td className={cn("px-2 pt-2 text-right text-muted", NUM)}>{totalQty} ตัว</td>
-            <td className={cn("pt-2 text-right text-sm font-semibold text-strong", NUM)}>{formatCurrency(item.subtotal ?? 0)}</td>
-          </tr>
-          {totalQty > 0 && (
-            <tr>
-              <td colSpan={3} className="text-muted">
-                เฉลี่ย {formatCurrency(Math.round(((item.subtotal ?? 0) / totalQty) * 100) / 100)} / ตัว
-              </td>
-              <td aria-hidden="true" />
-            </tr>
-          )}
-        </tfoot>
-      </table>
+    <div className="flex items-start justify-between gap-3 text-sm">
+      <span className="text-muted">{label}</span>
+      <span className={cn("text-right text-secondary", NUM)}>{value}</span>
     </div>
+  );
+}
+
+/**
+ * ยอดของออเดอร์ทั้งใบในก้อนเดียว (คอลัมน์ขวาบนจอกว้าง · ท้ายรายการบนจอแคบ)
+ *   · บรรทัดย่อยของแต่ละชุดงานมาจาก buildItemPriceLines ตัวเดียวกับหน้าเปิดงาน — บวกกันต้องเท่า item.subtotal
+ *   · ท่อนล่างเรียงเหมือน "สรุปยอด" ของฟอร์มและแท็บเงิน (รวมสินค้า → ค่าธรรมเนียม → ส่วนลด → VAT → ยอดรวม)
+ *     ให้เลขเดียวกันทุกที่ ไม่คิดสูตรใหม่ตรงนี้
+ */
+function OrderPriceSummaryPanel({ items, fees, totals }: { items: OrderItem[]; fees: OrderFee[]; totals?: OrderTotals }) {
+  const subtotalItems = items.reduce((s, it) => s + (it.subtotal ?? 0), 0);
+  const subtotalFees = fees.reduce((s, f) => s + (f.amount ?? 0), 0);
+  const discount = totals?.discount ?? 0;
+  const taxRate = totals?.taxRate ?? 0;
+  const taxAmount = totals?.taxAmount ?? 0;
+  const grandTotal = totals?.totalAmount ?? subtotalItems + subtotalFees - discount;
+  const totalQty = sumOrderQuantity(items);
+  // ชุดงานเดียว ไม่มีอะไรบวก/หัก → "รวมสินค้า" ซ้ำกับยอดชุดงาน ไม่ต้องมีท่อนกลาง
+  const hasBreakdown = items.length > 1 || fees.length > 0 || discount > 0 || taxRate > 0;
+
+  return (
+    <Section title={<SectionTitle icon={Calculator} tone="finance">สรุปราคา</SectionTitle>}>
+      <div className="space-y-4">
+        {items.map((item, itemIdx) => {
+          const lines = itemPriceLines(item);
+          const qty = itemQty(item);
+          return (
+            <div key={item.id}>
+              <div className="flex items-baseline justify-between gap-3">
+                <p className="min-w-0 truncate text-sm font-medium text-strong">
+                  {item.description || `รายการที่ ${itemIdx + 1}`}
+                  {qty > 0 && <span className={cn("ml-1.5 text-xs font-normal text-muted", NUM)}>{qty} ตัว</span>}
+                </p>
+                <p className={cn("flex-shrink-0 text-sm font-semibold text-strong", NUM)}>{formatCurrency(item.subtotal ?? 0)}</p>
+              </div>
+              {lines.length > 0 && (
+                <table className="mt-1 w-full text-xs">
+                  <tbody className="text-secondary">
+                    {lines.map((line) => {
+                      const { label, detail } = priceLineText(item, line);
+                      return (
+                        <tr key={`${line.kind}-${line.index}`}>
+                          {/* ชื่อยาวตัดที่ 2 บรรทัด — ชื่อเต็มอยู่ในตารางซ้ายแล้ว */}
+                          <td className="py-0.5">
+                            <span className="line-clamp-2 [overflow-wrap:anywhere]" title={detail ? `${label} (${detail})` : label}>
+                              {label}
+                              {detail && <span className="ml-1 text-muted">({detail})</span>}
+                            </span>
+                          </td>
+                          <td className={cn("whitespace-nowrap py-0.5 pl-2 text-right text-muted", NUM)}>
+                            {formatCurrency(line.unitPrice)} ×{line.quantity}
+                          </td>
+                          <td className={cn("whitespace-nowrap py-0.5 pl-2 text-right", NUM)}>{formatCurrency(line.total)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          );
+        })}
+
+        {hasBreakdown && (
+          <div className="space-y-2 border-t border-divider pt-3">
+            <SummaryRow label="รวมสินค้า" value={formatCurrency(subtotalItems)} />
+            {fees.map((fee, i) => (
+              <SummaryRow key={fee.id ?? i} label={fee.name || fee.feeType || "ค่าธรรมเนียม"} value={formatCurrency(fee.amount ?? 0)} />
+            ))}
+            {discount > 0 && <SummaryRow label="ส่วนลดท้ายบิล" value={`-${formatCurrency(discount)}`} />}
+            {taxRate > 0 && <SummaryRow label={`VAT (${taxRate}%)`} value={formatCurrency(taxAmount)} />}
+          </div>
+        )}
+
+        <div className="flex items-baseline justify-between gap-3 border-t border-divider pt-3">
+          <span className="text-sm font-medium text-strong">
+            ยอดรวมทั้งหมด
+            {taxRate > 0 && <span className="ml-1 text-xs font-normal text-muted">(รวม VAT)</span>}
+          </span>
+          <span className={DISPLAY_AMOUNT}>{formatCurrency(grandTotal)}</span>
+        </div>
+        {totalQty > 0 && (
+          <p className={cn("text-xs text-muted", NUM)}>
+            เฉลี่ยค่าสินค้า {formatCurrency(Math.round((subtotalItems / totalQty) * 100) / 100)} / ตัว
+          </p>
+        )}
+      </div>
+    </Section>
   );
 }
 
@@ -741,8 +805,6 @@ function ItemCard({
         )}
 
         {item.notes && <Fact label="หมายเหตุการผลิตชุดนี้" value={item.notes} />}
-
-        {showMoney && <ItemPriceSummary item={item} />}
       </div>
     </article>
   );
@@ -757,11 +819,11 @@ export function OrderItemsDisplay({
   onEditItems,
   showMoney = true,
   canEditReceiveTracking = false,
+  totals,
 }: OrderItemsDisplayProps) {
   const isEmpty = !items || items.length === 0;
   const isSingleItem = (items?.length ?? 0) === 1;
   const orderTotalQty = sumOrderQuantity(items);
-  const singleSubtotal = isSingleItem ? items[0]?.subtotal ?? null : null;
 
   // หัว "รายการสินค้า" + ชิป + ปุ่มแก้ไข — ข้อความชุดเดิม แต่ยืนเป็นแถวเหนือการ์ดชุดงาน
   // (ไม่มีการ์ดใหญ่ครอบซ้ำ — เบสสั่งเอาการ์ดซ้อนการ์ดออกจากฟอร์มไปแล้ว 2026-08-14)
@@ -778,11 +840,6 @@ export function OrderItemsDisplay({
             {orderTotalQty} ชิ้น
           </InfoChip>
         ) : null}
-        {showMoney && singleSubtotal != null && (
-          <InfoChip size="sm" className="tabular-nums">
-            {formatCurrency(singleSubtotal)}
-          </InfoChip>
-        )}
       </CardTitle>
       {onEditItems && !isEmpty && (
         <Button variant="outline" size="sm" onClick={onEditItems} className="flex-shrink-0 gap-1.5">
@@ -792,6 +849,34 @@ export function OrderItemsDisplay({
       )}
     </div>
   );
+
+  // การ์ดค่าธรรมเนียมแยก — เหลือเฉพาะ role ที่ไม่เห็นเงิน (เห็นชื่อรายการว่ามีอะไร)
+  // role ที่เห็นเงินอ่านค่าธรรมเนียมจากบรรทัดใน "สรุปราคา" ก้อนเดียวแทน ไม่โชว์สองที่
+  const feesCard =
+    !showMoney && fees && fees.length > 0 ? (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <SectionTitle icon={Receipt} tone="finance">
+              ค่าธรรมเนียม / ค่าใช้จ่ายเพิ่มเติม
+            </SectionTitle>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            {fees.map((fee, i) => (
+              <div
+                key={fee.id ?? i}
+                className="flex items-center gap-2 rounded-lg border border-border px-4 py-2.5"
+              >
+                {fee.feeType && <Badge variant="secondary">{fee.feeType}</Badge>}
+                <span className="text-sm text-secondary">{fee.name || fee.feeType || "ค่าธรรมเนียม"}</span>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    ) : null;
 
   return (
     <>
@@ -815,56 +900,32 @@ export function OrderItemsDisplay({
       ) : (
         <section aria-label="รายการสินค้า" className="space-y-4">
           {heading}
-          {items.map((item, itemIdx) => (
-            <ItemCard
-              key={item.id}
-              item={item}
-              itemIdx={itemIdx}
-              showMoney={showMoney}
-              orderId={orderId}
-              canEditReceiveTracking={canEditReceiveTracking}
-            />
-          ))}
+          {/* จอกว้าง 2 คอลัมน์ · จอแคบซ้อนกัน สรุปอยู่ท้ายเหมือนใบเสร็จ
+              role ที่ไม่เห็นเงิน = คอลัมน์เดียวเต็มหน้า (ไม่มีก้อนสรุปให้วาง) */}
+          <div className={cn("grid items-start gap-5", showMoney && "xl:grid-cols-[minmax(0,1fr)_20rem]")}>
+            <div className="space-y-4">
+              {items.map((item, itemIdx) => (
+                <ItemCard
+                  key={item.id}
+                  item={item}
+                  itemIdx={itemIdx}
+                  showMoney={showMoney}
+                  orderId={orderId}
+                  canEditReceiveTracking={canEditReceiveTracking}
+                />
+              ))}
+              {feesCard}
+            </div>
+            {showMoney && (
+              <div className="xl:sticky xl:top-14">
+                <OrderPriceSummaryPanel items={items} fees={fees ?? []} totals={totals} />
+              </div>
+            )}
+          </div>
         </section>
       )}
+      {isEmpty && feesCard}
 
-      {/* FEES SECTION */}
-      {fees && fees.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <SectionTitle icon={Receipt} tone="finance">
-                ค่าธรรมเนียม / ค่าใช้จ่ายเพิ่มเติม
-              </SectionTitle>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {fees.map((fee, i) => (
-                  <div
-                    key={fee.id ?? i}
-                    className="flex items-center justify-between rounded-lg border border-border px-4 py-2.5"
-                  >
-                    <div className="flex items-center gap-2">
-                      {fee.feeType && (
-                        <Badge variant="secondary">{fee.feeType}</Badge>
-                      )}
-                      <span className="text-sm text-secondary">
-                        {fee.name || fee.feeType || "ค่าธรรมเนียม"}
-                      </span>
-                    </div>
-                    {showMoney && (
-                      <span className="tabular-nums text-sm font-medium text-strong">
-                        {formatCurrency(fee.amount ?? 0)}
-                      </span>
-                    )}
-                  </div>
-                ),
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </>
   );
 }
