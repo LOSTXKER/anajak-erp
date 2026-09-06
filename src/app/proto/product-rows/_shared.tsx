@@ -237,7 +237,7 @@ export function SpecFields({ p, idx, h, compact = false }: { p: OrderItemProduct
         <Field label="ทรงคอ"><Select size={size} value={p.collarType} onChange={(e) => h.update(idx, "collarType", e.target.value)}><option value="">เลือก</option>{Object.entries(COLLAR_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</Select></Field>
         <Field label="แขน"><Select size={size} value={p.sleeveType} onChange={(e) => h.update(idx, "sleeveType", e.target.value)}><option value="">เลือก</option>{Object.entries(SLEEVE_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</Select></Field>
         <Field label="ทรงตัว"><Select size={size} value={p.bodyFit} onChange={(e) => h.update(idx, "bodyFit", e.target.value)}><option value="">เลือก</option>{Object.entries(BODY_FITS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</Select></Field>
-        <Field label="หมายเหตุแพทเทิร์น"><Input size={size} value={p.patternNote} onChange={(e) => h.update(idx, "patternNote", e.target.value)} placeholder="หมายเหตุ..." /></Field>
+        <Field label="หมายเหตุแพทเทิร์น" className="sm:col-span-3"><Input size={size} value={p.patternNote} onChange={(e) => h.update(idx, "patternNote", e.target.value)} placeholder="หมายเหตุ..." /></Field>
       </div>
     </div>
   );

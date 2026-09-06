@@ -241,7 +241,8 @@ export function CustomMadeDetail({
             {Object.entries(BODY_FITS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </Select>
         </Field>
-        <Field label="หมายเหตุแพทเทิร์น">
+        {/* หมายเหตุอยู่แถวล่างสุดเต็มกว้าง — ข้อความยาวกว่าช่องอื่น (เบสสั่ง 2026-09-06 "เอาลงมาข้างล่าง แสดงกว้างๆ") */}
+        <Field label="หมายเหตุแพทเทิร์น" className="sm:col-span-3">
           <Input size="sm" value={product.patternNote} onChange={(e) => updateProduct("patternNote", e.target.value)} placeholder="หมายเหตุ..." />
         </Field>
       </div>
