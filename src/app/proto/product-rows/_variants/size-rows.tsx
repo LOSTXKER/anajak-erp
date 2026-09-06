@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
 import { cn, formatCurrency } from "@/lib/utils";
+import { TABLE_HEAD_SURFACE } from "@/components/ui/tokens";
 import type { OrderItemProductForm, VariantForm } from "@/types/order-form";
 import {
   CustomerNote, DetailRail, FormCols, FormHead, IdentityCell, NarrowCard, PackSelect, PriceInput,
@@ -34,8 +35,8 @@ function SizeRowsTable({ p, idx, h }: { p: OrderItemProductForm; idx: number; h:
         <col style={{ width: 96 }} />
         <col style={{ width: 44 }} />
       </colgroup>
-      <thead>
-        <tr className="text-xs font-medium text-muted">
+      <thead className={TABLE_HEAD_SURFACE}>
+        <tr className="text-xs font-medium">
           <th className="px-2 py-1.5 text-left">ไซส์</th>
           <th className="px-2 py-1.5 text-left">สี</th>
           <th className="px-2 py-1.5 text-center">จำนวน</th>
