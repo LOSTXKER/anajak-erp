@@ -16,10 +16,12 @@ import {
 } from "lucide-react";
 import type { OrderItemForm } from "@/types/order-form";
 import {
+  CUSTOM_ADDON_TYPE,
   PRICING_TYPE_LABELS,
   createOrderItemProduct,
   itemHasContent,
 } from "@/types/order-form";
+import { addonSelectValue, CUSTOM_ADDON_OPTION } from "@/lib/order-addon-ui";
 import { PrintTableRow } from "./print-table-row";
 import { PrintCardMobile } from "./print-card-mobile";
 import { ProductTableRow } from "./product-table-row";
@@ -169,6 +171,67 @@ export function OrderItemCard({
       copy[itemIdx] = { ...copy[itemIdx], prints };
       return copy;
     });
+  };
+
+  /** "อื่นๆ (พิมพ์เอง)" — รหัสเป็น CUSTOM คงชื่อเดิมไว้ให้แก้ต่อ (เลือกจากแค็ตตาล็อกแล้วอยากเปลี่ยนชื่อก็ทางนี้) */
+  const markAddonCustom = (aIdx: number) => {
+    onSetItems((prev) => {
+      const copy = [...prev];
+      const addons = [...copy[itemIdx].addons];
+      addons[aIdx] = { ...addons[aIdx], addonType: CUSTOM_ADDON_TYPE };
+      copy[itemIdx] = { ...copy[itemIdx], addons };
+      return copy;
+    });
+  };
+
+  /** พิมพ์ชื่อเอง = เป็น CUSTOM อัตโนมัติ (ไม่มีแค็ตตาล็อกก็ไม่ค้างเป็นรหัสว่าง) */
+  const setAddonName = (aIdx: number, name: string) => {
+    onSetItems((prev) => {
+      const copy = [...prev];
+      const addons = [...copy[itemIdx].addons];
+      addons[aIdx] = { ...addons[aIdx], name, addonType: addons[aIdx].addonType || CUSTOM_ADDON_TYPE };
+      copy[itemIdx] = { ...copy[itemIdx], addons };
+      return copy;
+    });
+  };
+
+  // ช่อง "ส่วนเสริม" ช่องเดียว (เบสเคาะ 2026-09-06 "ประเภทกับชื่อซ้ำซ้อน"): ดรอปดาวน์ชื่อจากแค็ตตาล็อก
+  // + "อื่นๆ (พิมพ์เอง)" เปิดช่องชื่อ · รหัสประเภทตามแค็ตตาล็อกไปเงียบๆ ไม่โชว์ SIZE_LABEL ให้คนอ่านอีก
+  const renderAddonField = (a: OrderItemForm["addons"][number], aIdx: number, dense: boolean) => {
+    const hasCatalog = !!addonCatalog && addonCatalog.length > 0;
+    const value = hasCatalog ? addonSelectValue(a, addonCatalog!) : CUSTOM_ADDON_OPTION;
+    const custom = value === CUSTOM_ADDON_OPTION;
+    return (
+      <div className="flex flex-wrap items-center gap-2">
+        {hasCatalog && (
+          <Select
+            aria-label={`ส่วนเสริม ${aIdx + 1}`}
+            value={value}
+            size={dense ? "dense" : undefined}
+            className="min-w-[10rem] flex-1"
+            onChange={(e) => {
+              const v = e.target.value;
+              if (v === CUSTOM_ADDON_OPTION) markAddonCustom(aIdx);
+              else if (v) applyAddonFromCatalog(aIdx, v);
+            }}
+          >
+            <option value="">เลือกส่วนเสริม...</option>
+            {addonCatalog!.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            <option value={CUSTOM_ADDON_OPTION}>อื่นๆ (พิมพ์เอง)</option>
+          </Select>
+        )}
+        {custom && (
+          <Input
+            aria-label={`ชื่อส่วนเสริม ${aIdx + 1}`}
+            value={a.name}
+            onChange={(e) => setAddonName(aIdx, e.target.value)}
+            placeholder="ชื่อส่วนเสริม เช่น ปักโลโก้"
+            size={dense ? "dense" : undefined}
+            className="min-w-[10rem] flex-1"
+          />
+        )}
+      </div>
+    );
   };
 
   const applyAddonFromCatalog = (aIdx: number, catalogId: string) => {
@@ -444,8 +507,7 @@ export function OrderItemCard({
             <ItemTableCols />
             <thead className={TABLE_HEAD_SURFACE}>
               <tr className="text-left text-xs font-medium">
-                <th colSpan={2} className="px-2 py-2.5">ประเภท</th>
-                <th colSpan={2} className="px-2 py-2.5">ชื่อ</th>
+                <th colSpan={4} className="px-2 py-2.5">ส่วนเสริม</th>
                 <th colSpan={2} className="px-2 py-2.5 text-center">คิดราคา</th>
                 <th className="px-2 py-2.5 text-center">ราคา</th>
                 <th className="py-2.5">
@@ -456,17 +518,7 @@ export function OrderItemCard({
             <tbody>
               {item.addons.map((a, aIdx) => (
                 <tr key={aIdx}>
-                  <td colSpan={2} className="px-2 py-1.5 align-middle">
-                    {addonCatalog && addonCatalog.length > 0 ? (
-                      <Select aria-label={`เลือกประเภทส่วนเสริม ${aIdx + 1} จากแค็ตตาล็อก`} value="" onChange={(e) => { if (e.target.value) applyAddonFromCatalog(aIdx, e.target.value); }} size="dense">
-                        <option value="">{a.addonType || "แค็ตตาล็อก..."}</option>
-                        {addonCatalog.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                      </Select>
-                    ) : (
-                      <Input aria-label={`ประเภทส่วนเสริม ${aIdx + 1}`} value={a.addonType} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "addonType", e.target.value)} placeholder="LABEL, TAG..." size="dense" />
-                    )}
-                  </td>
-                  <td colSpan={2} className="px-2 py-1.5 align-middle"><Input aria-label={`ชื่อส่วนเสริม ${aIdx + 1}`} value={a.name} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "name", e.target.value)} placeholder="ชื่อ add-on" size="dense" /></td>
+                  <td colSpan={4} className="px-2 py-1.5 align-middle">{renderAddonField(a, aIdx, true)}</td>
                   <td colSpan={2} className="px-2 py-1.5 align-middle"><Select aria-label={`วิธีคิดราคาส่วนเสริม ${aIdx + 1}`} value={a.pricingType} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "pricingType", e.target.value as "PER_PIECE" | "PER_ORDER")} size="dense"><option value="PER_PIECE">{PRICING_TYPE_LABELS.PER_PIECE}</option><option value="PER_ORDER">{PRICING_TYPE_LABELS.PER_ORDER}</option></Select></td>
                   <td className="px-2 py-1.5 align-middle"><Input aria-label={`ราคาส่วนเสริม ${aIdx + 1}`} type="number" min={0} step={0.01} value={a.unitPrice || ""} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "unitPrice", parseFloat(e.target.value) || 0)} placeholder="0.00" size="dense" /></td>
                   <td className="py-1.5 pl-1 text-right align-middle"><Button type="button" variant="ghost" size="icon" aria-label={`ลบส่วนเสริม ${aIdx + 1}`} className="text-muted hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400" onClick={() => onRemoveAddon(itemIdx, aIdx)}><Trash2 /></Button></td>
@@ -485,19 +537,7 @@ export function OrderItemCard({
                 <Button type="button" variant="ghost" size="icon-sm" aria-label={`ลบส่วนเสริม ${addonIdx + 1}`} className="text-muted hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400" onClick={() => onRemoveAddon(itemIdx, addonIdx)}><Trash2 /></Button>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <Field label="ประเภท">
-                  {addonCatalog && addonCatalog.length > 0 ? (
-                    <Select aria-label={`เลือกประเภทส่วนเสริม ${addonIdx + 1} จากแค็ตตาล็อก`} value="" onChange={(e) => { if (e.target.value) applyAddonFromCatalog(addonIdx, e.target.value); }}>
-                      <option value="">{addon.addonType || "แค็ตตาล็อก..."}</option>
-                      {addonCatalog.map((catalogItem) => <option key={catalogItem.id} value={catalogItem.id}>{catalogItem.name}</option>)}
-                    </Select>
-                  ) : (
-                    <Input aria-label={`ประเภทส่วนเสริม ${addonIdx + 1}`} value={addon.addonType} onChange={(e) => onUpdateAddon(itemIdx, addonIdx, "addonType", e.target.value)} placeholder="LABEL, TAG..." />
-                  )}
-                </Field>
-                <Field label="ชื่อ">
-                  <Input aria-label={`ชื่อส่วนเสริม ${addonIdx + 1}`} value={addon.name} onChange={(e) => onUpdateAddon(itemIdx, addonIdx, "name", e.target.value)} placeholder="ชื่อ add-on" />
-                </Field>
+                <Field label="ส่วนเสริม" className="col-span-2">{renderAddonField(addon, addonIdx, false)}</Field>
                 <Field label="คิดราคา">
                   <Select aria-label={`วิธีคิดราคาส่วนเสริม ${addonIdx + 1}`} value={addon.pricingType} onChange={(e) => onUpdateAddon(itemIdx, addonIdx, "pricingType", e.target.value as "PER_PIECE" | "PER_ORDER")}>
                     <option value="PER_PIECE">{PRICING_TYPE_LABELS.PER_PIECE}</option>

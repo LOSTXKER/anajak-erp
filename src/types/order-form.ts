@@ -288,6 +288,27 @@ export const PRICING_TYPE_LABELS: Record<PricingType, string> = {
   PER_ORDER: "ต่อออเดอร์",
 };
 
+/**
+ * ประเภทส่วนเสริม — รหัสภายใน (ServiceCatalog.type / OrderItemAddon.addonType) → คำไทย
+ * คนใช้ไม่เห็นรหัสอีกแล้ว (เบสเคาะ 2026-09-06 "ประเภทกับชื่อซ้ำซ้อน → ยุบเหลือชื่อเดียว"):
+ * ฟอร์มออเดอร์เลือกจากชื่อในแค็ตตาล็อก รหัสตามแค็ตตาล็อกไปเงียบๆ · หน้าแค็ตตาล็อกเลือกจากรายการนี้
+ * ระบบใช้รหัสจุดเดียว: ป้ายเย็บติด (*_LABEL) → เสนอขั้น "เย็บป้าย" ตอนเปิดใบผลิต (lib/production-steps)
+ */
+export const ADDON_TYPES: Record<string, string> = {
+  NECK_LABEL: "ป้ายคอ",
+  SIZE_LABEL: "ป้ายไซส์",
+  CARE_LABEL: "ป้ายซัก",
+  HANG_TAG: "แท็กห้อย",
+  POLY_BAG: "ถุงแพ็ค",
+  STICKER: "สติกเกอร์",
+  BOX: "กล่อง",
+  EMBROIDERY: "ปัก",
+  SETUP: "ค่าเตรียมงาน",
+  CUSTOM: "อื่นๆ",
+};
+/** ส่วนเสริมที่พิมพ์ชื่อเองนอกแค็ตตาล็อก */
+export const CUSTOM_ADDON_TYPE = "CUSTOM";
+
 export const GARMENT_CONDITIONS: Record<string, string> = {
   GOOD: "ดี",
   FAIR: "พอใช้",

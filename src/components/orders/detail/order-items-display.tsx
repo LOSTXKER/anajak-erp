@@ -506,8 +506,7 @@ function AddonsTable({ addons, showMoney }: { addons: OrderItemAddon[]; showMone
       <ItemTableCols />
       <thead className={TABLE_HEAD_SURFACE}>
         <tr>
-          <th colSpan={2} className={cn(TH, "text-left")}>ชื่อ</th>
-          <th colSpan={2} className={cn(TH, "text-left")}>ประเภท</th>
+          <th colSpan={4} className={cn(TH, "text-left")}>ส่วนเสริม</th>
           <th colSpan={2} className={cn(TH, "text-center")}>คิดราคา</th>
           <th className={cn(TH, "text-center")}>{showMoney ? "ราคา" : ""}</th>
         </tr>
@@ -515,8 +514,7 @@ function AddonsTable({ addons, showMoney }: { addons: OrderItemAddon[]; showMone
       <tbody>
         {addons.map((a) => (
           <tr key={a.id}>
-            <td colSpan={2} className={cn(TD, "font-medium text-strong [overflow-wrap:anywhere]")}>{a.name || "—"}</td>
-            <td colSpan={2} className={cn(TD, "text-secondary")}>{a.addonType || <Dash />}</td>
+            <td colSpan={4} className={cn(TD, "font-medium text-strong [overflow-wrap:anywhere]")}>{a.name || "—"}</td>
             <td colSpan={2} className={cn(TD, "text-center")}>
               <Badge variant={a.pricingType === "PER_PIECE" ? "default" : "secondary"} size="sm">
                 {PRICING_TYPE_LABELS[a.pricingType as PricingType] ?? a.pricingType}
@@ -540,7 +538,6 @@ function AddonCardNarrow({ addon, showMoney }: { addon: OrderItemAddon; showMone
         {showMoney && <p className={cn(NUM, "text-sm font-semibold text-strong")}>{formatCurrency(addon.unitPrice ?? 0)}</p>}
       </div>
       <FactList columns={2} className="mt-2">
-        <Fact size="sm" label="ประเภท" value={addon.addonType || "—"} />
         <Fact size="sm" label="คิดราคา" value={PRICING_TYPE_LABELS[addon.pricingType as PricingType] ?? addon.pricingType} />
       </FactList>
     </div>

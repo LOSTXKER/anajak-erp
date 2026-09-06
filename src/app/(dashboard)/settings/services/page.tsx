@@ -16,7 +16,7 @@ import { Plus, Trash2, Pencil, X, Check, Settings } from "lucide-react";
 import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { SegmentedControl } from "@/components/ui/segmented";
-import { PRICING_TYPE_LABELS } from "@/types/order-form";
+import { ADDON_TYPES, PRICING_TYPE_LABELS } from "@/types/order-form";
 import { PageShell } from "@/components/page-shell";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -221,15 +221,30 @@ export default function ServicesPage() {
                   <label htmlFor={`${formId}-type`} className="mb-1 block text-xs font-medium text-muted">
                     ประเภท *
                   </label>
-                  <Input
-                    id={`${formId}-type`}
-                    value={formData.type}
-                    onChange={(e) =>
-                      setFormData({ ...formData, type: e.target.value })
-                    }
-                    placeholder="เช่น ปักโลโก้"
-                    required
-                  />
+                  {activeTab === "ADDON" ? (
+                    // ส่วนเสริม: เลือกจากรายการไทย รหัสเก็บเงียบๆ (ป้ายเย็บติดทำให้ใบผลิตเสนอขั้น "เย็บป้าย")
+                    <Select
+                      id={`${formId}-type`}
+                      value={formData.type}
+                      onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                      required
+                    >
+                      <option value="">เลือกประเภท...</option>
+                      {Object.entries(ADDON_TYPES).map(([code, label]) => (
+                        <option key={code} value={code}>{label}</option>
+                      ))}
+                    </Select>
+                  ) : (
+                    <Input
+                      id={`${formId}-type`}
+                      value={formData.type}
+                      onChange={(e) =>
+                        setFormData({ ...formData, type: e.target.value })
+                      }
+                      placeholder="เช่น ปักโลโก้"
+                      required
+                    />
+                  )}
                 </div>
                 <div>
                   <label htmlFor={`${formId}-name`} className="mb-1 block text-xs font-medium text-muted">
@@ -358,7 +373,7 @@ export default function ServicesPage() {
                           )}
                         </DataTable.Td>
                         <DataTable.Td className="text-muted">
-                          {item.type}
+                          {ADDON_TYPES[item.type] ?? item.type}
                         </DataTable.Td>
                         <DataTable.Td align="right">
                           {isEditing ? (
