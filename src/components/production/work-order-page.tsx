@@ -292,9 +292,12 @@ function WorkOrder({ id }: { id: string }) {
                                       <StateChip view={view} kind={outsource ? "outsource" : "inhouse"} />
                                     )}
                                     <RecordModeChip mode={mode} />
-                                    <InfoChip size="sm" icon={STATION_ICON[st.key] ?? Wrench}>
-                                      {st.label}
-                                    </InfoChip>
+                                    {/* หาสถานีไม่เจอ (ขั้น CUSTOM ตกเลน OTHER) = ไม่โชว์ป้าย "อื่นๆ" — ทีมผลิตทัก 09-06 ว่าไม่รู้คืออะไร */}
+                                    {st.key === "lane:OTHER" ? null : (
+                                      <InfoChip size="sm" icon={STATION_ICON[st.key] ?? Wrench}>
+                                        {st.label}
+                                      </InfoChip>
+                                    )}
                                     {step.assignedTo ? <InfoChip size="sm">{step.assignedTo.name}</InfoChip> : null}
                                   </span>
                                 </span>
@@ -515,9 +518,11 @@ export function StepDetail({
             <StateChip view={view} kind={outsource ? "outsource" : "inhouse"} size="md" />
           )}
           <RecordModeChip mode={mode} size="md" />
-          <InfoChip size="md" icon={STATION_ICON[st.key] ?? Wrench}>
-            {st.label}
-          </InfoChip>
+          {st.key === "lane:OTHER" ? null : (
+            <InfoChip size="md" icon={STATION_ICON[st.key] ?? Wrench}>
+              {st.label}
+            </InfoChip>
+          )}
         </span>
       }
       action={<Owner step={step} />}
