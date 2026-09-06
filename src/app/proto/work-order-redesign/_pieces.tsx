@@ -37,11 +37,11 @@ const FIX_ITEMS: Omit<MoreMenuItem, "onSelect">[] = [
 ];
 const PAPER_DONE_ITEM: Omit<MoreMenuItem, "onSelect"> = { key: "paper-done", label: "จดว่าเสร็จแล้ว (จากกระดาษ)", hint: "ใส่ตามที่ช่างเขียนไว้ — ไม่บังคับ", icon: FileText };
 
-function isLive(step: WorkStep) {
+export function isLive(step: WorkStep) {
   return step.state === "active" || step.state === "blocked" || step.state === "waiting";
 }
 
-function Disclosure({ summary, children, defaultOpen = false }: { summary: string; children: React.ReactNode; defaultOpen?: boolean }) {
+export function Disclosure({ summary, children, defaultOpen = false }: { summary: string; children: React.ReactNode; defaultOpen?: boolean }) {
   return (
     <details className="group" open={defaultOpen}>
       <summary className={cn(RADIUS.item, FOCUS_BUTTON, "flex w-fit cursor-pointer list-none items-center gap-1 text-sm font-medium text-secondary transition-colors hover:text-strong [&::-webkit-details-marker]:hidden")}>
@@ -102,7 +102,7 @@ function PaperHead({ steps, boss }: { steps: WorkStep[]; boss: boolean }) {
 }
 
 /** เสื้อและลาย — บล็อกเดียวกับที่อยู่บนกระดาษ (รูป + ไซซ์ต่อสี + ตำแหน่งพิมพ์) */
-function GarmentBlock({ compact = false }: { compact?: boolean }) {
+export function GarmentBlock({ compact = false }: { compact?: boolean }) {
   return (
     <Section title="เสื้อและลาย" meta={`${ITEMS.length} สี · ${WORK_ORDER.qty} ตัว`} icon={Shirt} tone="product">
       {/* รูปเท่าบนกระดาษ (ไม่ใช่ผืนใหญ่) — คนดูจอนี้เพื่อนับไซซ์ ไม่ใช่ดูลาย */}
@@ -334,7 +334,7 @@ function StepRail({ steps, selected, onSelect }: { steps: WorkStep[]; selected: 
   );
 }
 
-function OneZone({ step, boss }: { step: WorkStep; boss: boolean }) {
+export function OneZone({ step, boss }: { step: WorkStep; boss: boolean }) {
   const mode = modeOf(step);
   const done = step.state === "done";
   const stuck = step.state === "blocked";

@@ -6,6 +6,7 @@ import { Metric } from "@/components/ui/metric";
 import { WorkOrderD } from "../work-order-quiet/_preview";
 import { currentStep, decisionNumbers, stepsFor, type Variant } from "./_data";
 import { OneAtATime, PaperTwin } from "./_pieces";
+import { FlowWizard } from "./_flow";
 
 export { OPTIONS, VALUES } from "./_data";
 export type { Variant };
@@ -43,9 +44,9 @@ function PreviewInner({ variant, out, boss, initial }: { variant: Variant; out: 
 
       <section className="space-y-2">
         <Label>
-          {variant === "now" ? "ปัจจุบัน — หัวใบ 4 ช่อง แล้วแท็บ 4 แท็บ (แท็บขั้นงานเป็น 2 คอลัมน์)" : variant === "paper" ? "C — หน้าเดียวเลื่อนลงอ่านจบ วางเหมือนกระดาษ ไม่มีแท็บ" : "D — แถบขั้นบนสุด แล้วผืนใหญ่ขั้นเดียว (ทั้งใบพับไว้ท้าย)"}
+          {variant === "now" ? "ปัจจุบัน — หัวใบ 4 ช่อง แล้วแท็บ 4 แท็บ (แท็บขั้นงานเป็น 2 คอลัมน์)" : variant === "paper" ? "C — หน้าเดียวเลื่อนลงอ่านจบ วางเหมือนกระดาษ ไม่มีแท็บ" : variant === "one" ? "D — แถบขั้นบนสุด แล้วผืนใหญ่ขั้นเดียว (ทั้งใบพับไว้ท้าย)" : "E — แผนที่เส้นทาง (สายขนานคนละแถว) แล้วการ์ด “ตอนนี้ทำได้” สายละใบ"}
         </Label>
-        {variant === "now" ? <WorkOrderD variant="now" steps={steps} selected={selected} boss={boss} onSelect={setSelectedId} /> : variant === "paper" ? <PaperTwin steps={steps} boss={boss} /> : <OneAtATime steps={steps} selected={selected} boss={boss} onSelect={setSelectedId} />}
+        {variant === "now" ? <WorkOrderD variant="now" steps={steps} selected={selected} boss={boss} onSelect={setSelectedId} /> : variant === "paper" ? <PaperTwin steps={steps} boss={boss} /> : variant === "one" ? <OneAtATime steps={steps} selected={selected} boss={boss} onSelect={setSelectedId} /> : <FlowWizard steps={steps} boss={boss} />}
       </section>
     </div>
   );
