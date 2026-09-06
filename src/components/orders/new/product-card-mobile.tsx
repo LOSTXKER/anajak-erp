@@ -1,16 +1,14 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { InfoChip, InfoChipRow } from "@/components/ui/info-chip";
 import { Select } from "@/components/ui/select";
-import { cn, formatCurrency } from "@/lib/utils";
-import { ImageIcon, LayoutGrid } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
+import { ImageIcon } from "lucide-react";
 import type { OrderItemForm, OrderItemProductForm } from "@/types/order-form";
 import { ITEM_SOURCES } from "@/types/order-form";
 import { useProductRow } from "./use-product-row";
-import { CustomMadeDetail } from "./custom-made-detail";
+import { CustomMadeSpecSummary } from "./custom-made-spec-summary";
 import { SizeMatrix } from "./size-matrix";
 import { ProductRowActions } from "./product-row-actions";
 
@@ -30,11 +28,10 @@ export function ProductCardMobile({
   onSetItems: (updater: (prev: OrderItemForm[]) => OrderItemForm[]) => void;
 }) {
   const {
-    setShowMatrix,
     updateProduct, updateVariantField, removeProduct, moveProduct,
     packagingOptions,
-    qty, variant, isFromStock, isCustomMade, isCustomerProvided,
-    canMatrix, multi, totalQty, lineTotal,
+    qty, isFromStock, isCustomMade, isCustomerProvided,
+    multi, totalQty, lineTotal,
     productLabel, variantLabel,
   } = useProductRow(product, prodIdx, itemIdx, onSetItems);
 
@@ -92,40 +89,12 @@ export function ProductCardMobile({
           </div>
         </div>
       ) : (
-        <div className="space-y-1.5">
-          <Input
-            value={product.description}
-            onChange={(e) => updateProduct("description", e.target.value)}
-            placeholder={isCustomerProvided ? "ชื่อสินค้า เช่น เสื้อยืดลูกค้า" : "ชื่อสินค้า เช่น เสื้อคอกลม Cotton"}
-          />
-          <div className="flex flex-wrap items-center gap-1.5">
-            {multi ? (
-              <InfoChipRow>
-                <InfoChip size="sm" icon={LayoutGrid}>หลายไซส์</InfoChip>
-                <InfoChip size="sm" strong>รวม {totalQty} ตัว</InfoChip>
-                {variant.color ? <InfoChip size="sm">{variant.color}</InfoChip> : null}
-              </InfoChipRow>
-            ) : (
-              <>
-                {/* การ์ดนี้โผล่เฉพาะจอเล็ก — text-xs เปล่า (12px) ทำให้ iOS ซูมจอทุกครั้งที่แตะ
-                    ปล่อยให้ Input คุมขนาดอักษรเอง (16px มือถือ / 14px เดสก์ท็อป) */}
-                <Input value={variant.color} onChange={(e) => updateVariantField("color", e.target.value)} placeholder="สี" className="w-24 px-2" />
-                <Input value={variant.size} onChange={(e) => updateVariantField("size", e.target.value)} placeholder="ไซส์" className="w-20 px-2" />
-              </>
-            )}
-            {canMatrix && (
-              <Button
-                type="button" variant="outline" size="sm"
-                onClick={() => setShowMatrix((v) => !v)}
-                disabled={product.variants.length > 1}
-                className={cn("h-9 gap-1.5 px-2", multi && "border-blue-400 bg-blue-50 text-blue-700 dark:border-blue-700 dark:bg-blue-900/40 dark:text-blue-300")}
-                title={product.variants.length > 1 ? "ล้างจำนวนไซส์ให้เหลือไซส์เดียวก่อนปิด" : "กรอกหลายไซส์ในแถวเดียว"}
-              >
-                <LayoutGrid />{multi ? "ปิดหลายไซส์" : "หลายไซส์"}
-              </Button>
-            )}
-          </div>
-        </div>
+        <Input
+          aria-label={`ชื่อสินค้า ${prodIdx + 1}`}
+          value={product.description}
+          onChange={(e) => updateProduct("description", e.target.value)}
+          placeholder={isCustomerProvided ? "ชื่อสินค้า เช่น เสื้อยืดลูกค้า" : "ชื่อสินค้า เช่น เสื้อคอกลม Cotton"}
+        />
       )}
 
       {/* ราคา · จำนวน · รวม */}
@@ -179,19 +148,21 @@ export function ProductCardMobile({
             </div>
       </div>
 
-      {/* สเปคตัดเย็บ (CUSTOM_MADE) */}
-      {isCustomMade && (
-        /* กรอบเหลืองชั้นนอกถูกถอด — CustomMadeDetail เป็นกล่องเทาในตัวแล้ว (ไม่ซ้อน 2 กรอบ) */
-        <CustomMadeDetail product={product} updateProduct={updateProduct} />
-      )}
-
-      {/* หลายไซส์ — ตารางกรอกไซส์×จำนวน */}
+      {/* ตัดเย็บ/ลูกค้าส่งมา — ไซส์กางตลอด · สเปคสรุป+popup (เบสเคาะ D 2026-09-06) */}
       {multi && (
-        <SizeMatrix
-          idPrefix={`mobile-size-${itemIdx}-${prodIdx}`}
-          variants={product.variants}
-          onChange={(v) => updateProduct("variants", v)}
-        />
+        <div className="space-y-3 border-t border-divider pt-3">
+          {isCustomMade && <CustomMadeSpecSummary product={product} updateProduct={updateProduct} />}
+          {isCustomerProvided && (
+            <p className="text-xs text-secondary">ตัวเสื้อเป็นของลูกค้า จึงไม่คิดราคาตัวเสื้อ</p>
+          )}
+          <SizeMatrix
+            embedded
+            idPrefix={`mobile-size-${itemIdx}-${prodIdx}`}
+            title={isCustomerProvided ? "จำนวนที่ลูกค้าส่งมา" : "ไซส์และจำนวน"}
+            variants={product.variants}
+            onChange={(v) => updateProduct("variants", v)}
+          />
+        </div>
       )}
     </div>
   );

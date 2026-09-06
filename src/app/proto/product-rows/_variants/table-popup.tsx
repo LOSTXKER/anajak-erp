@@ -10,12 +10,15 @@ import { useState } from "react";
 import { AlertTriangle, Scissors } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { InfoChip, InfoChipRow } from "@/components/ui/info-chip";
+import { Fact, FactList } from "@/components/ui/fact";
+import { InfoChip } from "@/components/ui/info-chip";
+import { customMadeSpecFacts, hasCustomMadeSpec } from "@/lib/custom-made-spec";
 import type { OrderItemProductForm } from "@/types/order-form";
+import { PATTERNS } from "../_data";
 import {
   CustomerNote, DetailRail, FormCols, FormHead, IdentityCell, NarrowCard, PackSelect, PriceInput,
   QtyCell, RowActions, SectionHead, SizeBlock, SourceBadge, SpecFields, TotalCell, DENSE_CELL,
-  isCustomMade, isStock, specSummary, type ProductHandlers,
+  isCustomMade, isStock, type ProductHandlers,
 } from "../_shared";
 
 /** เนื้อใน popup — แยกไว้ให้เรนเดอร์นิ่งดูได้ (Dialog ตัวจริงต้องมีหน้าจอถึงจะเปิด) */
@@ -31,24 +34,26 @@ export function SpecDialogBody({ p, idx, h }: { p: OrderItemProductForm; idx: nu
   );
 }
 
+/** สรุปสเปคแบบ "ป้าย + ค่า" — เบสทักว่าชิปค่าโดดๆ ดูไม่รู้เรื่อง (helper ตัวเดียวกับของจริง) */
 function SpecSummary({ p, idx, h }: { p: OrderItemProductForm; idx: number; h: ProductHandlers }) {
   const [open, setOpen] = useState(false);
-  const specs = specSummary(p);
-  // ประเภทสินค้ามีค่าตั้งต้นเสมอ — "ระบุสเปคแล้ว" ต้องนับจากช่องตัดเย็บจริง (ผ้า/คอ/แขน/ทรง/แพทเทิร์น)
-  const hasSpec = Boolean(p.patternId || p.fabricType || p.material || p.fabricWeight || p.fabricColor || p.collarType || p.sleeveType || p.bodyFit);
+  const filled = hasCustomMadeSpec(p);
+  const facts = customMadeSpecFacts(p, PATTERNS.find((pt) => pt.id === p.patternId)?.name ?? null);
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <InfoChipRow>
-        <InfoChip size="sm" icon={Scissors} strong>สเปค</InfoChip>
-        {hasSpec ? (
-          specs.map((s) => <InfoChip key={s} size="sm">{s}</InfoChip>)
-        ) : (
-          <InfoChip size="sm" icon={AlertTriangle} tone="warning">ยังไม่ระบุสเปค</InfoChip>
-        )}
-      </InfoChipRow>
-      <Button type="button" variant="outline" size="sm" className="ml-auto" onClick={() => setOpen(true)}>
-        {hasSpec ? "แก้สเปค" : "ระบุสเปค"}
-      </Button>
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <Scissors className="h-3.5 w-3.5 text-muted" aria-hidden="true" />
+        <span className="text-xs font-semibold text-secondary">สเปคตัดเย็บ</span>
+        {!filled && <InfoChip size="sm" icon={AlertTriangle} tone="warning">ยังไม่ระบุสเปค</InfoChip>}
+        <Button type="button" variant="outline" size="sm" className="ml-auto" onClick={() => setOpen(true)}>
+          {filled ? "แก้สเปค" : "ระบุสเปค"}
+        </Button>
+      </div>
+      {filled && (
+        <FactList columns={4}>
+          {facts.map((f) => <Fact key={f.label} size="sm" label={f.label} value={f.value} className={f.wide ? "col-span-full" : undefined} />)}
+        </FactList>
+      )}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-2xl">
           <SpecDialogBody p={p} idx={idx} h={h} />

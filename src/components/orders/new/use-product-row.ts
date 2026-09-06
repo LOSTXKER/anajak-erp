@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { sumVariantQty } from "@/lib/size-matrix";
 import { moveOrderItemProduct } from "@/lib/order-item-composer";
@@ -14,11 +13,6 @@ export function useProductRow(
   itemIdx: number,
   onSetItems: (updater: (prev: OrderItemForm[]) => OrderItemForm[]) => void
 ) {
-  // งานตัดเย็บ/ลูกค้าส่งมา แทบไม่มีไซส์เดียว → เปิดตารางหลายไซส์ (SizeMatrix) เป็น default (UX7)
-  const [showMatrix, setShowMatrix] = useState(
-    () =>
-      product.itemSource === "CUSTOM_MADE" || product.itemSource === "CUSTOMER_PROVIDED"
-  );
   const { data: packagingOptions } = trpc.packaging.list.useQuery();
 
   const updateProduct = (field: string, value: unknown) => {
@@ -67,9 +61,10 @@ export function useProductRow(
   const isCustomMade = product.itemSource === "CUSTOM_MADE";
   const isCustomerProvided = product.itemSource === "CUSTOMER_PROVIDED";
 
-  // โหมดหลายไซส์ (matrix) — เฉพาะสินค้าที่กรอกเอง (ไม่ใช่จากสต๊อค) · มี >1 variant = บังคับเปิด
+  // สินค้าที่กรอกเอง (ตัดเย็บ/ลูกค้าส่งมา) ใช้ตารางไซส์เสมอ — ไม่มีปุ่มสลับ "หลายไซส์" อีก
+  // (เบสเคาะ D 2026-09-06: แถวสินค้าเดียวกันทุกแหล่ง · ไซส์กางตลอดใต้แถว · สเปคใน popup)
   const canMatrix = !isFromStock;
-  const multi = canMatrix && (showMatrix || product.variants.length > 1);
+  const multi = canMatrix;
   const filledSizes = product.variants.filter((v) => v.size.trim());
   const totalQty = sumVariantQty(filledSizes);
   const effectiveQty = multi ? totalQty : qty;
@@ -79,8 +74,6 @@ export function useProductRow(
   const variantLabel = [variant.color, variant.size].filter(Boolean).join(" ");
 
   return {
-    // state
-    showMatrix, setShowMatrix,
     // handlers
     updateProduct, updateVariantField, removeProduct, moveProduct,
     // data

@@ -1,26 +1,23 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MoneyInput, NumberInput } from "@/components/ui/number-input";
 import { Badge } from "@/components/ui/badge";
-import { InfoChip, InfoChipRow } from "@/components/ui/info-chip";
 import { Select } from "@/components/ui/select";
-import { cn, formatCurrency } from "@/lib/utils";
-import {
-  ImageIcon,
-  LayoutGrid,
-} from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
+import { ImageIcon } from "lucide-react";
 import type { OrderItemForm, OrderItemProductForm } from "@/types/order-form";
 import { ITEM_SOURCES } from "@/types/order-form";
 import { getProductSourcePresentation } from "@/lib/order-item-composer";
 import { useProductRow } from "./use-product-row";
-import { CustomMadeDetail } from "./custom-made-detail";
+import { CustomMadeSpecSummary } from "./custom-made-spec-summary";
+import { ProductDetailRail } from "./product-detail-rail";
 import { SizeMatrix } from "./size-matrix";
 import { ProductRowActions } from "./product-row-actions";
 
 // แถวสินค้า 1 ชิ้น — 8 คอลัมน์: แหล่ง · สินค้า · แพค · ราคา · ส่วนลด · จำนวน · รวม · จัดการ
-// สเปคตัดเย็บและหลายไซส์ยังอยู่แถวเสริมเต็มกว้าง เพราะเป็นข้อมูลหลายช่องในตัวเอง
+// ทุกแหล่งอยู่ตารางเดียวกัน (เบสเคาะ D 2026-09-06 จาก /proto/product-rows — เลิกกล่องเทา ProductAdaptiveCard)
+// ตัดเย็บ/ลูกค้าส่งมาได้ "แถวลูก" พื้นขาวใต้แถว: ตารางไซส์กางตลอด · สเปคตัดเย็บเป็นสรุป + แก้ใน popup
 export function ProductTableRow({
   product, prodIdx, itemIdx, totalProducts, onSetItems,
 }: {
@@ -31,12 +28,11 @@ export function ProductTableRow({
   onSetItems: (updater: (prev: OrderItemForm[]) => OrderItemForm[]) => void;
 }) {
   const {
-    setShowMatrix,
     updateProduct, updateVariantField, removeProduct, moveProduct,
     packagingOptions,
-    qty, variant, isFromStock, isCustomMade, isCustomerProvided,
-    canMatrix, multi, totalQty, lineTotal,
-    productLabel, variantLabel,
+    qty, variantLabel, isFromStock, isCustomMade, isCustomerProvided,
+    multi, totalQty, lineTotal,
+    productLabel,
   } = useProductRow(product, prodIdx, itemIdx, onSetItems);
   const sourcePresentation = product.itemSource
     ? getProductSourcePresentation(product.itemSource)
@@ -94,41 +90,13 @@ export function ProductTableRow({
               </div>
             </div>
           ) : (
-            <div className="space-y-1.5">
-              <Input
-                aria-label={`ชื่อสินค้า ${prodIdx + 1}`}
-                value={product.description}
-                onChange={(e) => updateProduct("description", e.target.value)}
-                placeholder={isCustomerProvided ? "ชื่อสินค้า เช่น เสื้อยืดลูกค้า" : "ชื่อสินค้า เช่น เสื้อคอกลม Cotton"}
-                size="dense"
-              />
-              <div className="flex flex-wrap items-center gap-1.5">
-                {multi ? (
-                  <InfoChipRow>
-                    <InfoChip size="sm" icon={LayoutGrid}>หลายไซส์</InfoChip>
-                    <InfoChip size="sm" strong>รวม {totalQty} ตัว</InfoChip>
-                    {variant.color ? <InfoChip size="sm">{variant.color}</InfoChip> : null}
-                  </InfoChipRow>
-                ) : (
-                  <>
-                    <Input aria-label={`สีสินค้า ${prodIdx + 1}`} value={variant.color} onChange={(e) => updateVariantField("color", e.target.value)} placeholder="สี" size="dense" className="w-20 px-2" />
-                    <Input aria-label={`ไซส์สินค้า ${prodIdx + 1}`} value={variant.size} onChange={(e) => updateVariantField("size", e.target.value)} placeholder="ไซส์" size="dense" className="w-16 px-2" />
-                  </>
-                )}
-                {canMatrix && (
-                  <Button
-                    type="button" variant="outline" size="sm"
-                    onClick={() => setShowMatrix((v) => !v)}
-                    aria-expanded={multi}
-                    disabled={product.variants.length > 1}
-                    className={cn("h-8 gap-1.5 px-2", multi && "border-blue-400 bg-blue-50 text-blue-700 dark:border-blue-700 dark:bg-blue-900/40 dark:text-blue-300")}
-                    title={product.variants.length > 1 ? "ล้างจำนวนไซส์ให้เหลือไซส์เดียวก่อนปิด" : "กรอกหลายไซส์ในแถวเดียว"}
-                  >
-                    <LayoutGrid />{multi ? "ปิดหลายไซส์" : "หลายไซส์"}
-                  </Button>
-                )}
-              </div>
-            </div>
+            <Input
+              aria-label={`ชื่อสินค้า ${prodIdx + 1}`}
+              value={product.description}
+              onChange={(e) => updateProduct("description", e.target.value)}
+              placeholder={isCustomerProvided ? "ชื่อสินค้า เช่น เสื้อยืดลูกค้า" : "ชื่อสินค้า เช่น เสื้อคอกลม Cotton"}
+              size="dense"
+            />
           )}
         </td>
 
@@ -197,26 +165,24 @@ export function ProductTableRow({
         </td>
       </tr>
 
-      {/* สเปคตัดเย็บ (CUSTOM_MADE) — แถวเสริมเต็มกว้าง */}
-      {isCustomMade && (
-        <tr>
-          <td aria-hidden="true" />
-          <td colSpan={7} className="pb-3 pt-1 pr-1">
-            <CustomMadeDetail product={product} updateProduct={updateProduct} />
-          </td>
-        </tr>
-      )}
-
-      {/* หลายไซส์ — ตารางกรอกไซส์×จำนวน (ก้อน 4 / P1.12) */}
+      {/* แถวลูกของตัดเย็บ/ลูกค้าส่งมา — ไซส์กางตลอด · สเปคสรุป+popup (เบสเคาะ D 2026-09-06) */}
       {multi && (
         <tr>
           <td aria-hidden="true" />
-          <td colSpan={7} className="pb-3 pt-1 pr-1">
-            <SizeMatrix
-              idPrefix={`desktop-size-${itemIdx}-${prodIdx}`}
-              variants={product.variants}
-              onChange={(v) => updateProduct("variants", v)}
-            />
+          <td colSpan={7} className="pb-4 pr-2 pt-1">
+            <ProductDetailRail className="space-y-3">
+              {isCustomMade && <CustomMadeSpecSummary product={product} updateProduct={updateProduct} />}
+              {isCustomerProvided && (
+                <p className="text-xs text-secondary">ตัวเสื้อเป็นของลูกค้า จึงไม่คิดราคาตัวเสื้อ</p>
+              )}
+              <SizeMatrix
+                embedded
+                idPrefix={`desktop-size-${itemIdx}-${prodIdx}`}
+                title={isCustomerProvided ? "จำนวนที่ลูกค้าส่งมา" : "ไซส์และจำนวน"}
+                variants={product.variants}
+                onChange={(v) => updateProduct("variants", v)}
+              />
+            </ProductDetailRail>
           </td>
         </tr>
       )}

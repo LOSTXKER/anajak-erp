@@ -26,7 +26,6 @@ import { PrintTableRow } from "./print-table-row";
 import { PrintCardMobile } from "./print-card-mobile";
 import { ProductTableRow } from "./product-table-row";
 import { ProductCardMobile } from "./product-card-mobile";
-import { ProductAdaptiveCard } from "./product-adaptive-card";
 import { AddProductPopover, PRODUCT_TYPE_OPTIONS } from "./add-product-popover";
 import { FIELD_LABEL, FIELD_MEASURE, FOCUS_BUTTON, RADIUS, SUNK_PANEL, TABLE_HEAD_SURFACE } from "@/components/ui/tokens";
 
@@ -272,10 +271,6 @@ export function OrderItemCard({
   const itemPriceSummary = buildOrderItemPriceSummary(item);
   const { totalQuantity: totalQty, subtotal } = itemPriceSummary;
   const headingId = `${cardId}-heading`;
-  const usesAdaptiveProductBlocks = item.products.some(
-    (product) => product.itemSource !== "FROM_STOCK",
-  );
-
   // ── section: คำอธิบายงาน ──
   const descField = (
     <Field label="ชื่อชุดงาน" className={FIELD_MEASURE}>
@@ -416,22 +411,8 @@ export function OrderItemCard({
           ))}
         </div>
       ) : (
-        usesAdaptiveProductBlocks ? (
-          <div className="space-y-3">
-            {item.products.map((prod, pIdx) => (
-              <ProductAdaptiveCard
-                key={prod.formKey ?? `${prod.itemSource}-${pIdx}`}
-                product={prod}
-                prodIdx={pIdx}
-                itemIdx={itemIdx}
-                totalProducts={item.products.length}
-                onSetItems={onSetItems}
-              />
-            ))}
-          </div>
-        ) : (
           <>
-            {/* สินค้าจากสต็อกล้วนคงตารางเดิมที่เบสเคาะไว้ */}
+            {/* ทุกแหล่งอยู่ตารางเดียวกัน — ตัดเย็บ/ลูกค้าส่งมาได้แถวลูกใต้แถว (เบสเคาะ D 2026-09-06 เลิกกล่องเทา) */}
             <div className="hidden overflow-hidden @2xl:block">
               <table className="w-full table-fixed">
                 <ItemTableCols />
@@ -477,7 +458,6 @@ export function OrderItemCard({
               ))}
             </div>
           </>
-        )
       )}
     </div>
   );
