@@ -7,7 +7,7 @@ import { Metric } from "@/components/ui/metric";
 import { Tabs, TabsBar, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EventsColumn, GarmentColumn, ItemsColumn, OrderFactsColumn, PlanColumn, PrintsColumn } from "../work-order/_variants/tabs";
 import { ProblemCard, WorkOrderHeader } from "../work-order/_pieces";
-import { JARGON_FOLDED, JARGON_VISIBLE, chipCount, currentStep, stepsFor, type Variant } from "./_data";
+import { JARGON_FOLDED, JARGON_VISIBLE, chipCount, currentStep, stepsFor, type Variant, type WorkStep } from "./_data";
 import { StepDetail, StepList, TAB_LABELS } from "./_pieces";
 
 export { OPTIONS, VALUES } from "./_data";
@@ -15,6 +15,60 @@ export type { Variant };
 
 function Label({ children }: { children: React.ReactNode }) {
   return <p className="text-2xs font-medium uppercase tracking-wide text-muted">{children}</p>;
+}
+
+/** ใบผลิตโครง D ทั้งใบ (หัวใบ · การ์ดปัญหา · แท็บ 4) — หน้าลอง redesign ยืมไปเป็น "ปัจจุบัน" */
+export function WorkOrderD({ variant, steps, selected, boss, onSelect }: { variant: Variant; steps: WorkStep[]; selected: WorkStep; boss: boolean; onSelect: (id: string) => void }) {
+  const problems = steps.filter((s) => s.problem);
+  const tabs = TAB_LABELS[variant];
+  return (
+    <div className="space-y-6">
+      <WorkOrderHeader steps={steps} />
+      {problems.length > 0 ? (
+        <div className="grid gap-3 lg:grid-cols-2">
+          {problems.map((s) => (
+            <ProblemCard key={s.id} step={s} />
+          ))}
+        </div>
+      ) : null}
+      <Tabs defaultValue="steps" className="space-y-6">
+        <TabsBar>
+          <TabsList aria-label="ส่วนของใบผลิต">
+            <TabsTrigger value="steps" hasPending={problems.length > 0}>
+              ขั้นงาน
+            </TabsTrigger>
+            <TabsTrigger value="make">{tabs.make}</TabsTrigger>
+            <TabsTrigger value="info">{tabs.info}</TabsTrigger>
+            <TabsTrigger value="history">ประวัติ</TabsTrigger>
+          </TabsList>
+        </TabsBar>
+        <TabsContent value="steps">
+          <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]">
+            <StepList variant={variant} steps={steps} selected={selected.id} boss={boss} onSelect={onSelect} />
+            <StepDetail variant={variant} step={selected} boss={boss} />
+          </div>
+        </TabsContent>
+        <TabsContent value="make">
+          <div className="grid gap-5 lg:grid-cols-2">
+            <ItemsColumn />
+            <PrintsColumn />
+          </div>
+        </TabsContent>
+        <TabsContent value="info">
+          <div className="grid gap-5 lg:grid-cols-2">
+            <OrderFactsColumn />
+            <GarmentColumn />
+          </div>
+        </TabsContent>
+        <TabsContent value="history">
+          <div className="grid gap-5 lg:grid-cols-2">
+            <EventsColumn />
+            <PlanColumn />
+          </div>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
 }
 
 /** key ตาม variant/out ข้างนอก → ขั้นที่เลือกรีเซ็ตเองเมื่อสลับทาง */
@@ -26,11 +80,9 @@ function PreviewInner({ variant, out, boss, initial }: { variant: Variant; out: 
   const steps = stepsFor(out);
   const [selectedId, setSelectedId] = useState(() => initial ?? currentStep(steps).id);
   const selected = steps.find((s) => s.id === selectedId) ?? steps[0]!;
-  const problems = steps.filter((s) => s.problem);
   const chips = chipCount(variant, steps, selected);
   const jargon = JARGON_VISIBLE[variant];
   const folded = JARGON_FOLDED[variant];
-  const tabs = TAB_LABELS[variant];
 
   return (
     <div className="space-y-8">
@@ -66,52 +118,7 @@ function PreviewInner({ variant, out, boss, initial }: { variant: Variant; out: 
 
       <section className="space-y-2">
         <Label>ใบผลิต — โครง D เดิมทั้งใบ เปลี่ยนเฉพาะในแท็บขั้นงาน</Label>
-        <div className="space-y-6">
-          <WorkOrderHeader steps={steps} />
-          {problems.length > 0 ? (
-            <div className="grid gap-3 lg:grid-cols-2">
-              {problems.map((s) => (
-                <ProblemCard key={s.id} step={s} />
-              ))}
-            </div>
-          ) : null}
-          <Tabs defaultValue="steps" className="space-y-6">
-            <TabsBar>
-              <TabsList aria-label="ส่วนของใบผลิต">
-                <TabsTrigger value="steps" hasPending={problems.length > 0}>
-                  ขั้นงาน
-                </TabsTrigger>
-                <TabsTrigger value="make">{tabs.make}</TabsTrigger>
-                <TabsTrigger value="info">{tabs.info}</TabsTrigger>
-                <TabsTrigger value="history">ประวัติ</TabsTrigger>
-              </TabsList>
-            </TabsBar>
-            <TabsContent value="steps">
-              <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]">
-                <StepList variant={variant} steps={steps} selected={selected.id} boss={boss} onSelect={setSelectedId} />
-                <StepDetail variant={variant} step={selected} boss={boss} />
-              </div>
-            </TabsContent>
-            <TabsContent value="make">
-              <div className="grid gap-5 lg:grid-cols-2">
-                <ItemsColumn />
-                <PrintsColumn />
-              </div>
-            </TabsContent>
-            <TabsContent value="info">
-              <div className="grid gap-5 lg:grid-cols-2">
-                <OrderFactsColumn />
-                <GarmentColumn />
-              </div>
-            </TabsContent>
-            <TabsContent value="history">
-              <div className="grid gap-5 lg:grid-cols-2">
-                <EventsColumn />
-                <PlanColumn />
-              </div>
-            </TabsContent>
-          </Tabs>
-        </div>
+        <WorkOrderD variant={variant} steps={steps} selected={selected} boss={boss} onSelect={setSelectedId} />
       </section>
     </div>
   );
