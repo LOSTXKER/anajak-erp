@@ -28,7 +28,7 @@ import type { PricingType } from "@/types/order-form";
 import { sumOrderQuantity } from "@/lib/pricing";
 import { getProductSourcePresentation } from "@/lib/order-item-composer";
 import { Package, Receipt, PlusCircle, Edit3, Check, ImageIcon, Calculator } from "lucide-react";
-import { DISPLAY_AMOUNT, FOCUS_BUTTON, RADIUS, SUNK_PANEL, TABLE_HEAD_SURFACE, TINT } from "@/components/ui/tokens";
+import { DISPLAY_AMOUNT, FOCUS_BUTTON, RADIUS, TABLE_HEAD_SURFACE, TINT } from "@/components/ui/tokens";
 import { Alert } from "@/components/ui/alert";
 
 type OrderData = RouterOutput["order"]["getById"];
@@ -82,9 +82,7 @@ function ReceiveTrackingInline({ product, onSuccess, readOnly }: {
     <Alert variant="warning">
       <div className="mb-2 flex items-center gap-2">
         <Package className="h-3.5 w-3.5 text-yellow-600" />
-        <div>
-          <p className="text-xs font-semibold text-yellow-700 dark:text-yellow-300">ข้อมูลสภาพเสื้อจากลูกค้า</p>
-        </div>
+        <p className="text-xs font-semibold text-yellow-700 dark:text-yellow-300">ข้อมูลสภาพเสื้อจากลูกค้า</p>
       </div>
       <div className="flex flex-wrap items-end gap-3">
         <div>
@@ -475,22 +473,20 @@ function ProductSpecBox({
   if (!isCustomerProvided && specs.length === 0) return null;
 
   return (
-    <div className={cn(SUNK_PANEL, RADIUS.inner, "space-y-3 p-3 sm:p-4")}>
+    <div className="space-y-3 border-l-2 border-border pl-4">
       <div className="flex flex-wrap items-center gap-2">
         <h4 className="text-sm font-semibold text-strong">{prod.description || prod.product?.name || "สินค้า"}</h4>
         {source && <Badge variant={source.variant} size="sm">{source.label}</Badge>}
         {prod.productType && <Badge variant="secondary" size="sm">{PRODUCT_TYPES[prod.productType] ?? prod.productType}</Badge>}
       </div>
       {specs.length > 0 && <FactList columns={4}>{specs}</FactList>}
+      {/* หลักฐานรับเสื้อ — ฟอร์มตัวเดิม (Production V2 ให้จุดเตรียมงานเป็นเจ้าของ หน้านี้อ่านอย่างเดียว) */}
       {isCustomerProvided && (
-        <>
-          {/* หลักฐานรับเสื้อ — ฟอร์มตัวเดิม (Production V2 ให้จุดเตรียมงานเป็นเจ้าของ หน้านี้อ่านอย่างเดียว) */}
-          <ReceiveTrackingInline
-            product={{ id: prod.id, garmentCondition: prod.garmentCondition, receivedInspected: prod.receivedInspected, receiveNote: prod.receiveNote }}
-            onSuccess={() => utils.order.getById.invalidate({ id: orderId })}
-            readOnly={!canEditReceiveTracking}
-          />
-        </>
+        <ReceiveTrackingInline
+          product={{ id: prod.id, garmentCondition: prod.garmentCondition, receivedInspected: prod.receivedInspected, receiveNote: prod.receiveNote }}
+          onSuccess={() => utils.order.getById.invalidate({ id: orderId })}
+          readOnly={!canEditReceiveTracking}
+        />
       )}
     </div>
   );
@@ -530,7 +526,7 @@ function AddonsTable({ addons, showMoney }: { addons: OrderItemAddon[]; showMone
 
 function AddonCardNarrow({ addon, showMoney }: { addon: OrderItemAddon; showMoney: boolean }) {
   return (
-    <div className={cn("rounded-lg p-3", SUNK_PANEL)}>
+    <div className="rounded-lg border border-border p-3">
       <div className="flex items-start justify-between gap-2">
         <p className="text-sm font-medium text-strong [overflow-wrap:anywhere]">{addon.name || "—"}</p>
         {showMoney && <p className={cn(NUM, "text-sm font-semibold text-strong")}>{formatCurrency(addon.unitPrice ?? 0)}</p>}

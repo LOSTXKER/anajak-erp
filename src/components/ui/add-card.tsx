@@ -32,16 +32,8 @@ export function AddCard({
       )}
     >
       <Icon className="h-6 w-6 shrink-0 text-muted" strokeWidth={1.75} />
-      <span>
-        <span className="block text-sm font-medium text-secondary">
-          {label}
-        </span>
-        {desc && (
-          <span className="block text-xs text-muted">
-            {desc}
-          </span>
-        )}
-      </span>
+      <span className="block text-sm font-medium text-secondary">{label}</span>
+      {desc && <span className="block text-xs text-muted">{desc}</span>}
     </button>
   );
 }

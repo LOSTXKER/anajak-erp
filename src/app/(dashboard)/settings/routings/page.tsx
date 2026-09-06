@@ -190,9 +190,9 @@ function DraftRow({
 
       {/* เงื่อนไข "ต้องเสร็จก่อน" — หัวใจของความยืดหยุ่น: ขั้นที่ไม่ได้ติ๊กจะเดินขนานกันได้ */}
       <div className="mt-3 border-t border-divider pt-3">
-        <p className="mb-2 text-xs text-secondary">
+        <p className="mb-2 flex items-center gap-1 text-xs text-secondary">
           ขั้นนี้เริ่มได้เมื่อขั้นไหนเสร็จแล้วบ้าง
-          <HelpTip label="ขั้นที่ต้องเสร็จก่อน" className="ml-1 align-middle">ไม่ติ๊กเลย = เริ่มได้ทันที ไม่ต้องรอขั้นไหน</HelpTip>
+          <HelpTip label="ขั้นที่ต้องเสร็จก่อน">ไม่ติ๊กเลย = เริ่มได้ทันที ไม่ต้องรอขั้นไหน</HelpTip>
         </p>
         {others.length === 0 ? (
           <p className="text-xs text-muted">ยังไม่มีขั้นอื่นให้เลือก</p>

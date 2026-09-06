@@ -46,12 +46,10 @@ export function AddProductPopover({
                 type="button"
                 role="menuitem"
                 onClick={() => { handlers[key](); setOpen(false); }}
-                className="group flex w-full items-start gap-2 rounded-lg px-3 py-2 text-left transition-colors hover:bg-interactive-hover active:bg-interactive-pressed dark:hover:bg-interactive-hover dark:active:bg-interactive-pressed"
+                className="group flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left transition-colors hover:bg-interactive-hover active:bg-interactive-pressed dark:hover:bg-interactive-hover dark:active:bg-interactive-pressed"
               >
-                <Icon className="mt-0.5 h-4 w-4 flex-shrink-0 text-muted" strokeWidth={1.75} />
-                <span className="min-w-0">
-                  <span className="block text-sm font-medium text-secondary">{label}</span>
-                </span>
+                <Icon className="h-4 w-4 flex-shrink-0 text-muted" strokeWidth={1.75} />
+                <span className="min-w-0 text-sm font-medium text-secondary">{label}</span>
               </button>
             ))}
           </div>
