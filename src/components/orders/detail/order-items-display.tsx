@@ -25,8 +25,7 @@ import {
   PRODUCT_TYPES,
 } from "@/types/order-form";
 import type { PricingType } from "@/types/order-form";
-import { buildItemPriceLines, orderItemFormToPricingItem, sumOrderQuantity } from "@/lib/pricing";
-import type { PriceLine } from "@/lib/pricing";
+import { sumOrderQuantity } from "@/lib/pricing";
 import { getProductSourcePresentation } from "@/lib/order-item-composer";
 import { Package, Receipt, PlusCircle, Edit3, Check, ImageIcon, Calculator } from "lucide-react";
 import { DISPLAY_AMOUNT, FOCUS_BUTTON, RADIUS, SUNK_PANEL, TABLE_HEAD_SURFACE, TINT } from "@/components/ui/tokens";
@@ -170,62 +169,6 @@ function itemQty(item: OrderItem): number {
 
 function netUnitPrice(prod: OrderItemProduct): number {
   return Math.max(0, (prod.baseUnitPrice ?? 0) - (prod.discount ?? 0));
-}
-
-/** แจกแจงยอดด้วย helper กลางตัวเดียวกับหน้าเปิดงาน — ห้ามคำนวณเองใน JSX
- *  (สูตรอยู่ที่เดียว ผลรวมทุกบรรทัดจึงเท่า item.subtotal ที่ server คิดเสมอ) */
-function itemPriceLines(item: OrderItem): PriceLine[] {
-  const pricingItem = {
-    ...orderItemFormToPricingItem({
-      products: (item.products ?? []).map((p) => ({
-        baseUnitPrice: p.baseUnitPrice ?? 0,
-        discount: p.discount ?? 0,
-        variants: (p.variants ?? []).map((v) => ({ quantity: v.quantity })),
-      })),
-      prints: (item.prints ?? []).map((p) => ({ unitPrice: p.unitPrice ?? 0 })),
-      addons: (item.addons ?? []).map((a) => ({ pricingType: a.pricingType, unitPrice: a.unitPrice ?? 0 })),
-    }),
-    // ตัวแปลงฟอร์มไม่รู้จัก quantity ที่ล็อกไว้ราย addon (ฟอร์มไม่มีช่องนี้ แต่ฐานข้อมูลมี)
-    // ถ้าไม่ใส่คืน ยอดส่วนเสริมจะเพี้ยนจากที่ server เก็บเงินจริง
-    addons: (item.addons ?? []).map((a) => ({
-      pricingType: a.pricingType,
-      unitPrice: a.unitPrice ?? 0,
-      quantity: a.quantity,
-    })),
-  };
-  return buildItemPriceLines(pricingItem);
-}
-
-/**
- * ป้ายไทยของแต่ละบรรทัดใน "สรุปราคา"
- *
- * buildItemPriceLines คืนแค่ตัวเลข + ตำแหน่งใน array (ตัวมันไม่รู้จักภาษา) —
- * การแปลรหัส FRONT/DTF/T_SHIRT เป็นคำไทยจึงอยู่ฝั่งหน้าจอที่เดียวกับตารางอื่นในหน้านี้
- */
-function priceLineText(item: OrderItem, line: PriceLine): { label: string; detail: string } {
-  if (line.kind === "product") {
-    const prod = item.products?.[line.index];
-    // ไซส์ที่ไม่ซ้ำของสินค้าตัวนั้น — บอกได้ว่าบรรทัดนี้คือของกอง S/M/L กองไหน
-    const sizes = [...new Set((prod?.variants ?? []).map((v) => v.size).filter(Boolean))].join(" · ");
-    return {
-      label: prod?.product?.name || prod?.description || `สินค้า ${line.index + 1}`,
-      detail: sizes,
-    };
-  }
-  if (line.kind === "print") {
-    const print = item.prints?.[line.index];
-    if (!print) return { label: "งานพิมพ์", detail: "" };
-    return {
-      label: PRINT_TYPES[print.printType] ?? print.printType,
-      detail: PRINT_POSITIONS[print.position] ?? print.position,
-    };
-  }
-  const addon = item.addons?.[line.index];
-  if (!addon) return { label: "ส่วนเสริม", detail: "" };
-  return {
-    label: addon.name || "ส่วนเสริม",
-    detail: PRICING_TYPE_LABELS[addon.pricingType as PricingType] ?? addon.pricingType,
-  };
 }
 
 /** ป้ายขนาดลายแบบเดียวกับช่อง "ขนาด" ในฟอร์ม (A3 / A4 / กำหนดเอง) */
@@ -610,7 +553,7 @@ function SummaryRow({ label, value }: { label: React.ReactNode; value: React.Rea
 
 /**
  * ยอดของออเดอร์ทั้งใบในก้อนเดียว (คอลัมน์ขวาบนจอกว้าง · ท้ายรายการบนจอแคบ)
- *   · บรรทัดย่อยของแต่ละชุดงานมาจาก buildItemPriceLines ตัวเดียวกับหน้าเปิดงาน — บวกกันต้องเท่า item.subtotal
+ *   · รายการละบรรทัด: ชื่อชุดงาน · จำนวน · item.subtotal ที่ server คิด (ไม่คำนวณใหม่ตรงนี้)
  *   · ท่อนล่างเรียงเหมือน "สรุปยอด" ของฟอร์มและแท็บเงิน (รวมสินค้า → ค่าธรรมเนียม → ส่วนลด → VAT → ยอดรวม)
  *     ให้เลขเดียวกันทุกที่ ไม่คิดสูตรใหม่ตรงนี้
  */
@@ -621,52 +564,28 @@ function OrderPriceSummaryPanel({ items, fees, totals }: { items: OrderItem[]; f
   const taxRate = totals?.taxRate ?? 0;
   const taxAmount = totals?.taxAmount ?? 0;
   const grandTotal = totals?.totalAmount ?? subtotalItems + subtotalFees - discount;
-  const totalQty = sumOrderQuantity(items);
   // ชุดงานเดียว ไม่มีอะไรบวก/หัก → "รวมสินค้า" ซ้ำกับยอดชุดงาน ไม่ต้องมีท่อนกลาง
   const hasBreakdown = items.length > 1 || fees.length > 0 || discount > 0 || taxRate > 0;
 
   return (
     <Section title={<SectionTitle icon={Calculator} tone="finance">สรุปราคา</SectionTitle>}>
       <div className="space-y-4">
-        {items.map((item, itemIdx) => {
-          const lines = itemPriceLines(item);
-          const qty = itemQty(item);
-          return (
-            <div key={item.id}>
-              <div className="flex items-baseline justify-between gap-3">
-                <p className="min-w-0 truncate text-sm font-medium text-strong">
-                  {item.description || `รายการที่ ${itemIdx + 1}`}
-                  {qty > 0 && <span className={cn("ml-1.5 text-xs font-normal text-muted", NUM)}>{qty} ตัว</span>}
+        {/* รายการละบรรทัดเดียว — ราคา × จำนวนของแต่ละชิ้นอยู่ในตารางซ้ายแล้ว
+            (เคยใส่บรรทัดย่อยไว้ เบสบอก "อ่านยาก" 2026-09-06 · คอลัมน์ 20rem แคบเกินกว่าจะวาง 3 ช่องตัวเลข) */}
+        <div className="space-y-2.5">
+          {items.map((item, itemIdx) => {
+            const qty = itemQty(item);
+            return (
+              <div key={item.id} className="flex items-baseline justify-between gap-3">
+                <p className="min-w-0 truncate text-sm text-secondary">
+                  <span className="font-medium text-strong">{item.description || `รายการที่ ${itemIdx + 1}`}</span>
+                  {qty > 0 && <span className={cn("ml-1.5 text-xs text-muted", NUM)}>{qty} ตัว</span>}
                 </p>
                 <p className={cn("flex-shrink-0 text-sm font-semibold text-strong", NUM)}>{formatCurrency(item.subtotal ?? 0)}</p>
               </div>
-              {lines.length > 0 && (
-                <table className="mt-1 w-full text-xs">
-                  <tbody className="text-secondary">
-                    {lines.map((line) => {
-                      const { label, detail } = priceLineText(item, line);
-                      return (
-                        <tr key={`${line.kind}-${line.index}`}>
-                          {/* ชื่อยาวตัดที่ 2 บรรทัด — ชื่อเต็มอยู่ในตารางซ้ายแล้ว */}
-                          <td className="py-0.5">
-                            <span className="line-clamp-2 [overflow-wrap:anywhere]" title={detail ? `${label} (${detail})` : label}>
-                              {label}
-                              {detail && <span className="ml-1 text-muted">({detail})</span>}
-                            </span>
-                          </td>
-                          <td className={cn("whitespace-nowrap py-0.5 pl-2 text-right text-muted", NUM)}>
-                            {formatCurrency(line.unitPrice)} ×{line.quantity}
-                          </td>
-                          <td className={cn("whitespace-nowrap py-0.5 pl-2 text-right", NUM)}>{formatCurrency(line.total)}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
 
         {hasBreakdown && (
           <div className="space-y-2 border-t border-divider pt-3">
@@ -686,11 +605,6 @@ function OrderPriceSummaryPanel({ items, fees, totals }: { items: OrderItem[]; f
           </span>
           <span className={DISPLAY_AMOUNT}>{formatCurrency(grandTotal)}</span>
         </div>
-        {totalQty > 0 && (
-          <p className={cn("text-xs text-muted", NUM)}>
-            เฉลี่ยค่าสินค้า {formatCurrency(Math.round((subtotalItems / totalQty) * 100) / 100)} / ตัว
-          </p>
-        )}
       </div>
     </Section>
   );
