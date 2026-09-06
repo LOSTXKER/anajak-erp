@@ -6,6 +6,10 @@
  *   A ตัดของซ้ำ = โครง E เดิม แต่ทุกอย่างที่โชว์ซ้ำเกิน 1 ที่ถูกตัด (ตัวเลข 4 ช่อง · ชิป 3 · ช่องว่างเปล่า · ถัดไป)
  *   B ใบเดียว   = ทั้งหน้าเป็นการ์ดเดียว แผนที่ทำหน้าที่แท็บ เนื้อของขั้นที่กดต่อลงมาข้างล่าง — เห็นทีละขั้น
  *   C พาดหัวก่อน = ประโยคเดียวบอกว่างานอยู่ไหน + ปุ่มเดียว · แผนที่ย่อเป็นแถบ · งานที่ทำได้เป็นรายการแถวละบรรทัด
+ *
+ * เบส (09-07 ค่ำ) "ไม่ชอบการหุบพับ จัดให้อยู่ในหน้าเดียวกันให้ได้" → A/B/C ไม่มีกล่องพับ:
+ *   ลาย/ม็อกอัพ · ข้อมูลใบ · ประวัติ = ReferenceRail คอลัมน์ขวาบนคอม (กรอบกว้าง ≥ 56rem) · จอแคบต่อท้ายคอลัมน์งาน
+ *   คอลัมน์งานเป็น @container ของตัวเอง — การ์ดขั้นวางคู่เมื่อคอลัมน์กว้างพอ (≥ 64rem) ไม่ใช่เมื่อทั้งหน้ากว้าง
  */
 
 import { useState } from "react";
@@ -17,13 +21,16 @@ import { FOCUS_BUTTON, RADIUS } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
 import { byId, defaultFocus, doableSteps, headlineOf, isDone, nowSteps, problemSteps, type LeanOrder } from "./_data";
 import { NodeMark, RouteMap, viewFor } from "./_map";
-import { BackToNow, Folded, HeadCurrent, HeadLean, MapCardCurrent, NextPanel, ProblemCardCurrent, ShirtLine, ShirtStrip, StatCards, StepCardCurrent, StepLean } from "./_pieces";
+import { BackToNow, FoldedCurrent, HeadCurrent, HeadLean, MapCardCurrent, NextPanel, ProblemCardCurrent, ReferenceRail, ShirtStrip, StatCards, StepCardCurrent, StepLean } from "./_pieces";
 
 type Props = { order: LeanOrder; boss: boolean; idPrefix: string };
 
+/** คอลัมน์งาน (ซ้าย) + ข้อมูลประกอบ (ขวา) — จอแคบเรียงต่อกัน */
+const TWO_COL = "grid gap-5 @4xl:grid-cols-[minmax(0,1fr)_21rem] @4xl:items-start";
+
 /* ───────────────────────── ปัจจุบัน · E ───────────────────────── */
 
-export function CurrentE({ order, boss, idPrefix }: Props) {
+export function CurrentE({ order, boss }: Props) {
   const { steps } = order;
   const [focusId, setFocusId] = useState<string | null>(null);
   const focused = focusId ? byId(focusId, steps) ?? null : null;
@@ -94,14 +101,14 @@ export function CurrentE({ order, boss, idPrefix }: Props) {
         </section>
       )}
 
-      <Folded order={order} idPrefix={idPrefix} />
+      <FoldedCurrent order={order} />
     </div>
   );
 }
 
 /* ───────────────────────── A · ตัดของซ้ำ ───────────────────────── */
 
-export function CutA({ order, boss, idPrefix }: Props) {
+export function CutA({ order, boss }: Props) {
   const { steps } = order;
   const [focusId, setFocusId] = useState<string | null>(null);
   const focused = focusId ? byId(focusId, steps) ?? null : null;
@@ -112,111 +119,98 @@ export function CutA({ order, boss, idPrefix }: Props) {
   return (
     <div className="space-y-5">
       <HeadLean order={order} />
-      <div className="card-surface rounded-2xl p-4">
-        <RouteMap steps={steps} focusId={focusId} onFocus={setFocusId} honest />
-      </div>
-      <ShirtLine order={order} className="px-1" />
-
-      {focused ? (
-        <section className="space-y-3" aria-label="ขั้นที่เลือก">
-          <BackToNow onClick={() => setFocusId(null)} />
-          <StepLean step={focused} boss={boss} big />
-        </section>
-      ) : (
-        <section className="space-y-5" aria-label="ตอนนี้ทำอะไร">
-          {problems.length > 0 ? (
-            <div className="space-y-3">
-              <h2 className="flex items-center gap-2 text-lg font-semibold text-strong">
-                <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" aria-hidden="true" /> ติดปัญหา {problems.length} ขั้น
-              </h2>
-              <div className={cn("grid gap-4", problems.length > 1 && "@3xl:grid-cols-2")}>
-                {problems.map((step) => (
-                  <StepLean key={step.id} step={step} boss={boss} />
-                ))}
-              </div>
-            </div>
-          ) : null}
-          <div className="space-y-3">
-            <h2 className="text-lg font-semibold text-strong">
-              ตอนนี้ทำได้ {doable.length} อย่าง
-              {doable.length > 1 ? <span className="ml-2 text-sm font-normal text-secondary">คนละสาย ทำพร้อมกันได้</span> : null}
-            </h2>
-            {doable.length === 0 ? (
-              <Alert variant="info" title={allDone ? "ทุกขั้นผ่านแล้ว" : "ยังไม่มีอะไรให้ทำตอนนี้"}>
-                {allDone ? "ใบผลิตนี้ครบทุกขั้น" : "ทุกสายกำลังรอกัน — ดูในแผนที่ว่าขั้นถัดไปรออะไร"}
-              </Alert>
-            ) : (
-              <div className={cn("grid gap-4", doable.length > 1 && "@3xl:grid-cols-2")}>
-                {doable.map((step) => (
-                  <StepLean key={step.id} step={step} boss={boss} />
-                ))}
-              </div>
-            )}
+      <div className={TWO_COL}>
+        <div className="@container space-y-5">
+          <div className="card-surface rounded-2xl p-4">
+            <RouteMap steps={steps} focusId={focusId} onFocus={setFocusId} honest />
           </div>
-        </section>
-      )}
 
-      <Folded order={order} idPrefix={idPrefix} lean />
+          {focused ? (
+            <section className="space-y-3" aria-label="ขั้นที่เลือก">
+              <BackToNow onClick={() => setFocusId(null)} />
+              <StepLean step={focused} boss={boss} big />
+            </section>
+          ) : (
+            <section className="space-y-5" aria-label="ตอนนี้ทำอะไร">
+              {problems.length > 0 ? (
+                <div className="space-y-3">
+                  <h2 className="flex items-center gap-2 text-lg font-semibold text-strong">
+                    <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" aria-hidden="true" /> ติดปัญหา {problems.length} ขั้น
+                  </h2>
+                  <div className={cn("grid gap-4", problems.length > 1 && "@5xl:grid-cols-2")}>
+                    {problems.map((step) => (
+                      <StepLean key={step.id} step={step} boss={boss} />
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+              <div className="space-y-3">
+                <h2 className="text-lg font-semibold text-strong">
+                  ตอนนี้ทำได้ {doable.length} อย่าง
+                  {doable.length > 1 ? <span className="ml-2 text-sm font-normal text-secondary">คนละสาย ทำพร้อมกันได้</span> : null}
+                </h2>
+                {doable.length === 0 ? (
+                  <Alert variant="info" title={allDone ? "ทุกขั้นผ่านแล้ว" : "ยังไม่มีอะไรให้ทำตอนนี้"}>
+                    {allDone ? "ใบผลิตนี้ครบทุกขั้น" : "ทุกสายกำลังรอกัน — ดูในแผนที่ว่าขั้นถัดไปรออะไร"}
+                  </Alert>
+                ) : (
+                  <div className={cn("grid gap-4", doable.length > 1 && "@5xl:grid-cols-2")}>
+                    {doable.map((step) => (
+                      <StepLean key={step.id} step={step} boss={boss} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+        </div>
+        <ReferenceRail order={order} />
+      </div>
     </div>
   );
 }
 
 /* ───────────────────────── B · ใบเดียว แผนที่เป็นแท็บ ───────────────────────── */
 
-export function OneB({ order, boss, idPrefix }: Props) {
+export function OneB({ order, boss }: Props) {
   const { steps } = order;
   const [selectedId, setSelectedId] = useState<string>(() => defaultFocus(steps).id);
   const selected = byId(selectedId, steps) ?? defaultFocus(steps);
   const now = nowSteps(steps);
 
   return (
-    <div className="space-y-5">
-      <article className="card-surface rounded-2xl">
-        <HeadLean order={order} className="px-5 pt-5" />
-        <div className="px-5 pt-4">
+    <article className="card-surface rounded-2xl">
+      <HeadLean order={order} className="px-5 pt-5" />
+      <div className="mt-4 grid border-t border-divider @4xl:grid-cols-[minmax(0,1fr)_21rem] @4xl:divide-x @4xl:divide-divider">
+        <div className="@container space-y-4 px-5 pb-5 pt-4">
           <RouteMap steps={steps} focusId={selectedId} onFocus={(id) => setSelectedId(id ?? selectedId)} honest ariaLabel="เส้นทางงาน — กดขั้นไหนเพื่อเปิดขั้นนั้นด้านล่าง" />
+          {now.length > 1 ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-medium text-muted">ตอนนี้ {now.length} สาย</span>
+              {now.map((s) => {
+                const on = s.id === selectedId;
+                const view = viewFor(s, true);
+                return (
+                  <button key={s.id} type="button" aria-pressed={on} onClick={() => setSelectedId(s.id)} className={cn(RADIUS.item, FOCUS_BUTTON, "rounded-full")}>
+                    <InfoChip tone={view === "blocked" ? "error" : view === "waiting" ? "warning" : "info"} strong={on}>
+                      {view === "blocked" ? `ติด: ${s.short}` : view === "waiting" ? `${s.short} อยู่ที่ร้าน` : s.short}
+                    </InfoChip>
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
+          <StepLean step={selected} boss={boss} big bare className="border-t border-divider pt-4" />
         </div>
-        {now.length > 1 ? (
-          <div className="flex flex-wrap items-center gap-2 px-5 pt-3">
-            <span className="text-xs font-medium text-muted">ตอนนี้ {now.length} สาย</span>
-            {now.map((s) => {
-              const on = s.id === selectedId;
-              const view = viewFor(s, true);
-              return (
-                <button key={s.id} type="button" aria-pressed={on} onClick={() => setSelectedId(s.id)} className={cn(RADIUS.item, FOCUS_BUTTON, "rounded-full")}>
-                  <InfoChip tone={view === "blocked" ? "error" : view === "waiting" ? "warning" : "info"} strong={on} icon={undefined}>
-                    {view === "blocked" ? `ติด: ${s.short}` : view === "waiting" ? `${s.short} อยู่ที่ร้าน` : s.short}
-                  </InfoChip>
-                </button>
-              );
-            })}
-          </div>
-        ) : null}
-        <ShirtLine order={order} className="mx-5 my-4 border-y border-divider py-3" />
-        <div className="px-5 pb-5">
-          <StepLean step={selected} boss={boss} big bare />
-        </div>
-        <footer className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-divider px-5 py-3 text-sm">
-          <span className="text-xs font-medium text-muted">ดูเพิ่ม</span>
-          <a href={`#${idPrefix}-design`} className={cn(FOCUS_BUTTON, "rounded text-blue-600 hover:underline dark:text-blue-400")}>
-            ลายและม็อกอัพ{order.mockupVersion !== null ? ` v${order.mockupVersion}` : ""}
-          </a>
-          <a href={`#${idPrefix}-info`} className={cn(FOCUS_BUTTON, "rounded text-blue-600 hover:underline dark:text-blue-400")}>
-            ข้อมูลใบ
-          </a>
-          <a href={`#${idPrefix}-history`} className={cn(FOCUS_BUTTON, "rounded text-blue-600 hover:underline dark:text-blue-400")}>
-            ประวัติ
-          </a>
-        </footer>
-      </article>
-      <Folded order={order} idPrefix={idPrefix} lean />
-    </div>
+        <ReferenceRail order={order} bare className="border-t border-divider @4xl:border-t-0" />
+      </div>
+    </article>
   );
 }
 
 /* ───────────────────────── C · พาดหัวก่อน ───────────────────────── */
 
-export function HeadC({ order, boss, idPrefix }: Props) {
+export function HeadC({ order, boss }: Props) {
   const { steps } = order;
   const [focusId, setFocusId] = useState<string | null>(null);
   const focused = focusId ? byId(focusId, steps) ?? null : null;
@@ -261,29 +255,31 @@ export function HeadC({ order, boss, idPrefix }: Props) {
         </div>
       </div>
 
-      <RouteMap steps={steps} focusId={focusId} onFocus={setFocusId} honest dense />
+      <div className={TWO_COL}>
+        <div className="@container space-y-5">
+          <RouteMap steps={steps} focusId={focusId} onFocus={setFocusId} honest dense />
 
-      {focused ? (
-        <section className="space-y-3" aria-label="ขั้นที่เลือก">
-          <BackToNow onClick={() => setFocusId(null)} />
-          <StepLean step={focused} boss={boss} />
-        </section>
-      ) : now.length > 0 ? (
-        <section className="card-surface rounded-2xl" aria-label="ตอนนี้ทำอะไร">
-          <p className="flex items-center gap-2 border-b border-divider px-5 py-3 text-xs font-medium text-muted">
-            ตอนนี้ {now.length} สาย
-            {now.length > 1 ? <span>· ทำพร้อมกันได้</span> : null}
-          </p>
-          <ul className="divide-y divide-divider">
-            {now.map((s) => (
-              <NowRowC key={s.id} order={order} stepId={s.id} boss={boss} lead={s.id === lead?.id} onOpen={() => setFocusId(s.id)} />
-            ))}
-          </ul>
-        </section>
-      ) : null}
-
-      <ShirtLine order={order} className="px-1" />
-      <Folded order={order} idPrefix={idPrefix} lean />
+          {focused ? (
+            <section className="space-y-3" aria-label="ขั้นที่เลือก">
+              <BackToNow onClick={() => setFocusId(null)} />
+              <StepLean step={focused} boss={boss} />
+            </section>
+          ) : now.length > 0 ? (
+            <section className="card-surface rounded-2xl" aria-label="ตอนนี้ทำอะไร">
+              <p className="flex items-center gap-2 border-b border-divider px-5 py-3 text-xs font-medium text-muted">
+                ตอนนี้ {now.length} สาย
+                {now.length > 1 ? <span>· ทำพร้อมกันได้</span> : null}
+              </p>
+              <ul className="divide-y divide-divider">
+                {now.map((s) => (
+                  <NowRowC key={s.id} order={order} stepId={s.id} boss={boss} lead={s.id === lead?.id} onOpen={() => setFocusId(s.id)} />
+                ))}
+              </ul>
+            </section>
+          ) : null}
+        </div>
+        <ReferenceRail order={order} />
+      </div>
     </div>
   );
 }

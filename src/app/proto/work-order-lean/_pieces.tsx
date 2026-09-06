@@ -5,6 +5,7 @@
  * ที่เขียนเองคือ "การจัดวาง" ซึ่งเป็นสิ่งที่กำลังเทียบ · ทุกปุ่มยังไม่ทำอะไร (ข้อมูลปลอม)
  *
  * mode="current" = ลอกของจริงวันนี้ทีละชิ้น (work-order-page.tsx แบบ E) · mode="lean" = ชิ้นที่ทาง A/B/C ใช้ร่วมกัน
+ * เบส (09-07 ค่ำ) "ไม่ชอบการหุบพับ จัดให้อยู่ในหน้าเดียวกัน" → A/B/C ไม่มีกล่องพับ: ลาย/ข้อมูลใบ/ประวัติ เป็น ReferenceRail อยู่บนหน้าเสมอ
  * ขนาดจอในหน้าลองอ่านจาก "ความกว้างของกรอบ" (@container) ไม่ใช่หน้าต่าง — กรอบมือถือ 390 ในหน้าเดียวกันจึงพับจริง
  */
 
@@ -24,7 +25,7 @@ import { FOCUS_BUTTON, RADIUS, SUNK_PANEL } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
 import { BigMockup } from "../_kit/pieces";
 import { RECORD_MODE_LABEL, isDone, pendingOf, problemSteps, shortWaitList, upcomingSteps, type LeanOrder, type LeanStep } from "./_data";
-import { RouteMap, viewFor } from "./_map";
+import { NodeMark, RouteMap, viewFor } from "./_map";
 
 const noop = () => {};
 
@@ -164,7 +165,7 @@ export function MapCardCurrent({ order, focusId, onFocus }: { order: LeanOrder; 
   );
 }
 
-/* ───────────────────────── เสื้อ ───────────────────────── */
+/* ───────────────────────── เสื้อ (ของจริง) ───────────────────────── */
 
 /** แถบเสื้อของจริง — กล่องจม ชื่อสินค้า + จำนวน + ชิปไซซ์ */
 export function ShirtStrip({ order }: { order: LeanOrder }) {
@@ -187,30 +188,6 @@ export function ShirtStrip({ order }: { order: LeanOrder }) {
           </li>
         ))}
       </ul>
-    </div>
-  );
-}
-
-/** เสื้อเป็นบรรทัดเดียว ไม่มีกล่อง — ชื่อ · ชิปไซซ์ · จำนวน */
-export function ShirtLine({ order, className }: { order: LeanOrder; className?: string }) {
-  return (
-    <div className={cn("flex flex-wrap items-center gap-x-4 gap-y-2 text-sm", className)}>
-      {order.items.map((item, i) => (
-        <span key={item.product} className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="inline-flex items-center gap-2 font-medium text-strong">
-            {i === 0 ? <Shirt className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" /> : null}
-            {item.product}
-          </span>
-          <InfoChipRow>
-            {item.sizes.map((v) => (
-              <InfoChip key={v.size} size="sm">
-                {v.size} <span className="font-semibold">{v.qty}</span>
-              </InfoChip>
-            ))}
-          </InfoChipRow>
-          <span className="tabular-nums text-secondary">{item.qty.toLocaleString("th-TH")} ตัว</span>
-        </span>
-      ))}
     </div>
   );
 }
@@ -425,25 +402,22 @@ function LeanFacts({ step }: { step: LeanStep }) {
   );
 }
 
-/** ข้อกำหนด — เหลือเฉพาะข้อที่ยังไม่ทำ · ทั้งชุดอยู่ใน ⓘ (กติกาคำอธิบาย 3 ระดับ) */
+/** ข้อกำหนด — เหลือเฉพาะข้อที่ยังไม่ทำ · ที่ทำแล้วนับเป็นตัวเลขต่อท้าย (ไม่ซ่อนใน ⓘ — เบสไม่เอาของพับ) */
 function Remaining({ step }: { step: LeanStep }) {
   if (step.state === "done") return null;
   const left = step.checklist.filter((c) => !c.done);
   if (left.length === 0) return null;
+  const done = step.checklist.length - left.length;
   return (
     <div>
-      <p className="flex items-center gap-1 text-xs font-medium text-muted">
+      <p className="text-xs font-medium text-muted">
         {step.mode === "paper" ? "ก่อนปิดขั้น — ติ๊กบนใบสั่งงาน" : "ก่อนปิดขั้น"}
-        <HelpTip label="ข้อกำหนดมาตรฐานของขั้นนี้">
-          <ul className="space-y-1">
-            {step.checklist.map((c) => (
-              <li key={c.label} className="flex items-start gap-2">
-                <CheckCircle2 className={cn("mt-0.5 h-4 w-4 shrink-0", c.done ? "text-green-600 dark:text-green-400" : "text-muted")} aria-hidden="true" />
-                <span>{c.label}</span>
-              </li>
-            ))}
-          </ul>
-        </HelpTip>
+        {done > 0 ? (
+          <span>
+            {" "}
+            · ทำแล้ว {done} จาก {step.checklist.length}
+          </span>
+        ) : null}
       </p>
       <ul className="mt-1.5 space-y-1">
         {left.map((item) => (
@@ -479,7 +453,7 @@ export function StepLean({ step, boss, big = false, bare = false, className }: {
   );
 }
 
-/* ───────────────────────── ถัดไป · พับไว้ท้าย ───────────────────────── */
+/* ───────────────────────── ถัดไป (ของจริง) ───────────────────────── */
 
 /** กล่อง "ถัดไป — ยังไม่ถึงคิว" ของจริง */
 export function NextPanel({ steps, onFocus }: { steps: LeanStep[]; onFocus: (id: string) => void }) {
@@ -514,9 +488,11 @@ export function BackToNow({ onClick }: { onClick: () => void }) {
   );
 }
 
-function Disclosure({ id, summary, icon: Icon, children }: { id: string; summary: string; icon: typeof History; children: React.ReactNode }) {
+/* ───────────────────────── กล่องพับของจริง (เฉพาะทาง "ปัจจุบัน") ───────────────────────── */
+
+function Disclosure({ summary, icon: Icon, children }: { summary: string; icon: typeof History; children: React.ReactNode }) {
   return (
-    <details id={id} className="group card-surface rounded-2xl">
+    <details className="group card-surface rounded-2xl">
       <summary className={cn(FOCUS_BUTTON, "flex min-h-12 cursor-pointer list-none items-center gap-2 rounded-2xl px-5 text-sm font-medium text-strong transition-colors hover:bg-interactive-hover [&::-webkit-details-marker]:hidden")}>
         <ChevronRight className="h-4 w-4 shrink-0 text-muted transition-transform group-open:rotate-90" aria-hidden="true" />
         <Icon className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
@@ -528,11 +504,11 @@ function Disclosure({ id, summary, icon: Icon, children }: { id: string; summary
 }
 
 /** 3 กล่องพับท้ายใบของจริง (ลาย · ข้อมูลใบ · ประวัติ) — เนื้อในจำลองพอให้เห็นว่ากางแล้วเจออะไร */
-export function Folded({ order, idPrefix, lean = false }: { order: LeanOrder; idPrefix: string; lean?: boolean }) {
+export function FoldedCurrent({ order }: { order: LeanOrder }) {
   const outsourced = order.steps.filter((s) => s.outsource);
   return (
     <>
-      <Disclosure id={`${idPrefix}-design`} summary={lean && order.mockupVersion !== null ? `ลายและม็อกอัพ — อนุมัติ v${order.mockupVersion} โดย${order.mockupApprovedBy}` : "ลายและม็อกอัพที่อนุมัติ"} icon={ClipboardCheck}>
+      <Disclosure summary="ลายและม็อกอัพที่อนุมัติ" icon={ClipboardCheck}>
         <div className="grid gap-5 @md:grid-cols-[auto_minmax(0,1fr)]">
           <BigMockup src={order.items[0]?.mockup ?? null} alt={`ม็อกอัพ ${order.orderNumber}`} className="h-40 w-40" />
           <div className="grid grid-cols-1 gap-x-4 gap-y-3 @md:grid-cols-2">
@@ -543,7 +519,7 @@ export function Folded({ order, idPrefix, lean = false }: { order: LeanOrder; id
           </div>
         </div>
       </Disclosure>
-      <Disclosure id={`${idPrefix}-info`} summary="ข้อมูลใบ — ออเดอร์ วัตถุดิบ และงานร้านนอก" icon={FileText}>
+      <Disclosure summary="ข้อมูลใบ — ออเดอร์ วัตถุดิบ และงานร้านนอก" icon={FileText}>
         <div className="grid gap-5 @2xl:grid-cols-2">
           <Section title="ออเดอร์และใบผลิต" icon={ClipboardCheck} tone="production">
             <div className="grid grid-cols-1 gap-x-4 gap-y-3 @md:grid-cols-2">
@@ -554,10 +530,15 @@ export function Folded({ order, idPrefix, lean = false }: { order: LeanOrder; id
               <Fact label="สถานะใบผลิต" value={order.productionStatus} />
               <Fact label="ขั้นทั้งหมด" value={`${order.steps.length} ขั้น`} sub={`ร้านนอก ${outsourced.length} ขั้น`} />
             </div>
+            {order.note ? (
+              <Alert variant="warning" className="mt-4" title="หมายเหตุใบผลิต">
+                {order.note}
+              </Alert>
+            ) : null}
           </Section>
           <div className="space-y-5">
             <Section title="เสื้อและวัตถุดิบ" icon={Shirt} tone="product">
-              <p className="text-sm text-muted">รายการวัตถุดิบของจริง (MaterialUsage) — หน้าลองไม่จำลอง</p>
+              <p className="text-sm text-secondary">{order.garment}</p>
             </Section>
             <Section title="งานร้านนอกในใบนี้" icon={Truck} tone="production" meta={`${outsourced.length} งาน`}>
               {outsourced.length > 0 ? (
@@ -565,7 +546,7 @@ export function Folded({ order, idPrefix, lean = false }: { order: LeanOrder; id
                   {outsourced.map((s) => (
                     <li key={s.id} className="py-3 first:pt-0 last:pb-0">
                       <p className="mb-2 text-sm font-medium text-strong">{s.label}</p>
-                      <OutsourceFacts step={s} lean={lean} />
+                      <OutsourceFacts step={s} lean={false} />
                     </li>
                   ))}
                 </ul>
@@ -576,33 +557,166 @@ export function Folded({ order, idPrefix, lean = false }: { order: LeanOrder; id
           </div>
         </div>
       </Disclosure>
-      <Disclosure id={`${idPrefix}-history`} summary="ประวัติ — เวลาจริงต่อขั้น · ม็อกอัพทุกเวอร์ชัน" icon={History}>
-        <Section title="เวลาจริงต่อขั้น" icon={History} tone="system">
-          <ol className="divide-y divide-divider">
-            {order.steps.map((s) => (
-              <li key={s.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-2.5 first:pt-0 last:pb-0">
-                <span className="min-w-0">
-                  <span className="block truncate text-sm text-strong">{s.label}</span>
-                  <span className="block text-xs text-muted">{s.owner ?? "ยังไม่มีคนรับ"}</span>
-                </span>
-                <InfoChipRow>
-                  {s.startedAt ? (
-                    <InfoChip size="sm" tone="info">
-                      เริ่ม {s.startedAt}
-                    </InfoChip>
-                  ) : null}
-                  {s.completedAt ? (
-                    <InfoChip size="sm" tone="success">
-                      เสร็จ {s.completedAt}
-                    </InfoChip>
-                  ) : null}
-                  {!s.startedAt && !s.completedAt ? <InfoChip size="sm">ยังไม่เริ่ม</InfoChip> : null}
-                </InfoChipRow>
-              </li>
-            ))}
-          </ol>
-        </Section>
+      <Disclosure summary="ประวัติ — เวลาจริงต่อขั้น · ม็อกอัพทุกเวอร์ชัน" icon={History}>
+        <div className="grid gap-5 @2xl:grid-cols-2">
+          <Section title="เวลาจริงต่อขั้น" icon={History} tone="system">
+            <ol className="divide-y divide-divider">
+              {order.steps.map((s) => (
+                <li key={s.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-2.5 first:pt-0 last:pb-0">
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm text-strong">{s.label}</span>
+                    <span className="block text-xs text-muted">{s.owner ?? "ยังไม่มีคนรับ"}</span>
+                  </span>
+                  <InfoChipRow>
+                    {s.startedAt ? (
+                      <InfoChip size="sm" tone="info">
+                        เริ่ม {s.startedAt}
+                      </InfoChip>
+                    ) : null}
+                    {s.completedAt ? (
+                      <InfoChip size="sm" tone="success">
+                        เสร็จ {s.completedAt}
+                      </InfoChip>
+                    ) : null}
+                    {!s.startedAt && !s.completedAt ? <InfoChip size="sm">ยังไม่เริ่ม</InfoChip> : null}
+                  </InfoChipRow>
+                </li>
+              ))}
+            </ol>
+          </Section>
+          <Section title="ม็อกอัพทุกเวอร์ชัน" icon={ClipboardCheck} tone="production">
+            <ul className="divide-y divide-divider">
+              {order.mockups.map((m) => (
+                <li key={m.version} className="flex flex-wrap items-center justify-between gap-2 py-2.5 text-sm first:pt-0 last:pb-0">
+                  <span className="font-medium text-strong">v{m.version}</span>
+                  <span className="text-secondary">{m.on}</span>
+                  <InfoChip size="sm" tone={m.approved ? "success" : "neutral"} strong={m.approved}>
+                    {m.approved ? `อนุมัติ · ${m.by}` : "ไม่ได้ใช้"}
+                  </InfoChip>
+                </li>
+              ))}
+            </ul>
+          </Section>
+        </div>
       </Disclosure>
     </>
+  );
+}
+
+/* ───────────────────────── ข้อมูลประกอบ — อยู่บนหน้าเสมอ ไม่พับ (A/B/C) ───────────────────────── */
+
+function RailTitle({ icon: Icon, children, meta }: { icon: typeof History; children: React.ReactNode; meta?: React.ReactNode }) {
+  return (
+    <h3 className="flex flex-wrap items-center gap-2 text-sm font-semibold text-strong">
+      <Icon className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
+      {children}
+      {meta ? <span className="ml-auto text-xs font-normal text-muted">{meta}</span> : null}
+    </h3>
+  );
+}
+
+/** บรรทัดประวัติต่อขั้น — ไม่เกิน 2 ข้อมูลต่อบรรทัด */
+function historyLine(s: LeanStep): string {
+  if (s.outsource) {
+    if (s.state === "done") return `ส่งไป ${s.outsource.sentOn} · กลับ ${s.completedAt ?? "—"}`;
+    return `ส่งไป ${s.outsource.sentOn} · นัดรับ ${s.outsource.backLabel}`;
+  }
+  if (s.state === "done") return `เริ่ม ${s.startedAt ?? "—"} · เสร็จ ${s.completedAt ?? "—"}`;
+  if (s.startedAt) return `เริ่ม ${s.startedAt} · ทำแล้ว ${s.qtyDone}/${s.qtyTotal}`;
+  return `ยังไม่เริ่ม · ควรเสร็จ ${s.planEnd}`;
+}
+
+/**
+ * คอลัมน์ข้อมูลประกอบ — สิ่งที่เคยอยู่ในกล่องพับ 3 กล่อง (ลาย/ม็อกอัพ · ข้อมูลใบ · ประวัติ) วางบนหน้าเสมอ
+ * บนคอมเป็นคอลัมน์ขวา (21rem) · จอแคบต่อท้ายคอลัมน์งาน · ไม่ซ้ำกับหัวใบ (กำหนดส่ง/ความสำคัญ/ลูกค้า อยู่หัวใบแล้ว ไม่ใส่ซ้ำ)
+ */
+export function ReferenceRail({ order, bare = false, className }: { order: LeanOrder; bare?: boolean; className?: string }) {
+  const first = order.items[0];
+  const outsourced = order.steps.filter((s) => s.outsource).length;
+  return (
+    <aside className={cn(!bare && "card-surface rounded-2xl", "divide-y divide-divider", className)} aria-label="ข้อมูลประกอบใบผลิต">
+      <section className="p-4 @md:p-5">
+        <RailTitle icon={Shirt} meta={`${order.qty.toLocaleString("th-TH")} ตัว`}>
+          เสื้อและลาย
+        </RailTitle>
+        <div className="mt-3 flex gap-4">
+          <BigMockup src={first?.mockup ?? null} alt={`ม็อกอัพ ${order.orderNumber}`} className="h-24 w-24 shrink-0" />
+          <div className="min-w-0 flex-1 space-y-3">
+            {order.items.map((item) => (
+              <div key={item.product}>
+                <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+                  <p className="text-sm font-medium text-strong">{item.product}</p>
+                  {order.items.length > 1 ? <span className="text-xs tabular-nums text-secondary">{item.qty} ตัว</span> : null}
+                </div>
+                <InfoChipRow className="mt-1">
+                  {item.sizes.map((v) => (
+                    <InfoChip key={v.size} size="sm">
+                      {v.size} <span className="font-semibold">{v.qty}</span>
+                    </InfoChip>
+                  ))}
+                </InfoChipRow>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2">
+          {first?.prints.map((p) => (
+            <Fact key={p.position} size="sm" label={`${p.position} · ${p.technique}`} value={p.size} />
+          ))}
+        </div>
+        <InfoChipRow className="mt-3">
+          {order.mockups.map((m) =>
+            m.approved ? (
+              <InfoChip key={m.version} size="sm" tone="success" strong icon={CheckCircle2}>
+                ม็อกอัพ v{m.version} อนุมัติ {m.on}
+              </InfoChip>
+            ) : (
+              <InfoChip key={m.version} size="sm">
+                v{m.version}
+              </InfoChip>
+            ),
+          )}
+        </InfoChipRow>
+        <p className="mt-2 text-sm text-secondary">{order.garment}</p>
+      </section>
+
+      <section className="p-4 @md:p-5">
+        <RailTitle icon={FileText} meta={`เปิดใบ ${order.openedOn}`}>
+          ข้อมูลใบ
+        </RailTitle>
+        <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3">
+          <Fact size="sm" label="สถานะออเดอร์" value={order.status} />
+          <Fact size="sm" label="ขั้นทั้งหมด" value={`${order.steps.length} ขั้น`} sub={outsourced > 0 ? `ร้านนอก ${outsourced} ขั้น` : "ทำเองทั้งใบ"} />
+          <div className="col-span-2">
+            <Fact size="sm" label="สูตรขั้นงาน" value={order.routing} />
+          </div>
+        </div>
+        {order.note ? (
+          <Alert variant="warning" className="mt-3" title="หมายเหตุใบผลิต">
+            {order.note}
+          </Alert>
+        ) : null}
+      </section>
+
+      <section className="p-4 @md:p-5">
+        <RailTitle icon={History}>ประวัติ — เวลาจริงต่อขั้น</RailTitle>
+        <ol className="mt-3 space-y-3">
+          {order.steps.map((s) => (
+            <li key={s.id} className="flex items-start gap-2">
+              <span className="mt-0.5">
+                <NodeMark view={viewFor(s, true)} order={s.order} outsource={s.kind === "outsource"} size="sm" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="flex flex-wrap items-baseline justify-between gap-x-3">
+                  <span className="text-sm font-medium text-strong">{s.short}</span>
+                  {s.owner ? <span className="text-xs text-muted">{s.owner}</span> : null}
+                </span>
+                <span className="block text-xs text-secondary">{historyLine(s)}</span>
+              </span>
+            </li>
+          ))}
+        </ol>
+      </section>
+    </aside>
   );
 }

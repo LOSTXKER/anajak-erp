@@ -10,9 +10,9 @@ export type { Variant };
 
 const LABEL: Record<Variant, string> = {
   now: "ปัจจุบัน — ตัวเลข 4 ช่อง → การ์ดแผนที่ → แถบเสื้อ → หัวข้อ + การ์ดขั้น → ถัดไป → พับ 3 กล่อง",
-  cut: "A — โครงเดิม แต่ตัวเลข 4 ช่อง / ชิป 3 / ช่องว่างเปล่า / ถัดไป หายไป",
-  one: "B — การ์ดเดียว: หัวใบ → แผนที่ (เป็นแท็บ) → เสื้อ → ขั้นที่กด → ลิงก์ดูเพิ่ม",
-  head: "C — ประโยคเดียว + ปุ่ม → แถบขั้นย่อ → รายการที่ทำได้ตอนนี้ → เสื้อ → พับ",
+  cut: "A — โครงเดิม แต่ตัวเลข 4 ช่อง / ชิป 3 / ช่องว่างเปล่า / ถัดไป หายไป · คอลัมน์ขวา = เสื้อและลาย · ข้อมูลใบ · ประวัติ (ไม่พับ)",
+  one: "B — การ์ดเดียว 2 คอลัมน์: ซ้าย แผนที่ (เป็นแท็บ) → ขั้นที่กด · ขวา เสื้อและลาย · ข้อมูลใบ · ประวัติ (ไม่พับ)",
+  head: "C — ประโยคเดียว + ปุ่ม → ซ้าย แถบขั้นย่อ + รายการที่ทำได้ตอนนี้ · ขวา เสื้อและลาย · ข้อมูลใบ · ประวัติ (ไม่พับ)",
 };
 
 /**
@@ -39,7 +39,7 @@ export function Preview({ variant, complex, boss, idPrefix, numbers = true }: { 
               <Metric label="ศัพท์ภายในที่เห็นทันที" value={n.jargon} unit="คำ" size="lg" icon={MessageSquareWarning} tone={n.jargon === 0 ? "success" : "warning"} />
             </div>
             <div className="card-surface rounded-2xl p-4">
-              <Metric label="กดกี่ครั้งเห็นครบทุกงานที่ทำได้" value={n.clicks} unit="ครั้ง" size="lg" icon={MousePointerClick} tone={n.clicks === 0 ? "success" : "default"} />
+              <Metric label="กดกี่ครั้งเห็นครบทั้งใบ (งาน · ลาย · ข้อมูลใบ · ประวัติ)" value={n.clicks} unit="ครั้ง" size="lg" icon={MousePointerClick} tone={n.clicks === 0 ? "success" : "default"} />
             </div>
           </div>
         </section>

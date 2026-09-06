@@ -70,6 +70,13 @@ export type LeanOrder = {
   mockupVersion: number | null;
   mockupApprovedBy: string;
   productionStatus: string;
+  /** ที่มาของเสื้อ — สิ่งที่ MaterialUsage ของจริงบอก (ลูกค้าส่งมา / เบิกสต๊อก กี่ตัว ขาดอะไร) */
+  garment: string;
+  routing: string;
+  openedOn: string;
+  note: string | null;
+  /** ม็อกอัพทุกเวอร์ชัน — เคยอยู่ในกล่องพับ "ประวัติ" */
+  mockups: { version: number; on: string; by: string; approved: boolean }[];
   items: LeanItem[];
   steps: LeanStep[];
 };
@@ -196,6 +203,11 @@ export const SIMPLE: LeanOrder = {
   mockupVersion: 1,
   mockupApprovedBy: "คุณแพรว",
   productionStatus: "IN_PROGRESS",
+  garment: "ลูกค้าส่งเสื้อมาเอง 30 ตัว — ตรวจรับแล้ว 31 ส.ค. 2569",
+  routing: "ปักลายร้านนอก (เสื้อลูกค้า)",
+  openedOn: "31 ส.ค. 2569",
+  note: null,
+  mockups: [{ version: 1, on: "30 ส.ค. 2569", by: "คุณแพรว", approved: true }],
   items: [
     {
       product: "เสื้อยืด Cotton 100% สีกรม",
@@ -237,6 +249,15 @@ export const COMPLEX: LeanOrder = {
   mockupVersion: 3,
   mockupApprovedBy: POLO.approvedMockup.by,
   productionStatus: "IN_PROGRESS",
+  garment: `เบิกจากสต๊อก Anajak ${POLO.garment.issued}/${POLO.garment.needed} ตัว — ${POLO.garment.missingDetail}`,
+  routing: POLO.routingName,
+  openedOn: "26 ส.ค. 2569",
+  note: POLO.note,
+  mockups: [
+    { version: 1, on: "18 ส.ค.", by: POLO.approvedMockup.by, approved: false },
+    { version: 2, on: "20 ส.ค.", by: POLO.approvedMockup.by, approved: false },
+    { version: 3, on: POLO.approvedMockup.approvedOn, by: POLO.approvedMockup.by, approved: true },
+  ],
   items: POLO_ITEMS.map((it) => ({
     product: `${it.product} สี${it.color}`,
     qty: it.sizes.reduce((s, v) => s + v.qty, 0),
@@ -327,12 +348,17 @@ export function headlineOf(order: LeanOrder): { title: string; sub: string; step
 
 /* ───────────────────────── ตัวเลขก่อนตัดสิน — นับจากโครง ไม่ใช่ความเห็น ───────────────────────── */
 
+/**
+ * boxes = กล่อง/การ์ดที่มีขอบของตัวเองที่เห็นทันที · duplicates = ข้อมูลเดิมที่โชว์ซ้ำเกิน 1 ที่ (นับจากใบหลัก)
+ * jargon = ศัพท์ภายในที่เห็นทันที · clicks = กดกี่ครั้งถึงเห็นครบทั้งใบ (งานที่ทำได้ทุกสาย + ลาย + ข้อมูลใบ + ประวัติ)
+ * เบส (09-07 ค่ำ) "ไม่ชอบการหุบพับ" → A/B/C ไม่มีกล่องพับ: ปัจจุบันต้องกด 3 ครั้งเปิดกล่องพับ · B ต้องกดสลับขั้นเพิ่มตามจำนวนสาย
+ */
 export function decisionNumbers(variant: Variant, order: LeanOrder) {
   const now = nowSteps(order.steps).length;
   const up = upcomingSteps(order.steps).length > 0 ? 1 : 0;
   const modes = new Set(doableSteps(order.steps).map((s) => s.mode)).size + new Set(problemSteps(order.steps).map((s) => s.mode)).size;
-  if (variant === "now") return { boxes: 4 + 1 + 1 + now + up + 3, duplicates: 8, jargon: 1 + Math.max(1, modes), clicks: 0 };
-  if (variant === "cut") return { boxes: 1 + now + 3, duplicates: 0, jargon: 0, clicks: 0 };
-  if (variant === "one") return { boxes: 1 + 3, duplicates: 0, jargon: 0, clicks: Math.max(0, now - 1) };
-  return { boxes: 1 + 3, duplicates: 0, jargon: 0, clicks: 0 };
+  if (variant === "now") return { boxes: 4 + 1 + 1 + now + up + 3, duplicates: 8, jargon: 1 + Math.max(1, modes), clicks: 3 };
+  if (variant === "cut") return { boxes: 1 + now + 1, duplicates: 0, jargon: 0, clicks: 0 };
+  if (variant === "one") return { boxes: 1, duplicates: 0, jargon: 0, clicks: Math.max(0, now - 1) };
+  return { boxes: 2, duplicates: 0, jargon: 0, clicks: 0 };
 }
