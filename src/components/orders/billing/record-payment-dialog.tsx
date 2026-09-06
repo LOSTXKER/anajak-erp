@@ -167,7 +167,7 @@ export function RecordPaymentDialog({
                   />
                 </Field>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <Field label="เลขที่หนังสือรับรอง">
+                  <Field label="เลขที่หนังสือรับรอง" help="ยังไม่ได้หนังสือรับรองก็เว้นว่างได้ — กรอกทีหลังได้ที่ทะเบียน 50ทวิ">
                     <Input
                       type="text"
                       value={whtCertNumber}
@@ -182,9 +182,6 @@ export function RecordPaymentDialog({
                     />
                   </Field>
                 </div>
-                <p className="text-xs text-muted">
-                  ยังไม่ได้หนังสือรับรองก็เว้นว่างได้ — กรอกทีหลังได้ที่ทะเบียน 50ทวิ
-                </p>
                 <p
                   className={
                     settleExceeds

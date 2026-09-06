@@ -317,7 +317,6 @@ export function OrderItemCard({
         <AddCard
           icon={ImageIcon}
           label="เพิ่มลาย"
-          desc="งานพิมพ์/สกรีน/ปัก ที่ลงบนเสื้อ"
           onClick={() => onAddPrint(itemIdx)}
         />
       ) : (
@@ -396,12 +395,11 @@ export function OrderItemCard({
       {item.products.length === 0 ? (
         // เลือกชนิดงานก่อน → ระบบโชว์เฉพาะ field ที่ชนิดนั้นใช้ (guided by type)
         <div className="grid gap-2 sm:grid-cols-3">
-          {PRODUCT_TYPE_OPTIONS.map(({ key, icon, label, desc }) => (
+          {PRODUCT_TYPE_OPTIONS.map(({ key, icon, label }) => (
             <AddCard
               key={key}
               icon={icon}
               label={label}
-              desc={desc}
               onClick={() => {
                 if (key === "stock") onOpenPicker();
                 else if (key === "custom") addProductWithSource("CUSTOM_MADE");
@@ -477,7 +475,6 @@ export function OrderItemCard({
         <AddCard
           icon={Sparkles}
           label="เพิ่มส่วนเสริม"
-          desc="ป้ายคอ · ถุงแพ็ค · งานเพิ่มนอกจากตัวเสื้อ"
           onClick={() => onAddAddon(itemIdx)}
         />
       ) : (

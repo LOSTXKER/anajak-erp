@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
 import { Save, Loader2 } from "lucide-react";
+import { HelpTip } from "@/components/ui/help-tip";
 import { toast } from "sonner";
 import type { CostRates } from "@/lib/cost-rates";
 import { permAllows } from "@/lib/permissions";
@@ -93,6 +94,7 @@ export default function CostRatesSettingsPage() {
       back={{ href: "/settings", label: "ย้อนกลับ" }}
       title="เรตต้นทุนกลาง"
       meta="ใช้ประเมินกำไรขั้นต้น ไม่ใช่ตัวเลขบัญชีจริง"
+      help="ทุนตัวเสื้อมาจากราคาทุนจริงในแอป Stock อัตโนมัติ · ค่าจ้างร้านนอกตามบิลร้าน ไม่อยู่ในเรตนี้"
       loading={meQuery.isLoading}
       error={
         meQuery.isError
@@ -143,9 +145,12 @@ export default function CostRatesSettingsPage() {
             >
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <label htmlFor="film-rate-per-meter" className="mb-1 block text-sm font-medium text-secondary">
-                    ค่าฟิล์ม+หมึก+ผง (บาท/เมตรวิ่ง) *
-                  </label>
+                  <div className="mb-1 flex items-center gap-1">
+                    <label htmlFor="film-rate-per-meter" className="text-sm font-medium text-secondary">
+                      ค่าฟิล์ม+หมึก+ผง (บาท/เมตรวิ่ง) *
+                    </label>
+                    <HelpTip label="ค่าฟิล์ม+หมึก+ผง">เรตวงการประมาณ 25–50 บาท/เมตร</HelpTip>
+                  </div>
                   <Input
                     id="film-rate-per-meter"
                     type="number"
@@ -156,15 +161,16 @@ export default function CostRatesSettingsPage() {
                     className={READ_ONLY_INPUT_CLASS}
                     onChange={(e) => set("filmRatePerMeter")(e.target.value)}
                     readOnly={!canEdit}
-                    aria-describedby="film-rate-help"
                     required
                   />
-                  <p id="film-rate-help" className="mt-1 text-xs text-muted">เรตวงการ ~25-50 บาท/เมตร</p>
                 </div>
                 <div>
-                  <label htmlFor="film-roll-width" className="mb-1 block text-sm font-medium text-secondary">
-                    หน้ากว้างม้วนฟิล์ม (ซม.) *
-                  </label>
+                  <div className="mb-1 flex items-center gap-1">
+                    <label htmlFor="film-roll-width" className="text-sm font-medium text-secondary">
+                      หน้ากว้างม้วนฟิล์ม (ซม.) *
+                    </label>
+                    <HelpTip label="หน้ากว้างม้วนฟิล์ม">ใช้แปลงพื้นที่ลายเป็นความยาวเมตรวิ่ง — ม้วนทั่วไป 60 ซม.</HelpTip>
+                  </div>
                   <Input
                     id="film-roll-width"
                     type="number"
@@ -175,12 +181,8 @@ export default function CostRatesSettingsPage() {
                     className={READ_ONLY_INPUT_CLASS}
                     onChange={(e) => set("filmRollWidthCm")(e.target.value)}
                     readOnly={!canEdit}
-                    aria-describedby="film-width-help"
                     required
                   />
-                  <p id="film-width-help" className="mt-1 text-xs text-muted">
-                    ใช้แปลงพื้นที่ลายเป็นความยาวเมตรวิ่ง (ม้วนทั่วไป 60 ซม.)
-                  </p>
                 </div>
               </div>
 
@@ -223,9 +225,12 @@ export default function CostRatesSettingsPage() {
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <label htmlFor="cost-deviation-alert" className="mb-1 block text-sm font-medium text-secondary">
-                    เตือนเมื่อทุนซื้อเบี่ยงเกิน (%) *
-                  </label>
+                  <div className="mb-1 flex items-center gap-1">
+                    <label htmlFor="cost-deviation-alert" className="text-sm font-medium text-secondary">
+                      เตือนเมื่อทุนซื้อเบี่ยงเกิน (%) *
+                    </label>
+                    <HelpTip label="เตือนเมื่อทุนซื้อเบี่ยงเกิน">ทุนซื้อล็อตใหม่เบี่ยงจากที่ตั้งไว้เกิน % นี้ ระบบจะแจ้งเตือน</HelpTip>
+                  </div>
                   <Input
                     id="cost-deviation-alert"
                     type="number"
@@ -237,12 +242,8 @@ export default function CostRatesSettingsPage() {
                     className={READ_ONLY_INPUT_CLASS}
                     onChange={(e) => set("costDeviationAlertPct")(e.target.value)}
                     readOnly={!canEdit}
-                    aria-describedby="cost-deviation-help"
                     required
                   />
-                  <p id="cost-deviation-help" className="mt-1 text-xs text-muted">
-                    ทุนซื้อล็อตใหม่เบี่ยงจากที่ตั้งไว้เกิน % นี้ ระบบจะแจ้งเตือน
-                  </p>
                 </div>
               </div>
 
@@ -284,10 +285,6 @@ export default function CostRatesSettingsPage() {
           )}
         </CardContent>
       </Card>
-
-      <p className="text-xs text-muted">
-        ทุนตัวเสื้อมาจากราคาทุนจริงในแอป Stock อัตโนมัติ · ค่าจ้างร้านนอกตามบิลร้าน (ไม่อยู่ในเรตนี้)
-      </p>
     </PageShell>
   );
 }

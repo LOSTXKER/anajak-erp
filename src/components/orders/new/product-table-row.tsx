@@ -172,9 +172,6 @@ export function ProductTableRow({
           <td colSpan={7} className="pb-4 pr-2 pt-1">
             <ProductDetailRail className="space-y-3">
               {isCustomMade && <CustomMadeSpecSummary product={product} updateProduct={updateProduct} />}
-              {isCustomerProvided && (
-                <p className="text-xs text-secondary">ตัวเสื้อเป็นของลูกค้า จึงไม่คิดราคาตัวเสื้อ</p>
-              )}
               <SizeMatrix
                 embedded
                 idPrefix={`desktop-size-${itemIdx}-${prodIdx}`}

@@ -451,9 +451,6 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
                 />
               )}
             </div>
-            <p className="text-xs text-muted">
-              สเปก (ขนาด/อุณหภูมิ/แรงกด) เติมทีหลังได้จากปุ่มแก้ไข
-            </p>
           </div>
           <DialogSubmitFooter
             pending={createArtwork.isPending}

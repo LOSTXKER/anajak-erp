@@ -8,9 +8,9 @@ import { useState } from "react";
 
 // 3 ชนิดงาน (itemSource) — ใช้ทั้งใน popover และการ์ดเลือกชนิดตอน empty state
 export const PRODUCT_TYPE_OPTIONS = [
-  { key: "stock", icon: Package, label: "เลือกจากสต็อก", desc: "เสื้อในคลัง — ตัดสต๊อกให้อัตโนมัติ" },
-  { key: "custom", icon: Scissors, label: "สั่งตัดเย็บใหม่", desc: "ระบุผ้า/แพทเทิร์น ส่งโรงเย็บ" },
-  { key: "provided", icon: Shirt, label: "ลูกค้าส่งของมา", desc: "ลูกค้าเอาเสื้อมาเอง พิมพ์อย่างเดียว" },
+  { key: "stock", icon: Package, label: "เลือกจากสต็อก" },
+  { key: "custom", icon: Scissors, label: "สั่งตัดเย็บใหม่" },
+  { key: "provided", icon: Shirt, label: "ลูกค้าส่งของมา" },
 ] as const;
 
 export function AddProductPopover({
@@ -40,7 +40,7 @@ export function AddProductPopover({
         <>
           <button type="button" tabIndex={-1} aria-label="ปิดเมนูเพิ่มสินค้า" className="fixed inset-0 z-40 cursor-default" onClick={() => setOpen(false)} />
           <div role="menu" className={cn(OVERLAY_PANEL, "absolute right-0 top-full z-50 mt-1 w-64 overflow-hidden p-1")}>
-            {PRODUCT_TYPE_OPTIONS.map(({ key, icon: Icon, label, desc }) => (
+            {PRODUCT_TYPE_OPTIONS.map(({ key, icon: Icon, label }) => (
               <button
                 key={key}
                 type="button"
@@ -51,7 +51,6 @@ export function AddProductPopover({
                 <Icon className="mt-0.5 h-4 w-4 flex-shrink-0 text-muted" strokeWidth={1.75} />
                 <span className="min-w-0">
                   <span className="block text-sm font-medium text-secondary">{label}</span>
-                  <span className="block text-xs text-muted group-hover:text-secondary group-active:text-secondary dark:group-hover:text-secondary dark:group-active:text-secondary">{desc}</span>
                 </span>
               </button>
             ))}

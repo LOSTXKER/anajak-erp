@@ -84,7 +84,6 @@ function ReceiveTrackingInline({ product, onSuccess, readOnly }: {
         <Package className="h-3.5 w-3.5 text-yellow-600" />
         <div>
           <p className="text-xs font-semibold text-yellow-700 dark:text-yellow-300">ข้อมูลสภาพเสื้อจากลูกค้า</p>
-          <p className="text-xs text-muted">สถานะตรวจรับอ้างอิงจากใบตรวจรับและยอดนับจริงเท่านั้น</p>
         </div>
       </div>
       <div className="flex flex-wrap items-end gap-3">
@@ -485,7 +484,6 @@ function ProductSpecBox({
       {specs.length > 0 && <FactList columns={4}>{specs}</FactList>}
       {isCustomerProvided && (
         <>
-          <p className="text-xs text-secondary">ตัวเสื้อเป็นของลูกค้า จึงไม่คิดราคาตัวเสื้อ</p>
           {/* หลักฐานรับเสื้อ — ฟอร์มตัวเดิม (Production V2 ให้จุดเตรียมงานเป็นเจ้าของ หน้านี้อ่านอย่างเดียว) */}
           <ReceiveTrackingInline
             product={{ id: prod.id, garmentCondition: prod.garmentCondition, receivedInspected: prod.receivedInspected, receiveNote: prod.receiveNote }}

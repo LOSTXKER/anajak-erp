@@ -5,6 +5,7 @@ import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { MoneyInput } from "@/components/ui/number-input";
 import { Calculator } from "lucide-react";
+import { HelpTip } from "@/components/ui/help-tip";
 import { Section, SectionTitle } from "@/components/ui/section";
 import { formatCurrency } from "@/lib/utils";
 import { itemHasContent, type OrderItemForm } from "@/types/order-form";
@@ -123,8 +124,11 @@ export function MarginEstimateBlock({ estimate }: { estimate: MarginEstimate }) 
 
   return (
     <div className="space-y-1.5">
-      <p className="text-xs font-medium text-muted">
+      <p className="flex items-center gap-1 text-xs font-medium text-muted">
         กำไรขั้นต้นโดยประมาณ
+        <HelpTip label="กำไรขั้นต้นโดยประมาณ">
+          ประเมินจากเรตต้นทุนกลางเพื่อใช้ตั้งราคา ไม่ใช่ตัวเลขบัญชี (ทุนเสื้อจากแอป Stock ฟิล์มกับหมึกคิดจากขนาดลาย ค่าแรงตามเรต)
+        </HelpTip>
       </p>
       <p
         className={`text-lg font-semibold tabular-nums ${
@@ -165,9 +169,6 @@ export function MarginEstimateBlock({ estimate }: { estimate: MarginEstimate }) 
           ))}
         </div>
       )}
-      <p className="text-xs text-muted">
-        เข็มทิศตอนตั้งราคา — ไม่ใช่ตัวเลขบัญชี
-      </p>
     </div>
   );
 }
@@ -239,9 +240,6 @@ export function OrderPriceSummary({
             <div className="flex items-center justify-between gap-2">
               <label htmlFor="order-platform-fee" className="text-sm text-muted">
                 ค่าธรรมเนียม {channelLabel}
-                <span className="block text-xs text-muted">
-                  หักจากยอดโอนเข้าร้าน — ไม่รวมในยอดบิล
-                </span>
               </label>
               <MoneyInput size="sm"
                 id="order-platform-fee"

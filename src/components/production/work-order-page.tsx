@@ -1,4 +1,5 @@
 "use client";
+import { HelpTip } from "@/components/ui/help-tip";
 
 /**
  * ใบผลิต `/production/[id]` — แบบ E "ตอนนี้ทำอะไร (รู้ทางขนาน)" (เบสเคาะ 2026-09-06 จากหน้าลอง /proto/work-order-redesign?v=flow
@@ -260,7 +261,7 @@ function WorkOrder({ id }: { id: string }) {
             <div className="card-surface rounded-2xl p-4 sm:p-5">
               <div className="mb-3 flex flex-wrap items-center gap-2">
                 <p className="text-sm font-medium text-strong">เส้นทางงาน</p>
-                <span className="text-sm text-secondary">สายที่เดินพร้อมกันอยู่คนละแถว เส้นวิ่งมารวมที่ขั้นที่ต้องรอกัน</span>
+                <HelpTip label="เส้นทางงาน">สายที่เดินพร้อมกันอยู่คนละแถว เส้นวิ่งมารวมที่ขั้นที่ต้องรอกัน — กดขั้นไหนเพื่อเปิดขั้นนั้น</HelpTip>
                 <span className="ml-auto inline-flex flex-wrap items-center gap-2">
                   {approvedMockup !== null ? (
                     <InfoChip size="sm" tone="success" icon={CheckCircle2}>
@@ -425,7 +426,6 @@ function WorkOrder({ id }: { id: string }) {
                       );
                     })}
                   </ol>
-                  <p className="mt-4 text-xs text-muted">ประวัติละเอียด (ใครกดอะไรเมื่อไร) ดูได้ที่ตั้งค่า → ประวัติการใช้งาน</p>
                 </Section>
                 <Section title="ม็อกอัพทุกเวอร์ชัน" icon={ClipboardCheck} tone="production">
                   <ProductionMockupTab order={order} />

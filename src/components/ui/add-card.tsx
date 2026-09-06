@@ -17,7 +17,8 @@ export function AddCard({
 }: {
   icon: LucideIcon;
   label: string;
-  desc: string;
+  /** บรรทัดรอง — ปกติไม่ใส่ (DESIGN.md §คำอธิบายในหน้าจอ ระดับ 1) */
+  desc?: string;
   onClick: () => void;
 }) {
   return (
@@ -35,9 +36,11 @@ export function AddCard({
         <span className="block text-sm font-medium text-secondary">
           {label}
         </span>
-        <span className="block text-xs text-muted">
-          {desc}
-        </span>
+        {desc && (
+          <span className="block text-xs text-muted">
+            {desc}
+          </span>
+        )}
       </span>
     </button>
   );

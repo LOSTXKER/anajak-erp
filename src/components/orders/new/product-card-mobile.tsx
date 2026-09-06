@@ -152,9 +152,6 @@ export function ProductCardMobile({
       {multi && (
         <div className="space-y-3 border-t border-divider pt-3">
           {isCustomMade && <CustomMadeSpecSummary product={product} updateProduct={updateProduct} />}
-          {isCustomerProvided && (
-            <p className="text-xs text-secondary">ตัวเสื้อเป็นของลูกค้า จึงไม่คิดราคาตัวเสื้อ</p>
-          )}
           <SizeMatrix
             embedded
             idPrefix={`mobile-size-${itemIdx}-${prodIdx}`}

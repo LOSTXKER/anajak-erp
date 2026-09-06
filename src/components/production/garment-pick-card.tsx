@@ -241,11 +241,6 @@ export function GarmentPickCard({
               <Shirt className="h-5 w-5 text-secondary" />
               {primaryTask ? "เบิกเสื้อจากสต๊อค" : "เสื้อจากสต๊อค"}
             </h2>
-            {primaryTask ? (
-              <p className="mt-1 text-sm text-muted">
-                ตรวจรุ่น สี และไซส์ให้ตรง ก่อนเบิกออกจากสต๊อค
-              </p>
-            ) : null}
           </div>
           <span
             className={cn(

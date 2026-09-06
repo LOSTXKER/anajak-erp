@@ -1,4 +1,5 @@
 "use client";
+import { HelpTip } from "@/components/ui/help-tip";
 
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
@@ -267,12 +268,12 @@ export default function StockSettingsPage() {
               <>
                 {/* API URL */}
                 <div>
-                      <label
-                        htmlFor="stock-api-url"
-                        className="mb-1.5 block text-sm font-medium text-secondary"
-                      >
-                    API URL
-                  </label>
+                  <div className="mb-1.5 flex items-center gap-1">
+                    <label htmlFor="stock-api-url" className="text-sm font-medium text-secondary">
+                      API URL
+                    </label>
+                    <HelpTip label="API URL">ดูได้ที่หน้า Integrations ในระบบ Stock</HelpTip>
+                  </div>
                   <Input
                     id="stock-api-url"
                     value={apiUrl}
@@ -282,9 +283,6 @@ export default function StockSettingsPage() {
                     placeholder="https://stock.anajak.com/api"
                     className="font-mono"
                   />
-                  <p className="mt-1 text-xs text-muted">
-                    ดูได้ที่หน้า Integrations ในระบบ Stock
-                  </p>
                 </div>
 
                 {/* API Key */}

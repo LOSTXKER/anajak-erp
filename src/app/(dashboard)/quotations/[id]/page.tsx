@@ -265,7 +265,6 @@ export default function QuotationDetailPage({
         icon={FileText}
         back={{ href: "/quotations", label: "กลับไปรายการใบเสนอราคา" }}
         title={quotation.quotationNumber}
-        description="ตรวจรายการ ราคา เงื่อนไข และสถานะการตอบรับจากลูกค้า"
         titleBadge={
           <Badge
             variant={QUOTATION_STATUS_VARIANTS[quotation.status as keyof typeof QUOTATION_STATUS_VARIANTS] ?? "secondary"}

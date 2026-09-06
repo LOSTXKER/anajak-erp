@@ -94,7 +94,6 @@ export function OrderFeeSection({
         <AddCard
           icon={Receipt}
           label="เพิ่มค่าใช้จ่าย"
-          desc="ค่าส่ง · ค่าเซ็ตอัพ · ค่าเร่ง ที่คิดกับทั้งออเดอร์"
           onClick={onAddFee}
         />
       ) : (

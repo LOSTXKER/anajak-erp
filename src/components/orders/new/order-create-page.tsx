@@ -1438,7 +1438,8 @@ export default function OrderFormPage(props: OrderFormPageProps) {
                       <Field
                         label="ภาษีมูลค่าเพิ่ม (%)"
                         id="order-tax-rate"
-                        description={editCapability !== "direct" ? "แก้ไม่ได้หลังอนุมัติรายการ" : "คงอัตราเดิมไว้ เว้นแต่งานนี้ได้รับการยกเว้นภาษี"}
+                        description={editCapability !== "direct" ? "แก้ไม่ได้หลังอนุมัติรายการ" : undefined}
+                        help={editCapability === "direct" ? "คงอัตราเดิมไว้ เว้นแต่งานนี้ได้รับการยกเว้นภาษี" : undefined}
                       >
                         <Input
                           id="order-tax-rate"
@@ -1483,7 +1484,7 @@ export default function OrderFormPage(props: OrderFormPageProps) {
                     label="เหตุผลการแก้ไขออเดอร์"
                     id="order-change-reason"
                     required={Boolean(editPlan?.work)}
-                    description="ใช้ประกอบใบแก้ไขและประวัติการเปลี่ยนแปลง เมื่อมีการแก้รายการ ค่าใช้จ่าย หรือส่วนลด"
+                    help="ใช้ประกอบใบแก้ไขและประวัติการเปลี่ยนแปลง เมื่อมีการแก้รายการ ค่าใช้จ่าย หรือส่วนลด"
                   >
                     <Textarea
                       id="order-change-reason"

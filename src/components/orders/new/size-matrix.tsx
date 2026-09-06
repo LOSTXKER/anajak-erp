@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { RADIUS, SUNK_PANEL } from "@/components/ui/tokens";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
+import { HelpTip } from "@/components/ui/help-tip";
 import type { VariantForm } from "@/types/order-form";
 import { buildSizeVariants, matrixColumns, sumVariantQty } from "@/lib/size-matrix";
 
@@ -59,7 +60,8 @@ export function SizeMatrix({
         <h4 className="mb-3 text-sm font-semibold text-strong">{title}</h4>
       )}
       <div className="mb-2 flex items-center gap-2">
-        <label htmlFor={`${idPrefix}-color`} className="text-xs font-medium text-secondary">สี (ใช้ทุกไซส์)</label>
+        <label htmlFor={`${idPrefix}-color`} className="text-xs font-medium text-secondary">สี</label>
+        <HelpTip label="สี" className="-ml-1">สีเดียวใช้กับทุกไซส์ในแถวนี้ — คนละสีให้เพิ่มสินค้าอีกรายการ</HelpTip>
         <Input
           id={`${idPrefix}-color`}
           value={color}

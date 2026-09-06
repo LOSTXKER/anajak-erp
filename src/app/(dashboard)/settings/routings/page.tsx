@@ -29,6 +29,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ToneMark } from "@/components/ui/section";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { ArrowDown, ArrowUp, Check, Plus, Trash2, Truck, Workflow } from "lucide-react";
+import { HelpTip } from "@/components/ui/help-tip";
 import { cn } from "@/lib/utils";
 
 type Phase = "PREPARATION" | "MANUFACTURING" | "OUTSOURCE" | "QUALITY" | "PACKING";
@@ -87,10 +88,11 @@ function DraftRow({
               placeholder="เช่น พิมพ์ฟิล์ม DTF"
             />
           </label>
-          <label className="block" htmlFor={`${fieldId}-code`}>
-            <span className="mb-1 block text-xs text-secondary">
-              รหัสขั้น (ใช้อ้างอิงภายในสูตร)
-            </span>
+          <div className="block">
+            <div className="mb-1 flex items-center gap-1">
+              <label htmlFor={`${fieldId}-code`} className="text-xs text-secondary">รหัสขั้น</label>
+              <HelpTip label="รหัสขั้น">ใช้อ้างอิงภายในสูตร — พิมพ์ตัวพิมพ์ใหญ่ เช่น DTF_PRINT</HelpTip>
+            </div>
             <Input
               id={`${fieldId}-code`}
               value={operation.code}
@@ -99,7 +101,7 @@ function DraftRow({
               }
               placeholder="DTF_PRINT"
             />
-          </label>
+          </div>
           <label className="block" htmlFor={`${fieldId}-phase`}>
             <span className="mb-1 block text-xs text-secondary">ช่วงงาน</span>
             <Select
@@ -134,8 +136,11 @@ function DraftRow({
               <option value="OUTSOURCE">ส่งร้านนอก</option>
             </Select>
           </label>
-          <label className="block sm:col-span-2" htmlFor={`${fieldId}-center`}>
-            <span className="mb-1 block text-xs text-secondary">ศูนย์งาน (ต้องเลือกก่อนเริ่มใช้สูตร)</span>
+          <div className="block sm:col-span-2">
+            <div className="mb-1 flex items-center gap-1">
+              <label htmlFor={`${fieldId}-center`} className="text-xs text-secondary">ศูนย์งาน</label>
+              <HelpTip label="ศูนย์งาน">ต้องเลือกก่อนเริ่มใช้สูตร — งานของขั้นนี้จะไปขึ้นที่ศูนย์งานนั้น</HelpTip>
+            </div>
             <Select
               id={`${fieldId}-center`}
               value={operation.workCenterId ?? ""}
@@ -151,7 +156,7 @@ function DraftRow({
                 </option>
               ))}
             </Select>
-          </label>
+          </div>
         </div>
         <div className="flex shrink-0 gap-1">
           <Button
@@ -186,8 +191,8 @@ function DraftRow({
       {/* เงื่อนไข "ต้องเสร็จก่อน" — หัวใจของความยืดหยุ่น: ขั้นที่ไม่ได้ติ๊กจะเดินขนานกันได้ */}
       <div className="mt-3 border-t border-divider pt-3">
         <p className="mb-2 text-xs text-secondary">
-          ขั้นนี้เริ่มได้เมื่อขั้นไหนเสร็จแล้วบ้าง{" "}
-          <span className="text-muted">(ไม่ติ๊ก = เริ่มได้เลย ไม่ต้องรอใคร)</span>
+          ขั้นนี้เริ่มได้เมื่อขั้นไหนเสร็จแล้วบ้าง
+          <HelpTip label="ขั้นที่ต้องเสร็จก่อน" className="ml-1 align-middle">ไม่ติ๊กเลย = เริ่มได้ทันที ไม่ต้องรอขั้นไหน</HelpTip>
         </p>
         {others.length === 0 ? (
           <p className="text-xs text-muted">ยังไม่มีขั้นอื่นให้เลือก</p>

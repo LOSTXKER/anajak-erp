@@ -223,7 +223,7 @@ export function CreateInvoiceDialog({
                 </p>
                 <Field
                   label="วันที่เอกสาร (tax point)"
-                  description="ตามกฎหมาย = วันรับเงินจริง — แก้ได้เคสบันทึกย้อนหลัง (เงินเข้าแบงก์คนละวันกับวันบันทึก)"
+                  help="ตามกฎหมาย = วันรับเงินจริง — แก้ได้เคสบันทึกย้อนหลัง (เงินเข้าแบงก์คนละวันกับวันบันทึก)"
                 >
                   <DatePicker
                     value={receiptIssueDate}
@@ -286,7 +286,7 @@ export function CreateInvoiceDialog({
                 <Field
                   label={`เหตุผลการ${invoiceType === "CREDIT_NOTE" ? "ลดหนี้" : "เพิ่มหนี้"}`}
                   required
-                  description="จะพิมพ์บนเอกสารตามข้อกำหนดใบลดหนี้/เพิ่มหนี้ (ม.86/10)"
+                  help="จะพิมพ์บนเอกสารตามข้อกำหนดใบลดหนี้/เพิ่มหนี้ (ม.86/10)"
                 >
                   <Input
                     value={adjustmentReason}
