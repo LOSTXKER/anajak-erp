@@ -1,22 +1,26 @@
 "use client";
 
 /**
- * ใบผลิต `/production/[id]` — แบบ D "แท็บ + 2 คอลัมน์" (เบสเคาะ 2026-09-03 จากหน้าลอง /proto/work-order)
+ * ใบผลิต `/production/[id]` — แบบ E "ตอนนี้ทำอะไร (รู้ทางขนาน)" (เบสเคาะ 2026-09-06 จากหน้าลอง /proto/work-order-redesign?v=flow
+ * หลังบอกว่าแบบ D "แท็บ + 2 คอลัมน์" ยังใช้ยาก และถามว่า "ทำแบบ wizard ได้มั้ย แต่มันจะมีทางขนาน")
  *
- *   หัวใบ: ตัวเลข 4 ช่อง (จำนวน · กำหนดส่ง · ผ่านแล้ว x/y · ติดปัญหา) + การ์ดปัญหาแดง — เห็นทุกแท็บ
- *   แท็บ: ขั้นงาน / ทำอะไร / ข้อมูลใบ / ประวัติ — ทุกแท็บ 2 คอลัมน์
- *   ขั้นงาน: ซ้าย = รายการขั้น (กดเลือก) · ขวา = ขั้นที่เลือก + โซนลงมือมาตรฐาน (ข้อกำหนด → ปุ่มเดียว)
+ *   wizard ที่หน่วยไม่ใช่ "ขั้นที่ N จาก 7" แต่เป็น "สิ่งที่ทำได้ตอนนี้" — งานเดินหลายสายพร้อมกัน (เสื้อ · ฟิล์ม · ร้านนอก) จึงมีการ์ดได้หลายใบ
+ *   หัวใบ: ตัวเลข 4 ช่อง (จำนวน · กำหนดส่ง · ผ่านแล้ว x/y · ติดปัญหา)
+ *   แผนที่เส้นทาง: สายที่เดินขนานกันคนละแถว เส้นวิ่งรวมที่ขั้นบรรจบ (รีดร้อน · QC) — กดขั้นไหน = เปิดขั้นนั้น
+ *   ตอนนี้ทำอะไร: ติดปัญหา (การ์ดปัญหา + โซนลงมือ) → ทำได้ตอนนี้ สายละใบ (ปุ่มเดียว/ใบ) → ถัดไป (บรรทัดสั้น "รอ X + Y")
+ *   พับไว้ท้าย: ลายและม็อกอัพ · ข้อมูลใบ (ออเดอร์ · วัตถุดิบ · ร้านนอก) · ประวัติ — แทนแท็บเดิม ไม่มีอะไรหาย
  *
- * โครง "หนึ่งโมดูล สองสายตา" (เบสเคาะ 09-03): หัวหน้าทำได้ครบในหน้านี้ — ลงมือ · แจ้งปัญหา (กดเลือกเหตุ) · "แก้ให้" · วางแผน
- * และทุกขั้นบอกว่าอยู่สถานีไหน · ช่างเปิดใบเดียวกันจะถูกพาไปหน้าลงมือของโหมดหน้างาน (/production/floor) แทน
+ * โครง "หนึ่งโมดูล สองสายตา" (เบสเคาะ 09-03) ยังอยู่: หัวหน้าทำได้ครบในหน้านี้ — ลงมือ · แจ้งปัญหา · "แก้ให้" · วางแผน
+ * ช่างเปิดใบเดียวกันจะถูกพาไปหน้าลงมือของโหมดหน้างาน (/production/floor) แทน
  *
  * เครื่องยนต์ (query · สิทธิ์ · mutation · dialog) อยู่ work-order-controller.tsx — โหมดหน้างานใช้ตัวเดียวกัน
- * ชิ้นส่วนอ่านอย่างเดียวอยู่ work-order-pieces.tsx · dialog แจ้งปัญหา/แก้ให้อยู่ step-command-dialogs.tsx
+ * ชิ้นส่วนอ่านอย่างเดียวอยู่ work-order-pieces.tsx · แผนที่อยู่ work-order-route.tsx (ผังจาก lib/work-order-route) · dialog อยู่ step-command-dialogs.tsx
+ * "ขั้นที่ทำได้ตอนนี้" = selectNowSteps + evaluateHeatPressGate ชุดเดิม · "รอ X + Y" = routeWaitingOn (วาดกติกาเดิม ไม่ใช่กติกาใหม่)
  */
 
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { AlertTriangle, CalendarCheck, CheckCircle2, ClipboardCheck, Clock, Factory, FileText, History, MonitorSmartphone, Pencil, Printer, Shirt, Truck, UserRound, Wrench } from "lucide-react";
+import { AlertTriangle, ArrowLeft, CalendarCheck, CheckCircle2, ChevronRight, ClipboardCheck, Clock, Factory, FileText, History, MonitorSmartphone, Pencil, Printer, Shirt, Truck, UserRound, Wrench } from "lucide-react";
 
 import { PageShell } from "@/components/page-shell";
 import { ActionZone } from "@/components/ui/action-zone";
@@ -32,7 +36,6 @@ import { MoreMenu, type MoreMenuItem } from "@/components/ui/more-menu";
 import { RecordNotFound } from "@/components/ui/record-not-found";
 import { Section } from "@/components/ui/section";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsBar, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MaterialUsage } from "@/components/material-usage";
 import { GarmentPickCard } from "@/components/production/garment-pick-card";
 import { ProductionDesignCard } from "@/components/production/production-design-card";
@@ -45,22 +48,80 @@ import type { NowStep } from "@/lib/production-step-actions";
 import { isOutsourceStep } from "@/lib/production-steps";
 import { latestPlainProductionNote } from "@/lib/production-problem";
 import { stationForStep } from "@/lib/station-desk";
-import { PAPER_STEP_NOTE, RECORD_MODE_LABEL, inferredStage, isInferredDone, recordModeOf, whyRecordOnScreen, type RecordMode } from "@/lib/work-order-record-mode";
+import { PAPER_STEP_NOTE, RECORD_MODE_LABEL, isInferredDone, recordModeOf, whyRecordOnScreen, type RecordMode } from "@/lib/work-order-record-mode";
+import { routeWaitingOn } from "@/lib/work-order-route";
+import { FOCUS_BUTTON, RADIUS, SUNK_PANEL } from "@/components/ui/tokens";
 import { workOrderStandards } from "@/lib/work-order-standards";
 import { cn, formatDate, formatDateTime } from "@/lib/utils";
 import { useWorkOrderController, type WorkOrderController } from "./work-order-controller";
-import { ItemsSection, OutsourceFacts, Owner, ProblemCard, Qty, StateChip, activeOutsource, daysFromNow, stepLabel, viewOf } from "./work-order-pieces";
+import { ItemsList, OutsourceFacts, Owner, ProblemCard, StateChip, activeOutsource, daysFromNow, stepLabel, viewOf } from "./work-order-pieces";
+import { RouteMap, shortWaitList } from "./work-order-route";
 
 /* ───────────────────────── หน้า ───────────────────────── */
 
+function Disclosure({ summary, icon: Icon, children }: { summary: string; icon: typeof History; children: React.ReactNode }) {
+  return (
+    <details className="group card-surface rounded-2xl">
+      <summary className={cn(FOCUS_BUTTON, "flex min-h-12 cursor-pointer list-none items-center gap-2 rounded-2xl px-5 text-sm font-medium text-strong transition-colors hover:bg-interactive-hover [&::-webkit-details-marker]:hidden")}>
+        <ChevronRight className="h-4 w-4 shrink-0 text-muted transition-transform group-open:rotate-90" aria-hidden="true" />
+        <Icon className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
+        {summary}
+      </summary>
+      <div className="border-t border-divider px-5 py-5">{children}</div>
+    </details>
+  );
+}
+
 function WorkOrder({ id }: { id: string }) {
   const c = useWorkOrderController(id);
-  const { production, order, me, productionQuery, meQuery, workflowSteps, nowById, nowMs, selectedStep, selectedNow } = c;
+  const { production, order, me, productionQuery, meQuery, workflowSteps, nowById, nowMs } = c;
   // กระดาษเป็นหลัก (ROADMAP §A5): QR บนใบสั่งงานพกเวอร์ชันม็อกอัพที่พิมพ์ (?mockup=n) — สแกนใบเก่าแล้วต้องรู้ทันที
   const scannedMockup = Number(useSearchParams().get("mockup") ?? "");
   const approvedMockup = order?.designs[0]?.versionNumber ?? null;
   const stalePaper = Number.isFinite(scannedMockup) && scannedMockup > 0 && approvedMockup !== null && scannedMockup < approvedMockup;
-  const stage = inferredStage(workflowSteps);
+
+  // กดขั้นในแผนที่ = เปิดขั้นนั้นแทนกลุ่ม "ตอนนี้" (null = โหมดตอนนี้)
+  const [focusId, setFocusId] = useState<string | null>(null);
+  const focused = focusId ? (workflowSteps.find((s) => s.id === focusId) ?? null) : null;
+
+  // กลุ่ม "ตอนนี้": ติดปัญหา → ทำได้ตอนนี้ (ขั้นแรกที่ยังไม่ปิดของแต่ละสาย ที่ไม่ได้รอสายอื่น) → ถัดไป
+  const problemIds = new Set(c.problemSteps.map((s) => s.id));
+  const doable = c.nowSteps
+    .filter((n) => !problemIds.has(n.step.id) && n.waitingOn.length === 0 && routeWaitingOn(n.step, workflowSteps).length === 0)
+    .map((n) => n.step);
+  const doableIds = new Set(doable.map((s) => s.id));
+  const upcoming = workflowSteps.filter((s) => s.status !== "COMPLETED" && !problemIds.has(s.id) && !doableIds.has(s.id));
+
+  function detailOf(step: ProductionStep) {
+    const now = nowById.get(step.id);
+    return (
+      <StepDetail
+        key={step.id}
+        c={c}
+        step={step}
+        now={now}
+        nowMs={nowMs}
+        primary={c.primaryButton(step, now)}
+        canReport={c.canUpdateStep && c.canOwnOrSupervise(step) && step.status !== "COMPLETED" && step.status !== "FAILED"}
+        canFix={c.canSuperviseStep && c.hasProductionPermission && step.status !== "COMPLETED"}
+        canEdit={c.canUpdateStep && c.canOwnOrSupervise(step) && step.status !== "COMPLETED"}
+        onEdit={() => c.openEdit(step, "operation")}
+        garment={
+          step.stepType === "GARMENT_PICK" && production ? (
+            <GarmentPickCard
+              productionId={production.id}
+              steps={workflowSteps}
+              stepId={step.id}
+              canIssueGarments={c.canUpdateStep && c.canOwnOrSupervise(step) && step.status !== "COMPLETED"}
+              canReturnGarments={c.canSuperviseStep && c.hasProductionPermission && !c.writeDataStale}
+              embedded
+              primaryTask={now?.group === "current"}
+            />
+          ) : null
+        }
+      />
+    );
+  }
 
   return (
     <>
@@ -85,9 +146,9 @@ function WorkOrder({ id }: { id: string }) {
           ) : undefined
         }
         action={
-          production && selectedStep && c.canSuperviseStep && c.hasProductionPermission && selectedStep.status !== "COMPLETED" ? (
-            <Button variant="outline" onClick={() => c.openEdit(selectedStep, "manager")}>
-              <UserRound /> มอบหมาย / จัดการขั้นที่เลือก
+          production && focused && c.canSuperviseStep && c.hasProductionPermission && focused.status !== "COMPLETED" ? (
+            <Button variant="outline" onClick={() => c.openEdit(focused, "manager")}>
+              <UserRound /> มอบหมาย / จัดการขั้นนี้
             </Button>
           ) : undefined
         }
@@ -99,7 +160,7 @@ function WorkOrder({ id }: { id: string }) {
                 <Skeleton key={i} className="h-24 rounded-2xl" />
               ))}
             </div>
-            <Skeleton className="h-10 rounded-lg" />
+            <Skeleton className="h-40 rounded-2xl" />
             <div className="grid gap-5 lg:grid-cols-2">
               <Skeleton className="h-96 rounded-2xl" />
               <Skeleton className="h-96 rounded-2xl" />
@@ -158,6 +219,21 @@ function WorkOrder({ id }: { id: string }) {
                 กดส่งเข้า QC แล้วระบบจะถือว่าขั้นบนกระดาษผ่าน (ขึ้นเป็น “ถือว่าผ่าน” สีเทา) — ยอดจริงอยู่บนใบสั่งงาน
               </Alert>
             ) : null}
+            {c.legacyPackagingReadyForQc ? (
+              <Alert
+                variant="success"
+                title="ทุกขั้นผลิตเสร็จแล้ว"
+                action={
+                  c.canUpdateStep ? (
+                    <Button size="sm" onClick={() => c.legacyFinalize.mutate({ productionId: production.id })} disabled={c.legacyFinalize.isPending}>
+                      ส่งเข้า QC
+                    </Button>
+                  ) : undefined
+                }
+              >
+                ส่งงานเข้าตรวจ QC เพื่อไปต่อขั้นแพ็กและจัดส่ง
+              </Alert>
+            ) : null}
 
             {/* ตัวเลข 4 ช่อง — ชั้น 1 */}
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -180,252 +256,182 @@ function WorkOrder({ id }: { id: string }) {
               </div>
             </div>
 
-            {c.problemSteps.length > 0 ? (
-              <div className="grid gap-3 lg:grid-cols-2">
-                {c.problemSteps.map((step) => (
-                  <ProblemCard key={step.id} step={step} />
-                ))}
+            {/* แผนที่เส้นทาง — สายที่เดินขนานกันคนละแถว · กดขั้นไหน = เปิดขั้นนั้น */}
+            <div className="card-surface rounded-2xl p-4 sm:p-5">
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+                <p className="text-sm font-medium text-strong">เส้นทางงาน</p>
+                <span className="text-sm text-secondary">สายที่เดินพร้อมกันอยู่คนละแถว เส้นวิ่งมารวมที่ขั้นที่ต้องรอกัน</span>
+                <span className="ml-auto inline-flex flex-wrap items-center gap-2">
+                  {approvedMockup !== null ? (
+                    <InfoChip size="sm" tone="success" icon={CheckCircle2}>
+                      ม็อกอัพอนุมัติ v{approvedMockup}
+                    </InfoChip>
+                  ) : (
+                    <InfoChip size="sm" tone="warning">
+                      ยังไม่มีม็อกอัพอนุมัติ
+                    </InfoChip>
+                  )}
+                  <Button asChild variant="outline" size="sm">
+                    <a href={`/print/job-ticket/${order.id}?production=${production.id}`} target="_blank" rel="noreferrer" aria-label="พิมพ์ใบสั่งงาน (เปิดแท็บใหม่)">
+                      <Printer /> พิมพ์ใบสั่งงาน
+                    </a>
+                  </Button>
+                </span>
               </div>
-            ) : null}
+              {workflowSteps.length === 0 ? (
+                <EmptyState icon={Wrench} title="ใบผลิตนี้ยังไม่มีขั้นตอน" />
+              ) : (
+                <RouteMap steps={workflowSteps} nowById={nowById} focusId={focusId} onFocus={setFocusId} />
+              )}
+            </div>
 
-            {c.legacyPackagingReadyForQc ? (
-              <Alert
-                variant="success"
-                title="ทุกขั้นผลิตเสร็จแล้ว"
-                action={
-                  c.canUpdateStep ? (
-                    <Button size="sm" onClick={() => c.legacyFinalize.mutate({ productionId: production.id })} disabled={c.legacyFinalize.isPending}>
-                      ส่งเข้า QC
-                    </Button>
-                  ) : undefined
-                }
-              >
-                ส่งงานเข้าตรวจ QC เพื่อไปต่อขั้นแพ็กและจัดส่ง
-              </Alert>
-            ) : null}
+            {/* เสื้อที่กำลังทำ — แถบย่อ เห็นไซซ์ได้โดยไม่ต้องกาง */}
+            <div className={cn(SUNK_PANEL, RADIUS.inner, "px-4 py-3")}>
+              <ItemsList order={order} />
+            </div>
 
-            <Tabs defaultValue="steps" className="space-y-6">
-              <TabsBar>
-                <TabsList aria-label="ส่วนของใบผลิต">
-                  <TabsTrigger value="steps" hasPending={c.problemSteps.length > 0}>
-                    ขั้นงาน
-                  </TabsTrigger>
-                  <TabsTrigger value="make">ทำอะไร</TabsTrigger>
-                  <TabsTrigger value="info">ข้อมูลใบ</TabsTrigger>
-                  <TabsTrigger value="history">ประวัติ</TabsTrigger>
-                </TabsList>
-              </TabsBar>
-
-              {/* ── ขั้นงาน: ซ้าย รายการ · ขวา ขั้นที่เลือก + โซนลงมือ ── */}
-              <TabsContent value="steps">
-                {workflowSteps.length === 0 ? (
-                  <div className="card-surface rounded-2xl">
-                    <EmptyState icon={Wrench} title="ใบผลิตนี้ยังไม่มีขั้นตอน" />
-                  </div>
-                ) : (
-                  <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]">
-                    <Section title="ขั้นงานทั้งหมด" meta={`${c.completedSteps}/${workflowSteps.length} ผ่านแล้ว`} icon={Wrench} tone="production" flush>
-                      {/* กระดาษเป็นหลัก: ใบสั่งงานพิมพ์จากใบผลิต + ช่วงงานที่อนุมานได้จากจุดที่จด (ROADMAP §A5) */}
-                      <div className="space-y-2 border-b border-divider px-4 py-3">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <FileText className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
-                          <span className="text-sm font-medium text-strong">ใบสั่งงานกระดาษ</span>
-                          {approvedMockup !== null ? (
-                            <InfoChip size="sm" tone="success" icon={CheckCircle2}>
-                              ม็อกอัพอนุมัติ v{approvedMockup}
-                            </InfoChip>
-                          ) : (
-                            <InfoChip size="sm" tone="warning">
-                              ยังไม่มีม็อกอัพอนุมัติ
-                            </InfoChip>
-                          )}
-                          <Button asChild variant="outline" size="sm" className="ml-auto">
-                            <a href={`/print/job-ticket/${order.id}?production=${production.id}`} target="_blank" rel="noreferrer" aria-label="พิมพ์ใบสั่งงาน (เปิดแท็บใหม่)">
-                              <Printer /> พิมพ์ใบสั่งงาน
-                            </a>
-                          </Button>
+            {focused ? (
+              <section className="space-y-3" aria-label="ขั้นที่เลือก">
+                <Button variant="ghost" size="sm" onClick={() => setFocusId(null)}>
+                  <ArrowLeft /> กลับไปดู “ตอนนี้ทำอะไร”
+                </Button>
+                {problemIds.has(focused.id) ? <ProblemCard step={focused} /> : null}
+                {detailOf(focused)}
+              </section>
+            ) : workflowSteps.length > 0 ? (
+              <section className="space-y-6" aria-label="ตอนนี้ทำอะไร">
+                {c.problemSteps.length > 0 ? (
+                  <div className="space-y-3">
+                    <h2 className="flex items-center gap-2 text-lg font-semibold text-strong">
+                      <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" aria-hidden="true" /> ติดปัญหา {c.problemSteps.length} ขั้น
+                    </h2>
+                    <div className={cn("grid gap-4", c.problemSteps.length > 1 && "lg:grid-cols-2")}>
+                      {c.problemSteps.map((step) => (
+                        <div key={step.id} className="space-y-3">
+                          <ProblemCard step={step} />
+                          {detailOf(step)}
                         </div>
-                        {stage ? (
-                          <div className="flex flex-wrap items-center gap-2">
-                            <InfoChip size="md" tone="info" strong icon={Clock}>
-                              ตอนนี้: {stage.now}
-                            </InfoChip>
-                            {stage.detail ? (
-                              <InfoChip size="md" icon={FileText}>
-                                {stage.detail}
-                              </InfoChip>
-                            ) : null}
-                          </div>
-                        ) : null}
-                      </div>
-                      <ol className="divide-y divide-divider">
-                        {workflowSteps.map((step, index) => {
-                          const view = viewOf(step, nowById.get(step.id));
-                          const on = selectedStep?.id === step.id;
-                          const outsource = isOutsourceStep(step.stepType);
-                          const st = stationForStep(step.stepType);
-                          const mode = recordModeOf(step);
-                          const inferred = isInferredDone(step);
-                          const quiet = mode === "paper" && step.status !== "COMPLETED" && step.status !== "FAILED" && step.status !== "ON_HOLD";
-                          return (
-                            <li key={step.id}>
-                              <button
-                                type="button"
-                                aria-pressed={on}
-                                onClick={() => c.setSelectedStepId(step.id)}
-                                className={cn(
-                                  "grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-interactive-hover",
-                                  on && "bg-interactive-selected",
-                                )}
-                              >
-                                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface-muted text-xs font-medium tabular-nums text-muted">
-                                  {index + 1}
-                                </span>
-                                <span className="min-w-0">
-                                  <span className={cn("block truncate text-sm", on ? "font-semibold text-strong" : "font-medium text-strong")}>{stepLabel(step)}</span>
-                                  <span className="mt-1 flex flex-wrap items-center gap-1.5">
-                                    {inferred ? (
-                                      <InfoChip size="sm" icon={FileText}>
-                                        ถือว่าผ่าน
-                                      </InfoChip>
-                                    ) : quiet ? null : (
-                                      <StateChip view={view} kind={outsource ? "outsource" : "inhouse"} />
-                                    )}
-                                    <RecordModeChip mode={mode} />
-                                    {/* หาสถานีไม่เจอ (ขั้น CUSTOM ตกเลน OTHER) = ไม่โชว์ป้าย "อื่นๆ" — ทีมผลิตทัก 09-06 ว่าไม่รู้คืออะไร */}
-                                    {st.key === "lane:OTHER" ? null : (
-                                      <InfoChip size="sm" icon={STATION_ICON[st.key] ?? Wrench}>
-                                        {st.label}
-                                      </InfoChip>
-                                    )}
-                                    {step.assignedTo ? <InfoChip size="sm">{step.assignedTo.name}</InfoChip> : null}
-                                  </span>
-                                </span>
-                                {quiet ? <span className="text-xs text-secondary">ดูจากกระดาษ</span> : <Qty step={step} />}
-                              </button>
-                            </li>
-                          );
-                        })}
-                      </ol>
-                    </Section>
-
-                    {selectedStep ? (
-                      <StepDetail
-                        key={selectedStep.id}
-                        c={c}
-                        step={selectedStep}
-                        now={selectedNow}
-                        nowMs={nowMs}
-                        primary={c.primaryButton(selectedStep, selectedNow)}
-                        canReport={c.canUpdateStep && c.canOwnOrSupervise(selectedStep) && selectedStep.status !== "COMPLETED" && selectedStep.status !== "FAILED"}
-                        canFix={c.canSuperviseStep && c.hasProductionPermission && selectedStep.status !== "COMPLETED"}
-                        canEdit={c.canUpdateStep && c.canOwnOrSupervise(selectedStep) && selectedStep.status !== "COMPLETED"}
-                        onEdit={() => c.openEdit(selectedStep, "operation")}
-                        garment={
-                          selectedStep.stepType === "GARMENT_PICK" ? (
-                            <GarmentPickCard
-                              productionId={production.id}
-                              steps={workflowSteps}
-                              stepId={selectedStep.id}
-                              canIssueGarments={c.canUpdateStep && c.canOwnOrSupervise(selectedStep) && selectedStep.status !== "COMPLETED"}
-                              canReturnGarments={c.canSuperviseStep && c.hasProductionPermission && !c.writeDataStale}
-                              embedded
-                              primaryTask={selectedNow?.group === "current"}
-                            />
-                          ) : null
-                        }
-                      />
-                    ) : null}
+                      ))}
+                    </div>
                   </div>
-                )}
-              </TabsContent>
+                ) : null}
 
-              {/* ── ทำอะไร: ซ้าย สินค้า/ไซซ์ · ขวา ลาย + ม็อกอัพ ── */}
-              <TabsContent value="make">
-                <div className="grid gap-5 lg:grid-cols-2">
-                  <ItemsSection order={order} />
-                  <Section title="ลายและม็อกอัพที่อนุมัติ" icon={ClipboardCheck} tone="production">
-                    <ProductionDesignCard order={order} embedded />
-                  </Section>
+                <div className="space-y-3">
+                  <h2 className="text-lg font-semibold text-strong">
+                    ตอนนี้ทำได้ {doable.length} อย่าง
+                    {doable.length > 1 ? <span className="ml-2 text-sm font-normal text-secondary">คนละสาย ทำพร้อมกันได้</span> : null}
+                  </h2>
+                  {doable.length === 0 ? (
+                    <Alert variant="info" title={c.completedSteps === workflowSteps.length ? "ทุกขั้นผ่านแล้ว" : "ยังไม่มีอะไรให้ทำตอนนี้"}>
+                      {c.completedSteps === workflowSteps.length ? "ใบผลิตนี้ครบทุกขั้น" : c.problemSteps.length > 0 ? "ทุกสายกำลังรอกัน — ดูที่ติดปัญหาข้างบน" : "ทุกสายกำลังรอกัน — ดูว่าขั้นถัดไปรออะไรข้างล่าง"}
+                    </Alert>
+                  ) : (
+                    <div className={cn("grid gap-4", doable.length > 1 && "lg:grid-cols-2")}>{doable.map((step) => detailOf(step))}</div>
+                  )}
                 </div>
-              </TabsContent>
 
-              {/* ── ข้อมูลใบ: ซ้าย ออเดอร์/ใบ · ขวา เสื้อ+วัตถุดิบ ── */}
-              <TabsContent value="info">
-                <div className="grid gap-5 lg:grid-cols-2">
-                  <Section title="ออเดอร์และใบผลิต" icon={ClipboardCheck} tone="production">
-                    <FactList columns={2}>
-                      <Fact label="ลูกค้า" value={order.customer?.name ?? "ไม่ระบุ"} />
-                      <Fact label="สถานะออเดอร์" value={order.internalStatus === "PRODUCING" ? "กำลังผลิต" : order.internalStatus} />
-                      <Fact label="กำหนดส่ง" value={order.deadline ? formatDate(order.deadline) : "ยังไม่กำหนด"} icon={CalendarCheck} />
-                      <Fact label="ความสำคัญ" value={PRIORITY_LABELS[order.priority] ?? order.priority} />
-                      <Fact label="สถานะใบผลิต" value={production.status} />
-                      <Fact label="ขั้นทั้งหมด" value={`${workflowSteps.length} ขั้น`} sub={`ร้านนอก ${workflowSteps.filter((s) => isOutsourceStep(s.stepType)).length} ขั้น`} />
-                    </FactList>
-                    {production.notes ? (
-                      <Alert variant="warning" className="mt-4" title="หมายเหตุใบผลิต">
-                        {production.notes}
-                      </Alert>
-                    ) : null}
-                  </Section>
-                  <div className="space-y-5">
-                    <Section title="เสื้อและวัตถุดิบ" icon={Shirt} tone="product">
-                      {c.hasProductionPermission ? (
-                        <MaterialUsage productionId={production.id} orderNumber={order.orderNumber} showCosts={c.canSeeCost} readOnly={!c.canUpdateStep || !c.canSuperviseStep} embedded />
-                      ) : (
-                        <p className="text-sm text-muted">บัญชีนี้ดูใบผลิตได้ แต่ไม่มีสิทธิ์จัดการรายการวัตถุดิบ</p>
-                      )}
-                    </Section>
-                    <Section title="งานร้านนอกในใบนี้" icon={Truck} tone="production" meta={`${workflowSteps.filter((s) => s.outsourceOrders.length > 0).length} งาน`}>
-                      {workflowSteps.some((s) => s.outsourceOrders.length > 0) ? (
-                        <ul className="divide-y divide-divider">
-                          {workflowSteps
-                            .filter((s) => s.outsourceOrders.length > 0)
-                            .map((s) => (
-                              <li key={s.id} className="py-3 first:pt-0 last:pb-0">
-                                <p className="mb-2 text-sm font-medium text-strong">{stepLabel(s)}</p>
-                                <OutsourceFacts step={s} nowMs={nowMs} />
-                              </li>
-                            ))}
-                        </ul>
-                      ) : (
-                        <p className="text-sm text-muted">ยังไม่มีขั้นที่ส่งร้านนอก</p>
-                      )}
-                    </Section>
-                  </div>
-                </div>
-              </TabsContent>
-
-              {/* ── ประวัติ: ซ้าย เหตุการณ์ต่อขั้น · ขวา ม็อกอัพทุกเวอร์ชัน ── */}
-              <TabsContent value="history">
-                <div className="grid gap-5 lg:grid-cols-2">
-                  <Section title="เวลาจริงต่อขั้น" icon={History} tone="system">
-                    <ol className="divide-y divide-divider">
-                      {workflowSteps.map((step) => {
-                        const view = viewOf(step, nowById.get(step.id));
+                {upcoming.length > 0 ? (
+                  <div className={cn(SUNK_PANEL, RADIUS.inner, "p-4")}>
+                    <p className="text-xs font-medium text-muted">ถัดไป — ยังไม่ถึงคิว</p>
+                    <ul className="mt-2 space-y-1.5">
+                      {upcoming.map((step) => {
+                        const now = nowById.get(step.id);
+                        const pending = routeWaitingOn(step, workflowSteps);
+                        const reason = now && now.waitingOn.length > 0 ? now.waitingOn.join(" · ") : pending.length > 0 ? `รอ ${shortWaitList(pending.map((p) => stepLabel(p)))}` : (now?.note ?? "ยังไม่ถึงคิว");
                         return (
-                          <li key={step.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-2.5 first:pt-0 last:pb-0">
-                            <span className="min-w-0">
-                              <span className="block truncate text-sm text-strong">{stepLabel(step)}</span>
-                              <span className="block text-xs text-muted">{view.label}{step.assignedTo ? ` · ${step.assignedTo.name}` : ""}</span>
-                            </span>
-                            <InfoChipRow>
-                              {step.startedAt ? <InfoChip size="sm" tone="info">เริ่ม {formatDateTime(step.startedAt)}</InfoChip> : null}
-                              {step.completedAt ? <InfoChip size="sm" tone="success">เสร็จ {formatDateTime(step.completedAt)}</InfoChip> : null}
-                              {!step.startedAt && !step.completedAt ? <InfoChip size="sm">ยังไม่เริ่ม</InfoChip> : null}
-                            </InfoChipRow>
+                          <li key={step.id} className="flex flex-wrap items-center gap-2 text-sm">
+                            <Clock className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
+                            <button type="button" onClick={() => setFocusId(step.id)} className={cn(FOCUS_BUTTON, "rounded font-medium text-strong hover:underline")}>
+                              {stepLabel(step)}
+                            </button>
+                            <span className="text-secondary">{reason}</span>
                           </li>
                         );
                       })}
-                    </ol>
-                    <p className="mt-4 text-xs text-muted">ประวัติละเอียด (ใครกดอะไรเมื่อไร) ดูได้ที่ตั้งค่า → ประวัติการใช้งาน</p>
+                    </ul>
+                  </div>
+                ) : null}
+              </section>
+            ) : null}
+
+            {/* ส่วนที่เคยเป็นแท็บ — พับไว้ กดกางค่อยเห็น (ไม่มีอะไรหาย) */}
+            <Disclosure summary="ลายและม็อกอัพที่อนุมัติ" icon={ClipboardCheck}>
+              <ProductionDesignCard order={order} embedded />
+            </Disclosure>
+
+            <Disclosure summary="ข้อมูลใบ — ออเดอร์ วัตถุดิบ และงานร้านนอก" icon={FileText}>
+              <div className="grid gap-5 lg:grid-cols-2">
+                <Section title="ออเดอร์และใบผลิต" icon={ClipboardCheck} tone="production">
+                  <FactList columns={2}>
+                    <Fact label="ลูกค้า" value={order.customer?.name ?? "ไม่ระบุ"} />
+                    <Fact label="สถานะออเดอร์" value={order.internalStatus === "PRODUCING" ? "กำลังผลิต" : order.internalStatus} />
+                    <Fact label="กำหนดส่ง" value={order.deadline ? formatDate(order.deadline) : "ยังไม่กำหนด"} icon={CalendarCheck} />
+                    <Fact label="ความสำคัญ" value={PRIORITY_LABELS[order.priority] ?? order.priority} />
+                    <Fact label="สถานะใบผลิต" value={production.status} />
+                    <Fact label="ขั้นทั้งหมด" value={`${workflowSteps.length} ขั้น`} sub={`ร้านนอก ${workflowSteps.filter((s) => isOutsourceStep(s.stepType)).length} ขั้น`} />
+                  </FactList>
+                  {production.notes ? (
+                    <Alert variant="warning" className="mt-4" title="หมายเหตุใบผลิต">
+                      {production.notes}
+                    </Alert>
+                  ) : null}
+                </Section>
+                <div className="space-y-5">
+                  <Section title="เสื้อและวัตถุดิบ" icon={Shirt} tone="product">
+                    {c.hasProductionPermission ? (
+                      <MaterialUsage productionId={production.id} orderNumber={order.orderNumber} showCosts={c.canSeeCost} readOnly={!c.canUpdateStep || !c.canSuperviseStep} embedded />
+                    ) : (
+                      <p className="text-sm text-muted">บัญชีนี้ดูใบผลิตได้ แต่ไม่มีสิทธิ์จัดการรายการวัตถุดิบ</p>
+                    )}
                   </Section>
-                  <Section title="ม็อกอัพทุกเวอร์ชัน" icon={ClipboardCheck} tone="production">
-                    <ProductionMockupTab order={order} />
+                  <Section title="งานร้านนอกในใบนี้" icon={Truck} tone="production" meta={`${workflowSteps.filter((s) => s.outsourceOrders.length > 0).length} งาน`}>
+                    {workflowSteps.some((s) => s.outsourceOrders.length > 0) ? (
+                      <ul className="divide-y divide-divider">
+                        {workflowSteps
+                          .filter((s) => s.outsourceOrders.length > 0)
+                          .map((s) => (
+                            <li key={s.id} className="py-3 first:pt-0 last:pb-0">
+                              <p className="mb-2 text-sm font-medium text-strong">{stepLabel(s)}</p>
+                              <OutsourceFacts step={s} nowMs={nowMs} />
+                            </li>
+                          ))}
+                      </ul>
+                    ) : (
+                      <p className="text-sm text-muted">ยังไม่มีขั้นที่ส่งร้านนอก</p>
+                    )}
                   </Section>
                 </div>
-              </TabsContent>
-            </Tabs>
+              </div>
+            </Disclosure>
+
+            <Disclosure summary="ประวัติ — เวลาจริงต่อขั้น · ม็อกอัพทุกเวอร์ชัน" icon={History}>
+              <div className="grid gap-5 lg:grid-cols-2">
+                <Section title="เวลาจริงต่อขั้น" icon={History} tone="system">
+                  <ol className="divide-y divide-divider">
+                    {workflowSteps.map((step) => {
+                      const view = viewOf(step, nowById.get(step.id));
+                      return (
+                        <li key={step.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-2.5 first:pt-0 last:pb-0">
+                          <span className="min-w-0">
+                            <span className="block truncate text-sm text-strong">{stepLabel(step)}</span>
+                            <span className="block text-xs text-muted">{view.label}{step.assignedTo ? ` · ${step.assignedTo.name}` : ""}</span>
+                          </span>
+                          <InfoChipRow>
+                            {step.startedAt ? <InfoChip size="sm" tone="info">เริ่ม {formatDateTime(step.startedAt)}</InfoChip> : null}
+                            {step.completedAt ? <InfoChip size="sm" tone="success">เสร็จ {formatDateTime(step.completedAt)}</InfoChip> : null}
+                            {!step.startedAt && !step.completedAt ? <InfoChip size="sm">ยังไม่เริ่ม</InfoChip> : null}
+                          </InfoChipRow>
+                        </li>
+                      );
+                    })}
+                  </ol>
+                  <p className="mt-4 text-xs text-muted">ประวัติละเอียด (ใครกดอะไรเมื่อไร) ดูได้ที่ตั้งค่า → ประวัติการใช้งาน</p>
+                </Section>
+                <Section title="ม็อกอัพทุกเวอร์ชัน" icon={ClipboardCheck} tone="production">
+                  <ProductionMockupTab order={order} />
+                </Section>
+              </div>
+            </Disclosure>
           </div>
         )}
       </PageShell>

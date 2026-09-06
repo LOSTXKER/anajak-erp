@@ -229,7 +229,7 @@ function GarmentStrip() {
       </div>
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium text-strong">
-          {ITEMS[0]!.product} · {ITEMS.length} สี · {WORK_ORDER.qty} ตัว
+          {ITEMS[0]!.product} — {ITEMS.length} สี รวม {WORK_ORDER.qty} ตัว
         </p>
         <InfoChipRow className="mt-1">
           {ITEMS[0]!.sizes.map((s) => (

@@ -10,6 +10,9 @@ import { ActionZone } from "../src/components/ui/action-zone";
 import { Button } from "../src/components/ui/button";
 import { StepDetail } from "../src/components/production/work-order-page";
 import { ProblemCard } from "../src/components/production/work-order-pieces";
+import { RouteMap } from "../src/components/production/work-order-route";
+import { selectNowSteps } from "../src/lib/production-step-actions";
+import { evaluateHeatPressGate } from "../src/lib/production-steps";
 
 let pass = 0;
 const fails: string[] = [];
@@ -109,6 +112,24 @@ ok("Alert: พื้นเรียบ ไม่ใช่กล่องสี�
 
 const card = render(<ProblemCard step={{ ...base, id: "p", stepType: "GARMENT_PICK", status: "FAILED", notes: "ขาด 60", assignedTo: { id: "u", name: "เนส" } } as never} />);
 ok("การ์ดปัญหาในใบผลิต: ขั้น + ผู้รับผิดชอบ เป็นชิป", card.includes(">ขั้น<") && card.includes(">ผู้รับผิดชอบ<") && card.includes(">เนส<"));
+
+/* ── แผนที่เส้นทาง แบบ E (เบสเคาะ 09-06): สายขนานคนละแถว · ขั้นบรรจบกินทุกแถว · ขั้นที่ยังไม่ถึงคิวบอกว่ารออะไร ── */
+const routeSteps = [
+  { ...base, id: "pick", stepType: "GARMENT_PICK", status: "FAILED", sortOrder: 1 },
+  { ...base, id: "film", stepType: "DTF_PRINT", status: "COMPLETED", sortOrder: 2, qtyDone: 240 },
+  { ...base, id: "emb", stepType: "EMBROIDERY", status: "IN_PROGRESS", sortOrder: 3 },
+  { ...base, id: "press", stepType: "HEAT_PRESS", status: "PENDING", sortOrder: 4 },
+  { ...base, id: "qc", stepType: "CUSTOM", status: "PENDING", sortOrder: 5, customStepName: "ตรวจ QC" },
+];
+const routeNow = selectNowSteps(routeSteps as unknown as Parameters<typeof selectNowSteps>[0], { canOutsource: true, canUpdateStep: true, canSupervise: true, meId: "u", pressGate: evaluateHeatPressGate(routeSteps) });
+const route = render(<RouteMap steps={routeSteps as never} nowById={new Map(routeNow.map((n) => [n.step.id, n])) as never} focusId={null} onFocus={() => {}} />);
+ok("แผนที่: มี 3 แถว (เตรียมเสื้อ · ฟิล์ม DTF · ร้านปัก) — สายขนานคนละแถว", route.includes("repeat(3, minmax(56px, auto))"));
+ok("แผนที่: รีดร้อนเป็นขั้นบรรจบ กินทุกแถว (grid-row 1 / 4)", /grid-row:1 \/ 4[^>]*>[\s\S]*?รีดร้อน/.test(route.replace(/\s+/g, " ")) || route.includes("grid-row:1 / 4"));
+ok("แผนที่: ขั้นบรรจบมีคำอธิบาย “รวมกัน” หรือบอกว่ารอสายไหน", route.includes("รวมกัน") || route.includes("รอ "));
+ok("แผนที่: QC ยังไม่ถึงคิว บอกว่ารออะไรเป็นชื่อขั้น (ตัดสั้น “และอีก N ขั้น” เมื่อเกิน 2)", /รอ [^<]*(เบิกเสื้อ|ปัก|รีดร้อน)/.test(route) && route.includes("และอีก 1 ขั้น"));
+ok("แผนที่: สายร้านนอกติดป้าย “ร้านนอก · ปัก”", route.includes("ร้านนอก · ปัก"));
+ok("แผนที่: ทุกขั้นเป็นปุ่มกดได้ (aria-pressed) — 5 ขั้น", (route.match(/aria-pressed=/g) ?? []).length === 5);
+ok("แผนที่: ขั้นติดปัญหาไม่มีศัพท์ภายใน (จดในระบบ/จดบนกระดาษ/อื่นๆ)", !route.includes("จดในระบบ") && !route.includes("จดบนกระดาษ") && !route.includes(">อื่นๆ<"));
 
 console.log(`verify-work-order-ui: ผ่าน ${pass} · ตก ${fails.length}`);
 if (fails.length) process.exit(1);
