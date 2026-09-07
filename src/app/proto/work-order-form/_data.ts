@@ -287,7 +287,7 @@ export const CASE_7: WorkOrder = {
         { size: "L", qty: 30 },
         { size: "XL", qty: 10 },
       ],
-      mockup: null,
+      mockup: "/demo-mockups/front.svg",
       prints: [
         { position: "อกซ้าย", technique: "DTF", size: "8 × 8 ซม." },
         { position: "แขนซ้าย", technique: "ปัก", size: "5 × 5 ซม." },
@@ -300,7 +300,7 @@ export const CASE_7: WorkOrder = {
         { size: "M", qty: 10 },
         { size: "L", qty: 10 },
       ],
-      mockup: null,
+      mockup: "/demo-mockups/front.svg",
       prints: [{ position: "อกซ้าย", technique: "DTF", size: "8 × 8 ซม." }],
     },
   ],
