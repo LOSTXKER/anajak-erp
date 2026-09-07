@@ -28,7 +28,7 @@ import { InfoChip } from "@/components/ui/info-chip";
 import { MoreMenu, type MoreMenuItem } from "@/components/ui/more-menu";
 import { Section } from "@/components/ui/section";
 import { Tabs, TabsBar, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TINT } from "@/components/ui/tokens";
+import { TABLE_HEAD_SURFACE, TINT } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
 
 import { CASE_4, CASE_7, PROTO_TODAY, STATE_LABEL, recordModeOf, type WorkOrder, type WorkStep } from "./_data";
@@ -202,11 +202,11 @@ function FormWorkOrder({ variant, order, boss, pair }: { variant: Variant; order
                 <OrderItemsDisplay orderId={order.orderNumber} items={order.orderItems as OrderItem[]} fees={[]} showMoney={false} canEditReceiveTracking={false} />
               </TabsContent>
 
-              <TabsContent value="steps" className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start">
-                <div className="space-y-4">
-                  <StepPanel variant={variant} stage={stage} index={currentIndex} total={stages.length} next={next} boss={boss} allDone={allDone} ctaLabel={ctaLabel} remaining={remaining} onStep={(id, to) => setSteps(applyStep(steps, id, to))} onTick={tick} />
-                </div>
-                <StepList stages={stages} currentIndex={currentIndex} />
+              <TabsContent value="steps">
+                {/* รอบ 6 (เบส 09-08 ดึก "ขั้นตอนขอเป็นตาราง · ทุกขั้นของใบนี้เอาออก · จัดแถบนี้ใหม่ดีๆ"):
+                    ตารางเดียว แถวละขั้น (โครงคอลัมน์แบบตารางรายการหน้าออเดอร์) · แถวที่ยืนอยู่ไฮไลต์ + ติ๊กข้อกำหนดได้ในแถว
+                    แถวที่ผ่านแล้ว/ยังไม่ถึง ติ๊กไม่ได้ · จอแคบเป็นการ์ดต่อขั้น */}
+                <StepsTable variant={variant} stages={stages} currentIndex={currentIndex} next={next} boss={boss} allDone={allDone} ctaLabel={ctaLabel} remaining={remaining} onStep={(id, to) => setSteps(applyStep(steps, id, to))} onTick={tick} />
               </TabsContent>
 
               <TabsContent value="info" className="grid gap-6 md:grid-cols-2">
@@ -265,13 +265,15 @@ function FormWorkOrder({ variant, order, boss, pair }: { variant: Variant; order
   );
 }
 
-/* ───────────────────────── ฝั่งขวา: ขั้นที่ยืนอยู่ (การ์ดละขั้น) ───────────────────────── */
+/* ───────────────────────── แท็บขั้นตอน — ตารางแถวละขั้น ───────────────────────── */
 
-function StepPanel({
+const TH = "px-2 py-2.5 text-xs font-medium";
+const TD = "px-2 py-3 align-top text-sm";
+
+function StepsTable({
   variant,
-  stage,
-  index,
-  total,
+  stages,
+  currentIndex,
   next,
   boss,
   allDone,
@@ -281,9 +283,8 @@ function StepPanel({
   onTick,
 }: {
   variant: Variant;
-  stage: Stage;
-  index: number;
-  total: number;
+  stages: Stage[];
+  currentIndex: number;
   next: Stage | null;
   boss: boolean;
   allDone: boolean;
@@ -292,146 +293,162 @@ function StepPanel({
   onStep: (id: string, to: WorkStep["state"]) => void;
   onTick: (id: string, index: number) => void;
 }) {
-  if (allDone) {
-    return (
-      <Section title="ใบนี้เสร็จแล้ว" icon={CheckCircle2} tone="production">
-        <p className="text-sm text-secondary">ทุกขั้นปิดแล้ว งานอยู่ที่ QC — ย้อนกลับได้จากเมนู ⋯ ถ้าปิดผิด</p>
-      </Section>
-    );
+  const rows = stages.flatMap((st, i) => st.steps.map((step, j) => ({ step, stageIndex: i, stage: st, firstOfStage: j === 0 })));
+  const current = stages[currentIndex]!;
+  const footer = allDone
+    ? "ทุกขั้นปิดแล้ว งานอยู่ที่ QC — ย้อนกลับได้จากเมนู ⋯ ถ้าปิดผิด"
+    : remaining === 0 && ctaLabel
+      ? `ครบแล้ว — กด “${ctaLabel}” บนหัวใบ`
+      : remaining > 0
+        ? `ติ๊กอีก ${remaining} ข้อในแถวที่ไฮไลต์ แล้วกดปุ่มบนหัวใบ`
+        : null;
+
+  function rowProps(r: (typeof rows)[number]) {
+    const { step, stageIndex, stage } = r;
+    const isCurrent = stageIndex === currentIndex && !allDone;
+    const locked = !isCurrent || step.state === "done" || (step.state === "blocked" && !boss) || (stage.kind === "paper" && step.state !== "blocked" && !boss);
+    const small = isCurrent && stage.steps.length > 1 && step.state !== "done" ? stepCta(step, boss) : null;
+    const smallRemaining = small?.to === "done" ? step.checklist.filter((c) => !c.done).length : 0;
+    const note = isCurrent ? stepBlockedNote(step, boss) : null;
+    const ticked = step.checklist.filter((c) => c.done).length;
+    return { isCurrent, locked, small, smallRemaining, note, ticked };
   }
 
-  const multi = stage.steps.length > 1;
-  const paper = stage.kind === "paper";
-  const doneNote = remaining === 0 && ctaLabel ? `ครบแล้ว — กด “${ctaLabel}” ด้านบน` : remaining > 0 ? `ติ๊กอีก ${remaining} ข้อ แล้วกดปุ่มบนหัวใบ` : null;
+  const checklist = (r: (typeof rows)[number]) => {
+    const { step } = r;
+    const { locked, small, smallRemaining, ticked } = rowProps(r);
+    return (
+      <div className="space-y-1">
+        {step.checklist.map((c, i) => (
+          <label key={i} className={cn("flex min-h-8 items-center gap-2 text-sm", locked ? "cursor-default" : "cursor-pointer")}>
+            <Checkbox checked={c.done} disabled={locked} onChange={() => onTick(step.id, i)} />
+            <span className={cn(c.done ? "text-secondary line-through decoration-border" : locked ? "text-muted" : "text-strong")}>{c.label}</span>
+          </label>
+        ))}
+        {small ? (
+          <div className="flex flex-wrap items-center gap-2 pt-2">
+            <Button size="sm" variant={small.danger ? "destructive" : "outline"} disabled={smallRemaining > 0} onClick={() => onStep(step.id, small.to)}>
+              {small.label}
+            </Button>
+            {smallRemaining > 0 ? <span className="text-xs text-muted">ติ๊กอีก {smallRemaining} ข้อ</span> : null}
+          </div>
+        ) : null}
+        <p className="sr-only">ติ๊กแล้ว {ticked} จาก {step.checklist.length}</p>
+      </div>
+    );
+  };
+
+  const identity = (r: (typeof rows)[number]) => {
+    const { step, stage } = r;
+    const { isCurrent, note } = rowProps(r);
+    return (
+      <div className="space-y-1">
+        <p className={cn("flex flex-wrap items-center gap-2 font-medium", isCurrent ? "text-strong" : step.state === "done" ? "text-secondary" : "text-muted")}>
+          {step.label}
+          {stage.kind === "pair" ? <InfoChip size="sm" tone="info">ช่องคู่</InfoChip> : null}
+          <RecordChip step={step} variant={variant} />
+        </p>
+        {step.outsource ? (
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-secondary">
+            <Store className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden="true" />
+            {step.outsource.vendor}
+            {step.state !== "done" ? <DueTag dueInDays={step.outsource.backInDays} dateLabel={`นัดรับ ${step.outsource.backLabel}`} size="sm" /> : <span className="text-muted">รับกลับแล้ว</span>}
+          </p>
+        ) : null}
+        {isCurrent && step.note ? <p className="text-xs text-secondary">{step.note}</p> : null}
+        {note ? (
+          <p className="flex items-start gap-1.5 text-xs text-amber-800 dark:text-amber-200">
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" /> {note}
+          </p>
+        ) : null}
+      </div>
+    );
+  };
 
   return (
-    <>
-      {multi ? (
-        <p className="flex flex-wrap items-center gap-2 px-1 text-sm text-secondary">
-          <span className="font-medium text-strong">ช่อง {index + 1} จาก {total}</span>
-          <InfoChip size="sm" tone="info">{stage.kind === "pair" ? "ช่องคู่ — ทำพร้อมกันได้" : paper ? "จดบนกระดาษ" : "ทำพร้อมกัน"}</InfoChip>
-          {next ? <span className="text-muted">ถัดไป {next.label}</span> : null}
-        </p>
-      ) : null}
+    <Section
+      title="ขั้นตอนของใบนี้"
+      meta={allDone ? "เสร็จทุกช่อง" : `ช่อง ${currentIndex + 1} จาก ${stages.length}${next ? ` · ถัดไป ${next.label}` : ""}`}
+      help={current.kind === "pair" ? "ช่องที่ยืนอยู่เป็นช่องคู่ — สองขั้นทำพร้อมกันได้ ปุ่มบนหัวใบคือขั้นที่กดได้ก่อน อีกขั้นมีปุ่มในแถวของตัวเอง" : undefined}
+      flush
+    >
+      {/* จอกว้าง: ตาราง */}
+      <div className="hidden md:block">
+        <table className="w-full table-fixed">
+          <colgroup>
+            <col style={{ width: 44 }} />
+            <col />
+            <col style={{ width: 96 }} />
+            <col style={{ width: 96 }} />
+            <col style={{ width: 104 }} />
+            <col style={{ width: 84 }} />
+            <col style={{ width: 300 }} />
+          </colgroup>
+          <thead className={TABLE_HEAD_SURFACE}>
+            <tr>
+              <th className={cn(TH, "text-center")}>ช่อง</th>
+              <th className={cn(TH, "text-left")}>ขั้นตอน</th>
+              <th className={cn(TH, "text-left")}>สถานะ</th>
+              <th className={cn(TH, "text-left")}>ผู้ทำ</th>
+              <th className={cn(TH, "text-right")}>ทำแล้ว / ทั้งหมด</th>
+              <th className={cn(TH, "text-left")}>ควรเสร็จ</th>
+              <th className={cn(TH, "text-left")}>ข้อกำหนดก่อนปิดขั้น</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-divider">
+            {rows.map((r) => {
+              const { step, stageIndex, firstOfStage } = r;
+              const { isCurrent } = rowProps(r);
+              return (
+                <tr key={step.id} className={cn(isCurrent && "bg-blue-50/60 dark:bg-blue-950/20")}>
+                  <td className={cn(TD, "text-center tabular-nums", isCurrent ? "font-semibold text-strong" : "text-muted")}>{firstOfStage ? stageIndex + 1 : ""}</td>
+                  <td className={TD}>{identity(r)}</td>
+                  <td className={TD}><StateBadge step={step} /></td>
+                  <td className={cn(TD, step.owner ? "text-secondary" : "text-muted")}>{step.owner ?? "—"}</td>
+                  <td className={cn(TD, "text-right tabular-nums", isCurrent ? "font-medium text-strong" : "text-secondary")}>
+                    {step.qtyDone.toLocaleString("th-TH")} / {step.qtyTotal.toLocaleString("th-TH")}
+                  </td>
+                  <td className={cn(TD, "text-secondary")}>{step.planEnd}</td>
+                  <td className={TD}>{checklist(r)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
 
-      {stage.steps.map((step) => {
-        const small = multi && step.state !== "done" ? stepCta(step, boss) : null;
-        const smallRemaining = small?.to === "done" ? step.checklist.filter((c) => !c.done).length : 0;
-        const note = stepBlockedNote(step, boss);
-        const locked = step.state === "done" || (step.state === "blocked" && !boss) || (paper && step.state !== "blocked" && !boss);
-        const ticked = step.checklist.filter((c) => c.done).length;
-        return (
-          <Section
-            key={step.id}
-            title={step.label}
-            meta={multi ? undefined : `ขั้น ${index + 1} จาก ${total}${next ? ` · ถัดไป ${next.label}` : ""}`}
-            action={
-              <span className="flex items-center gap-1.5">
-                <RecordChip step={step} variant={variant} />
-                <StateBadge step={step} />
-              </span>
-            }
-          >
-            <div className="space-y-5">
-              <FactList columns={2}>
-                <Fact size="sm" label="ผู้ทำ" value={step.owner ?? "ยังไม่มีคนรับ"} tone={step.owner ? "default" : "muted"} />
-                <Fact size="sm" label="ทำแล้ว" value={<span className="tabular-nums">{step.qtyDone.toLocaleString("th-TH")} / {step.qtyTotal.toLocaleString("th-TH")} ตัว</span>} />
-                <Fact size="sm" label="ควรเสร็จ" value={step.planEnd} />
-                {step.outsource ? (
-                  <Fact
-                    size="sm"
-                    icon={Store}
-                    label="ร้านนอก"
-                    value={step.outsource.vendor}
-                    sub={step.state === "done" ? "รับกลับแล้ว" : <DueTag dueInDays={step.outsource.backInDays} dateLabel={`นัดรับ ${step.outsource.backLabel}`} size="sm" />}
-                  />
-                ) : null}
-              </FactList>
-
-              {step.note || note ? (
-                <div className="space-y-2">
-                  {step.note ? <p className="text-sm text-secondary">{step.note}</p> : null}
-                  {note ? (
-                    <p className="flex items-start gap-2 text-sm text-amber-800 dark:text-amber-200">
-                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" /> {note}
-                    </p>
-                  ) : null}
-                </div>
-              ) : null}
-
-              <div>
-                <p className="flex items-center justify-between text-xs font-medium text-muted">
-                  <span>ข้อกำหนดก่อนปิดขั้น</span>
-                  <span className="tabular-nums">{ticked}/{step.checklist.length}</span>
-                </p>
-                <ul className="mt-2 divide-y divide-divider">
-                  {step.checklist.map((c, i) => (
-                    <li key={i}>
-                      <label className={cn("flex min-h-11 items-center gap-3 py-2 text-sm", locked ? "cursor-default" : "cursor-pointer")}>
-                        <Checkbox checked={c.done} disabled={locked} onChange={() => onTick(step.id, i)} />
-                        <span className={cn(c.done ? "text-secondary line-through decoration-border" : "text-strong")}>{c.label}</span>
-                      </label>
-                    </li>
-                  ))}
-                </ul>
-                {paper && step.state !== "blocked" && step.state !== "done" ? <p className="mt-2 text-xs text-muted">ทำตามใบสั่งงาน — ติ๊กและเขียนยอดบนกระดาษ ในระบบไม่ต้องกด</p> : null}
-              </div>
-
-              {multi && small ? (
-                <div className="flex flex-wrap items-center gap-3">
-                  <Button size="sm" variant={small.danger ? "destructive" : "outline"} disabled={smallRemaining > 0} onClick={() => onStep(step.id, small.to)} title={smallRemaining > 0 ? `ติ๊กอีก ${smallRemaining} ข้อ` : undefined}>
-                    {small.label}
-                  </Button>
-                  {smallRemaining > 0 ? <span className="text-xs text-muted">ติ๊กอีก {smallRemaining} ข้อ</span> : null}
-                </div>
-              ) : null}
-            </div>
-          </Section>
-        );
-      })}
-
-      {doneNote ? (
-        <p className={cn("flex items-start gap-2 px-1 text-sm font-medium", remaining === 0 ? "text-green-700 dark:text-green-300" : "text-strong")}>
-          {remaining === 0 ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" /> : null}
-          {doneNote}
-        </p>
-      ) : null}
-    </>
-  );
-}
-
-/** รายการทุกขั้นแบบย่อ — แทนตารางเดิม (เบส 09-08 "UI ทำให้ดูง่ายกว่านี้ได้") */
-function StepList({ stages, currentIndex }: { stages: Stage[]; currentIndex: number }) {
-  return (
-    <Section title="ทุกขั้นของใบนี้" meta={`${stages.length} ช่อง`} compact>
-      <ol className="space-y-1">
-        {stages.map((st, i) => {
-          const isCurrent = i === currentIndex;
-          const done = stageDone(st);
+      {/* จอแคบ: การ์ดต่อขั้น ข้อมูลชุดเดียวกับตาราง */}
+      <div className="space-y-3 p-4 md:hidden">
+        {rows.map((r) => {
+          const { step, stageIndex, firstOfStage } = r;
+          const { isCurrent } = rowProps(r);
           return (
-            <li key={st.key} className={cn("flex items-start gap-3 rounded-md px-2 py-2 text-sm", isCurrent && "bg-blue-50/70 dark:bg-blue-950/25")}>
-              <span
-                aria-hidden="true"
-                className={cn(
-                  "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-2xs font-semibold tabular-nums",
-                  done ? "bg-blue-600 text-white" : isCurrent ? "bg-blue-600 text-white ring-[3px] ring-blue-100 dark:ring-blue-500/25" : "border-2 border-border text-muted",
-                )}
-              >
-                {i + 1}
-              </span>
-              <span className="min-w-0 flex-1 space-y-1">
-                {st.steps.map((s) => (
-                  <span key={s.id} className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <span className={cn(isCurrent ? "font-semibold text-strong" : done ? "text-secondary" : "text-muted")}>{s.label}</span>
-                    {s.owner && !done ? <span className="text-xs text-muted">{s.owner}</span> : null}
-                    {isCurrent || (s.state !== "todo" && s.state !== "done") ? <StateBadge step={s} /> : null}
-                  </span>
-                ))}
-              </span>
-            </li>
+            <div key={step.id} className={cn("space-y-3 rounded-lg border border-border p-3", isCurrent && "border-blue-300 bg-blue-50/60 dark:border-blue-800 dark:bg-blue-950/20")}>
+              <div className="flex items-start gap-3">
+                <span className={cn("mt-0.5 w-5 shrink-0 text-xs tabular-nums", isCurrent ? "font-semibold text-strong" : "text-muted")}>{firstOfStage ? stageIndex + 1 : ""}</span>
+                <div className="min-w-0 flex-1">{identity(r)}</div>
+                <StateBadge step={step} />
+              </div>
+              <FactList columns={3}>
+                <Fact size="sm" label="ผู้ทำ" value={step.owner ?? "—"} tone={step.owner ? "default" : "muted"} />
+                <Fact size="sm" label="ทำแล้ว" value={`${step.qtyDone.toLocaleString("th-TH")} / ${step.qtyTotal.toLocaleString("th-TH")}`} />
+                <Fact size="sm" label="ควรเสร็จ" value={step.planEnd} />
+              </FactList>
+              <div>
+                <p className="mb-1 text-xs font-medium text-muted">ข้อกำหนดก่อนปิดขั้น</p>
+                {checklist(r)}
+              </div>
+            </div>
           );
         })}
-      </ol>
+      </div>
+
+      {footer ? (
+        <p className={cn("flex items-start gap-2 border-t border-divider px-4 py-3 text-sm font-medium", remaining === 0 && !allDone ? "text-green-700 dark:text-green-300" : "text-strong")}>
+          {remaining === 0 ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" /> : null}
+          {footer}
+        </p>
+      ) : null}
     </Section>
   );
 }
