@@ -34,30 +34,30 @@ export function Workspace({ order, boss, mode, idPrefix }: WorkspaceProps) {
     requestAnimationFrame(() => contentRef.current?.scrollIntoView({ block: "nearest" }));
   }
 
-  return <article className="@container min-w-0 text-strong">
-    <header className="space-y-5 px-1 pb-6">
-      <div className="flex items-start justify-between gap-3">
+  return <article className={cn("@container card-surface min-w-0 overflow-hidden text-strong", RADIUS.surface)}>
+    <header className="border-b border-divider">
+      <div className="flex items-start justify-between gap-3 px-5 py-5 @lg:px-8">
         <div className="min-w-0 space-y-1.5">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1"><h1 className="text-xl font-semibold @lg:text-2xl">{order.orderNumber}</h1><span className="text-xs text-secondary">{order.status}</span></div>
           <p className="text-sm text-secondary">{order.customer}</p>
         </div>
         <div id={`${idPrefix}-document-menu`}><MoreMenu label="เมนูใบ" className="min-h-11 shrink-0" items={[{ key: "print", label: "ดูใบสั่งงานสำหรับพิมพ์", icon: Printer, onSelect: () => openAction("print", undefined, `${idPrefix}-document-menu`) }]} /></div>
       </div>
-      <div className="grid grid-cols-2 gap-5 @3xl:max-w-md">
-        <Fact label="จำนวนทั้งหมด" value={`${order.qty} ตัว`} size="lg" />
-        <Fact label="ส่งลูกค้า" value={order.dueLabel} sub={order.dueInDays < 0 ? `เลยกำหนด ${-order.dueInDays} วัน` : undefined} tone={order.dueInDays < 0 ? "danger" : "default"} size="lg" />
+      <div className="grid grid-cols-2 divide-x divide-divider border-t border-divider bg-bg/50">
+        <Fact label="จำนวนทั้งหมด" value={`${order.qty} ตัว`} size="lg" className="px-5 py-4 @lg:px-8" />
+        <Fact label="ส่งลูกค้า" value={order.dueLabel} sub={order.dueInDays < 0 ? `เลยกำหนด ${-order.dueInDays} วัน` : undefined} tone={order.dueInDays < 0 ? "danger" : "default"} size="lg" className="px-5 py-4 @lg:px-8" />
       </div>
     </header>
 
-    <Tabs value={tab} onValueChange={setTab} className={cn("card-surface min-w-0 overflow-hidden", RADIUS.surface)}>
-      <div className="border-b border-divider px-4 @lg:px-6"><TabsList className="gap-4 sm:gap-4 @lg:gap-7" aria-label="ข้อมูลใบผลิต">
+    <Tabs value={tab} onValueChange={setTab} className="min-w-0">
+      <div className="border-b border-divider px-4 @lg:px-8"><TabsList className="gap-4 sm:gap-4 @lg:gap-7" aria-label="ข้อมูลใบผลิต">
         <TabsTrigger value="overview">ภาพรวม</TabsTrigger>
         <TabsTrigger value="operations">ขั้นงาน</TabsTrigger>
         <TabsTrigger value="items">สินค้าและแบบ</TabsTrigger>
         <TabsTrigger value="details">ข้อมูลใบ</TabsTrigger>
       </TabsList></div>
       <div ref={contentRef} className="scroll-mt-4">
-        <TabsContent value="overview" className="p-5 @lg:p-8"><Overview order={order} focus={focus} boss={boss} openStep={openStep} openAction={openAction} showOperations={() => { setSelectedId(null); setTab("operations"); }} /></TabsContent>
+        <TabsContent value="overview"><Overview order={order} focus={focus} boss={boss} openStep={openStep} openAction={openAction} showOperations={() => { setSelectedId(null); setTab("operations"); }} /></TabsContent>
         <TabsContent value="operations">
           {order.steps.length ? <div className={cn(mode === "desk" && "@3xl:grid @3xl:grid-cols-[15rem_minmax(0,1fr)]")}>
             {mode === "desk" ? <nav aria-label="เลือกงาน" className={cn("border-divider @3xl:border-r", selected && "hidden @3xl:block")}><div className="border-b border-divider px-5 py-4 text-sm font-semibold">ขั้นงานทั้งหมด <span className="ml-1 font-normal text-secondary">{order.steps.length}</span></div><div className="p-2">{order.steps.map((step) => <button key={step.id} type="button" onClick={() => openStep(step)} aria-pressed={step.id === selectedId} className={cn(FOCUS_INSET, RADIUS.item, "flex min-h-16 w-full items-start gap-3 p-3 text-left transition-colors", step.id === selectedId ? INTERACTIVE_SELECTED : "hover:bg-interactive-hover")}><span className="pt-0.5 text-sm text-secondary">{step.order}</span><span className="min-w-0 space-y-1"><span className="block text-sm font-medium">{step.short}</span><StepStatus step={step} /></span></button>)}</div></nav> : null}
@@ -79,19 +79,19 @@ function Overview({ order, focus, boss, openStep, openAction, showOperations }: 
   const next = order.steps.find((step) => step.state === "todo");
   const vendor = focus.outsource;
   const title = focus.state === "blocked" ? focus.problem?.title ?? "งานติดปัญหา" : focus.state === "waiting" ? `รอรับงาน${focus.short}` : focus.state === "done" ? "ขั้นงานในใบนี้ผ่านครบแล้ว" : focus.short;
-  return <div className="space-y-7">
-    <section className="max-w-3xl space-y-5" aria-label="งานที่ต้องดูตอนนี้">
+  return <div className="divide-y divide-divider">
+    <section className="space-y-5 p-5 @lg:p-8" aria-label="งานที่ต้องดูตอนนี้">
       <div className="space-y-2"><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-xl font-semibold @lg:text-2xl">{title}</h2><StepStatus step={focus} /></div><p className="text-sm text-secondary">{vendor?.vendor ?? focus.label}</p></div>
       {focus.state === "blocked" ? <p className="max-w-prose text-sm text-secondary">{focus.problem?.detail}</p> : null}
-      <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+      <div className={cn("grid grid-cols-2 gap-x-6 gap-y-4 border border-divider bg-bg/50 p-4", RADIUS.item)}>
         <Fact label={vendor ? "นัดรับกลับ" : "ผู้รับผิดชอบ"} value={vendor?.backLabel ?? focus.owner ?? "ยังไม่มอบหมาย"} />
         <Fact label={vendor ? "จำนวนที่ส่ง" : "จำนวนตามใบ"} value={`${focus.qtyTotal} ตัว`} />
       </div>
       {focus.note ? <p className="text-sm text-secondary">{focus.note}</p> : null}
       <StepActions step={focus} boss={boss} openAction={openAction} detail={() => openStep(focus)} />
     </section>
-    {other.length ? <section className="border-t border-divider pt-6"><h2 className="mb-3 text-sm font-semibold">งานอื่นที่กำลังดำเนินการ</h2><ul className="divide-y divide-divider">{other.map((step) => <li key={step.id}><button type="button" className={cn(FOCUS_INSET, "flex min-h-16 w-full items-center justify-between gap-4 py-3 text-left hover:bg-interactive-hover")} onClick={() => openStep(step)}><span className="min-w-0"><span className="block text-sm font-medium">{step.short}</span><span className="block text-xs text-secondary">{step.outsource?.vendor ?? step.owner ?? step.station ?? "ยังไม่มอบหมาย"}</span></span><span className="flex shrink-0 items-center gap-2"><StepStatus step={step} /><ChevronRight aria-hidden="true" className="size-4 text-secondary" /></span></button></li>)}</ul></section> : null}
-    <section className="flex flex-wrap items-center justify-between gap-3 border-t border-divider pt-5">
+    {other.length ? <section className="px-5 py-5 @lg:px-8"><h2 className="mb-3 text-sm font-semibold">งานอื่นที่กำลังดำเนินการ</h2><ul className="divide-y divide-divider">{other.map((step) => <li key={step.id}><button type="button" className={cn(FOCUS_INSET, "flex min-h-16 w-full items-center justify-between gap-4 py-3 text-left hover:bg-interactive-hover")} onClick={() => openStep(step)}><span className="min-w-0"><span className="block text-sm font-medium">{step.short}</span><span className="block text-xs text-secondary">{step.outsource?.vendor ?? step.owner ?? step.station ?? "ยังไม่มอบหมาย"}</span></span><span className="flex shrink-0 items-center gap-2"><StepStatus step={step} /><ChevronRight aria-hidden="true" className="size-4 text-secondary" /></span></button></li>)}</ul></section> : null}
+    <section className="flex flex-wrap items-center justify-between gap-3 bg-bg/50 px-5 py-5 @lg:px-8">
       <div className="min-w-0"><p className="text-xs text-secondary">{next ? "ขั้นถัดไป" : "ขั้นงานทั้งหมด"}</p><p className="mt-1 text-sm font-medium">{next?.short ?? `${order.steps.length} ขั้น`}</p>{next ? <p className="mt-1 text-xs text-secondary">{pendingOf(next, order.steps).length ? `รอ ${pendingOf(next, order.steps).map((step) => step.short).join(" และ ")}` : "พร้อมเริ่มงาน"}</p> : null}</div>
       <Button variant="ghost" className="min-h-11" onClick={showOperations}>ดูขั้นงานทั้งหมด<ArrowRight /></Button>
     </section>
@@ -114,7 +114,7 @@ function StepDetail({ step, order, boss, openAction, idPrefix }: { step: LeanSte
     <header className="space-y-2"><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-xl font-semibold">{step.short}</h2><StepStatus step={step} /></div>{vendor?.work || step.label !== step.short ? <p className="text-sm text-secondary">{vendor?.work ?? step.label}</p> : null}</header>
     {step.problem ? <div className="flex items-start gap-3"><AlertTriangle className="mt-0.5 size-5 shrink-0 text-red-700 dark:text-red-300" /><div><h3 className="text-sm font-semibold">{step.problem.title}</h3><p className="mt-1 text-sm text-secondary">{step.problem.detail}</p></div></div> : null}
     {pending.length ? <div className="space-y-1"><p className="text-sm font-medium">{step.state === "active" ? "ทำส่วนที่พร้อมได้" : "ยังเริ่มขั้นนี้ไม่ได้"}</p><p className="text-sm text-secondary">รอ {pending.map((item) => item.short).join(" และ ")}</p>{step.state === "active" ? <p className="text-sm text-secondary">{step.note ?? order.garment}</p> : null}</div> : null}
-    <div className="grid grid-cols-2 gap-x-5 gap-y-5">
+    <div className={cn("grid grid-cols-2 gap-x-5 gap-y-5 border border-divider bg-bg/50 p-4", RADIUS.item)}>
       <Fact label={vendor ? "ร้านที่รับงาน" : "ผู้รับผิดชอบ"} value={vendor?.vendor ?? step.owner ?? "ยังไม่มอบหมาย"} />
       <Fact label="จำนวนตามใบ" value={`${step.qtyTotal} ตัว`} />
       {vendor ? <><Fact label="ส่งออก" value={vendor.sentOn} /><Fact label="นัดรับกลับ" value={vendor.backLabel} /></> : step.state === "done" ? <><Fact label="จำนวนที่บันทึก" value={`${step.qtyDone} ตัว`} /><Fact label="ผ่านเมื่อ" value={step.completedAt ?? "ไม่ระบุเวลา"} /></> : <Fact label="จุดทำงาน" value={step.station ?? "ในโรงงาน"} />}
@@ -131,7 +131,7 @@ function StepActions({ step, boss, openAction, detail, menuId }: { step: LeanSte
   const action = step.state === "blocked" ? boss ? "resolve" : null : step.mode === "screen" && current ? step.outsource ? "receive" : "record" : null;
   const note = step.state === "blocked" && !boss ? "รอหัวหน้าแก้ปัญหา" : step.state === "active" && step.mode === "paper" ? "จดยอดและลงชื่อบนใบสั่งงานกระดาษ" : step.state === "active" && step.mode === "auto" ? "ขั้นนี้ผ่านเมื่อปิดรอบพิมพ์" : undefined;
   if (!current && !detail) return null;
-  return <ActionZone note={note} className="@lg:max-w-3xl" menu={!detail && current ? <span id={menuId}><MoreMenu className="min-h-11" items={[
+  return <ActionZone note={note} menu={!detail && current ? <span id={menuId}><MoreMenu className="min-h-11" items={[
     ...(step.state !== "blocked" ? [{ key: "problem", label: "แจ้งปัญหา", icon: AlertTriangle, onSelect: () => openAction("problem", step, menuId) }] : []),
     { key: "record", label: "บันทึกรายละเอียด", onSelect: () => openAction("record", step, menuId) },
     ...(boss ? [{ key: "assign", label: "มอบหมายงาน", onSelect: () => openAction("assign", step, menuId) }] : []),
