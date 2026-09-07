@@ -12,10 +12,12 @@
  */
 
 import { useState } from "react";
-import { AlertTriangle, CheckCircle2, ChevronRight, ClipboardList, ExternalLink, Factory, Flag, ImageOff, Pause, RotateCcw, Store, UserRound } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ChevronRight, ClipboardList, ExternalLink, Factory, Flag, Pause, RotateCcw, Store, UserRound } from "lucide-react";
 
 import { PageHeader } from "@/components/page-header";
+import { OrderItemsDisplay } from "@/components/orders/detail/order-items-display";
 import { OrderStatusBar } from "@/components/orders/detail/order-status-bar";
+import type { RouterOutput } from "@/lib/trpc";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,13 +28,15 @@ import { InfoChip } from "@/components/ui/info-chip";
 import { MoreMenu, type MoreMenuItem } from "@/components/ui/more-menu";
 import { Section } from "@/components/ui/section";
 import { Tabs, TabsBar, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RADIUS, TABLE_HEAD_SURFACE, TINT } from "@/components/ui/tokens";
+import { TINT } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
 
-import { CASE_4, CASE_7, PROTO_TODAY, STATE_LABEL, recordModeOf, type WorkItem, type WorkOrder, type WorkStep } from "./_data";
+import { CASE_4, CASE_7, PROTO_TODAY, STATE_LABEL, recordModeOf, type WorkOrder, type WorkStep } from "./_data";
 import { applyStep, closeAll, currentStageIndex, headCta, lastClosed, reopen, stageDone, stagesFor, stepBlockedNote, stepCta, type HeadCta, type Stage, type Variant } from "./_engine";
 
 export const REAL_PAGE = "/production/demo-production-outsource-overdue";
+
+type OrderItem = RouterOutput["order"]["getById"]["items"][number];
 
 /* ───────────────────────── ปัจจุบัน = หน้าจริงจากฐานทดลอง ───────────────────────── */
 
@@ -198,7 +202,8 @@ function FormWorkOrder({ variant, order, boss, pair }: { variant: Variant; order
 
             <div className="mt-6">
               <TabsContent value="items">
-                <ItemsTable order={order} />
+                {/* ตัวจริงของแท็บรายการหน้าออเดอร์ (เบสสั่ง 09-08 "ใช้แบบหน้านี้เลย จะได้ไม่งง") — ไม่มีปุ่มแก้ไข · ไม่โชว์เงิน */}
+                <OrderItemsDisplay orderId={order.orderNumber} items={order.orderItems as OrderItem[]} fees={[]} showMoney={false} canEditReceiveTracking={false} />
               </TabsContent>
 
               <TabsContent value="info" className="grid gap-6 md:grid-cols-2">
@@ -425,102 +430,6 @@ function StepList({ stages, currentIndex }: { stages: Stage[]; currentIndex: num
           );
         })}
       </ol>
-    </Section>
-  );
-}
-
-/* ───────────────────────── ลายและเสื้อ — ตารางแถวละไซซ์ (โครงเดียวกับตารางรายการของหน้าออเดอร์) ───────────────────────── */
-
-const TH = "px-2 py-2.5 text-xs font-medium";
-const TD = "px-2 py-3 align-top";
-
-function PrintCell({ prints, thumb }: { prints: WorkItem["prints"]; thumb: string | null }) {
-  return (
-    <div className="space-y-2">
-      {prints.map((p, j) => (
-        <div key={j} className="flex items-center gap-2">
-          {thumb ? (
-            // eslint-disable-next-line @next/next/no-img-element -- หน้าลองใช้ไฟล์ตัวอย่างใน /public ตรง ๆ
-            <img src={thumb} alt={`ลาย ${p.position}`} className={cn("h-10 w-10 shrink-0 border border-border bg-surface-muted object-cover", RADIUS.inner)} />
-          ) : (
-            <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center border border-dashed border-border", RADIUS.inner)}>
-              <ImageOff className="h-4 w-4 text-muted" aria-hidden="true" />
-            </div>
-          )}
-          <div className="min-w-0 text-sm">
-            <p className="font-medium text-strong">{p.position}</p>
-            <p className="text-xs text-secondary">
-              {p.technique} · {p.size}
-              {p.note ? <span className="text-muted"> — {p.note}</span> : null}
-            </p>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function ItemsTable({ order }: { order: WorkOrder }) {
-  const rows = order.items.flatMap((item, i) => item.sizes.map((sz) => ({ key: `${i}-${sz.size}`, item, size: sz.size, qty: sz.qty })));
-  const total = rows.reduce((n, r) => n + r.qty, 0);
-  return (
-    <Section title="เสื้อและลาย" meta={`${rows.length} รายการ · รวม ${total.toLocaleString("th-TH")} ตัว`} flush>
-      {/* จอกว้าง: ตารางแถวละไซซ์ (คอลัมน์เดียวกับหน้าออเดอร์ ยกเว้นเงิน) */}
-      <div className="hidden md:block">
-        <table className="w-full table-fixed">
-          <colgroup>
-            <col style={{ width: 40 }} />
-            <col />
-            <col style={{ width: 260 }} />
-            <col style={{ width: 72 }} />
-          </colgroup>
-          <thead className={TABLE_HEAD_SURFACE}>
-            <tr>
-              <th className={cn(TH, "text-center")}>#</th>
-              <th className={cn(TH, "text-left")}>สินค้า</th>
-              <th className={cn(TH, "text-left")}>ลาย</th>
-              <th className={cn(TH, "text-center")}>จำนวน</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-divider">
-            {rows.map((r, i) => (
-              <tr key={r.key}>
-                <td className={cn(TD, "text-center text-sm tabular-nums text-muted")}>{i + 1}</td>
-                <td className={TD}>
-                  <p className="text-sm font-medium text-strong [overflow-wrap:anywhere]">
-                    {r.item.product} <span className="ml-1.5 font-semibold">{r.item.color} {r.size}</span>
-                  </p>
-                </td>
-                <td className={TD}><PrintCell prints={r.item.prints} thumb={r.item.mockup} /></td>
-                <td className={cn(TD, "text-center text-sm font-medium tabular-nums text-strong")}>{r.qty}</td>
-              </tr>
-            ))}
-          </tbody>
-          <tfoot>
-            <tr className="border-t border-divider">
-              <td colSpan={3} className={cn(TD, "text-right text-xs text-muted")}>รวม</td>
-              <td className={cn(TD, "text-center text-sm font-semibold tabular-nums text-strong")}>{total.toLocaleString("th-TH")}</td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-      {/* จอแคบ: การ์ดต่อแถว ข้อมูลชุดเดียวกับตาราง */}
-      <div className="space-y-3 p-4 md:hidden">
-        {rows.map((r, i) => (
-          <div key={r.key} className="space-y-3 rounded-lg border border-border p-3">
-            <div className="flex items-start justify-between gap-3">
-              <p className="flex min-w-0 items-start gap-2 text-sm">
-                <span className="mt-0.5 w-5 shrink-0 text-xs tabular-nums text-muted">{i + 1}</span>
-                <span className="font-medium text-strong [overflow-wrap:anywhere]">
-                  {r.item.product} <span className="font-semibold">{r.item.color} {r.size}</span>
-                </span>
-              </p>
-              <span className="shrink-0 text-sm font-semibold tabular-nums text-strong">{r.qty} ตัว</span>
-            </div>
-            <PrintCell prints={r.item.prints} thumb={r.item.mockup} />
-          </div>
-        ))}
-      </div>
     </Section>
   );
 }

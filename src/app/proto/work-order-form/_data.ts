@@ -64,6 +64,8 @@ export type WorkOrder = {
   mockupVersion: string;
   note: string | null;
   items: WorkItem[];
+  /** รายการแบบเดียวกับ order.getById.items — ป้อนให้ OrderItemsDisplay ตัวจริง (เบสสั่ง 09-08 "ใช้แบบหน้าออเดอร์เลย") · เงินเป็น 0 ทั้งหมด (ใบผลิตไม่โชว์เงิน) */
+  orderItems: unknown[];
   steps: WorkStep[];
   events: WorkEvent[];
 };
@@ -114,6 +116,37 @@ export const CASE_4: WorkOrder = {
       ],
       mockup: "/demo-mockups/front.svg",
       prints: [{ position: "อกซ้าย", technique: "ปัก", size: "7 × 7 ซม.", note: "ด้ายทอง · ห้ามเอียง" }],
+    },
+  ],
+  orderItems: [
+    {
+      id: "oi-4-1",
+      description: "ปักโลโก้อกซ้าย — เสื้อลูกค้า",
+      notes: "ด้ายทองตามตัวอย่างที่ลูกค้าให้ · ห้ามเอียง",
+      subtotal: 0,
+      products: [
+        {
+          id: "oip-4-1",
+          product: null,
+          description: "เสื้อยืด Cotton 100% สีกรม (ลูกค้าส่งมา)",
+          itemSource: "CUSTOMER_PROVIDED",
+          productType: "T_SHIRT",
+          packagingOption: null,
+          baseUnitPrice: 0,
+          discount: 0,
+          garmentCondition: "GOOD",
+          receivedInspected: true,
+          receiveNote: "ครบ 30 ตัว มีถุงครบ",
+          collarType: "CREW_NECK", sleeveType: null, bodyFit: null, fabricType: null, fabricColor: "กรม", fabricWeight: null, material: "Cotton 100%", patternNote: null,
+          variants: [
+            { id: "v-4-s", color: "กรม", size: "S", quantity: 7 },
+            { id: "v-4-m", color: "กรม", size: "M", quantity: 12 },
+            { id: "v-4-l", color: "กรม", size: "L", quantity: 11 },
+          ],
+        },
+      ],
+      prints: [{ id: "pr-4-1", position: "FRONT", printType: "EMBROIDERY", printSize: "CUSTOM", width: 7, height: 7, colorCount: 1, designNote: "ด้ายทอง · อกซ้าย", designImageUrl: "/demo-mockups/front.svg", unitPrice: 0 }],
+      addons: [],
     },
   ],
   steps: [
@@ -263,6 +296,83 @@ export const CASE_7: WorkOrder = {
       ],
       mockup: null,
       prints: [{ position: "อกซ้าย", technique: "DTF", size: "8 × 8 ซม." }],
+    },
+  ],
+  orderItems: [
+    {
+      id: "oi-7-1",
+      description: "โปโลพนักงาน — DTF อก + ปักแขน",
+      notes: "โลโก้แขนห้ามเอียง · เช็คสีกรมท่าให้ตรงล็อตเดิม (ORD-2607-0018)",
+      subtotal: 0,
+      products: [
+        {
+          id: "oip-7-1",
+          product: { name: "โปโล Dry-Tech คอปก", sku: "POLO-DT-NAVY", imageUrl: null },
+          description: null,
+          itemSource: "FROM_STOCK",
+          productType: "POLO",
+          packagingOption: { name: "ถุง OPP รายตัว" },
+          baseUnitPrice: 0,
+          discount: 0,
+          garmentCondition: null, receivedInspected: false, receiveNote: null,
+          collarType: null, sleeveType: null, bodyFit: null, fabricType: null, fabricColor: null, fabricWeight: null, material: null, patternNote: null,
+          variants: [
+            { id: "v-7-n-s", color: "กรมท่า", size: "S", quantity: 20 },
+            { id: "v-7-n-m", color: "กรมท่า", size: "M", quantity: 40 },
+            { id: "v-7-n-l", color: "กรมท่า", size: "L", quantity: 60 },
+            { id: "v-7-n-xl", color: "กรมท่า", size: "XL", quantity: 30 },
+            { id: "v-7-n-2xl", color: "กรมท่า", size: "2XL", quantity: 10 },
+          ],
+        },
+        {
+          id: "oip-7-2",
+          product: { name: "โปโล Dry-Tech คอปก", sku: "POLO-DT-WHITE", imageUrl: null },
+          description: null,
+          itemSource: "FROM_STOCK",
+          productType: "POLO",
+          packagingOption: { name: "ถุง OPP รายตัว" },
+          baseUnitPrice: 0,
+          discount: 0,
+          garmentCondition: null, receivedInspected: false, receiveNote: null,
+          collarType: null, sleeveType: null, bodyFit: null, fabricType: null, fabricColor: null, fabricWeight: null, material: null, patternNote: null,
+          variants: [
+            { id: "v-7-w-m", color: "ขาว", size: "M", quantity: 20 },
+            { id: "v-7-w-l", color: "ขาว", size: "L", quantity: 30 },
+            { id: "v-7-w-xl", color: "ขาว", size: "XL", quantity: 10 },
+          ],
+        },
+      ],
+      prints: [
+        { id: "pr-7-1", position: "FRONT", printType: "DTF", printSize: "CUSTOM", width: 8, height: 8, colorCount: 4, designNote: "โลโก้สีเต็ม อกซ้าย", designImageUrl: "/demo-mockups/front.svg", unitPrice: 0 },
+        { id: "pr-7-2", position: "SLEEVE_L", printType: "EMBROIDERY", printSize: "CUSTOM", width: 5, height: 5, colorCount: 1, designNote: "ด้ายขาว ห้ามเอียง", designImageUrl: null, unitPrice: 0 },
+      ],
+      addons: [{ id: "ad-7-1", name: "ป้ายคอทอ", pricingType: "PER_PIECE", unitPrice: 0 }],
+    },
+    {
+      id: "oi-7-2",
+      description: "โปโลหัวหน้าทีม — DTF อกอย่างเดียว",
+      notes: null,
+      subtotal: 0,
+      products: [
+        {
+          id: "oip-7-3",
+          product: { name: "โปโล Dry-Tech คอปก", sku: "POLO-DT-GREY", imageUrl: null },
+          description: null,
+          itemSource: "FROM_STOCK",
+          productType: "POLO",
+          packagingOption: { name: "ถุง OPP รายตัว" },
+          baseUnitPrice: 0,
+          discount: 0,
+          garmentCondition: null, receivedInspected: false, receiveNote: null,
+          collarType: null, sleeveType: null, bodyFit: null, fabricType: null, fabricColor: null, fabricWeight: null, material: null, patternNote: null,
+          variants: [
+            { id: "v-7-g-m", color: "เทา", size: "M", quantity: 10 },
+            { id: "v-7-g-l", color: "เทา", size: "L", quantity: 10 },
+          ],
+        },
+      ],
+      prints: [{ id: "pr-7-3", position: "FRONT", printType: "DTF", printSize: "CUSTOM", width: 8, height: 8, colorCount: 4, designNote: null, designImageUrl: "/demo-mockups/front.svg", unitPrice: 0 }],
+      addons: [],
     },
   ],
   steps: [
