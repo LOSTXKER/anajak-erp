@@ -104,14 +104,14 @@ function FormWorkOrder({ variant, order, boss, pair }: { variant: Variant; order
       key: "undo",
       label: undoTarget ? `ย้อนกลับ — เปิด “${undoTarget.label}” ใหม่` : "ย้อนกลับขั้นก่อน",
       icon: RotateCcw,
-      hint: !boss ? "หัวหน้าเท่านั้น — ช่างแจ้งหัวหน้าให้ย้อน" : undoTarget ? "ขั้นที่ปิดไปจะกลับมาเปิด ยอดและติ๊กคงไว้ ระบบจดว่าใครย้อน" : "ยังไม่มีขั้นที่ปิดไป",
+      hint: !boss ? "หัวหน้าเท่านั้น" : undoTarget ? undefined : "ยังไม่มีขั้นที่ปิดไป",
       disabled: !boss || !undoTarget,
       onSelect: () => undoTarget && setSteps(reopen(steps, undoTarget)),
     },
-    { key: "problem", label: "แจ้งปัญหาขั้นนี้", icon: Flag, hint: "เลือกเหตุ → หัวหน้าเห็นทันที", onSelect: () => stage.steps[0] && setSteps(applyStep(steps, stage.steps[0].id, "blocked")) },
-    { key: "assign", label: "มอบหมาย / แก้ให้", icon: UserRound, hint: boss ? "เปลี่ยนคนทำ แก้ยอด หรือจดแทนช่าง" : "หัวหน้าเท่านั้น", disabled: !boss, onSelect: () => {} },
-    { key: "history", label: "ประวัติใบนี้", icon: History, hint: `เหตุการณ์ ${order.events.length} รายการ · เปิดดูในหน้าประวัติ`, onSelect: () => {} },
-    { key: "hold", label: "พักงานใบนี้", icon: Pause, hint: boss ? "ออกจากคิวจนกว่าจะปลด" : "หัวหน้าเท่านั้น", disabled: !boss, danger: true, onSelect: () => {} },
+    { key: "problem", label: "แจ้งปัญหาขั้นนี้", icon: Flag, onSelect: () => stage.steps[0] && setSteps(applyStep(steps, stage.steps[0].id, "blocked")) },
+    { key: "assign", label: "มอบหมาย / แก้ให้", icon: UserRound, hint: boss ? undefined : "หัวหน้าเท่านั้น", disabled: !boss, onSelect: () => {} },
+    { key: "history", label: "ประวัติใบนี้", icon: History, onSelect: () => {} },
+    { key: "hold", label: "พักงานใบนี้", icon: Pause, hint: boss ? undefined : "หัวหน้าเท่านั้น", disabled: !boss, danger: true, onSelect: () => {} },
   ];
 
   const ctaLabel = cta.kind === "step" ? cta.cta.label : cta.kind === "close-stage" ? cta.label : null;
@@ -149,7 +149,6 @@ function FormWorkOrder({ variant, order, boss, pair }: { variant: Variant; order
                   aria-disabled={remaining > 0}
                   variant={cta.kind === "step" && cta.cta.danger ? "destructive" : "default"}
                   className={cn("shrink-0", remaining > 0 && "opacity-60")}
-                  title={remaining > 0 ? `ติ๊กข้อกำหนดให้ครบก่อน — เหลือ ${remaining} ข้อ (กดเพื่อไปติ๊ก)` : cta.kind === "step" ? `ขั้น ${currentIndex + 1} · ${cta.step.label}` : stage.title}
                 >
                   {ctaLabel}
                   <ChevronRight />
@@ -188,7 +187,7 @@ function FormWorkOrder({ variant, order, boss, pair }: { variant: Variant; order
         <div className="min-w-0 space-y-6">
           {allDone ? (
             <Section title="ใบนี้เสร็จแล้ว" icon={CheckCircle2} tone="production">
-              <p className="text-sm text-secondary">ทุกขั้นปิดแล้ว งานอยู่ที่ QC — ย้อนกลับได้จากเมนู ⋯ ถ้าปิดผิด</p>
+              <p className="text-sm text-secondary">งานอยู่ที่ QC</p>
             </Section>
           ) : null}
           {order.items.map((item, i) => (
@@ -197,7 +196,7 @@ function FormWorkOrder({ variant, order, boss, pair }: { variant: Variant; order
         </div>
 
         <aside className="space-y-6 lg:sticky lg:top-4">
-          <ChecklistCard variant={variant} stage={stage} boss={boss} allDone={allDone} ctaLabel={ctaLabel} remaining={remaining} onStep={(id, to) => setSteps(applyStep(steps, id, to))} onTick={tick} />
+          <ChecklistCard variant={variant} stage={stage} boss={boss} allDone={allDone} remaining={remaining} onStep={(id, to) => setSteps(applyStep(steps, id, to))} onTick={tick} />
           <Section title="ข้อมูลออเดอร์">
             <FactList columns={1}>
               <Fact label="ลูกค้า" value={order.customer} sub={order.company ?? undefined} />
@@ -247,8 +246,7 @@ function ItemFocus({ item, focusSteps }: { item: WorkItem; focusSteps: WorkStep[
         </div>
         <div className="space-y-5 p-4">
           <div>
-            <p className="text-xs font-medium text-muted">{hasFocus ? "ลายที่ต้องทำในขั้นนี้" : "ลายทั้งหมดของเสื้อตัวนี้"}</p>
-            <ul className="mt-2 space-y-2">
+            <ul className="space-y-2">
               {item.prints.map((p, j) => {
                 const mine = forStep(p.technique);
                 return (
@@ -263,8 +261,7 @@ function ItemFocus({ item, focusSteps }: { item: WorkItem; focusSteps: WorkStep[
             </ul>
           </div>
           <div>
-            <p className="text-xs font-medium text-muted">จำนวนต่อไซซ์</p>
-            <table className="mt-2 w-full max-w-md text-sm">
+            <table className="w-full max-w-md text-sm">
               <thead className={TABLE_HEAD_SURFACE}>
                 <tr>
                   <th className="px-2 py-2 text-left text-xs font-medium">ไซซ์</th>
@@ -302,7 +299,6 @@ function ChecklistCard({
   stage,
   boss,
   allDone,
-  ctaLabel,
   remaining,
   onStep,
   onTick,
@@ -311,7 +307,6 @@ function ChecklistCard({
   stage: Stage;
   boss: boolean;
   allDone: boolean;
-  ctaLabel: string | null;
   remaining: number;
   onStep: (id: string, to: WorkStep["state"]) => void;
   onTick: (id: string, index: number) => void;
@@ -320,9 +315,8 @@ function ChecklistCard({
   const paper = stage.kind === "paper";
   return (
     <Section
-      title={stage.kind === "pair" ? "2 งานทำพร้อมกัน — ติ๊กก่อนปิด" : `${stage.steps[0]!.label} — ติ๊กก่อนปิด`}
+      title={stage.kind === "pair" ? "ทำพร้อมกัน 2 งาน" : stage.steps[0]!.label}
       action={remaining > 0 ? <InfoChip size="sm" strong tone="warning" icon={ListChecks}>ติ๊กอีก {remaining} ข้อ</InfoChip> : <InfoChip size="sm" strong tone="success" icon={CheckCircle2}>ครบแล้ว</InfoChip>}
-      help={paper ? "ขั้นพวกนี้จดบนใบสั่งงาน — ระบบถือว่าผ่านตอนกดส่งเข้า QC" : undefined}
       id="proto-current-step"
     >
       <div className={cn(stage.steps.length > 1 && "divide-y divide-divider")}>
@@ -369,11 +363,6 @@ function ChecklistCard({
           );
         })}
       </div>
-      {remaining === 0 && ctaLabel ? (
-        <p className="mt-4 flex items-center gap-2 text-sm text-green-700 dark:text-green-300">
-          <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" /> กด “{ctaLabel}” บนหัวใบ
-        </p>
-      ) : null}
     </Section>
   );
 }

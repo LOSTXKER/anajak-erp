@@ -106,8 +106,8 @@ export type StepCta = {
 /** ประโยคบอกว่าทำไมไม่มีปุ่ม (กติกา DESIGN: ห้ามวางปุ่มที่กดไม่ได้ — ให้ประโยคบอกแทน) */
 export function stepBlockedNote(step: WorkStep, boss: boolean): string | null {
   if (step.state === "done") return null;
-  if (step.state === "blocked" && !boss) return `ติดปัญหา: ${step.problem?.title ?? "รอหัวหน้าจัดการ"} — รอหัวหน้าจัดการ`;
-  if (step.kind === "dtf" && step.state === "active") return "อยู่ในรอบพิมพ์ — ปิดรอบพิมพ์แล้วขั้นนี้ผ่านเอง";
+  if (step.state === "blocked" && !boss) return "รอหัวหน้าจัดการ";
+  if (step.kind === "dtf" && step.state === "active") return "อยู่ในรอบพิมพ์";
   return null;
 }
 
@@ -144,7 +144,7 @@ export function headCta(stage: Stage, next: Stage | null, boss: boolean): HeadCt
     const step = stage.steps[0]!;
     const cta = stepCta(step, boss);
     if (cta) return { kind: "step", step, cta };
-    return { kind: "none", note: stepBlockedNote(step, boss) ?? (step.state === "done" ? "ทุกขั้นปิดแล้ว — ใบนี้เสร็จ" : "ยังทำต่อไม่ได้") };
+    return { kind: "none", note: stepBlockedNote(step, boss) ?? (step.state === "done" ? "ใบนี้เสร็จ" : "ยังทำต่อไม่ได้") };
   }
   const open = stage.steps.filter((s) => !isDone(s));
   if (stage.kind === "pair") {
@@ -152,14 +152,14 @@ export function headCta(stage: Stage, next: Stage | null, boss: boolean): HeadCt
     const actionable = [...open].sort((a, b) => (a.kind === "dtf" ? 1 : 0) - (b.kind === "dtf" ? 1 : 0)).map((s) => ({ step: s, cta: stepCta(s, boss) })).find((x) => x.cta);
     if (actionable && actionable.cta) return { kind: "step", step: actionable.step, cta: actionable.cta };
     const notes = open.map((s) => stepBlockedNote(s, boss)).filter((n): n is string => Boolean(n));
-    return { kind: "none", note: notes[0] ?? `รออีก ${open.length} งานในช่องนี้ (ดูแท็บขั้นตอน)` };
+    return { kind: "none", note: notes[0] ?? `รออีก ${open.length} งาน` };
   }
   if (stage.kind === "parallel") {
     if (open.length === 0) return { kind: "close-stage", label: next ? `ปิดด่านนี้ → ${next.label}` : "ปิดด่านนี้", steps: stage.steps };
-    return { kind: "none", note: `ยังปิดด่านนี้ไม่ได้ — รออีก ${open.length} งาน (กดที่แต่ละงานในแท็บขั้นตอน)` };
+    return { kind: "none", note: `รออีก ${open.length} งาน` };
   }
   // paper: ส่งเข้า QC = ระบบถือว่าขั้นกระดาษผ่าน
-  if (open.length === 0) return { kind: "none", note: "ส่งเข้า QC แล้ว — ใบนี้เสร็จ" };
+  if (open.length === 0) return { kind: "none", note: "ใบนี้เสร็จ" };
   const blocked = open.filter((s) => s.state === "blocked");
   if (blocked.length > 0 && !boss) return { kind: "none", note: `ติดปัญหา ${blocked.length} ขั้น — รอหัวหน้าจัดการ` };
   return { kind: "close-stage", label: `ส่งเข้า QC (ถือว่าผ่านขั้นกระดาษ ${open.length} ขั้น)`, steps: stage.steps };
