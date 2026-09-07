@@ -22,14 +22,14 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DueTag } from "@/components/ui/due-tag";
 import { Fact, FactList } from "@/components/ui/fact";
-import { InfoChip, InfoChipRow } from "@/components/ui/info-chip";
+import { InfoChip } from "@/components/ui/info-chip";
 import { MoreMenu, type MoreMenuItem } from "@/components/ui/more-menu";
 import { Section } from "@/components/ui/section";
 import { Tabs, TabsBar, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RADIUS, TINT } from "@/components/ui/tokens";
+import { RADIUS, TABLE_HEAD_SURFACE, TINT } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
 
-import { CASE_4, CASE_7, PROTO_TODAY, STATE_LABEL, recordModeOf, type WorkOrder, type WorkStep } from "./_data";
+import { CASE_4, CASE_7, PROTO_TODAY, STATE_LABEL, recordModeOf, type WorkItem, type WorkOrder, type WorkStep } from "./_data";
 import { applyStep, closeAll, currentStageIndex, headCta, lastClosed, reopen, stageDone, stagesFor, stepBlockedNote, stepCta, type HeadCta, type Stage, type Variant } from "./_engine";
 
 export const REAL_PAGE = "/production/demo-production-outsource-overdue";
@@ -180,8 +180,8 @@ function FormWorkOrder({ variant, order, boss, pair }: { variant: Variant; order
       ) : null}
 
       {/* ซ้าย = ของที่ต้องดูขณะทำ (ลาย/เสื้อ) · ขวา = เช็คลิสต์ของขั้นที่ยืนอยู่ · จอแคบเช็คลิสต์ขึ้นก่อน */}
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
-        <aside className="lg:sticky lg:top-4 lg:order-2">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_400px] lg:items-start">
+        <aside className="space-y-4 lg:sticky lg:top-4 lg:order-2">
           <StepPanel variant={variant} stage={stage} index={currentIndex} total={stages.length} next={next} boss={boss} allDone={allDone} ctaLabel={ctaLabel} remaining={remaining} onStep={(id, to) => setSteps(applyStep(steps, id, to))} onTick={tick} />
           <StepList stages={stages} currentIndex={currentIndex} />
         </aside>
@@ -197,39 +197,8 @@ function FormWorkOrder({ variant, order, boss, pair }: { variant: Variant; order
             </TabsBar>
 
             <div className="mt-6">
-              <TabsContent value="items" className="space-y-6">
-                {order.items.map((item, i) => (
-                  <Section key={i} title={`${item.product} — ${item.color}`} meta={`${item.sizes.reduce((n, s) => n + s.qty, 0).toLocaleString("th-TH")} ตัว`}>
-                    <div className="flex gap-4">
-                      {item.mockup ? (
-                        // eslint-disable-next-line @next/next/no-img-element -- หน้าลองใช้ไฟล์ตัวอย่างใน /public ตรง ๆ
-                        <img src={item.mockup} alt="" className={cn("h-40 w-40 shrink-0 border border-border bg-surface-muted object-cover", RADIUS.inner)} />
-                      ) : (
-                        <div className={cn("flex h-40 w-40 shrink-0 flex-col items-center justify-center gap-1 border border-dashed border-border text-2xs text-muted", RADIUS.inner)}>
-                          <ImageOff className="h-4 w-4" aria-hidden="true" /> ยังไม่มีม็อกอัพ
-                        </div>
-                      )}
-                      <div className="min-w-0 flex-1 space-y-3">
-                        <div className="flex flex-wrap gap-1.5">
-                          {item.sizes.map((s) => (
-                            <InfoChip key={s.size} size="md">
-                              {s.size} <span className="tabular-nums text-strong">{s.qty}</span>
-                            </InfoChip>
-                          ))}
-                        </div>
-                        <ul className="space-y-1.5 text-sm">
-                          {item.prints.map((p, j) => (
-                            <li key={j} className="flex flex-wrap gap-x-2">
-                              <span className="font-medium text-strong">{p.position}</span>
-                              <span className="text-secondary">{p.technique} · {p.size}</span>
-                              {p.note ? <span className="text-muted">— {p.note}</span> : null}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-                  </Section>
-                ))}
+              <TabsContent value="items">
+                <ItemsTable order={order} />
               </TabsContent>
 
               <TabsContent value="info" className="grid gap-6 md:grid-cols-2">
@@ -289,7 +258,7 @@ function FormWorkOrder({ variant, order, boss, pair }: { variant: Variant; order
   );
 }
 
-/* ───────────────────────── ฝั่งขวา: เช็คลิสต์ของขั้นที่ยืนอยู่ ───────────────────────── */
+/* ───────────────────────── ฝั่งขวา: ขั้นที่ยืนอยู่ (การ์ดละขั้น) ───────────────────────── */
 
 function StepPanel({
   variant,
@@ -326,77 +295,83 @@ function StepPanel({
 
   const multi = stage.steps.length > 1;
   const paper = stage.kind === "paper";
-  const doneSteps = stage.steps.filter((s) => s.state === "done").length;
   const doneNote = remaining === 0 && ctaLabel ? `ครบแล้ว — กด “${ctaLabel}” ด้านบน` : remaining > 0 ? `ติ๊กอีก ${remaining} ข้อ แล้วกดปุ่มด้านบน` : null;
 
   return (
-    <Section
-      title={multi ? stage.title : stage.steps[0]!.label}
-      meta={multi ? `${doneSteps}/${stage.steps.length} เสร็จ` : <StateBadge step={stage.steps[0]!} />}
-      help={
-        paper
-          ? "ขั้นพวกนี้จดบนใบสั่งงาน — ระบบถือว่าผ่านตอนกดส่งเข้า QC"
-          : stage.kind === "pair"
-            ? "สูตรตั้งไว้ว่าสองขั้นนี้เดินคู่กันได้ — ปุ่มบนคือขั้นที่กดได้ก่อน อีกขั้นกดตรงนี้ · ครบทั้งคู่แล้วรางเลื่อนเอง"
-            : undefined
-      }
-      className="mb-4"
-    >
-      <p className="text-2xs font-medium uppercase tracking-wide text-muted">
-        ขั้น {index + 1} จาก {total}
-        {next ? <span className="normal-case tracking-normal"> · ถัดไป {next.label}</span> : null}
-      </p>
+    <>
+      {multi ? (
+        <p className="flex flex-wrap items-center gap-2 px-1 text-sm text-secondary">
+          <span className="font-medium text-strong">ช่อง {index + 1} จาก {total}</span>
+          <InfoChip size="sm" tone="info">{stage.kind === "pair" ? "ช่องคู่ — ทำพร้อมกันได้" : paper ? "จดบนกระดาษ" : "ทำพร้อมกัน"}</InfoChip>
+          {next ? <span className="text-muted">ถัดไป {next.label}</span> : null}
+        </p>
+      ) : null}
 
-      <div className={cn("mt-3", multi && "divide-y divide-divider")}>
-        {stage.steps.map((step) => {
-          const small = multi && step.state !== "done" ? stepCta(step, boss) : null;
-          const smallRemaining = small?.to === "done" ? step.checklist.filter((c) => !c.done).length : 0;
-          const note = stepBlockedNote(step, boss);
-          const locked = step.state === "done" || (step.state === "blocked" && !boss) || (paper && step.state !== "blocked" && !boss);
-          return (
-            <div key={step.id} className={cn(multi && "py-3 first:pt-0 last:pb-0")}>
-              {multi ? (
-                <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-strong">
-                  {step.label}
-                  <StateBadge step={step} />
-                  <RecordChip step={step} variant={variant} />
-                </p>
-              ) : null}
-              <InfoChipRow className={cn(multi ? "mt-1.5" : "mt-0")}>
-                <InfoChip size="sm" icon={UserRound}>{step.owner ?? "ยังไม่มีคนรับ"}</InfoChip>
-                <InfoChip size="sm">
-                  <span className="tabular-nums">{step.qtyDone.toLocaleString("th-TH")}/{step.qtyTotal.toLocaleString("th-TH")}</span>&nbsp;ตัว
-                </InfoChip>
-                <InfoChip size="sm">ควรเสร็จ {step.planEnd}</InfoChip>
-                {!multi ? <RecordChip step={step} variant={variant} /> : null}
-              </InfoChipRow>
-              {step.outsource && step.state !== "done" ? (
-                <p className="mt-2 flex flex-wrap items-center gap-2 text-sm">
-                  <Store className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
-                  <span className="font-medium text-strong">{step.outsource.vendor}</span>
-                  <DueTag dueInDays={step.outsource.backInDays} dateLabel={`นัดรับ ${step.outsource.backLabel}`} size="sm" />
-                </p>
-              ) : null}
-              {step.note ? <p className="mt-2 text-xs text-secondary">{step.note}</p> : null}
-              {note ? (
-                <p className="mt-2 flex items-start gap-1.5 text-xs text-amber-800 dark:text-amber-200">
-                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" /> {note}
-                </p>
+      {stage.steps.map((step) => {
+        const small = multi && step.state !== "done" ? stepCta(step, boss) : null;
+        const smallRemaining = small?.to === "done" ? step.checklist.filter((c) => !c.done).length : 0;
+        const note = stepBlockedNote(step, boss);
+        const locked = step.state === "done" || (step.state === "blocked" && !boss) || (paper && step.state !== "blocked" && !boss);
+        const ticked = step.checklist.filter((c) => c.done).length;
+        return (
+          <Section
+            key={step.id}
+            title={step.label}
+            meta={multi ? undefined : `ขั้น ${index + 1} จาก ${total}${next ? ` · ถัดไป ${next.label}` : ""}`}
+            action={
+              <span className="flex items-center gap-1.5">
+                <RecordChip step={step} variant={variant} />
+                <StateBadge step={step} />
+              </span>
+            }
+          >
+            <div className="space-y-5">
+              <FactList columns={2}>
+                <Fact size="sm" label="ผู้ทำ" value={step.owner ?? "ยังไม่มีคนรับ"} tone={step.owner ? "default" : "muted"} />
+                <Fact size="sm" label="ทำแล้ว" value={<span className="tabular-nums">{step.qtyDone.toLocaleString("th-TH")} / {step.qtyTotal.toLocaleString("th-TH")} ตัว</span>} />
+                <Fact size="sm" label="ควรเสร็จ" value={step.planEnd} />
+                {step.outsource ? (
+                  <Fact
+                    size="sm"
+                    icon={Store}
+                    label="ร้านนอก"
+                    value={step.outsource.vendor}
+                    sub={step.state === "done" ? "รับกลับแล้ว" : <DueTag dueInDays={step.outsource.backInDays} dateLabel={`นัดรับ ${step.outsource.backLabel}`} size="sm" />}
+                  />
+                ) : null}
+              </FactList>
+
+              {step.note || note ? (
+                <div className="space-y-2">
+                  {step.note ? <p className="text-sm text-secondary">{step.note}</p> : null}
+                  {note ? (
+                    <p className="flex items-start gap-2 text-sm text-amber-800 dark:text-amber-200">
+                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" /> {note}
+                    </p>
+                  ) : null}
+                </div>
               ) : null}
 
-              <ul className="mt-3 space-y-2">
-                {step.checklist.map((c, i) => (
-                  <li key={i}>
-                    <label className={cn("flex cursor-pointer items-start gap-2 text-sm", locked && "cursor-default")}>
-                      <Checkbox className="mt-0.5" checked={c.done} disabled={locked} onChange={() => onTick(step.id, i)} />
-                      <span className={cn(c.done ? "text-secondary line-through decoration-border" : "text-strong")}>{c.label}</span>
-                    </label>
-                  </li>
-                ))}
-              </ul>
+              <div>
+                <p className="flex items-center justify-between text-xs font-medium text-muted">
+                  <span>ข้อกำหนดก่อนปิดขั้น</span>
+                  <span className="tabular-nums">{ticked}/{step.checklist.length}</span>
+                </p>
+                <ul className="mt-2 divide-y divide-divider">
+                  {step.checklist.map((c, i) => (
+                    <li key={i}>
+                      <label className={cn("flex min-h-11 items-center gap-3 py-2 text-sm", locked ? "cursor-default" : "cursor-pointer")}>
+                        <Checkbox checked={c.done} disabled={locked} onChange={() => onTick(step.id, i)} />
+                        <span className={cn(c.done ? "text-secondary line-through decoration-border" : "text-strong")}>{c.label}</span>
+                      </label>
+                    </li>
+                  ))}
+                </ul>
+                {paper && step.state !== "blocked" && step.state !== "done" ? <p className="mt-2 text-xs text-muted">ทำตามใบสั่งงาน — ติ๊กและเขียนยอดบนกระดาษ ในระบบไม่ต้องกด</p> : null}
+              </div>
 
               {multi && small ? (
-                <div className="mt-3 flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center gap-3">
                   <Button size="sm" variant={small.danger ? "destructive" : "outline"} disabled={smallRemaining > 0} onClick={() => onStep(step.id, small.to)} title={smallRemaining > 0 ? `ติ๊กอีก ${smallRemaining} ข้อ` : undefined}>
                     {small.label}
                   </Button>
@@ -404,51 +379,149 @@ function StepPanel({
                 </div>
               ) : null}
             </div>
-          );
-        })}
-      </div>
+          </Section>
+        );
+      })}
 
       {doneNote ? (
-        <p className={cn("mt-4 flex items-start gap-1.5 text-sm font-medium", remaining === 0 ? "text-green-700 dark:text-green-300" : "text-strong")}>
+        <p className={cn("flex items-start gap-2 px-1 text-sm font-medium", remaining === 0 ? "text-green-700 dark:text-green-300" : "text-strong")}>
           {remaining === 0 ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" /> : null}
           {doneNote}
         </p>
       ) : null}
+    </>
+  );
+}
+
+/** รายการทุกขั้นแบบย่อ — แทนตารางเดิม (เบส 09-08 "UI ทำให้ดูง่ายกว่านี้ได้") */
+function StepList({ stages, currentIndex }: { stages: Stage[]; currentIndex: number }) {
+  return (
+    <Section title="ทุกขั้นของใบนี้" meta={`${stages.length} ช่อง`} compact>
+      <ol className="space-y-1">
+        {stages.map((st, i) => {
+          const isCurrent = i === currentIndex;
+          const done = stageDone(st);
+          return (
+            <li key={st.key} className={cn("flex items-start gap-3 rounded-md px-2 py-2 text-sm", isCurrent && "bg-blue-50/70 dark:bg-blue-950/25")}>
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-2xs font-semibold tabular-nums",
+                  done ? "bg-blue-600 text-white" : isCurrent ? "bg-blue-600 text-white ring-[3px] ring-blue-100 dark:ring-blue-500/25" : "border-2 border-border text-muted",
+                )}
+              >
+                {i + 1}
+              </span>
+              <span className="min-w-0 flex-1 space-y-1">
+                {st.steps.map((s) => (
+                  <span key={s.id} className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <span className={cn(isCurrent ? "font-semibold text-strong" : done ? "text-secondary" : "text-muted")}>{s.label}</span>
+                    {s.owner && !done ? <span className="text-xs text-muted">{s.owner}</span> : null}
+                    {isCurrent || (s.state !== "todo" && s.state !== "done") ? <StateBadge step={s} /> : null}
+                  </span>
+                ))}
+              </span>
+            </li>
+          );
+        })}
+      </ol>
     </Section>
   );
 }
 
-/** รายการทุกขั้นแบบย่อใต้เช็คลิสต์ — แทนตารางเดิม (เบส 09-08 "UI ทำให้ดูง่ายกว่านี้ได้") */
-function StepList({ stages, currentIndex }: { stages: Stage[]; currentIndex: number }) {
+/* ───────────────────────── ลายและเสื้อ — ตารางแถวละไซซ์ (โครงเดียวกับตารางรายการของหน้าออเดอร์) ───────────────────────── */
+
+const TH = "px-2 py-2.5 text-xs font-medium";
+const TD = "px-2 py-3 align-top";
+
+function PrintCell({ prints, thumb }: { prints: WorkItem["prints"]; thumb: string | null }) {
   return (
-    <ol className="space-y-1 px-1">
-      {stages.map((st, i) => {
-        const isCurrent = i === currentIndex;
-        const done = stageDone(st);
-        return (
-          <li key={st.key} className={cn("flex items-start gap-2 rounded-md px-2 py-1.5 text-sm", isCurrent && "bg-blue-50/70 dark:bg-blue-950/25")}>
-            <span
-              aria-hidden="true"
-              className={cn(
-                "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-2xs font-semibold tabular-nums",
-                done ? "bg-blue-600 text-white" : isCurrent ? "bg-blue-600 text-white ring-[3px] ring-blue-100 dark:ring-blue-500/25" : "border-2 border-border text-muted",
-              )}
-            >
-              {i + 1}
-            </span>
-            <span className="min-w-0 flex-1">
-              {st.steps.map((s) => (
-                <span key={s.id} className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                  <span className={cn(isCurrent ? "font-semibold text-strong" : done ? "text-secondary" : "text-muted")}>{s.label}</span>
-                  {s.owner && !done ? <span className="text-xs text-muted">{s.owner}</span> : null}
-                  {isCurrent || (s.state !== "todo" && s.state !== "done") ? <StateBadge step={s} /> : null}
+    <div className="space-y-2">
+      {prints.map((p, j) => (
+        <div key={j} className="flex items-center gap-2">
+          {thumb ? (
+            // eslint-disable-next-line @next/next/no-img-element -- หน้าลองใช้ไฟล์ตัวอย่างใน /public ตรง ๆ
+            <img src={thumb} alt={`ลาย ${p.position}`} className={cn("h-10 w-10 shrink-0 border border-border bg-surface-muted object-cover", RADIUS.inner)} />
+          ) : (
+            <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center border border-dashed border-border", RADIUS.inner)}>
+              <ImageOff className="h-4 w-4 text-muted" aria-hidden="true" />
+            </div>
+          )}
+          <div className="min-w-0 text-sm">
+            <p className="font-medium text-strong">{p.position}</p>
+            <p className="text-xs text-secondary">
+              {p.technique} · {p.size}
+              {p.note ? <span className="text-muted"> — {p.note}</span> : null}
+            </p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ItemsTable({ order }: { order: WorkOrder }) {
+  const rows = order.items.flatMap((item, i) => item.sizes.map((sz) => ({ key: `${i}-${sz.size}`, item, size: sz.size, qty: sz.qty })));
+  const total = rows.reduce((n, r) => n + r.qty, 0);
+  return (
+    <Section title="เสื้อและลาย" meta={`${rows.length} รายการ · รวม ${total.toLocaleString("th-TH")} ตัว`} flush>
+      {/* จอกว้าง: ตารางแถวละไซซ์ (คอลัมน์เดียวกับหน้าออเดอร์ ยกเว้นเงิน) */}
+      <div className="hidden md:block">
+        <table className="w-full table-fixed">
+          <colgroup>
+            <col style={{ width: 40 }} />
+            <col />
+            <col style={{ width: 260 }} />
+            <col style={{ width: 72 }} />
+          </colgroup>
+          <thead className={TABLE_HEAD_SURFACE}>
+            <tr>
+              <th className={cn(TH, "text-center")}>#</th>
+              <th className={cn(TH, "text-left")}>สินค้า</th>
+              <th className={cn(TH, "text-left")}>ลาย</th>
+              <th className={cn(TH, "text-center")}>จำนวน</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-divider">
+            {rows.map((r, i) => (
+              <tr key={r.key}>
+                <td className={cn(TD, "text-center text-sm tabular-nums text-muted")}>{i + 1}</td>
+                <td className={TD}>
+                  <p className="text-sm font-medium text-strong [overflow-wrap:anywhere]">
+                    {r.item.product} <span className="ml-1.5 font-semibold">{r.item.color} {r.size}</span>
+                  </p>
+                </td>
+                <td className={TD}><PrintCell prints={r.item.prints} thumb={r.item.mockup} /></td>
+                <td className={cn(TD, "text-center text-sm font-medium tabular-nums text-strong")}>{r.qty}</td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr className="border-t border-divider">
+              <td colSpan={3} className={cn(TD, "text-right text-xs text-muted")}>รวม</td>
+              <td className={cn(TD, "text-center text-sm font-semibold tabular-nums text-strong")}>{total.toLocaleString("th-TH")}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      {/* จอแคบ: การ์ดต่อแถว ข้อมูลชุดเดียวกับตาราง */}
+      <div className="space-y-3 p-4 md:hidden">
+        {rows.map((r, i) => (
+          <div key={r.key} className="space-y-3 rounded-lg border border-border p-3">
+            <div className="flex items-start justify-between gap-3">
+              <p className="flex min-w-0 items-start gap-2 text-sm">
+                <span className="mt-0.5 w-5 shrink-0 text-xs tabular-nums text-muted">{i + 1}</span>
+                <span className="font-medium text-strong [overflow-wrap:anywhere]">
+                  {r.item.product} <span className="font-semibold">{r.item.color} {r.size}</span>
                 </span>
-              ))}
-            </span>
-          </li>
-        );
-      })}
-    </ol>
+              </p>
+              <span className="shrink-0 text-sm font-semibold tabular-nums text-strong">{r.qty} ตัว</span>
+            </div>
+            <PrintCell prints={r.item.prints} thumb={r.item.mockup} />
+          </div>
+        ))}
+      </div>
+    </Section>
   );
 }
 
