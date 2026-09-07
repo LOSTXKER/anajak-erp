@@ -8,11 +8,8 @@ import { PathnameContext, SearchParamsContext } from "next/dist/shared/lib/hooks
 import { Alert } from "../src/components/ui/alert";
 import { ActionZone } from "../src/components/ui/action-zone";
 import { Button } from "../src/components/ui/button";
-import { StepDetail } from "../src/components/production/work-order-page";
+import { ChecklistCard, StepPieceTable, pieceRowsOf } from "../src/components/production/work-order-page";
 import { ProblemCard } from "../src/components/production/work-order-pieces";
-import { RouteMap } from "../src/components/production/work-order-route";
-import { selectNowSteps } from "../src/lib/production-step-actions";
-import { evaluateHeatPressGate } from "../src/lib/production-steps";
 
 let pass = 0;
 const fails: string[] = [];
@@ -37,58 +34,67 @@ function render(node: React.ReactNode) {
 
 const base = { customStepName: null, notes: null, qcNotes: null, outsourceOrders: [], printRunItems: [], qtyTotal: 240, startedAt: null, completedAt: null, assignedTo: null, qtyDone: 0 };
 const c = { reportProblem: { isPending: false, mutate() {} }, openQty() {}, openEdit() {}, handleSupervisorStatus: async () => {} } as never;
-function stepDetail(step: Record<string, unknown>, opts: { now?: unknown; primary?: React.ReactNode; boss: boolean }) {
-  const done = step.status === "COMPLETED";
-  return render(
-    <StepDetail
-      c={c}
-      step={{ ...base, ...step } as never}
-      now={opts.now as never}
-      nowMs={0}
-      primary={opts.primary ?? null}
-      canReport={!done && step.status !== "FAILED"}
-      canFix={opts.boss && !done}
-      canEdit={!done}
-      onEdit={() => {}}
-      garment={null}
-    />,
-  );
-}
+const fakeOrder = {
+  items: [
+    {
+      id: "it1",
+      totalQuantity: 240,
+      prints: [
+        { id: "p1", position: "FRONT", printType: "DTF", printSize: "CUSTOM", width: 8, height: 8, colorCount: 4, designNote: null, designImageUrl: "/demo-mockups/front.svg", artwork: null },
+        { id: "p2", position: "SLEEVE_L", printType: "EMBROIDERY", printSize: "CUSTOM", width: 5, height: 5, colorCount: 1, designNote: null, designImageUrl: null, artwork: null },
+      ],
+      products: [
+        {
+          id: "pr1",
+          productType: "POLO",
+          description: "โปโล Dry-Tech คอปก",
+          itemSource: "FROM_STOCK",
+          fabricColor: "กรมท่า",
+          totalQuantity: 240,
+          variants: [
+            { id: "v1", size: "S", color: "กรมท่า", quantity: 20 },
+            { id: "v2", size: "M", color: "กรมท่า", quantity: 40 },
+            { id: "v3", size: "L", color: "กรมท่า", quantity: 60 },
+          ],
+        },
+      ],
+    },
+  ],
+} as never;
+const nowById = new Map();
+const ctrl = { reportProblem: { isPending: false, mutate() {} }, openEdit() {}, handleSupervisorStatus: async () => {}, nowById, canUpdateStep: true, canOwnOrSupervise: () => true, openQty() {} } as never;
 
-/* ── โซนลงมือแบบ A: ไม่มีปุ่มที่กดไม่ได้ · ปุ่มหลักเดียว · เมนูเพิ่มเติม ── */
-const waiting = stepDetail({ id: "w", stepType: "HEAT_PRESS", status: "PENDING" }, { now: { action: "start", group: "current", waitingOn: ["รอเสื้อ"], note: undefined }, boss: true });
-ok("ขั้นที่รออยู่: ไม่มีปุ่มเทา 'ลงมือไม่ได้ตอนนี้'", !waiting.includes("ลงมือไม่ได้ตอนนี้"));
-ok("ขั้นที่รออยู่: ประโยคสถานะบอกว่ารออะไร", waiting.includes("รอเสื้อ"));
-ok("ขั้นที่รออยู่: ไม่มีปุ่มหลักน้ำเงิน แต่มีเมนูเพิ่มเติม", !waiting.includes("บันทึกยอด") && waiting.includes("เพิ่มเติม"));
+/* ── ตารางรายตัวของขั้นที่ยืนอยู่ (เบสเคาะ 09-08 รอบ 11): แถวละไซซ์ · หัวตารางกลาง · ยอดตัวเลขเด่น ── */
+const rows = pieceRowsOf(fakeOrder);
+ok("แถวรายตัว: แถวละไซซ์ 3 แถว จากสินค้าเดียว", rows.length === 3 && rows.map((r) => r.size).join(",") === "S,M,L");
+ok("แถวรายตัว: ชื่อ/สี/จำนวน/รูปลาย ครบ", rows[0]!.product === "โปโล Dry-Tech คอปก" && rows[0]!.color === "กรมท่า" && rows[2]!.qty === 60 && rows[0]!.thumb === "/demo-mockups/front.svg");
+ok("แถวรายตัว: ลายเป็นภาษาคน (ตำแหน่ง + เทคนิค)", rows[0]!.prints.join("|") === "หน้า DTF|แขนซ้าย ปัก");
 
-/* ── กระดาษเป็นหลัก (เบสเคาะ A 09-05 · ROADMAP §A5): รีดร้อน = จดบนกระดาษ ไม่มีปุ่มหลักแม้ระบบจะให้ · ร้านนอก = จดในระบบ มีปุ่มหลัก 1 ── */
-const paper = stepDetail({ id: "r", stepType: "HEAT_PRESS", status: "IN_PROGRESS", qtyDone: 96, assignedTo: { id: "u", name: "บาส" } }, { now: { action: "record-qty", group: "current", waitingOn: [], note: undefined }, primary: <Button>บันทึกยอด / ปิดขั้น</Button>, boss: true });
-ok("ขั้นกระดาษ (รีดร้อน): ไม่มีปุ่มหลัก — ช่างจดบนใบสั่งงาน", !paper.includes("บันทึกยอด / ปิดขั้น"));
-ok("ขั้นกระดาษ: ประโยคสถานะบอกว่าจดบนใบสั่งงานและถือว่าผ่านตอนส่งเข้า QC", paper.includes("จดบนใบสั่งงาน") && paper.includes("ส่งเข้า QC"));
-ok("ขั้นกระดาษ: ชิปโหมด 'จดบนกระดาษ' + ข้อกำหนดบอกว่าช่องติ๊กอยู่บนใบ", paper.includes(">จดบนกระดาษ<") && paper.includes("ช่องติ๊กอยู่บนใบสั่งงาน"));
-ok("ขั้นกระดาษ: ปุ่มแจ้งปัญหา + เมนูเพิ่มเติม (หัวหน้าจดว่าเสร็จได้จากเมนู) อยู่ครบ", /แจ้งปัญหา<\/button>/.test(paper) && paper.includes("เพิ่มเติม"));
-ok("ขั้นกระดาษ: 'แก้ให้' ไม่ใช่ปุ่มลอยอีก (อยู่ในเมนู)", !/>\s*แก้ให้\s*</.test(paper.replace(/<svg[\s\S]*?<\/svg>/g, "")));
-ok("ขั้นกระดาษ: ชิปสถานีของขั้นอยู่ที่หัว", paper.includes("พิมพ์ DTF / รีดร้อน"));
+const table = render(<StepPieceTable step={{ ...base, id: "h", stepType: "HEAT_PRESS", status: "IN_PROGRESS", qtyDone: 96, qtyTotal: 240 } as never} order={fakeOrder} c={ctrl} />);
+ok("ตาราง: หัวตารางใช้ TABLE_HEAD_SURFACE (โปร่งตามพื้นแม่)", table.includes("<thead class=\"border-b border-divider bg-transparent text-secondary\""));
+ok("ตาราง: 3 แถว + แถวรวม 120 ตัว", (table.match(/<tr/g) ?? []).length === 5 && table.includes("120"));
+ok("ตาราง: ยอดทำแล้วของขั้นอยู่หัวการ์ด (96 / 240)", /96\s*\/\s*240/.test(table.replace(/<[^>]+>/g, "")));
+ok("ตาราง: ขั้นที่นับยอดมีปุ่มบันทึกยอด (ไปแผ่นกรอกยอดเดิม)", table.includes(">บันทึกยอด<"));
+ok("ตาราง: ไม่มีคำอธิบายวิธีใช้ (A8)", !table.includes("กรอก") && !table.includes("กดเพื่อ"));
+const pick = render(<StepPieceTable step={{ ...base, id: "g", stepType: "GARMENT_PICK", status: "PENDING", qtyDone: 0, qtyTotal: 240 } as never} order={fakeOrder} c={ctrl} />);
+ok("ตาราง: ขั้นเบิกเสื้อไม่มีปุ่มบันทึกยอด (ยอดมาจากการเบิกจริง)", !pick.includes(">บันทึกยอด<"));
 
-const ready = stepDetail({ id: "e", stepType: "EMBROIDERY", status: "IN_PROGRESS", qtyDone: 0, assignedTo: { id: "u3", name: "พี่ก้อย" } }, { now: { action: "send-outsource", group: "current", waitingOn: [], note: undefined }, primary: <Button>ส่งร้าน</Button>, boss: true });
-ok("ขั้นจดในระบบ (ร้านนอก): มีปุ่มหลัก 1 ตัว", (ready.match(/>ส่งร้าน</g) ?? []).length === 1);
-ok("ขั้นจดในระบบ: ประโยคสถานะบอกว่าทำไมต้องแตะจอ (ของออกจากโรงงาน)", ready.includes("ของออกจากโรงงาน"));
-ok("ขั้นจดในระบบ: ชิปโหมด 'จดในระบบ'", ready.includes(">จดในระบบ<"));
-ok("ขั้นจดในระบบ: ปุ่มแจ้งปัญหา + เมนูเพิ่มเติม อยู่ครบ", /แจ้งปัญหา<\/button>/.test(ready) && ready.includes("เพิ่มเติม"));
-
-const inferred = stepDetail({ id: "i", stepType: "HEAT_PRESS", status: "COMPLETED", qtyDone: 240, completedAt: new Date("2026-09-02T16:10:00"), notes: "[ถือว่าผ่าน] ปิดให้ตอนส่งเข้า QC" }, { boss: true });
-ok("ขั้นกระดาษที่ถือว่าผ่าน: ชิป 'ถือว่าผ่าน' ไม่ใช่ 'ผ่านแล้ว' และประโยคบอกที่มา", inferred.includes(">ถือว่าผ่าน<") && !inferred.includes(">ผ่านแล้ว<") && inferred.includes("ถือว่าผ่านตอนส่งเข้า QC"));
-
-const problemBoss = stepDetail({ id: "p", stepType: "GARMENT_PICK", status: "FAILED", notes: "ไซซ์ L ขาด 60 ตัว", assignedTo: { id: "u2", name: "เนส" } }, { boss: true });
-ok("ขั้นติดปัญหา (หัวหน้า): ปุ่มหลักเป็น 'ปลดปัญหา / เปลี่ยนคน'", problemBoss.includes("ปลดปัญหา / เปลี่ยนคน"));
-// (ข้อความ "แจ้งปัญหา" ในข้อกำหนดของขั้นไม่นับ — เช็กเฉพาะปุ่ม)
-ok("ขั้นติดปัญหา: ไม่มีปุ่มแจ้งปัญหาซ้ำ", !/แจ้งปัญหา<\/button>/.test(problemBoss));
-const problemWorker = stepDetail({ id: "p", stepType: "GARMENT_PICK", status: "FAILED", notes: "ไซซ์ L ขาด 60 ตัว" }, { boss: false });
-ok("ขั้นติดปัญหา (ช่าง): ไม่มีปุ่มปลดปัญหา", !problemWorker.includes("ปลดปัญหา"));
-
-const done = stepDetail({ id: "d", stepType: "DTF_PRINT", status: "COMPLETED", qtyDone: 240, completedAt: new Date("2026-08-28T11:30:00"), assignedTo: { id: "u", name: "บาส" } }, { boss: true });
-ok("ขั้นผ่านแล้ว: ไม่มีปุ่มใด ๆ ในโซนลงมือ (ไม่มีเพิ่มเติม ไม่มีแจ้งปัญหา)", !done.includes("เพิ่มเติม") && !/แจ้งปัญหา<\/button>/.test(done));
-ok("ขั้นผ่านแล้ว: ประโยคสถานะบอกว่าปิดแล้วโดยใคร", done.includes("ปิดขั้นแล้ว") && done.includes("บาส"));
+/* ── เช็คลิสต์ก่อนปิดขั้น (ข้อกำหนดมาตรฐาน v1 อ่านอย่างเดียว · ติ๊กจริงรอ A9.2) ── */
+const check = render(<ChecklistCard step={{ ...base, id: "h", stepType: "HEAT_PRESS", status: "IN_PROGRESS", assignedTo: { id: "u", name: "บาส" } } as never} c={ctrl} nowMs={0} />);
+ok("เช็คลิสต์: หัวการ์ด = ชื่อขั้น + สถานะ", check.includes("รีดร้อน") && check.includes(">กำลังทำ<"));
+ok("เช็คลิสต์: มีผู้ทำ", check.includes("บาส"));
+ok("เช็คลิสต์: ข้อกำหนดของรีดร้อนครบ 3 ข้อ แถวสูง 44px", (check.match(/min-h-11/g) ?? []).length === 3);
+ok("เช็คลิสต์: ไม่มีศัพท์ภายใน (จดในระบบ/จดบนกระดาษ/ถือว่าผ่าน)", !check.includes("จดในระบบ") && !check.includes("จดบนกระดาษ") && !check.includes("ถือว่าผ่าน"));
+const outsourced = render(
+  <ChecklistCard
+    step={{ ...base, id: "e", stepType: "EMBROIDERY", status: "IN_PROGRESS", assignedTo: { id: "u3", name: "พี่ก้อย" }, outsourceOrders: [{ id: "o1", status: "SENT", description: null, quantity: 240, sentAt: new Date("2026-09-05"), expectedBackAt: new Date("2026-09-09"), receivedAt: null, qcPassed: null, qcNotes: null, notes: null, createdAt: new Date("2026-09-05"), vendor: { id: "v", name: "ร้านปักพี่หน่อย" } }] } as never}
+    c={ctrl}
+    nowMs={new Date("2026-09-08").getTime()}
+  />,
+);
+ok("เช็คลิสต์ (ร้านนอก): ร้าน + นัดรับกลับเป็น Fact/DueTag ไม่ใช่บรรทัดจุด", outsourced.includes("ร้านปักพี่หน่อย") && outsourced.includes("นัดรับกลับ") && !outsourced.includes("ร้านปักพี่หน่อย ·"));
+const held = render(<ChecklistCard step={{ ...base, id: "x", stepType: "HEAT_PRESS", status: "ON_HOLD" } as never} c={ctrl} nowMs={0} />);
+ok("เช็คลิสต์ (พักไว้): บอกสั้น ๆ ว่าพักไว้", held.includes("พักไว้"));
 
 /* ── ActionZone: note อยู่แถวบน · ปุ่มแถวล่าง ── */
 const zone = render(
@@ -112,24 +118,6 @@ ok("Alert: พื้นเรียบ ไม่ใช่กล่องสี�
 
 const card = render(<ProblemCard step={{ ...base, id: "p", stepType: "GARMENT_PICK", status: "FAILED", notes: "ขาด 60", assignedTo: { id: "u", name: "เนส" } } as never} />);
 ok("การ์ดปัญหาในใบผลิต: ขั้น + ผู้รับผิดชอบ เป็นชิป", card.includes(">ขั้น<") && card.includes(">ผู้รับผิดชอบ<") && card.includes(">เนส<"));
-
-/* ── แผนที่เส้นทาง แบบ E (เบสเคาะ 09-06): สายขนานคนละแถว · ขั้นบรรจบกินทุกแถว · ขั้นที่ยังไม่ถึงคิวบอกว่ารออะไร ── */
-const routeSteps = [
-  { ...base, id: "pick", stepType: "GARMENT_PICK", status: "FAILED", sortOrder: 1 },
-  { ...base, id: "film", stepType: "DTF_PRINT", status: "COMPLETED", sortOrder: 2, qtyDone: 240 },
-  { ...base, id: "emb", stepType: "EMBROIDERY", status: "IN_PROGRESS", sortOrder: 3 },
-  { ...base, id: "press", stepType: "HEAT_PRESS", status: "PENDING", sortOrder: 4 },
-  { ...base, id: "qc", stepType: "CUSTOM", status: "PENDING", sortOrder: 5, customStepName: "ตรวจ QC" },
-];
-const routeNow = selectNowSteps(routeSteps as unknown as Parameters<typeof selectNowSteps>[0], { canOutsource: true, canUpdateStep: true, canSupervise: true, meId: "u", pressGate: evaluateHeatPressGate(routeSteps) });
-const route = render(<RouteMap steps={routeSteps as never} nowById={new Map(routeNow.map((n) => [n.step.id, n])) as never} focusId={null} onFocus={() => {}} />);
-ok("แผนที่: มี 3 แถว (เตรียมเสื้อ · ฟิล์ม DTF · ร้านปัก) — สายขนานคนละแถว", route.includes("repeat(3, minmax(56px, auto))"));
-ok("แผนที่: รีดร้อนเป็นขั้นบรรจบ กินทุกแถว (grid-row 1 / 4)", /grid-row:1 \/ 4[^>]*>[\s\S]*?รีดร้อน/.test(route.replace(/\s+/g, " ")) || route.includes("grid-row:1 / 4"));
-ok("แผนที่: ขั้นบรรจบมีคำอธิบาย “รวมกัน” หรือบอกว่ารอสายไหน", route.includes("รวมกัน") || route.includes("รอ "));
-ok("แผนที่: QC ยังไม่ถึงคิว บอกว่ารออะไรเป็นชื่อขั้น (ตัดสั้น “และอีก N ขั้น” เมื่อเกิน 2)", /รอ [^<]*(เบิกเสื้อ|ปัก|รีดร้อน)/.test(route) && route.includes("และอีก 1 ขั้น"));
-ok("แผนที่: สายร้านนอกติดป้าย “ร้านนอก · ปัก”", route.includes("ร้านนอก · ปัก"));
-ok("แผนที่: ทุกขั้นเป็นปุ่มกดได้ (aria-pressed) — 5 ขั้น", (route.match(/aria-pressed=/g) ?? []).length === 5);
-ok("แผนที่: ขั้นติดปัญหาไม่มีศัพท์ภายใน (จดในระบบ/จดบนกระดาษ/อื่นๆ)", !route.includes("จดในระบบ") && !route.includes("จดบนกระดาษ") && !route.includes(">อื่นๆ<"));
 
 console.log(`verify-work-order-ui: ผ่าน ${pass} · ตก ${fails.length}`);
 if (fails.length) process.exit(1);

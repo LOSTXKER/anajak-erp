@@ -54,6 +54,8 @@ export function useWorkOrderController(id: string) {
   const [outsourceStep, setOutsourceStep] = useState<ProductionStep | null>(null);
   const [qtyStepId, setQtyStepId] = useState<string | null>(null);
   const [goodsReceiptStepId, setGoodsReceiptStepId] = useState<string | null>(null);
+  // รับงานกลับจากร้านนอก = ใบตรวจรับชนิด OUTSOURCE_RETURN (ใบผลิตแบบฟอร์ม 09-08: ปุ่มบนหัวใบตอนของอยู่ร้าน)
+  const [outsourceReturn, setOutsourceReturn] = useState<{ stepId: string; outsourceOrderId: string } | null>(null);
 
   // สิทธิ์ชุดเดียวกับหน้าเดิม — ปุ่มที่ server จะปฏิเสธต้องไม่ถูกวาด
   const canSeeCost = !meQuery.isError && permAllows(me?.permissions, "see_finance");
@@ -262,6 +264,16 @@ export function useWorkOrderController(id: string) {
       {goodsReceiptStepId && order ? (
         <GoodsReceiptDialog key={goodsReceiptStepId} orderId={order.id} productionStepId={goodsReceiptStepId} receiptType="CUSTOMER_GARMENT" onClose={() => setGoodsReceiptStepId(null)} />
       ) : null}
+      {outsourceReturn && order ? (
+        <GoodsReceiptDialog
+          key={outsourceReturn.outsourceOrderId}
+          orderId={order.id}
+          productionStepId={outsourceReturn.stepId}
+          outsourceOrderId={outsourceReturn.outsourceOrderId}
+          receiptType="OUTSOURCE_RETURN"
+          onClose={() => setOutsourceReturn(null)}
+        />
+      ) : null}
     </>
   );
 
@@ -299,6 +311,7 @@ export function useWorkOrderController(id: string) {
     handleSupervisorStatus,
     openEdit: (step: ProductionStep, mode: "operation" | "manager") => setEditStep({ step, mode }),
     openQty: (stepId: string) => setQtyStepId(stepId),
+    openOutsourceReturn: (stepId: string, outsourceOrderId: string) => setOutsourceReturn({ stepId, outsourceOrderId }),
     primaryButton,
     dialogs,
   };
