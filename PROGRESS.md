@@ -1,27 +1,25 @@
 # PROGRESS — สถานะสด
 
 ## ตอนนี้ (2026-09-07)
-- **ล่าสุด: เบสถามหน้าที่ของใบผลิต แล้วขอ UX/UI ให้เข้ากับหน้าอื่น → ปรับ `/proto/work-order-reset` ให้ใช้ชิ้นส่วนจริงของ ERP.** เทียบ Chrome `/orders/demo-order-outsource-overdue` และโค้ดหน้าการผลิต; full-page ใช้ AppShell, เนื้อหาใช้ PageShell/PageHeader/Section/Badge/TabsBar. หัวใบยังมีกรอบตามคำขอก่อนหน้า; ลูกค้า จำนวน กำหนดส่งอยู่ในกล่องข้อมูลภาพรวม; ปุ่มใบสั่งงานเปิดตัวอย่างได้ตรงจากหัวใบ.
-- A ภาพรวมใบผลิต / B โต๊ะงานยังอยู่ URL เดิม. สินค้า/ไซซ์/ลาย/รูปขยาย/ประวัติ/ข้อกำหนดและฟอร์มจำลองครบ. ข้อมูลใบผลิตยังเป็น fixture ไม่บันทึกฐาน; AppShell อ่านบัญชี/การแจ้งเตือนผ่านทางเดิมของระบบ. ไม่แตะ AppShell กลางหรือ auth; เมนูข้างไม่ไฮไลต์หมวดบน `/proto` เพราะยังไม่ใช่ route จริง.
-- ตรวจ Chrome: A/B 1280×880 / 390×844 สว่าง/มืด และ 768×1024 ไม่ล้น; ปุ่มพิมพ์/รับกลับคืน focus; รับงานบนมือถือกดได้เหนือแถบเมนูล่าง; สลับสินค้าแล้วกลับมาขั้นเดิม; สินค้า 3 ชุดครบ; รีดบางส่วน 180/240 และ QC รอทั้งสามสาย; ว่างยังมีข้อมูลสรุป; มุมช่างยังไม่มีสิทธิ์หัวหน้า. ผู้ตรวจอิสระดูภาพเทียบหน้าออเดอร์ + A/B + หน้ารวม 10 ภาพแล้วไม่พบ blocker. แก้พื้น TabsBar ให้เป็น surface และยืนยันอีกครั้ง; คืนขนาดจอและธีมสว่างแล้ว.
-- ด่านรอบเข้าชุด: typecheck/lint/verify:ui ผ่าน (0 errors, 24 warnings เดิม, work-order 33/33); unit 164 files / 1,666 ผ่านด้วย DATABASE_URL dummy; detector `[]`; diff check ผ่าน. เปลี่ยนเฉพาะ 3 TSX ของหน้าลอง + ROADMAP/PROGRESS. เปิด Chrome เต็มหน้า B `?v=desk&case=overdue&boss=0` ไว้ให้ลอง.
-- ส่ง local เพราะเบสอยู่บ้าน. ลิงก์ Preview ที่ส่งก่อนหน้านี้เป็นฉบับ `6b4697b`; อย่าใช้เป็นหลักฐานฉบับปัจจุบัน. ยังไม่ตรวจ Preview รอบนี้หรือขอ merge. `/proto/work-order-desk` รวม wizard ถูกทำเครื่องหมาย **พับ**; Production ยังเป็น E. Server/สิทธิ์/schema/main ไม่เปลี่ยน.
+- **เบสสั่งลบ proto ทั้งหมด แล้ว commit/push main ก่อนเริ่มใหม่.** ลบ `src/app/proto` ทั้งโฟลเดอร์ รวมทะเบียนและหน้าเลือกแบบ (139 ไฟล์ใน branch ทดลอง); ยุติการรอเลือกหน้าลองเดิมทุกชุด.
+- ลบ SVG ที่ใช้เฉพาะหน้าลอง 6 ไฟล์ และ baseline ที่อ้างไฟล์ซึ่งลบแล้ว 22 รายการ. เก็บ `public/demo-mockups/front.svg` เพราะ fixture QA และ test ของหน้าจริงยังใช้. แก้ PRODUCT/ARCHITECTURE ให้ไม่ชี้ทะเบียนที่ลบแล้ว; การอ้างหน้าลองเก่าในเอกสารหรือ comment เป็นประวัติใน git.
+- ไม่มี executable import/link จากหน้าจริงไป `/proto`. ไม่แก้หน้า ERP จริง, server, สิทธิ์, schema, ข้อมูล หรือ dependency. แนวทางทำหน้าลองก่อนเคาะ UI ในอนาคตยังคงเดิม.
+- ตรวจผ่าน: typecheck, lint (0 errors / 24 warnings เดิม), unit 164 ไฟล์ / 1,666 tests, verify:ui (รวม work-order 33/33), production build และ diff check. รายการ route ใน build ไม่มี `/proto`.
+- Chrome local: URL `/proto/work-order-reset/view?v=record&case=overdue&boss=1` เป็น 404; `/production` โหลดรายการและกด ORD-2609-0009 ไป `/production/demo-production-outsource-overdue` ได้ ข้อมูลขั้นงาน/ร้านนอกและปุ่มยังแสดงครบ.
+- การเผยแพร่รอบนี้ได้รับคำสั่งให้ push main โดยตรง; ต้องตรวจ SHA ของ origin/main, CI และ Vercel Production หลัง push ก่อนรายงานจบ.
 
 ## NEXT
-1. **รอเบสดูหน้าลอง A/B ที่ใช้โครงเดียวกับ ERP บน localhost** — ยังไม่เคาะทิศลงจริง. ข้อมูลลูกค้า/จำนวน/กำหนดส่งรวมในภาพรวมเหมือนหน้าออเดอร์; สินค้าและประวัติเปิดตามแท็บ.
-2. เคาะแล้ว → ปรับ SPEC ตามแบบที่เลือก → ลง presentation ใน `/production/[id]` โดยใช้ controller/dialog/readiness/record-mode/สิทธิ์เดิม. ตรวจ flow ร้านนอกและการรับกลับก่อนต่อปุ่มที่เสนอ; อย่าอ้างว่าปุ่มจำลองเป็นความสามารถที่ใช้งานได้แล้ว.
-3. ตรวจจอจริงด้วยข้อมูลหลายชุด/สายขนานและมือถือ → ด่านครบ + build ก่อนขอ merge main. ไม่มีคำสั่งให้ขึ้น Production ในรอบนี้.
-4. งานอื่นตาม ROADMAP §A2–A8/B/C/F: QC/แพ็กหน้างาน, ซ้อม Production V2 ต่อหลังจอพร้อม, หนี้ทางเข้ารอบพิมพ์/วัตถุดิบ/ประวัติละเอียด.
+1. **รอโจทย์ใหม่จากเบส** — ยังไม่มีแบบหน้าลองที่รอเคาะ และไม่เริ่มรื้อหน้าจริงต่อจากแบบที่ลบแล้ว.
+2. งานค้างอื่นอยู่ ROADMAP §A2–A8/B/C/F: QC/แพ็กหน้างาน, ซ้อม Production V2, ทางเข้ารอบพิมพ์/วัตถุดิบ/ประวัติละเอียด. การลบหน้าลองไม่ได้เปลี่ยนสถานะงานเหล่านี้.
 
 ## บริบทที่ยังต้องรักษา
-- แท็บรายการ/ฟอร์มสินค้า/ส่วนเสริม/การลดคำอธิบายทั้งเว็บ: session ก่อนหน้าบันทึกว่า merge main แล้ว 09-07; รอบนี้ไม่ตรวจ deployment ซ้ำ. สถานะ/ข้อแลกละเอียดอยู่ ROADMAP §A7–A8.
-- กระดาษเป็นหลัก: จุดจด screen / paper / auto ตาม `lib/work-order-record-mode.ts`; ห้ามเปลี่ยนเป็นต้องติ๊กทุกขั้น. Checklist ปัจจุบันอ่านอย่างเดียว ไม่มีผลติ๊กในฐาน.
+- กระดาษเป็นหลัก: จุดจด screen / paper / auto ตาม `lib/work-order-record-mode.ts`; checklist ปัจจุบันอ่านอย่างเดียว ไม่มีผลติ๊กในฐาน.
 - หัวหน้าทำครบจากใบผลิต; ช่างมี `/production/floor`; ใช้เครื่องยนต์และสิทธิ์ชุดเดียวกัน. Station/TV ไม่มีเงิน.
 - ทำเองเฉพาะ DTF; งานร้านนอกเดินขนานได้; สูตรที่ RELEASED ต้องคัดลอกเป็นร่างใหม่จึงแก้ได้.
-- Production V2 บนเว็บจริงยัง legacy ตามบันทึกเดิม (`PRODUCTION_V2_ENABLED=0`); migration/seed/demo rehearsal ไม่ใช่หลักฐานว่าเปิดใช้แล้ว.
+- Production V2 บนเว็บจริงยัง legacy ตามบันทึกเดิม; รอบนี้ไม่เปลี่ยน flag หรืออ้างว่าเปิดใช้แล้ว.
 - เบสเคาะแล้ว: จด VAT, ร้านนอกสื่อสาร LINE, นักบัญชีใช้ PEAK. ใครถือ role ACCOUNTANT ยังไม่ชัด; อย่าปรับสิทธิ์เงียบ.
 
 ## สภาพแวดล้อม
-- Port 3000 ยืนยันว่าเสิร์ฟ checkout `/Users/lostxker/dev/Git/anajak-erp` และเปิด demo route ได้ในรอบนี้. ไม่แก้ env, ไม่ restart server, ไม่ seed/reset.
-- ฐานทดลองเดิม `127.0.0.1:5433/anajak_erp_demo`; `npm run dev:demo` / Docker `anajak-postgres`. ฐานจริง Supabase ห้าม reset หรือรัน integration ที่สร้างข้อมูลโดยไม่มี target/backup/คำสั่งชัด.
-- เริ่ม session อ่าน ROADMAP/SPEC และ git สด. อ่าน ARCHITECTURE ก่อนเพิ่มโค้ด; docs/DESIGN เป็นกติกา UI. `/proto` มี noindex และทะเบียนกลาง.
+- Port 3000 เสิร์ฟ checkout `/Users/lostxker/dev/Git/anajak-erp` ด้วย `npm run dev:demo`. รีสตาร์ตหนึ่งครั้งเพื่อให้ Next.js สร้างรายการ route types ใหม่หลังลบหน้า; typecheck/build รอบแรกพบเฉพาะแคช `.next/dev/types` ที่ยังอ้างหน้าลองเก่า แล้วผ่านหลังรีสตาร์ต.
+- ฐานทดลอง `127.0.0.1:5433/anajak_erp_demo`; ไม่แก้ env, ไม่ seed/reset และไม่รัน integration ที่สร้างข้อมูล.
+- เริ่มงานครั้งต่อไปอ่าน ROADMAP/SPEC และ git สด; docs/DESIGN ยังเป็นกติกา UI. โค้ดหน้าลองเดิมดูได้ด้วย `git log --all -- src/app/proto`.
