@@ -6,11 +6,13 @@
 - ไม่มี executable import/link จากหน้าจริงไป `/proto`. ไม่แก้หน้า ERP จริง, server, สิทธิ์, schema, ข้อมูล หรือ dependency. แนวทางทำหน้าลองก่อนเคาะ UI ในอนาคตยังคงเดิม.
 - ตรวจผ่าน: typecheck, lint (0 errors / 24 warnings เดิม), unit 164 ไฟล์ / 1,666 tests, verify:ui (รวม work-order 33/33), production build และ diff check. รายการ route ใน build ไม่มี `/proto`.
 - Chrome local: URL `/proto/work-order-reset/view?v=record&case=overdue&boss=1` เป็น 404; `/production` โหลดรายการและกด ORD-2609-0009 ไป `/production/demo-production-outsource-overdue` ได้ ข้อมูลขั้นงาน/ร้านนอกและปุ่มยังแสดงครบ.
-- การเผยแพร่รอบนี้ได้รับคำสั่งให้ push main โดยตรง; ต้องตรวจ SHA ของ origin/main, CI และ Vercel Production หลัง push ก่อนรายงานจบ.
+- เผยแพร่การลบใน commit `4082e7a`: push main แล้วและ remote SHA ตรง; Vercel Production `dpl_FUP6wKenTHSw7aivzzhURr2dHs3F` READY ผูก `anajak-erp.vercel.app`. เว็บจริง `/login` ตอบ 200 และเส้นทางหลัง auth redirect ไป login ตามเดิม; ไม่ได้ยืนยันหน้าหลัง login บน Production เพราะไม่มี session ที่ใช้งานได้ในรอบนี้.
+- CI run `34139448777`: lint/typecheck ผ่าน, unit ผ่าน 1,664 ตก 2 ใน `production-desk.test.ts:100,114`. เป็นปัญหาเดิมตั้งแต่ main `75f1e19` (run `34051857606`); ทำซ้ำได้ด้วย TZ=UTC แต่ TZ=Asia/Bangkok ผ่าน 7/7. สาเหตุ `production-desk.ts` ใช้ `setHours()` ตามเขตเวลาเครื่องในการคำนวณวัน; รอบลบ proto ไม่แก้ตรรกะหน้าจริงหรือเปลี่ยน test เพื่อให้ผ่าน. ต้องแยกแก้ให้ใช้ปฏิทินไทยในงานถัดไป.
 
 ## NEXT
 1. **รอโจทย์ใหม่จากเบส** — ยังไม่มีแบบหน้าลองที่รอเคาะ และไม่เริ่มรื้อหน้าจริงต่อจากแบบที่ลบแล้ว.
 2. งานค้างอื่นอยู่ ROADMAP §A2–A8/B/C/F: QC/แพ็กหน้างาน, ซ้อม Production V2, ทางเข้ารอบพิมพ์/วัตถุดิบ/ประวัติละเอียด. การลบหน้าลองไม่ได้เปลี่ยนสถานะงานเหล่านี้.
+3. แจ้งเบสว่า CI ยังแดงจากบั๊กเขตเวลาเดิม; ก่อนอ้างว่า CI ผ่านต้องแก้และตรวจทั้ง UTC/Asia-Bangkok โดยคงความคาดหวังของ test เดิม.
 
 ## บริบทที่ยังต้องรักษา
 - กระดาษเป็นหลัก: จุดจด screen / paper / auto ตาม `lib/work-order-record-mode.ts`; checklist ปัจจุบันอ่านอย่างเดียว ไม่มีผลติ๊กในฐาน.

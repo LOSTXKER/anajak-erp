@@ -20,6 +20,7 @@
 ### ล้างหน้าลองทั้งหมด (เบสสั่ง 2026-09-07)
 - [x] ลบทุกหน้าใน `src/app/proto` (139 ไฟล์ใน branch ทดลอง) พร้อม SVG เฉพาะหน้าลอง 6 ไฟล์ และ baseline ที่ชี้ไฟล์ลบ 22 รายการ; หน้าจริงไม่มี dependency มายังหน้าลอง. Typecheck/lint/unit 1,666/verify:ui/build ผ่าน; เปิด Chrome ยืนยันหน้าลองเดิม 404 และรายการผลิต → ใบผลิตจริงยังทำงาน. เบสสั่ง commit/push main โดยตรง; รอเริ่มออกแบบใหม่จากโจทย์ถัดไป.
 - การอ้าง `/proto` ด้านล่างเป็นประวัติการออกแบบ ดูโค้ดเก่าได้ใน git history; ยุติการรอเลือกหน้าลองเดิมทั้งหมด. หน้าจริงที่เคยนำแบบไปใช้ยังคงอยู่.
+- ผลขึ้น main: `4082e7a` deploy Production สำเร็จ; CI ยังตก 2 tests เดิมเรื่องเขตเวลาใน `production-desk.test.ts` (พบก่อนการลบด้วย). บันทึกสาเหตุและการทำซ้ำไว้ PROGRESS; ไม่รวมการแก้ตรรกะวันในงานลบหน้าลอง.
 
 ### A. หน้าใบสั่งผลิต `/production/[id]` — ถอดออกแล้ว เริ่มใหม่จากศูนย์ (เบสสั่ง 2026-09-02)
 - [x] ถอด route + UI ใบผลิตทั้ง legacy และ V2 (09-02 ดึก · 32 ไฟล์: detail-screen · control-record · route-rail · now-card · steps-list · step-navigator · mockup-tab · design-card · garment-pick · step dialogs · v2-control-record/actions · presenter · lib production-control/detail-tabs · material-usage · station-garment-preview + test) · ด่าน verify ของหน้านั้นถอดตาม · **ลิงก์ที่ชี้ `/production/[id]` (แถวในหน้าการผลิต · My Tasks · ออเดอร์ · แจ้งเตือน) ยังชี้ที่เดิม = ไม่พบหน้า จนกว่าหน้าใหม่จะมา** (เบสยอมพังชั่วคราวเหมือน §A2/§A3)
