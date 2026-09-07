@@ -165,7 +165,7 @@ function FormWorkOrder({ variant, order, boss, pair }: { variant: Variant; order
           revisions={[]}
           cancelledAt={null}
           cancelledReason={null}
-          blockers={cta.kind === "none" && !allDone ? [cta.note] : []}
+          blockers={cta.kind === "none" && !allDone ? [cta.note] : remaining > 0 ? [`ติ๊กข้อกำหนดของขั้นนี้ให้ครบก่อน — เหลือ ${remaining} ข้อ (แท็บ ขั้นตอน)`] : []}
         />
       </div>
 
@@ -183,18 +183,14 @@ function FormWorkOrder({ variant, order, boss, pair }: { variant: Variant; order
         </div>
       ) : null}
 
-      {/* ซ้าย = ของที่ต้องดูขณะทำ (ลาย/เสื้อ) · ขวา = เช็คลิสต์ของขั้นที่ยืนอยู่ · จอแคบเช็คลิสต์ขึ้นก่อน */}
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_400px] lg:items-start">
-        <aside className="space-y-4 lg:sticky lg:top-4 lg:order-2">
-          <StepPanel variant={variant} stage={stage} index={currentIndex} total={stages.length} next={next} boss={boss} allDone={allDone} ctaLabel={ctaLabel} remaining={remaining} onStep={(id, to) => setSteps(applyStep(steps, id, to))} onTick={tick} />
-          <StepList stages={stages} currentIndex={currentIndex} />
-        </aside>
-
-        <div className="min-w-0 lg:order-1">
+      {/* รอบ 5 (เบส 09-08 ดึก "แยกแถบขั้นตอนกับเสื้อดีกว่า"): กลับเป็นแท็บ — ลายและเสื้อ (แท็บแรก ตามที่สั่งรอบ 2) · ขั้นตอน · ข้อมูลใบ · ประวัติ
+          แท็บขั้นตอนมีจุดแดงเมื่อยังติ๊กไม่ครบ/ติดปัญหา · ใต้รางบอกว่าต้องไปติ๊กที่แท็บไหน */}
+      <div className="min-w-0">
           <Tabs value={tab} onValueChange={setTab}>
             <TabsBar>
               <TabsList aria-label="ส่วนของใบผลิต">
                 <TabsTrigger value="items">ลายและเสื้อ</TabsTrigger>
+                <TabsTrigger value="steps" hasPending={remaining > 0 || problems.length > 0}>ขั้นตอน</TabsTrigger>
                 <TabsTrigger value="info">ข้อมูลใบ</TabsTrigger>
                 <TabsTrigger value="history">ประวัติ</TabsTrigger>
               </TabsList>
@@ -204,6 +200,13 @@ function FormWorkOrder({ variant, order, boss, pair }: { variant: Variant; order
               <TabsContent value="items">
                 {/* ตัวจริงของแท็บรายการหน้าออเดอร์ (เบสสั่ง 09-08 "ใช้แบบหน้านี้เลย จะได้ไม่งง") — ไม่มีปุ่มแก้ไข · ไม่โชว์เงิน */}
                 <OrderItemsDisplay orderId={order.orderNumber} items={order.orderItems as OrderItem[]} fees={[]} showMoney={false} canEditReceiveTracking={false} />
+              </TabsContent>
+
+              <TabsContent value="steps" className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start">
+                <div className="space-y-4">
+                  <StepPanel variant={variant} stage={stage} index={currentIndex} total={stages.length} next={next} boss={boss} allDone={allDone} ctaLabel={ctaLabel} remaining={remaining} onStep={(id, to) => setSteps(applyStep(steps, id, to))} onTick={tick} />
+                </div>
+                <StepList stages={stages} currentIndex={currentIndex} />
               </TabsContent>
 
               <TabsContent value="info" className="grid gap-6 md:grid-cols-2">
@@ -255,7 +258,6 @@ function FormWorkOrder({ variant, order, boss, pair }: { variant: Variant; order
               </TabsContent>
             </div>
           </Tabs>
-        </div>
       </div>
 
       <p className="text-xs text-muted">ตัวเลขทั้งหมดเป็นของปลอม — จำลองในหน้า ไม่บันทึกจริง</p>
@@ -300,7 +302,7 @@ function StepPanel({
 
   const multi = stage.steps.length > 1;
   const paper = stage.kind === "paper";
-  const doneNote = remaining === 0 && ctaLabel ? `ครบแล้ว — กด “${ctaLabel}” ด้านบน` : remaining > 0 ? `ติ๊กอีก ${remaining} ข้อ แล้วกดปุ่มด้านบน` : null;
+  const doneNote = remaining === 0 && ctaLabel ? `ครบแล้ว — กด “${ctaLabel}” ด้านบน` : remaining > 0 ? `ติ๊กอีก ${remaining} ข้อ แล้วกดปุ่มบนหัวใบ` : null;
 
   return (
     <>
