@@ -260,7 +260,7 @@ function WorkOrder({ id }: { id: string }) {
                               primaryTask
                             />
                           ) : null}
-                          <StepPieceTable step={current} order={order} c={c} />
+                          {current.stepType !== "GARMENT_PICK" ? <StepPieceTable step={current} order={order} c={c} /> : null}
                         </>
                       )}
                     </div>
