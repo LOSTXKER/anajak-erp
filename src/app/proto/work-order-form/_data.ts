@@ -26,6 +26,8 @@ export type WorkStep = {
   short: string;
   kind: StepKind;
   lane: Lane;
+  /** ตั้งในสูตรขั้นงาน: ขั้นนี้ "เดินคู่กับขั้นก่อน" → รางรวมเป็นช่องคู่ (ทางขยายของแบบ A · เบสขอดู 09-08) */
+  pairWithPrevious?: boolean;
   state: StepState;
   owner: string | null;
   qtyDone: number;
@@ -291,19 +293,19 @@ export const CASE_7: WorkOrder = {
       short: "พิมพ์ฟิล์ม",
       kind: "dtf",
       lane: "film",
-      state: "done",
+      state: "active",
       owner: "บาส",
-      qtyDone: 240,
+      qtyDone: 160,
       qtyTotal: 240,
-      startedAt: "4 ก.ย. 13:00",
-      completedAt: "5 ก.ย. 11:30",
-      planEnd: "5 ก.ย.",
+      startedAt: "7 ก.ย. 13:00",
+      completedAt: null,
+      planEnd: "9 ก.ย.",
       checklist: [
         { label: "ไฟล์ตรงกับม็อกอัพอนุมัติ v3", done: true },
         { label: "ทดสอบพิมพ์ 1 ชิ้นเทียบสี", done: true },
-        { label: "นับฟิล์มครบ 240 + เผื่อ 5%", done: true },
+        { label: "นับฟิล์มครบ 240 + เผื่อ 5%", done: false },
       ],
-      note: "ปิดจากรอบพิมพ์ R-0905-02 — ขั้นนี้ผ่านเอง ไม่ต้องกด",
+      note: "อยู่ในรอบพิมพ์ R-0908-01 (160/240) — ปิดรอบพิมพ์แล้วขั้นนี้ผ่านเอง ไม่ต้องกด",
     },
     {
       id: "s3",
@@ -312,6 +314,7 @@ export const CASE_7: WorkOrder = {
       short: "ปักแขน (ร้าน)",
       kind: "outsource",
       lane: "out",
+      pairWithPrevious: true,
       state: "waiting",
       owner: "พี่ก้อย",
       qtyDone: 0,
@@ -427,7 +430,7 @@ export const CASE_7: WorkOrder = {
     { at: "7 ก.ย. 16:30", who: "บาส", what: "รีดร้อน จดยอดบนกระดาษ 96/240", tone: "neutral" },
     { at: "7 ก.ย. 09:00", who: "บาส", what: "เริ่มรีดร้อน", tone: "neutral" },
     { at: "5 ก.ย. 15:00", who: "พี่ก้อย", what: "ส่งปักแขนให้ร้านปักพี่หน่อย 240 ตัว นัดรับ 9 ก.ย.", tone: "neutral" },
-    { at: "5 ก.ย. 11:30", who: "ระบบ", what: "ปิดรอบพิมพ์ R-0905-02 → พิมพ์ฟิล์ม DTF ผ่านเอง 240/240", tone: "success" },
+    { at: "7 ก.ย. 13:00", who: "บาส", what: "เปิดรอบพิมพ์ R-0908-01 — ฟิล์ม 240 ชิ้น พิมพ์ระหว่างเสื้ออยู่ร้านปัก", tone: "neutral" },
     { at: "4 ก.ย. 09:40", who: "เนส", what: "เบิกเสื้อจากสต๊อก 240 ตัว (ตัดยอด Anajak Stock แล้ว)", tone: "success" },
     { at: "3 ก.ย. 17:00", who: "เบส", what: "เปิดใบผลิตจากสูตรมาตรฐาน v3 · มอบหมายเนส/บาส/พี่ก้อย", tone: "neutral" },
   ],

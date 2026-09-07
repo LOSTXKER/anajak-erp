@@ -3,7 +3,7 @@
 import { useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useTheme } from "next-themes";
-import { ArrowLeft, ExternalLink, Layers, Moon, Smartphone, Sun, UserRound } from "lucide-react";
+import { ArrowLeft, ExternalLink, Layers, Link2, Moon, Smartphone, Sun, UserRound } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { SegmentedControl } from "@/components/ui/segmented";
@@ -22,10 +22,10 @@ const COPY: Record<Variant, { name: string; idea: string; summary: string; trade
     tradeoff: "เบสเปิดใบ ORD-2609-0009 แล้วบอก “ยังดูเยอะ” · ไม่มีปุ่มขั้นต่อไปที่เดียวบนหัวใบ · หน้าตาคนละแบบกับหน้าออเดอร์ ทีมต้องเรียนรู้ 2 แบบ",
   },
   seq: {
-    name: "A · ทีละขั้นตามเลข — รางนับทุกขั้นเป็นช่อง 1 2 3 ตรงตามที่สั่ง",
+    name: "A · ทีละขั้นตามเลข — รางนับทุกขั้นเป็นช่อง 1 2 3 (เบสเคาะ 8 ก.ย.) + ช่องคู่ให้ดู",
     idea: "ใบผลิตเดินเหมือนออเดอร์: ยืนอยู่ช่องเดียว กดปุ่มบนถึงไปช่องถัดไป",
     summary: "หัวใบเหมือนหน้าออเดอร์ทุกอย่าง (เลขที่ · ป้าย · ใบสั่งงาน · ปุ่มขั้นต่อไป · เมนู ⋯) → ราง 1 2 3 ตามลำดับขั้นในสูตร → แท็บ ขั้นงาน / ลายและเสื้อ / ข้อมูลใบ / ประวัติ · แท็บแรกคือฟอร์มของขั้นที่ยืนอยู่ + ตารางทุกขั้น · ย้อนกลับอยู่ในเมนู ⋯",
-    tradeoff: "งานที่เดินพร้อมกันถูกบังคับให้เรียงเป็นแถวเดียว — ใบ 7 ขั้น: ระหว่างรอร้านปัก (ช่อง 3) รางบอกว่ารีดร้อน (ช่อง 4) “ยังไม่ถึง” ทั้งที่บาสรีดไป 96 ตัวแล้ว · ทุกขั้นต้องกดปิดในระบบ รวมขั้นที่เบสเคาะไว้ (5 ก.ย.) ว่าจดบนกระดาษ",
+    tradeoff: "งานที่เดินพร้อมกันถูกบังคับให้เรียงเป็นแถวเดียว — ปิด “ช่องคู่” แล้วดูใบ 7 ขั้น: รางยืนที่พิมพ์ฟิล์ม (ช่อง 2) ส่วนปักแขนที่อยู่ร้านจริงขึ้นว่า “ยังไม่ถึง” · เปิดช่องคู่ = ฟิล์ม + ปักแขน รวมเป็นช่อง 2 ช่องเดียว ปุ่มบนคือขั้นที่กดได้ก่อน อีกขั้นมีปุ่มเล็กในฟอร์ม ครบทั้งคู่รางเลื่อนเอง · ทุกขั้นต้องกดปิดในระบบ รวมขั้นที่เบสเคาะไว้ (5 ก.ย.) ว่าจดบนกระดาษ",
   },
   gate: {
     name: "B · ราง = ด่าน — ขั้นที่ทำพร้อมกันรวมเป็นช่องเดียว ปุ่มบนคือ “ปิดด่าน”",
@@ -42,6 +42,7 @@ const COPY: Record<Variant, { name: string; idea: string; summary: string; trade
 };
 
 const NOTES = [
+  "ช่องคู่ (เบสขอดู 8 ก.ย.): ตั้งในสูตรขั้นงานว่าขั้นนี้ “เดินคู่กับขั้นก่อน” → รางรวมสองขั้นเป็นช่องเดียว ตัวเลขช่องเดียว · ไม่มีปุ่ม “ปิดด่าน” เพิ่ม (ต่างจาก B) · มีเฉพาะจุดที่ตั้งไว้ ที่เหลือยังเป็นรางเส้นเดียว · ใบ 4 ขั้นไม่มีคู่ ปุ่มนี้จึงไม่มีผล · ของจริงต้องเพิ่มช่องตั้งค่าในสูตร (schema เล็ก ๆ ⚠️ ถามก่อน)",
   "ลองกดปุ่มขั้นต่อไปบนหัวใบได้เลย ขั้นจะเดินจริงในหน้า (ไม่บันทึกฐาน) · ย้อนกลับอยู่ในเมนู ⋯ ข้างปุ่ม — รีเฟรชหน้า = กลับสภาพเริ่มต้น",
   "ราง 1 2 3 · หัวใบ · แท็บ · การ์ด = ชิ้นส่วนตัวจริงของหน้าออเดอร์ (import มาไม่ได้วาดใหม่) — ที่เขียนใหม่คือฟอร์มของช่องที่ยืนอยู่และตารางทุกขั้น",
   "ย้อนกลับ: ของจริงตอนนี้ server ไม่รับ (ขั้นที่ปิดแล้วแก้ไม่ได้ — production.updateStep) · ต้องเพิ่มคำสั่ง “เปิดขั้นใหม่” ที่จดว่าใครย้อนเมื่อไหร่ · เป็นงาน server ที่ต้องขอเบสก่อนแยกต่างหาก ไม่ว่าเคาะทางไหน",
@@ -64,11 +65,12 @@ export default function WorkOrderFormProtoPage() {
   const [variant, setVariant] = useProtoVariant<Variant>("v", VALUES, "seq");
   const [case7, toggleCase] = useProtoFlag("big", false);
   const [boss, toggleBoss] = useProtoFlag("boss", true);
+  const [pair, togglePair] = useProtoFlag("pair", true);
   const { resolvedTheme, setTheme } = useTheme();
   const mounted = useSyncExternalStore(subscribeNever, getTrue, getFalse);
   const isDark = mounted && resolvedTheme === "dark";
   const copy = COPY[variant];
-  const query = `v=${variant}&big=${case7 ? "1" : "0"}&boss=${boss ? "1" : "0"}`;
+  const query = `v=${variant}&big=${case7 ? "1" : "0"}&boss=${boss ? "1" : "0"}&pair=${pair ? "1" : "0"}`;
   const src = `/proto/work-order-form/view?${query}`;
 
   return (
@@ -95,6 +97,11 @@ export default function WorkOrderFormProtoPage() {
             <Button variant={boss ? "default" : "outline"} size="sm" onClick={toggleBoss}>
               <UserRound /> {boss ? "มองเป็นหัวหน้า" : "มองเป็นช่าง"}
             </Button>
+            {variant === "seq" ? (
+              <Button variant={pair ? "default" : "outline"} size="sm" onClick={togglePair}>
+                <Link2 /> {pair ? "ช่องคู่: เปิด" : "ช่องคู่: ปิด"}
+              </Button>
+            ) : null}
           </div>
           <Button variant="outline" size="icon-sm" aria-label={isDark ? "ดูแบบโหมดสว่าง" : "ดูแบบโหมดมืด"} onClick={() => setTheme(isDark ? "light" : "dark")}>
             {isDark ? <Moon /> : <Sun />}

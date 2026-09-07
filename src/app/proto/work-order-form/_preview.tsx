@@ -68,16 +68,16 @@ function NowFrame() {
 
 /* ───────────────────────── ตัววาดหลัก ───────────────────────── */
 
-export function Preview({ variant, case7, boss }: { variant: Variant; case7: boolean; boss: boolean }) {
+export function Preview({ variant, case7, boss, pair = true }: { variant: Variant; case7: boolean; boss: boolean; pair?: boolean }) {
   if (variant === "now") return <NowFrame />;
-  return <FormWorkOrder key={`${variant}-${case7 ? 7 : 4}`} variant={variant} order={case7 ? CASE_7 : CASE_4} boss={boss} />;
+  return <FormWorkOrder key={`${variant}-${case7 ? 7 : 4}`} variant={variant} order={case7 ? CASE_7 : CASE_4} boss={boss} pair={pair} />;
 }
 
-function FormWorkOrder({ variant, order, boss }: { variant: Variant; order: WorkOrder; boss: boolean }) {
+function FormWorkOrder({ variant, order, boss, pair }: { variant: Variant; order: WorkOrder; boss: boolean; pair: boolean }) {
   const [steps, setSteps] = useState(order.steps);
   const [tab, setTab] = useState("steps");
 
-  const stages = stagesFor(variant, steps);
+  const stages = stagesFor(variant, steps, pair);
   const currentIndex = currentStageIndex(stages);
   const stage = stages[currentIndex]!;
   const next = stages[currentIndex + 1] ?? null;
@@ -317,11 +317,18 @@ function StageForm({
   }
 
   const paper = stage.kind === "paper";
+  const pairStage = stage.kind === "pair";
   return (
     <Section
       title={`ช่อง ${index + 1} · ${stage.title}`}
       meta={`${stage.steps.filter((s) => s.state === "done").length}/${stage.steps.length} เสร็จ`}
-      help={paper ? "ขั้นพวกนี้จดบนใบสั่งงาน — ระบบถือว่าผ่านตอนกดส่งเข้า QC" : "งานที่เดินพร้อมกัน แต่ละงานมีปุ่มของตัวเอง — ปิดด่านได้เมื่อครบทุกงาน"}
+      help={
+        paper
+          ? "ขั้นพวกนี้จดบนใบสั่งงาน — ระบบถือว่าผ่านตอนกดส่งเข้า QC"
+          : pairStage
+            ? "สูตรตั้งไว้ว่าสองขั้นนี้เดินคู่กันได้ — ปุ่มบนหัวใบคือขั้นที่กดได้ก่อน อีกขั้นกดตรงนี้ · ครบทั้งคู่แล้วรางเลื่อนเอง"
+            : "งานที่เดินพร้อมกัน แต่ละงานมีปุ่มของตัวเอง — ปิดด่านได้เมื่อครบทุกงาน"
+      }
     >
       <ul className="divide-y divide-divider">
         {stage.steps.map((step) => {
@@ -437,7 +444,8 @@ function AllStepsTable({ variant, stages, steps, currentIndex }: { variant: Vari
                   <td className="px-4 py-2 tabular-nums text-muted">{st + 1}</td>
                   <td className={cn("px-2 py-2", isCurrent ? "font-semibold text-strong" : "text-secondary")}>
                     {s.label}
-                    {parallelLive.includes(s) ? <span className="ml-2 text-xs text-amber-700 dark:text-amber-300">กำลังทำจริงอยู่ — แต่รางบอกว่ายังไม่ถึง</span> : null}
+                    {stages[st]?.kind === "pair" ? <InfoChip size="sm" tone="info" className="ml-2">ช่องคู่</InfoChip> : null}
+                    {parallelLive.includes(s) && stages[st]?.kind !== "pair" && !isCurrent ? <span className="ml-2 text-xs text-amber-700 dark:text-amber-300">กำลังทำจริงอยู่ — แต่รางบอกว่ายังไม่ถึง</span> : null}
                   </td>
                   <td className="px-2 py-2"><StateBadge step={s} /></td>
                   <td className="px-2 py-2 text-secondary">{s.owner ?? "—"}</td>

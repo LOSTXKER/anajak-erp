@@ -10,9 +10,10 @@ export default function WorkOrderFormViewPage() {
   const [variant] = useProtoVariant<Variant>("v", VALUES, "seq");
   const [case7] = useProtoFlag("big", false);
   const [boss] = useProtoFlag("boss", true);
+  const [pair] = useProtoFlag("pair", true);
   return (
     <main className="min-h-screen bg-bg px-4 py-5 text-strong sm:px-6 lg:px-8">
-      <Preview variant={variant} case7={case7} boss={boss} />
+      <Preview variant={variant} case7={case7} boss={boss} pair={pair} />
     </main>
   );
 }

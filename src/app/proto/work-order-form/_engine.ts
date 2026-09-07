@@ -26,14 +26,31 @@ export type Stage = {
   /** ชื่อเต็มในฟอร์ม */
   title: string;
   steps: WorkStep[];
-  kind: "single" | "parallel" | "paper";
+  kind: "single" | "parallel" | "paper" | "pair";
 };
 
 const isDone = (s: WorkStep) => s.state === "done";
 
 /** ราง "นับอะไรเป็นหนึ่งช่อง" — หัวใจของสิ่งที่กำลังเทียบ */
-export function stagesFor(variant: Variant, steps: WorkStep[]): Stage[] {
+export function stagesFor(variant: Variant, steps: WorkStep[], pair = false): Stage[] {
   const sorted = [...steps].sort((a, b) => a.order - b.order);
+
+  if (variant === "seq" && pair) {
+    // ช่องคู่ (ทางขยายของ A): ขั้นที่สูตรตั้งว่า "เดินคู่กับขั้นก่อน" รวมเข้าช่องเดียวกับขั้นก่อนหน้า
+    // ช่องคู่ปิดเองเมื่อทั้งคู่ปิด — ไม่มีปุ่ม "ปิดด่าน" เพิ่ม (ต่างจาก B) · ปุ่มบนคือปุ่มของขั้นที่กดได้ก่อน
+    const stages: Stage[] = [];
+    for (const s of sorted) {
+      const prev = stages[stages.length - 1];
+      if (s.pairWithPrevious && prev) {
+        prev.steps.push(s);
+        prev.kind = "pair";
+        prev.label = prev.steps.map((x) => x.short).join(" + ");
+        prev.title = `ช่องคู่ — ${prev.steps.map((x) => x.label).join(" กับ ")} ทำพร้อมกันได้`;
+        prev.key = prev.steps.map((x) => x.id).join("+");
+      } else stages.push(single(s));
+    }
+    return stages;
+  }
 
   if (variant === "gate") {
     // ด่าน = ตามผังเส้นทางจริง (lib/work-order-route.routeParts): สายขนานทั้งหมด → รีดร้อน → หางงานทีละขั้น
@@ -130,6 +147,13 @@ export function headCta(stage: Stage, next: Stage | null, boss: boolean): HeadCt
     return { kind: "none", note: stepBlockedNote(step, boss) ?? (step.state === "done" ? "ทุกขั้นปิดแล้ว — ใบนี้เสร็จ" : "ยังทำต่อไม่ได้") };
   }
   const open = stage.steps.filter((s) => !isDone(s));
+  if (stage.kind === "pair") {
+    // ปุ่มเดียวบนหัวใบ = ขั้นที่กดได้ก่อนในคู่ (ขั้นที่ผ่านเองจากรอบพิมพ์ให้ทีหลัง) · อีกขั้นมีปุ่มเล็กในฟอร์ม
+    const actionable = [...open].sort((a, b) => (a.kind === "dtf" ? 1 : 0) - (b.kind === "dtf" ? 1 : 0)).map((s) => ({ step: s, cta: stepCta(s, boss) })).find((x) => x.cta);
+    if (actionable && actionable.cta) return { kind: "step", step: actionable.step, cta: actionable.cta };
+    const notes = open.map((s) => stepBlockedNote(s, boss)).filter((n): n is string => Boolean(n));
+    return { kind: "none", note: notes[0] ?? `รอ ${open.map((s) => s.short).join(" · ")}` };
+  }
   if (stage.kind === "parallel") {
     if (open.length === 0) return { kind: "close-stage", label: next ? `ปิดด่านนี้ → ${next.label}` : "ปิดด่านนี้", steps: stage.steps };
     return { kind: "none", note: `ยังปิดด่านนี้ไม่ได้ — รอ ${open.map((s) => s.short).join(" · ")} (กดที่แต่ละงานข้างล่าง)` };
