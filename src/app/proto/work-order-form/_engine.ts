@@ -152,16 +152,16 @@ export function headCta(stage: Stage, next: Stage | null, boss: boolean): HeadCt
     const actionable = [...open].sort((a, b) => (a.kind === "dtf" ? 1 : 0) - (b.kind === "dtf" ? 1 : 0)).map((s) => ({ step: s, cta: stepCta(s, boss) })).find((x) => x.cta);
     if (actionable && actionable.cta) return { kind: "step", step: actionable.step, cta: actionable.cta };
     const notes = open.map((s) => stepBlockedNote(s, boss)).filter((n): n is string => Boolean(n));
-    return { kind: "none", note: notes[0] ?? `รอ ${open.map((s) => s.short).join(" · ")}` };
+    return { kind: "none", note: notes[0] ?? `รออีก ${open.length} งานในช่องนี้ (ดูแท็บขั้นตอน)` };
   }
   if (stage.kind === "parallel") {
     if (open.length === 0) return { kind: "close-stage", label: next ? `ปิดด่านนี้ → ${next.label}` : "ปิดด่านนี้", steps: stage.steps };
-    return { kind: "none", note: `ยังปิดด่านนี้ไม่ได้ — รอ ${open.map((s) => s.short).join(" · ")} (กดที่แต่ละงานข้างล่าง)` };
+    return { kind: "none", note: `ยังปิดด่านนี้ไม่ได้ — รออีก ${open.length} งาน (กดที่แต่ละงานในแท็บขั้นตอน)` };
   }
   // paper: ส่งเข้า QC = ระบบถือว่าขั้นกระดาษผ่าน
   if (open.length === 0) return { kind: "none", note: "ส่งเข้า QC แล้ว — ใบนี้เสร็จ" };
   const blocked = open.filter((s) => s.state === "blocked");
-  if (blocked.length > 0 && !boss) return { kind: "none", note: `ติดปัญหา: ${blocked.map((s) => s.short).join(" · ")} — รอหัวหน้าจัดการ` };
+  if (blocked.length > 0 && !boss) return { kind: "none", note: `ติดปัญหา ${blocked.length} ขั้น — รอหัวหน้าจัดการ` };
   return { kind: "close-stage", label: `ส่งเข้า QC (ถือว่าผ่านขั้นกระดาษ ${open.length} ขั้น)`, steps: stage.steps };
 }
 

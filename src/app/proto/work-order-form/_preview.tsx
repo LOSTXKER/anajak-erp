@@ -12,7 +12,7 @@
  */
 
 import { useState } from "react";
-import { AlertTriangle, CheckCircle2, ChevronRight, ClipboardList, ExternalLink, Factory, Flag, Pause, RotateCcw, Store, UserRound } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ChevronRight, ClipboardList, ExternalLink, Factory, Flag, ListChecks, Pause, RotateCcw, Store, UserRound } from "lucide-react";
 
 import { PageHeader } from "@/components/page-header";
 import { OrderItemsDisplay } from "@/components/orders/detail/order-items-display";
@@ -24,11 +24,12 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DueTag } from "@/components/ui/due-tag";
 import { Fact, FactList } from "@/components/ui/fact";
-import { InfoChip } from "@/components/ui/info-chip";
+import { InfoChip, InfoChipRow } from "@/components/ui/info-chip";
+import { Metric } from "@/components/ui/metric";
 import { MoreMenu, type MoreMenuItem } from "@/components/ui/more-menu";
 import { Section } from "@/components/ui/section";
 import { Tabs, TabsBar, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TABLE_HEAD_SURFACE, TINT } from "@/components/ui/tokens";
+import { RADIUS, SUNK_PANEL, TABLE_HEAD_SURFACE } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
 
 import { CASE_4, CASE_7, PROTO_TODAY, STATE_LABEL, recordModeOf, type WorkOrder, type WorkStep } from "./_data";
@@ -93,7 +94,12 @@ function FormWorkOrder({ variant, order, boss, pair }: { variant: Variant; order
   const problems = steps.filter((s) => s.state === "blocked");
 
   function fire() {
-    if (remaining > 0) return;
+    if (remaining > 0) {
+      // จอทัชไม่มี hover: ปุ่มหลักที่ยังกดปิดไม่ได้ต้อง "พาไปที่ต้องติ๊ก" ไม่ใช่ตายเงียบ (critique 09-08 ข้อ 1)
+      setTab("steps");
+      requestAnimationFrame(() => document.getElementById("proto-current-step")?.scrollIntoView({ block: "center", behavior: "smooth" }));
+      return;
+    }
     if (cta.kind === "step") setSteps(applyStep(steps, cta.step.id, cta.cta.to));
     else if (cta.kind === "close-stage") setSteps(closeAll(steps, cta.steps.map((s) => s.id)));
   }
@@ -125,12 +131,14 @@ function FormWorkOrder({ variant, order, boss, pair }: { variant: Variant; order
           tone="production"
           breadcrumb={[{ label: "การผลิต", href: "#" }, { label: order.orderNumber }]}
           title={order.orderNumber}
-          description={null}
+          description={order.company ? `${order.customer} · ${order.company}` : order.customer}
           titleBadge={
-            <span className="flex flex-wrap items-center gap-1.5">
-              <Badge variant="accent" size="sm">{allDone ? "ส่งเข้า QC แล้ว" : "กำลังผลิต"}</Badge>
-              {order.urgent ? <Badge variant="destructive" size="sm">เร่งด่วน</Badge> : null}
-            </span>
+            allDone || order.urgent ? (
+              <span className="flex flex-wrap items-center gap-1.5">
+                {allDone ? <Badge variant="success" size="sm">ส่งเข้า QC แล้ว</Badge> : null}
+                {order.urgent ? <Badge variant="destructive" size="sm">เร่งด่วน</Badge> : null}
+              </span>
+            ) : null
           }
           action={
             <>
@@ -142,10 +150,10 @@ function FormWorkOrder({ variant, order, boss, pair }: { variant: Variant; order
                 // ปุ่มหลักโชว์ตลอดแต่กดได้เมื่อติ๊กครบ (เบสสั่ง 09-08) — ต่างจากกติกา DESIGN "ห้ามวางปุ่มที่กดไม่ได้" ของหน้าออเดอร์ · ลงจริงต้องเคาะอีกที
                 <Button
                   onClick={fire}
-                  disabled={remaining > 0}
+                  aria-disabled={remaining > 0}
                   variant={cta.kind === "step" && cta.cta.danger ? "destructive" : "default"}
-                  className="shrink-0"
-                  title={remaining > 0 ? `ติ๊กข้อกำหนดให้ครบก่อน — เหลือ ${remaining} ข้อ` : cta.kind === "step" ? `ขั้น ${currentIndex + 1} · ${cta.step.label}` : stage.title}
+                  className={cn("shrink-0", remaining > 0 && "opacity-60")}
+                  title={remaining > 0 ? `ติ๊กข้อกำหนดให้ครบก่อน — เหลือ ${remaining} ข้อ (กดเพื่อไปติ๊ก)` : cta.kind === "step" ? `ขั้น ${currentIndex + 1} · ${cta.step.label}` : stage.title}
                 >
                   {ctaLabel}
                   <ChevronRight />
@@ -165,8 +173,18 @@ function FormWorkOrder({ variant, order, boss, pair }: { variant: Variant; order
           revisions={[]}
           cancelledAt={null}
           cancelledReason={null}
-          blockers={cta.kind === "none" && !allDone ? [cta.note] : remaining > 0 ? [`ติ๊กข้อกำหนดของขั้นนี้ให้ครบก่อน — เหลือ ${remaining} ข้อ (แท็บ ขั้นตอน)`] : []}
+          blockers={cta.kind === "none" && !allDone ? [cta.note] : []}
         />
+      </div>
+
+      {/* ชั้น 1 ของทั้งใบ (กฎ 3 ชั้น DESIGN §ลำดับความสำคัญทางสายตา): ตัวเลขที่ต้องเห็นก่อน — Metric ตัวจริง ไม่ใช่บรรทัดเทา */}
+      <div className={cn(SUNK_PANEL, RADIUS.surface, "flex flex-wrap items-start gap-x-8 gap-y-4 p-4")}>
+        <Metric label="จำนวนที่ต้องผลิต" value={order.qty.toLocaleString("th-TH")} unit="ตัว" size="md" />
+        <div>
+          <p className="text-xs font-medium text-muted">กำหนดส่ง</p>
+          <DueTag dueInDays={order.dueInDays} dateLabel={order.dueLabel} size="lg" className="mt-1" />
+        </div>
+        {problems.length > 0 ? <Metric label="ติดปัญหา" value={problems.length} unit="ขั้น" size="md" tone="danger" icon={AlertTriangle} /> : null}
       </div>
 
       {/* นอกแท็บ (เหมือนหมายเหตุใบนี้ของหน้าออเดอร์): ปัญหาที่ค้างต้องเห็นไม่ว่าอยู่แท็บไหน */}
@@ -177,9 +195,8 @@ function FormWorkOrder({ variant, order, boss, pair }: { variant: Variant; order
         </Alert>
       ))}
       {order.note ? (
-        <div className={cn(TINT.warning, "flex flex-wrap gap-x-2 gap-y-1 rounded-lg border px-4 py-3 text-sm")}>
-          <span className="font-medium">หมายเหตุใบนี้</span>
-          <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">{order.note}</span>
+        <div className={cn(SUNK_PANEL, RADIUS.surface, "px-4 py-3")}>
+          <Fact label="หมายเหตุใบนี้" value={<span className="[overflow-wrap:anywhere]">{order.note}</span>} />
         </div>
       ) : null}
 
@@ -245,11 +262,11 @@ function FormWorkOrder({ variant, order, boss, pair }: { variant: Variant; order
                 <Section title="ประวัติใบนี้" meta={`วันนี้ ${PROTO_TODAY}`}>
                   <ol className="divide-y divide-divider">
                     {order.events.map((e, i) => (
-                      <li key={i} className="flex gap-3 py-2 text-sm">
-                        <span className="w-28 shrink-0 text-xs tabular-nums text-muted">{e.at}</span>
+                      <li key={i} className="flex items-start gap-3 py-2 text-sm">
+                        <span aria-hidden="true" className={cn("mt-2 h-2 w-2 shrink-0 rounded-full", e.tone === "danger" ? "bg-red-500" : e.tone === "success" ? "bg-green-500" : "bg-slate-300 dark:bg-slate-600")} />
+                        <span className="w-24 shrink-0 tabular-nums text-secondary">{e.at}</span>
                         <span className="min-w-0">
-                          <span className={cn("font-medium", e.tone === "danger" ? "text-red-700 dark:text-red-300" : e.tone === "success" ? "text-green-700 dark:text-green-300" : "text-strong")}>{e.who}</span>{" "}
-                          <span className="text-secondary">{e.what}</span>
+                          <span className="font-medium text-strong">{e.who}</span> <span className="text-secondary">{e.what}</span>
                         </span>
                       </li>
                     ))}
@@ -295,13 +312,7 @@ function StepsTable({
 }) {
   const rows = stages.flatMap((st, i) => st.steps.map((step, j) => ({ step, stageIndex: i, stage: st, firstOfStage: j === 0 })));
   const current = stages[currentIndex]!;
-  const footer = allDone
-    ? "ทุกขั้นปิดแล้ว งานอยู่ที่ QC — ย้อนกลับได้จากเมนู ⋯ ถ้าปิดผิด"
-    : remaining === 0 && ctaLabel
-      ? `ครบแล้ว — กด “${ctaLabel}” บนหัวใบ`
-      : remaining > 0
-        ? `ติ๊กอีก ${remaining} ข้อในแถวที่ไฮไลต์ แล้วกดปุ่มบนหัวใบ`
-        : null;
+  const footer = allDone ? "งานอยู่ที่ QC — ย้อนกลับได้จากเมนู ⋯ ถ้าปิดผิด" : remaining === 0 && ctaLabel ? `กด “${ctaLabel}” บนหัวใบ` : null;
 
   function rowProps(r: (typeof rows)[number]) {
     const { step, stageIndex, stage } = r;
@@ -317,20 +328,30 @@ function StepsTable({
   const checklist = (r: (typeof rows)[number]) => {
     const { step } = r;
     const { locked, small, smallRemaining, ticked } = rowProps(r);
+    const { isCurrent } = rowProps(r);
+    const left = step.checklist.length - ticked;
+    // ชิป "ติ๊กอีก N" อยู่ติดเช็คลิสต์ของแถวที่ยืนอยู่ (ไม่ใช่ท้ายตาราง) — คนเห็นตรงที่ต้องกด
+    const showChip = isCurrent && !locked;
     return (
       <div className="space-y-1">
+        {showChip ? (
+          left > 0 ? (
+            <InfoChip size="sm" strong tone="warning" icon={ListChecks} className="mb-1">ติ๊กอีก {left} ข้อ</InfoChip>
+          ) : (
+            <InfoChip size="sm" strong tone="success" icon={CheckCircle2} className="mb-1">ครบแล้ว</InfoChip>
+          )
+        ) : null}
         {step.checklist.map((c, i) => (
-          <label key={i} className={cn("flex min-h-8 items-center gap-2 text-sm", locked ? "cursor-default" : "cursor-pointer")}>
-            <Checkbox checked={c.done} disabled={locked} onChange={() => onTick(step.id, i)} />
-            <span className={cn(c.done ? "text-secondary line-through decoration-border" : locked ? "text-muted" : "text-strong")}>{c.label}</span>
+          <label key={i} className={cn("flex min-h-11 items-center gap-3 text-sm", locked ? "cursor-default" : "cursor-pointer")}>
+            <Checkbox className="h-5 w-5" checked={c.done} disabled={locked} onChange={() => onTick(step.id, i)} />
+            <span className={cn(c.done ? "text-secondary line-through decoration-border" : locked ? "text-muted" : "font-medium text-strong")}>{c.label}</span>
           </label>
         ))}
         {small ? (
-          <div className="flex flex-wrap items-center gap-2 pt-2">
-            <Button size="sm" variant={small.danger ? "destructive" : "outline"} disabled={smallRemaining > 0} onClick={() => onStep(step.id, small.to)}>
+          <div className="flex flex-wrap items-center gap-3 pt-2">
+            <Button variant={small.danger ? "destructive" : "outline"} disabled={smallRemaining > 0} onClick={() => onStep(step.id, small.to)}>
               {small.label}
             </Button>
-            {smallRemaining > 0 ? <span className="text-xs text-muted">ติ๊กอีก {smallRemaining} ข้อ</span> : null}
           </div>
         ) : null}
         <p className="sr-only">ติ๊กแล้ว {ticked} จาก {step.checklist.length}</p>
@@ -345,22 +366,17 @@ function StepsTable({
       <div className="space-y-1">
         <p className={cn("flex flex-wrap items-center gap-2 font-medium", isCurrent ? "text-strong" : step.state === "done" ? "text-secondary" : "text-muted")}>
           {step.label}
-          {stage.kind === "pair" ? <InfoChip size="sm" tone="info">ช่องคู่</InfoChip> : null}
+          {stage.kind === "pair" ? <InfoChip size="sm" tone="info">ทำพร้อมกัน</InfoChip> : null}
           <RecordChip step={step} variant={variant} />
         </p>
         {step.outsource ? (
-          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-secondary">
-            <Store className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden="true" />
-            {step.outsource.vendor}
-            {step.state !== "done" ? <DueTag dueInDays={step.outsource.backInDays} dateLabel={`นัดรับ ${step.outsource.backLabel}`} size="sm" /> : <span className="text-muted">รับกลับแล้ว</span>}
-          </p>
+          <InfoChipRow>
+            <InfoChip size="sm" icon={Store}>{step.outsource.vendor}</InfoChip>
+            {step.state !== "done" ? <DueTag dueInDays={step.outsource.backInDays} dateLabel={`นัดรับ ${step.outsource.backLabel}`} size="sm" /> : <InfoChip size="sm" tone="success">รับกลับแล้ว</InfoChip>}
+          </InfoChipRow>
         ) : null}
-        {isCurrent && step.note ? <p className="text-xs text-secondary">{step.note}</p> : null}
-        {note ? (
-          <p className="flex items-start gap-1.5 text-xs text-amber-800 dark:text-amber-200">
-            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" /> {note}
-          </p>
-        ) : null}
+        {isCurrent && step.note && !note ? <p className="text-sm text-secondary">{step.note}</p> : null}
+        {note ? <InfoChip size="sm" strong tone="warning" icon={AlertTriangle}>{note}</InfoChip> : null}
       </div>
     );
   };
@@ -368,31 +384,31 @@ function StepsTable({
   return (
     <Section
       title="ขั้นตอนของใบนี้"
-      meta={allDone ? "เสร็จทุกช่อง" : `ช่อง ${currentIndex + 1} จาก ${stages.length}${next ? ` · ถัดไป ${next.label}` : ""}`}
-      help={current.kind === "pair" ? "ช่องที่ยืนอยู่เป็นช่องคู่ — สองขั้นทำพร้อมกันได้ ปุ่มบนหัวใบคือขั้นที่กดได้ก่อน อีกขั้นมีปุ่มในแถวของตัวเอง" : undefined}
+      meta={allDone ? "เสร็จทุกขั้น" : next ? `ถัดไป ${next.label}` : "ขั้นสุดท้าย"}
+      help={current.kind === "pair" ? "ขั้นที่ยืนอยู่มีสองงานทำพร้อมกันได้ — ปุ่มบนหัวใบคือขั้นที่กดได้ก่อน อีกขั้นมีปุ่มในแถวของตัวเอง" : undefined}
       flush
     >
       {/* จอกว้าง: ตาราง */}
       <div className="hidden md:block">
         <table className="w-full table-fixed">
           <colgroup>
-            <col style={{ width: 44 }} />
+            <col style={{ width: 56 }} />
             <col />
+            <col style={{ width: 320 }} />
             <col style={{ width: 96 }} />
+            <col style={{ width: 88 }} />
             <col style={{ width: 96 }} />
-            <col style={{ width: 104 }} />
-            <col style={{ width: 84 }} />
-            <col style={{ width: 300 }} />
+            <col style={{ width: 132 }} />
           </colgroup>
           <thead className={TABLE_HEAD_SURFACE}>
             <tr>
-              <th className={cn(TH, "text-center")}>ช่อง</th>
+              <th className={cn(TH, "text-center")}>ขั้นที่</th>
               <th className={cn(TH, "text-left")}>ขั้นตอน</th>
+              <th className={cn(TH, "text-left")}>ข้อกำหนดก่อนปิดขั้น</th>
               <th className={cn(TH, "text-left")}>สถานะ</th>
               <th className={cn(TH, "text-left")}>ผู้ทำ</th>
-              <th className={cn(TH, "text-right")}>ทำแล้ว / ทั้งหมด</th>
+              <th className={cn(TH, "text-right")}>ทำแล้ว</th>
               <th className={cn(TH, "text-left")}>ควรเสร็จ</th>
-              <th className={cn(TH, "text-left")}>ข้อกำหนดก่อนปิดขั้น</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-divider">
@@ -400,16 +416,16 @@ function StepsTable({
               const { step, stageIndex, firstOfStage } = r;
               const { isCurrent } = rowProps(r);
               return (
-                <tr key={step.id} className={cn(isCurrent && "bg-blue-50/60 dark:bg-blue-950/20")}>
-                  <td className={cn(TD, "text-center tabular-nums", isCurrent ? "font-semibold text-strong" : "text-muted")}>{firstOfStage ? stageIndex + 1 : ""}</td>
+                <tr key={step.id} id={isCurrent && firstOfStage ? "proto-current-step" : undefined} className={cn(isCurrent && "border-l-2 border-l-blue-600 bg-blue-50/60 dark:bg-blue-950/20")}>
+                  <td className={cn(TD, "text-center tabular-nums", isCurrent ? "text-base font-semibold text-strong" : "text-muted")}>{firstOfStage ? stageIndex + 1 : ""}</td>
                   <td className={TD}>{identity(r)}</td>
+                  <td className={TD}>{checklist(r)}</td>
                   <td className={TD}><StateBadge step={step} /></td>
                   <td className={cn(TD, step.owner ? "text-secondary" : "text-muted")}>{step.owner ?? "—"}</td>
-                  <td className={cn(TD, "text-right tabular-nums", isCurrent ? "font-medium text-strong" : "text-secondary")}>
-                    {step.qtyDone.toLocaleString("th-TH")} / {step.qtyTotal.toLocaleString("th-TH")}
+                  <td className={cn(TD, "text-right")}>
+                    <Metric size="sm" value={step.qtyDone.toLocaleString("th-TH")} unit={`/ ${step.qtyTotal.toLocaleString("th-TH")}`} tone={isCurrent ? "default" : "muted"} className="items-end" />
                   </td>
-                  <td className={cn(TD, "text-secondary")}>{step.planEnd}</td>
-                  <td className={TD}>{checklist(r)}</td>
+                  <td className={TD}>{step.state === "done" ? <span className="text-secondary">{step.planEnd}</span> : <DueTag dueInDays={step.planEndInDays} dateLabel={step.planEnd} size="sm" />}</td>
                 </tr>
               );
             })}
@@ -432,7 +448,7 @@ function StepsTable({
               <FactList columns={3}>
                 <Fact size="sm" label="ผู้ทำ" value={step.owner ?? "—"} tone={step.owner ? "default" : "muted"} />
                 <Fact size="sm" label="ทำแล้ว" value={`${step.qtyDone.toLocaleString("th-TH")} / ${step.qtyTotal.toLocaleString("th-TH")}`} />
-                <Fact size="sm" label="ควรเสร็จ" value={step.planEnd} />
+                <Fact size="sm" label="ควรเสร็จ" value={step.state === "done" ? step.planEnd : <DueTag dueInDays={step.planEndInDays} dateLabel={step.planEnd} size="sm" />} />
               </FactList>
               <div>
                 <p className="mb-1 text-xs font-medium text-muted">ข้อกำหนดก่อนปิดขั้น</p>
@@ -444,10 +460,10 @@ function StepsTable({
       </div>
 
       {footer ? (
-        <p className={cn("flex items-start gap-2 border-t border-divider px-4 py-3 text-sm font-medium", remaining === 0 && !allDone ? "text-green-700 dark:text-green-300" : "text-strong")}>
-          {remaining === 0 ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" /> : null}
-          {footer}
-        </p>
+        <div className="flex flex-wrap items-center gap-3 border-t border-divider px-4 py-3">
+          <InfoChip strong tone="success" icon={CheckCircle2}>{allDone ? "ทุกขั้นปิดแล้ว" : "ติ๊กครบแล้ว"}</InfoChip>
+          <span className="text-sm text-secondary">{footer}</span>
+        </div>
       ) : null}
     </Section>
   );

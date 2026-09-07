@@ -35,6 +35,8 @@ export type WorkStep = {
   startedAt: string | null;
   completedAt: string | null;
   planEnd: string;
+  /** ระยะจากวันนี้ (8 ก.ย.) ถึงวันควรเสร็จ — ให้ DueTag ย้อมตามความรีบ */
+  planEndInDays: number;
   checklist: { label: string; done: boolean }[];
   outsource?: { vendor: string; work: string; sentOn: string; backLabel: string; backInDays: number; status: string };
   problem?: { title: string; detail: string; since: string };
@@ -164,6 +166,7 @@ export const CASE_4: WorkOrder = {
       startedAt: "1 ก.ย. 10:20",
       completedAt: "1 ก.ย. 10:45",
       planEnd: "1 ก.ย.",
+      planEndInDays: -7,
       checklist: [
         { label: "นับครบ 30 ตัว ตรงกับที่ลูกค้าแจ้ง", done: true },
         { label: "ถ่ายรูปสภาพเสื้อก่อนทำ", done: true },
@@ -183,6 +186,7 @@ export const CASE_4: WorkOrder = {
       startedAt: "2 ก.ย. 14:00",
       completedAt: null,
       planEnd: "6 ก.ย.",
+      planEndInDays: -2,
       checklist: [
         { label: "ส่งไฟล์ปัก + ตัวอย่างสีด้าย", done: true },
         { label: "ระบุจำนวนต่อไซซ์ในใบส่งร้าน", done: true },
@@ -212,6 +216,7 @@ export const CASE_4: WorkOrder = {
       startedAt: null,
       completedAt: null,
       planEnd: "7 ก.ย.",
+      planEndInDays: -1,
       checklist: [
         { label: "นับจำนวนต่อไซซ์ตรงใบสั่ง", done: false },
         { label: "ตรวจตำแหน่ง/สีด้าย ทุกตัว", done: false },
@@ -231,6 +236,7 @@ export const CASE_4: WorkOrder = {
       startedAt: null,
       completedAt: null,
       planEnd: "7 ก.ย.",
+      planEndInDays: -1,
       checklist: [{ label: "พับ + ถุงรายตัว แยกไซซ์", done: false }],
     },
   ],
@@ -390,6 +396,7 @@ export const CASE_7: WorkOrder = {
       startedAt: "4 ก.ย. 09:10",
       completedAt: "4 ก.ย. 09:40",
       planEnd: "4 ก.ย.",
+      planEndInDays: -4,
       checklist: [
         { label: "นับเสื้อตรงกับใบเบิก (สี/ไซซ์)", done: true },
         { label: "ตรวจตำหนิผ้าก่อนพิมพ์", done: true },
@@ -410,6 +417,7 @@ export const CASE_7: WorkOrder = {
       startedAt: "7 ก.ย. 13:00",
       completedAt: null,
       planEnd: "9 ก.ย.",
+      planEndInDays: 1,
       checklist: [
         { label: "ไฟล์ตรงกับม็อกอัพอนุมัติ v3", done: true },
         { label: "ทดสอบพิมพ์ 1 ชิ้นเทียบสี", done: true },
@@ -432,6 +440,7 @@ export const CASE_7: WorkOrder = {
       startedAt: "5 ก.ย. 15:00",
       completedAt: null,
       planEnd: "9 ก.ย.",
+      planEndInDays: 1,
       checklist: [
         { label: "ส่งไฟล์ปัก + ตัวอย่างสีด้าย", done: true },
         { label: "ระบุจำนวนต่อไซซ์ในใบส่งร้าน", done: true },
@@ -460,6 +469,7 @@ export const CASE_7: WorkOrder = {
       startedAt: "7 ก.ย. 09:00",
       completedAt: null,
       planEnd: "9 ก.ย.",
+      planEndInDays: 1,
       checklist: [
         { label: "ตั้งอุณหภูมิ 160°C · 12 วินาที (ตามสูตร)", done: true },
         { label: "รีดตัวอย่าง 1 ตัว ตรวจตำแหน่งเทียบม็อกอัพ", done: true },
@@ -481,6 +491,7 @@ export const CASE_7: WorkOrder = {
       startedAt: "2 ก.ย. 10:00",
       completedAt: null,
       planEnd: "6 ก.ย.",
+      planEndInDays: -2,
       checklist: [
         { label: "ส่งไฟล์ป้าย + สเปกขนาด", done: true },
         { label: "ตรวจรับ: จำนวน + สีทอตรงตัวอย่าง", done: false },
@@ -509,6 +520,7 @@ export const CASE_7: WorkOrder = {
       startedAt: null,
       completedAt: null,
       planEnd: "10 ก.ย.",
+      planEndInDays: 2,
       checklist: [
         { label: "นับจำนวนต่อไซซ์ตรงใบสั่ง", done: false },
         { label: "ตรวจตำแหน่ง/สี/รอยรีด ทุกตัว", done: false },
@@ -529,6 +541,7 @@ export const CASE_7: WorkOrder = {
       startedAt: null,
       completedAt: null,
       planEnd: "11 ก.ย.",
+      planEndInDays: 3,
       checklist: [
         { label: "พับ + ถุงรายตัว ติดสติกเกอร์ไซซ์", done: false },
         { label: "ลังละ 40 ตัว แยกสี · ใบแพ็กติดข้างลัง", done: false },
