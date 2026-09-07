@@ -5,7 +5,7 @@ import { useProtoFlag, useProtoVariant } from "../../_kit/use-proto-variant";
 import { CASE_VALUES, Preview, VALUES, type Case, type Variant } from "../_preview";
 
 export default function WorkOrderDeskView() {
-  const [variant] = useProtoVariant<Variant>("v", VALUES, "flow");
+  const [variant] = useProtoVariant<Variant>("v", VALUES, "wizard");
   const [scenario] = useProtoVariant<Case>("case", CASE_VALUES, "overdue");
   const [boss] = useProtoFlag("boss", true);
   return <main className="min-h-screen bg-bg px-4 py-5 text-strong sm:px-8">

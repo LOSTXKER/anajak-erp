@@ -12,10 +12,11 @@ const COPY: Record<Variant, { idea: string; tradeoff: string }> = {
   now: { idea: "ตัวเลขสรุป แผนที่ และรายละเอียดขั้นงาน แสดงเป็นกล่องแยกกัน", tradeoff: "ข้อมูลขั้นงานซ้ำหลายตำแหน่ง รายละเอียดบางส่วนต้องกดกาง" },
   flow: { idea: "งานที่ต้องดูขึ้นก่อน ทุกขั้นมีรายละเอียดในตำแหน่งเดียว เสื้อและลายอยู่ข้างกัน", tradeoff: "อ่านตามความสำคัญได้เร็ว แต่ต้องเลื่อนลงดูขั้นที่ผ่านแล้ว" },
   ledger: { idea: "เรียงทุกขั้นในตารางเดียว เทียบสถานะ ผู้รับงาน และวันนัดได้เป็นแนวเดียวกัน", tradeoff: "เห็นลำดับงานชัด แต่แถวที่มีรายละเอียดมากทำให้ตารางยาว" },
+  wizard: { idea: "ดูรายละเอียดทีละขั้น งานสายอื่นยังเลือกดูได้ เสื้อและลายอยู่ข้างกัน", tradeoff: "รายละเอียดแต่ละขั้นต้องสลับดู ปุ่มก่อน/ถัดไปเปลี่ยนเฉพาะขั้นที่ดู ไม่บันทึกว่างานเสร็จ" },
 };
 
 export default function WorkOrderDeskPage() {
-  const [variant, setVariant] = useProtoVariant<Variant>("v", VALUES, "flow");
+  const [variant, setVariant] = useProtoVariant<Variant>("v", VALUES, "wizard");
   const [scenario, setScenario] = useProtoVariant<Case>("case", CASE_VALUES, "overdue");
   const [boss, toggleBoss] = useProtoFlag("boss", true);
   const { setTheme } = useTheme();
@@ -25,7 +26,7 @@ export default function WorkOrderDeskPage() {
       <header>
         <Link href="/proto" className="inline-flex min-h-11 items-center gap-2 text-sm text-secondary hover:text-strong"><ArrowLeft className="size-4" />หน้าลองทั้งหมด</Link>
         <div className="flex flex-wrap items-center justify-between gap-4"><h1 className="text-2xl font-semibold">ใบผลิต จัดใหม่</h1><span className="text-xs text-secondary">ข้อมูลตัวอย่าง / ยังไม่เปลี่ยนหน้าจริง</span></div>
-        <p className="mt-2 text-sm text-secondary">ลดข้อมูลซ้ำ ให้แต่ละขั้นมีที่เดียว ทั้ง A และ B ไม่มีส่วนหุบพับ</p>
+        <p className="mt-2 text-sm text-secondary">เพิ่ม C แบบ wizard ตามที่เบสขอ: เห็นทีละขั้น พร้อมสลับไปดูงานสายอื่น</p>
       </header>
       <div className="space-y-4 border-b border-divider pb-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
