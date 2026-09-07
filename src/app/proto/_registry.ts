@@ -13,6 +13,13 @@ export type ProtoEntry = {
 
 export const PROTOS: ProtoEntry[] = [
   {
+    slug: "work-order-desk",
+    title: "ใบผลิต จัดใหม่ — แต่ละขั้นมีที่เดียว",
+    question: "จัดใบผลิตให้เบาด้วย A ใบงานต่อเนื่อง เรียงเรื่องที่ต้องดูก่อน หรือ B ตารางคุมงาน เรียงทุกขั้นในตารางเดียว ทั้งสองแบบไม่มีส่วนหุบพับ",
+    date: "2026-09-07",
+    status: "รอเคาะ",
+  },
+  {
     slug: "work-order-lean",
     title: "ใบผลิตเบาลง — เบสบอก “ยังดูเยอะไปอยู่”",
     question:
