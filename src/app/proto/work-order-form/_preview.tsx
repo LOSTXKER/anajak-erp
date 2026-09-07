@@ -25,7 +25,7 @@ import { Fact, FactList } from "@/components/ui/fact";
 import { InfoChip } from "@/components/ui/info-chip";
 import { MoreMenu, type MoreMenuItem } from "@/components/ui/more-menu";
 import { Section } from "@/components/ui/section";
-import { RADIUS, SUNK_PANEL, TABLE_HEAD_SURFACE } from "@/components/ui/tokens";
+import { RADIUS, TABLE_HEAD_SURFACE } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
 
 import { CASE_4, CASE_7, STATE_LABEL, recordModeOf, type WorkItem, type WorkOrder, type WorkStep } from "./_data";
@@ -186,14 +186,18 @@ function FormWorkOrder({ variant, order, boss, pair }: { variant: Variant; order
           ขวา = เช็คลิสต์ก่อนปิดขั้น → ข้อมูลออเดอร์ / ไม่มีแท็บ ไม่มีรายการทุกขั้น (รางบอกแล้ว) / ประวัติย้ายไปเมนู ⋯ */}
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
         <div className="min-w-0 space-y-6">
-          <StepHeading stage={stage} index={currentIndex} total={stages.length} next={next} allDone={allDone} variant={variant} />
+          {allDone ? (
+            <Section title="ใบนี้เสร็จแล้ว" icon={CheckCircle2} tone="production">
+              <p className="text-sm text-secondary">ทุกขั้นปิดแล้ว งานอยู่ที่ QC — ย้อนกลับได้จากเมนู ⋯ ถ้าปิดผิด</p>
+            </Section>
+          ) : null}
           {order.items.map((item, i) => (
             <ItemFocus key={i} item={item} focusSteps={focusSteps} />
           ))}
         </div>
 
         <aside className="space-y-6 lg:sticky lg:top-4">
-          <ChecklistCard stage={stage} boss={boss} allDone={allDone} ctaLabel={ctaLabel} remaining={remaining} onStep={(id, to) => setSteps(applyStep(steps, id, to))} onTick={tick} />
+          <ChecklistCard variant={variant} stage={stage} boss={boss} allDone={allDone} ctaLabel={ctaLabel} remaining={remaining} onStep={(id, to) => setSteps(applyStep(steps, id, to))} onTick={tick} />
           <Section title="ข้อมูลออเดอร์">
             <FactList columns={1}>
               <Fact label="ลูกค้า" value={order.customer} sub={order.company ?? undefined} />
@@ -214,54 +218,6 @@ function FormWorkOrder({ variant, order, boss, pair }: { variant: Variant; order
 }
 
 /* ───────────────────────── ซ้าย: ขั้นที่ยืนอยู่ + งานเสื้อของขั้นนี้ ───────────────────────── */
-
-function StepHeading({ stage, index, total, next, allDone, variant }: { stage: Stage; index: number; total: number; next: Stage | null; allDone: boolean; variant: Variant }) {
-  if (allDone) {
-    return (
-      <Section title="ใบนี้เสร็จแล้ว" icon={CheckCircle2} tone="production">
-        <p className="text-sm text-secondary">ทุกขั้นปิดแล้ว งานอยู่ที่ QC — ย้อนกลับได้จากเมนู ⋯ ถ้าปิดผิด</p>
-      </Section>
-    );
-  }
-  return (
-    <div className={cn(SUNK_PANEL, RADIUS.surface, "space-y-4 p-4")}>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-2xs font-medium uppercase tracking-wide text-muted">ขั้นที่ {index + 1} จาก {total}</p>
-          <h2 className="mt-1 text-xl font-semibold text-strong">{stage.kind === "pair" ? stage.steps.map((s) => s.label).join(" + ") : stage.steps[0]!.label}</h2>
-          {next ? <p className="mt-1 text-sm text-secondary">ถัดไป {next.label}</p> : null}
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {stage.kind === "pair" ? <InfoChip size="sm" tone="info">2 งาน ทำพร้อมกันได้</InfoChip> : null}
-          {stage.steps.map((s) => (
-            <RecordChip key={s.id} step={s} variant={variant} />
-          ))}
-        </div>
-      </div>
-      <div className={cn("grid gap-4", stage.steps.length > 1 ? "md:grid-cols-2" : "")}>
-        {stage.steps.map((step) => (
-          <div key={step.id} className="space-y-3">
-            {stage.steps.length > 1 ? (
-              <p className="flex items-center gap-2 text-sm font-medium text-strong">
-                {step.label} <StateBadge step={step} />
-              </p>
-            ) : null}
-            <FactList columns={stage.steps.length > 1 ? 2 : 4}>
-              <Fact size="sm" label="สถานะ" value={<StateBadge step={step} />} />
-              <Fact size="sm" label="ผู้ทำ" value={step.owner ?? "ยังไม่มีคนรับ"} tone={step.owner ? "default" : "muted"} />
-              <Fact size="sm" label="ทำแล้ว" value={<span className="tabular-nums">{step.qtyDone.toLocaleString("th-TH")} / {step.qtyTotal.toLocaleString("th-TH")} ตัว</span>} />
-              <Fact size="sm" label="ควรเสร็จ" value={<DueTag dueInDays={step.planEndInDays} dateLabel={step.planEnd} size="sm" />} />
-              {step.outsource ? (
-                <Fact size="sm" icon={Store} label="ร้านนอก" value={step.outsource.vendor} sub={<DueTag dueInDays={step.outsource.backInDays} dateLabel={`นัดรับ ${step.outsource.backLabel}`} size="sm" />} />
-              ) : null}
-            </FactList>
-            {step.note ? <p className="text-sm text-secondary">{step.note}</p> : null}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 /** ลายไหน "เป็นงานของขั้นนี้" — พิมพ์ฟิล์ม/รีดร้อน = DTF · ขั้นปัก = ปัก · ขั้นอื่น (รับเสื้อ · QC · แพ็ก) = ทุกลาย */
 function printIsForStep(step: WorkStep, technique: string): boolean {
@@ -342,6 +298,7 @@ function ItemFocus({ item, focusSteps }: { item: WorkItem; focusSteps: WorkStep[
 /* ───────────────────────── ขวา: เช็คลิสต์ก่อนปิดขั้น ───────────────────────── */
 
 function ChecklistCard({
+  variant,
   stage,
   boss,
   allDone,
@@ -350,6 +307,7 @@ function ChecklistCard({
   onStep,
   onTick,
 }: {
+  variant: Variant;
   stage: Stage;
   boss: boolean;
   allDone: boolean;
@@ -362,7 +320,7 @@ function ChecklistCard({
   const paper = stage.kind === "paper";
   return (
     <Section
-      title="ข้อกำหนดก่อนปิดขั้น"
+      title={stage.kind === "pair" ? "2 งานทำพร้อมกัน — ติ๊กก่อนปิด" : `${stage.steps[0]!.label} — ติ๊กก่อนปิด`}
       action={remaining > 0 ? <InfoChip size="sm" strong tone="warning" icon={ListChecks}>ติ๊กอีก {remaining} ข้อ</InfoChip> : <InfoChip size="sm" strong tone="success" icon={CheckCircle2}>ครบแล้ว</InfoChip>}
       help={paper ? "ขั้นพวกนี้จดบนใบสั่งงาน — ระบบถือว่าผ่านตอนกดส่งเข้า QC" : undefined}
       id="proto-current-step"
@@ -380,6 +338,13 @@ function ChecklistCard({
                   {step.label} <StateBadge step={step} />
                 </p>
               ) : null}
+              <RecordChip step={step} variant={variant} />
+              <FactList columns={step.outsource ? 2 : 1} className="mb-3">
+                <Fact size="sm" icon={UserRound} label="ผู้ทำ" value={step.owner ?? "ยังไม่มีคนรับ"} tone={step.owner ? "default" : "muted"} />
+                {step.outsource ? (
+                  <Fact size="sm" icon={Store} label="ร้านนอก" value={step.outsource.vendor} sub={<DueTag dueInDays={step.outsource.backInDays} dateLabel={`นัดรับ ${step.outsource.backLabel}`} size="sm" />} />
+                ) : null}
+              </FactList>
               {note ? (
                 <p className="mb-2 flex items-start gap-2 text-sm font-medium text-amber-800 dark:text-amber-200">
                   <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" /> {note}
