@@ -1,9 +1,14 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { AlertTriangle, ArrowLeft, ArrowRight, ChevronRight, FileText, Printer } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ArrowRight, ChevronRight, ClipboardList, Factory, FileText, Printer, UserRound } from "lucide-react";
+import { PageHeader } from "@/components/page-header";
+import { PageShell } from "@/components/page-shell";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Alert } from "@/components/ui/alert";
+import { Section, SectionTitle } from "@/components/ui/section";
+import { Tabs, TabsBar, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Fact } from "@/components/ui/fact";
 import { ActionZone } from "@/components/ui/action-zone";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -34,54 +39,50 @@ export function Workspace({ order, boss, mode, idPrefix }: WorkspaceProps) {
     requestAnimationFrame(() => contentRef.current?.scrollIntoView({ block: "nearest" }));
   }
 
-  return <article className={cn("@container card-surface min-w-0 overflow-hidden text-strong", RADIUS.surface)}>
-    <header className="border-b border-divider">
-      <div className="flex items-start justify-between gap-3 px-5 py-5 @lg:px-8">
-        <div className="min-w-0 space-y-1.5">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1"><h1 className="text-xl font-semibold @lg:text-2xl">{order.orderNumber}</h1><span className="text-xs text-secondary">{order.status}</span></div>
-          <p className="text-sm text-secondary">{order.customer}</p>
-        </div>
-        <div id={`${idPrefix}-document-menu`}><MoreMenu label="เมนูใบ" className="min-h-11 shrink-0" items={[{ key: "print", label: "ดูใบสั่งงานสำหรับพิมพ์", icon: Printer, onSelect: () => openAction("print", undefined, `${idPrefix}-document-menu`) }]} /></div>
-      </div>
-      <div className="grid grid-cols-2 divide-x divide-divider border-t border-divider bg-bg/50">
-        <Fact label="จำนวนทั้งหมด" value={`${order.qty} ตัว`} size="lg" className="px-5 py-4 @lg:px-8" />
-        <Fact label="ส่งลูกค้า" value={order.dueLabel} sub={order.dueInDays < 0 ? `เลยกำหนด ${-order.dueInDays} วัน` : undefined} tone={order.dueInDays < 0 ? "danger" : "default"} size="lg" className="px-5 py-4 @lg:px-8" />
-      </div>
-    </header>
-
+  return <article className="@container min-w-0 text-strong">
+    <PageShell title={order.orderNumber} width="full" className="space-y-6" header={
+      <Section>
+        <PageHeader title={order.orderNumber} description={null} icon={Factory} tone="production"
+          titleBadge={<Badge>{order.status}</Badge>}
+          action={<Button variant="outline" size="sm" onClick={() => openAction("print")}><Printer />ใบสั่งงาน</Button>}
+        />
+      </Section>
+    }>
     <Tabs value={tab} onValueChange={setTab} className="min-w-0">
-      <div className="border-b border-divider px-4 @lg:px-8"><TabsList className="gap-4 sm:gap-4 @lg:gap-7" aria-label="ข้อมูลใบผลิต">
+      <TabsBar className={cn("card-surface mx-0 bg-surface px-5", RADIUS.surface)}><TabsList aria-label="ข้อมูลใบผลิต">
         <TabsTrigger value="overview">ภาพรวม</TabsTrigger>
         <TabsTrigger value="operations">ขั้นงาน</TabsTrigger>
         <TabsTrigger value="items">สินค้าและแบบ</TabsTrigger>
         <TabsTrigger value="details">ข้อมูลใบ</TabsTrigger>
-      </TabsList></div>
-      <div ref={contentRef} className="scroll-mt-4">
+      </TabsList></TabsBar>
+      <div ref={contentRef} className="mt-6 scroll-mt-16">
         <TabsContent value="overview"><Overview order={order} focus={focus} boss={boss} openStep={openStep} openAction={openAction} showOperations={() => { setSelectedId(null); setTab("operations"); }} /></TabsContent>
-        <TabsContent value="operations">
+        <TabsContent value="operations"><Section flush>
           {order.steps.length ? <div className={cn(mode === "desk" && "@3xl:grid @3xl:grid-cols-[15rem_minmax(0,1fr)]")}>
             {mode === "desk" ? <nav aria-label="เลือกงาน" className={cn("border-divider @3xl:border-r", selected && "hidden @3xl:block")}><div className="border-b border-divider px-5 py-4 text-sm font-semibold">ขั้นงานทั้งหมด <span className="ml-1 font-normal text-secondary">{order.steps.length}</span></div><div className="p-2">{order.steps.map((step) => <button key={step.id} type="button" onClick={() => openStep(step)} aria-pressed={step.id === selectedId} className={cn(FOCUS_INSET, RADIUS.item, "flex min-h-16 w-full items-start gap-3 p-3 text-left transition-colors", step.id === selectedId ? INTERACTIVE_SELECTED : "hover:bg-interactive-hover")}><span className="pt-0.5 text-sm text-secondary">{step.order}</span><span className="min-w-0 space-y-1"><span className="block text-sm font-medium">{step.short}</span><StepStatus step={step} /></span></button>)}</div></nav> : null}
-            {selected ? <div className="min-w-0 p-5 @lg:p-8"><Button variant="ghost" className={cn("-ml-3 mb-4 min-h-11 text-secondary", mode === "desk" && "@3xl:hidden")} onClick={() => setSelectedId(null)}><ArrowLeft />ทั้งหมด {order.steps.length} ขั้น</Button><StepDetail key={selected.id} step={selected} order={order} boss={boss} openAction={openAction} idPrefix={idPrefix} /></div>
+            {selected ? <div className="min-w-0 p-5"><Button variant="ghost" className={cn("-ml-3 mb-4 min-h-11 text-secondary", mode === "desk" && "@3xl:hidden")} onClick={() => setSelectedId(null)}><ArrowLeft />ทั้งหมด {order.steps.length} ขั้น</Button><StepDetail key={selected.id} step={selected} order={order} boss={boss} openAction={openAction} idPrefix={idPrefix} /></div>
               : mode === "record" ? <OperationList order={order} openStep={openStep} /> : <p className="hidden p-8 text-sm text-secondary @3xl:block">เลือกขั้นงานเพื่อดูรายละเอียด</p>}
           </div> : <EmptySteps />}
-        </TabsContent>
-        <TabsContent value="items" className="p-5 @lg:p-8"><ItemsPanel order={order} /></TabsContent>
-        <TabsContent value="details" className="p-5 @lg:p-8"><DetailsPanel order={order} /></TabsContent>
+        </Section></TabsContent>
+        <TabsContent value="items"><Section><ItemsPanel order={order} /></Section></TabsContent>
+        <TabsContent value="details"><Section><DetailsPanel order={order} /></Section></TabsContent>
       </div>
     </Tabs>
+    </PageShell>
     {dialog ? <ActionDialog action={dialog.action} step={dialog.step} order={order} boss={boss} onClose={() => { const menuId = dialog.menuId; setDialog(null); if (menuId) requestAnimationFrame(() => document.getElementById(menuId)?.querySelector("button")?.focus()); }} /> : null}
   </article>;
 }
 
 function Overview({ order, focus, boss, openStep, openAction, showOperations }: { order: LeanOrder; focus: LeanStep | null; boss: boolean; openStep: (step: LeanStep) => void; openAction: OpenAction; showOperations: () => void }) {
-  if (!focus) return <EmptySteps />;
+  if (!focus) return <div className="grid gap-6 @4xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]"><Section><EmptySteps /></Section><OrderSummary order={order} showOperations={showOperations} /></div>;
   const other = nowSteps(order.steps).filter((step) => step.id !== focus.id);
-  const next = order.steps.find((step) => step.state === "todo");
   const vendor = focus.outsource;
   const title = focus.state === "blocked" ? focus.problem?.title ?? "งานติดปัญหา" : focus.state === "waiting" ? `รอรับงาน${focus.short}` : focus.state === "done" ? "ขั้นงานในใบนี้ผ่านครบแล้ว" : focus.short;
-  return <div className="divide-y divide-divider">
-    <section className="space-y-5 p-5 @lg:p-8" aria-label="งานที่ต้องดูตอนนี้">
-      <div className="space-y-2"><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-xl font-semibold @lg:text-2xl">{title}</h2><StepStatus step={focus} /></div><p className="text-sm text-secondary">{vendor?.vendor ?? focus.label}</p></div>
+  return <div className="grid items-start gap-6 @4xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+    <div className="min-w-0 space-y-6">
+    <Section title={title} action={<StepStatus step={focus} />} aria-label="งานที่ต้องดูตอนนี้">
+      <div className="space-y-5">
+      <p className="text-sm text-secondary">{vendor?.vendor ?? focus.label}</p>
       {focus.state === "blocked" ? <p className="max-w-prose text-sm text-secondary">{focus.problem?.detail}</p> : null}
       <div className={cn("grid grid-cols-2 gap-x-6 gap-y-4 border border-divider bg-bg/50 p-4", RADIUS.item)}>
         <Fact label={vendor ? "นัดรับกลับ" : "ผู้รับผิดชอบ"} value={vendor?.backLabel ?? focus.owner ?? "ยังไม่มอบหมาย"} />
@@ -89,18 +90,34 @@ function Overview({ order, focus, boss, openStep, openAction, showOperations }: 
       </div>
       {focus.note ? <p className="text-sm text-secondary">{focus.note}</p> : null}
       <StepActions step={focus} boss={boss} openAction={openAction} detail={() => openStep(focus)} />
-    </section>
-    {other.length ? <section className="px-5 py-5 @lg:px-8"><h2 className="mb-3 text-sm font-semibold">งานอื่นที่กำลังดำเนินการ</h2><ul className="divide-y divide-divider">{other.map((step) => <li key={step.id}><button type="button" className={cn(FOCUS_INSET, "flex min-h-16 w-full items-center justify-between gap-4 py-3 text-left hover:bg-interactive-hover")} onClick={() => openStep(step)}><span className="min-w-0"><span className="block text-sm font-medium">{step.short}</span><span className="block text-xs text-secondary">{step.outsource?.vendor ?? step.owner ?? step.station ?? "ยังไม่มอบหมาย"}</span></span><span className="flex shrink-0 items-center gap-2"><StepStatus step={step} /><ChevronRight aria-hidden="true" className="size-4 text-secondary" /></span></button></li>)}</ul></section> : null}
-    <section className="flex flex-wrap items-center justify-between gap-3 bg-bg/50 px-5 py-5 @lg:px-8">
-      <div className="min-w-0"><p className="text-xs text-secondary">{next ? "ขั้นถัดไป" : "ขั้นงานทั้งหมด"}</p><p className="mt-1 text-sm font-medium">{next?.short ?? `${order.steps.length} ขั้น`}</p>{next ? <p className="mt-1 text-xs text-secondary">{pendingOf(next, order.steps).length ? `รอ ${pendingOf(next, order.steps).map((step) => step.short).join(" และ ")}` : "พร้อมเริ่มงาน"}</p> : null}</div>
-      <Button variant="ghost" className="min-h-11" onClick={showOperations}>ดูขั้นงานทั้งหมด<ArrowRight /></Button>
-    </section>
+      </div>
+    </Section>
+    {other.length ? <Section compact title={<SectionTitle icon={Factory} tone="production">งานอื่นที่กำลังดำเนินการ</SectionTitle>}><ul className="divide-y divide-divider">{other.map((step) => <li key={step.id}><button type="button" className={cn(FOCUS_INSET, "flex min-h-16 w-full items-center justify-between gap-4 py-3 text-left hover:bg-interactive-hover")} onClick={() => openStep(step)}><span className="min-w-0"><span className="block text-sm font-medium">{step.short}</span><span className="block text-xs text-secondary">{step.outsource?.vendor ?? step.owner ?? step.station ?? "ยังไม่มอบหมาย"}</span></span><span className="flex shrink-0 items-center gap-2"><StepStatus step={step} /><ChevronRight aria-hidden="true" className="size-4 text-secondary" /></span></button></li>)}</ul></Section> : null}
+    </div>
+    <OrderSummary order={order} showOperations={showOperations} />
   </div>;
+}
+
+function OrderSummary({ order, showOperations }: { order: LeanOrder; showOperations: () => void }) {
+  const next = order.steps.find((step) => step.state === "todo");
+  return <Section compact title={<SectionTitle icon={ClipboardList} tone="production">ข้อมูลใบผลิต</SectionTitle>}>
+    <div className="space-y-5">
+      <Fact label="ลูกค้า" value={order.customer} icon={UserRound} />
+      <div className="grid grid-cols-2 gap-4 border-t border-divider pt-5">
+        <Fact label="จำนวนทั้งหมด" value={`${order.qty} ตัว`} size="lg" />
+        <Fact label="ส่งลูกค้า" value={order.dueLabel} sub={order.dueInDays < 0 ? `เลยกำหนด ${-order.dueInDays} วัน` : undefined} tone={order.dueInDays < 0 ? "danger" : "default"} size="lg" />
+      </div>
+      <div className="space-y-3 border-t border-divider pt-5">
+      <div className="min-w-0"><p className="text-xs text-secondary">{next ? "ขั้นถัดไป" : "ขั้นงานทั้งหมด"}</p><p className="mt-1 text-sm font-medium">{next?.short ?? `${order.steps.length} ขั้น`}</p>{next ? <p className="mt-1 text-xs text-secondary">{pendingOf(next, order.steps).length ? `รอ ${pendingOf(next, order.steps).map((step) => step.short).join(" และ ")}` : "พร้อมเริ่มงาน"}</p> : null}</div>
+      <Button variant="ghost" size="sm" onClick={showOperations}>ดูขั้นงานทั้งหมด<ArrowRight /></Button>
+      </div>
+    </div>
+  </Section>;
 }
 
 function OperationList({ order, openStep }: { order: LeanOrder; openStep: (step: LeanStep) => void }) {
   return <section aria-label="ขั้นงานทั้งหมด">
-    <div className="flex items-center justify-between gap-3 px-5 py-5 @lg:px-8"><h2 className="font-semibold">ขั้นงานทั้งหมด</h2><p className="text-sm text-secondary">{order.steps.length} ขั้น</p></div>
+    <div className="flex items-center justify-between gap-3 px-5 py-5"><h2 className="font-semibold">ขั้นงานทั้งหมด</h2><p className="text-sm text-secondary">{order.steps.length} ขั้น</p></div>
     <div className="@3xl:hidden"><ul className="divide-y divide-divider">{order.steps.map((step) => <li key={step.id}><button type="button" onClick={() => openStep(step)} className={cn(FOCUS_INSET, "flex min-h-20 w-full items-center justify-between gap-3 px-5 py-4 text-left hover:bg-interactive-hover")}><span className="min-w-0 space-y-1"><span className="block text-sm font-medium">{step.order}. {step.short}</span><span className="block text-xs text-secondary">{step.outsource?.vendor ?? step.station ?? "ในโรงงาน"}</span></span><span className="flex shrink-0 items-center gap-2"><StepStatus step={step} /><ChevronRight aria-hidden="true" className="size-4 text-secondary" /></span></button></li>)}</ul></div>
     <div className="hidden @3xl:block"><DataTable.Root bordered={false}><DataTable.Head><tr><DataTable.Th>ขั้นงาน</DataTable.Th><DataTable.Th>ผู้รับงาน / สถานี</DataTable.Th><DataTable.Th>สถานะ</DataTable.Th><DataTable.Th>กำหนด</DataTable.Th></tr></DataTable.Head><DataTable.Body>{order.steps.map((step) => <DataTable.Row key={step.id} onClick={() => openStep(step)} className="cursor-pointer hover:bg-interactive-hover"><DataTable.Td><button type="button" className={cn(FOCUS_INSET, "min-h-11 text-left font-medium")} onClick={(event) => { event.stopPropagation(); openStep(step); }}>{step.order}. {step.short}</button></DataTable.Td><DataTable.Td>{step.outsource?.vendor ?? step.owner ?? step.station ?? "ยังไม่มอบหมาย"}</DataTable.Td><DataTable.Td><StepStatus step={step} /></DataTable.Td><DataTable.Td>{step.outsource?.backLabel ?? step.planEnd}</DataTable.Td></DataTable.Row>)}</DataTable.Body></DataTable.Root></div>
   </section>;
@@ -112,7 +129,7 @@ function StepDetail({ step, order, boss, openAction, idPrefix }: { step: LeanSte
   const vendor = step.outsource;
   return <section className="space-y-6" aria-label={`รายละเอียด ${step.short}`}>
     <header className="space-y-2"><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-xl font-semibold">{step.short}</h2><StepStatus step={step} /></div>{vendor?.work || step.label !== step.short ? <p className="text-sm text-secondary">{vendor?.work ?? step.label}</p> : null}</header>
-    {step.problem ? <div className="flex items-start gap-3"><AlertTriangle className="mt-0.5 size-5 shrink-0 text-red-700 dark:text-red-300" /><div><h3 className="text-sm font-semibold">{step.problem.title}</h3><p className="mt-1 text-sm text-secondary">{step.problem.detail}</p></div></div> : null}
+    {step.problem ? <Alert variant="error" title={step.problem.title}>{step.problem.detail}</Alert> : null}
     {pending.length ? <div className="space-y-1"><p className="text-sm font-medium">{step.state === "active" ? "ทำส่วนที่พร้อมได้" : "ยังเริ่มขั้นนี้ไม่ได้"}</p><p className="text-sm text-secondary">รอ {pending.map((item) => item.short).join(" และ ")}</p>{step.state === "active" ? <p className="text-sm text-secondary">{step.note ?? order.garment}</p> : null}</div> : null}
     <div className={cn("grid grid-cols-2 gap-x-5 gap-y-5 border border-divider bg-bg/50 p-4", RADIUS.item)}>
       <Fact label={vendor ? "ร้านที่รับงาน" : "ผู้รับผิดชอบ"} value={vendor?.vendor ?? step.owner ?? "ยังไม่มอบหมาย"} />
