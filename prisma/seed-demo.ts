@@ -1094,6 +1094,8 @@ async function main() {
       let finalInvoiceNumber = 0;
       let receiptNumber = 0;
 
+      // ฐานทดลองเริ่มต้นเป็นใบผลิตแบบเดิม — ซ้อม V2 ตั้ง DEMO_PRODUCTION_V2=1 (ดู docs/local-demo-data.md)
+      const demoV2 = process.env.DEMO_PRODUCTION_V2 === "1";
       for (const [index, scenario] of DEMO_SEED_SCENARIOS.entries()) {
         const id = `demo-order-${scenario.key}`;
         const number = `ORD-${period}-${String(scenario.sequence).padStart(4, "0")}`;
@@ -1330,8 +1332,10 @@ async function main() {
         }
 
         const stepIds: SeededOrder["stepIds"] = {};
+        // V2 ปล่อยใบไว้ล่วงหน้าตอนออเดอร์ยังอยู่คิว — แบบเดิมไม่มีสถานะนี้ (ใบเกิดพร้อมออเดอร์ขยับเป็น "กำลังผลิต")
+        // จึงให้ออเดอร์คิวไม่มีใบในโหมดแบบเดิม = "รอเปิดใบผลิต" จริง (เบสเจอ 09-09: ฟอร์มบอกออเดอร์ยังไม่กำลังผลิต)
         const productionStatuses: InternalStatus[] = [
-          "PRODUCTION_QUEUE",
+          ...(demoV2 ? (["PRODUCTION_QUEUE"] as InternalStatus[]) : []),
           "PRODUCING",
           "QUALITY_CHECK",
           "PACKING",
@@ -2375,18 +2379,14 @@ async function main() {
         art: DEMO_ART,
       });
 
-      const demoV2 = process.env.DEMO_PRODUCTION_V2 === "1";
 
       if (!demoV2) {
 
         await tx.productionStep.updateMany({ data: { executionEnabled: false } });
 
         await tx.production.updateMany({
-
           where: { workOrderNumber: { not: null } },
-
           data: { workOrderNumber: null },
-
         });
 
       }
