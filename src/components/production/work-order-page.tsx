@@ -105,7 +105,6 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab }: { c: 
   const notWaiting = openInNode.filter((s) => routeWaitingOn(s, workflowSteps).length === 0);
   const current = actionable[0] ?? notWaiting.find((s) => !activeOutsource(s)) ?? notWaiting[0] ?? openInNode[0] ?? currentNode[currentNode.length - 1] ?? null;
   const pairedOpen = openInNode.filter((s) => s !== current);
-  const currentOutsource = current ? activeOutsource(current) : null;
   const railLabels = nodes.map((node, i) => {
     const label = node.map(stepLabel).join(" + ");
     return nodes.some((o, j) => j !== i && o.map(stepLabel).join(" + ") === label) ? `${label} ${i + 1}` : label;
