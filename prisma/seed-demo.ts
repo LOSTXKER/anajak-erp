@@ -2360,6 +2360,29 @@ async function main() {
         ],
       });
 
+      // ฐานทดลองเริ่มต้นเป็นใบผลิต "แบบเดิม" เหมือนเว็บจริง (PRODUCTION_V2_ENABLED=0) — ฟอร์มใบผลิตขับได้ทุกใบ
+
+      // ซ้อม V2 เมื่อไหร่ค่อยตั้ง DEMO_PRODUCTION_V2=1 ตอน seed (เบสเคาะ 2026-09-09 "เอาทางดีสุด ไม่ซีเรียสข้อมูล")
+
+      // ทำหลัง seed ครบเพื่อคง scenario เดิมทุกใบ: ถอด flag V2 ออกจากขั้น + ลบเลข MO (production.create เช็คเลขนี้)
+
+      const demoV2 = process.env.DEMO_PRODUCTION_V2 === "1";
+
+      if (!demoV2) {
+
+        await tx.productionStep.updateMany({ data: { executionEnabled: false } });
+
+        await tx.production.updateMany({
+
+          where: { workOrderNumber: { not: null } },
+
+          data: { workOrderNumber: null },
+
+        });
+
+      }
+
+
       const [
         orderCount,
         productionRows,
@@ -2534,6 +2557,7 @@ async function main() {
       if (demoStockRows.length !== Object.keys(DEMO_STOCK_PRODUCTS).length) {
         throw new Error("Demo seed สินค้าสต๊อกทดสอบไม่ครบ");
       }
+      if (demoV2) {
       if (
         v2WorkOrders.length !== productionRows.length ||
         v2WorkCenterCount !== V2_WORK_CENTERS.length
@@ -2595,6 +2619,7 @@ async function main() {
         )
       ) {
         throw new Error("Demo V2 defect/rework/reinspection scenario ไม่ครบ");
+      }
       }
       for (const product of demoStockRows) {
         if (product.source !== "LOCAL" || !product.sku.startsWith("DEMO-")) {
