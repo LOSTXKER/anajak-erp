@@ -6,10 +6,11 @@
   - server (`routers/production.ts` + `services/work-order-form.ts` pure + test): `tickStandard` · `reportPieceQty` (ใช้ `OperationQuantity` เดิม ไม่สร้างตารางใหม่) · `reopenStep` (หัวหน้า) · **ด่านใน `updateStep`: ปิดขั้นได้เมื่อติ๊กข้อกำหนดครบ** · สูตรขั้นงาน/เปิดใบผลิตรับ flag ช่องคู่
   - หน้า `work-order-page.tsx`: เช็คลิสต์ติ๊กได้ (ชื่อคนติ๊ก · ชิป “ติ๊กอีก N ข้อ”) · ตารางรายตัวกรอก ทำแล้ว/เสีย ต่อแถว + ครบทุกแถว + บันทึก · ปุ่มปิดขั้นบนหัวใบ aria-disabled พาไปเช็คลิสต์จนติ๊กครบ · เมนู ⋯ “ย้อนกลับไป <ขั้น>” · ราง `lib/work-order-rail.ts` รวมช่องคู่ “A + B” · “ส่งเข้า QC” โผล่เมื่อทุกขั้นปิดแล้วเท่านั้น
 - ตรวจแล้ว: typecheck · lint · unit 1,683 (+17) · verify:ui 26/26 · Chrome ฐานทดลอง ORD-2609-0009 เดินครบ: เริ่มทำ → ปุ่มปิดติดจนติ๊ก 2 ข้อ → ครบทุกแถว → บันทึกยอด 30/30 → ปิดขั้น → รางเลื่อน → ⋯ ย้อนกลับ → กลับมาเปิด ยอด/ติ๊กยังอยู่ · ช่องคู่โชว์ “ตรวจคุณภาพ + แพ็ก” · หน้าสูตรมีติ๊ก “เดินคู่กับขั้นก่อน” · ไม่มี console error
+- **เบสสั่ง “commit push main” (09-09 02:30)** → backup ฐานจริงก่อน (`~/Backups/anajak-erp-db/anajak-erp-20260909-0229.dump` · pg_dump 17 ผ่าน docker postgres:17-alpine เพราะ Vercel build ไม่รัน migrate) → `prisma migrate deploy` บน Supabase ผ่าน (39/39) → main ff จาก branch → push main = ขึ้นเว็บจริง
 - **ข้อจำกัดฐานทดลอง**: ใบผลิตทดลองทุกใบเป็น V2 (`executionEnabled`) → ปุ่มสถานะ/ยอด/ย้อนโดน server ปฏิเสธ (กติกาเดิมของ updateStep) · ตอนตรวจปรับ ORD-2609-0009 ให้เป็นใบแบบเดิม + ปักลายปิดแล้ว + แพ็กติดช่องคู่ ด้วย SQL บนฐานทดลอง (รีเซ็ตได้ `npm run db:seed:demo`) · มีร่างสูตร “DTF ในโรงงาน เวอร์ชัน 2” ค้างบนฐานทดลองจากการตรวจ
 
 ## NEXT
-0. **เบสลอง** http://localhost:3000/production/demo-production-outsource-overdue (ฐานทดลอง `npm run dev:demo`) แล้วบอกว่า push main ไหม — push main = ต้อง `prisma migrate deploy` บนฐานจริงด้วย (ถาม + backup ก่อน ตาม deploy-checklist)
+0. ดูเว็บจริงหลัง deploy: เปิดใบผลิตจริงสัก 1 ใบ เช็คว่าราง/เช็คลิสต์/ตารางโหลด (ฐานจริงเป็นใบแบบเดิม ปุ่มใช้ได้จริง) · ไฟล์ backup ว่าง `anajak-erp-20260909-0228.dump` ลบทิ้งได้ (hook กัน rm ไม่ให้ Nami ลบ)
 1. ⚠️ ถามเบส: แก้ seed ฐานทดลองให้มีใบผลิตแบบเดิม 1 ใบ (ไม่ใช่ V2) เพื่อลองฟอร์มได้โดยไม่ต้องแก้ SQL มือ (ROADMAP §A9 หนี้ 1)
 2. หนี้ A9 ที่เหลือ (ROADMAP §A9 ท้ายใบงาน): ทางลัด `sendToQc` ฝั่ง server · ข้อกำหนดยังนิ่งในโค้ด · `work-order-route.tsx` ไม่ถูกใช้ (ลบต้องถาม)
 3. งานค้างเดิม: CI แดงจาก `production-desk.test.ts` เขตเวลา (แยกแก้) · A2–A8/B/C/F ตาม ROADMAP
