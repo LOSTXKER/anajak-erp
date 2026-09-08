@@ -100,8 +100,10 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab }: { c: 
   const currentNode = nodes[currentNodeIndex] ?? [];
   // ปุ่มบนหัวใบเป็นของขั้นแรกในช่องที่ยังไม่ปิดและไม่ติดรอ — ขั้นคู่ที่เหลือมีปุ่มของตัวเองในฟอร์ม
   const openInNode = currentNode.filter((s) => s.status !== "COMPLETED");
+  // ลำดับเลือก: ขั้นที่มีปุ่มให้กดจริงและไม่ได้อยู่ร้านนอก → ขั้นที่ไม่ติดรอ → ขั้นแรกที่ยังไม่ปิด
+  const actionable = openInNode.filter((s) => nowById.get(s.id)?.action && !activeOutsource(s));
   const notWaiting = openInNode.filter((s) => routeWaitingOn(s, workflowSteps).length === 0);
-  const current = notWaiting.find((s) => !activeOutsource(s)) ?? notWaiting[0] ?? openInNode[0] ?? currentNode[currentNode.length - 1] ?? null;
+  const current = actionable[0] ?? notWaiting.find((s) => !activeOutsource(s)) ?? notWaiting[0] ?? openInNode[0] ?? currentNode[currentNode.length - 1] ?? null;
   const pairedOpen = openInNode.filter((s) => s !== current);
   const currentOutsource = current ? activeOutsource(current) : null;
   const railLabels = nodes.map((node, i) => {
@@ -162,7 +164,7 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab }: { c: 
   const blockers: string[] = [];
   if (current && !allDone && !qcAction && !c.writeDataStale) {
     if (current.status === "FAILED" || current.status === "ON_HOLD") blockers.push(current.status === "ON_HOLD" ? "งานถูกพักไว้" : "ติดปัญหา — รอหัวหน้าจัดการ");
-    else if (waitingNames.length > 0) blockers.push(`รอ ${waitingNames.length === 1 ? waitingNames[0] : `${waitingNames.length} ขั้นก่อนหน้า`}`);
+    else if (waitingNames.length > 0 && !nowById.get(current.id)?.action) blockers.push(`รอ ${waitingNames.length === 1 ? waitingNames[0] : `${waitingNames.length} ขั้นก่อนหน้า`}`);
     else if (!c.canUpdateStep && c.hasProductionPermission) blockers.push("ออเดอร์ยังไม่อยู่ในสถานะกำลังผลิต");
     else if (current.assignedTo && !c.canOwnOrSupervise(current)) blockers.push(`งานของ ${current.assignedTo.name}`);
   }
