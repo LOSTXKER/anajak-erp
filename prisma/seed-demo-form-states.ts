@@ -57,13 +57,14 @@ export const FORM_ROUTES: FormRoute[] = [
     steps: [{ key: "receive", stepType: "GARMENT_RECEIVE" }, { key: "press", stepType: "HEAT_PRESS" }, QC],
   },
   // ยังไม่มีเส้นทางพิมพ์ DTF: หน้ารอบพิมพ์ฟิล์มถอดออกแล้ว รอสร้างใหม่ (ROADMAP §A3) — ใส่แล้วจะกดต่อไม่ได้
+  // กติกาโรงงาน: งานร้านนอกไปก่อนเสมอ — รีดร้อนเริ่มได้เมื่อของกลับจากร้านครบ (evaluateHeatPressGate)
   {
-    key: "press-tag",
-    customerName: "ลอง 3 · รีดร้อน → ป้ายคอร้านนอก → ตรวจ",
-    note: "ทำเองก่อน แล้วส่งร้านนอกต่อ",
+    key: "tag-press",
+    customerName: "ลอง 3 · ป้ายคอร้านนอก → รีดร้อน → ตรวจ",
+    note: "ส่งร้านนอกก่อน ของกลับแล้วค่อยรีดเอง",
     deadlineInDays: 6,
     printType: "HEAT_TRANSFER",
-    steps: [{ key: "press", stepType: "HEAT_PRESS" }, { key: "tag", stepType: "TAGGING" }, QC],
+    steps: [{ key: "tag", stepType: "TAGGING" }, { key: "press", stepType: "HEAT_PRESS" }, QC],
   },
   {
     key: "embroidery",
