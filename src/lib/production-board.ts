@@ -10,6 +10,7 @@ import {
 } from "@/lib/production-steps";
 import { differenceInBangkokDays } from "@/lib/date-utils";
 import type { OrderMockupSourceLike } from "@/lib/mockup";
+import { routeWaitingOn } from "@/lib/work-order-route";
 
 /* ============================================================
    บอร์ดการผลิต — view model ของหน้า /production (ทิศ C · ใบงาน PC1)
@@ -101,7 +102,7 @@ export type BoardSpot<S extends BoardStepLike> = {
   step: S | null;
   doneSteps: number;
   totalSteps: number;
-  /** ลงมือไม่ได้เพราะรอของ (คิวรีด DTF) — บอกว่ารออะไร แทนที่จะโชว์ปุ่มที่กดแล้วพัง */
+  /** ขั้นก่อนหน้าที่ยังไม่จบ — ใช้เส้นทางเดียวกับใบผลิตและด่านรีดร้อน */
   waitingOn: string[];
   ready: boolean;
 };
@@ -345,6 +346,9 @@ export function buildProductionBoard<
               ...new Set([...(pressWaitByOrder.get(order.id) ?? []), ...gate.waitingOn]),
             ]);
           }
+          const waitingOn = gated
+            ? gate.waitingOn
+            : routeWaitingOn(current, steps).map((step) => `รอ${stepName(step)}`);
           spots.push({
             key: `${production.id}:${lane}`,
             stationKey: `lane:${lane}`,
@@ -354,8 +358,8 @@ export function buildProductionBoard<
             step: current,
             doneSteps: laneSteps.length - pending.length,
             totalSteps: laneSteps.length,
-            waitingOn: gated ? gate.waitingOn : [],
-            ready: !gated,
+            waitingOn,
+            ready: waitingOn.length === 0,
           });
         }
 

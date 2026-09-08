@@ -56,8 +56,8 @@ export function StationShell({
   children: ReactNode;
 }) {
   return (
-    <div className="mx-auto flex min-h-screen max-w-[1500px] flex-col px-4 py-4 sm:px-6">
-      <header className="flex items-center gap-3 border-b border-border pb-3">
+    <main className="mx-auto flex min-h-screen max-w-[1500px] flex-col px-4 py-4 sm:px-6">
+      <header className="flex flex-wrap items-center gap-3 border-b border-border pb-3">
         {onBack ? (
           <Button variant="outline" size="lg" className="h-12 shrink-0 px-4" onClick={onBack}>
             <ArrowLeft /> {backLabel}
@@ -77,25 +77,25 @@ export function StationShell({
         {who}
       </header>
       <div className="flex-1 pt-5">{children}</div>
-    </div>
+    </main>
   );
 }
 
-export function WhoChip({ name, boss = false, onChange }: { name: string; boss?: boolean; onChange?: () => void }) {
+export function WhoChip({ name, boss = false, onChange, pending = false }: { name: string; boss?: boolean; onChange?: () => void; pending?: boolean }) {
   return (
-    <div className={cn("flex items-center gap-2 rounded-full py-1 pl-1 pr-3", SUNK_PANEL)}>
+    <div className={cn("flex max-w-full items-center gap-2 rounded-full py-1 pl-1 pr-3", SUNK_PANEL)}>
       <span aria-hidden="true" className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white dark:bg-blue-500">
         {name.trim().charAt(0) || "?"}
       </span>
-      <span className="text-sm font-medium text-strong">{name}</span>
+      <span className="min-w-0 break-words text-sm font-medium text-strong [overflow-wrap:anywhere]">{name}</span>
       {boss ? (
         <Badge variant="accent" size="sm">
           หัวหน้า
         </Badge>
       ) : onChange ? (
-        <button type="button" onClick={onChange} className="text-xs text-secondary underline-offset-2 hover:underline">
-          เปลี่ยนคน
-        </button>
+        <Button type="button" variant="ghost" size="sm" onClick={onChange} disabled={pending} className="shrink-0">
+          {pending ? "กำลังออก…" : "เปลี่ยนคน"}
+        </Button>
       ) : null}
     </div>
   );

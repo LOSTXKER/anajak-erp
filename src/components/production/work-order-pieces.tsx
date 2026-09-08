@@ -59,7 +59,7 @@ export function viewOf(step: ProductionStep, now: NowStep<ProductionStep> | unde
             : now && now.group === "current"
               ? "active"
               : "todo";
-  return { state, ...STEP_VIEW[state] };
+  return { state, ...STEP_VIEW[state], ...(state === "active" && step.status !== "IN_PROGRESS" ? { label: "พร้อมทำ" } : {}) };
 }
 
 export function activeOutsource(step: ProductionStep) {

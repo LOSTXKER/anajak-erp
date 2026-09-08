@@ -319,10 +319,6 @@
     "dots": 0,
     "muted": 2
   },
-  "src/components/production/production-mockup-tab.tsx": {
-    "dots": 0,
-    "muted": 4
-  },
   "src/components/production/step-update-dialog.tsx": {
     "dots": 0,
     "muted": 1

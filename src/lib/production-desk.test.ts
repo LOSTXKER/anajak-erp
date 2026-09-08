@@ -95,6 +95,51 @@ const rows = buildDeskRows(board, NOW);
 const byOrder = (id: string) => rows.find((row) => row.job.order.id === id)!;
 
 describe("production-desk", () => {
+  const rowForSteps = (steps: Step[], extra: Partial<Order> = {}) => buildDeskRows(buildProductionBoard([
+    order({ id: "parallel", orderNumber: "ORD-parallel", productions: [{ id: "p-parallel", steps }], ...extra }),
+  ], { now: NOW, showBlocked: true }), NOW)[0]!;
+
+  it("งานเลยกำหนดแต่ยังทำได้ไม่ถูกนับเป็นติดปัญหา", () => {
+    const row = rowForSteps([step({ id: "print", stepType: "DTF_PRINT", status: "IN_PROGRESS" })], { deadline: "2026-09-01" });
+    expect(row.job.overdue).toBe(true);
+    expect(row.blocked).toBe(false);
+    expect(deskSummary([row])).toMatchObject({ late: 1, blocked: 0 });
+  });
+
+  it("ขึ้นงานที่ส่งร้านต่อได้ก่อนรีดและ QC ที่ยังรอ โดยไม่แจ้งติดปัญหา", () => {
+    const row = rowForSteps([
+      step({ id: "pick", stepType: "GARMENT_PICK", status: "COMPLETED" }),
+      step({ id: "tag", stepType: "TAGGING", sortOrder: 2 }),
+      step({ id: "film", stepType: "DTF_PRINT", status: "COMPLETED", sortOrder: 3 }),
+      step({ id: "press", stepType: "HEAT_PRESS", sortOrder: 4 }),
+      step({ id: "qc", stepType: "CUSTOM", customStepName: "ตรวจคุณภาพ", sortOrder: 5 }),
+    ]);
+    expect(row.blocked).toBe(false);
+    expect(row.current[0]).toMatchObject({ state: "active", label: expect.stringContaining("รอส่งร้าน") });
+    expect(row.current.filter((c) => c.state === "waiting")).toHaveLength(2);
+  });
+
+  it("รอรับร้านปกติแยกจากตรวจรับไม่ผ่านและการพักงาน", () => {
+    const tag = step({ id: "tag", stepType: "TAGGING", outsourceOrders: [{ status: "SENT", expectedBackAt: null, vendor: { name: "ร้านป้าย" } }] });
+    expect(rowForSteps([tag])).toMatchObject({ blocked: false, current: [{ state: "external" }] });
+    expect(rowForSteps([{ ...tag, outsourceOrders: [{ ...tag.outsourceOrders![0]!, status: "QC_FAILED" }] }]).blocked).toBe(true);
+    expect(rowForSteps([step({ id: "held", stepType: "HEAT_PRESS", status: "ON_HOLD" })]).blocked).toBe(true);
+  });
+
+  it("ใบส่งร้านร่างและรับกลับแล้วไม่ชวนให้รอรับอีก แต่ร้านทำเสร็จยังต้องตามรับ", () => {
+    const rowForOutsource = (status: string) => rowForSteps([step({ id: "tag", stepType: "TAGGING", outsourceOrders: [{ status, expectedBackAt: "2026-09-01", vendor: { name: "ร้านป้าย" } }] })]);
+    const draft = rowForOutsource("DRAFT");
+    expect(draft.current[0]!.label).toContain("รอส่งร้าน");
+    expect(draft.outsourceDue).toBe(false);
+    const received = rowForOutsource("RECEIVED_BACK");
+    expect(received.current[0]!.label).toContain("รอตรวจรับ");
+    expect(received.outsourceDue).toBe(false);
+    expect(rowForOutsource("COMPLETED")).toMatchObject({ outsourceDue: true, current: [{ state: "external" }] });
+  });
+
+  it("รอเปิดใบแต่ไม่ผ่านด่านพร้อมผลิตยังอยู่ในตัวกรองติดปัญหา", () => {
+    expect(rowForSteps([], { internalStatus: "PRODUCTION_QUEUE", readiness: { ready: false, checks: [{ label: "แบบ", ok: false, waitingOn: "ลูกค้า" }] } }).blocked).toBe(true);
+  });
   it("นับวันจากวันนี้โดยตัดเวลา และคืน null เมื่อไม่มีวันที่", () => {
     expect(daysFromNow("2026-09-05T23:00:00+07:00", NOW)).toBe(3);
     expect(daysFromNow("2026-08-30T01:00:00+07:00", NOW)).toBe(-3);

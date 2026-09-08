@@ -18,14 +18,13 @@ import {
   PackageCheck,
   Truck,
   UserRound,
-  Wrench,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/ui/data-table";
 import { DueTag } from "@/components/ui/due-tag";
 import { FilterChip } from "@/components/ui/filter-chip";
-import { InfoChip, InfoChipRow } from "@/components/ui/info-chip";
+import { InfoChip } from "@/components/ui/info-chip";
 import { SearchInput } from "@/components/ui/search-input";
 import { MockupThumbnail } from "@/components/mockup/mockup-thumbnail";
 import { orderMockupCover } from "@/lib/mockup";
@@ -83,7 +82,7 @@ export function DeskTiles({
             aria-pressed={on}
             onClick={() => onSelectLens(on ? "all" : tile.key)}
             className={cn(
-              "card-surface card-surface-hover rounded-2xl flex min-h-20 min-w-44 shrink-0 items-center justify-between gap-3 px-4 py-3 text-left transition-colors lg:min-w-0",
+              "card-surface card-surface-hover rounded-2xl flex min-h-12 min-w-40 shrink-0 items-center justify-between gap-3 px-4 py-3 text-left transition-colors sm:min-h-20 lg:min-w-0",
               on && "ring-2 ring-inset ring-blue-600 dark:ring-blue-400",
             )}
           >
@@ -116,10 +115,10 @@ function ChipCount({ count, overdue }: { count: number; overdue: number }) {
 }
 
 /**
- * แถบกรอง 2 แถว (เบสเคาะ 2026-09-02 หลังลอง 3 รอบ): แถวบน = ช่องค้นหาสั้น 240px + สถานะอัปเดตชิดขวา
+ * แถบกรอง 2 แถว: แถวบน = ค้นหา + สถานะอัปเดตชิดขวา
  * แถวล่าง = ชิปขั้นงาน · ร้านนอก 6 ประเภทยุบเป็นชิป "ร้านนอก" ชิปเดียว กดแล้วประเภทร้านโผล่เป็น
  * ชิปย่อยแถวเล็กข้างล่าง (เบสไม่เอา dropdown 2026-09-02)
- * ⚠️ ความกว้างช่องค้นหาล็อกเป็น w-60 ตรง ๆ ไม่ใช้ sm:w-* — รอบก่อนจอเบสยังเห็นเต็มแถว
+ * จอแคบค้นหาเต็มแถว/ชิปเลื่อนในกรอบ จอกว้างค้นหา 288px
  */
 export function DeskToolbar({
   searchDefault,
@@ -217,7 +216,7 @@ export function DeskToolbar({
   );
 }
 
-/* ───────────────────────── ตาราง 8 คอลัมน์ ───────────────────────── */
+/* ───────────────────────── ตารางต่อเนื่อง · มือถือรวมบริบทหลักไว้ในคอลัมน์ใบงาน ───────────────────────── */
 
 const RAIL_CLASS: Record<BoardRailPoint["state"], string> = {
   done: "bg-green-500/80 dark:bg-green-400/70",
@@ -267,34 +266,26 @@ function RouteRail({ rail }: { rail: readonly BoardRailPoint[] }) {
 }
 
 function CurrentCell<S extends DeskStepLike, O extends BoardOrderLike<S>>({ row }: { row: DeskRow<S, O> }) {
-  const reason = row.current.find((c) => c.reason)?.reason ?? null;
+  const [primary, ...parallel] = row.current;
+  const waiting = parallel.filter((current) => current.state === "waiting");
+  if (!primary) return <span className="text-muted">รออัปเดตขั้นตอน</span>;
   return (
-    <InfoChipRow>
-      {row.current.map((current, index) => (
-        <InfoChip
-          key={`${current.label}-${index}`}
-          size="sm"
-          tone={
-            current.state === "failed"
-              ? "error"
-              : current.state === "waiting"
-                ? "warning"
-                : current.state === "active" || current.state === "post"
-                  ? "info"
-                  : "neutral"
-          }
-          strong={current.state === "failed" || current.state === "active"}
-          icon={current.state === "queue" ? undefined : Wrench}
-        >
-          {current.label}
-        </InfoChip>
-      ))}
-      {reason ? (
-        <InfoChip size="sm" tone={row.blocked ? "error" : "warning"} icon={AlertTriangle} title={reason} className="max-w-44">
-          {reason}
-        </InfoChip>
+    <div className="space-y-1.5">
+      <p className={cn("font-medium", primary.state === "failed" ? "text-red-700 dark:text-red-400" : "text-strong")}>
+        {primary.label}
+      </p>
+      {primary.reason ? <p className="text-xs text-secondary">{primary.reason}</p> : null}
+      {parallel.length > 0 ? (
+        <ul className="space-y-1 text-xs text-secondary" aria-label="สายงานอื่นในใบนี้">
+          {parallel.filter((current) => current.state !== "waiting").map((current, index) => (
+            <li key={`${current.label}-${index}`}>
+              {current.label}
+            </li>
+          ))}
+          {waiting.length > 0 ? <li>รอขั้นก่อนหน้า: {waiting.map((current) => current.label).join(", ")}</li> : null}
+        </ul>
       ) : null}
-    </InfoChipRow>
+    </div>
   );
 }
 
@@ -340,9 +331,9 @@ export function DeskTable<S extends DeskStepLike, O extends BoardOrderLike<S>>({
       <DataTable.Head>
         <tr>
           <DataTable.SortableTh direction={directionFor("order")} onSort={(dir) => onSort("order", dir)}>ใบงาน</DataTable.SortableTh>
-          <DataTable.SortableTh align="right" direction={directionFor("quantity")} onSort={(dir) => onSort("quantity", dir)}>จำนวน</DataTable.SortableTh>
-          <DataTable.SortableTh direction={directionFor("deadline")} onSort={(dir) => onSort("deadline", dir)}>กำหนดส่ง</DataTable.SortableTh>
-          <DataTable.Th>ขั้นตอนผลิต</DataTable.Th>
+          <DataTable.SortableTh className="hidden sm:table-cell" align="right" direction={directionFor("quantity")} onSort={(dir) => onSort("quantity", dir)}>จำนวน</DataTable.SortableTh>
+          <DataTable.SortableTh className="hidden sm:table-cell" direction={directionFor("deadline")} onSort={(dir) => onSort("deadline", dir)}>กำหนดส่ง</DataTable.SortableTh>
+          <DataTable.Th className="hidden sm:table-cell">ตอนนี้</DataTable.Th>
           <DataTable.Th>ร้านนอก</DataTable.Th>
           <DataTable.Th>ผู้รับผิดชอบ</DataTable.Th>
         </tr>
@@ -358,7 +349,7 @@ export function DeskTable<S extends DeskStepLike, O extends BoardOrderLike<S>>({
           const urgent = order.priority === "URGENT" || order.priority === "HIGH";
           return (
             <DataTable.Row key={row.job.key} href={hrefFor(row)} aria-label={`เปิดใบผลิต ${order.orderNumber}`} className="group/row">
-              <DataTable.Td className="min-w-56 max-w-80">
+              <DataTable.Td className="min-w-72 max-w-80 sm:min-w-56">
                 <div className="flex items-center gap-3">
                   <div className="hidden sm:block">
                     <MockupThumbnail cover={orderMockupCover(order)} alt={`ม็อกอัพ ${order.orderNumber}`} size="sm" />
@@ -374,15 +365,22 @@ export function DeskTable<S extends DeskStepLike, O extends BoardOrderLike<S>>({
                     <p className="line-clamp-2 text-secondary" title={order.customerName ?? undefined}>{order.customerName ?? "ไม่ระบุลูกค้า"}</p>
                   </div>
                 </div>
+                <div className="mt-3 space-y-2 sm:hidden">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <DueTag dueInDays={row.dueInDays} dateLabel={order.deadline ? formatDateShort(order.deadline) : null} size="sm" />
+                    <span className="text-secondary tabular-nums">{(order.totalQuantity ?? 0).toLocaleString("th-TH")} ตัว</span>
+                  </div>
+                  <CurrentCell row={row} />
+                </div>
               </DataTable.Td>
-              <DataTable.Td align="right" className="whitespace-nowrap">
+              <DataTable.Td align="right" className="hidden whitespace-nowrap sm:table-cell">
                 <span className="font-semibold tabular-nums text-strong">{(order.totalQuantity ?? 0).toLocaleString("th-TH")}</span>
                 <span className="ml-1 text-muted">ตัว</span>
               </DataTable.Td>
-              <DataTable.Td className="whitespace-nowrap">
+              <DataTable.Td className="hidden whitespace-nowrap sm:table-cell">
                 <DueTag dueInDays={row.dueInDays} dateLabel={order.deadline ? formatDateShort(order.deadline) : null} size="sm" />
               </DataTable.Td>
-              <DataTable.Td className="min-w-48 max-w-64">
+              <DataTable.Td className="hidden min-w-48 max-w-72 sm:table-cell">
                 <div className="space-y-2">
                   <CurrentCell row={row} />
                   <RouteRail rail={row.job.rail} />

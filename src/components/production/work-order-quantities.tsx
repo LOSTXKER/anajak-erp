@@ -22,7 +22,7 @@ export const pieceTableAnchor = (stepId: string) => `work-order-pieces-${stepId}
 const TH = "px-3 py-3 text-xs font-medium";
 const TD = "px-3 py-3 align-middle text-sm";
 
-type PieceRow = { key: string; variantId: string | null; product: string; productColor: string | null; color: string | null; size: string | null; qty: number; thumb: string | null; prints: string[] };
+type PieceRow = { key: string; productId: string; variantId: string | null; product: string; productColor: string | null; color: string | null; size: string | null; qty: number; thumb: string | null; prints: string[] };
 type RowQty = { done: number; waste: number };
 
 /** แถวละไซซ์จาก order.items ของใบผลิต (ชุดเดียวกับตารางรายการหน้าออเดอร์) */
@@ -33,8 +33,8 @@ export function pieceRowsOf(order: ProductionDetail["order"]): PieceRow[] {
     return item.products.flatMap((prod): PieceRow[] => {
       const name = prod.description || PRODUCT_TYPES[prod.productType ?? ""] || "สินค้า";
       const productColor = prod.fabricColor ?? null;
-      if (prod.variants.length === 0) return [{ key: prod.id, variantId: null, product: name, productColor, color: productColor, size: null, qty: prod.totalQuantity ?? 0, thumb: thumbSrc, prints }];
-      return prod.variants.map((v) => ({ key: v.id, variantId: v.id, product: name, productColor, color: v.color ?? productColor, size: v.size || null, qty: v.quantity, thumb: thumbSrc, prints }));
+      if (prod.variants.length === 0) return [{ key: prod.id, productId: prod.id, variantId: null, product: name, productColor, color: productColor, size: null, qty: prod.totalQuantity ?? 0, thumb: thumbSrc, prints }];
+      return prod.variants.map((v) => ({ key: v.id, productId: prod.id, variantId: v.id, product: name, productColor, color: v.color ?? productColor, size: v.size || null, qty: v.quantity, thumb: thumbSrc, prints }));
     });
   });
 }
@@ -43,6 +43,12 @@ export function pieceRowsOf(order: ProductionDetail["order"]): PieceRow[] {
 export function StepPieceTable({ step, order, c, stepAction }: { step: ProductionStep; order: ProductionDetail["order"]; c: WorkOrderController; stepAction?: ReactNode }) {
   const rows = pieceRowsOf(order);
   const total = rows.reduce((n, r) => n + r.qty, 0);
+  const groups = new Map<string, PieceRow[]>();
+  for (const row of rows) {
+    const group = groups.get(row.productId);
+    if (group) group.push(row);
+    else groups.set(row.productId, [row]);
+  }
   const counting = step.qtyTotal !== null && step.qtyTotal > 0;
   // ของอยู่ร้านนอก = ยอดมาจากใบตรวจรับตอนรับกลับ ไม่กรอกเอง
   const editable = counting && c.canUpdateStep && c.canOwnOrSupervise(step) && step.status !== "COMPLETED" && step.status !== "FAILED" && !FLOW_OWNED_STEP_TYPES.has(step.stepType) && !activeOutsource(step);
@@ -104,99 +110,93 @@ export function StepPieceTable({ step, order, c, stepAction }: { step: Productio
       {rows.length === 0 ? (
         <EmptyState icon={ImageIcon} title="ออเดอร์นี้ยังไม่มีรายการเสื้อ" />
       ) : (
-        <div id={pieceTableAnchor(step.id)} className="overflow-x-auto" role="region" aria-label={`รายการเสื้อ ขั้น${stepLabel(step)}`}>
-          <table className={cn("w-full table-fixed", showQty ? "min-w-[640px]" : "min-w-[520px]")}>
-            <caption className="sr-only">รายการเสื้อและยอดของขั้น{stepLabel(step)}</caption>
-            <colgroup>
-              <col style={{ width: 40 }} />
-              <col />
-              <col style={{ width: 144 }} />
-              <col style={{ width: 80 }} />
-              {showQty ? <col style={{ width: 88 }} /> : null}
-              {showQty ? <col style={{ width: 88 }} /> : null}
-            </colgroup>
-            <thead className={TABLE_HEAD_SURFACE}>
-              <tr>
-                <th scope="col" className={cn(TH, "text-center")}>#</th>
-                <th scope="col" className={cn(TH, "text-left")}>สินค้า / ไซซ์</th>
-                <th scope="col" className={cn(TH, "text-left")}>ลาย</th>
-                <th scope="col" className={cn(TH, "text-right")}>จำนวน</th>
-                {showQty ? <th scope="col" className={cn(TH, "text-right")}>ทำแล้ว</th> : null}
-                {showQty ? <th scope="col" className={cn(TH, "text-right")}>เสีย</th> : null}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-divider">
-              {rows.map((r, i) => {
-                const v = valueOf(r.key);
-                // ไซซ์นำแถว · สีและชื่อสินค้าเป็นบริบท และแยกชื่อช่องกรอกเมื่อหลายสินค้ามีไซซ์เดียวกัน
-                const rowLabel = [r.product, r.color, r.size].filter(Boolean).join(" ");
-                return (
-                  <tr key={r.key} className="hover:bg-interactive-hover focus-within:bg-surface-muted">
-                    <td className={cn(TD, "text-center tabular-nums text-muted")}>{i + 1}</td>
-                    <td className={TD}>
-                      <div className="flex items-center gap-2">
-                        {r.thumb ? (
-                          // eslint-disable-next-line @next/next/no-img-element -- รูปลายจากคลัง/ไฟล์ที่อัปโหลด
-                          <img src={r.thumb} alt="" className={cn("h-10 w-10 shrink-0 border border-border bg-surface-muted object-cover", RADIUS.inner)} />
-                        ) : (
-                          <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center border border-border bg-surface-muted", RADIUS.inner)}>
-                            <ImageIcon className="h-4 w-4 text-muted" aria-hidden="true" />
-                          </div>
-                        )}
-                        <div className="min-w-0">
-                          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                            <p className="text-base font-semibold text-strong">{r.size ?? r.product}</p>
-                            {r.color ? <span className="text-xs text-secondary">{r.color}</span> : null}
-                          </div>
-                          {r.size ? <p className="mt-0.5 text-xs text-secondary [overflow-wrap:anywhere]">{r.product}</p> : null}
-                        </div>
+        <div id={pieceTableAnchor(step.id)} role="region" aria-label={`รายการเสื้อ ขั้น${stepLabel(step)}`}>
+          <div className="divide-y divide-divider">
+            {[...groups].map(([productId, productRows]) => {
+              const product = productRows[0]!;
+              return (
+                <div key={productId}>
+                  <div className="flex items-start gap-3 px-5 py-4">
+                    {product.thumb ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- รูปลายจากคลัง/ไฟล์ที่อัปโหลด
+                      <img src={product.thumb} alt="" className={cn("h-14 w-14 shrink-0 border border-border bg-surface-muted object-contain", RADIUS.inner)} />
+                    ) : (
+                      <div className={cn("flex h-14 w-14 shrink-0 items-center justify-center border border-border bg-surface-muted", RADIUS.inner)}>
+                        <ImageIcon className="h-5 w-5 text-muted" aria-hidden="true" />
                       </div>
-                    </td>
-                    <td className={cn(TD, "text-xs text-secondary")}>
-                      {r.prints.length > 0 ? <ul className="space-y-1">{r.prints.map((print, index) => <li key={`${print}-${index}`}>{print}</li>)}</ul> : "—"}
-                    </td>
-                    <td className={cn(TD, "text-right text-base font-semibold tabular-nums text-strong")}>{r.qty.toLocaleString("th-TH")}</td>
-                    {showQty ? (
-                      <td className={cn(TD, "text-right")}>
-                        {editable && r.variantId ? (
-                          <NumberInput integer min={0} max={r.qty} value={v.done} onValueChange={(n) => setRow(r.key, { done: n })} disabled={c.piecePending} placeholder="0" aria-label={`ทำแล้ว ${rowLabel}`} className={cn(CONTROL_H, "w-full text-right")} />
-                        ) : (
-                          <span className={cn("tabular-nums", v.done > 0 ? "font-semibold text-strong" : "text-muted")}>{r.variantId ? v.done.toLocaleString("th-TH") : "—"}</span>
-                        )}
-                      </td>
-                    ) : null}
-                    {showQty ? (
-                      <td className={cn(TD, "text-right")}>
-                        {editable && r.variantId ? (
-                          <NumberInput integer min={0} max={r.qty} value={v.waste} onValueChange={(n) => setRow(r.key, { waste: n })} disabled={c.piecePending} placeholder="0" aria-label={`เสีย ${rowLabel}`} className={cn(CONTROL_H, "w-full text-right")} />
-                        ) : (
-                          <span className={cn("tabular-nums", v.waste > 0 ? "font-semibold text-strong" : "text-muted")}>{r.variantId ? v.waste.toLocaleString("th-TH") : "—"}</span>
-                        )}
-                      </td>
-                    ) : null}
-                  </tr>
-                );
-              })}
-            </tbody>
-            <tfoot>
-              <tr className="border-t border-divider bg-surface-muted">
-                <td colSpan={3} className={cn(TD, "text-xs text-muted")}>รวม</td>
-                <td className={cn(TD, "text-right")}>
-                  <Metric size="sm" value={total.toLocaleString("th-TH")} unit="ตัว" className="items-end" />
-                </td>
-                {showQty ? (
-                  <td className={cn(TD, "text-right")}>
-                    <Metric size="sm" value={doneSum.toLocaleString("th-TH")} className="items-end" />
-                  </td>
-                ) : null}
-                {showQty ? (
-                  <td className={cn(TD, "text-right")}>
-                    <Metric size="sm" value={wasteSum.toLocaleString("th-TH")} className="items-end" tone={wasteSum > 0 ? "warning" : undefined} />
-                  </td>
-                ) : null}
-              </tr>
-            </tfoot>
-          </table>
+                    )}
+                    <div className="min-w-0 space-y-1">
+                      <h3 className="text-sm font-semibold text-strong [overflow-wrap:anywhere]">{product.product}</h3>
+                      {product.productColor ? <p className="text-sm text-secondary">{product.productColor}</p> : null}
+                      {product.prints.length > 0 ? (
+                        <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-secondary">
+                          {product.prints.map((print, index) => <li key={`${print}-${index}`}>{print}</li>)}
+                        </ul>
+                      ) : null}
+                    </div>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full table-fixed">
+                      <caption className="sr-only">ไซซ์และยอด {product.product} ขั้น{stepLabel(step)}</caption>
+                      <colgroup>
+                        <col />
+                        <col style={{ width: showQty ? "23%" : "35%" }} />
+                        {showQty ? <col style={{ width: "26%" }} /> : null}
+                        {showQty ? <col style={{ width: "26%" }} /> : null}
+                      </colgroup>
+                      <thead className={TABLE_HEAD_SURFACE}>
+                        <tr>
+                          <th scope="col" className={cn(TH, "pl-5 text-left")}>ไซซ์</th>
+                          <th scope="col" className={cn(TH, "text-right", !showQty && "pr-5")}>จำนวน</th>
+                          {showQty ? <th scope="col" className={cn(TH, "text-right")}>ทำแล้ว</th> : null}
+                          {showQty ? <th scope="col" className={cn(TH, "pr-5 text-right")}>เสีย</th> : null}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-divider">
+                        {productRows.map((row) => {
+                          const value = valueOf(row.key);
+                          const rowLabel = [row.product, row.color, row.size].filter(Boolean).join(" ");
+                          return (
+                            <tr key={row.key} className="focus-within:bg-surface-muted">
+                              <td className={cn(TD, "pl-5")}>
+                                <p className="text-base font-semibold text-strong">{row.size ?? "ไม่ระบุ"}</p>
+                                {row.color && row.color !== product.productColor ? <p className="text-xs text-secondary [overflow-wrap:anywhere]">{row.color}</p> : null}
+                              </td>
+                              <td className={cn(TD, "text-right text-base font-semibold tabular-nums text-strong", !showQty && "pr-5")}>{row.qty.toLocaleString("th-TH")}</td>
+                              {showQty ? (
+                                <td className={cn(TD, "text-right")}>
+                                  {editable && row.variantId ? (
+                                    <NumberInput integer min={0} max={row.qty} value={value.done} onValueChange={(n) => setRow(row.key, { done: n })} disabled={c.piecePending} placeholder="0" aria-label={`ทำแล้ว ${rowLabel}`} className={cn(CONTROL_H, "w-full text-right")} />
+                                  ) : (
+                                    <span className={cn("tabular-nums", value.done > 0 ? "font-semibold text-strong" : "text-muted")}>{row.variantId ? value.done.toLocaleString("th-TH") : "—"}</span>
+                                  )}
+                                </td>
+                              ) : null}
+                              {showQty ? (
+                                <td className={cn(TD, "pr-5 text-right")}>
+                                  {editable && row.variantId ? (
+                                    <NumberInput integer min={0} max={row.qty} value={value.waste} onValueChange={(n) => setRow(row.key, { waste: n })} disabled={c.piecePending} placeholder="0" aria-label={`เสีย ${rowLabel}`} className={cn(CONTROL_H, "w-full text-right")} />
+                                  ) : (
+                                    <span className={cn("tabular-nums", value.waste > 0 ? "font-semibold text-strong" : "text-muted")}>{row.variantId ? value.waste.toLocaleString("th-TH") : "—"}</span>
+                                  )}
+                                </td>
+                              ) : null}
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className={cn("grid items-center border-t border-divider bg-surface-muted py-4", showQty ? "grid-cols-[25%_23%_26%_26%]" : "grid-cols-[65%_35%]")}>
+            <span className="pl-5 text-xs text-muted">รวมทั้งใบ</span>
+            <Metric size="sm" value={total.toLocaleString("th-TH")} unit="ตัว" className={cn("items-end px-3", !showQty && "pr-5")} />
+            {showQty ? <Metric size="sm" value={doneSum.toLocaleString("th-TH")} className="items-end px-3" /> : null}
+            {showQty ? <Metric size="sm" value={wasteSum.toLocaleString("th-TH")} className="items-end pl-3 pr-5" tone={wasteSum > 0 ? "warning" : undefined} /> : null}
+          </div>
         </div>
       )}
     </Section>

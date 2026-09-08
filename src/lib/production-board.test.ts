@@ -195,6 +195,41 @@ describe("buildProductionBoard — จุดงาน", () => {
       true,
     );
   });
+
+  it("ขั้น QC ท้ายใบต้องรอสายขนานและรีดร้อนครบ โดยบอกชื่อขั้นที่รอจริง", () => {
+    const steps = [
+      step({ stepType: "DTF_PRINT", status: "COMPLETED" }),
+      step({ stepType: "TAGGING", customStepName: "เย็บป้ายแบรนด์ลูกค้า" }),
+      step({ stepType: "HEAT_PRESS" }),
+      step({ stepType: "CUSTOM", customStepName: "ตรวจ QC" }),
+    ];
+    const build = () => buildProductionBoard([
+      order({ id: "qc-tail", productions: [{ id: "p1", steps }] }),
+    ], OPTS);
+    const current = () => build().jobs[0]!.spots.find((spot) => spot.stationKey === "lane:OTHER")!;
+
+    expect(current()).toMatchObject({
+      ready: false,
+      waitingOn: ["รอเย็บป้ายแบรนด์ลูกค้า", "รอรีดร้อน"],
+    });
+    steps[1]!.status = "COMPLETED";
+    expect(current()).toMatchObject({ ready: false, waitingOn: ["รอรีดร้อน"] });
+    steps[2]!.status = "COMPLETED";
+    expect(current()).toMatchObject({ ready: true, waitingOn: [] });
+  });
+
+  it("งานพิเศษที่ไม่มีขั้นก่อนหน้ายังพร้อมทำและอยู่ในบอร์ด", () => {
+    const board = buildProductionBoard([
+      order({ id: "custom-only", productions: [{ id: "p1", steps: [
+        step({ stepType: "CUSTOM", customStepName: "ติดสติกเกอร์" }),
+      ] }] }),
+    ], OPTS);
+
+    expect(board.jobs[0]?.spots[0]).toMatchObject({
+      stationKey: "lane:OTHER", ready: true, waitingOn: [],
+    });
+    expect(board.stations.find((station) => station.key === "lane:OTHER")?.count).toBe(1);
+  });
 });
 
 describe("buildProductionBoard — คิวรอเปิดใบผลิตและสิทธิ์", () => {

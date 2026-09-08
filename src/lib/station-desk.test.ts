@@ -127,6 +127,41 @@ describe("stationCards + stationQueue", () => {
     expect(dtf.ready.map((c) => c.step?.stepType)).toEqual(["DTF_PRINT"]);
     expect(dtf.blocked).toHaveLength(0);
   });
+
+  it("สถานีอื่นๆ นับ QC ที่รอเป็นติด/รอ และยังมีงานพิเศษที่พร้อมให้หยิบ", () => {
+    const orders = [
+      order({ id: "qc-waits", steps: [
+        step({ id: "tag", stepType: "TAGGING", sortOrder: 1, customStepName: "เย็บป้ายแบรนด์ลูกค้า" }),
+        step({ id: "qc", stepType: "CUSTOM", sortOrder: 2, customStepName: "ตรวจ QC" }),
+      ] }),
+      order({ id: "special-ready", steps: [
+        step({ id: "special", stepType: "CUSTOM", sortOrder: 1, customStepName: "ติดสติกเกอร์" }),
+      ] }),
+    ];
+    const build = () => buildProductionBoard(orders, { now: NOW, showBlocked: true });
+    const b = build();
+    const other = resolveStation("lane:OTHER", stationDefs(b))!;
+    const queue = stationQueue(stationCards(b, other));
+
+    expect(queue.ready.map((card) => card.step?.id)).toEqual(["special"]);
+    expect(queue.blocked[0]).toMatchObject({ state: "waiting", reason: "รอเย็บป้ายแบรนด์ลูกค้า" });
+    expect(stationCounts(b, { id: null, canSupervise: true }).find((station) => station.key === "lane:OTHER"))
+      .toMatchObject({ ready: 1, blocked: 1, total: 2 });
+
+    orders[0]!.productions[0]!.steps[0]!.status = "COMPLETED";
+    expect(stationCounts(build(), { id: null, canSupervise: true }).find((station) => station.key === "lane:OTHER"))
+      .toMatchObject({ ready: 2, blocked: 0, total: 2 });
+  });
+
+  it.each(["FAILED", "ON_HOLD"])("ขั้นท้ายที่ %s แสดงปัญหาก่อนเหตุที่รอขั้นอื่น", (status) => {
+    const b = buildProductionBoard([order({ id: "tail-problem", steps: [
+      step({ id: "print", stepType: "DTF_PRINT", sortOrder: 1 }),
+      step({ id: "qc", stepType: "CUSTOM", sortOrder: 2, status, notes: "ต้องตรวจชิ้นงานใหม่" }),
+    ] })], { now: NOW, showBlocked: true });
+
+    const other = resolveStation("lane:OTHER", stationDefs(b))!;
+    expect(stationCards(b, other)[0]).toMatchObject({ state: "blocked", reason: "ต้องตรวจชิ้นงานใหม่" });
+  });
 });
 
 describe("visibleCards + stationCounts", () => {

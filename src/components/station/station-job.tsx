@@ -27,8 +27,8 @@ import { useWorkOrderController, type WorkOrderController } from "@/components/p
 import { OutsourceFacts, Owner, ProblemCard, StateChip, daysFromNow, stepLabel, viewOf } from "@/components/production/work-order-pieces";
 import { isOutsourceStep } from "@/lib/production-steps";
 import type { StationDef } from "@/lib/station-desk";
-import { PAPER_STEP_NOTE, RECORD_MODE_LABEL, isInferredDone, recordModeOf } from "@/lib/work-order-record-mode";
-import { workOrderStandards } from "@/lib/work-order-standards";
+import { isInferredDone } from "@/lib/work-order-record-mode";
+import { missingStandards, workOrderStandards } from "@/lib/work-order-standards";
 import { cn, formatDate, formatDateTime } from "@/lib/utils";
 import { StationShell } from "./station-pieces";
 
@@ -74,6 +74,8 @@ export function StationJob({
           <Skeleton className="h-96 rounded-2xl" />
           <Skeleton className="h-96 rounded-2xl" />
         </div>
+      ) : (c.productionQuery.isError && !c.notFound && !production) || (c.meQuery.isError && !c.me) ? (
+        <EmptyState icon={AlertTriangle} title="โหลดใบผลิตไม่สำเร็จ" action={<Button size="lg" onClick={() => { void c.productionQuery.refetch(); void c.meQuery.refetch(); }}>ลองใหม่</Button>} />
       ) : c.notFound || !production || !order ? (
         <EmptyState icon={AlertTriangle} title="ไม่พบใบผลิตนี้แล้ว" description="อาจถูกปิดหรือส่งต่อไปแล้ว" action={<Button size="lg" onClick={onBack}>กลับไปดูคิว</Button>} />
       ) : !step ? (
@@ -126,13 +128,13 @@ export function StationJobBody({ c, step, boss, autoFix = false }: { c: WorkOrde
         </div>
 
         {/* ขวา: ขั้นนี้ */}
-        <StepZone key={step.id} c={c} step={step} index={workflowSteps.indexOf(step) + 1} total={workflowSteps.length} boss={boss} autoFix={autoFix} nowMs={nowMs} nowById={nowById} productionId={production.id} />
+        <StationStepZone key={step.id} c={c} step={step} index={workflowSteps.indexOf(step) + 1} total={workflowSteps.length} boss={boss} autoFix={autoFix} nowMs={nowMs} nowById={nowById} productionId={production.id} />
       </div>
     </>
   );
 }
 
-function StepZone({
+export function StationStepZone({
   c,
   step,
   index,
@@ -155,26 +157,20 @@ function StepZone({
 }) {
   const now = nowById.get(step.id);
   const view = viewOf(step, now);
-  const standards = workOrderStandards(step.stepType);
-  const [ticks, setTicks] = useState<boolean[]>(() => standards.map(() => step.status === "COMPLETED"));
   const [problemOpen, setProblemOpen] = useState(false);
   const [fixOpen, setFixOpen] = useState(autoFix);
-  const allTicked = ticks.every(Boolean);
+  const allTicked = missingStandards(step.stepType, step.checks.map((check) => check.itemKey)).length === 0;
   const done = step.status === "COMPLETED";
   const stuck = step.status === "FAILED" || step.status === "ON_HOLD";
-  // กระดาษเป็นหลัก (ROADMAP §A5): ขั้นที่จดบนกระดาษไม่มีปุ่มหลักให้ช่าง — ติ๊ก/ยอด/ลงชื่ออยู่บนใบสั่งงาน
-  const recordMode = recordModeOf(step);
-  const onPaper = recordMode === "paper" && !done && !stuck;
+  // A9/A11: หน้างานปิดทุกขั้นผ่าน controller เดียวกับใบผลิต รวมขั้นที่เคยจดบนกระดาษ
   const inferredDone = isInferredDone(step);
-  const gated = !onPaper && !done && !stuck && TICK_GATED.has(now?.action ?? "") && !allTicked;
+  const gated = !done && !stuck && TICK_GATED.has(now?.action ?? "") && (!allTicked || c.tickPending);
 
   const canReport = c.canUpdateStep && c.canOwnOrSupervise(step) && !done && step.status !== "FAILED";
   const note = done
     ? inferredDone
       ? `ถือว่าผ่านตอนส่งเข้า QC${step.completedAt ? ` ${formatDateTime(step.completedAt)}` : ""} — ยอดจริงอยู่บนใบสั่งงาน`
       : `ปิดขั้นแล้ว${step.completedAt ? ` ${formatDateTime(step.completedAt)}` : ""}${step.assignedTo ? ` โดย ${step.assignedTo.name}` : ""}`
-    : onPaper && !(now && now.waitingOn.length > 0)
-      ? PAPER_STEP_NOTE
     : stuck
       ? boss
         ? "ติดปัญหาอยู่ — กด “จัดการปัญหา” เพื่อปลดให้ช่างทำต่อ"
@@ -186,11 +182,20 @@ function StepZone({
           : !now
             ? "ยังไม่ถึงคิวขั้นนี้ — ทำขั้นก่อนหน้าให้จบก่อน"
             : gated
-              ? "ติ๊กข้อกำหนดให้ครบก่อน ปุ่มหลักถึงจะกดได้"
+              ? c.tickPending ? "กำลังบันทึกข้อกำหนด" : "ติ๊กข้อกำหนดให้ครบก่อนปิดขั้น"
               : undefined;
 
-  const primary = onPaper ? null : gated ? (
-    <Button className="h-16 text-lg" disabled>
+  const primary = gated ? (
+    <Button
+      className="h-16 text-lg"
+      aria-disabled="true"
+      disabled={c.tickPending}
+      onClick={() => {
+        const target = document.querySelector<HTMLButtonElement>(`#station-checklist-${step.id} button[aria-pressed="false"]`);
+        target?.scrollIntoView({ behavior: "smooth", block: "center" });
+        target?.focus();
+      }}
+    >
       {now?.action === "quick-pass" ? "ผ่านรวด" : "บันทึกยอด / ปิดขั้น"}
     </Button>
   ) : (
@@ -208,9 +213,7 @@ function StepZone({
             <h2 className="text-2xl font-semibold text-strong">{stepLabel(step)}</h2>
             <InfoChipRow className="mt-2">
               <StateChip view={view} kind={isOutsourceStep(step.stepType) ? "outsource" : "inhouse"} size="lg" />
-              <InfoChip size="md" tone={recordMode === "screen" ? "info" : recordMode === "auto" ? "success" : "neutral"}>
-                {inferredDone ? "ถือว่าผ่าน" : RECORD_MODE_LABEL[recordMode]}
-              </InfoChip>
+              {inferredDone ? <InfoChip size="md">ถือว่าผ่านตอนส่งเข้า QC</InfoChip> : null}
               <InfoChip size="md">
                 <Owner step={step} />
               </InfoChip>
@@ -252,40 +255,7 @@ function StepZone({
           </div>
         ) : null}
 
-        {/* ข้อกำหนดของขั้น — ติ๊กทีละข้อด้วยปุ่มใหญ่ (ยังไม่บันทึกลงฐาน · ROADMAP §A) */}
-        <div className="mt-5">
-          <p className="flex items-center justify-between text-sm font-medium text-strong">
-            <span>ข้อกำหนดของขั้นนี้</span>
-            <span className="tabular-nums text-muted">
-              {ticks.filter(Boolean).length}/{ticks.length}
-            </span>
-          </p>
-          <ul className="mt-2 space-y-1.5">
-            {standards.map((label, i) => {
-              const on = ticks[i] ?? false;
-              return (
-                <li key={label}>
-                  <button
-                    type="button"
-                    aria-pressed={on}
-                    disabled={done || stuck}
-                    onClick={() => setTicks((t) => t.map((v, k) => (k === i ? !v : v)))}
-                    className={cn(
-                      "flex min-h-14 w-full items-center gap-3 px-3 text-left text-base transition-colors disabled:cursor-default",
-                      RADIUS.inner,
-                      SUNK_PANEL,
-                      !done && !stuck && "hover:bg-interactive-hover",
-                      on ? "text-secondary" : "font-medium text-strong",
-                    )}
-                  >
-                    {on ? <CheckCircle2 className="h-6 w-6 shrink-0 text-green-600 dark:text-green-400" aria-hidden="true" /> : <Circle className="h-6 w-6 shrink-0 text-muted" aria-hidden="true" />}
-                    <span className={on ? "line-through decoration-muted" : undefined}>{label}</span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
+        <StationStepChecklist step={step} c={c} />
       </div>
 
       {/* ไม่มีปุ่มที่กดไม่ได้ — ลงมือไม่ได้ให้ประโยคสถานะบอก (เบสเคาะ A 09-03) */}
@@ -310,6 +280,59 @@ function StepZone({
 
       <ProblemDialog open={problemOpen} onClose={() => setProblemOpen(false)} step={step} c={c} />
       <FixDialog open={fixOpen} onClose={() => setFixOpen(false)} step={step} c={c} />
+    </div>
+  );
+}
+
+/** หน้างานอ่านและบันทึกผลติ๊กชุดเดียวกับใบผลิต ไม่เก็บผลสำเร็จไว้แค่ใน browser */
+export function StationStepChecklist({ step, c }: {
+  step: ProductionStep;
+  c: Pick<WorkOrderController, "canUpdateStep" | "canOwnOrSupervise" | "tickStandard" | "tickPending">;
+}) {
+  const standards = workOrderStandards(step.stepType);
+  const done = step.status === "COMPLETED";
+  const stuck = step.status === "FAILED" || step.status === "ON_HOLD";
+  const ticked = new Map(step.checks.map((check) => [check.itemKey, check.checkedBy.name]));
+  const canTick = c.canUpdateStep && c.canOwnOrSupervise(step) && !done && !stuck;
+  const checkedCount = standards.filter((label) => ticked.has(label)).length;
+
+  return (
+    <div id={`station-checklist-${step.id}`} className="mt-5" aria-busy={c.tickPending}>
+      <p className="flex items-center justify-between text-sm font-medium text-strong">
+        <span>ข้อกำหนดของขั้นนี้</span>
+        <span className="tabular-nums text-muted">
+          {checkedCount}/{standards.length}
+        </span>
+      </p>
+      <ul className="mt-2 space-y-1.5">
+        {standards.map((label) => {
+          const on = ticked.has(label);
+          const who = ticked.get(label);
+          return (
+            <li key={label}>
+              <button
+                type="button"
+                aria-pressed={on}
+                disabled={!canTick || c.tickPending}
+                onClick={() => c.tickStandard(step.id, label, !on)}
+                className={cn(
+                  "flex min-h-14 w-full items-center gap-3 px-3 text-left text-base transition-colors disabled:cursor-default",
+                  RADIUS.inner,
+                  SUNK_PANEL,
+                  canTick && "hover:bg-interactive-hover",
+                  on ? "text-secondary" : "font-medium text-strong",
+                )}
+              >
+                {on ? <CheckCircle2 className="h-6 w-6 shrink-0 text-green-600 dark:text-green-400" aria-hidden="true" /> : <Circle className="h-6 w-6 shrink-0 text-muted" aria-hidden="true" />}
+                <span className="min-w-0 flex-1">
+                  <span className="block">{label}</span>
+                  {who ? <span className="mt-1 block text-sm font-normal text-muted">ติ๊กโดย {who}</span> : null}
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }

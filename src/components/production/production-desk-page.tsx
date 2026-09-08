@@ -19,6 +19,7 @@ import { formatTime } from "@/lib/utils";
 import { useListPageState } from "@/hooks/use-list-page-state";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ListPageSkeleton } from "@/components/ui/page-skeleton";
 import { PageShell } from "@/components/page-shell";
@@ -184,7 +185,7 @@ function ProductionDesk() {
           </Alert>
         ) : null}
 
-        <div className="space-y-5">
+        <div className="space-y-3 sm:space-y-5">
           <DeskTiles
             summary={summary}
             lens={lens}
@@ -209,16 +210,29 @@ function ProductionDesk() {
               />
             }
           />
-          <div className="flex min-h-9 items-center justify-between gap-3">
+          <div className="flex min-h-9 flex-wrap items-center justify-between gap-2">
             <p className="text-sm text-secondary" aria-live="polite" aria-atomic="true">
               <span className="font-semibold tabular-nums text-strong">{visibleRows.length.toLocaleString("th-TH")}</span>
               {filtered ? ` จาก ${rows.length.toLocaleString("th-TH")}` : ""} ใบงาน
             </p>
+            <div className="ml-auto w-40 sm:hidden">
+              <Select aria-label="เรียงรายการผลิต" surface="raised" value={`${sort.key}:${sort.direction}`} onChange={(event) => {
+                const [key, direction] = event.target.value.split(":");
+                list.replaceListState({ sort: key === "deadline" ? null : key, dir: direction === "asc" ? null : direction, page: null });
+              }}>
+                <option value="deadline:asc">ส่งใกล้ก่อน</option>
+                <option value="deadline:desc">ส่งไกลก่อน</option>
+                <option value="order:asc">เลขใบ น้อย–มาก</option>
+                <option value="order:desc">เลขใบ มาก–น้อย</option>
+                <option value="quantity:asc">จำนวน น้อย–มาก</option>
+                <option value="quantity:desc">จำนวน มาก–น้อย</option>
+              </Select>
+            </div>
             {filtered ? (
-              <Button size="sm" variant="ghost" onClick={() => list.clearSearch({ view: null, station: null })}>
-                ล้างตัวกรอง
+              <Button size="sm" variant="ghost" aria-label="ล้างตัวกรอง" onClick={() => list.clearSearch({ view: null, station: null })}>
+                <span className="sm:hidden">ล้าง</span><span className="hidden sm:inline">ล้างตัวกรอง</span>
               </Button>
-            ) : dataUpdatedAt > 0 ? <span className="text-xs text-muted sm:hidden">อัปเดต {formatTime(dataUpdatedAt)}</span> : null}
+            ) : dataUpdatedAt > 0 ? <span className="sr-only">อัปเดต {formatTime(dataUpdatedAt)}</span> : null}
           </div>
           <DeskTable
             rows={sortedRows}

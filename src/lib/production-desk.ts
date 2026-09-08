@@ -8,8 +8,10 @@
  */
 
 import type { BoardJob, BoardOrderLike, BoardStepLike, ProductionBoard } from "@/lib/production-board";
-import { OUTSOURCE_STATUS_LABELS } from "@/lib/production-steps";
+import { OUTSOURCE_ACTIVE_STATUSES, OUTSOURCE_STATUS_LABELS, STEP_TYPE_LABELS, isOutsourceStep } from "@/lib/production-steps";
 import { differenceInBangkokDays } from "@/lib/date-utils";
+import { currentProductionProblemReason } from "@/lib/production-problem";
+import { outsourceQueueForStatus } from "@/lib/outsource-ui";
 
 export type DeskLens = "all" | "late" | "blocked" | "outsource" | "ready";
 
@@ -29,8 +31,6 @@ export type DeskStepLike = BoardStepLike & {
     vendor: { name: string };
   }[];
 };
-
-const OUTSOURCE_AWAITING = new Set(["PENDING", "SENT", "IN_PROGRESS"]);
 
 export type DeskOutsource = {
   vendor: string;
@@ -56,7 +56,7 @@ export function jobOutsource<S extends DeskStepLike, O extends BoardOrderLike<S>
   for (const production of job.order.productions) {
     for (const step of production.steps) {
       const latest = step.outsourceOrders?.[0];
-      if (!latest || !OUTSOURCE_AWAITING.has(latest.status)) continue;
+      if (!latest || outsourceQueueForStatus(latest.status) !== "receive") continue;
       const expectedBackAt = latest.expectedBackAt ? new Date(latest.expectedBackAt) : null;
       candidates.push({
         vendor: latest.vendor.name,
@@ -84,26 +84,42 @@ export function jobResponsible<S extends BoardStepLike, O extends BoardOrderLike
 
 export type DeskCurrent = {
   label: string;
-  state: "failed" | "waiting" | "active" | "queue" | "post";
+  state: "failed" | "held" | "waiting" | "external" | "active" | "queue" | "post";
   /** เหตุที่รอ/ติด (waitingOn หรือ note ของขั้นที่พัง) */
   reason: string | null;
 };
 
-/** จุดงานปัจจุบันของแถว — ขั้นที่พังชนะ · รอของชนะ · ที่เหลือคือกำลังเดิน */
-export function jobCurrent<S extends BoardStepLike, O extends BoardOrderLike<S>>(
+/** วาดทุกสายเหมือนเดิม แต่ขึ้นสิ่งที่ทำต่อได้ก่อนขั้นที่รอบรรจบ — ใช้เส้นทางเดียวกับใบผลิต */
+export function jobCurrent<S extends DeskStepLike, O extends BoardOrderLike<S>>(
   job: BoardJob<O, S>,
 ): DeskCurrent[] {
-  return job.spots.map((spot) => {
-    if (spot.step?.status === "FAILED") {
-      return { label: spot.stationLabel, state: "failed", reason: spot.step.notes ?? spot.step.qcNotes ?? null };
+  const current = job.spots.map((spot): DeskCurrent => {
+    const step = spot.step;
+    if (!step) {
+      return { label: spot.stationLabel, state: spot.kind === "queue" ? "queue" : "post", reason: spot.waitingOn.join(" / ") || null };
+    }
+    const label = step.customStepName || (STEP_TYPE_LABELS[step.stepType] || spot.stationLabel).replace(" (ร้านนอก)", "");
+    if (step.status === "FAILED" || step.status === "ON_HOLD") {
+      return { label: `${label} · ${step.status === "FAILED" ? "มีปัญหา" : "พักไว้"}`, state: step.status === "FAILED" ? "failed" : "held", reason: currentProductionProblemReason(step) || null };
+    }
+    const outsource = step.outsourceOrders?.[0];
+    if (outsource?.status === "QC_FAILED") {
+      return { label: `${label} · ตรวจรับไม่ผ่าน`, state: "failed", reason: "รอหัวหน้าตัดสินใจ" };
+    }
+    if (outsource && OUTSOURCE_ACTIVE_STATUSES.includes(outsource.status)) {
+      const queue = outsourceQueueForStatus(outsource.status);
+      if (queue === "send") return { label: `รอส่งร้าน${label}`, state: "active", reason: null };
+      if (queue === "qc") return { label: `รอตรวจรับงาน${label}`, state: "active", reason: null };
+      return { label: `รอรับงาน${label}`, state: "external", reason: null };
     }
     if (spot.waitingOn.length > 0) {
-      return { label: spot.stationLabel, state: "waiting", reason: spot.waitingOn.join(" / ") };
+      return { label, state: "waiting", reason: spot.waitingOn.join(" / ") };
     }
-    if (spot.kind === "queue") return { label: spot.stationLabel, state: "queue", reason: null };
-    if (spot.kind === "post") return { label: spot.stationLabel, state: "post", reason: null };
-    return { label: spot.stationLabel, state: "active", reason: null };
+    if (isOutsourceStep(step.stepType)) return { label: `รอส่งร้าน${label}`, state: "active", reason: null };
+    return { label: `${step.status === "IN_PROGRESS" ? "กำลัง" : "รอ"}${label}`, state: "active", reason: null };
   });
+  const rank: Record<DeskCurrent["state"], number> = { failed: 0, held: 1, active: 2, queue: 2, post: 2, external: 3, waiting: 4 };
+  return current.sort((a, b) => rank[a.state] - rank[b.state]);
 }
 
 export type DeskPileKey = "blocked" | "outsource-due" | "queue" | "doing" | "waiting" | "ready";
@@ -127,11 +143,13 @@ export function buildDeskRows<S extends DeskStepLike, O extends BoardOrderLike<S
   board: ProductionBoard<O, S>,
   now: Date,
 ): DeskRow<S, O>[] {
-  const exceptionIds = new Set(board.exceptions.map((item) => item.orderId));
   return board.jobs.map((job) => {
     const current = jobCurrent(job);
     const outsource = jobOutsource(job, now);
-    const blocked = current.some((c) => c.state === "failed") || exceptionIds.has(job.order.id);
+    // Board exceptions รวมเลยกำหนด/รอเสื้อ/รอ QC ด้วย — สิ่งเหล่านั้นไม่ใช่งานเสียหรือหยุดเสมอไป
+    const blocked = job.order.productions.some((p) => p.steps.some((s) =>
+      s.status === "FAILED" || s.status === "ON_HOLD" || s.outsourceOrders?.[0]?.status === "QC_FAILED",
+    )) || (job.spots.some((s) => s.kind === "queue") && job.order.readiness?.ready === false);
     const outsourceDue = outsource !== null && outsource.backInDays !== null && outsource.backInDays <= 0;
     const ready = isReadyToShip(job.order.internalStatus);
     const queue = current.some((c) => c.state === "queue");

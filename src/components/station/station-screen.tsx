@@ -11,7 +11,7 @@
  *   สถานีที่ช่างเลือกล่าสุดจำไว้ในเครื่อง (localStorage) — จอเดิมเปิดมาก็อยู่สถานีเดิม
  */
 
-import { Suspense, useEffect, useMemo } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, Factory, ShieldX } from "lucide-react";
 import { trpc, type RouterOutput } from "@/lib/trpc";
@@ -30,6 +30,7 @@ import { FLOOR_HREF } from "@/lib/production-surface";
 import { formatDate, formatDateTime } from "@/lib/utils";
 import { QueueGroups, StationIcon, StationShell, StationTile, WhoChip } from "./station-pieces";
 import { StationJob } from "./station-job";
+import { toast } from "sonner";
 
 type QueueOrder = RouterOutput["factory"]["stationQueue"][number];
 type QueueStep = QueueOrder["productions"][number]["steps"][number];
@@ -55,6 +56,7 @@ function rememberedStation(): string | null {
 
 function Screen() {
   const list = useListPageState();
+  const [changingUser, setChangingUser] = useState(false);
   const router = useRouter();
   const st = list.searchParams.get("st");
   const screen = list.searchParams.get("s");
@@ -103,13 +105,21 @@ function Screen() {
     list.replaceListState({ st: key, s: null, job: null, step: null, fix: null });
   };
   const changeUser = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    rememberStation(null);
-    router.replace(`/login?next=${FLOOR_HREF}`);
-    router.refresh();
+    if (changingUser) return;
+    setChangingUser(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      rememberStation(null);
+      router.replace(`/login?next=${FLOOR_HREF}`);
+      router.refresh();
+    } catch {
+      toast.error("เปลี่ยนคนไม่สำเร็จ ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่");
+      setChangingUser(false);
+    }
   };
-  const who = <WhoChip name={me?.name ?? "…"} boss={canSupervise} onChange={me ? () => void changeUser() : undefined} />;
+  const who = <WhoChip name={me?.name ?? "…"} boss={canSupervise} onChange={me ? () => void changeUser() : undefined} pending={changingUser} />;
 
   /* ── โหลด / พัง / ไม่มีสิทธิ์ ── */
   if (meQuery.isLoading || (queueQuery.isLoading && !orders)) {

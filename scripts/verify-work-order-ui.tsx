@@ -11,6 +11,7 @@ import { Button } from "../src/components/ui/button";
 import { ChecklistCard } from "../src/components/production/work-order-checklist";
 import { StepPieceTable, pieceRowsOf } from "../src/components/production/work-order-quantities";
 import { WorkOrderSteps } from "../src/components/production/work-order-steps";
+import type { ProductionDetail } from "../src/components/production/types";
 import { ProblemCard } from "../src/components/production/work-order-pieces";
 
 let pass = 0;
@@ -73,16 +74,21 @@ ok("แถวรายตัว: ลายเป็นภาษาคน (ตำ
 
 const table = render(<StepPieceTable step={{ ...base, id: "h", stepType: "HEAT_PRESS", status: "IN_PROGRESS", qtyDone: 96, qtyTotal: 240 } as never} order={fakeOrder} c={ctrl} />);
 ok("ตาราง: หัวตารางใช้ TABLE_HEAD_SURFACE (โปร่งตามพื้นแม่)", table.includes("<thead class=\"border-b border-divider bg-transparent text-secondary\""));
-ok("ตาราง: 3 แถว + แถวรวม 120 ตัว", (table.match(/<tr/g) ?? []).length === 5 && table.includes("120"));
+ok("ตาราง: หัวตาราง + ไซซ์ 3 แถว และรวม 120 ตัว", (table.match(/<tr/g) ?? []).length === 4 && table.includes("รวมทั้งใบ") && table.includes("120"));
 ok("ตาราง: ยอดทำแล้วของขั้นอยู่หัวการ์ด (96 / 240)", /96\s*\/\s*240/.test(table.replace(/<[^>]+>/g, "")));
 /* A9.3: ขั้นที่นับยอดกรอก ทำแล้ว/เสีย ต่อแถวได้ — ปุ่มบันทึกโผล่เมื่อแก้ (ไม่มีปุ่มกดไม่ได้) · ปุ่มครบทุกแถวมีตลอด */
 ok("ตาราง: ช่องกรอกทำแล้ว/เสีย แถวละไซซ์ (6 ช่อง)", (table.match(/aria-label="ทำแล้ว /g) ?? []).length === 3 && (table.match(/aria-label="เสีย /g) ?? []).length === 3);
 ok("ตาราง: มีปุ่มใส่ครบทุกไซซ์ · ปุ่มบันทึกยอดยังไม่โผล่ตอนยังไม่แก้", table.includes(">ใส่ครบทุกไซซ์<") && !table.includes(">บันทึกยอด<"));
-ok("ตาราง: ไซซ์นำแถว (ตัวใหญ่หนา) · ชื่อสินค้าเป็นบรรทัดรอง", table.includes('font-semibold text-strong">S<') && /<p class="[^"]*text-xs text-secondary[^"]*">โปโล Dry-Tech คอปก<\/p>/.test(table));
+ok("ตาราง: ไซซ์นำแถว และชื่อสินค้า/ภาพ/รายละเอียดลายแสดงครั้งเดียวต่อสินค้า", table.includes('font-semibold text-strong">S<') && (table.match(/>โปโล Dry-Tech คอปก<\/h3>/g) ?? []).length === 1 && (table.match(/<img /g) ?? []).length === 1 && (table.match(/>หน้า DTF<\/li>/g) ?? []).length === 1);
 ok("ตาราง: สีหลักของเสื้อไม่หาย และลายแยกเป็นรายการอ่านได้", table.includes(">กรมท่า<") && table.includes(">หน้า DTF</li>") && table.includes(">แขนซ้าย ปัก</li>"));
-ok("ตาราง: ชื่อพื้นที่และหัวคอลัมน์อ่านได้ด้วยเครื่องช่วยอ่าน", table.includes('role="region"') && table.includes('aria-label="รายการเสื้อ ขั้นรีดร้อน"') && (table.match(/scope="col"/g) ?? []).length === 6);
+ok("ตาราง: ชื่อพื้นที่และหัวคอลัมน์อ่านได้ด้วยเครื่องช่วยอ่าน", table.includes('role="region"') && table.includes('aria-label="รายการเสื้อ ขั้นรีดร้อน"') && (table.match(/scope="col"/g) ?? []).length === 4);
 ok("ตาราง: ช่องกรอกสูงพอนิ้วบนจอทัช (CONTROL_H)", table.includes("[@media(pointer:coarse)]:h-11"));
 ok("ตาราง: ไม่มีคำอธิบายวิธีใช้ (A8)", !table.includes("กรอก") && !table.includes("กดเพื่อ"));
+const distinctProductsOrder = structuredClone(fakeOrder as ProductionDetail["order"]);
+const originalProduct = distinctProductsOrder.items[0]!.products[0]!;
+distinctProductsOrder.items[0]!.products.push({ ...originalProduct, id: "pr2", totalQuantity: 20, variants: [{ ...originalProduct.variants[0]!, id: "v4", quantity: 20 }] });
+const distinctProductsTable = render(<StepPieceTable step={{ ...base, id: "multi", stepType: "HEAT_PRESS", status: "IN_PROGRESS" } as never} order={distinctProductsOrder} c={ctrl} />);
+ok("ตาราง: สินค้าคนละรายการที่ชื่อเดียวกันไม่ถูกรวมทับ", (distinctProductsTable.match(/<h3 /g) ?? []).length === 2 && (distinctProductsTable.match(/aria-label="ทำแล้ว /g) ?? []).length === 4 && distinctProductsTable.includes("140"));
 const savedQty = render(<StepPieceTable step={{ ...base, id: "h2", stepType: "HEAT_PRESS", status: "COMPLETED", qtyDone: 240, quantities: [{ id: "q1", sourceOrderItemVariantId: "v1", qtyPlanned: 20, qtyGood: 20, qtyScrap: 1 }] } as never} order={fakeOrder} c={ctrl} />);
 ok("ตาราง: ขั้นที่ปิดแล้วโชว์ยอดต่อแถวที่จดไว้ (อ่านอย่างเดียว)", !savedQty.includes("aria-label=\"ทำแล้ว") && savedQty.includes(">ทำแล้ว<") && savedQty.includes(">เสีย<"));
 const pick = render(<StepPieceTable step={{ ...base, id: "g", stepType: "GARMENT_PICK", status: "PENDING", qtyDone: 0, qtyTotal: 240 } as never} order={fakeOrder} c={ctrl} />);
