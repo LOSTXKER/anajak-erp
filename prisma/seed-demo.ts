@@ -27,7 +27,7 @@ import {
   validateDemoDatabaseUrl,
   validateDemoSeedInvocation,
 } from "../src/lib/demo-seed-plan";
-import { FORM_STATES, seedWorkOrderFormStates } from "./seed-demo-form-states";
+import { FORM_ROUTES, seedWorkOrderFormStates } from "./seed-demo-form-states";
 
 const prisma = new PrismaClient();
 const DAY_MS = 24 * 60 * 60 * 1_000;
@@ -2558,7 +2558,7 @@ async function main() {
         }),
       ]);
       if (
-        orderCount !== DEMO_SEED_SCENARIOS.length + FORM_STATES.length ||
+        orderCount !== DEMO_SEED_SCENARIOS.length + FORM_ROUTES.length ||
         productionRows.length < 8
       ) {
         throw new Error("Demo seed จำนวนออเดอร์หรือใบผลิตไม่ครบ");
