@@ -3,7 +3,7 @@
 import { Suspense } from "react";
 import { History } from "lucide-react";
 import { trpc } from "@/lib/trpc";
-import { useListPageState } from "@/hooks/use-list-page-state";
+import { useListPageState, usePageClamp } from "@/hooks/use-list-page-state";
 import { permAllows } from "@/lib/permissions";
 import { formatDateTime } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +32,7 @@ function AuditLogContent() {
     { page, limit: 30 },
     { enabled: canView }
   );
+  usePageClamp(page, query.data?.pages, replaceListState);
 
   // เดิมลบ page ทิ้งเมื่อ nextPage <= 1 — hook ลบให้เองเฉพาะค่า "1" จึงส่ง null ครอบเคส <= 1
   const goToPage = (nextPage: number) =>
@@ -67,7 +68,7 @@ function AuditLogContent() {
               <li key={log.id} className="card-surface rounded-2xl p-4">
                 <div className="flex items-center justify-between gap-2">
                   <Badge size="sm">{log.action}</Badge>
-                  <time className="text-xs text-muted">
+                  <time dateTime={new Date(log.createdAt).toISOString()} className="text-xs text-muted">
                     {formatDateTime(log.createdAt)}
                   </time>
                 </div>
@@ -109,6 +110,7 @@ function AuditLogContent() {
               page={page}
               totalPages={query.data.pages}
               total={query.data.total}
+              limit={30}
               onPageChange={goToPage}
               label="รายการ"
             />

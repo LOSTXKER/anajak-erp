@@ -61,6 +61,7 @@ export default function PatternsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editData, setEditData] = useState<Partial<NewPatternForm>>({});
   const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const utils = trpc.useUtils();
   const confirmDialog = useConfirm();
@@ -135,9 +136,11 @@ export default function PatternsPage() {
     e: React.ChangeEvent<HTMLInputElement>,
     target: "form" | "edit",
   ) => {
-    const file = e.target.files?.[0];
+    const input = e.currentTarget;
+    const file = input.files?.[0];
     if (!file) return;
     setUploading(true);
+    setUploadError(null);
     try {
       const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${safeFileExt(file.name)}`;
       const path = `patterns/${uniqueName}`;
@@ -146,9 +149,10 @@ export default function PatternsPage() {
         setFormData((prev) => ({ ...prev, fileUrl: url }));
       }
     } catch {
-      // silently fail
+      setUploadError("อัปโหลดไฟล์ไม่สำเร็จ กรุณาเลือกไฟล์เพื่อลองอีกครั้ง");
     } finally {
       setUploading(false);
+      input.value = "";
     }
   };
 
@@ -179,9 +183,11 @@ export default function PatternsPage() {
             <Button
               variant="outline"
               size="sm"
+              disabled={createPattern.isPending || uploading}
               onClick={() => {
                 setShowAddForm(!showAddForm);
                 setFormData({ ...emptyForm });
+                setUploadError(null);
               }}
             >
               <Plus className="mr-1" />
@@ -269,18 +275,20 @@ export default function PatternsPage() {
                       accept=".pdf,.ai,.svg,image/*"
                       onChange={(e) => handleFileUpload(e, "form")}
                       className="sr-only"
-                      disabled={uploading}
+                      disabled={uploading || createPattern.isPending}
+                      aria-describedby={uploadError ? "pattern-upload-error" : undefined}
                     />
                     <Upload className="h-3.5 w-3.5" />
                     {uploading ? "กำลังอัพโหลด..." : formData.fileUrl ? "อัพโหลดแล้ว" : "อัพโหลดไฟล์"}
                   </label>
+                  {uploadError ? <Alert id="pattern-upload-error" variant="error" className="mt-2">{uploadError}</Alert> : null}
                 </div>
                 <div className="flex items-end gap-2">
                   <Button
                     type="submit"
                     size="sm"
                     className="flex-1"
-                    disabled={createPattern.isPending}
+                    disabled={createPattern.isPending || uploading}
                   >
                     {createPattern.isPending ? "กำลังเพิ่ม..." : "เพิ่ม"}
                   </Button>
@@ -289,6 +297,7 @@ export default function PatternsPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => setShowAddForm(false)}
+                    disabled={createPattern.isPending || uploading}
                   >
                     ยกเลิก
                   </Button>
@@ -331,6 +340,7 @@ export default function PatternsPage() {
                       <DataTable.Td>
                         {isEditing ? (
                           <Input size="sm"
+                            disabled={updatePattern.isPending}
                             aria-label={`ชื่อแพทเทิร์น ${p.name}`}
                             value={editData.name ?? p.name}
                             onChange={(e) => setEditData({ ...editData, name: e.target.value })}
@@ -359,6 +369,7 @@ export default function PatternsPage() {
                       <DataTable.Td align="center">
                         {isEditing ? (
                           <Select size="sm"
+                            disabled={updatePattern.isPending}
                             aria-label={`ทรงคอของ ${p.name}`}
                             value={editData.collarType ?? p.collarType ?? ""}
                             onChange={(e) => setEditData({ ...editData, collarType: e.target.value })}
@@ -377,6 +388,7 @@ export default function PatternsPage() {
                       <DataTable.Td align="center">
                         {isEditing ? (
                           <Select size="sm"
+                            disabled={updatePattern.isPending}
                             aria-label={`แขนของ ${p.name}`}
                             value={editData.sleeveType ?? p.sleeveType ?? ""}
                             onChange={(e) => setEditData({ ...editData, sleeveType: e.target.value })}
@@ -395,6 +407,7 @@ export default function PatternsPage() {
                       <DataTable.Td align="center">
                         {isEditing ? (
                           <Select size="sm"
+                            disabled={updatePattern.isPending}
                             aria-label={`ฟิตของ ${p.name}`}
                             value={editData.bodyFit ?? p.bodyFit ?? ""}
                             onChange={(e) => setEditData({ ...editData, bodyFit: e.target.value })}
@@ -429,19 +442,19 @@ export default function PatternsPage() {
                           <div className="flex justify-end gap-1.5">
                             <Button
                               variant="ghost"
-                              size="sm"
+                              size="icon-sm"
                               onClick={handleSaveEdit}
                               disabled={updatePattern.isPending}
-                              className="h-8 w-8 p-0 text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
+                              className="text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
                               aria-label={`บันทึกการแก้ไข ${p.name}`}
                             >
                               <Check />
                             </Button>
                             <Button
                               variant="ghost"
-                              size="sm"
+                              size="icon-sm"
                               onClick={() => { setEditingId(null); setEditData({}); }}
-                              className="h-7 w-7 p-0"
+                              disabled={updatePattern.isPending}
                               aria-label={`ยกเลิกการแก้ไข ${p.name}`}
                             >
                               <X />
@@ -452,9 +465,10 @@ export default function PatternsPage() {
                             {canEdit && (
                               <Button
                                 variant="ghost"
-                                size="sm"
+                                size="icon-sm"
                                 onClick={() => { setEditingId(p.id); setEditData({}); }}
-                                className="h-8 w-8 p-0 text-muted hover:text-strong dark:hover:text-strong"
+                                className="text-muted hover:text-strong dark:hover:text-strong"
+                                disabled={updatePattern.isPending}
                                 aria-label={`แก้ไขแพทเทิร์น ${p.name}`}
                               >
                                 <Pencil />
@@ -463,10 +477,10 @@ export default function PatternsPage() {
                             {canDelete && (
                               <Button
                                 variant="ghost"
-                                size="sm"
+                                size="icon-sm"
                                 onClick={() => handleDelete(p.id, p.name)}
                                 disabled={deletePattern.isPending}
-                                className="h-8 w-8 p-0 text-muted hover:text-red-600 dark:hover:text-red-400"
+                                className="text-muted hover:text-red-600 dark:hover:text-red-400"
                                 aria-label={`ลบแพทเทิร์น ${p.name}`}
                               >
                                 <Trash2 />

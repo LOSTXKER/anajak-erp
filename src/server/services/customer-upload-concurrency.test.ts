@@ -3,17 +3,19 @@ import type { ExtendedPrismaClient } from "@/lib/prisma";
 
 const storageMocks = vi.hoisted(() => ({
   createSignedUrl: vi.fn(),
+  createSignedUploadUrl: vi.fn(),
 }));
 
 vi.mock("@/lib/supabase-admin", () => ({
   createAdminClient: () => ({
     storage: {
-      from: () => ({ createSignedUrl: storageMocks.createSignedUrl }),
+      from: () => ({ createSignedUrl: storageMocks.createSignedUrl, createSignedUploadUrl: storageMocks.createSignedUploadUrl }),
     },
   }),
 }));
 
-import { confirmCustomerUpload } from "./customer-upload";
+import { confirmCustomerUpload, createCustomerUploadUrl } from "./customer-upload";
+import { CUSTOMER_UPLOAD_ACCEPT, CUSTOMER_UPLOAD_MAX_BYTES } from "@/lib/customer-upload-policy";
 
 describe("confirmCustomerUpload concurrency", () => {
   beforeEach(() => {
@@ -76,5 +78,33 @@ describe("confirmCustomerUpload concurrency", () => {
       data: { updatedAt: expect.any(Date) },
       select: { id: true },
     });
+  });
+});
+
+describe("customer upload picker and server policy", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    storageMocks.createSignedUploadUrl.mockResolvedValue({
+      data: { path: "order-1/customer/test.7z", token: "test-upload-token" },
+      error: null,
+    });
+  });
+
+  it("ไฟล์งาน 7z ที่ server รับอยู่เดิมเลือกจาก picker ได้ และขนาดสูงสุดยังรับได้", async () => {
+    expect(CUSTOMER_UPLOAD_ACCEPT.split(",")).toContain(".7z");
+    await expect(createCustomerUploadUrl({ orderId: "order-1", fileName: "งาน.7z", fileSize: CUSTOMER_UPLOAD_MAX_BYTES })).resolves.toMatchObject({ bucket: "designs" });
+    expect(storageMocks.createSignedUploadUrl).toHaveBeenCalledOnce();
+  });
+
+  it("SVG ไม่อยู่ใน picker และถูกปฏิเสธก่อนออก signed URL", async () => {
+    expect(CUSTOMER_UPLOAD_ACCEPT.split(",")).not.toContain(".svg");
+    expect(CUSTOMER_UPLOAD_ACCEPT).not.toContain("image/*");
+    await expect(createCustomerUploadUrl({ orderId: "order-1", fileName: "reference.svg", fileSize: 100 })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    expect(storageMocks.createSignedUploadUrl).not.toHaveBeenCalled();
+  });
+
+  it("เกิน 25 MB แม้เพียงไบต์เดียวต้องไม่ออก signed URL", async () => {
+    await expect(createCustomerUploadUrl({ orderId: "order-1", fileName: "reference.pdf", fileSize: 25 * 1024 * 1024 + 1 })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    expect(storageMocks.createSignedUploadUrl).not.toHaveBeenCalled();
   });
 });

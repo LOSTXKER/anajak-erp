@@ -9,6 +9,7 @@ import { PageShell } from "@/components/page-shell";
 import { Field } from "@/components/ui/field";
 import { FIELD_LABEL, DISPLAY_AMOUNT } from "@/components/ui/tokens";
 import { Input } from "@/components/ui/input";
+import { MoneyInput, NumberInput } from "@/components/ui/number-input";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert } from "@/components/ui/alert";
@@ -90,6 +91,7 @@ function QuotationFormPage() {
 
   const {
     data: linkedOrder,
+    isLoading: linkedOrderLoading,
     isError: linkedOrderIsError,
     refetch: refetchLinkedOrder,
   } = trpc.order.getById.useQuery(
@@ -98,6 +100,7 @@ function QuotationFormPage() {
   );
   const {
     data: editing,
+    isLoading: editingLoading,
     isError: editingIsError,
     refetch: refetchEditing,
   } = trpc.quotation.getById.useQuery(
@@ -307,7 +310,7 @@ function QuotationFormPage() {
               }
             : null
       }
-      loading={redirectToCanonicalIntake}
+      loading={redirectToCanonicalIntake || (!!fromOrderId && linkedOrderLoading && !linkedOrder) || (!!editId && editingLoading && !editing)}
       skeleton={<ListPageSkeleton />}
       denied={
         !!me &&
@@ -400,7 +403,7 @@ function QuotationFormPage() {
               return (
                 <div
                   key={idx}
-                  className="space-y-3 rounded-lg border border-border bg-surface-muted p-4"
+                  className="space-y-3 border-b border-divider pb-5 last:border-b-0 last:pb-0"
                 >
                   {/* Item header */}
                   <div className="flex items-center justify-between">
@@ -461,18 +464,13 @@ function QuotationFormPage() {
                       <label htmlFor={`quotation-item-${idx}-quantity`} className={labelClass}>
                         จำนวน *
                       </label>
-                      <Input
+                      <NumberInput
                         id={`quotation-item-${idx}-quantity`}
-                        type="number"
+                        integer
                         min={1}
+                        fallback={1}
                         value={item.quantity}
-                        onChange={(e) =>
-                          updateItem(
-                            idx,
-                            "quantity",
-                            parseInt(e.target.value) || 1,
-                          )
-                        }
+                        onValueChange={(value) => updateItem(idx, "quantity", value || 1)}
                         required
                       />
                     </div>
@@ -491,19 +489,10 @@ function QuotationFormPage() {
                       <label htmlFor={`quotation-item-${idx}-price`} className={labelClass}>
                         ราคาต่อหน่วย *
                       </label>
-                      <Input
+                      <MoneyInput
                         id={`quotation-item-${idx}-price`}
-                        type="number"
-                        min={0}
-                        step={0.01}
-                        value={item.unitPrice || ""}
-                        onChange={(e) =>
-                          updateItem(
-                            idx,
-                            "unitPrice",
-                            parseFloat(e.target.value) || 0,
-                          )
-                        }
+                        value={item.unitPrice}
+                        onValueChange={(value) => updateItem(idx, "unitPrice", value)}
                         placeholder="0.00"
                         required
                       />
@@ -524,28 +513,15 @@ function QuotationFormPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="space-y-2 text-sm">
-              {/* Subtotal */}
-              <div className="flex justify-between text-secondary">
-                <span>ยอดรวมสินค้า</span>
-                <span className="tabular-nums">
-                  {formatCurrency(pricingSummary.subtotal)}
-                </span>
-              </div>
-
               {/* Discount */}
               <div className="flex items-center justify-between">
                 <label htmlFor="quotation-discount" className="text-secondary">
                   ส่วนลด
                 </label>
-                <Input
+                <MoneyInput
                   id="quotation-discount"
-                  type="number"
-                  min={0}
-                  step={0.01}
-                  value={discount || ""}
-                  onChange={(e) =>
-                    setDiscount(parseFloat(e.target.value) || 0)
-                  }
+                  value={discount}
+                  onValueChange={setDiscount}
                   placeholder="0.00"
                   className="w-32 text-right"
                 />
@@ -553,7 +529,7 @@ function QuotationFormPage() {
 
               {/* Tax — จำนวนเงินบาท (ต่างจากฟอร์มออเดอร์ที่เป็น %) · ปุ่มลัดคิด 7%
                   จากฐานหลังหักส่วนลด — บริษัทจด VAT ใบเสนอควรมีภาษีเสมอ (Gate B2) */}
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <label htmlFor="quotation-tax" className="text-secondary">
                   ภาษี (บาท)
                 </label>
@@ -570,13 +546,10 @@ function QuotationFormPage() {
                   >
                     VAT 7%
                   </Button>
-                  <Input
+                  <MoneyInput
                     id="quotation-tax"
-                    type="number"
-                    min={0}
-                    step={0.01}
-                    value={tax || ""}
-                    onChange={(e) => setTax(parseFloat(e.target.value) || 0)}
+                    value={tax}
+                    onValueChange={setTax}
                     placeholder="0.00"
                     className="w-32 text-right"
                   />
@@ -625,7 +598,7 @@ function QuotationFormPage() {
         {/* ============================================================ */}
         {/* Actions                                                      */}
         {/* ============================================================ */}
-        <div className="flex justify-end gap-3 pb-8">
+        <div className="flex justify-end gap-3 pb-8 [&>button]:flex-1 [&>a]:flex-1 sm:[&>button]:flex-none sm:[&>a]:flex-none">
           <Button type="button" variant="outline" asChild>
             <Link href="/quotations">
               ยกเลิก

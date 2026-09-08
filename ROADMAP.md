@@ -173,6 +173,7 @@ GL/งบการเงิน · job costing/ต้นทุนต่อออ�
 - Order Workbench / Command Center redesign ทั้งระบบทีเดียว (08-14, 08-29) → ปฏิเสธเพราะเสนอทางเดียว + รื้อก่อนตกลงทิศ
 
 ## ✅ เสร็จแล้ว (ดัชนี — ไม่ทำซ้ำ · รายละเอียด `git log` / `git show 61575af:ROADMAP.md`)
+- **A11 (2026-09-09):** ตรวจโครง 47 หน้าจอจริง + redirects/layouts; ปรับผลิต/Station/รายการ/ฟอร์ม/การเงิน/ตั้งค่า/public/print ผ่านของกลาง, แก้คิวรอ+saved checklist, ลด UI เก่าไร้ผู้เรียก 268 บรรทัด; unit 1,735 + typecheck/lint/verify:ui/build ผ่าน, QA browser ตามกลุ่มหน้าทั้ง 3005 และยืนยัน 3000 จริง — รายละเอียด coverage/ข้อจำกัดใน PROGRESS; branch `codex/production-table-refine`
 - **A10 (2026-09-09):** ตารางผลิตต่อเนื่อง 6 คอลัมน์ ไม่มีหัวแบ่งสถานะ + sort/Link/ล้างตัวกรอง; เกลาใบผลิตโครง A9 และแยก component/ยอดขั้นคู่; รวมวันไทย, DataTable padding, clearSearch กลาง; 1,702 tests + UI 33 guards และ browser 1440/390 Light/Dark ผ่าน — branch `codex/production-table-refine` ยังไม่ขึ้น main
 - 06-10 → 06-19 **P0** ฐานราก: auth + RBAC จริง · Float → Decimal · เลขเอกสารรันต่อเนื่อง · migrations · service layer · test แกน · `docs/ARCHITECTURE.md`
 - 06-11 audit วงจรออเดอร์ 31 ข้อแก้ครบ · 06-12 **FLOW-REDESIGN** ผังใหม่ทั้งระบบ · แยกโมดูลผลิต · ตัด job costing

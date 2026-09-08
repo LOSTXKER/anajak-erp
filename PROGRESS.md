@@ -1,36 +1,49 @@
 # PROGRESS — สถานะสด
 
-## ตอนนี้ (2026-09-09 · A10)
-- เบสสั่ง `/production` เป็นตารางต่อเนื่อง ไม่แบ่งหัวสถานะ และเกลา `/production/demo-production-form-tag-press` บนโครงเดิม พร้อม refactor ที่ช่วยทั้งเว็บ
-- ทำบน branch `codex/production-table-refine` ต่อจาก `proto/work-order-form` ที่ `92defca`; ไม่ได้ขึ้น main/Production ในรอบนี้
-- `/production`: ตารางเดียว 6 คอลัมน์ ไม่มีหัวแบ่งกลุ่ม; รวมเส้นทางไว้ใต้ขั้นตอน; หัวใบงาน/จำนวน/กำหนดส่งกดเรียง asc/desc ได้ (URL sort/dir); เลขใบเป็น Link จริง ใช้คีย์บอร์ด/เปิดแท็บใหม่ได้; ค้นหา/ตัวกรองเดิม + จำนวนผล + ล้างตัวกรอง; ตัวเลขร้านนอกนับใบไม่ซ้ำ; มือถือเลื่อนเฉพาะตารางและแถบกรอง
-- ใบผลิตคงหัวใบ → ราง → ขั้นตอน/สินค้า → ตารางซ้าย/เช็คลิสต์ขวา; แสดงไซซ์/สี/ลายเป็นสัดส่วน, โซนกรอกครบ/บันทึกแยกจากหัว, เช็คลิสต์อ่านง่ายและข้อมูลร้านนอกครบขึ้น
-- แยก `work-order-page.tsx` เหลือ 336 บรรทัด: `work-order-quantities` / `work-order-checklist` / `work-order-items` / `work-order-steps`; query/controller/server/สิทธิ์เดิม; หน้าลองทุกสถานะใช้ component ชุดเดียว
-- ขั้นคู่มีตารางยอดของแต่ละขั้นและ anchor เช็คลิสต์/ยอดแยกตาม step; ปุ่มปิดพาไปช่องของขั้นนั้น แทนช่องของขั้นหลัก
-- Refactor กลาง: `differenceInBangkokDays` ใน date-utils ใช้ร่วมรายการผลิต/ใบผลิต/ออเดอร์/board (แก้ tests เดิมที่ล้มบน UTC); `DataTable cellPadding` รวมระยะหัว/เซลล์/ปุ่มเรียง (ผลิต compact12px, ออเดอร์ responsive16/24px); hook `clearSearch` ยกเลิก debounce พร้อมล้าง URL/input ใช้ร่วมผลิต/ออเดอร์; ลบ groupDeskRows/DESK_PILES ที่หมดผู้ใช้
+## ตอนนี้ (2026-09-09 · A11)
+- เบสอนุญาต UX/UI และ refactor ทุกหน้า/ส่วนกลางได้เลยเมื่อช่วยพัฒนาต่อและใช้ง่ายขึ้น; ทำบน codex/production-table-refine ต่อจาก A10 5856b9f ไม่ใช่ main/Production
+- Inventory: page.tsx58 = dashboard35/auth1/public5/print5/factory1/floor1/station-redirect1/v2-redirect4/proto5; ไม่นับหน้าลองและ redirects เหลือ **47 หน้าจอจริง**; layout7 (รวมproto1)
+- ตรวจระดับ route/component/shared dependency; ไม่ได้ตรวจทุกบรรทัดของ92บริการ/router และไม่เปลี่ยนของที่แยกขอบเขตธุรกิจเหมาะอยู่แล้วเพื่อให้เกิดdiff
+
+## สิ่งที่ปรับ
+- ผลิต: ตารางต่อเนื่อง6คอลัมน์ ไม่มีหัวแบ่งสถานะ; ขึ้นงานที่ทำต่อได้ก่อนขั้นที่รอ; งานเลยกำหนด/รอเสื้อไม่ถูกนับติดปัญหา; DRAFT/SENT/COMPLETED/RECEIVED_BACKร้านนอกแสดงหน้าที่ถัดไปถูกช่วง
+- production-board คิด waitingOn จากเส้นทางเดียวกับใบผลิต: QC/ขั้นท้ายไม่ถูกนับพร้อมก่อนงานต้นทางเสร็จ; คง heat-press gate/exceptions/server เดิม
+- มือถือผลิตยังเป็นtable: เลขใบ/จำนวน/กำหนดส่ง/ตอนนี้อยู่ด้วยกัน มีตัวเลือกเรียง; ลดพื้นที่หัว/ตัวเลขกรอง; รายละเอียดรองเลื่อนภายในตาราง
+- ใบผลิต: รูป/ชื่อ/ลายครั้งเดียวต่อสินค้า แล้วตาราง4คอลัมน์ไซซ์/จำนวน/ทำแล้ว/เสีย; แยกด้วยproductId ไม่รวมสินค้าชื่อเหมือนกัน; ใช้ร่วมขั้นหลักและคู่; PENDINGที่ถึงคิวแสดงพร้อมทำ
+- Station: เช็คลิสต์ใช้ step.checks + tickStandard ที่บันทึกจริง; ปิดขั้นผ่านcontrollerเดียวกับใบผลิต รวมรีดร้อนที่A5เคยซ่อน; รอติ๊กครบ/บันทึกเสร็จก่อนปิด; งานเก่าไม่แต่งว่าติ๊กครบเอง
+- รายการ: customer/product/quote ล้างผลค้นหาว่างได้; productใช้paginationกลาง; notifications เก็บview/pageในURL; page clampกลางคืนหน้า1เมื่อserverส่งpages=0
+- ฟอร์ม/รายละเอียด: order new/editใช้แถบปุ่มร่วมพอดีมือถือ; quoteใช้numeric inputกลาง/รอprefill/ลดsubtotalซ้ำ; quote detailรวมsecondary actions; ลูกค้าแยกยอดหนี้; สินค้าไม่ครอปรูป/emptyตรงแหล่ง
+- การเงิน: ลดลิงก์ซ้ำต่อแถว, เลขบิล/ออเดอร์ไม่ตัดบรรทัด, ดูใบจ่ายแล้วเป็นปุ่มรอง; loadingสถิติแยกจาก0; notes/WHTแยกข้อมูลเลือกเอกสาร, aging retry; analyticsแยกโหลด/ว่างและเปิดลูกค้าได้
+- Settings: ใช้PageShell; กันแก้ชนsave; keyboard/touchเป้าขนาดเหมาะสม; packaging formจอแคบ; patterns upload fail/retry; routings queryพังมีretryแทนskeletonค้าง
+- Public/login/print: main landmark/ข้อความยาว/labelความคิดเห็น; loginคืนloadingเมื่อnetwork throw; uploadแยกไฟล์ชื่อซ้ำด้วยIDและใช้กฎชนิดไฟล์/25MBร่วมserver; printคงA4/blind-ship
+- ส่วนกลาง: PageShellระยะมือถือ, StatCard loading, TablePaginationห่อจอแคบ, DataTableเลือกข้อความ/ไม่แย่งcontrol/ผ่านunsaved navigation, Command Palette combobox+listbox/ลูกศร+Enter/IME
+- ลบ UI เก่าไม่มีผู้เรียก2ไฟล์: components/production/work-order-route.tsx และ production-mockup-tab.tsx รวม268บรรทัด; ลบbaselineอ้างไฟล์เฉพาะจุด; **lib/work-order-route ยังใช้จริงและคงไว้**
+
+## Coverage ของส่วนที่ตรวจแล้วคงโครงเดิม
+- / dashboard มีpermission/loading/empty/ลิงก์ครบ; /home และv2/station redirectsคงปลายทาง/query; auth/public/print layoutsคงguard/ธีมตามหน้าที่
+- orders list และorder detail/overview/money ใช้shared/permission/lazy tabsถูกแล้ว; editใช้ฟอร์มร่วม ไม่แยกสำเนา
+- settings backup/stock/vendors มีสิทธิ์/สถานะ/ฟอร์มครบ ไม่เรียกexportหรือแก้credentials; services/users/company/cost-rates/routings/audit/patterns/packagingตรวจครบ
+- Print invoice/quotation/billing-note/job-ticket/packing-list คงข้อมูลต่างตามเอกสาร ไม่ยุบจนblind-ship/ภาษีเสีย
+- Backend: ตรวจboundary trpc/permissions, pricing/money/payment/document-number/order-status, manufacturing command/policy/read-model, public services/factory DTO; คงDecimal/transaction/lock/revision/idempotency/transitionOrder/explicit select
 
 ## ตรวจแล้ว
-- Full unit: 168 files / 1,702 tests ผ่าน; typecheck ผ่าน; full lint 0 errors (มี warnings เดิมนอกขอบเขต); ไฟล์ที่แก้ตรวจ lint แยก 0 errors/0 warnings
-- Date/desk/board/worklist: 62/62 ผ่านทั้ง TZ=UTC และ Asia/Bangkok
-- verify:ui ผ่าน tokens + hierarchy + ใบผลิต 33/33 (เพิ่ม guard ขั้นคู่แยกยอด/anchor); targeted tests หลัง clearSearch 35/35 ผ่าน
-- Chrome session เดิม: `/production` 21 ใบ / 21 Link / 0 หัว rowgroup, ค้น “ป้ายคอ” ได้ 2, ร้านนอกได้ 8 ใบไม่ซ้ำ, เรียงกลับด้าน, ผลว่าง, ล้างตัวกรอง, Enter ที่เลขใบเปิด tag-press ถูกหน้า
-- สองหน้าที่เบสระบุ: 1440 และ 390 ทั้ง Light/Dark; page scrollWidth เท่าจอ ไม่มีทั้งหน้าล้น; มือถือตารางเลื่อนแนวนอนในกรอบ
-- ใบผลิตจริงแท็บขั้นตอน/สินค้าเปิดได้; หน้าลอง qty-partial กรอกครบ → บันทึก 39→60 ตัว; pair มี 2 ตาราง แถวที่อยู่ร้านนอกอ่านอย่างเดียว; ช่างดูงานคนอื่นไม่มีช่องแก้ยอด
-- ไม่มี schema/migration/dependency/env ใหม่; ไม่ seed/reset หรือแก้ข้อมูลธุรกิจจริง; รอบนี้ตรวจการกรอกผ่าน controller จำลองของหน้าลอง ไม่ได้ทดสอบเขียน DB ซ้ำ
+- Full unit **171 files / 1,735 tests ผ่าน**; typecheckผ่าน; full lint **0errors/23warnings** (img/effectฯลฯที่ยังเหลือ); verify:ui tokens/hierarchy + work-order34/34ผ่าน; production buildผ่าน
+- Regressionใหม่: ไม่รวมงานรอ/เลยกำหนดเป็นปัญหา, ร้านนอกทุกช่วง, QCรอก่อนพร้อม, page0 recovery, StatCardไม่บอก0ระหว่างโหลด, ไฟล์ชื่อซ้ำ, Station saved checks/pending/สิทธิ์/งานเก่า/รีดร้อน/special flow
+- Browser localhost:3000หลังrestart demo: ผลิต21แถว/0หัวrowgroup, ค้นป้ายคอ2→ล้างกลับ21, มือถือ390ไม่ล้นหน้า; tag-pressเปิดจากLinkถูกหน้า กลุ่มสินค้า1/tableกว้าง346pxในจอ390; Light1440/390
+- Browser localhost:3005 proxyชั่วคราวเข้าdev3000ชุดเดียวเพื่อเลี่ยงFitness Service Workerค้าง: ใบผลิตDark390; ค้นหากลางcombobox→Enter→สินค้า; product search empty→clearกลับ2; settings/index+packagingเปิด/ยกเลิกฟอร์มมือถือ
+- Browserกลุ่มการเงิน: billing/notes/aging/wht/tax/analytics เปิดdesktop1440ไม่มีpage overflow; คำเตือนบัญชีเดิมคงอยู่; order/new desktop+390/สลับแท็บทำงาน
+- Browser Station: เปิดคิวDTF→ใบรีด พบsaved checks0/3และปุ่มปิดdisabled; หลังแก้boardสถานีOTHERพร้อม0/รอ16; ไม่กดเขียนสถานะจริง
+- Public fixtureเฉพาะlocal anajak_erp_demo: approve/design, quote(ขอแก้ไขเปิดช่องมีlabel), upload; Light390/mainครบ/ชนิดไฟล์ตรงserver. ไม่ยืนยัน/ส่งข้อความ/อัปโหลดจริง; process cleanupลบfixture+token fileแล้ว
+- Proto qty-partial: ใส่ครบ→บันทึกยอด39→60และปุ่มปิดenabled; ปิดขั้นเป็นtoastจำลองของproto จึงไม่ใช่หลักฐานDB transitionสำเร็จ
+- ไม่มีschema/migration/dependency/envใหม่ ไม่reset/reseedข้อมูลเดิม ไม่deploy; เก็บSPEC/DESIGN/ARCHITECTUREตรงส่วนกลางใหม่
 
-## NEXT
-1. เบสดู `/production` และ `/production/demo-production-form-tag-press` ที่ localhost:3000 เพื่อทบทวนหน้าจอที่ปรับแล้ว
-2. เมื่อต้องการขึ้นเว็บจริง ค่อยรวม branch และตรวจ build/deploy; รอบนี้ push branch เท่านั้น
-3. งานเดิมยังค้าง: A2–A8/B/C/F ตาม ROADMAP; A9 server sendToQc ทางลัด, ข้อกำหนดยังนิ่งในโค้ด, `work-order-route.tsx` เก่ายังอยู่ (ไม่ได้ลบในรอบนี้)
-
-## บริบทที่ต้องรักษา
-- A9 ใบผลิตแบบฟอร์มและเช็คลิสต์/กรอกยอด/ย้อนขั้น/ช่องคู่เคยขึ้น main เมื่อเบสสั่ง 09-09 02:30; migration 39/39 บนฐานจริงและ backup บันทึกไว้ใน git history ของ PROGRESS
-- งานปรับฟอร์ม/หน้าลองทุกสถานะหลังจากนั้นเดิมอยู่ `proto/work-order-form`; branch ใหม่นี้ต่อจากงานนั้น ยังไม่ใช่การยืนยันเว็บจริงล่าสุด
-- หัวหน้าทำครบจากใบผลิต · ช่าง `/production/floor` · Station/TV ไม่มีเงิน · ทำเองเฉพาะ DTF · สูตร RELEASED ต้องคัดลอกก่อนแก้
-- Production V2 ยังไม่ cutover; ใบผลิตที่ทดสอบเป็น legacy; ไม่เปลี่ยน flag
-- A5 กระดาษเป็นหลักถอยบางส่วนตาม A9: ทุกขั้นปิดด้วยปุ่ม + ติ๊กครบ; ขั้นร้านนอก/รอบพิมพ์/ใบตรวจรับใช้ flow เจ้าของหลักฐานเดิม
-- Demo “ลอง 1–10” เริ่มที่ขั้นแรกคนละเส้นทาง; scenario หลักมีงานกลางทาง; ไม่ล้าง/สร้างชุดใหม่ในรอบนี้
+## NEXT / ขอบเขตที่ยังคงไว้
+1. ดู /production และ /production/demo-production-form-tag-press บนlocalhost:3000; งานอยู่branchเดิมเพื่อreview/รวมขึ้นmainภายหลัง
+2. A2–A8/B/C/Fที่เป็นfeatureตามROADMAPยังเปิด; A11ไม่ได้สร้างหน้าprint-runs/films/outsourceที่ถอด หรือcutoverProduction V2
+3. A9 server sendToQc shortcutของlegacyยังเดิม, ข้อกำหนดยังstatic standards; helpers3ตัวที่เหลือtest-only importsคงไว้จนทบทวนสัญญาเก่าแยก ไม่ลบtestsเพื่อให้ตรวจผ่าน
+4. ไม่ทดสอบเขียนธุรกรรมเงินจริงและsubmitทุกฟอร์มผ่านbrowserซ้ำ; core unit/guardsผ่านและคงwriter semantics. warningsที่เหลือไม่ปิดกฎซ่อน
 
 ## สภาพแวดล้อม
-- localhost:3000 ใช้ฐานทดลองตามการตั้งค่าที่มีอยู่; ตรวจผ่าน Chrome session เบส (in-app browser ยังไม่มี login)
-- Canonical dev/demo ใช้ port เดียวกัน; ถ้าต้อง restart ให้ตรวจ target DB ตาม docs/local-demo-data.md ก่อน
+- dev3000ใช้ npm run dev:demo กับฐานlocal; พบdevเก่าหยุดและFitness offline cacheในChrome จึงrestart canonical demoแล้วเปิดใหม่ยืนยัน3000ได้
+- Chrome serviceworker-internals ถูกbrowser policyปฏิเสธ; ไม่ล้างcookies/cache/Service Worker และไม่แก้AppShellเพื่อซ่อนปัญหาcache
+- Branchต่อจากงานformก่อนA10; ผลbranchไม่เท่ากับสถานะremote mainหรือProduction deploy

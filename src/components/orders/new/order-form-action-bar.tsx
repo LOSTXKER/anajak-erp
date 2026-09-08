@@ -20,13 +20,13 @@ export function OrderFormActionBar({
     <div
       data-order-form-action-bar=""
       className={cn(
-        "card-surface flex flex-wrap items-center gap-2 rounded-2xl border-t border-border px-5 py-3 sm:px-6",
+        "card-surface flex flex-col items-stretch gap-3 rounded-2xl border-t border-border px-5 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:px-6",
         className,
       )}
       {...props}
     >
       <div className="min-w-0 flex-1">{summary}</div>
-      <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+      <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 [&>*]:flex-1 sm:[&>*]:flex-none">
         {children}
       </div>
     </div>

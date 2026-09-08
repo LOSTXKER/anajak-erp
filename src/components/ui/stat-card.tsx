@@ -5,10 +5,13 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { FOCUS_BUTTON } from "./tokens";
 import { VISUAL_TONE_CLASSES, type VisualTone } from "@/lib/visual-tone";
+import { Skeleton } from "./skeleton";
 
 interface StatCardProps {
   title: string;
   value: string | number;
+  /** ใช้เฉพาะตอนยังไม่มีค่าจริง ไม่แสดง 0 แทนข้อมูลที่กำลังโหลด */
+  loading?: boolean;
   icon?: LucideIcon;
   /**
    * Legacy prop kept for backwards compatibility — ignored by the new minimal
@@ -62,11 +65,13 @@ export function StatCard({
   valueClassName,
   changeSuffix,
   moduleTone,
+  loading = false,
   }: StatCardProps) {
   /* หมวดระบายสีได้เฉพาะการ์ดที่ไม่มีความหมายเชิงสถานะอยู่แล้ว */
   const toned = moduleTone && tone === "default" ? moduleTone : undefined;
   const card = (
     <div
+      aria-busy={loading || undefined}
       className={cn(
         "card-surface rounded-2xl p-5",
         href && "card-surface-hover",
@@ -91,7 +96,7 @@ export function StatCard({
             />
           ))}
       </div>
-      <p
+      {loading ? <div className="mt-2.5"><Skeleton className="h-9 w-28" /><span className="sr-only">กำลังโหลด{title}</span></div> : <p
         className={cn(
           "mt-2.5 text-3xl font-semibold tabular-nums",
           toned ? VISUAL_TONE_CLASSES[toned].text : TONE_CLASSES[tone],
@@ -99,8 +104,8 @@ export function StatCard({
         )}
       >
         {value}
-      </p>
-      <div className="mt-2 flex items-center gap-2 text-xs">
+      </p>}
+      {!loading && (caption || change !== undefined) ? <div className="mt-2 flex items-center gap-2 text-xs">
         {change !== undefined && (
           <span
             className={cn(
@@ -124,7 +129,7 @@ export function StatCard({
         {caption && (
           <span className="text-muted">{caption}</span>
         )}
-      </div>
+      </div> : null}
     </div>
   );
 
@@ -133,7 +138,7 @@ export function StatCard({
   return (
     <Link
       href={href}
-      aria-label={`ดูรายการ ${title}: ${value}`}
+      aria-label={loading ? `ดูรายการ ${title}` : `ดูรายการ ${title}: ${value}`}
       className={cn(
         "block h-full rounded-lg", FOCUS_BUTTON,
         className

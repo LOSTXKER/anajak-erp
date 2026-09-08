@@ -15,15 +15,14 @@ import { Upload, CheckCircle, FileCheck, Paperclip, X } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { DASHED_INTERACTIVE, FOCUS_BUTTON, SUNK_PANEL } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
+import { CUSTOMER_UPLOAD_ACCEPT, CUSTOMER_UPLOAD_MAX_BYTES, CUSTOMER_UPLOAD_MAX_MB } from "@/lib/customer-upload-policy";
 
 // หน้าอัปโหลดไฟล์ของลูกค้า (FLOW-REDESIGN ก้อน 4 ชิ้น 3) — เปิดผ่านลิงก์ token ไม่ต้อง login
 // flow: createUploadUrl (server ออก signed URL) → อัปตรงเข้า storage → confirmUpload (บันทึก)
 // โชว์เฉพาะข้อมูลของลูกค้า (เลขออเดอร์/ลูกค้า/กำหนดส่ง) — ไม่มีข้อมูลภายใน
 
-const MAX_MB = 25;
-const ACCEPT = "image/*,.pdf,.ai,.psd,.eps,.zip,.rar";
-
 type UploadItem = {
+  id: number;
   name: string;
   status: "uploading" | "done" | "error";
   error?: string;
@@ -37,6 +36,8 @@ export default function CustomerUploadPage({
   const { token } = use(params);
   const utils = trpc.useUtils();
   const inputRef = useRef<HTMLInputElement>(null);
+  const uploadSequence = useRef(0);
+  const uploadInFlight = useRef(false);
   const [items, setItems] = useState<UploadItem[]>([]);
   const [busy, setBusy] = useState(false);
 
@@ -44,27 +45,28 @@ export default function CustomerUploadPage({
   const createUrl = trpc.customerUpload.createUploadUrl.useMutation();
   const confirm = trpc.customerUpload.confirmUpload.useMutation();
 
-  function setItemStatus(name: string, patch: Partial<UploadItem>) {
+  function setItemStatus(id: number, patch: Partial<UploadItem>) {
     setItems((prev) =>
-      prev.map((it) => (it.name === name ? { ...it, ...patch } : it))
+      prev.map((it) => (it.id === id ? { ...it, ...patch } : it))
     );
   }
 
   async function handleFiles(fileList: FileList | null) {
-    if (!fileList || fileList.length === 0) return;
-    const files = Array.from(fileList);
+    if (!fileList || fileList.length === 0 || uploadInFlight.current) return;
+    const files = Array.from(fileList, (file) => ({ file, id: ++uploadSequence.current }));
+    uploadInFlight.current = true;
     setBusy(true);
-    // เริ่มทุกไฟล์เป็น uploading (key ด้วยชื่อ — ไฟล์ชื่อซ้ำในชุดเดียวพบยาก ยอมรับได้)
+    // แต่ละครั้งมี id ของตัวเอง แม้เลือกไฟล์ชื่อเดียวกันจากหลายโฟลเดอร์หรือส่งซ้ำ
     setItems((prev) => [
-      ...files.map((f) => ({ name: f.name, status: "uploading" as const })),
+      ...files.map(({ file, id }) => ({ id, name: file.name, status: "uploading" as const })),
       ...prev,
     ]);
 
-    for (const file of files) {
-      if (file.size > MAX_MB * 1024 * 1024) {
-        setItemStatus(file.name, {
+    for (const { file, id } of files) {
+      if (file.size > CUSTOMER_UPLOAD_MAX_BYTES) {
+        setItemStatus(id, {
           status: "error",
-          error: `ไฟล์ใหญ่เกิน ${MAX_MB}MB`,
+          error: `ไฟล์ใหญ่เกิน ${CUSTOMER_UPLOAD_MAX_MB}MB`,
         });
         continue;
       }
@@ -87,15 +89,16 @@ export default function CustomerUploadPage({
           fileType: file.type || "",
           fileSize: file.size,
         });
-        setItemStatus(file.name, { status: "done" });
+        setItemStatus(id, { status: "done" });
       } catch (err) {
-        setItemStatus(file.name, {
+        setItemStatus(id, {
           status: "error",
           error: err instanceof Error ? err.message : "อัปโหลดไม่สำเร็จ",
         });
       }
     }
 
+    uploadInFlight.current = false;
     setBusy(false);
     if (inputRef.current) inputRef.current.value = "";
     utils.customerUpload.getInfo.invalidate({ token });
@@ -142,7 +145,7 @@ export default function CustomerUploadPage({
             <input
               ref={inputRef}
               type="file"
-              accept={ACCEPT}
+              accept={CUSTOMER_UPLOAD_ACCEPT}
               multiple
               onChange={(e) => handleFiles(e.target.files)}
               disabled={busy}
@@ -164,7 +167,7 @@ export default function CustomerUploadPage({
                   <Upload className="h-7 w-7" />
                   <span className="font-medium">เลือกไฟล์เพื่ออัปโหลด</span>
                   <span className="text-xs text-muted">
-                    รูปภาพ / PDF / AI / PSD / ZIP · สูงสุด {MAX_MB}MB ต่อไฟล์
+                    รูปภาพ / PDF / AI / PSD / ไฟล์ ZIP · สูงสุด {CUSTOMER_UPLOAD_MAX_MB}MB ต่อไฟล์
                   </span>
                 </>
               )}
@@ -172,11 +175,11 @@ export default function CustomerUploadPage({
 
             {/* รายการที่อัปในรอบนี้ */}
             {items.length > 0 && (
-              <ul className="space-y-1.5">
-                {items.map((it, idx) => (
+              <ul className="space-y-1.5" aria-live="polite" aria-label="สถานะการส่งไฟล์">
+                {items.map((it) => (
                   <li
-                    key={`${it.name}-${idx}`}
-                    className={cn(SUNK_PANEL, "flex items-center gap-2 rounded-lg px-3 py-2 text-sm")}
+                    key={it.id}
+                    className={cn(SUNK_PANEL, "flex flex-wrap items-center gap-2 rounded-lg px-3 py-2 text-sm")}
                   >
                     {it.status === "uploading" && (
                       <Spinner size="md" className="shrink-0 text-blue-500" />
@@ -187,11 +190,12 @@ export default function CustomerUploadPage({
                     {it.status === "error" && (
                       <X className="h-4 w-4 shrink-0 text-red-600 dark:text-red-400" />
                     )}
-                    <span className="min-w-0 flex-1 truncate text-secondary">
+                    <span className="min-w-0 flex-1 break-words text-secondary [overflow-wrap:anywhere]">
                       {it.name}
                     </span>
+                    <span className="sr-only">{it.status === "done" ? "ส่งแล้ว" : it.status === "uploading" ? "กำลังส่ง" : "ส่งไม่สำเร็จ"}</span>
                     {it.status === "error" && (
-                      <span className="shrink-0 text-xs text-red-600 dark:text-red-400">
+                      <span className="w-full break-words text-sm text-red-600 dark:text-red-400 [overflow-wrap:anywhere]">
                         {it.error}
                       </span>
                     )}
@@ -201,7 +205,7 @@ export default function CustomerUploadPage({
             )}
 
             {doneCount > 0 && (
-              <p className="flex items-center gap-1.5 text-sm text-green-600 dark:text-green-400">
+              <p role="status" className="flex items-center gap-1.5 text-sm text-green-600 dark:text-green-400">
                 <FileCheck className="h-4 w-4" />
                 ส่งไฟล์เรียบร้อย {doneCount} ไฟล์ — ทีมงานได้รับแล้ว
               </p>

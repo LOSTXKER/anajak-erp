@@ -24,6 +24,9 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { QueryError } from "@/components/ui/query-error";
+import { FOCUS_INSET } from "@/components/ui/tokens";
+import { CONTROL_MIN_H } from "@/components/ui/control-size";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -417,7 +420,9 @@ export default function RoutingSettingsPage() {
         </>
       }
       error={
-        listQuery.isError
+        meQuery.isError
+          ? { message: "ตรวจสิทธิ์สูตรขั้นงานไม่สำเร็จ", onRetry: () => void meQuery.refetch() }
+          : listQuery.isError && !listQuery.data
           ? {
               message: "โหลดสูตรขั้นงานไม่สำเร็จ",
               onRetry: () => void listQuery.refetch(),
@@ -438,7 +443,7 @@ export default function RoutingSettingsPage() {
         <EmptyState
           icon={Workflow}
           title="ยังไม่มีสูตรขั้นงาน"
-          description="สูตรมาตรฐานถูกสร้างตอนติดตั้งระบบ — ถ้ายังไม่มี ให้รัน seed ข้อมูลตั้งต้นก่อน"
+          description="ยังไม่มีสูตรให้เลือก กรุณาติดต่อผู้ดูแลเพื่อตรวจข้อมูลตั้งต้น"
         />
       ) : (
         <div className="grid gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
@@ -459,12 +464,15 @@ export default function RoutingSettingsPage() {
                       <button
                         key={item.id}
                         type="button"
+                        aria-pressed={selected}
                         onClick={() => {
                           setSelectedVersionId(item.id);
                           setDraft(null);
                           setError(null);
                         }}
                         className={cn(
+                          FOCUS_INSET,
+                          CONTROL_MIN_H,
                           "flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-xs transition-colors",
                           selected
                             ? "bg-interactive-pressed text-strong"
@@ -493,7 +501,9 @@ export default function RoutingSettingsPage() {
 
           {/* รายละเอียดเวอร์ชันที่เลือก */}
           <div className="space-y-3">
-            {versionQuery.isLoading || !version ? (
+            {versionQuery.isError && !version ? (
+              <QueryError message="โหลดรายละเอียดสูตรไม่สำเร็จ" onRetry={() => void versionQuery.refetch()} />
+            ) : versionQuery.isLoading || !version ? (
               <Skeleton className="h-64 rounded-2xl" />
             ) : (
               <>

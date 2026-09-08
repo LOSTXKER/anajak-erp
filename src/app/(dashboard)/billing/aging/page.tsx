@@ -9,6 +9,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { ListPageSkeleton } from "@/components/ui/page-skeleton";
 import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
+import { QueryError } from "@/components/ui/query-error";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { SearchInput } from "@/components/ui/search-input";
@@ -479,14 +480,14 @@ function AgingPageContent() {
                 กำลังร่าง...
               </div>
             ) : draft.isError ? (
-              <p className="py-8 text-center text-sm text-red-600 dark:text-red-400">ร่างข้อความไม่สำเร็จ</p>
+              <QueryError message="ร่างข้อความไม่สำเร็จ" onRetry={() => void draft.refetch()} />
             ) : draft.data?.text ? (
               <>
                 <Textarea
                   value={draft.data.text}
                   readOnly
                   rows={12}
-                  className="font-mono"
+                  className="leading-relaxed"
                 />
                 {/* ปุ่มคัดลอก = action หลักของ dialog นี้ — ใช้ DialogFooter ให้ปักก้นกรอบ
                     เหมือน dialog อื่น (ข้อความทวงยาวตามจำนวนใบ ดันปุ่มตกนอกสายตาได้) */}

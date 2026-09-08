@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
+import { useListPageState, usePageClamp } from "@/hooks/use-list-page-state";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -11,7 +12,10 @@ import { PageShell } from "@/components/page-shell";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TablePagination } from "@/components/ui/table-pagination";
-import { cn } from "@/lib/utils";
+import { ListSkeleton } from "@/components/ui/page-skeleton";
+import { FOCUS_INSET } from "@/components/ui/tokens";
+import { cn, formatDateTime } from "@/lib/utils";
+import { differenceInBangkokDays } from "@/lib/date-utils";
 import {
   Bell,
   CheckCheck,
@@ -22,10 +26,9 @@ import {
   MessageSquare,
 } from "lucide-react";
 
-function timeAgo(date: Date | string): string {
-  const now = new Date();
+function timeAgo(date: Date | string, now: number): string {
   const d = new Date(date);
-  const seconds = Math.floor((now.getTime() - d.getTime()) / 1000);
+  const seconds = Math.floor((now - d.getTime()) / 1000);
 
   if (seconds < 60) return "เมื่อสักครู่";
   const minutes = Math.floor(seconds / 60);
@@ -65,18 +68,10 @@ type NotifItem = {
   createdAt: Date | string;
 };
 
-function dayBucket(date: Date | string): "today" | "week" | "earlier" {
-  const d = new Date(date);
-  const now = new Date();
-  const startOfToday = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate()
-  );
-  if (d >= startOfToday) return "today";
-  const week = new Date(startOfToday);
-  week.setDate(week.getDate() - 7);
-  if (d >= week) return "week";
+function dayBucket(date: Date | string, now: number): "today" | "week" | "earlier" {
+  const days = differenceInBangkokDays(date, now);
+  if (days !== null && days >= 0) return "today";
+  if (days !== null && days >= -7) return "week";
   return "earlier";
 }
 
@@ -87,12 +82,16 @@ const BUCKET_LABELS: Record<"today" | "week" | "earlier", string> = {
 };
 
 export default function NotificationsPage() {
+  return <Suspense fallback={<ListSkeleton rows={5} />}><NotificationsContent /></Suspense>;
+}
+
+function NotificationsContent() {
   const router = useRouter();
-  const [filter, setFilter] = useState<FilterValue>("all");
-  const [page, setPage] = useState(1);
+  const { page, searchParams, replaceListState } = useListPageState();
+  const filter: FilterValue = searchParams.get("view") === "unread" ? "unread" : "all";
   const limit = 20;
 
-  const { data, isLoading, isError, refetch } = trpc.notification.list.useQuery({
+  const { data, isLoading, isError, refetch, dataUpdatedAt } = trpc.notification.list.useQuery({
     limit,
     page,
     unreadOnly: filter === "unread" ? true : undefined,
@@ -116,18 +115,16 @@ export default function NotificationsPage() {
   const notifications = (data?.notifications ?? []) as NotifItem[];
   const totalPages = data?.pages ?? 1;
   const total = data?.total ?? 0;
+  usePageClamp(page, data?.pages, replaceListState);
 
-  const grouped = useMemo(() => {
-    const result: Record<"today" | "week" | "earlier", NotifItem[]> = {
-      today: [],
-      week: [],
-      earlier: [],
-    };
-    notifications.forEach((n) => {
-      result[dayBucket(n.createdAt)].push(n);
-    });
-    return result;
-  }, [notifications]);
+  const grouped: Record<"today" | "week" | "earlier", NotifItem[]> = {
+    today: [],
+    week: [],
+    earlier: [],
+  };
+  for (const notification of notifications) {
+    grouped[dayBucket(notification.createdAt, dataUpdatedAt)].push(notification);
+  }
 
   return (
     <PageShell
@@ -155,10 +152,7 @@ export default function NotificationsPage() {
             key={tab.value}
             surface="raised"
             selected={filter === tab.value}
-            onClick={() => {
-              setFilter(tab.value);
-              setPage(1);
-            }}
+            onClick={() => replaceListState({ view: tab.value === "unread" ? "unread" : null, page: null })}
           >
             {tab.label}
             {tab.value === "unread" && (unreadCount ?? 0) > 0 && (
@@ -220,9 +214,11 @@ export default function NotificationsPage() {
                             if (notif.link) router.push(notif.link);
                           }}
                           className={cn(
+                            FOCUS_INSET,
                             "group flex w-full gap-3 px-5 py-3.5 text-left transition-colors hover:bg-interactive-hover active:bg-interactive-pressed dark:hover:bg-interactive-hover dark:active:bg-interactive-pressed",
                             !notif.isRead && "bg-surface-muted"
                           )}
+                          aria-label={`${notif.isRead ? "" : "ยังไม่อ่าน: "}${notif.title}`}
                         >
                           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-muted dark:bg-slate-800">
                             {TYPE_ICONS[notif.type] ?? (
@@ -250,9 +246,9 @@ export default function NotificationsPage() {
                                 {notif.message}
                               </p>
                             )}
-                            <p className="mt-1 text-xs text-muted group-hover:text-secondary group-active:text-secondary dark:group-hover:text-secondary dark:group-active:text-secondary">
-                              {timeAgo(notif.createdAt)}
-                            </p>
+                            <time dateTime={new Date(notif.createdAt).toISOString()} title={formatDateTime(notif.createdAt)} className="mt-1 block text-xs text-muted group-hover:text-secondary group-active:text-secondary dark:group-hover:text-secondary dark:group-active:text-secondary">
+                              {timeAgo(notif.createdAt, dataUpdatedAt)}
+                            </time>
                           </div>
                         </button>
                       </li>
@@ -269,7 +265,8 @@ export default function NotificationsPage() {
           page={page}
           totalPages={totalPages}
           total={total}
-          onPageChange={setPage}
+          onPageChange={(nextPage) => replaceListState({ page: String(nextPage) })}
+          limit={limit}
         />
       </div>
     </PageShell>

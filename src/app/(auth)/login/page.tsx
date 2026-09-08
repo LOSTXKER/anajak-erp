@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Field } from "@/components/ui/field";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Printer } from "lucide-react";
 import { Alert } from "@/components/ui/alert";
@@ -19,34 +20,37 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
     setLoading(true);
     setErrorMessage(null);
 
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
 
-    if (error) {
-      setErrorMessage(
-        error.message === "Invalid login credentials"
-          ? "อีเมลหรือรหัสผ่านไม่ถูกต้อง"
-          : `เข้าสู่ระบบไม่สำเร็จ: ${error.message}`
+      if (error) {
+        setErrorMessage(
+          error.message === "Invalid login credentials"
+            ? "อีเมลหรือรหัสผ่านไม่ถูกต้อง"
+            : `เข้าสู่ระบบไม่สำเร็จ: ${error.message}`
+        );
+        setLoading(false);
+        return;
+      }
+
+      const nextHref = safeAfterLoginHref(
+        new URL(window.location.href).searchParams.get("next"),
       );
+      router.replace(nextHref);
+      router.refresh();
+    } catch {
+      setErrorMessage("เชื่อมต่อไม่สำเร็จ ตรวจสอบอินเทอร์เน็ตแล้วลองเข้าสู่ระบบอีกครั้ง");
       setLoading(false);
-      return;
     }
-
-    const nextHref = safeAfterLoginHref(
-      new URL(window.location.href).searchParams.get("next"),
-    );
-    router.replace(nextHref);
-    router.refresh();
   };
 
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-bg px-4">
+    <main className="flex min-h-dvh items-center justify-center bg-bg px-4 py-8">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-blue-600 text-white">
@@ -56,9 +60,8 @@ export default function LoginPage() {
           <CardDescription>ERP โรงงานสกรีนเสื้อ</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <label htmlFor="login-email" className="block">
-              <span className="mb-1.5 block text-sm font-medium">อีเมล</span>
+          <form onSubmit={handleSubmit} className="space-y-4" aria-busy={loading}>
+            <Field id="login-email" label="อีเมล">
               <Input
                 id="login-email"
                 type="email"
@@ -66,11 +69,13 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="email@example.com"
                 autoComplete="email"
+                autoCapitalize="none"
+                spellCheck={false}
+                disabled={loading}
                 required
               />
-            </label>
-            <label htmlFor="login-password" className="block">
-              <span className="mb-1.5 block text-sm font-medium">รหัสผ่าน</span>
+            </Field>
+            <Field id="login-password" label="รหัสผ่าน">
               <Input
                 id="login-password"
                 type="password"
@@ -78,9 +83,10 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="รหัสผ่าน"
                 autoComplete="current-password"
+                disabled={loading}
                 required
               />
-            </label>
+            </Field>
             {errorMessage && (
               <Alert variant="error">
                 {errorMessage}
@@ -92,6 +98,6 @@ export default function LoginPage() {
           </form>
         </CardContent>
       </Card>
-    </div>
+    </main>
   );
 }

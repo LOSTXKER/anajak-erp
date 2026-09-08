@@ -29,7 +29,7 @@ import {
   validateCustomerEditForm,
   type CustomerEditForm,
 } from "@/lib/customer-form";
-import { PageHeader } from "@/components/page-header";
+import { PageShell } from "@/components/page-shell";
 import { Plus, Users, UserPlus, Crown, UserX, ChevronRight } from "lucide-react";
 import { FOCUS_BUTTON } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
@@ -64,10 +64,12 @@ export default function CustomersPage() {
 }
 
 function CustomersPageContent() {
-  const { search, page, searchParams, replaceListState, onSearchChange, searchInputRef } =
+  const { search, page, searchParams, replaceListState, onSearchChange, searchInputRef, clearSearch } =
     useListPageState();
   const rawSegment = searchParams.get("status") ?? "";
   const segment = Object.hasOwn(segmentConfig, rawSegment) ? rawSegment : "";
+  const filtered = Boolean(search || segment);
+  const clearFilters = () => clearSearch({ status: null });
   const [showForm, setShowForm] = useState(false);
   // ฟอร์มเพิ่มลูกค้าใช้ field ชุดเดียวกับฟอร์มแก้ไข (CustomerFormFields + CustomerEditForm)
   // — เดิมเขียนช่องซ้ำเองแล้ว drift: เลขภาษี/วงเงินไม่ถูก validate ตอนสร้าง
@@ -134,19 +136,17 @@ function CustomersPageContent() {
   };
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="ลูกค้า"
-        action={
-          canManageCustomers ? (
-            <Button size="sm" onClick={() => setShowForm(!showForm)}>
-              <Plus />
-              เพิ่มลูกค้า
-            </Button>
-          ) : undefined
-        }
-      />
-
+    <PageShell
+      title="ลูกค้า"
+      action={
+        canManageCustomers ? (
+          <Button size="sm" onClick={() => setShowForm(!showForm)}>
+            <Plus />
+            เพิ่มลูกค้า
+          </Button>
+        ) : undefined
+      }
+    >
       {/* stats พังต้องบอก — เลขโชว์ 0 เงียบๆ อ่านเป็น "ไม่มีลูกค้า" ได้ (ขัด DESIGN.md) */}
       {statsQuery.isError ? (
         <QueryError message="โหลดสถิติไม่สำเร็จ" onRetry={() => statsQuery.refetch()} />
@@ -190,6 +190,7 @@ function CustomersPageContent() {
           ref={searchInputRef}
           containerClassName="@2xl:max-w-sm @2xl:flex-1"
           placeholder="ค้นหาชื่อ, บริษัท, โทร, อีเมล..."
+          aria-label="ค้นหาลูกค้าจากชื่อ บริษัท โทรศัพท์ หรืออีเมล"
           defaultValue={search}
           onChange={(event) => onSearchChange(event.target.value)}
         />
@@ -211,6 +212,7 @@ function CustomersPageContent() {
               </option>
             ))}
           </Select>
+          {filtered ? <Button variant="ghost" size="sm" onClick={clearFilters}>ล้างตัวกรอง</Button> : null}
         </ToolbarGroup>
       </Toolbar>
 
@@ -342,12 +344,14 @@ function CustomersPageContent() {
             icon={Users}
             title="ไม่พบลูกค้า"
             description={
-              search || segment
+              filtered
                 ? "ลองเปลี่ยนคำค้นหาหรือกลุ่มลูกค้า"
                 : "เพิ่มลูกค้าใหม่เพื่อเริ่มต้นการจัดการ CRM"
             }
             action={
-              canManageCustomers ? (
+              filtered ? (
+                <Button variant="outline" size="sm" onClick={clearFilters}>ล้างตัวกรองและคำค้น</Button>
+              ) : canManageCustomers ? (
                 <Button size="sm" onClick={() => setShowForm(true)}>
                   <Plus />
                   เพิ่มลูกค้า
@@ -370,6 +374,6 @@ function CustomersPageContent() {
           ) : undefined
         }
       />
-    </div>
+    </PageShell>
   );
 }

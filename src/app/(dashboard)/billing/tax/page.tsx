@@ -149,14 +149,14 @@ export default function SalesTaxReportPage() {
     >
       {/* ── สรุปงวด ── */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard moduleTone="finance" title="เอกสารในงวด" value={summary?.docCount ?? 0} icon={ReceiptText} />
-        <StatCard moduleTone="finance"
+        <StatCard loading={isLoading} moduleTone="finance" title="เอกสารในงวด" value={summary?.docCount ?? 0} icon={ReceiptText} />
+        <StatCard loading={isLoading} moduleTone="finance"
           title="ฐานภาษี (หลังหักลดหนี้)"
           value={formatCurrency(summary?.totalBase ?? 0)}
           icon={Coins}
         />
-        <StatCard moduleTone="finance" title="VAT งวดนี้" value={formatCurrency(summary?.totalVat ?? 0)} icon={Coins} />
-        <StatCard moduleTone="finance" title="ใบยกเลิก" value={summary?.voidedCount ?? 0} icon={Ban} />
+        <StatCard loading={isLoading} moduleTone="finance" title="VAT งวดนี้" value={formatCurrency(summary?.totalVat ?? 0)} icon={Coins} />
+        <StatCard loading={isLoading} moduleTone="finance" title="ใบยกเลิก" value={summary?.voidedCount ?? 0} icon={Ban} />
       </div>
 
       <Alert variant="info">

@@ -31,7 +31,7 @@ src/server/services/ ★ business logic แกน — เงิน/สถาน�
   order-status.ts   transitionOrder = จุดเดียวที่เปลี่ยน internalStatus ได้
   document-number.ts nextDocumentNumber = เลขเอกสารรันต่อเนื่อง (เรียกใน tx เสมอ)
   money.ts          Decimal helpers (D/round2/moneyInput/aggToNumber)
-  billing.ts        บิล/รับเงิน/void/refund/CN-DN ใต้ $transaction + row lock
+  billing-payment.ts  รับเงิน/void/refund ใต้ $transaction + row lock; router billing.ts ประกอบเอกสาร/เรียกบริการการเงิน
   payment-plan.ts · receivables.ts · overdue.ts · dunning.ts   เทอม/ลูกหนี้/aging/วงเงิน/ทวง
   manufacturing*.ts · routing-template.ts · production-v2-gate.ts   Production V2 (MO/Operation/routing/command)
   production-readiness.ts · qc.ts · print-run*.ts · stock-reservation.ts   ด่านผลิต/QC/รอบพิมพ์/จองสต๊อก
@@ -47,6 +47,7 @@ src/lib/            ของใช้ร่วม client+server
   status-config.ts · payment-methods.ts · payment-terms.ts · shipping-methods.ts   ค่า+ป้าย ที่เดียว ห้ามประกาศซ้ำ
   production-steps.ts · production-v2-flag.ts   ขั้นผลิต legacy + flag V2
   date-utils.ts      differenceInBangkokDays = นับวันกำหนดส่งตาม Asia/Bangkok ชุดเดียว (รายการผลิต/ใบผลิต/ออเดอร์/TV)
+  customer-upload-policy.ts  ชนิดไฟล์และขนาดสูงสุดที่หน้าอัปโหลดกับ service ตรวจร่วมกัน
   supabase*.ts      auth (browser/server/admin)
   stock-api.ts / stock-sync.ts   ท่อคุยกับ Anajak Stock app
 
@@ -71,6 +72,10 @@ scripts/            create-owner.ts (bootstrap) · create-agent-key.ts (MCP) · 
 | Production V2 | command ต้องมี `commandId` + `expectedRevision` · readiness/availableCommands คำนวณที่ server · routing ที่ release แล้ว immutable | PV2 |
 | UI ใหม่ | component/token ใน `docs/DESIGN.md` · ห้าม `window.prompt/confirm` (lint error) · ด่าน `verify:ui` | P1.0 |
 
+## ส่วนกลางที่ใช้ร่วมกัน
+- รายการใช้ `useListPageState` + `usePageClamp`: ค้นหา/ล้าง debounce/ตัวกรอง/เลขหน้าใน URL รวมที่ hook; server คืน pages=0 แล้วกลับหน้า 1
+- ฟอร์ม/รายการใช้ `PageShell` คุมสถานะหลัก, `StatCard loading` สำหรับสถิติที่ยังไม่มีค่าจริง, `DataTable`/`TablePagination` คุมตารางและทางกลับ; ปุ่มนำทางนอก Link ใช้ `requestAppNavigation` เพื่อเคารพข้อมูลที่ยังไม่บันทึก
+- ใบผลิตและ Station ใช้ controller เดียวกัน รวม `tickStandard`/ผล `step.checks`; กฎเงื่อนไขรอใช้ `work-order-route` ร่วมกับ board ส่วน view แต่ละหน้าปรับเฉพาะการนำเสนอ
 ## Test
 - `npm test` — vitest unit (`src/**/*.test.ts`): สูตรราคา (server+client mirror) · state machine · เลขเอกสาร · money · payment-plan · receivables · routing-template · proxy ฯลฯ — **เกราะของทุก refactor ต้องผ่านก่อน**
 - `npm run verify:ui` — ด่าน design system (token/สี/ความกว้าง/ข้อห้าม) — ห้ามปิด

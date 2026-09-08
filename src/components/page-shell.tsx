@@ -111,7 +111,7 @@ export function PageShell({
   const normal = !error && !loading && !denied;
 
   return (
-    <div className={cn(header ? "space-y-0" : "space-y-7", WIDTH_CLASS[width], className)}>
+    <div className={cn(header ? "space-y-0" : "space-y-5 sm:space-y-7", WIDTH_CLASS[width], className)}>
       {header ?? (
         <PageHeader
           title={title}

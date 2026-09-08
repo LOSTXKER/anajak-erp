@@ -131,9 +131,9 @@ export default function PackagingSettingsPage() {
           {showAddForm && (
             <form
               onSubmit={handleCreate}
-              className="card-surface mb-4 flex items-end gap-3 rounded-2xl p-4"
+              className="mb-4 flex flex-col gap-3 border-b border-divider pb-4 sm:flex-row sm:items-end"
             >
-              <div className="flex-1">
+              <div className="min-w-0 flex-1">
                 <label htmlFor="new-packaging-name" className="mb-1 block text-xs font-medium text-muted">
                   ชื่อแพ็คเกจ *
                 </label>
@@ -202,6 +202,7 @@ export default function PackagingSettingsPage() {
                       <DataTable.Td>
                         {isEditing ? (
                           <Input size="sm"
+                            disabled={updateMutation.isPending}
                             aria-label={`ชื่อแพ็คเกจ ${opt.name}`}
                             value={editName}
                             onChange={(e) => setEditName(e.target.value)}
@@ -223,6 +224,7 @@ export default function PackagingSettingsPage() {
                         <Switch
                           aria-label={`${opt.isActive ? "ปิด" : "เปิด"}การใช้งาน ${opt.name}`}
                           checked={opt.isActive}
+                          disabled={updateMutation.isPending}
                           onCheckedChange={() => handleToggleActive(opt.id, opt.isActive)}
                         />
                       </DataTable.Td>
@@ -244,6 +246,7 @@ export default function PackagingSettingsPage() {
                               size="icon-sm"
                               aria-label={`ยกเลิกการแก้ไข ${opt.name}`}
                               onClick={() => { setEditingId(null); setEditName(""); }}
+                              disabled={updateMutation.isPending}
                             >
                               <X />
                             </Button>
@@ -255,6 +258,7 @@ export default function PackagingSettingsPage() {
                               size="icon-sm"
                               aria-label={`แก้ไข ${opt.name}`}
                               onClick={() => { setEditingId(opt.id); setEditName(opt.name); }}
+                              disabled={updateMutation.isPending}
                               className="text-muted hover:text-strong dark:hover:text-strong"
                             >
                               <Pencil />

@@ -143,6 +143,7 @@ export default function CostRatesSettingsPage() {
                 save.mutate(rates);
               }}
             >
+              <fieldset disabled={save.isPending} className="space-y-4">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <div className="mb-1 flex items-center gap-1">
@@ -281,6 +282,7 @@ export default function CostRatesSettingsPage() {
                   </p>
                 )}
               </div>
+              </fieldset>
             </form>
           )}
         </CardContent>

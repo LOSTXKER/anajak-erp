@@ -19,6 +19,7 @@ import { useConfirm } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
 import { Alert } from "@/components/ui/alert";
 import { RecordNotFound } from "@/components/ui/record-not-found";
+import { EmptyState } from "@/components/ui/empty-state";
 
 // ============================================================
 // CONSTANTS
@@ -246,10 +247,10 @@ export default function ProductDetailPage({
                 <img
                   src={product.imageUrl}
                   alt={product.name}
-                  className="h-full w-full object-cover"
+                  className="h-full w-full object-contain"
                 />
               ) : (
-                <Package className="h-20 w-20 text-white/40" />
+                <Package className="h-16 w-16 text-muted" aria-hidden="true" />
               )}
             </div>
           </Card>
@@ -268,7 +269,7 @@ export default function ProductDetailPage({
                   {product.sku.startsWith("DEMO-")
                     ? "สต๊อกทดสอบ"
                     : product.source === "LOCAL"
-                      ? "สินค้า Local"
+                      ? "เพิ่มในระบบ"
                       : "จาก Anajak Stock"}
                 </Badge>
               </CardTitle>
@@ -371,13 +372,13 @@ export default function ProductDetailPage({
             <CardContent>
               {/* Variants table */}
               {product.variants.length === 0 ? (
-                <div className="flex flex-col items-center py-8">
-                  <p className="text-sm text-muted">
-                    ยังไม่มีตัวเลือก — Sync จาก Anajak Stock เพื่อดึงข้อมูล
-                  </p>
-                </div>
+                <EmptyState
+                  icon={Package}
+                  title="ยังไม่มีตัวเลือกสินค้า"
+                  description={product.source === "LOCAL" ? undefined : "อัปเดตจาก Anajak Stock เพื่อดึงตัวเลือกสินค้า"}
+                />
               ) : (
-                <DataTable.Root bordered={false}>
+                <DataTable.Root bordered={false} cellPadding="compact">
                   <DataTable.Head>
                     <tr>
                       <DataTable.Th>สี</DataTable.Th>

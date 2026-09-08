@@ -33,7 +33,7 @@ export function PublicPageShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-bg px-4 py-5 sm:py-10">
+    <main className="min-h-screen bg-bg px-4 py-5 sm:py-10">
       <div className="mx-auto max-w-2xl space-y-5">
         <header className="card-surface rounded-2xl p-5 sm:p-6">
           <div className="flex items-start gap-3">
@@ -49,7 +49,7 @@ export function PublicPageShell({
             </span>
             <div className="min-w-0">
               <h1 className="break-words text-2xl font-semibold text-strong [overflow-wrap:anywhere]">{title}</h1>
-              <p className="mt-1 text-sm leading-relaxed text-muted">{subtitle}</p>
+              <div className="mt-1 break-words text-sm leading-relaxed text-muted [overflow-wrap:anywhere]">{subtitle}</div>
             </div>
           </div>
         </header>
@@ -60,7 +60,7 @@ export function PublicPageShell({
           </footer>
         )}
       </div>
-    </div>
+    </main>
   );
 }
 
@@ -71,14 +71,14 @@ export function PublicPageShell({
  *  คงชื่อฟังก์ชันเดิมไว้เพื่อไม่ต้องไล่แก้ 5 หน้าที่เรียกใช้ */
 export function FullScreenLoading() {
   return (
-    <div className="min-h-screen bg-bg px-4 py-5 sm:py-10" role="status" aria-label="กำลังโหลด">
-      <span className="sr-only">กำลังโหลด</span>
+    <main className="min-h-screen bg-bg px-4 py-5 sm:py-10" aria-busy="true" aria-label="กำลังโหลด">
+      <span className="sr-only" role="status">กำลังโหลด</span>
       <div className="mx-auto max-w-2xl space-y-5">
         <div className="card-surface rounded-2xl p-5 sm:p-6">
           <div className="flex items-start gap-3">
             <Skeleton className="mt-1 h-5 w-5 shrink-0" />
             <div className="min-w-0 flex-1 space-y-2">
-              <Skeleton className="h-6 w-56" />
+              <Skeleton className="h-6 w-56 max-w-full" />
               <Skeleton className="h-4 w-72 max-w-full" />
             </div>
           </div>
@@ -91,7 +91,7 @@ export function FullScreenLoading() {
           </div>
         ))}
       </div>
-    </div>
+    </main>
   );
 }
 
@@ -106,7 +106,7 @@ export function InfoRow({
   return (
     <div className="flex justify-between gap-3">
       <span className="shrink-0 text-muted">{label}</span>
-      <span className="min-w-0 break-words text-right font-medium text-strong">{children}</span>
+      <span className="min-w-0 break-words text-right font-medium text-strong [overflow-wrap:anywhere]">{children}</span>
     </div>
   );
 }

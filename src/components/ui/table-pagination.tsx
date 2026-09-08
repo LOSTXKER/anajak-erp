@@ -34,7 +34,7 @@ export function TablePagination({
   // (คอมโพเนนต์นี้ return null) ทำให้รายการสั้นจบกลางอากาศ — ตอนนี้ไม่พึ่งกันแล้ว
   // ไม่มีระยะขอบซ้าย-ขวา เพื่อให้เสมอขอบการ์ดที่อยู่ข้างบน
   return (
-    <nav aria-label="การแบ่งหน้า" className="flex items-center justify-between pt-3">
+    <nav aria-label="การแบ่งหน้า" className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 pt-3">
       <p className="text-xs tabular-nums text-muted">
         {from != null ? `แสดง ${from}–${to} จาก ${total} ${label}` : `ทั้งหมด ${total} ${label}`}
       </p>

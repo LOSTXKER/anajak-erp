@@ -1,7 +1,7 @@
 "use client";
 
 import { Section } from "@/components/ui/section";
-import { PageHeader } from "@/components/page-header";
+import { PageShell } from "@/components/page-shell";
 import {
   Building,
   Calculator,
@@ -20,7 +20,6 @@ import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { permAllows, type Permission } from "@/lib/permissions";
-import { QueryError } from "@/components/ui/query-error";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FOCUS_BUTTON } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
@@ -156,29 +155,16 @@ export default function SettingsPage() {
     )
   );
 
-  if (meQuery.isError) {
-    return (
-      <QueryError
-        message="โหลดสิทธิ์สำหรับหน้าตั้งค่าไม่สำเร็จ"
-        onRetry={() => void meQuery.refetch()}
-      />
-    );
-  }
-
-  const header = (
-    <PageHeader
+  return (
+    <PageShell
       title="ตั้งค่า"
       meta="การเปลี่ยนค่ามีผลกับงานจริงทันที"
-    />
-  );
-
-  // ระหว่างรอสิทธิ์ ต้องขึ้นโครงร่างเหมือนหน้าอื่น — ของเดิมเรนเดอร์รายการว่าง
-  // (visibleLinks กรองด้วย me ที่ยังไม่มา) ผู้ใช้จึงเห็น "หน้าเปล่า" แล้วนึกว่าเว็บค้าง
-  if (meQuery.isLoading) {
-    return (
-      <div className="space-y-5">
-        {header}
-        {SETTING_GROUPS.map((group) => (
+      loading={meQuery.isLoading}
+      error={meQuery.isError ? {
+        message: "โหลดสิทธิ์สำหรับหน้าตั้งค่าไม่สำเร็จ",
+        onRetry: () => void meQuery.refetch(),
+      } : null}
+      skeleton={SETTING_GROUPS.map((group) => (
           <div key={group} className="space-y-2">
             <Skeleton className="h-4 w-32" />
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -187,14 +173,7 @@ export default function SettingsPage() {
             </div>
           </div>
         ))}
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-5">
-      {header}
-
+    >
       {SETTING_GROUPS.map((group) => {
         const links = visibleLinks.filter((link) => link.group === group);
         if (links.length === 0) return null;
@@ -227,6 +206,6 @@ export default function SettingsPage() {
           </Section>
         );
       })}
-    </div>
+    </PageShell>
   );
 }

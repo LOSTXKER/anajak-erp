@@ -583,7 +583,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
         tabIndex={-1}
         className="relative col-start-1 row-start-2 min-h-0 min-w-0 overflow-y-auto outline-none [scrollbar-gutter:stable] lg:col-start-2"
       >
-        <div className="mx-auto w-full max-w-screen-2xl px-4 pb-[calc(var(--app-bottom-nav-offset)+2rem)] pt-6 sm:px-6 sm:pt-8 lg:px-8 lg:pb-10">
+        <div className="mx-auto w-full max-w-screen-2xl px-4 pb-[calc(var(--app-bottom-nav-offset)+2rem)] pt-4 sm:px-6 sm:pt-8 lg:px-8 lg:pb-10">
           {children}
         </div>
       </main>

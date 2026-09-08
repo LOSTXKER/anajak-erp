@@ -93,6 +93,7 @@ export default function CompanySettingsPage() {
                 save.mutate(form);
               }}
             >
+              <fieldset disabled={save.isPending} className="space-y-4">
               <div>
                 <label htmlFor="company-name" className="mb-1 block text-sm font-medium text-secondary">
                   ชื่อกิจการ (ตามจดทะเบียน) *
@@ -202,6 +203,7 @@ export default function CompanySettingsPage() {
                   บันทึก
                 </Button>
               </div>
+              </fieldset>
             </form>
           )}
         </CardContent>

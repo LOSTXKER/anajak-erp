@@ -2,21 +2,22 @@
 
 import { Printer, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 // แถบปุ่มบนหน้าพิมพ์ — โชว์บนจอเท่านั้น (print-hidden) · กดพิมพ์ = browser print → Save as PDF ได้
 export function PrintActions({ backHref }: { backHref: string }) {
   return (
-    <div className="print-hidden mx-auto mb-4 flex w-full max-w-[210mm] items-center justify-between">
+    <nav aria-label="จัดการเอกสาร" className="print-hidden mx-auto mb-4 flex w-full max-w-[210mm] flex-wrap items-center justify-between gap-3">
       <Button variant="outline" size="sm" asChild>
-        <a href={backHref}>
+        <Link href={backHref}>
           <ArrowLeft />
           กลับ
-        </a>
+        </Link>
       </Button>
       <Button size="sm" onClick={() => window.print()}>
         <Printer />
         พิมพ์ / บันทึก PDF
       </Button>
-    </div>
+    </nav>
   );
 }

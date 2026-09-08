@@ -20,19 +20,17 @@ import { proxyFileUrl, safeFileExt } from "@/lib/file-urls";
 import { createNotification } from "@/server/helpers";
 import type { ExtendedPrismaClient, PrismaTx } from "@/lib/prisma";
 import { lockOrderRow } from "@/server/services/order-cost";
+import { CUSTOMER_UPLOAD_EXTENSIONS, CUSTOMER_UPLOAD_MAX_BYTES } from "@/lib/customer-upload-policy";
 
 const UPLOAD_TOKEN_TTL_DAYS = 30;
 export const UPLOAD_BUCKET = "designs";
 // 25MB — เท่าฝั่งแอดมินแนบ RAW (file-upload maxSizeMB) · บังคับจริงที่ bucket ไม่ได้จาก
 // signed upload URL จึงเช็คขนาดที่ฝั่ง createUploadUrl (claimed) เป็นด่านแรก
-const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
+const MAX_UPLOAD_BYTES = CUSTOMER_UPLOAD_MAX_BYTES;
 // กันลิงก์ถูกใช้ถล่ม — ลูกค้าอัปได้สูงสุดต่อออเดอร์ (เกินนี้ติดต่อร้าน)
 const MAX_CUSTOMER_FILES_PER_ORDER = 30;
 // นามสกุลที่ลูกค้าอัปได้ (รูป/ไฟล์งานออกแบบ) — บัญชีขาว กันไฟล์อันตราย (exe/js/html/svg-xss)
-const ALLOWED_EXTS = new Set([
-  "png", "jpg", "jpeg", "gif", "webp", "heic", "heif", "bmp", "tif", "tiff",
-  "pdf", "ai", "psd", "eps", "zip", "rar", "7z",
-]);
+const ALLOWED_EXTS = new Set<string>(CUSTOMER_UPLOAD_EXTENSIONS);
 
 export function uploadTokenExpiry(): Date {
   return new Date(Date.now() + UPLOAD_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000);

@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
 import { Textarea } from "@/components/ui/textarea";
+import { Field } from "@/components/ui/field";
 import { PublicLinkError } from "@/components/public-link-error";
 import {
   PublicPageShell,
@@ -203,15 +204,17 @@ export default function QuoteConfirmPage({
               </>
             ) : (
               <>
-                <p className="text-sm font-medium text-secondary">อยากให้แก้ไขส่วนไหน? (ไม่บังคับ)</p>
-                <Textarea
+                <Field label="ส่วนที่ต้องการแก้ไข (ไม่บังคับ)">
+                  <Textarea
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                   rows={3}
                   maxLength={1000}
                   placeholder="เช่น ขอลดจำนวน / ปรับราคา / เปลี่ยนแบบ ..."
-                />
-                <div className="flex gap-2">
+                  disabled={isPending}
+                  />
+                </Field>
+                <div className="flex flex-col gap-2 sm:flex-row">
                   <Button
                     variant="outline"
                     onClick={() => setShowReject(false)}

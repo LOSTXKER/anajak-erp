@@ -1,10 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { permAllows } from "@/lib/permissions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
-import { formatCurrency } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
+import { FOCUS_BUTTON } from "@/components/ui/tokens";
 import {
   TrendingUp,
   Users,
@@ -15,7 +17,8 @@ import { Section } from "@/components/ui/section";
 
 
 export default function AnalyticsPage() {
-  const { data: me } = trpc.user.me.useQuery();
+  const meQuery = trpc.user.me.useQuery();
+  const me = meQuery.data;
   // ปิด query ที่ role ไม่มีสิทธิ์ — กันยิงไปโดน FORBIDDEN + retry ฟรี 3 รอบ
   const canViewRevenue = me ? permAllows(me.permissions, "see_finance") : false;
 
@@ -27,6 +30,7 @@ export default function AnalyticsPage() {
   } = trpc.analytics.dashboard.useQuery();
   const {
     data: revenueData,
+    isLoading: revenueLoading,
     isError: revenueError,
     refetch: refetchRevenue,
   } = trpc.analytics.revenueByMonth.useQuery(
@@ -42,7 +46,7 @@ export default function AnalyticsPage() {
   return (
     <PageShell
       title="รายงาน"
-      loading={isLoading}
+      loading={isLoading || meQuery.isLoading}
       skeleton={
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           {[...Array(3)].map((_, i) => (
@@ -53,20 +57,28 @@ export default function AnalyticsPage() {
       // เฉพาะ query แกนหน้าพัง → error ทั้งหน้า · กราฟรายได้พังแยกเป็นราย section
       // ด้านล่าง (เหมือน audit log) — ไม่ดับสถิติส่วนที่ยังโหลดได้ (review จับ)
       error={
-        dashboardError
+        meQuery.isError && !me
+          ? { message: "โหลดสิทธิ์รายงานไม่สำเร็จ", onRetry: () => meQuery.refetch() }
+          : dashboardError
           ? { message: "เกิดข้อผิดพลาดในการโหลดข้อมูล", onRetry: () => refetchDashboard() }
           : null
       }
     >
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <Section
-          title={<span className="inline-flex items-center gap-2"><TrendingUp className="h-4 w-4" aria-hidden="true" />รายได้ 6 เดือนย้อนหลัง</span>}
+          title="รายได้ 6 เดือนย้อนหลัง"
+          icon={TrendingUp}
+          tone="finance"
           bordered
         >
           {!canViewRevenue ? (
             <p className="text-sm text-muted">
               ต้องมีสิทธิ์ &quot;เห็นทุน/กำไร/รายงานการเงิน&quot; — เช็คสิทธิ์ที่ ตั้งค่า → ผู้ใช้
             </p>
+          ) : revenueLoading ? (
+            <div role="status" aria-label="กำลังโหลดรายได้รายเดือน" className="space-y-4">
+              {Array.from({ length: 6 }, (_, index) => <Skeleton key={index} className="h-8 w-full" />)}
+            </div>
           ) : revenueError ? (
             <QueryError
               message="โหลดข้อมูลรายได้ไม่สำเร็จ"
@@ -105,10 +117,10 @@ export default function AnalyticsPage() {
           )}
         </Section>
 
-        <Section title={<span className="inline-flex items-center gap-2"><Users className="h-4 w-4" aria-hidden="true" />ลูกค้ายอดสูงสุด</span>} bordered>
+        <Section title="ลูกค้ายอดสูงสุด" icon={Users} tone="brand" bordered>
           <div className="space-y-3">
             {dashboard?.topCustomers?.map((c, i) => (
-              <div key={c.id} className="flex items-center justify-between">
+              <Link key={c.id} href={`/customers/${c.id}`} className={cn("flex min-h-11 items-center justify-between gap-4 rounded-lg hover:bg-interactive-hover", FOCUS_BUTTON)}>
                 <div className="flex items-center gap-3 min-w-0">
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-medium dark:bg-slate-800">
                     {i + 1}
@@ -122,10 +134,10 @@ export default function AnalyticsPage() {
                     )}
                   </div>
                 </div>
-                <span className="text-sm font-medium tabular-nums">
+                <span className="shrink-0 text-sm font-medium tabular-nums">
                   {formatCurrency(c.totalSpent)}
                 </span>
-              </div>
+              </Link>
             ))}
             {(!dashboard?.topCustomers ||
               dashboard.topCustomers.length === 0) && (

@@ -13,7 +13,8 @@ import { ListPageSkeleton } from "@/components/ui/page-skeleton";
 import { QueryError } from "@/components/ui/query-error";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cn, formatCurrency, formatDateTime } from "@/lib/utils";
-import { PageHeader } from "@/components/page-header";
+import { PageShell } from "@/components/page-shell";
+import { TablePagination } from "@/components/ui/table-pagination";
 import { Package, RefreshCw, Cloud, Database, Settings } from "lucide-react";
 import { permAllows } from "@/lib/permissions";
 
@@ -65,6 +66,7 @@ function ProductsPageContent() {
     replaceListState,
     onSearchChange,
     searchInputRef,
+    clearSearch,
   } = useListPageState();
   const productType = searchParams.get("type") ?? "";
   const itemType = searchParams.get("itemType") ?? "";
@@ -98,35 +100,33 @@ function ProductsPageContent() {
   };
 
   const totalPages = data?.pages ?? 1;
+  const filtered = Boolean(search || productType || itemType);
+  const clearFilters = () => clearSearch({ type: null, itemType: null });
 
   return (
-    <div className="space-y-5">
-      <PageHeader
-        title="สินค้า"
-        action={
-          canManageStock ? (
+    <PageShell
+      title="สินค้า"
+      action={
+        canManageStock ? (
           <>
             <Button asChild variant="ghost" size="icon-sm">
-                <Link
-                  href="/settings/stock"
-                  aria-label={
-                    demoMode ? "ดูสต๊อกทดสอบ" : "ตั้งค่าการเชื่อมต่อ Stock"
-                  }
-                >
+              <Link
+                href="/settings/stock"
+                aria-label={demoMode ? "ดูสต๊อกทดสอบ" : "ตั้งค่าการเชื่อมต่อ Stock"}
+              >
                 <Settings />
               </Link>
             </Button>
-              {!syncStatusLoading && !demoMode ? (
-            <Button size="sm" onClick={() => setSyncDialogOpen(true)}>
-              <RefreshCw />
-              Sync
-            </Button>
-              ) : null}
+            {!syncStatusLoading && !demoMode ? (
+              <Button size="sm" onClick={() => setSyncDialogOpen(true)}>
+                <RefreshCw />
+                Sync
+              </Button>
+            ) : null}
           </>
-          ) : undefined
-        }
-      />
-
+        ) : undefined
+      }
+    >
       {demoMode ? (
         <div className="flex items-center gap-2 text-xs font-medium text-blue-700 dark:text-blue-300">
           <Database className="h-3.5 w-3.5" aria-hidden="true" />
@@ -162,6 +162,7 @@ function ProductsPageContent() {
           surface="raised"
           containerClassName="@2xl:max-w-sm @2xl:flex-1"
           placeholder="ค้นหาชื่อสินค้า, SKU..."
+          aria-label="ค้นหาสินค้าจากชื่อหรือ SKU"
           ref={searchInputRef}
           defaultValue={search}
           onChange={(e) => onSearchChange(e.target.value)}
@@ -184,6 +185,7 @@ function ProductsPageContent() {
               </option>
             ))}
           </Select>
+          {filtered ? <Button variant="ghost" size="sm" onClick={clearFilters}>ล้างตัวกรอง</Button> : null}
         </ToolbarGroup>
       </Toolbar>
 
@@ -207,14 +209,18 @@ function ProductsPageContent() {
         <div className="card-surface rounded-2xl">
           <EmptyState
             icon={Package}
-            title="ไม่พบสินค้า"
+            title={filtered ? "ไม่พบสินค้าตรงตัวกรอง" : "ยังไม่มีสินค้า"}
             description={
-              demoMode
-                ? "รีเซ็ต demo seed เพื่อสร้างสินค้าสต๊อกทดสอบ"
+              filtered
+                ? "ลองเปลี่ยนคำค้นหรือดูสินค้าทั้งหมด"
+                : demoMode
+                ? "ยังไม่มีสินค้าในสต๊อกทดสอบ"
                 : "สินค้าจะถูกดึงมาจาก Anajak Stock อัตโนมัติ"
             }
             action={
-              canManageStock ? (
+              filtered ? (
+                <Button variant="outline" size="sm" onClick={clearFilters}>ล้างตัวกรองและคำค้น</Button>
+              ) : canManageStock ? (
               <div className="flex gap-2">
                   {!syncStatusLoading && !demoMode ? (
                     <Button
@@ -328,69 +334,16 @@ function ProductsPageContent() {
 
       {/* ─── Pagination ──────────────────────────────────────── */}
       {data && data.total > 0 && (
-        <div className="flex flex-col items-center gap-3">
-          {totalPages > 1 && (
-            <div className="flex items-center gap-1.5">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page <= 1}
-                onClick={() =>
-                  replaceListState({ page: String(Math.max(1, page - 1)) })
-                }
-              >
-                ก่อนหน้า
-              </Button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1)
-                .filter(
-                  (p) => p === 1 || p === totalPages || Math.abs(p - page) <= 2,
-                )
-                .reduce<(number | "...")[]>((acc, p, idx, arr) => {
-                  if (idx > 0 && p - (arr[idx - 1] as number) > 1) {
-                    acc.push("...");
-                  }
-                  acc.push(p);
-                  return acc;
-                }, [])
-                .map((p, i) =>
-                  p === "..." ? (
-                    <span
-                      key={`ellipsis-${i}`}
-                      className="px-2 text-sm text-muted"
-                    >
-                      ...
-                    </span>
-                  ) : (
-                    <Button
-                      key={p}
-                      variant={page === p ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => replaceListState({ page: String(p) })}
-                      className="min-w-[2rem]"
-                    >
-                      {p}
-                    </Button>
-                  ),
-                )}
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page >= totalPages}
-                onClick={() =>
-                  replaceListState({
-                    page: String(Math.min(totalPages, page + 1)),
-                  })
-                }
-              >
-                ถัดไป
-              </Button>
-            </div>
-          )}
-          <p className="text-center text-xs text-muted">
-            แสดง {data.products.length} จาก {data.total} รายการ
-          </p>
-        </div>
+        totalPages > 1 ? (
+          <TablePagination
+            page={page}
+            totalPages={totalPages}
+            total={data.total}
+            limit={limit}
+            onPageChange={(nextPage) => replaceListState({ page: String(nextPage) })}
+          />
+        ) : <p className="text-xs tabular-nums text-muted">ทั้งหมด {data.total} รายการ</p>
       )}
-    </div>
+    </PageShell>
   );
 }

@@ -6,12 +6,14 @@ import { mockupImages } from "@/lib/mockup";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
 import { Textarea } from "@/components/ui/textarea";
+import { Field } from "@/components/ui/field";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PublicLinkError } from "@/components/public-link-error";
 import {
   PublicPageShell,
   FullScreenLoading,
+  InfoRow,
 } from "@/components/public/public-page";
 import {
   Check,
@@ -61,9 +63,9 @@ export default function DesignApprovalPage({
   // Thank you screen after submission
   if (submitted) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-bg p-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="p-8 text-center">
+      <PublicPageShell icon={<Palette />} subtitle={`แบบออเดอร์ ${d.order.orderNumber}`}>
+        <Card>
+          <CardContent className="p-8 text-center" role="status">
             {submitted === "approved" ? (
               <>
                 <CheckCircle className="mx-auto mb-4 h-16 w-16 text-green-600 dark:text-green-400" />
@@ -88,7 +90,7 @@ export default function DesignApprovalPage({
             )}
           </CardContent>
         </Card>
-      </div>
+      </PublicPageShell>
     );
   }
 
@@ -105,18 +107,8 @@ export default function DesignApprovalPage({
           </CardHeader>
           <CardContent>
             <div className="grid gap-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted">เลขออเดอร์</span>
-                <span className="font-medium text-strong">
-                  {d.order.orderNumber}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted">ลูกค้า</span>
-                <span className="font-medium text-strong">
-                  {d.order.customer.name}
-                </span>
-              </div>
+              <InfoRow label="เลขออเดอร์">{d.order.orderNumber}</InfoRow>
+              <InfoRow label="ลูกค้า">{d.order.customer.name}</InfoRow>
             </div>
           </CardContent>
         </Card>
@@ -124,7 +116,7 @@ export default function DesignApprovalPage({
         {/* ม็อกอัพทั้งชุด — ลูกค้าตัดสินครั้งเดียวจึงต้องเห็นครบทุกด้านก่อนกด */}
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <CardTitle className="text-base">
                 ม็อกอัพเวอร์ชัน {d.versionNumber}
                 {images.length > 1 ? (
@@ -243,13 +235,16 @@ export default function DesignApprovalPage({
               <CardTitle className="text-base">ความคิดเห็นของคุณ</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Textarea
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                placeholder="พิมพ์ความเห็นหรือสิ่งที่ต้องการแก้ไข (ถ้ามี)..."
-                rows={4}
-              />
-              <div className="flex gap-3">
+              <Field label="ความคิดเห็นของคุณ" visuallyHiddenLabel>
+                <Textarea
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  placeholder="พิมพ์ความเห็นหรือสิ่งที่ต้องการแก้ไข (ถ้ามี)..."
+                  rows={4}
+                  disabled={approve.isPending}
+                />
+              </Field>
+              <div className="flex flex-col gap-3 sm:flex-row">
                 <Button
                   variant="outline"
                   className="flex-1 gap-1.5"

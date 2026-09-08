@@ -46,6 +46,7 @@ export function CommandPalette({
   const [query, setQuery] = React.useState("");
   const [debouncedQuery, setDebouncedQuery] = React.useState("");
   const [activeIdx, setActiveIdx] = React.useState(0);
+  const listId = React.useId();
   // รายการที่เลือกต้องอยู่ในจอเสมอ (benchmark: Linear/Raycast) — เดิมกดลูกศร
   // เกินครึ่งลิสต์แล้วตัวเลือกหลุดจอ มองไม่เห็นว่า Enter จะโดนอะไร
   const activeRef = React.useRef<HTMLButtonElement>(null);
@@ -200,6 +201,7 @@ export function CommandPalette({
   const entitySearchFailed = entitySearchIsCurrent && entityQuery.isError;
 
   const handleKey = (e: React.KeyboardEvent) => {
+    if (e.nativeEvent.isComposing) return;
     if (filtered.length === 0) return;
     if (e.key === "ArrowDown") {
       e.preventDefault();
@@ -220,7 +222,6 @@ export function CommandPalette({
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-backdrop backdrop-blur-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 motion-reduce:animate-none" />
         <DialogPrimitive.Content
-          onKeyDown={handleKey}
           onCloseAutoFocus={(event) => {
             if (!returnFocusRef?.current) return;
             event.preventDefault();
@@ -247,6 +248,12 @@ export function CommandPalette({
               }}
               placeholder="ค้นหาเมนู เลขออเดอร์ ลูกค้า ใบเสนอ หรือบิล..."
               aria-label="ค้นหาในระบบ"
+              role="combobox"
+              aria-expanded={open}
+              aria-autocomplete="list"
+              aria-controls={listId}
+              aria-activedescendant={filtered[safeActiveIdx] ? `${listId}-${filtered[safeActiveIdx]!.id}` : undefined}
+              onKeyDown={handleKey}
               autoComplete="off"
               className="min-w-0 flex-1 bg-transparent py-4 text-base text-strong outline-none placeholder:text-placeholder sm:text-sm"
             />
@@ -273,9 +280,10 @@ export function CommandPalette({
                   : "ไม่พบรายการที่ค้นหา"}
               </p>
             )}
+            <div id={listId} role="listbox" aria-label="ผลการค้นหา">
             {grouped.map(([group, list]) => (
-              <div key={group} className="mb-1.5 px-2">
-                <p className="px-3 pb-1 pt-2 text-xs font-medium text-muted">
+              <div key={group} role="group" aria-labelledby={`${listId}-group-${group}`} className="mb-1.5 px-2">
+                <p id={`${listId}-group-${group}`} className="px-3 pb-1 pt-2 text-xs font-medium text-muted">
                   {group}
                 </p>
                 {list.map((item) => {
@@ -286,6 +294,11 @@ export function CommandPalette({
                       key={item.id}
                       ref={active ? activeRef : undefined}
                       type="button"
+                      id={`${listId}-${item.id}`}
+                      role="option"
+                      aria-selected={active}
+                      tabIndex={-1}
+                      onMouseDown={(event) => event.preventDefault()}
                       onMouseEnter={() => setActiveIdx(idx)}
                       onClick={() => item.action()}
                       className={cn(
@@ -323,6 +336,7 @@ export function CommandPalette({
                 })}
               </div>
             ))}
+            </div>
 
             <div aria-live="polite" className="px-5 py-1 text-xs text-muted">
               {entitySearchPending && (

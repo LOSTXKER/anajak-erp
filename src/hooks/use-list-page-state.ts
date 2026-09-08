@@ -30,6 +30,12 @@ export function positivePage(value: string | null): number {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
 }
 
+/** ผลว่างจาก server มี pages=0: กลับหน้าแรกเพื่อให้ข้อมูลใหม่ที่เข้ามามองเห็นได้ */
+export function clampedListPage(page: number, pages: number | undefined): number {
+  if (pages == null || !Number.isFinite(pages) || pages < 0) return page;
+  return Math.min(page, Math.max(1, Math.floor(pages)));
+}
+
 export function useListPageState(options?: {
   /** ชื่อ query param ของช่องค้นหา (default "q") */
   searchParam?: string;
@@ -120,8 +126,9 @@ export function usePageClamp(
   replaceListState: (updates: Record<string, string | null>) => void
 ) {
   useEffect(() => {
-    if (pages != null && pages >= 1 && page > pages) {
-      replaceListState({ page: String(pages) });
+    const next = clampedListPage(page, pages);
+    if (next !== page) {
+      replaceListState({ page: String(next) });
     }
   }, [page, pages, replaceListState]);
 }

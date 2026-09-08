@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Textarea } from "@/components/ui/textarea";
 import { Field } from "@/components/ui/field";
+import { Fact, FactList } from "@/components/ui/fact";
 import { FileUpload } from "@/components/ui/file-upload";
 import {
   Dialog,
@@ -225,21 +226,21 @@ function WhtRegisterPageContent() {
         />
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <StatCard moduleTone="finance"
+          <StatCard loading={stats.isLoading} moduleTone="finance"
             title="รอใบจากลูกค้า"
             value={stats.data?.pendingCount ?? 0}
             icon={Hourglass}
             caption="รายการ"
           />
           {/* ยอดรอใบ — เด่น amber เมื่อ >0 (UX4.3: StatCard รับ tone แล้ว เลิกการ์ดทำมือ) */}
-          <StatCard moduleTone="finance"
+          <StatCard loading={stats.isLoading} moduleTone="finance"
             title="ยอดหักที่ยังไม่มีใบ"
             value={formatCurrency(pendingAmount)}
             icon={AlertTriangle}
             tone={pendingAmount > 0 ? "warning" : "muted"}
             caption="ไม่ได้ใบ = เครดิตภาษีส่วนนี้หายฟรี"
           />
-          <StatCard moduleTone="finance"
+          <StatCard loading={stats.isLoading} moduleTone="finance"
             title="ได้ใบแล้วรวม"
             value={formatCurrency(stats.data?.receivedAmount ?? 0)}
             icon={CheckCircle2}
@@ -505,12 +506,17 @@ function WhtRegisterPageContent() {
           <DialogHeader>
             <DialogTitle>บันทึกรับหนังสือรับรอง</DialogTitle>
             <DialogDescription>
-              {markTarget &&
-                `${markTarget.customer.name} · ${markTarget.invoice.invoiceNumber} · ยอดหัก ${formatCurrency(markTarget.amount)}`}
+              {markTarget?.customer.name}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
+            {markTarget ? (
+              <FactList columns={2} className="border-b border-divider pb-4">
+                <Fact label="เลขบิล" value={markTarget.invoice.invoiceNumber} />
+                <Fact label="ยอดหัก ณ ที่จ่าย" value={formatCurrency(markTarget.amount)} />
+              </FactList>
+            ) : null}
             <div className="grid grid-cols-2 gap-3">
               <Field label="เลขที่ใบ (ถ้ามี)">
                 <Input

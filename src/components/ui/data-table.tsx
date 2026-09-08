@@ -4,6 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { requestAppNavigation } from "@/lib/navigation-request";
 import {
   FOCUS_INSET,
   INTERACTIVE_HOVER,
@@ -126,8 +127,10 @@ const Row = React.forwardRef<HTMLTableRowElement, RowProps>(
                 if (e.defaultPrevented) return;
                 // อย่าแย่งคลิกจาก control/ลิงก์จริงข้างใน
                 const t = e.target as HTMLElement;
-                if (t.closest("a,button,input,select,textarea,[role=combobox]")) return;
-                router.push(href);
+                if (t.closest("a,button,input,select,textarea,label,[role=combobox],[role=checkbox],[role=switch],[contenteditable=true]")) return;
+                // ลากเลือก/คัดลอกค่าในแถวได้ และนำทางผ่านด่านข้อมูลที่ยังไม่บันทึกชุดเดียวกับค้นหากลาง
+                if (window.getSelection()?.toString()) return;
+                requestAppNavigation(href, { push: router.push, replace: router.replace });
               }
             : onClick
         }

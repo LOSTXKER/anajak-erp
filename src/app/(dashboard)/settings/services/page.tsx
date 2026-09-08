@@ -357,6 +357,7 @@ export default function ServicesPage() {
                         <DataTable.Td>
                           {isEditing ? (
                             <Input size="sm"
+                              disabled={updateItem.isPending}
                               aria-label={`ชื่อบริการ ${item.name}`}
                               value={editingItem.name}
                               onChange={(e) =>
@@ -379,6 +380,7 @@ export default function ServicesPage() {
                           {isEditing ? (
                             <Input
                               aria-label={`ราคาบริการ ${item.name}`}
+                              disabled={updateItem.isPending}
                               size="dense"
                               type="number"
                               min={0}
@@ -402,6 +404,7 @@ export default function ServicesPage() {
                         <DataTable.Td align="center">
                           {isEditing ? (
                             <Select size="sm"
+                              disabled={updateItem.isPending}
                               aria-label={`วิธีคิดราคาของ ${item.name}`}
                               value={editingItem.pricingType}
                               onChange={(e) =>
@@ -426,6 +429,7 @@ export default function ServicesPage() {
                           <Switch
                             aria-label={`${item.isActive ? "ปิด" : "เปิด"}การใช้งาน ${item.name}`}
                             checked={item.isActive}
+                            disabled={toggleActive.isPending}
                             onCheckedChange={() => handleToggleActive(item.id, item.isActive)}
                           />
                         </DataTable.Td>
@@ -447,6 +451,7 @@ export default function ServicesPage() {
                                 size="icon-sm"
                                 aria-label={`ยกเลิกการแก้ไข ${item.name}`}
                                 onClick={() => setEditingItem(null)}
+                                disabled={updateItem.isPending}
                               >
                                 <X />
                               </Button>
@@ -458,6 +463,7 @@ export default function ServicesPage() {
                                 size="icon-sm"
                                 aria-label={`แก้ไข ${item.name}`}
                                 onClick={() => startEdit(item)}
+                                disabled={updateItem.isPending}
                                 className="text-muted hover:text-strong dark:hover:text-strong"
                               >
                                 <Pencil />

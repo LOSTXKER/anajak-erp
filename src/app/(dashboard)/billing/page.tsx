@@ -131,7 +131,7 @@ function BillingPageContent() {
       ) : (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {/* สองใบแรกคือเลขเสี่ยง (UX4.3) — เด่น + กดไปดูรายการได้ · ศูนย์จริงลดเป็นสีจาง */}
-          <StatCard moduleTone="finance"
+          <StatCard loading={stats.isLoading} moduleTone="finance"
             title="ค้างชำระ"
             value={formatCurrency(stats.data?.totalUnpaid ?? 0)}
             icon={DollarSign}
@@ -139,7 +139,7 @@ function BillingPageContent() {
             href="/billing/aging"
             caption="ดูรายงานลูกหนี้"
           />
-          <StatCard moduleTone="finance"
+          <StatCard loading={stats.isLoading} moduleTone="finance"
             title="เกินกำหนด"
             value={stats.data?.overdueCount ?? 0}
             icon={AlertCircle}
@@ -147,12 +147,12 @@ function BillingPageContent() {
             tone={(stats.data?.overdueCount ?? 0) > 0 ? "danger" : "muted"}
             href="/billing?status=OVERDUE"
           />
-          <StatCard moduleTone="finance"
+          <StatCard loading={stats.isLoading} moduleTone="finance"
             title="รายได้เดือนนี้"
             value={formatCurrency(stats.data?.revenueThisMonth ?? 0)}
             icon={TrendingUp}
           />
-          <StatCard moduleTone="finance"
+          <StatCard loading={stats.isLoading} moduleTone="finance"
             title="รับชำระเดือนนี้"
             value={formatCurrency(stats.data?.paidThisMonth ?? 0)}
             icon={CreditCard}
@@ -289,7 +289,7 @@ function BillingPageContent() {
                         พิมพ์
                       </Link>
                     </Button>
-                    <Button size="sm" asChild>
+                    <Button size="sm" variant={inv.paymentStatus === "PAID" ? "outline" : "default"} asChild>
                       <Link href={moneyHref}>
                         {paymentActionLabel(inv.paymentStatus, inv.type)}
                         <ArrowRight />
@@ -302,7 +302,7 @@ function BillingPageContent() {
           </div>
         )}
         renderDesktop={(invoices) => (
-          <DataTable.Root>
+          <DataTable.Root cellPadding="compact">
             <DataTable.Head>
               <tr>
                 <DataTable.Th>เลขบิล</DataTable.Th>
@@ -320,45 +320,22 @@ function BillingPageContent() {
                 const status = paymentStatusProps(inv.paymentStatus);
                 const moneyHref = `/orders/${inv.orderId}?tab=money`;
                 return (
-                  <DataTable.Row key={inv.id}>
-                    <DataTable.Td className="p-0 font-medium text-strong">
-                      <Link href={moneyHref} className="block px-6 py-4 font-medium text-strong">
+                  <DataTable.Row key={inv.id} href={moneyHref}>
+                    <DataTable.Td className="whitespace-nowrap font-medium text-strong">
+                      <Link href={moneyHref} className={cn("rounded font-medium text-strong hover:underline", FOCUS_BUTTON)}>
                         {inv.invoiceNumber}
                       </Link>
                     </DataTable.Td>
-                    <DataTable.Td className="p-0 text-xs text-muted">
-                      <Link href={moneyHref} className="block px-6 py-4">
-                        {INVOICE_TYPE_LABELS[inv.type] ?? inv.type}
-                      </Link>
+                    <DataTable.Td className="text-muted">{INVOICE_TYPE_LABELS[inv.type] ?? inv.type}</DataTable.Td>
+                    <DataTable.Td>{inv.customer.name}</DataTable.Td>
+                    <DataTable.Td className="whitespace-nowrap">{inv.order.orderNumber}</DataTable.Td>
+                    <DataTable.Td align="right" className="font-medium tabular-nums text-strong">
+                      {formatCurrency(inv.totalAmount)}
                     </DataTable.Td>
-                    <DataTable.Td className="p-0">
-                      <Link href={moneyHref} className="block px-6 py-4">{inv.customer.name}</Link>
+                    <DataTable.Td>
+                      <StatusLabel label={status.label} tone={status.tone} emphasize={status.emphasize} />
                     </DataTable.Td>
-                    <DataTable.Td className="p-0">
-                      <Link href={moneyHref} className="block px-6 py-4">{inv.order.orderNumber}</Link>
-                    </DataTable.Td>
-                    <DataTable.Td
-                      align="right"
-                      className="p-0 font-medium tabular-nums text-strong"
-                    >
-                      <Link href={moneyHref} className="block px-6 py-4 text-right">
-                        {formatCurrency(inv.totalAmount)}
-                      </Link>
-                    </DataTable.Td>
-                    <DataTable.Td className="p-0">
-                      <Link href={moneyHref} className="block px-6 py-4">
-                        <StatusLabel
-                          label={status.label}
-                          tone={status.tone}
-                          emphasize={status.emphasize}
-                        />
-                      </Link>
-                    </DataTable.Td>
-                    <DataTable.Td className="p-0 text-xs text-muted">
-                      <Link href={moneyHref} className="block px-6 py-4">
-                        {inv.dueDate ? formatDate(inv.dueDate) : "—"}
-                      </Link>
-                    </DataTable.Td>
+                    <DataTable.Td className="text-muted">{inv.dueDate ? formatDate(inv.dueDate) : "—"}</DataTable.Td>
                     <DataTable.Td align="right">
                       <div className="flex items-center justify-end gap-1.5">
                         <Button variant="ghost" size="icon-sm" asChild>
@@ -372,7 +349,7 @@ function BillingPageContent() {
                             <Printer />
                           </Link>
                         </Button>
-                        <Button size="sm" asChild>
+                        <Button size="sm" variant={inv.paymentStatus === "PAID" ? "outline" : "default"} asChild>
                           <Link href={moneyHref}>
                             {paymentActionLabel(inv.paymentStatus, inv.type)}
                           </Link>

@@ -442,22 +442,23 @@ function BillingNotesPageContent() {
                         key={inv.id}
                         className="group flex cursor-pointer items-center justify-between gap-2 rounded-lg px-2 py-1.5 hover:bg-interactive-hover active:bg-interactive-pressed dark:hover:bg-interactive-hover dark:active:bg-interactive-pressed"
                       >
-                        <span className="flex items-center gap-2 text-sm">
+                        <span className="flex min-w-0 items-start gap-3 text-sm">
                           <Checkbox
                             checked={selectedIds.has(inv.id)}
                             onChange={() => toggleInvoice(inv.id)}
                           />
-                          <span>
-                            <span className="font-medium text-strong">
+                          <span className="min-w-0 space-y-1">
+                            <span className="block font-medium text-strong">
                               {inv.invoiceNumber}
                             </span>
-                            <span className="ml-1.5 text-xs text-muted group-hover:text-secondary group-active:text-secondary">
-                              {INVOICE_TYPE_LABELS[inv.type] ?? inv.type} · {inv.orderNumber}
-                              {inv.dueDate && ` · ครบกำหนด ${formatDate(inv.dueDate)}`}
+                            <span className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-secondary">
+                              <span>{INVOICE_TYPE_LABELS[inv.type] ?? inv.type}</span>
+                              <span>{inv.orderNumber}</span>
                             </span>
+                            {inv.dueDate ? <span className="block text-xs text-muted">ครบกำหนด {formatDate(inv.dueDate)}</span> : null}
                           </span>
                         </span>
-                        <span className="text-sm font-medium tabular-nums">
+                        <span className="shrink-0 text-sm font-medium tabular-nums">
                           {formatCurrency(inv.outstanding)}
                         </span>
                       </label>

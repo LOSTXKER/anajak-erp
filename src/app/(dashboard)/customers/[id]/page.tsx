@@ -6,6 +6,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Fact, FactList } from "@/components/ui/fact";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
 import { OrderStatusBadge } from "@/components/order-status-badge";
@@ -287,12 +288,15 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                       </p>
                     )}
                     {credit && credit.available != null && (
-                      <p className={`pl-6 text-xs ${credit.available < 0 ? "font-medium text-red-600 dark:text-red-400" : "text-muted"}`}>
-                        ภาระหนี้ {formatCurrency(credit.exposure)} (ค้างชำระ {formatCurrency(credit.invoiceOutstanding)} + งานยังไม่วางบิล {formatCurrency(credit.unbilled)})
-                        {credit.available < 0
-                          ? ` — เกินวงเงิน ${formatCurrency(Math.abs(credit.available))}`
-                          : ` — ใช้ได้อีก ${formatCurrency(credit.available)}`}
-                      </p>
+                      <FactList columns={1} className="border-t border-divider pt-3">
+                        <Fact label="ภาระหนี้รวม" value={formatCurrency(credit.exposure)} />
+                        <Fact label="งานยังไม่วางบิล" value={formatCurrency(credit.unbilled)} />
+                        <Fact
+                          label={credit.available < 0 ? "เกินวงเงิน" : "วงเงินที่ยังใช้ได้"}
+                          value={formatCurrency(Math.abs(credit.available))}
+                          tone={credit.available < 0 ? "danger" : "default"}
+                        />
+                      </FactList>
                     )}
                     {canSeeMoney &&
                       !creditLoading &&

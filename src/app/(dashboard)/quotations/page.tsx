@@ -66,12 +66,14 @@ export default function QuotationsPage() {
 }
 
 function QuotationsPageContent() {
-  const { search, page, searchParams, replaceListState, onSearchChange, searchInputRef } =
+  const { search, page, searchParams, replaceListState, onSearchChange, searchInputRef, clearSearch } =
     useListPageState();
   const rawStatus = searchParams.get("status") ?? "";
   const status = QUOTATION_STATUSES.some((option) => option.value === rawStatus)
     ? rawStatus
     : "";
+  const filtered = Boolean(search || status);
+  const clearFilters = () => clearSearch({ status: null });
 
   const { data: me } = trpc.user.me.useQuery();
   // เริ่มใบเสนอผ่านฟอร์มเปิดงานที่มีราคา — ใช้ด่านเดียวกับปลายทาง ไม่ให้ CTA ชน AccessDenied
@@ -118,6 +120,7 @@ function QuotationsPageContent() {
             ref={searchInputRef}
             containerClassName="@2xl:max-w-sm @2xl:flex-1"
             placeholder="ค้นหาเลขใบเสนอราคา, ชื่อ, ลูกค้า..."
+            aria-label="ค้นหาใบเสนอราคาหรือลูกค้า"
             defaultValue={search}
             onChange={(e) => onSearchChange(e.target.value)}
           />
@@ -139,6 +142,7 @@ function QuotationsPageContent() {
                 </option>
               ))}
             </Select>
+            {filtered ? <Button variant="ghost" size="sm" onClick={clearFilters}>ล้างตัวกรอง</Button> : null}
           </ToolbarGroup>
         </Toolbar>
       }
@@ -154,9 +158,11 @@ function QuotationsPageContent() {
           <EmptyState
             icon={ClipboardList}
             title="ไม่พบใบเสนอราคา"
-            description="เปิดงานก่อน แล้วค่อยเติมรายการและแชร์ใบเสนอจากงานใบเดิม"
+            description={filtered ? "ลองเปลี่ยนคำค้นหรือดูใบเสนอราคาทั้งหมด" : "เปิดงานก่อน แล้วค่อยเติมรายการและแชร์ใบเสนอจากงานใบเดิม"}
             action={
-              canCreateQuotation ? (
+              filtered ? (
+                <Button variant="outline" size="sm" onClick={clearFilters}>ล้างตัวกรองและคำค้น</Button>
+              ) : canCreateQuotation ? (
                 <Button size="sm" asChild>
                   <Link href="/orders/new?next=quote">
                     <Plus />

@@ -16,6 +16,7 @@ import { ListSkeleton } from "@/components/ui/page-skeleton";
 import { PageShell } from "@/components/page-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { FOCUS_INSET } from "@/components/ui/tokens";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusLabel, toneFromBadgeVariant } from "@/components/ui/status-label";
 import { STEP_TYPE_LABELS } from "@/lib/production-steps";
@@ -279,6 +280,7 @@ function TaskRow({ item, urgent }: { item: TaskListItem; urgent?: boolean }) {
       <Link
         href={item.href}
         className={cn(
+          FOCUS_INSET,
           "flex min-h-14 items-center gap-3 px-4 py-3 transition-colors hover:bg-interactive-hover active:bg-interactive-pressed",
           // rail ซ้ายเฉพาะกลุ่ม "ต้องทำก่อน" — สัญญาณแยกจากแถวคิวทีมโดยไม่เปลี่ยนโครง
           urgent && "border-l-2 border-red-400"
@@ -371,7 +373,7 @@ function TaskGroupCard({ group }: { group: TaskGroup }) {
           )}
         </div>
       </div>
-      <ul className="divide-y divide-divider">
+      <ul id={`tasks-${group.id}`} className="divide-y divide-divider" aria-label={group.title}>
         {visible.map((item) => (
           <TaskRow key={item.key} item={item} urgent={group.id === "attention"} />
         ))}
@@ -384,6 +386,7 @@ function TaskGroupCard({ group }: { group: TaskGroup }) {
             className="w-full justify-center"
             onClick={() => setExpanded((current) => !current)}
             aria-expanded={expanded}
+            aria-controls={`tasks-${group.id}`}
           >
             {expanded ? "ย่อรายการ" : `ดูทั้งหมดอีก ${remaining} งาน`}
             <ChevronDown

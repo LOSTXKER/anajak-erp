@@ -17,6 +17,7 @@ import { ProductionFreshness } from "@/components/production/production-freshnes
 import { useProductionV2Enabled } from "@/components/factory/production-v2-context";
 import { ToneMark } from "@/components/ui/section";
 import { cn, formatDateShort } from "@/lib/utils";
+import { differenceInBangkokDays } from "@/lib/date-utils";
 
 // Factory TV — read-only pulse ของสายงานจริง 5 ด่าน
 // endpoint factory.board ไม่มี field เงินโดยโครงสร้าง และหน้านี้ไม่มี action ใด ๆ
@@ -26,10 +27,8 @@ const STALE_MS = 2 * 60 * 1000;
 const VISIBLE_ROWS = 4;
 
 function isOverdue(deadline: Date | string | null): boolean {
-  if (deadline == null) return false;
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
-  return new Date(deadline).getTime() < startOfToday.getTime();
+  const days = differenceInBangkokDays(deadline, new Date());
+  return days !== null && days < 0;
 }
 
 export default function FactoryBoardPage() {

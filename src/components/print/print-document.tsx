@@ -194,12 +194,12 @@ export function ItemsTable({ rows }: { rows: PrintItemRow[] }) {
     <table className="mt-4 w-full border-collapse text-[12.5px]">
       <thead>
         <tr className="border-y border-slate-400 text-left">
-          <th className="w-8 py-1.5 pr-2 text-center font-semibold">#</th>
-          <th className="py-1.5 pr-2 font-semibold">รายการ</th>
-          <th className="w-16 py-1.5 pr-2 text-right font-semibold">จำนวน</th>
-          <th className="w-14 py-1.5 pr-2 text-center font-semibold">หน่วย</th>
-          <th className="w-24 py-1.5 pr-2 text-right font-semibold">ราคา/หน่วย</th>
-          <th className="w-28 py-1.5 text-right font-semibold">จำนวนเงิน</th>
+          <th scope="col" className="w-8 py-1.5 pr-2 text-center font-semibold">#</th>
+          <th scope="col" className="py-1.5 pr-2 font-semibold">รายการ</th>
+          <th scope="col" className="w-16 py-1.5 pr-2 text-right font-semibold">จำนวน</th>
+          <th scope="col" className="w-14 py-1.5 pr-2 text-center font-semibold">หน่วย</th>
+          <th scope="col" className="w-24 py-1.5 pr-2 text-right font-semibold">ราคา/หน่วย</th>
+          <th scope="col" className="w-28 py-1.5 text-right font-semibold">จำนวนเงิน</th>
         </tr>
       </thead>
       <tbody>

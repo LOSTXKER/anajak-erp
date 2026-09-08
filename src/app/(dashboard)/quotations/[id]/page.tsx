@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { permAllows } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
+import { MoreMenu } from "@/components/ui/more-menu";
 import { useConfirm, usePromptText } from "@/components/ui/confirm-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ToneMark } from "@/components/ui/section";
@@ -316,15 +317,6 @@ export default function QuotationDetailPage({
                 <Check />
                 ลูกค้าอนุมัติ
               </Button>
-              <Button
-                variant="destructive"
-                onClick={handleReject}
-                disabled={isPending}
-                className="gap-1.5"
-              >
-                <X />
-                ลูกค้าปฏิเสธ
-              </Button>
             </>
           )}
 
@@ -343,7 +335,7 @@ export default function QuotationDetailPage({
           {/* ดึงกลับร่างเพื่อแก้ — คู่กับ server ที่ล็อกแก้เฉพาะร่าง (Gate A3) ·
               REJECTED/EXPIRED = เปิดแก้รอบใหม่ (เดิมเป็นทางตัน เหลือแค่ปุ่มพิมพ์) ·
               ACCEPTED = ได้แต่มี confirm (ล้างการยืนยันลูกค้า) */}
-          {canManageQuotation && ["SENT", "ACCEPTED", "REJECTED", "EXPIRED"].includes(quotation.status) && (
+          {canManageQuotation && ["REJECTED", "EXPIRED"].includes(quotation.status) && (
             <Button
               variant="outline"
               onClick={handlePullBackToDraft}
@@ -364,6 +356,12 @@ export default function QuotationDetailPage({
               </Link>
             </Button>
           )}
+          {canManageQuotation && ["SENT", "ACCEPTED"].includes(quotation.status) ? (
+            <MoreMenu items={[
+              ...(quotation.status === "SENT" ? [{ key: "reject", label: "ลูกค้าปฏิเสธ", icon: X, danger: true, disabled: isPending, onSelect: () => void handleReject() }] : []),
+              { key: "draft", label: "ดึงกลับเป็นร่าง", icon: Undo2, danger: quotation.status === "ACCEPTED", disabled: isPending, onSelect: () => void handlePullBackToDraft() },
+            ]} />
+          ) : null}
           </>
         }
       />

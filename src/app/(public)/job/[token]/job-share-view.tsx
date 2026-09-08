@@ -9,8 +9,13 @@ import { PublicLinkError } from "@/components/public-link-error";
 import {
   PublicPageShell,
   FullScreenLoading,
+  InfoRow,
 } from "@/components/public/public-page";
-import { Shirt, CalendarClock, Paperclip, Palette, FileText } from "lucide-react";
+import { Shirt, Paperclip, Palette, FileText } from "lucide-react";
+import { Metric } from "@/components/ui/metric";
+import { DueTag } from "@/components/ui/due-tag";
+import { InfoChip, InfoChipRow } from "@/components/ui/info-chip";
+import { differenceInBangkokDays } from "@/lib/date-utils";
 import { FOCUS_BUTTON, INTERACTIVE_HOVER, INTERACTIVE_PRESSED, TINT } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
 
@@ -43,33 +48,26 @@ export function JobShareView({ token }: { token: string }) {
     <PublicPageShell
       icon={<Shirt />}
       title="ใบงานผลิต"
-      subtitle={`สำหรับ ${d.vendorName} · อ้างอิง ${d.orderNumber}`}
+      subtitle={<><span className="block">สำหรับ {d.vendorName}</span><span className="block tabular-nums">อ้างอิง {d.orderNumber}</span></>}
       footer="เปิดจากลิงก์ที่ได้รับเท่านั้น — หากข้อมูลไม่ตรงกับที่คุยไว้ กรุณาติดต่อผู้ส่งงาน"
     >
 
         {/* งาน + จำนวน + กำหนดส่งคืน */}
         <Card>
           <CardContent className="space-y-4 p-5">
-            <p className="text-lg font-semibold text-strong">{d.description}</p>
-            <div className="grid grid-cols-2 gap-3">
+            <p className="break-words text-lg font-semibold text-strong [overflow-wrap:anywhere]">{d.description}</p>
+            <div className="grid gap-3 sm:grid-cols-2">
               <div className={cn(TINT.neutral, "rounded-lg border p-3 text-center")}>
-                <p className="text-2xl font-semibold tabular-nums text-strong">{d.quantity}</p>
-                <p className="text-xs text-muted">จำนวน (ชิ้น)</p>
+                <Metric value={d.quantity.toLocaleString("th-TH")} label="จำนวนงานรอบนี้" unit="ชิ้น" className="items-center" />
               </div>
-              <div className={cn(TINT.neutral, "rounded-lg border p-3 text-center")}>
-                <p className="flex items-center justify-center gap-1.5 text-lg font-semibold text-strong">
-                  <CalendarClock className="h-4 w-4 shrink-0" />
-                  {d.expectedBackAt ? formatDate(d.expectedBackAt) : "—"}
-                </p>
-                <p className="text-xs text-muted">กำหนดส่งคืน</p>
+              <div className={cn(TINT.neutral, "flex flex-col items-center justify-center gap-2 rounded-lg border p-3 text-center")}>
+                <span className="text-sm text-muted">กำหนดส่งคืน</span>
+                <DueTag dueInDays={differenceInBangkokDays(d.expectedBackAt, job.dataUpdatedAt)} dateLabel={d.expectedBackAt ? formatDate(d.expectedBackAt) : "ยังไม่กำหนด"} />
               </div>
             </div>
             <div className="grid gap-1.5 text-sm">
               {d.sentAt && (
-                <div className="flex justify-between">
-                  <span className="text-muted">ส่งของให้ร้าน</span>
-                  <span className="font-medium text-strong">{formatDate(d.sentAt)}</span>
-                </div>
+                <InfoRow label="ส่งของให้ร้าน">{formatDate(d.sentAt)}</InfoRow>
               )}
               {d.notes && (
                 <div className={cn(TINT.neutral, "rounded-lg border p-3")}>
@@ -175,20 +173,22 @@ export function JobShareView({ token }: { token: string }) {
                           />
                         </a>
                       )}
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
-                        <span className="font-medium">
+                      <div className="min-w-0 flex-1 space-y-2">
+                        <p className="font-medium text-strong">
                           {ARTWORK_POSITION_LABELS[pr.position] ?? pr.position}
-                        </span>
-                        <span>{PRINT_TYPES[pr.printType] ?? pr.printType}</span>
-                        {pr.printSize && <span>ขนาด {pr.printSize}</span>}
-                        {pr.width && pr.height && (
-                          <span>
+                        </p>
+                        <InfoChipRow>
+                          <InfoChip size="sm">{PRINT_TYPES[pr.printType] ?? pr.printType}</InfoChip>
+                          {pr.printSize && <InfoChip size="sm">ขนาด {pr.printSize}</InfoChip>}
+                          {pr.width && pr.height && (
+                          <InfoChip size="sm">
                             {pr.width}×{pr.height} ซม.
-                          </span>
+                          </InfoChip>
                         )}
-                        {pr.colorCount != null && <span>{pr.colorCount} สี</span>}
+                          {pr.colorCount != null && <InfoChip size="sm">{pr.colorCount} สี</InfoChip>}
+                        </InfoChipRow>
                         {pr.designNote && (
-                          <span className="w-full text-xs text-muted">{pr.designNote}</span>
+                          <p className="break-words text-sm text-secondary [overflow-wrap:anywhere]">{pr.designNote}</p>
                         )}
                       </div>
                     </div>
