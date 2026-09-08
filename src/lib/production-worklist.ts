@@ -623,6 +623,10 @@ export function productionWorklistHref<
   O extends BoardOrderLike<S>,
 >(job: BoardJob<O, S>, canCreateProduction: boolean): string {
   if (job.spots.some((spot) => spot.kind === "queue")) {
+    // มีใบผลิตอยู่แล้ว (เช่นใบ V2 ที่ยังไม่ปล่อย) = พาไปใบนั้น ไม่เปิดกล่องสร้างใบใหม่
+    // (เบสเจอ 09-09: กดแล้วโดน "ออเดอร์นี้ใช้ Production V2 แล้ว — เปิดใบผลิตแบบเดิมไม่ได้")
+    const existing = job.order.productions[0]?.id;
+    if (existing) return `/production/${encodeURIComponent(existing)}`;
     return canCreateProduction
       ? `/production?create=${encodeURIComponent(job.order.id)}`
       : "/production";

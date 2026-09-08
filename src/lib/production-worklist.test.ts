@@ -339,6 +339,10 @@ describe("production worklist", () => {
     expect(productionWorklistHref(jobs[4]!, true)).toBe("/production/prod-ready");
     expect(productionWorklistHref(jobs[5]!, true)).toBe("/production?create=queue");
     expect(productionWorklistHref(jobs[5]!, false)).toBe("/production");
+    // อยู่คิวแต่มีใบผลิตแล้ว (เช่นใบ V2 ที่ยังไม่ปล่อย) → พาไปใบนั้น ไม่เปิดกล่องสร้างใบซ้ำ
+    jobs[5]!.order.productions = [{ id: "mo-draft", status: "PENDING", steps: [] }];
+    expect(productionWorklistHref(jobs[5]!, true)).toBe("/production/mo-draft");
+    jobs[5]!.order.productions = [];
 
     const mixed = job({
       id: "mixed",
