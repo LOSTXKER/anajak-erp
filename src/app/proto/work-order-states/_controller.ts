@@ -57,7 +57,7 @@ export function useProtoController(fx: StateFixture, role: Role): WorkOrderContr
     const nowSteps = production ? selectNowSteps(workflowSteps, { canOutsource: canUpdateStep, canUpdateStep, canSupervise: canSuperviseStep, meId: me.id, pressGate }) : [];
     const nowById = new Map(nowSteps.map((n) => [n.step.id, n]));
     const allDone = workflowSteps.length > 0 && workflowSteps.every((s) => s.status === "COMPLETED");
-    const problemSteps = workflowSteps.filter((s) => s.status === "FAILED");
+    const problemSteps = workflowSteps.filter((s) => s.status === "FAILED" || s.status === "ON_HOLD");
 
     const ctrl = {
       productionQuery: { isLoading: loading, isError: writeDataStale, refetch: noop, error: notFound ? { data: { code: "NOT_FOUND" } } : undefined },

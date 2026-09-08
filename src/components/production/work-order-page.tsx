@@ -17,7 +17,7 @@
 
 import { Suspense, useMemo, useState, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
-import { AlertTriangle, CheckCircle2, Factory, Flag, History, ImageIcon, Pause, Printer, RotateCcw, Store, UserRound } from "lucide-react";
+import { CheckCircle2, Factory, Flag, History, ImageIcon, Pause, Printer, RotateCcw, Store, UserRound } from "lucide-react";
 
 import { PageShell } from "@/components/page-shell";
 import { OrderItemsDisplay } from "@/components/orders/detail/order-items-display";
@@ -38,6 +38,7 @@ import { RecordNotFound } from "@/components/ui/record-not-found";
 import { Section } from "@/components/ui/section";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsBar, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CONTROL_H } from "@/components/ui/control-size";
 import { RADIUS, TABLE_HEAD_SURFACE } from "@/components/ui/tokens";
 import { MaterialUsage } from "@/components/material-usage";
 import { GarmentPickCard } from "@/components/production/garment-pick-card";
@@ -57,6 +58,14 @@ import { useWorkOrderController, type WorkOrderController } from "./work-order-c
 import { activeOutsource, ProblemCard, daysFromNow, stepLabel, viewOf } from "./work-order-pieces";
 
 const CHECKLIST_ANCHOR = "work-order-checklist";
+const PIECES_ANCHOR = "work-order-pieces";
+
+/** พาไปช่องแรกที่ยังต้องทำในโซนนั้น (ติ๊กที่ยังว่าง / ช่องยอดแถวแรก) — ปุ่มบนหัวใบใช้แทนการ disabled */
+function focusFirst(anchor: string, selector: string) {
+  const el = document.querySelector<HTMLElement>(`#${anchor} ${selector}`);
+  el?.scrollIntoView({ behavior: "smooth", block: "center" });
+  el?.focus();
+}
 
 /** ข้อที่ยังไม่ได้ติ๊กของขั้น — ปุ่มบนหัวใบกับด่าน server ใช้รายการเดียวกัน */
 function ticksMissing(step: ProductionStep): number {
@@ -91,7 +100,8 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab }: { c: 
   const currentNode = nodes[currentNodeIndex] ?? [];
   // ปุ่มบนหัวใบเป็นของขั้นแรกในช่องที่ยังไม่ปิดและไม่ติดรอ — ขั้นคู่ที่เหลือมีปุ่มของตัวเองในฟอร์ม
   const openInNode = currentNode.filter((s) => s.status !== "COMPLETED");
-  const current = openInNode.find((s) => routeWaitingOn(s, workflowSteps).length === 0) ?? openInNode[0] ?? currentNode[currentNode.length - 1] ?? null;
+  const notWaiting = openInNode.filter((s) => routeWaitingOn(s, workflowSteps).length === 0);
+  const current = notWaiting.find((s) => !activeOutsource(s)) ?? notWaiting[0] ?? openInNode[0] ?? currentNode[currentNode.length - 1] ?? null;
   const pairedOpen = openInNode.filter((s) => s !== current);
   const currentOutsource = current ? activeOutsource(current) : null;
   const railLabels = nodes.map((node, i) => {
@@ -101,24 +111,34 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab }: { c: 
 
   // ปุ่มของขั้น: ของอยู่ร้านนอก = รับงานกลับ (ใบตรวจรับเดิม) · ไม่งั้นปุ่มจากกติกาเดิมทั้งชุด
   // ปิดขั้นได้เมื่อติ๊กข้อกำหนดครบ (server กั้นอีกชั้น) — ปุ่มยังอยู่ที่เดิม กดแล้วพาไปเช็คลิสต์
+  const hasVariantRows = order ? pieceRowsOf(order).some((r) => r.variantId) : false;
   function actionFor(step: ProductionStep) {
     const outsource = activeOutsource(step);
-    if (outsource && c.canUpdateStep && c.canOwnOrSupervise(step)) {
-      return (
-        <Button onClick={() => c.openOutsourceReturn(step.id, outsource.id)} disabled={c.writeDataStale}>
+    if (outsource) {
+      return c.canUpdateStep && c.canOwnOrSupervise(step) ? (
+        <Button onClick={() => c.openOutsourceReturn(step.id, outsource.id)}>
           รับงานกลับ
         </Button>
-      );
+      ) : null;
     }
     const now = nowById.get(step.id);
     const closes = now?.action === "complete" || now?.action === "record-qty" || now?.action === "quick-pass";
-    const missing = closes ? ticksMissing(step) : 0;
-    if (missing > 0 && step.status !== "COMPLETED") {
-      return (
-        <Button aria-disabled className="opacity-60" onClick={() => document.getElementById(CHECKLIST_ANCHOR)?.scrollIntoView({ behavior: "smooth", block: "center" })}>
-          ปิดขั้นนี้
-        </Button>
-      );
+    if (closes && step.status !== "COMPLETED") {
+      // ยังติ๊กไม่ครบ → ปุ่มพาไปข้อแรกที่ยังว่าง · ยอดยังไม่ครบ (ใบที่มีตารางรายตัว) → พาไปช่องยอดแถวแรก
+      if (ticksMissing(step) > 0) {
+        return (
+          <Button aria-disabled onClick={() => focusFirst(CHECKLIST_ANCHOR, "input[type=checkbox]:not(:checked)")}>
+            ปิดขั้นนี้
+          </Button>
+        );
+      }
+      if (hasVariantRows && step.qtyTotal && (step.qtyDone ?? 0) < step.qtyTotal) {
+        return (
+          <Button aria-disabled onClick={() => focusFirst(PIECES_ANCHOR, "input")}>
+            ปิดขั้นนี้
+          </Button>
+        );
+      }
     }
     return c.primaryButton(step, now);
   }
@@ -140,13 +160,11 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab }: { c: 
   // ประโยคใต้ราง (เฉพาะตอนไปต่อไม่ได้) — รออะไร / ติดอะไร
   const waitingNames = current ? routeWaitingOn(current, workflowSteps).map(stepLabel) : [];
   const blockers: string[] = [];
-  if (current && !allDone && !qcAction) {
-    const missing = ticksMissing(current);
+  if (current && !allDone && !qcAction && !c.writeDataStale) {
     if (current.status === "FAILED" || current.status === "ON_HOLD") blockers.push(current.status === "ON_HOLD" ? "งานถูกพักไว้" : "ติดปัญหา — รอหัวหน้าจัดการ");
     else if (waitingNames.length > 0) blockers.push(`รอ ${waitingNames.length === 1 ? waitingNames[0] : `${waitingNames.length} ขั้นก่อนหน้า`}`);
-    else if (current.stepType === "DTF_PRINT" && current.printRunItems.length > 0) blockers.push(`อยู่ในรอบพิมพ์ ${current.printRunItems[0]!.printRun.runNumber}`);
     else if (!c.canUpdateStep && c.hasProductionPermission) blockers.push("ออเดอร์ยังไม่อยู่ในสถานะกำลังผลิต");
-    else if (current.status === "IN_PROGRESS" && !currentOutsource && missing > 0) blockers.push(`ติ๊กข้อกำหนดอีก ${missing} ข้อก่อนปิดขั้น`);
+    else if (current.assignedTo && !c.canOwnOrSupervise(current)) blockers.push(`งานของ ${current.assignedTo.name}`);
   }
 
   // ย้อนกลับ = เปิดขั้นที่ปิดล่าสุดก่อนหน้าให้ทำต่อ (หัวหน้า · server ตรวจว่าขั้นถัดไปยังไม่เริ่ม)
@@ -264,8 +282,16 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab }: { c: 
             ) : null}
 
             {c.writeDataStale ? (
-              <Alert variant="warning" title="ข้อมูลล่าสุดอาจยังไม่ครบ">
-                กำลังแสดงข้อมูลเดิมที่โหลดไว้ — ปุ่มลงมือถูกปิดจนกว่าจะโหลดใหม่สำเร็จ
+              <Alert
+                variant="warning"
+                title="ข้อมูลล่าสุดอาจยังไม่ครบ"
+                action={
+                  <Button size="sm" variant="outline" onClick={() => void productionQuery.refetch()}>
+                    โหลดใหม่
+                  </Button>
+                }
+              >
+                กำลังแสดงข้อมูลเดิมที่โหลดไว้
               </Alert>
             ) : null}
             {stalePaper ? (
@@ -305,8 +331,22 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab }: { c: 
                   <TabsContent value="steps" className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
                     <div className="min-w-0 space-y-6">
                       {allDone || !current ? (
-                        <Section title="ครบทุกขั้นแล้ว" icon={CheckCircle2} tone="production">
-                          <p className="text-sm text-secondary">{qcAction ? "กดส่งเข้า QC บนหัวใบ" : "งานอยู่ที่ QC"}</p>
+                        <Section
+                          title="ครบทุกขั้นแล้ว"
+                          icon={CheckCircle2}
+                          tone="production"
+                          action={
+                            qcAction ? undefined : (
+                              <Button asChild size="sm" variant="outline">
+                                <a href={`/orders/${order.id}?tab=qc`}>ไปหน้า QC</a>
+                              </Button>
+                            )
+                          }
+                        >
+                          <FactList columns={2}>
+                            <Fact size="sm" label="ทำแล้ว" value={`${c.totalQty.toLocaleString("th-TH")} ตัว`} />
+                            <Fact size="sm" label="ตอนนี้" value={qcAction ? "รอส่งเข้า QC" : "อยู่ที่ QC"} />
+                          </FactList>
                         </Section>
                       ) : (
                         <>
@@ -347,7 +387,7 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab }: { c: 
                       {!allDone
                         ? [current, ...pairedOpen].filter((s): s is ProductionStep => !!s).map((s, i) => (
                             <div key={s.id} id={i === 0 ? CHECKLIST_ANCHOR : undefined}>
-                              <ChecklistCard step={s} c={c} nowMs={nowMs} />
+                              <ChecklistCard step={s} c={c} nowMs={nowMs} showStepName={pairedOpen.length > 0} />
                             </div>
                           ))
                         : null}
@@ -391,10 +431,10 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab }: { c: 
 
 /* ───────────────────────── ซ้าย: ตารางรายตัวของขั้นที่ยืนอยู่ ───────────────────────── */
 
-const TH = "px-2 py-2.5 text-xs font-medium";
+const TH = "px-2 py-2 text-xs font-medium";
 const TD = "px-2 py-2 align-middle text-sm";
 
-type PieceRow = { key: string; variantId: string | null; product: string; color: string | null; size: string | null; qty: number; thumb: string | null; prints: string[] };
+type PieceRow = { key: string; variantId: string | null; product: string; productColor: string | null; color: string | null; size: string | null; qty: number; thumb: string | null; prints: string[] };
 type RowQty = { done: number; waste: number };
 
 /** แถวละไซซ์จาก order.items ของใบผลิต (ชุดเดียวกับตารางรายการหน้าออเดอร์) */
@@ -404,8 +444,9 @@ export function pieceRowsOf(order: ProductionDetail["order"]): PieceRow[] {
     const thumbSrc = item.prints.map((p) => p.artwork?.imageUrl ?? p.designImageUrl).find((u) => isImageUrl(u)) ?? null;
     return item.products.flatMap((prod): PieceRow[] => {
       const name = prod.description || PRODUCT_TYPES[prod.productType ?? ""] || "สินค้า";
-      if (prod.variants.length === 0) return [{ key: prod.id, variantId: null, product: name, color: prod.fabricColor ?? null, size: null, qty: prod.totalQuantity ?? 0, thumb: thumbSrc, prints }];
-      return prod.variants.map((v) => ({ key: v.id, variantId: v.id, product: name, color: v.color ?? prod.fabricColor ?? null, size: v.size || null, qty: v.quantity, thumb: thumbSrc, prints }));
+      const productColor = prod.fabricColor ?? null;
+      if (prod.variants.length === 0) return [{ key: prod.id, variantId: null, product: name, productColor, color: productColor, size: null, qty: prod.totalQuantity ?? 0, thumb: thumbSrc, prints }];
+      return prod.variants.map((v) => ({ key: v.id, variantId: v.id, product: name, productColor, color: v.color ?? productColor, size: v.size || null, qty: v.quantity, thumb: thumbSrc, prints }));
     });
   });
 }
@@ -415,7 +456,8 @@ export function StepPieceTable({ step, order, c }: { step: ProductionStep; order
   const rows = pieceRowsOf(order);
   const total = rows.reduce((n, r) => n + r.qty, 0);
   const counting = step.qtyTotal !== null && step.qtyTotal > 0;
-  const editable = counting && c.canUpdateStep && c.canOwnOrSupervise(step) && step.status !== "COMPLETED" && step.status !== "FAILED" && !FLOW_OWNED_STEP_TYPES.has(step.stepType);
+  // ของอยู่ร้านนอก = ยอดมาจากใบตรวจรับตอนรับกลับ ไม่กรอกเอง
+  const editable = counting && c.canUpdateStep && c.canOwnOrSupervise(step) && step.status !== "COMPLETED" && step.status !== "FAILED" && !FLOW_OWNED_STEP_TYPES.has(step.stepType) && !activeOutsource(step);
   const view = viewOf(step, c.nowById.get(step.id));
   const saved = useMemo(() => {
     const map: Record<string, RowQty> = {};
@@ -447,7 +489,7 @@ export function StepPieceTable({ step, order, c }: { step: ProductionStep; order
           <InfoChip size="sm" tone={view.chip}>{view.label}</InfoChip>
           {editable && variantRows.length > 0 ? (
             <Button size="sm" variant="outline" onClick={fillAll}>
-              ครบทุกแถว
+              ใส่ครบทุกไซซ์
             </Button>
           ) : null}
           {editable && variantRows.length === 0 ? (
@@ -467,7 +509,7 @@ export function StepPieceTable({ step, order, c }: { step: ProductionStep; order
       {rows.length === 0 ? (
         <EmptyState icon={ImageIcon} title="ออเดอร์นี้ยังไม่มีรายการเสื้อ" />
       ) : (
-        <div className="overflow-x-auto">
+        <div id={PIECES_ANCHOR} className="overflow-x-auto">
           <table className={cn("w-full table-fixed", showQty ? "min-w-[640px]" : "min-w-[520px]")}>
             <colgroup>
               <col style={{ width: 40 }} />
@@ -490,7 +532,8 @@ export function StepPieceTable({ step, order, c }: { step: ProductionStep; order
             <tbody className="divide-y divide-divider">
               {rows.map((r, i) => {
                 const v = valueOf(r.key);
-                const rowLabel = [r.color, r.size].filter(Boolean).join(" ") || r.product;
+                // ไซซ์คือสิ่งที่แยกแถว → นำแถว · สีโชว์เฉพาะเมื่อต่างจากสินค้าหลัก · ชื่อสินค้าเป็นบรรทัดรอง
+                const rowLabel = [r.color && r.color !== r.productColor ? r.color : null, r.size].filter(Boolean).join(" ") || r.product;
                 return (
                   <tr key={r.key}>
                     <td className={cn(TD, "text-center tabular-nums text-muted")}>{i + 1}</td>
@@ -504,10 +547,10 @@ export function StepPieceTable({ step, order, c }: { step: ProductionStep; order
                             <ImageIcon className="h-4 w-4 text-muted" aria-hidden="true" />
                           </div>
                         )}
-                        <p className="min-w-0 text-sm font-medium text-strong [overflow-wrap:anywhere]">
-                          {r.product}
-                          {r.color || r.size ? <span className="ml-1.5 font-semibold">{[r.color, r.size].filter(Boolean).join(" ")}</span> : null}
-                        </p>
+                        <div className="min-w-0">
+                          <p className="text-base font-semibold text-strong">{rowLabel}</p>
+                          {rowLabel !== r.product ? <p className="truncate text-xs text-secondary">{r.product}</p> : null}
+                        </div>
                       </div>
                     </td>
                     <td className={cn(TD, "text-xs text-secondary")}>{r.prints.join(" · ") || "—"}</td>
@@ -515,7 +558,7 @@ export function StepPieceTable({ step, order, c }: { step: ProductionStep; order
                     {showQty ? (
                       <td className={cn(TD, "text-right")}>
                         {editable && r.variantId ? (
-                          <NumberInput integer min={0} max={r.qty} value={v.done} onValueChange={(n) => setRow(r.key, { done: n })} placeholder="0" aria-label={`ทำแล้ว ${rowLabel}`} className="h-9 w-full text-right" />
+                          <NumberInput integer min={0} max={r.qty} value={v.done} onValueChange={(n) => setRow(r.key, { done: n })} placeholder="0" aria-label={`ทำแล้ว ${rowLabel}`} className={cn(CONTROL_H, "w-full text-right")} />
                         ) : (
                           <span className={cn("tabular-nums", v.done > 0 ? "font-semibold text-strong" : "text-muted")}>{r.variantId ? v.done.toLocaleString("th-TH") : "—"}</span>
                         )}
@@ -524,9 +567,9 @@ export function StepPieceTable({ step, order, c }: { step: ProductionStep; order
                     {showQty ? (
                       <td className={cn(TD, "text-right")}>
                         {editable && r.variantId ? (
-                          <NumberInput integer min={0} max={r.qty} value={v.waste} onValueChange={(n) => setRow(r.key, { waste: n })} placeholder="0" aria-label={`เสีย ${rowLabel}`} className="h-9 w-full text-right" />
+                          <NumberInput integer min={0} max={r.qty} value={v.waste} onValueChange={(n) => setRow(r.key, { waste: n })} placeholder="0" aria-label={`เสีย ${rowLabel}`} className={cn(CONTROL_H, "w-full text-right")} />
                         ) : (
-                          <span className={cn("tabular-nums", v.waste > 0 ? "font-semibold text-amber-700 dark:text-amber-300" : "text-muted")}>{r.variantId ? v.waste.toLocaleString("th-TH") : "—"}</span>
+                          <span className={cn("tabular-nums", v.waste > 0 ? "font-semibold text-strong" : "text-muted")}>{r.variantId ? v.waste.toLocaleString("th-TH") : "—"}</span>
                         )}
                       </td>
                     ) : null}
@@ -561,24 +604,17 @@ export function StepPieceTable({ step, order, c }: { step: ProductionStep; order
 
 /* ───────────────────────── ขวา: เช็คลิสต์ของขั้นที่ยืนอยู่ ───────────────────────── */
 
-export function ChecklistCard({ step, c, nowMs }: { step: ProductionStep; c: WorkOrderController; nowMs: number }) {
+/** เช็คลิสต์ของขั้น — ชื่อการ์ด "เช็คลิสต์" (ชื่อขั้นอยู่ที่ตารางซ้ายแล้ว) · ขั้นคู่ค่อยใส่ชื่อขั้นให้แยกกันออก */
+export function ChecklistCard({ step, c, nowMs, showStepName = false }: { step: ProductionStep; c: WorkOrderController; nowMs: number; showStepName?: boolean }) {
   const standards = workOrderStandards(step.stepType);
   const done = step.status === "COMPLETED";
+  const halted = step.status === "FAILED" || step.status === "ON_HOLD";
   const outsource = activeOutsource(step);
   const ticked = new Map(step.checks.map((t) => [t.itemKey, t.checkedBy.name]));
-  const missing = done ? 0 : ticksMissing(step);
-  const canTick = c.canUpdateStep && c.canOwnOrSupervise(step) && !done && step.status !== "FAILED";
-  const view = viewOf(step, c.nowById.get(step.id));
+  const missing = done || halted ? 0 : ticksMissing(step);
+  const canTick = c.canUpdateStep && c.canOwnOrSupervise(step) && !done && !halted;
   return (
-    <Section
-      title={stepLabel(step)}
-      action={
-        <span className="flex items-center gap-2">
-          {missing > 0 ? <InfoChip size="sm" tone="warning">ติ๊กอีก {missing} ข้อ</InfoChip> : null}
-          <InfoChip size="sm" tone={view.chip}>{view.label}</InfoChip>
-        </span>
-      }
-    >
+    <Section title={showStepName ? stepLabel(step) : "เช็คลิสต์"} action={missing > 0 ? <InfoChip size="sm" tone="warning">ติ๊กอีก {missing} ข้อ</InfoChip> : undefined}>
       <div className="space-y-4">
         <FactList columns={1}>
           <Fact size="sm" icon={UserRound} label="ผู้ทำ" value={step.assignedTo?.name ?? "ยังไม่มีคนรับ"} tone={step.assignedTo ? "default" : "muted"} />
@@ -592,11 +628,6 @@ export function ChecklistCard({ step, c, nowMs }: { step: ProductionStep; c: Wor
               value={<DueTag dueInDays={daysFromNow(outsource.expectedBackAt, nowMs)} dateLabel={outsource.expectedBackAt ? formatDate(outsource.expectedBackAt) : "ยังไม่นัด"} size="sm" />}
             />
           </FactList>
-        ) : null}
-        {step.status === "FAILED" || step.status === "ON_HOLD" ? (
-          <p className="flex items-start gap-2 text-sm font-medium text-amber-800 dark:text-amber-200">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" /> {step.status === "ON_HOLD" ? "พักไว้" : "รอหัวหน้าจัดการ"}
-          </p>
         ) : null}
         {standards.length > 0 ? (
           <ul>

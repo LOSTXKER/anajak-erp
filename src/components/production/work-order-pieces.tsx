@@ -35,15 +35,17 @@ export function stepLabel(step: Pick<ProductionStep, "customStepName" | "stepTyp
 }
 
 export type StepView = {
-  state: "done" | "active" | "blocked" | "waiting" | "todo";
+  state: "done" | "active" | "blocked" | "held" | "waiting" | "todo";
   label: string;
   chip: "neutral" | "info" | "warning" | "error" | "success";
 };
 
+// พักไว้ ≠ ติดปัญหา: พักคือหัวหน้าตั้งใจหยุด (เหลือง) · ติดปัญหาคือช่างแจ้งของเสีย/เครื่องเสีย (แดง)
 const STEP_VIEW: Record<StepView["state"], Omit<StepView, "state">> = {
   done: { label: "ผ่านแล้ว", chip: "success" },
   active: { label: "กำลังทำ", chip: "info" },
   blocked: { label: "ติดปัญหา", chip: "error" },
+  held: { label: "พักไว้", chip: "warning" },
   waiting: { label: "รอ", chip: "warning" },
   todo: { label: "ยังไม่ถึง", chip: "neutral" },
 };
@@ -52,9 +54,11 @@ export function viewOf(step: ProductionStep, now: NowStep<ProductionStep> | unde
   const state: StepView["state"] =
     step.status === "COMPLETED"
       ? "done"
-      : step.status === "FAILED" || step.status === "ON_HOLD"
+      : step.status === "FAILED"
         ? "blocked"
-        : now && now.waitingOn.length > 0
+        : step.status === "ON_HOLD"
+          ? "held"
+          : now && now.waitingOn.length > 0
           ? "waiting"
           : step.status === "IN_PROGRESS"
             ? "active"
@@ -102,11 +106,11 @@ export function Owner({ step }: { step: ProductionStep }) {
 
 export function ProblemCard({ step }: { step: ProductionStep }) {
   const reason = currentProductionProblemReason(step);
-  const title = step.status === "FAILED" ? "งานติดปัญหา" : "งานถูกพักไว้";
+  const held = step.status === "ON_HOLD";
   return (
     <Alert
-      variant="error"
-      title={title}
+      variant={held ? "warning" : "error"}
+      title={held ? "งานถูกพักไว้" : "งานติดปัญหา"}
       meta={[{ label: "ขั้น", value: stepLabel(step) }, ...(step.assignedTo ? [{ label: "ผู้รับผิดชอบ", value: step.assignedTo.name }] : [])]}
     >
       {reason ?? step.notes ?? "ยังไม่ระบุเหตุ"}

@@ -76,7 +76,9 @@ ok("ตาราง: 3 แถว + แถวรวม 120 ตัว", (table.mat
 ok("ตาราง: ยอดทำแล้วของขั้นอยู่หัวการ์ด (96 / 240)", /96\s*\/\s*240/.test(table.replace(/<[^>]+>/g, "")));
 /* A9.3: ขั้นที่นับยอดกรอก ทำแล้ว/เสีย ต่อแถวได้ — ปุ่มบันทึกโผล่เมื่อแก้ (ไม่มีปุ่มกดไม่ได้) · ปุ่มครบทุกแถวมีตลอด */
 ok("ตาราง: ช่องกรอกทำแล้ว/เสีย แถวละไซซ์ (6 ช่อง)", (table.match(/aria-label="ทำแล้ว /g) ?? []).length === 3 && (table.match(/aria-label="เสีย /g) ?? []).length === 3);
-ok("ตาราง: มีปุ่มครบทุกแถว · ปุ่มบันทึกยอดยังไม่โผล่ตอนยังไม่แก้", table.includes(">ครบทุกแถว<") && !table.includes(">บันทึกยอด<"));
+ok("ตาราง: มีปุ่มใส่ครบทุกไซซ์ · ปุ่มบันทึกยอดยังไม่โผล่ตอนยังไม่แก้", table.includes(">ใส่ครบทุกไซซ์<") && !table.includes(">บันทึกยอด<"));
+ok("ตาราง: ไซซ์นำแถว (ตัวใหญ่หนา) · ชื่อสินค้าเป็นบรรทัดรอง", table.includes('font-semibold text-strong">S<') && table.includes('text-xs text-secondary">โปโล Dry-Tech คอปก<'));
+ok("ตาราง: ช่องกรอกสูงพอนิ้วบนจอทัช (CONTROL_H)", table.includes("[@media(pointer:coarse)]:h-11"));
 ok("ตาราง: ไม่มีคำอธิบายวิธีใช้ (A8)", !table.includes("กรอก") && !table.includes("กดเพื่อ"));
 const savedQty = render(<StepPieceTable step={{ ...base, id: "h2", stepType: "HEAT_PRESS", status: "COMPLETED", qtyDone: 240, quantities: [{ id: "q1", sourceOrderItemVariantId: "v1", qtyPlanned: 20, qtyGood: 20, qtyScrap: 1 }] } as never} order={fakeOrder} c={ctrl} />);
 ok("ตาราง: ขั้นที่ปิดแล้วโชว์ยอดต่อแถวที่จดไว้ (อ่านอย่างเดียว)", !savedQty.includes("aria-label=\"ทำแล้ว") && savedQty.includes(">ทำแล้ว<") && savedQty.includes(">เสีย<"));
@@ -85,7 +87,7 @@ ok("ตาราง: ขั้นเบิกเสื้อไม่มีช�
 
 /* ── เช็คลิสต์ก่อนปิดขั้น (A9.2 ติ๊กได้ · ผลติ๊กมาจาก step.checks · ชิปบอกจำนวนที่เหลือ) ── */
 const check = render(<ChecklistCard step={{ ...base, id: "h", stepType: "HEAT_PRESS", status: "IN_PROGRESS", assignedTo: { id: "u", name: "บาส" }, checks: [{ itemKey: "ตั้งอุณหภูมิ/เวลา/แรงกดตามค่าของลายในใบงาน", checkedAt: new Date("2026-09-09"), checkedBy: { id: "u", name: "บาส" } }] } as never} c={ctrl} nowMs={0} />);
-ok("เช็คลิสต์: หัวการ์ด = ชื่อขั้น + สถานะ", check.includes("รีดร้อน") && check.includes(">กำลังทำ<"));
+ok("เช็คลิสต์: หัวการ์ด = “เช็คลิสต์” ไม่ซ้ำชื่อขั้น/ชิปสถานะกับตารางซ้าย", check.includes(">เช็คลิสต์<") && !check.includes(">กำลังทำ<"));
 ok("เช็คลิสต์: มีผู้ทำ", check.includes("บาส"));
 ok("เช็คลิสต์: ข้อกำหนดของรีดร้อนครบ 3 ข้อ แถวสูง 44px เป็น checkbox ติ๊กได้", (check.match(/min-h-11/g) ?? []).length === 3 && (check.match(/type="checkbox"/g) ?? []).length === 3 && (check.match(/checked=""/g) ?? []).length === 1);
 ok("เช็คลิสต์: ชิปบอกจำนวนที่ยังไม่ติ๊ก", check.includes(">ติ๊กอีก 2 ข้อ<"));
@@ -101,7 +103,7 @@ const outsourced = render(
 );
 ok("เช็คลิสต์ (ร้านนอก): ร้าน + นัดรับกลับเป็น Fact/DueTag ไม่ใช่บรรทัดจุด", outsourced.includes("ร้านปักพี่หน่อย") && outsourced.includes("นัดรับกลับ") && !outsourced.includes("ร้านปักพี่หน่อย ·"));
 const held = render(<ChecklistCard step={{ ...base, id: "x", stepType: "HEAT_PRESS", status: "ON_HOLD" } as never} c={ctrl} nowMs={0} />);
-ok("เช็คลิสต์ (พักไว้): บอกสั้น ๆ ว่าพักไว้", held.includes("พักไว้"));
+ok("เช็คลิสต์ (พักไว้): ติ๊กไม่ได้ ไม่มีชิปติ๊กอีก N (การ์ดพักไว้บอกแทน)", (held.match(/disabled=""/g) ?? []).length === 3 && !held.includes("ติ๊กอีก"));
 
 /* ── ActionZone: note อยู่แถวบน · ปุ่มแถวล่าง ── */
 const zone = render(

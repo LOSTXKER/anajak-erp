@@ -384,7 +384,7 @@ export function WorkOrderPrimaryButton({ step, now, options = {}, busy, canUpdat
     case "quick-pass":
       return (
         <Button className={size} onClick={() => onQuickPass(step)} disabled={busy}>
-          ผ่านรวด (ร้านทำเสร็จแล้ว)
+          ผ่านรวด
         </Button>
       );
     default:

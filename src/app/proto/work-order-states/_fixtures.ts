@@ -144,21 +144,21 @@ export const STATES: StateFixture[] = [
   { key: "start", title: "รอเริ่มขั้นแรก", group: "ขั้นทำเอง", order: makeOrder({}), steps: [press(), QC(20)] },
   {
     key: "doing",
-    title: "กำลังทำ · ติ๊ก 1/3 · ยอด 20/60",
+    title: "กำลังทำ — ติ๊ก 1/3 ยอด 20/60",
     group: "ขั้นทำเอง",
     order: makeOrder({}),
     steps: [press({ status: "IN_PROGRESS", startedAt: fromNow(0, -2), assignedTo: USERS.staff, qtyDone: 20, checks: ticks("HEAT_PRESS", 1), quantities: rows([15, 5, 0]) }), QC(20)],
   },
   {
     key: "ready-close",
-    title: "ติ๊กครบ ยอดครบ · พร้อมปิดขั้น",
+    title: "ติ๊กครบ ยอดครบ — พร้อมปิดขั้น",
     group: "ขั้นทำเอง",
     order: makeOrder({ deadlineInDays: 2, priority: "HIGH" }),
     steps: [press({ status: "IN_PROGRESS", startedAt: fromNow(0, -5), assignedTo: USERS.staff, qtyDone: 60, checks: ticks("HEAT_PRESS", 3), quantities: rows([15, 24, 21], [0, 1, 0]) }), QC(20)],
   },
   {
     key: "qty-partial",
-    title: "ติ๊กครบ · ยอดยังไม่ครบ (ปุ่มบันทึกยอด/ปิดขั้น)",
+    title: "ติ๊กครบ — ยอดยังไม่ครบ",
     group: "ขั้นทำเอง",
     order: makeOrder({}),
     steps: [press({ status: "IN_PROGRESS", startedAt: fromNow(0, -4), assignedTo: USERS.staff, qtyDone: 39, checks: ticks("HEAT_PRESS", 3), quantities: rows([15, 24, 0]) }), QC(20)],
@@ -172,14 +172,14 @@ export const STATES: StateFixture[] = [
   },
   {
     key: "problem",
-    title: "ติดปัญหา · รอหัวหน้า",
+    title: "ติดปัญหา — รอหัวหน้า",
     group: "ขั้นทำเอง",
     order: makeOrder({ deadlineInDays: 1, priority: "URGENT" }),
     steps: [press({ status: "FAILED", startedAt: fromNow(-1), assignedTo: USERS.staff, qtyDone: 12, checks: ticks("HEAT_PRESS", 2), quantities: rows([12, 0, 0]), notes: stationProblemNotes(null, "ฟิล์มลอกหลังรีด 3 ตัว สงสัยอุณหภูมิเครื่องเพี้ยน") }), QC(20)],
   },
   {
     key: "reopen",
-    title: "ปิดขั้นแรกแล้ว · ย้อนกลับได้",
+    title: "ปิดขั้นแรกแล้ว — ย้อนกลับได้",
     group: "ขั้นทำเอง",
     order: makeOrder({}),
     steps: [press({ status: "COMPLETED", startedAt: fromNow(-1), completedAt: fromNow(0, -2), assignedTo: USERS.staff, qtyDone: 60, checks: ticks("HEAT_PRESS", 3), quantities: rows([15, 24, 21]) }), makeStep({ key: "tag", stepType: "CUSTOM", customStepName: "ติดป้ายแขวน", sortOrder: 20 }), QC(30)],
@@ -220,21 +220,21 @@ export const STATES: StateFixture[] = [
   },
   {
     key: "outsource-shop",
-    title: "ของอยู่ร้าน · นัดรับอีก 3 วัน",
+    title: "ของอยู่ร้าน — นัดรับอีก 3 วัน",
     group: "ร้านนอก",
     order: makeOrder({ printType: "EMBROIDERY", deadlineInDays: 9 }),
     steps: [makeStep({ key: "emb", stepType: "EMBROIDERY", sortOrder: 10, status: "IN_PROGRESS", startedAt: fromNow(-2), assignedTo: USERS.boss, outsourceOrders: outsource({ status: "SENT", sentDaysAgo: 2, backInDays: 3 }) as never }), QC(20)],
   },
   {
     key: "outsource-overdue",
-    title: "ของอยู่ร้าน · เลยนัดรับ 2 วัน",
+    title: "ของอยู่ร้าน — เลยนัดรับ 2 วัน",
     group: "ร้านนอก",
     order: makeOrder({ printType: "EMBROIDERY", deadlineInDays: 1, priority: "URGENT" }),
     steps: [makeStep({ key: "emb", stepType: "EMBROIDERY", sortOrder: 10, status: "IN_PROGRESS", startedAt: fromNow(-6), assignedTo: USERS.boss, outsourceOrders: outsource({ status: "IN_PROGRESS", sentDaysAgo: 6, backInDays: -2 }) as never }), QC(20)],
   },
   {
     key: "pair",
-    title: "ช่องคู่ · พับป้าย + ปักแขน",
+    title: "ช่องคู่ — พับป้าย + ปักแขน",
     group: "ร้านนอก",
     order: makeOrder({ printType: "EMBROIDERY", deadlineInDays: 8 }),
     steps: [
@@ -247,7 +247,7 @@ export const STATES: StateFixture[] = [
   // ── ปลายทาง ──
   {
     key: "all-done",
-    title: "ครบทุกขั้น · รอส่งเข้า QC",
+    title: "ครบทุกขั้น — รอส่งเข้า QC",
     group: "ปลายทาง",
     order: makeOrder({ deadlineInDays: 2, priority: "HIGH" }),
     steps: [press({ status: "COMPLETED", startedAt: fromNow(-1), completedAt: fromNow(0, -4), assignedTo: USERS.staff, qtyDone: 60, checks: ticks("HEAT_PRESS", 3), quantities: rows([15, 24, 21]) }), QC(20, "COMPLETED")],
