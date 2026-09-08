@@ -90,12 +90,23 @@ export function useListPageState(options?: {
     [replaceListState, searchParam, debounceMs]
   );
 
+  /** ล้างคำที่ยังรอ debounce พร้อมตัวกรองใน URL โดยไม่ให้ timer เขียนคำเก่ากลับมา */
+  const clearSearch = useCallback((updates: Record<string, string | null> = {}) => {
+    if (searchTimer.current) {
+      clearTimeout(searchTimer.current);
+      searchTimer.current = null;
+    }
+    if (searchInputRef.current) searchInputRef.current.value = "";
+    replaceListState({ ...updates, [searchParam]: null, page: null });
+  }, [replaceListState, searchParam]);
+
   return {
     search,
     page,
     searchParams,
     replaceListState,
     onSearchChange,
+    clearSearch,
     searchInputRef,
     searchTimer,
   };

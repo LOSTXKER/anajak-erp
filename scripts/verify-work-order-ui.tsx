@@ -8,7 +8,9 @@ import { PathnameContext, SearchParamsContext } from "next/dist/shared/lib/hooks
 import { Alert } from "../src/components/ui/alert";
 import { ActionZone } from "../src/components/ui/action-zone";
 import { Button } from "../src/components/ui/button";
-import { ChecklistCard, StepPieceTable, pieceRowsOf } from "../src/components/production/work-order-page";
+import { ChecklistCard } from "../src/components/production/work-order-checklist";
+import { StepPieceTable, pieceRowsOf } from "../src/components/production/work-order-quantities";
+import { WorkOrderSteps } from "../src/components/production/work-order-steps";
 import { ProblemCard } from "../src/components/production/work-order-pieces";
 
 let pass = 0;
@@ -33,7 +35,6 @@ function render(node: React.ReactNode) {
 }
 
 const base = { customStepName: null, notes: null, qcNotes: null, outsourceOrders: [], printRunItems: [], qtyTotal: 240, startedAt: null, completedAt: null, assignedTo: null, qtyDone: 0, pairWithPrevious: false, checks: [], quantities: [] };
-const c = { reportProblem: { isPending: false, mutate() {} }, openQty() {}, openEdit() {}, handleSupervisorStatus: async () => {} } as never;
 const fakeOrder = {
   items: [
     {
@@ -77,13 +78,29 @@ ok("ตาราง: ยอดทำแล้วของขั้นอยู�
 /* A9.3: ขั้นที่นับยอดกรอก ทำแล้ว/เสีย ต่อแถวได้ — ปุ่มบันทึกโผล่เมื่อแก้ (ไม่มีปุ่มกดไม่ได้) · ปุ่มครบทุกแถวมีตลอด */
 ok("ตาราง: ช่องกรอกทำแล้ว/เสีย แถวละไซซ์ (6 ช่อง)", (table.match(/aria-label="ทำแล้ว /g) ?? []).length === 3 && (table.match(/aria-label="เสีย /g) ?? []).length === 3);
 ok("ตาราง: มีปุ่มใส่ครบทุกไซซ์ · ปุ่มบันทึกยอดยังไม่โผล่ตอนยังไม่แก้", table.includes(">ใส่ครบทุกไซซ์<") && !table.includes(">บันทึกยอด<"));
-ok("ตาราง: ไซซ์นำแถว (ตัวใหญ่หนา) · ชื่อสินค้าเป็นบรรทัดรอง", table.includes('font-semibold text-strong">S<') && table.includes('text-xs text-secondary">โปโล Dry-Tech คอปก<'));
+ok("ตาราง: ไซซ์นำแถว (ตัวใหญ่หนา) · ชื่อสินค้าเป็นบรรทัดรอง", table.includes('font-semibold text-strong">S<') && /<p class="[^"]*text-xs text-secondary[^"]*">โปโล Dry-Tech คอปก<\/p>/.test(table));
+ok("ตาราง: สีหลักของเสื้อไม่หาย และลายแยกเป็นรายการอ่านได้", table.includes(">กรมท่า<") && table.includes(">หน้า DTF</li>") && table.includes(">แขนซ้าย ปัก</li>"));
+ok("ตาราง: ชื่อพื้นที่และหัวคอลัมน์อ่านได้ด้วยเครื่องช่วยอ่าน", table.includes('role="region"') && table.includes('aria-label="รายการเสื้อ ขั้นรีดร้อน"') && (table.match(/scope="col"/g) ?? []).length === 6);
 ok("ตาราง: ช่องกรอกสูงพอนิ้วบนจอทัช (CONTROL_H)", table.includes("[@media(pointer:coarse)]:h-11"));
 ok("ตาราง: ไม่มีคำอธิบายวิธีใช้ (A8)", !table.includes("กรอก") && !table.includes("กดเพื่อ"));
 const savedQty = render(<StepPieceTable step={{ ...base, id: "h2", stepType: "HEAT_PRESS", status: "COMPLETED", qtyDone: 240, quantities: [{ id: "q1", sourceOrderItemVariantId: "v1", qtyPlanned: 20, qtyGood: 20, qtyScrap: 1 }] } as never} order={fakeOrder} c={ctrl} />);
 ok("ตาราง: ขั้นที่ปิดแล้วโชว์ยอดต่อแถวที่จดไว้ (อ่านอย่างเดียว)", !savedQty.includes("aria-label=\"ทำแล้ว") && savedQty.includes(">ทำแล้ว<") && savedQty.includes(">เสีย<"));
 const pick = render(<StepPieceTable step={{ ...base, id: "g", stepType: "GARMENT_PICK", status: "PENDING", qtyDone: 0, qtyTotal: 240 } as never} order={fakeOrder} c={ctrl} />);
 ok("ตาราง: ขั้นเบิกเสื้อไม่มีช่องกรอก/ปุ่มบันทึกยอด (ยอดมาจากการเบิกจริง)", !pick.includes(">บันทึกยอด<") && !pick.includes("aria-label=\"ทำแล้ว"));
+
+const pairedPrimary = { ...base, id: "paired-primary", stepType: "HEAT_PRESS", status: "IN_PROGRESS" } as never;
+const pairedSecondary = { ...base, id: "paired-secondary", stepType: "TAGGING", status: "IN_PROGRESS", pairWithPrevious: true } as never;
+const pairedController = {
+  ...(ctrl as unknown as Record<string, unknown>),
+  production: { id: "paired-production", notes: null },
+  order: { ...(fakeOrder as unknown as Record<string, unknown>), id: "paired-order", designs: [], deadline: null, customer: { name: "โรงเรียนตัวอย่าง" } },
+  workflowSteps: [pairedPrimary, pairedSecondary],
+  nowMs: 0,
+  totalQty: 120,
+} as never;
+const paired = render(<WorkOrderSteps c={pairedController} current={pairedPrimary} pairedOpen={[pairedSecondary]} allDone={false} qcAction={null} actionFor={() => <Button>ปิดขั้นคู่</Button>} />);
+ok("ขั้นคู่: ทั้งสองขั้นมีตารางยอดของตัวเอง และปุ่มขั้นคู่ยังอยู่", (paired.match(/aria-label="ทำแล้ว /g) ?? []).length === 6 && paired.includes('id="work-order-pieces-paired-primary"') && paired.includes('id="work-order-pieces-paired-secondary"') && paired.includes(">ปิดขั้นคู่<"));
+ok("ขั้นคู่: แต่ละเช็คลิสต์มีพิกัดของตัวเองให้ปุ่มปิดขั้นพาไป", paired.includes('id="work-order-checklist-paired-primary"') && paired.includes('id="work-order-checklist-paired-secondary"'));
 
 /* ── เช็คลิสต์ก่อนปิดขั้น (A9.2 ติ๊กได้ · ผลติ๊กมาจาก step.checks · ชิปบอกจำนวนที่เหลือ) ── */
 const check = render(<ChecklistCard step={{ ...base, id: "h", stepType: "HEAT_PRESS", status: "IN_PROGRESS", assignedTo: { id: "u", name: "บาส" }, checks: [{ itemKey: "ตั้งอุณหภูมิ/เวลา/แรงกดตามค่าของลายในใบงาน", checkedAt: new Date("2026-09-09"), checkedBy: { id: "u", name: "บาส" } }] } as never} c={ctrl} nowMs={0} />);
@@ -96,12 +113,13 @@ ok("เช็คลิสต์ (ปิดแล้ว): ติ๊กครบ �
 ok("เช็คลิสต์: ไม่มีศัพท์ภายใน (จดในระบบ/จดบนกระดาษ/ถือว่าผ่าน)", !check.includes("จดในระบบ") && !check.includes("จดบนกระดาษ") && !check.includes("ถือว่าผ่าน"));
 const outsourced = render(
   <ChecklistCard
-    step={{ ...base, id: "e", stepType: "EMBROIDERY", status: "IN_PROGRESS", assignedTo: { id: "u3", name: "พี่ก้อย" }, outsourceOrders: [{ id: "o1", status: "SENT", description: null, quantity: 240, sentAt: new Date("2026-09-05"), expectedBackAt: new Date("2026-09-09"), receivedAt: null, qcPassed: null, qcNotes: null, notes: null, createdAt: new Date("2026-09-05"), vendor: { id: "v", name: "ร้านปักพี่หน่อย" } }] } as never}
+    step={{ ...base, id: "e", stepType: "EMBROIDERY", status: "IN_PROGRESS", assignedTo: { id: "u3", name: "พี่ก้อย" }, outsourceOrders: [{ id: "o1", status: "SENT", description: "ปักโลโก้แขนซ้าย", quantity: 240, sentAt: new Date("2026-09-05"), expectedBackAt: new Date("2026-09-09"), receivedAt: null, qcPassed: null, qcNotes: null, notes: "แยกถุงตามไซซ์", createdAt: new Date("2026-09-05"), vendor: { id: "v", name: "ร้านปักพี่หน่อย" } }] } as never}
     c={ctrl}
     nowMs={new Date("2026-09-08").getTime()}
   />,
 );
 ok("เช็คลิสต์ (ร้านนอก): ร้าน + นัดรับกลับเป็น Fact/DueTag ไม่ใช่บรรทัดจุด", outsourced.includes("ร้านปักพี่หน่อย") && outsourced.includes("นัดรับกลับ") && !outsourced.includes("ร้านปักพี่หน่อย ·"));
+ok("เช็คลิสต์ (ร้านนอก): งาน จำนวน วันส่ง หมายเหตุ อยู่ครบ", outsourced.includes("ปักโลโก้แขนซ้าย") && outsourced.includes("240 ตัว") && outsourced.includes("วันที่ส่ง") && outsourced.includes("แยกถุงตามไซซ์"));
 const held = render(<ChecklistCard step={{ ...base, id: "x", stepType: "HEAT_PRESS", status: "ON_HOLD" } as never} c={ctrl} nowMs={0} />);
 ok("เช็คลิสต์ (พักไว้): ติ๊กไม่ได้ ไม่มีชิปติ๊กอีก N (การ์ดพักไว้บอกแทน)", (held.match(/disabled=""/g) ?? []).length === 3 && !held.includes("ติ๊กอีก"));
 

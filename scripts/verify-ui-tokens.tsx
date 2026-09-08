@@ -1259,9 +1259,13 @@ check(
      ตัวเลขนี้เคยเป็น 69px แล้วขยับเป็น 75px ตอนแถวหายใจขึ้นในเฟส 10
      ด่านนี้จับแค่ว่า "ทั้งสองที่พูดตรงกัน" — ถ้าเปลี่ยนความหนาแน่นอีกต้องวัดใหม่ */
   const skeletonSource = readFileSync("src/components/ui/page-skeleton.tsx", "utf8");
+  const defaultCellHtml = renderToStaticMarkup(<DataTable.Td>ตัวอย่าง</DataTable.Td>);
+  const defaultTableHtml = renderToStaticMarkup(<DataTable.Root />);
   const cellPaddingMatchesSkeleton =
     skeletonSource.includes("h-[75px]") &&
-    readFileSync("src/components/ui/data-table.tsx", "utf8").includes('"px-6 py-4 text-sm text-secondary"');
+    defaultCellHtml.includes("py-4 text-sm text-secondary") &&
+    defaultCellHtml.includes("px-[var(--data-table-cell-px,1.5rem)]") &&
+    defaultTableHtml.includes("[--data-table-cell-px:1.5rem]");
 
   const pageTokensAreWired =
     INTERACTIVE_PAGE_HOVER.includes("bg-interactive-page-hover") &&

@@ -16,18 +16,12 @@ import { currentProductionProblemReason } from "@/lib/production-problem";
 import type { NowStep } from "@/lib/production-step-actions";
 import { OUTSOURCE_STATUS_LABELS, STEP_TYPE_LABELS } from "@/lib/production-steps";
 import { formatDate } from "@/lib/utils";
+import { differenceInBangkokDays } from "@/lib/date-utils";
 
 export const DAY_MS = 24 * 60 * 60 * 1000;
 
 export function daysFromNow(value: Date | string | null | undefined, nowMs: number): number | null {
-  if (!value) return null;
-  const target = new Date(value);
-  if (Number.isNaN(target.getTime())) return null;
-  const start = new Date(nowMs);
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(target);
-  end.setHours(0, 0, 0, 0);
-  return Math.round((end.getTime() - start.getTime()) / DAY_MS);
+  return differenceInBangkokDays(value, nowMs);
 }
 
 export function stepLabel(step: Pick<ProductionStep, "customStepName" | "stepType">) {

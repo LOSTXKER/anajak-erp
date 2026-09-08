@@ -15,61 +15,38 @@
  * ไม่มีคำอธิบายในจอ (A8 ระดับ 1) — ชื่อ ตัวเลข สถานะ และเหตุที่กดไม่ได้เท่านั้น
  */
 
-import { Suspense, useMemo, useState, type ReactNode } from "react";
+import { Suspense, useState, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
-import { CheckCircle2, Factory, Flag, History, ImageIcon, Pause, Printer, RotateCcw, Store, UserRound } from "lucide-react";
+import { Factory, Flag, History, Pause, Printer, RotateCcw, UserRound } from "lucide-react";
 
 import { PageShell } from "@/components/page-shell";
-import { OrderItemsDisplay } from "@/components/orders/detail/order-items-display";
 import { OrderStatusBar } from "@/components/orders/detail/order-status-bar";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { DueTag } from "@/components/ui/due-tag";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Fact, FactList } from "@/components/ui/fact";
-import { InfoChip } from "@/components/ui/info-chip";
-import { Metric } from "@/components/ui/metric";
 import { MoreMenu, type MoreMenuItem } from "@/components/ui/more-menu";
-import { NumberInput } from "@/components/ui/number-input";
-import { QueryError } from "@/components/ui/query-error";
 import { RecordNotFound } from "@/components/ui/record-not-found";
-import { Section } from "@/components/ui/section";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsBar, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CONTROL_H } from "@/components/ui/control-size";
-import { RADIUS, TABLE_HEAD_SURFACE } from "@/components/ui/tokens";
-import { MaterialUsage } from "@/components/material-usage";
-import { GarmentPickCard } from "@/components/production/garment-pick-card";
-import { ProductionDesignCard } from "@/components/production/production-design-card";
 import { ProblemDialog } from "@/components/production/step-command-dialogs";
-import type { ProductionDetail, ProductionStep } from "@/components/production/types";
-import { trpc } from "@/lib/trpc";
+import type { ProductionStep } from "@/components/production/types";
 import { PRIORITY_LABELS } from "@/lib/order-status";
-import { latestPlainProductionNote } from "@/lib/production-problem";
 import { FLOW_OWNED_STEP_TYPES } from "@/lib/production-steps";
-import { PRINT_POSITIONS, PRINT_TYPES, PRODUCT_TYPES } from "@/types/order-form";
-import { missingStandards, workOrderStandards } from "@/lib/work-order-standards";
 import { currentRailNode, railNodesOf } from "@/lib/work-order-rail";
 import { routeWaitingOn } from "@/lib/work-order-route";
-import { cn, formatDate, isImageUrl } from "@/lib/utils";
 import { useWorkOrderController, type WorkOrderController } from "./work-order-controller";
-import { activeOutsource, ProblemCard, daysFromNow, stepLabel, viewOf } from "./work-order-pieces";
-
-const CHECKLIST_ANCHOR = "work-order-checklist";
-const PIECES_ANCHOR = "work-order-pieces";
+import { activeOutsource, ProblemCard, stepLabel } from "./work-order-pieces";
+import { checklistAnchor, ticksMissing } from "./work-order-checklist";
+import { pieceTableAnchor, pieceRowsOf } from "./work-order-quantities";
+import { WorkOrderSteps } from "./work-order-steps";
+import { WorkOrderItems } from "./work-order-items";
 
 /** พาไปช่องแรกที่ยังต้องทำในโซนนั้น (ติ๊กที่ยังว่าง / ช่องยอดแถวแรก) — ปุ่มบนหัวใบใช้แทนการ disabled */
 function focusFirst(anchor: string, selector: string) {
   const el = document.querySelector<HTMLElement>(`#${anchor} ${selector}`);
   el?.scrollIntoView({ behavior: "smooth", block: "center" });
   el?.focus();
-}
-
-/** ข้อที่ยังไม่ได้ติ๊กของขั้น — ปุ่มบนหัวใบกับด่าน server ใช้รายการเดียวกัน */
-function ticksMissing(step: ProductionStep): number {
-  return missingStandards(step.stepType, step.checks.map((t) => t.itemKey)).length;
 }
 
 /* ───────────────────────── หน้า ───────────────────────── */
@@ -87,7 +64,7 @@ function WorkOrder({ id }: { id: string }) {
  * itemsTab = แทนเนื้อแท็บสินค้าทั้งก้อน (หน้าลองไม่มี tRPC ของใบจริง)
  */
 export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab }: { c: WorkOrderController; scannedMockup?: number; itemsTab?: ReactNode }) {
-  const { production, order, me, productionQuery, meQuery, workflowSteps, nowById, nowMs } = c;
+  const { production, order, me, productionQuery, meQuery, workflowSteps, nowById } = c;
   const approvedMockup = order?.designs[0]?.versionNumber ?? null;
   const stalePaper = Number.isFinite(scannedMockup) && scannedMockup > 0 && approvedMockup !== null && scannedMockup < approvedMockup;
   const [problemOpen, setProblemOpen] = useState(false);
@@ -128,14 +105,14 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab }: { c: 
       // ยังติ๊กไม่ครบ → ปุ่มพาไปข้อแรกที่ยังว่าง · ยอดยังไม่ครบ (ใบที่มีตารางรายตัว) → พาไปช่องยอดแถวแรก
       if (ticksMissing(step) > 0) {
         return (
-          <Button aria-disabled onClick={() => focusFirst(CHECKLIST_ANCHOR, "input[type=checkbox]:not(:checked)")}>
+          <Button aria-disabled onClick={() => focusFirst(checklistAnchor(step.id), "input[type=checkbox]:not(:checked)")}>
             ปิดขั้นนี้
           </Button>
         );
       }
       if (hasVariantRows && step.qtyTotal && (step.qtyDone ?? 0) < step.qtyTotal) {
         return (
-          <Button aria-disabled onClick={() => focusFirst(PIECES_ANCHOR, "input")}>
+          <Button aria-disabled onClick={() => focusFirst(pieceTableAnchor(step.id), "input")}>
             ปิดขั้นนี้
           </Button>
         );
@@ -251,7 +228,7 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab }: { c: 
         skeleton={
           <>
             <Skeleton className="h-16 rounded-2xl" />
-            <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+            <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
               <Skeleton className="h-96 rounded-2xl" />
               <Skeleton className="h-96 rounded-2xl" />
             </div>
@@ -329,93 +306,13 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab }: { c: 
                   </TabsList>
                 </TabsBar>
                 <div className="mt-6">
-                  <TabsContent value="steps" className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
-                    <div className="min-w-0 space-y-6">
-                      {allDone || !current ? (
-                        <Section
-                          title="ครบทุกขั้นแล้ว"
-                          icon={CheckCircle2}
-                          tone="production"
-                          action={
-                            qcAction ? undefined : (
-                              <Button asChild size="sm" variant="outline">
-                                <a href={`/orders/${order.id}?tab=qc`}>ไปหน้า QC</a>
-                              </Button>
-                            )
-                          }
-                        >
-                          <FactList columns={2}>
-                            <Fact size="sm" label="ทำแล้ว" value={`${c.totalQty.toLocaleString("th-TH")} ตัว`} />
-                            <Fact size="sm" label="ตอนนี้" value={qcAction ? "รอส่งเข้า QC" : "อยู่ที่ QC"} />
-                          </FactList>
-                        </Section>
-                      ) : (
-                        <>
-                          {current.stepType === "GARMENT_PICK" ? (
-                            <GarmentPickCard
-                              productionId={production.id}
-                              steps={workflowSteps}
-                              stepId={current.id}
-                              canIssueGarments={c.canUpdateStep && c.canOwnOrSupervise(current)}
-                              canReturnGarments={c.canSuperviseStep && c.hasProductionPermission && !c.writeDataStale}
-                              embedded
-                              primaryTask
-                            />
-                          ) : (
-                            <StepPieceTable key={current.id} step={current} order={order} c={c} />
-                          )}
-                          {pairedOpen.map((s) => (
-                            <Section
-                              key={s.id}
-                              title={stepLabel(s)}
-                              action={
-                                <span className="flex items-center gap-2">
-                                  <InfoChip size="sm" tone={viewOf(s, nowById.get(s.id)).chip}>{viewOf(s, nowById.get(s.id)).label}</InfoChip>
-                                  {actionFor(s)}
-                                </span>
-                              }
-                            >
-                              <FactList columns={2}>
-                                <Fact size="sm" icon={UserRound} label="ผู้ทำ" value={s.assignedTo?.name ?? "ยังไม่มีคนรับ"} tone={s.assignedTo ? "default" : "muted"} />
-                                {s.qtyTotal ? <Fact size="sm" label="ทำแล้ว" value={`${(s.qtyDone ?? 0).toLocaleString("th-TH")} / ${s.qtyTotal.toLocaleString("th-TH")} ตัว`} /> : null}
-                              </FactList>
-                            </Section>
-                          ))}
-                        </>
-                      )}
-                    </div>
-                    <aside className="space-y-6 lg:sticky lg:top-4">
-                      {!allDone
-                        ? [current, ...pairedOpen].filter((s): s is ProductionStep => !!s).map((s, i) => (
-                            <div key={s.id} id={i === 0 ? CHECKLIST_ANCHOR : undefined}>
-                              <ChecklistCard step={s} c={c} nowMs={nowMs} showStepName={pairedOpen.length > 0} />
-                            </div>
-                          ))
-                        : null}
-                      <Section title="ข้อมูลออเดอร์">
-                        <FactList columns={1}>
-                          <Fact label="ลูกค้า" value={order.customer?.name ?? "ไม่ระบุลูกค้า"} />
-                          <Fact label="กำหนดส่ง" value={<DueTag dueInDays={daysFromNow(order.deadline, nowMs)} dateLabel={order.deadline ? formatDate(order.deadline) : null} size="sm" />} />
-                          <Fact label="จำนวนทั้งใบ" value={`${c.totalQty.toLocaleString("th-TH")} ตัว`} />
-                          <Fact
-                            label="ม็อกอัพอนุมัติ"
-                            value={approvedMockup !== null ? `v${approvedMockup}` : "ยังไม่มี"}
-                            tone={approvedMockup !== null ? "default" : "warning"}
-                            sub={order.designs[0]?.approvedAt ? formatDate(order.designs[0].approvedAt) : undefined}
-                          />
-                          {production.notes && latestPlainProductionNote(production.notes) ? <Fact label="หมายเหตุใบผลิต" value={<span className="[overflow-wrap:anywhere]">{latestPlainProductionNote(production.notes)}</span>} /> : null}
-                        </FactList>
-                      </Section>
-                    </aside>
+                  <TabsContent value="steps">
+                    <WorkOrderSteps c={c} current={current} pairedOpen={pairedOpen} allDone={allDone} qcAction={qcAction} actionFor={actionFor} />
                   </TabsContent>
 
                   <TabsContent value="items" className="space-y-6">
                     {itemsTab ?? (
-                      <>
-                        <ProductsTab orderId={order.id} />
-                        <ProductionDesignCard order={order} focusStepType={current?.stepType} />
-                        <MaterialUsage productionId={production.id} orderNumber={order.orderNumber} showCosts={c.canSeeCost} readOnly={!c.canUpdateStep} embedded />
-                      </>
+                      <WorkOrderItems production={production} order={order} current={current} c={c} />
                     )}
                   </TabsContent>
                 </div>
@@ -429,244 +326,6 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab }: { c: 
     </>
   );
 }
-
-/* ───────────────────────── ซ้าย: ตารางรายตัวของขั้นที่ยืนอยู่ ───────────────────────── */
-
-const TH = "px-2 py-2 text-xs font-medium";
-const TD = "px-2 py-2 align-middle text-sm";
-
-type PieceRow = { key: string; variantId: string | null; product: string; productColor: string | null; color: string | null; size: string | null; qty: number; thumb: string | null; prints: string[] };
-type RowQty = { done: number; waste: number };
-
-/** แถวละไซซ์จาก order.items ของใบผลิต (ชุดเดียวกับตารางรายการหน้าออเดอร์) */
-export function pieceRowsOf(order: ProductionDetail["order"]): PieceRow[] {
-  return order.items.flatMap((item) => {
-    const prints = item.prints.map((p) => `${PRINT_POSITIONS[p.position] ?? p.position} ${PRINT_TYPES[p.printType] ?? p.printType}`);
-    const thumbSrc = item.prints.map((p) => p.artwork?.imageUrl ?? p.designImageUrl).find((u) => isImageUrl(u)) ?? null;
-    return item.products.flatMap((prod): PieceRow[] => {
-      const name = prod.description || PRODUCT_TYPES[prod.productType ?? ""] || "สินค้า";
-      const productColor = prod.fabricColor ?? null;
-      if (prod.variants.length === 0) return [{ key: prod.id, variantId: null, product: name, productColor, color: productColor, size: null, qty: prod.totalQuantity ?? 0, thumb: thumbSrc, prints }];
-      return prod.variants.map((v) => ({ key: v.id, variantId: v.id, product: name, productColor, color: v.color ?? productColor, size: v.size || null, qty: v.quantity, thumb: thumbSrc, prints }));
-    });
-  });
-}
-
-/** ตารางรายตัว: แถวละไซซ์ · ขั้นที่นับยอดกรอก "ทำแล้ว/เสีย" ต่อแถวได้ — ยอดรวมของขั้น = ผลบวก (server) */
-export function StepPieceTable({ step, order, c }: { step: ProductionStep; order: ProductionDetail["order"]; c: WorkOrderController }) {
-  const rows = pieceRowsOf(order);
-  const total = rows.reduce((n, r) => n + r.qty, 0);
-  const counting = step.qtyTotal !== null && step.qtyTotal > 0;
-  // ของอยู่ร้านนอก = ยอดมาจากใบตรวจรับตอนรับกลับ ไม่กรอกเอง
-  const editable = counting && c.canUpdateStep && c.canOwnOrSupervise(step) && step.status !== "COMPLETED" && step.status !== "FAILED" && !FLOW_OWNED_STEP_TYPES.has(step.stepType) && !activeOutsource(step);
-  const view = viewOf(step, c.nowById.get(step.id));
-  const saved = useMemo(() => {
-    const map: Record<string, RowQty> = {};
-    for (const q of step.quantities) if (q.sourceOrderItemVariantId) map[q.sourceOrderItemVariantId] = { done: q.qtyGood, waste: q.qtyScrap };
-    return map;
-  }, [step.quantities]);
-  const [draft, setDraft] = useState<Record<string, RowQty>>({});
-  const valueOf = (key: string): RowQty => draft[key] ?? saved[key] ?? { done: 0, waste: 0 };
-  const variantRows = rows.filter((r) => r.variantId);
-  const showQty = editable || step.quantities.length > 0;
-  const dirty = variantRows.some((r) => {
-    const d = draft[r.key];
-    if (!d) return false;
-    const s = saved[r.key] ?? { done: 0, waste: 0 };
-    return d.done !== s.done || d.waste !== s.waste;
-  });
-  const doneSum = variantRows.reduce((n, r) => n + valueOf(r.key).done, 0);
-  const wasteSum = variantRows.reduce((n, r) => n + valueOf(r.key).waste, 0);
-  const setRow = (key: string, patch: Partial<RowQty>) => setDraft((d) => ({ ...d, [key]: { ...valueOf(key), ...patch } }));
-  const fillAll = () => setDraft(Object.fromEntries(variantRows.map((r) => [r.key, { done: r.qty, waste: 0 }])));
-  const save = () => c.savePieceQty(step.id, variantRows.map((r) => ({ variantId: r.variantId!, ...valueOf(r.key) })));
-
-  return (
-    <Section
-      title={stepLabel(step)}
-      meta={counting ? <span className="tabular-nums">{(step.qtyDone ?? 0).toLocaleString("th-TH")} / {step.qtyTotal!.toLocaleString("th-TH")} ตัว</span> : undefined}
-      action={
-        <span className="flex items-center gap-2">
-          <InfoChip size="sm" tone={view.chip}>{view.label}</InfoChip>
-          {editable && variantRows.length > 0 ? (
-            <Button size="sm" variant="outline" onClick={fillAll}>
-              ใส่ครบทุกไซซ์
-            </Button>
-          ) : null}
-          {editable && variantRows.length === 0 ? (
-            <Button size="sm" variant="outline" onClick={() => c.openQty(step.id)}>
-              บันทึกยอด
-            </Button>
-          ) : null}
-          {dirty ? (
-            <Button size="sm" onClick={save} disabled={c.piecePending}>
-              บันทึกยอด
-            </Button>
-          ) : null}
-        </span>
-      }
-      flush
-    >
-      {rows.length === 0 ? (
-        <EmptyState icon={ImageIcon} title="ออเดอร์นี้ยังไม่มีรายการเสื้อ" />
-      ) : (
-        <div id={PIECES_ANCHOR} className="overflow-x-auto">
-          <table className={cn("w-full table-fixed", showQty ? "min-w-[640px]" : "min-w-[520px]")}>
-            <colgroup>
-              <col style={{ width: 40 }} />
-              <col />
-              <col style={{ width: 180 }} />
-              <col style={{ width: 80 }} />
-              {showQty ? <col style={{ width: 96 }} /> : null}
-              {showQty ? <col style={{ width: 96 }} /> : null}
-            </colgroup>
-            <thead className={TABLE_HEAD_SURFACE}>
-              <tr>
-                <th className={cn(TH, "text-center")}>#</th>
-                <th className={cn(TH, "text-left")}>สินค้า</th>
-                <th className={cn(TH, "text-left")}>ลาย</th>
-                <th className={cn(TH, "text-right")}>จำนวน</th>
-                {showQty ? <th className={cn(TH, "text-right")}>ทำแล้ว</th> : null}
-                {showQty ? <th className={cn(TH, "text-right")}>เสีย</th> : null}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-divider">
-              {rows.map((r, i) => {
-                const v = valueOf(r.key);
-                // ไซซ์คือสิ่งที่แยกแถว → นำแถว · สีโชว์เฉพาะเมื่อต่างจากสินค้าหลัก · ชื่อสินค้าเป็นบรรทัดรอง
-                const rowLabel = [r.color && r.color !== r.productColor ? r.color : null, r.size].filter(Boolean).join(" ") || r.product;
-                return (
-                  <tr key={r.key}>
-                    <td className={cn(TD, "text-center tabular-nums text-muted")}>{i + 1}</td>
-                    <td className={TD}>
-                      <div className="flex items-center gap-2">
-                        {r.thumb ? (
-                          // eslint-disable-next-line @next/next/no-img-element -- รูปลายจากคลัง/ไฟล์ที่อัปโหลด
-                          <img src={r.thumb} alt="" className={cn("h-10 w-10 shrink-0 border border-border bg-surface-muted object-cover", RADIUS.inner)} />
-                        ) : (
-                          <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center border border-border bg-surface-muted", RADIUS.inner)}>
-                            <ImageIcon className="h-4 w-4 text-muted" aria-hidden="true" />
-                          </div>
-                        )}
-                        <div className="min-w-0">
-                          <p className="text-base font-semibold text-strong">{rowLabel}</p>
-                          {rowLabel !== r.product ? <p className="truncate text-xs text-secondary">{r.product}</p> : null}
-                        </div>
-                      </div>
-                    </td>
-                    <td className={cn(TD, "text-xs text-secondary")}>{r.prints.join(" · ") || "—"}</td>
-                    <td className={cn(TD, "text-right text-base font-semibold tabular-nums text-strong")}>{r.qty.toLocaleString("th-TH")}</td>
-                    {showQty ? (
-                      <td className={cn(TD, "text-right")}>
-                        {editable && r.variantId ? (
-                          <NumberInput integer min={0} max={r.qty} value={v.done} onValueChange={(n) => setRow(r.key, { done: n })} placeholder="0" aria-label={`ทำแล้ว ${rowLabel}`} className={cn(CONTROL_H, "w-full text-right")} />
-                        ) : (
-                          <span className={cn("tabular-nums", v.done > 0 ? "font-semibold text-strong" : "text-muted")}>{r.variantId ? v.done.toLocaleString("th-TH") : "—"}</span>
-                        )}
-                      </td>
-                    ) : null}
-                    {showQty ? (
-                      <td className={cn(TD, "text-right")}>
-                        {editable && r.variantId ? (
-                          <NumberInput integer min={0} max={r.qty} value={v.waste} onValueChange={(n) => setRow(r.key, { waste: n })} placeholder="0" aria-label={`เสีย ${rowLabel}`} className={cn(CONTROL_H, "w-full text-right")} />
-                        ) : (
-                          <span className={cn("tabular-nums", v.waste > 0 ? "font-semibold text-strong" : "text-muted")}>{r.variantId ? v.waste.toLocaleString("th-TH") : "—"}</span>
-                        )}
-                      </td>
-                    ) : null}
-                  </tr>
-                );
-              })}
-            </tbody>
-            <tfoot>
-              <tr className="border-t border-divider">
-                <td colSpan={3} className={cn(TD, "text-xs text-muted")}>รวม</td>
-                <td className={cn(TD, "text-right")}>
-                  <Metric size="sm" value={total.toLocaleString("th-TH")} unit="ตัว" className="items-end" />
-                </td>
-                {showQty ? (
-                  <td className={cn(TD, "text-right")}>
-                    <Metric size="sm" value={doneSum.toLocaleString("th-TH")} className="items-end" />
-                  </td>
-                ) : null}
-                {showQty ? (
-                  <td className={cn(TD, "text-right")}>
-                    <Metric size="sm" value={wasteSum.toLocaleString("th-TH")} className="items-end" tone={wasteSum > 0 ? "warning" : undefined} />
-                  </td>
-                ) : null}
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      )}
-    </Section>
-  );
-}
-
-/* ───────────────────────── ขวา: เช็คลิสต์ของขั้นที่ยืนอยู่ ───────────────────────── */
-
-/** เช็คลิสต์ของขั้น — ชื่อการ์ด "เช็คลิสต์" (ชื่อขั้นอยู่ที่ตารางซ้ายแล้ว) · ขั้นคู่ค่อยใส่ชื่อขั้นให้แยกกันออก */
-export function ChecklistCard({ step, c, nowMs, showStepName = false }: { step: ProductionStep; c: WorkOrderController; nowMs: number; showStepName?: boolean }) {
-  const standards = workOrderStandards(step.stepType);
-  const done = step.status === "COMPLETED";
-  const halted = step.status === "FAILED" || step.status === "ON_HOLD";
-  const outsource = activeOutsource(step);
-  const ticked = new Map(step.checks.map((t) => [t.itemKey, t.checkedBy.name]));
-  const missing = done || halted ? 0 : ticksMissing(step);
-  const canTick = c.canUpdateStep && c.canOwnOrSupervise(step) && !done && !halted;
-  return (
-    <Section title={showStepName ? stepLabel(step) : "เช็คลิสต์"} action={missing > 0 ? <InfoChip size="sm" tone="warning">ติ๊กอีก {missing} ข้อ</InfoChip> : undefined}>
-      <div className="space-y-4">
-        <FactList columns={1}>
-          <Fact size="sm" icon={UserRound} label="ผู้ทำ" value={step.assignedTo?.name ?? "ยังไม่มีคนรับ"} tone={step.assignedTo ? "default" : "muted"} />
-        </FactList>
-        {outsource ? (
-          <FactList columns={1}>
-            <Fact size="sm" icon={Store} label="ร้านนอก" value={outsource.vendor.name} sub={outsource.sentAt ? `ส่งไป ${formatDate(outsource.sentAt)}` : undefined} />
-            <Fact
-              size="sm"
-              label="นัดรับกลับ"
-              value={<DueTag dueInDays={daysFromNow(outsource.expectedBackAt, nowMs)} dateLabel={outsource.expectedBackAt ? formatDate(outsource.expectedBackAt) : "ยังไม่นัด"} size="sm" />}
-            />
-          </FactList>
-        ) : null}
-        {standards.length > 0 ? (
-          <ul>
-            {standards.map((label) => {
-              const on = done || ticked.has(label);
-              const who = ticked.get(label);
-              return (
-                <li key={label}>
-                  <label className={cn("flex min-h-11 items-center gap-3 text-sm", canTick ? "cursor-pointer" : "cursor-default")}>
-                    <Checkbox
-                      checked={on}
-                      disabled={!canTick || c.tickPending}
-                      onChange={(e) => c.tickStandard(step.id, label, e.target.checked)}
-                      className="h-5 w-5"
-                    />
-                    <span className={cn("min-w-0 flex-1", on ? "text-secondary" : "font-medium text-strong")}>{label}</span>
-                    {who ? <span className="shrink-0 text-xs text-muted">{who}</span> : null}
-                  </label>
-                </li>
-              );
-            })}
-          </ul>
-        ) : null}
-      </div>
-    </Section>
-  );
-}
-
-/* ───────────────────────── แท็บสินค้า — ตารางรายการตัวเดียวกับหน้าออเดอร์ ───────────────────────── */
-
-function ProductsTab({ orderId }: { orderId: string }) {
-  const q = trpc.order.getById.useQuery({ id: orderId });
-  if (!q.data && (q.isLoading || q.isFetching)) return <Skeleton className="h-64 rounded-2xl" />;
-  if (!q.data) return <QueryError message="โหลดรายการสินค้าไม่สำเร็จ" onRetry={() => void q.refetch()} />;
-  return <OrderItemsDisplay orderId={orderId} items={q.data.items} fees={q.data.fees} showMoney={false} canEditReceiveTracking={false} />;
-}
-
-export type { ProductionDetail };
 
 export function WorkOrderPage({ id }: { id: string }) {
   return (

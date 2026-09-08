@@ -173,6 +173,7 @@ GL/งบการเงิน · job costing/ต้นทุนต่อออ�
 - Order Workbench / Command Center redesign ทั้งระบบทีเดียว (08-14, 08-29) → ปฏิเสธเพราะเสนอทางเดียว + รื้อก่อนตกลงทิศ
 
 ## ✅ เสร็จแล้ว (ดัชนี — ไม่ทำซ้ำ · รายละเอียด `git log` / `git show 61575af:ROADMAP.md`)
+- **A10 (2026-09-09):** ตารางผลิตต่อเนื่อง 6 คอลัมน์ ไม่มีหัวแบ่งสถานะ + sort/Link/ล้างตัวกรอง; เกลาใบผลิตโครง A9 และแยก component/ยอดขั้นคู่; รวมวันไทย, DataTable padding, clearSearch กลาง; 1,702 tests + UI 33 guards และ browser 1440/390 Light/Dark ผ่าน — branch `codex/production-table-refine` ยังไม่ขึ้น main
 - 06-10 → 06-19 **P0** ฐานราก: auth + RBAC จริง · Float → Decimal · เลขเอกสารรันต่อเนื่อง · migrations · service layer · test แกน · `docs/ARCHITECTURE.md`
 - 06-11 audit วงจรออเดอร์ 31 ข้อแก้ครบ · 06-12 **FLOW-REDESIGN** ผังใหม่ทั้งระบบ · แยกโมดูลผลิต · ตัด job costing
 - 07-02 → 07-03 **Gate A** เงินห้ามผิด · **Gate B1-B15**: CN/DN ม.86/10 · VAT 7% · tax point งวดรับเงิน · QC bypass ปิด · รายงานภาษีขาย CSV · CRM · ถอดฟอร์มปลอม · เพดานสองขา · ON_HOLD · soft-delete · sidebar role · delivery state machine · ใบส่งร้านนอก LINE · CI + security headers + backup export

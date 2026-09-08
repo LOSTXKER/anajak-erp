@@ -32,7 +32,9 @@ describe("Orders scan-first registry contract", () => {
   });
 
   it("ใช้ contract หัวตารางและขนาดข้อมูลกลางโดยไม่มี one-off พร้อมคอลัมน์ประเภทงาน", () => {
-    expect(pageSource).toContain("max-xl:[&_td]:px-4");
+    expect(pageSource).toContain('<DataTable.Root cellPadding="responsive">');
+    expect(pageSource).not.toContain("max-xl:[&_td]:px-4");
+    expect(pageSource).not.toContain("max-xl:[&_th");
     expect(pageSource).toContain("<DataTable.Head>");
     expect(pageSource).toContain("<DataTable.Body>");
     expect(pageSource).not.toContain("<DataTable.Head className=");

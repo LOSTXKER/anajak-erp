@@ -9,7 +9,7 @@ src/app/            หน้าจอ (Next.js App Router · Turbopack)
   (auth)/login      หน้า login
   (dashboard)/      ทุกหน้าหลังบ้าน — ผ่าน Proxy + layout guard (orders/quotations/customers/products/
                     production/billing/analytics/my-tasks/notifications/settings/*)
-                    /production = โต๊ะงานหัวหน้าแบบ A (2026-09-02 · production-desk-page/-view + lib/production-desk) · /production/[id] = ใบผลิตแบบ D (work-order-page.tsx + lib/work-order-standards) · print-runs/films//outsource ถอดออกแล้ว (ROADMAP §A3)
+                    /production = ตารางต่อเนื่อง (A10 · production-desk-page/-view + lib/production-desk/-sort) · /production/[id] = ใบผลิตฟอร์ม (work-order-page + -steps/-quantities/-checklist/-items บน controller เดิม) · print-runs/films//outsource ถอดออกแล้ว (ROADMAP §A3)
   (public)/         หน้าลูกค้า/ร้านนอกถือ token ไม่ต้อง login: approve/design · status · upload · quote · job
   (print)/print/    เอกสาร A4 light-only: invoice · quotation · billing-note · job-ticket · packing-list
   (v2)/v2/*         compatibility redirect ไป URL หลัก (คง query)
@@ -46,6 +46,7 @@ src/lib/            ของใช้ร่วม client+server
   permissions.ts · roles.ts   สิทธิ์รายคน (PERM) + กลุ่ม role ที่เห็นเงิน
   status-config.ts · payment-methods.ts · payment-terms.ts · shipping-methods.ts   ค่า+ป้าย ที่เดียว ห้ามประกาศซ้ำ
   production-steps.ts · production-v2-flag.ts   ขั้นผลิต legacy + flag V2
+  date-utils.ts      differenceInBangkokDays = นับวันกำหนดส่งตาม Asia/Bangkok ชุดเดียว (รายการผลิต/ใบผลิต/ออเดอร์/TV)
   supabase*.ts      auth (browser/server/admin)
   stock-api.ts / stock-sync.ts   ท่อคุยกับ Anajak Stock app
 

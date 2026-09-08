@@ -2,12 +2,14 @@
  * โต๊ะงานหัวหน้า (`/production` แบบ A — เบสเคาะ 2026-09-02 จากหน้าลอง /proto/production-module)
  *
  * รับ board จาก `buildProductionBoard` (สูตรเดิมของโรงงาน: จุดงาน/สาย/ราง/ข้อยกเว้น) แล้วตอบ
- * คำถามของหน้าใหม่: ตัวเลข 4 ช่อง · "กอง" ตามความรีบ · ข้อมูลต่อแถว (ขั้นปัจจุบัน ร้านนอก ผู้รับผิดชอบ)
+ * คำถามของหน้าใหม่: ตัวเลข 4 ช่อง · ข้อมูลต่อแถว (ขั้นปัจจุบัน ร้านนอก ผู้รับผิดชอบ)
+ * pile ใช้จำแนกงานสำหรับตัวกรอง/เปิดใบผลิต ไม่แบ่งหัวกลุ่มในตาราง
  * pure function ทั้งหมด — ไม่แตะ DOM ไม่แตะ Date.now() (รับ now จากคนเรียก)
  */
 
 import type { BoardJob, BoardOrderLike, BoardStepLike, ProductionBoard } from "@/lib/production-board";
 import { OUTSOURCE_STATUS_LABELS } from "@/lib/production-steps";
+import { differenceInBangkokDays } from "@/lib/date-utils";
 
 export type DeskLens = "all" | "late" | "blocked" | "outsource" | "ready";
 
@@ -40,20 +42,9 @@ export type DeskOutsource = {
   backInDays: number | null;
 };
 
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-function startOfDay(value: Date): Date {
-  const d = new Date(value);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
-
-/** ระยะเป็นวันจากวันนี้ (ตัดเวลา) · null เมื่อไม่มีวันที่ */
+/** ระยะเป็นวันตามปฏิทินไทย · null เมื่อไม่มีวันที่ */
 export function daysFromNow(value: Date | string | null | undefined, now: Date): number | null {
-  if (!value) return null;
-  const target = new Date(value);
-  if (Number.isNaN(target.getTime())) return null;
-  return Math.round((startOfDay(target).getTime() - startOfDay(now).getTime()) / DAY_MS);
+  return differenceInBangkokDays(value, now);
 }
 
 /** งานร้านนอกที่ยังไม่กลับของใบนี้ (เอาใบที่นัดรับใกล้สุด) */
@@ -116,15 +107,6 @@ export function jobCurrent<S extends BoardStepLike, O extends BoardOrderLike<S>>
 }
 
 export type DeskPileKey = "blocked" | "outsource-due" | "queue" | "doing" | "waiting" | "ready";
-
-export const DESK_PILES: readonly { key: DeskPileKey; label: string }[] = [
-  { key: "blocked", label: "ติดปัญหา — ต้องตัดสินก่อน" },
-  { key: "outsource-due", label: "ของร้านนอกครบกำหนดรับ" },
-  { key: "queue", label: "รอเปิดใบผลิต" },
-  { key: "doing", label: "ลงมือได้ตอนนี้ในโรงงาน" },
-  { key: "waiting", label: "รอของ / รอขั้นก่อนหน้า" },
-  { key: "ready", label: "พร้อมส่ง" },
-];
 
 export type DeskRow<S extends DeskStepLike, O extends BoardOrderLike<S>> = {
   job: BoardJob<O, S>;
@@ -207,17 +189,4 @@ export function filterDeskRows<S extends DeskStepLike, O extends BoardOrderLike<
     default:
       return [...rows];
   }
-}
-
-/** จัดกอง — ในกองเรียง เลยกำหนดก่อน แล้วตามกำหนดส่ง · กองว่างไม่แสดง */
-export function groupDeskRows<S extends DeskStepLike, O extends BoardOrderLike<S>>(
-  rows: readonly DeskRow<S, O>[],
-): { key: DeskPileKey; label: string; rows: DeskRow<S, O>[] }[] {
-  const byDue = (a: DeskRow<S, O>, b: DeskRow<S, O>) =>
-    (a.dueInDays ?? 9999) - (b.dueInDays ?? 9999) ||
-    a.job.order.orderNumber.localeCompare(b.job.order.orderNumber, "th", { numeric: true });
-  return DESK_PILES.map((pile) => ({
-    ...pile,
-    rows: rows.filter((row) => row.pile === pile.key).sort(byDue),
-  })).filter((pile) => pile.rows.length > 0);
 }

@@ -8,7 +8,7 @@ import {
   productionWorkflowSteps,
   type ProductionLane,
 } from "@/lib/production-steps";
-import { BANGKOK_TZ } from "@/lib/utils";
+import { differenceInBangkokDays } from "@/lib/date-utils";
 import type { OrderMockupSourceLike } from "@/lib/mockup";
 
 /* ============================================================
@@ -177,18 +177,6 @@ const QUEUE_STATUSES = new Set(["CONFIRMED", "DESIGN_APPROVED", "PRODUCTION_QUEU
 
 const PRIORITY_RANK: Record<string, number> = { URGENT: 0, HIGH: 1, NORMAL: 2, LOW: 3 };
 
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-/** วันตามปฏิทินไทย — เทียบ "วันนี้/พรุ่งนี้" ต้องใช้เขตเวลาไทย ไม่ใช่ UTC ของเครื่อง */
-function bangkokDayKey(value: Date): string {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: BANGKOK_TZ,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(value);
-}
-
 function timeOf(value: Date | string | null): number | null {
   if (!value) return null;
   const time = new Date(value).getTime();
@@ -196,14 +184,12 @@ function timeOf(value: Date | string | null): number | null {
 }
 
 export function bucketOf(deadline: Date | string | null, now: Date): BoardBucketKey {
-  const due = timeOf(deadline);
-  if (due == null) return "none";
-  const dueKey = bangkokDayKey(new Date(due));
-  const todayKey = bangkokDayKey(now);
-  if (dueKey < todayKey) return "late";
-  if (dueKey === todayKey) return "today";
-  if (dueKey === bangkokDayKey(new Date(now.getTime() + DAY_MS))) return "tomorrow";
-  if (dueKey <= bangkokDayKey(new Date(now.getTime() + 7 * DAY_MS))) return "week";
+  const days = differenceInBangkokDays(deadline, now);
+  if (days === null) return "none";
+  if (days < 0) return "late";
+  if (days === 0) return "today";
+  if (days === 1) return "tomorrow";
+  if (days <= 7) return "week";
   return "later";
 }
 

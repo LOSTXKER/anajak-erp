@@ -31,7 +31,19 @@ import {
 
 interface RootProps extends React.HTMLAttributes<HTMLDivElement> {
   bordered?: boolean;
+  /** เปลี่ยนเฉพาะระยะซ้ายขวา — ความสูงแถวและขนาดข้อความคงเดิม
+   * default = 24px · compact = 12px · responsive = 16px ก่อน xl / 24px ตั้งแต่ xl */
+  cellPadding?: "default" | "compact" | "responsive";
 }
+
+const CELL_PADDING = {
+  default: "[--data-table-cell-px:1.5rem]",
+  compact: "[--data-table-cell-px:0.75rem]",
+  responsive: "[--data-table-cell-px:1rem] xl:[--data-table-cell-px:1.5rem]",
+} as const;
+
+// หัวธรรมดา หัวเรียงได้ และข้อมูลใช้ระยะเดียวกันเสมอ แม้ padding ของหัวเรียงจะอยู่บนปุ่ม
+const CELL_HORIZONTAL_PADDING = "px-[var(--data-table-cell-px,1.5rem)]";
 
 /* prop `flush` (ตารางวางบนผืนหน้าไม่มีกล่องครอบ) ถูกถอดออก 2026-08-26 — เบสเห็นของจริง
    บนจอกว้างแล้วบอกว่า "ดูแปลกๆ และไม่ชอบ" · มันพังสองชั้นพร้อมกัน:
@@ -43,11 +55,12 @@ interface RootProps extends React.HTMLAttributes<HTMLDivElement> {
    ตอนนี้ตารางระดับบนสุดใช้ `bordered` ปริยาย = การ์ดครอบ; ตั้งแต่ 2026-08-27
    ผืน Light เป็น near-white และการ์ดแยกขอบเขตหลักด้วย edge+shadow กลาง */
 const Root = React.forwardRef<HTMLDivElement, RootProps>(
-  ({ className, bordered = true, children, ...props }, ref) => (
+  ({ className, bordered = true, cellPadding = "default", children, ...props }, ref) => (
     <div
       ref={ref}
       className={cn(
         bordered && "card-surface overflow-hidden rounded-2xl",
+        CELL_PADDING[cellPadding],
         className
       )}
       {...props}
@@ -121,7 +134,7 @@ const Row = React.forwardRef<HTMLTableRowElement, RowProps>(
         className={cn(
           // ชี้แถวไหนต้องรู้ทันที — ตารางกว้างแล้วกดผิดแถวคือกดผิดออเดอร์
           INTERACTIVE_HOVER,
-          "group transition-colors hover:[&_.text-muted]:text-secondary hover:[&_.text-muted]:text-secondary dark:hover:[&_.text-muted]:text-secondary dark:hover:[&_.text-muted]:text-secondary",
+          "group transition-colors hover:[&_.text-muted]:text-secondary dark:hover:[&_.text-muted]:text-secondary",
           href && cn("cursor-pointer", INTERACTIVE_PRESSED),
           className
         )}
@@ -144,7 +157,8 @@ const Th = React.forwardRef<HTMLTableCellElement, ThProps>(
       className={cn(
         // หัวคอลัมน์ไม่ตัดกลางวลี — "กำหนดส่ง" ที่ขึ้นบรรทัดใหม่กลางคำอ่านสะดุด
         // และทำให้หัวตารางสูงไม่เท่ากันทีละคอลัมน์ · ตารางมี overflow-x อยู่แล้ว
-        "whitespace-nowrap px-6 py-3 text-xs font-semibold text-secondary",
+        "whitespace-nowrap py-3 text-xs font-semibold text-secondary",
+        CELL_HORIZONTAL_PADDING,
         align === "right" && "text-right",
         align === "center" && "text-center",
         align === "left" && "text-left",
@@ -212,7 +226,8 @@ const SortableTh = React.forwardRef<HTMLTableCellElement, SortableThProps>(
             // ไม่ย้อมพื้นตอนเอาเมาส์ชี้ (เบสสั่ง 2026-08-02 "ไม่ชอบหัวตารางเปลี่ยนสีตอนชี้") —
             // แถบเทาโผล่เฉพาะช่องที่ชี้อยู่ ทำให้หัวตารางดูขาดเป็นท่อนๆ
             // บอกว่า "กดได้" ด้วยตัวหนังสือกับลูกศรที่เข้มขึ้นแทน — เบากว่าและไม่ทำให้แถวขาด
-            "group flex w-full cursor-pointer touch-manipulation items-center gap-1.5 whitespace-nowrap px-6 py-3 text-xs font-semibold transition-colors [@media(pointer:coarse)]:min-h-11",
+            "group flex w-full cursor-pointer touch-manipulation items-center gap-1.5 whitespace-nowrap py-3 text-xs font-semibold transition-colors [@media(pointer:coarse)]:min-h-11",
+            CELL_HORIZONTAL_PADDING,
             FOCUS_INSET,
             active
               ? "font-semibold text-blue-700 dark:text-blue-300"
@@ -248,7 +263,8 @@ const Td = React.forwardRef<HTMLTableCellElement, TdProps>(
       ref={ref}
       className={cn(
         // แถวหายใจขึ้น (เฟส 10 · เบสเคาะ "นุ่มเต็มที่") — py 12 → 16px · เซลล์ 20 → 24px
-        "px-6 py-4 text-sm text-secondary",
+        "py-4 text-sm text-secondary",
+        CELL_HORIZONTAL_PADDING,
         align === "right" && "text-right",
         align === "center" && "text-center",
         align === "left" && "text-left",

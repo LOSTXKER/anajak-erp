@@ -19,6 +19,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { ResponsiveList } from "@/components/ui/responsive-list";
 import { OrderStatusBadge } from "@/components/order-status-badge";
 import { cn, formatDate, formatBaht } from "@/lib/utils";
+import { differenceInBangkokDays } from "@/lib/date-utils";
 import { RADIUS } from "@/components/ui/tokens";
 import { VISUAL_TONE_CLASSES, type VisualTone } from "@/lib/visual-tone";
 import {
@@ -122,11 +123,7 @@ function deadlineToneClass(
  *  ไม่ว่าจะเปิดดูตอนเช้าหรือตอนดึก)
  */
 function daysUntil(deadline: Date | string): number {
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
-  const due = new Date(deadline);
-  due.setHours(0, 0, 0, 0);
-  return Math.round((due.getTime() - startOfToday.getTime()) / 86400000);
+  return differenceInBangkokDays(deadline, new Date()) ?? Number.NaN;
 }
 
 function OrderCountdown({
@@ -312,7 +309,7 @@ function OrdersPageContent() {
     replaceListState,
     onSearchChange,
     searchInputRef,
-    searchTimer,
+    clearSearch,
   } = useListPageState();
   const rawChannel = searchParams.get("channel") ?? "";
   const channel = Object.hasOwn(CHANNEL_LABELS, rawChannel) ? rawChannel : "";
@@ -401,16 +398,13 @@ function OrdersPageContent() {
     createdBefore,
   });
   const clearFiltersAndSearch = () => {
-    if (searchTimer.current) clearTimeout(searchTimer.current);
-    replaceListState({
-      q: null,
+    clearSearch({
       channel: null,
       type: null,
       status: null,
       attention: null,
       from: null,
       to: null,
-      page: null,
     });
   };
 
@@ -632,7 +626,7 @@ function OrdersPageContent() {
           // ไม่ให้ control ที่เพิ่งกดหายไปกลางการใช้งาน
           const showDeadline = hasDeadline || sortBy === "deadline";
           return (
-          <DataTable.Root className="max-xl:[&_td]:px-4 max-xl:[&_th:not([aria-sort])]:px-4 max-xl:[&_th[aria-sort]>button]:px-4">
+          <DataTable.Root cellPadding="responsive">
             <DataTable.Head>
               <tr>
                 {/* การเรียงย้ายมาอยู่ที่หัวคอลัมน์แล้ว (เบสสั่ง 2026-07-31) — กดซ้ำสลับทิศ

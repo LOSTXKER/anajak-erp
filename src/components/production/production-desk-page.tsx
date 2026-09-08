@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * `/production` — โต๊ะงานหัวหน้า (แบบ A · เบสเคาะ 2026-09-02) ฝั่งข้อมูล
+ * `/production` — ตารางผลิตต่อเนื่อง (A10 · เบสสั่ง 2026-09-09) ฝั่งข้อมูล
  * อ่าน `production.kanban` + `user.me` ชุดเดิม → `buildProductionBoard` (สูตรเดิม) → `production-desk`
  * ตัววาดอยู่ production-desk-view.tsx (รับ props ล้วน เพื่อ probe/ทดสอบได้โดยไม่ต้องล็อกอิน)
  * ตัวกรองเก็บใน URL: `?view=late|blocked|outsource|ready` · `?station=` · `?q=` · `?create=<orderId>`
@@ -15,6 +15,7 @@ import { Factory, MonitorSmartphone, Plus, RefreshCw } from "lucide-react";
 import { trpc, type RouterOutput } from "@/lib/trpc";
 import { permAllows } from "@/lib/permissions";
 import { FLOOR_HREF } from "@/lib/production-surface";
+import { formatTime } from "@/lib/utils";
 import { useListPageState } from "@/hooks/use-list-page-state";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -28,10 +29,10 @@ import {
   buildDeskRows,
   deskSummary,
   filterDeskRows,
-  groupDeskRows,
   isDeskLens,
   type DeskLens,
 } from "@/lib/production-desk";
+import { resolveDeskSort, sortDeskRows } from "@/lib/production-desk-sort";
 import {
   filterWorklistByStation,
   productionWorklistHref,
@@ -49,6 +50,7 @@ function ProductionDesk() {
   const rawLens = list.searchParams.get("view");
   const lens: DeskLens = isDeskLens(rawLens) ? rawLens : "all";
   const createOrderId = list.searchParams.get("create");
+  const sort = resolveDeskSort(list.searchParams.get("sort"), list.searchParams.get("dir"));
 
   const meQuery = trpc.user.me.useQuery();
   const me = meQuery.data;
@@ -92,6 +94,8 @@ function ProductionDesk() {
     () => worklistStationChips(board.stations, lensRows.map((row) => row.job)),
     [board.stations, lensRows],
   );
+  const outsourceKeys = new Set(stationChips.filter((chip) => chip.isOutsource).map((chip) => chip.key));
+  const outsourceRows = lensRows.filter((row) => row.job.stationKeys.some((key) => outsourceKeys.has(key)));
   // "ร้านนอก" ชิปเดียว = ทุกประเภทร้าน (ค่า virtual ไม่มีใน board.stations) · ประเภทเฉพาะยังเป็น lane:<LANE> เดิม
   const rawStation = list.searchParams.get("station");
   const station =
@@ -104,7 +108,8 @@ function ProductionDesk() {
     const keys = new Set(filterWorklistByStation(lensRows.map((row) => row.job), station).map((job) => job.key));
     return lensRows.filter((row) => keys.has(row.job.key));
   }, [lensRows, station, stationChips]);
-  const groups = useMemo(() => groupDeskRows(visibleRows), [visibleRows]);
+  const sortedRows = sortDeskRows(visibleRows, sort);
+  const filtered = lens !== "all" || Boolean(station) || Boolean(list.search);
 
   const hasStaleData = (isError && Boolean(orders)) || (meQuery.isError && Boolean(me));
   const canCreateProduction = canSupervise && orders !== undefined && !isError && !meQuery.isError;
@@ -142,10 +147,10 @@ function ProductionDesk() {
           <>
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               {Array.from({ length: 4 }, (_, index) => (
-                <Skeleton key={index} className="h-24 rounded-2xl" />
+              <Skeleton key={index} className="h-16 rounded-2xl" />
               ))}
             </div>
-            <Skeleton className="h-11 rounded-full" />
+            <Skeleton className="h-11 rounded-lg" />
             <ListPageSkeleton />
           </>
         }
@@ -191,6 +196,8 @@ function ProductionDesk() {
             onSearchChange={list.onSearchChange}
             station={station}
             stations={stationChips}
+            outsourceTotal={outsourceRows.length}
+            outsourceOverdue={outsourceRows.filter((row) => row.job.overdue).length}
             onSelectStation={(value) => list.replaceListState({ station: value || null, page: null })}
             total={lensRows.length}
             freshness={
@@ -198,17 +205,30 @@ function ProductionDesk() {
                 updatedAt={dataUpdatedAt}
                 isFetching={isFetching && !isLoading}
                 stale={hasStaleData}
-                className="text-xs"
+                className="hidden text-xs sm:inline-grid"
               />
             }
           />
+          <div className="flex min-h-9 items-center justify-between gap-3">
+            <p className="text-sm text-secondary" aria-live="polite" aria-atomic="true">
+              <span className="font-semibold tabular-nums text-strong">{visibleRows.length.toLocaleString("th-TH")}</span>
+              {filtered ? ` จาก ${rows.length.toLocaleString("th-TH")}` : ""} ใบงาน
+            </p>
+            {filtered ? (
+              <Button size="sm" variant="ghost" onClick={() => list.clearSearch({ view: null, station: null })}>
+                ล้างตัวกรอง
+              </Button>
+            ) : dataUpdatedAt > 0 ? <span className="text-xs text-muted sm:hidden">อัปเดต {formatTime(dataUpdatedAt)}</span> : null}
+          </div>
           <DeskTable
-            groups={groups}
+            rows={sortedRows}
+            sort={sort}
+            onSort={(key, direction) => list.replaceListState({ sort: key === "deadline" ? null : key, dir: direction === "asc" ? null : direction, page: null })}
             hrefFor={(row) => productionWorklistHref(row.job, canCreateProduction)}
             emptyLabel={
               lens === "all" && !station && !list.search
                 ? "ยังไม่มีงานในโรงงาน — เปิดใบผลิตจากหน้าออเดอร์ที่พร้อมผลิต"
-                : "ไม่มีงานตรงตัวกรองนี้ — กดตัวเลขหรือขั้นงานอีกครั้งเพื่อดูทั้งหมด"
+                : "ไม่พบงานที่ตรงกับตัวกรอง ลองค้นหาใหม่หรือล้างตัวกรอง"
             }
           />
         </div>

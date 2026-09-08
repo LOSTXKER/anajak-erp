@@ -4,17 +4,17 @@
  * โต๊ะงานหัวหน้า — ตัววาด (รับ props ล้วน ไม่ยิงข้อมูล) ของ `/production` แบบ A
  * เบสเคาะ 2026-09-02 จากหน้าลอง /proto/production-module:
  *   · ตัวเลขใหญ่ 4 ช่องคือตัวกรอง (เลยกำหนด · ติดปัญหา · ของร้านนอกครบกำหนด · พร้อมส่ง)
- *   · รายการเป็นตาราง 8 คอลัมน์ กองตามความรีบเป็นหัวกลุ่มในตารางเดียว
+ *   · รายการเป็นตารางต่อเนื่อง กดหัวคอลัมน์เพื่อเรียง ไม่มีหัวแบ่งสถานะ (A10 · 09-09)
  *   · ไม่มีปุ่มในแถว — กดทั้งแถวเปิดใบผลิต (ลูกศรท้ายแถว)
  * กฎ 3 ชั้น docs/DESIGN.md §ลำดับความสำคัญทางสายตา: ตัวเลข/ป้ายกำหนดส่ง/ชิปขั้น = ชั้น 1
  */
 
-import { Fragment, type ReactNode, type RefObject } from "react";
+import { type ReactNode, type RefObject } from "react";
+import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import {
   AlertTriangle,
   CalendarClock,
-  ChevronRight,
   PackageCheck,
   Truck,
   UserRound,
@@ -31,7 +31,6 @@ import { MockupThumbnail } from "@/components/mockup/mockup-thumbnail";
 import { orderMockupCover } from "@/lib/mockup";
 import type { BoardOrderLike, BoardRailPoint } from "@/lib/production-board";
 import {
-  DESK_PILES,
   type DeskLens,
   type DeskRow,
   type DeskStepLike,
@@ -39,7 +38,8 @@ import {
 } from "@/lib/production-desk";
 import { productionWorklistProgress, type WorklistStationChip } from "@/lib/production-worklist";
 import { RADIUS, SUNK_PANEL } from "@/components/ui/tokens";
-import { cn } from "@/lib/utils";
+import { cn, formatDateShort } from "@/lib/utils";
+import type { DeskSort, DeskSortKey } from "@/lib/production-desk-sort";
 
 /* ───────────────────────── ตัวเลข 4 ช่อง = ตัวกรอง ───────────────────────── */
 
@@ -48,12 +48,11 @@ const TILES: {
   label: string;
   icon: LucideIcon;
   tone: "danger" | "warning" | "success";
-  hint: string;
 }[] = [
-  { key: "late", label: "เลยกำหนดส่ง", icon: CalendarClock, tone: "danger", hint: "ลูกค้ารออยู่" },
-  { key: "blocked", label: "ติดปัญหา", icon: AlertTriangle, tone: "danger", hint: "รอหัวหน้าตัดสิน" },
-  { key: "outsource", label: "ของร้านนอกครบกำหนด", icon: Truck, tone: "warning", hint: "ต้องตาม / รับกลับ" },
-  { key: "ready", label: "พร้อมส่ง", icon: PackageCheck, tone: "success", hint: "แพ็กเสร็จแล้ว" },
+  { key: "late", label: "เลยกำหนดส่ง", icon: CalendarClock, tone: "danger" },
+  { key: "blocked", label: "ติดปัญหา", icon: AlertTriangle, tone: "danger" },
+  { key: "outsource", label: "ของร้านนอกครบกำหนด", icon: Truck, tone: "warning" },
+  { key: "ready", label: "พร้อมส่ง", icon: PackageCheck, tone: "success" },
 ];
 
 const TILE_TEXT = {
@@ -72,7 +71,7 @@ export function DeskTiles({
   onSelectLens: (lens: DeskLens) => void;
 }) {
   return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4" data-production-desk-tiles="">
+    <div className="flex gap-3 overflow-x-auto pb-1 lg:grid lg:grid-cols-4" data-production-desk-tiles="">
       {TILES.map((tile) => {
         const on = lens === tile.key;
         const value = summary[tile.key];
@@ -84,18 +83,17 @@ export function DeskTiles({
             aria-pressed={on}
             onClick={() => onSelectLens(on ? "all" : tile.key)}
             className={cn(
-              "card-surface card-surface-hover rounded-2xl p-4 text-left transition-colors",
+              "card-surface card-surface-hover rounded-2xl flex min-h-20 min-w-44 shrink-0 items-center justify-between gap-3 px-4 py-3 text-left transition-colors lg:min-w-0",
               on && "ring-2 ring-inset ring-blue-600 dark:ring-blue-400",
             )}
           >
-            <p className="flex items-center gap-2 text-xs font-medium text-muted">
-              <Icon className={cn("h-4 w-4", value > 0 ? TILE_TEXT[tile.tone] : "text-muted")} aria-hidden="true" />
+            <span className="flex min-w-0 items-center gap-2 text-sm font-medium text-secondary">
+              <Icon className={cn("h-4 w-4 shrink-0", value > 0 ? TILE_TEXT[tile.tone] : "text-muted")} aria-hidden="true" />
               {tile.label}
-            </p>
-            <p className={cn("mt-1 text-3xl font-semibold tabular-nums", value > 0 ? TILE_TEXT[tile.tone] : "text-muted")}>
+            </span>
+            <p className={cn("text-2xl font-semibold tabular-nums", value > 0 ? TILE_TEXT[tile.tone] : "text-muted")}>
               {value}
             </p>
-            <p className="mt-0.5 text-xs text-muted">{value > 0 ? tile.hint : "ไม่มี"}</p>
           </button>
         );
       })}
@@ -129,6 +127,8 @@ export function DeskToolbar({
   onSearchChange,
   station,
   stations,
+  outsourceTotal,
+  outsourceOverdue,
   onSelectStation,
   total,
   freshness,
@@ -138,6 +138,8 @@ export function DeskToolbar({
   onSearchChange: (value: string) => void;
   station: string;
   stations: readonly WorklistStationChip[];
+  outsourceTotal: number;
+  outsourceOverdue: number;
   onSelectStation: (station: string) => void;
   total: number;
   /** สถานะอัปเดตอัตโนมัติ — อยู่ขวาสุดของแถวค้นหา */
@@ -145,8 +147,7 @@ export function DeskToolbar({
 }) {
   const inHouse = stations.filter((chip) => !chip.isOutsource);
   const outsource = stations.filter((chip) => chip.isOutsource);
-  const outsourceCount = outsource.reduce((sum, chip) => sum + chip.count, 0);
-  const outsourceOverdue = outsource.reduce((sum, chip) => sum + chip.overdue, 0);
+  const outsourceCount = outsourceTotal;
   const outsourceActive = station === STATION_OUTSOURCE_ALL || outsource.some((chip) => chip.key === station);
 
   return (
@@ -155,15 +156,15 @@ export function DeskToolbar({
         <SearchInput
           ref={searchInputRef}
           surface="raised"
-          placeholder="ค้นเลขออเดอร์ / ลูกค้า"
+          placeholder="ค้นเลขออเดอร์หรือลูกค้า"
           defaultValue={searchDefault}
           onChange={(event) => onSearchChange(event.target.value)}
-          containerClassName="w-60 max-w-full shrink-0"
+          containerClassName="w-full sm:w-72 max-w-full shrink-0"
           aria-label="ค้นหางานผลิต"
         />
         {freshness ? <div className="ml-auto">{freshness}</div> : null}
       </div>
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-1 border-b border-divider">
+      <div className="flex gap-x-5 overflow-x-auto border-b border-divider pb-px [&>button]:shrink-0">
         <FilterChip selected={station === ""} onClick={() => onSelectStation("")}>
           ทุกขั้น <ChipCount count={total} overdue={0} />
         </FilterChip>
@@ -320,133 +321,86 @@ function OutsourceCell<S extends DeskStepLike, O extends BoardOrderLike<S>>({ ro
 }
 
 export function DeskTable<S extends DeskStepLike, O extends BoardOrderLike<S>>({
-  groups,
+  rows,
+  sort,
+  onSort,
   hrefFor,
   emptyLabel,
 }: {
-  groups: readonly { key: string; label: string; rows: DeskRow<S, O>[] }[];
+  rows: readonly DeskRow<S, O>[];
+  sort: DeskSort;
+  onSort: (key: DeskSortKey, direction: "asc" | "desc") => void;
   hrefFor: (row: DeskRow<S, O>) => string;
   emptyLabel: string;
 }) {
-  const total = groups.reduce((sum, group) => sum + group.rows.length, 0);
-  const showGroupHeads = groups.length > 1 || (groups[0] && groups[0].key !== DESK_PILES[3]!.key);
+  const directionFor = (key: DeskSortKey) => sort.key === key ? sort.direction : null;
   return (
-    <DataTable.Root
-      // ระยะเซลล์ 12px และไม่ล็อกความกว้างขั้นต่ำ — 8 คอลัมน์ต้องพอดีจอ 1440 โดยไม่เลื่อนแนวนอน
-      // (วัดจริง 2026-09-02: min-w ต่อคอลัมน์ทำให้ตารางกว้าง 1408 บนการ์ด 1364)
-      className="min-w-0 max-w-full [&_td]:px-3 [&_th:not([aria-sort])]:px-3"
-      data-production-desk-table=""
-    >
+    <DataTable.Root cellPadding="compact" className="min-w-0 max-w-full" data-production-desk-table="">
+      <caption className="sr-only">รายการผลิต เรียงตามหัวคอลัมน์ และเปิดใบผลิตจากเลขออเดอร์</caption>
       <DataTable.Head>
         <tr>
-          <DataTable.Th>ใบงาน</DataTable.Th>
-          <DataTable.Th align="right">จำนวน</DataTable.Th>
-          <DataTable.Th>กำหนดส่ง</DataTable.Th>
-          <DataTable.Th>เส้นทางงาน</DataTable.Th>
-          <DataTable.Th>ตอนนี้อยู่ที่</DataTable.Th>
+          <DataTable.SortableTh direction={directionFor("order")} onSort={(dir) => onSort("order", dir)}>ใบงาน</DataTable.SortableTh>
+          <DataTable.SortableTh align="right" direction={directionFor("quantity")} onSort={(dir) => onSort("quantity", dir)}>จำนวน</DataTable.SortableTh>
+          <DataTable.SortableTh direction={directionFor("deadline")} onSort={(dir) => onSort("deadline", dir)}>กำหนดส่ง</DataTable.SortableTh>
+          <DataTable.Th>ขั้นตอนผลิต</DataTable.Th>
           <DataTable.Th>ร้านนอก</DataTable.Th>
           <DataTable.Th>ผู้รับผิดชอบ</DataTable.Th>
-          <DataTable.Th align="right">
-            <span className="sr-only">เปิดใบผลิต</span>
-          </DataTable.Th>
         </tr>
       </DataTable.Head>
       <DataTable.Body>
-        {total === 0 ? (
+        {rows.length === 0 ? (
           <tr>
-            <DataTable.Td colSpan={8} align="center" className="py-10 text-muted">
-              {emptyLabel}
-            </DataTable.Td>
+            <DataTable.Td colSpan={6} align="center" className="py-12 text-muted">{emptyLabel}</DataTable.Td>
           </tr>
         ) : null}
-        {groups.map((group) => (
-          <Fragment key={group.key}>
-            {showGroupHeads ? (
-              <tr className="bg-surface-muted">
-                <th colSpan={8} scope="rowgroup" className="px-4 py-2 text-left text-xs font-semibold text-strong">
-                  {group.label}
-                  <span className="ml-2 font-normal tabular-nums text-muted">{group.rows.length} ใบ</span>
-                </th>
-              </tr>
-            ) : null}
-            {group.rows.map((row) => {
-              const order = row.job.order;
-              const urgent = order.priority === "URGENT" || order.priority === "HIGH";
-              return (
-                <DataTable.Row
-                  key={row.job.key}
-                  href={hrefFor(row)}
-                  aria-label={`เปิดใบผลิต ${order.orderNumber}`}
-                  className={cn("group/row", row.blocked && "bg-red-50/40 dark:bg-red-950/15")}
-                >
-                  <DataTable.Td>
-                    <div className="flex items-center gap-3">
-                      <MockupThumbnail cover={orderMockupCover(order)} alt={`ม็อกอัพ ${order.orderNumber}`} size="md" />
-                      <div className="min-w-0">
-                        <p className="flex flex-wrap items-center gap-1.5">
-                          <span className="font-semibold tabular-nums text-strong">{order.orderNumber}</span>
-                          {urgent ? (
-                            <Badge variant={order.priority === "URGENT" ? "destructive" : "warning"} size="sm">
-                              {order.priority === "URGENT" ? "ด่วน" : "สำคัญ"}
-                            </Badge>
-                          ) : null}
-                          {order.blindShip ? (
-                            <Badge variant="warning" size="sm">
-                              Blind ship
-                            </Badge>
-                          ) : null}
-                        </p>
-                        <p className="truncate text-secondary">{order.customerName ?? "ไม่ระบุลูกค้า"}</p>
-                      </div>
+        {rows.map((row) => {
+          const order = row.job.order;
+          const urgent = order.priority === "URGENT" || order.priority === "HIGH";
+          return (
+            <DataTable.Row key={row.job.key} href={hrefFor(row)} aria-label={`เปิดใบผลิต ${order.orderNumber}`} className="group/row">
+              <DataTable.Td className="min-w-56 max-w-80">
+                <div className="flex items-center gap-3">
+                  <div className="hidden sm:block">
+                    <MockupThumbnail cover={orderMockupCover(order)} alt={`ม็อกอัพ ${order.orderNumber}`} size="sm" />
+                  </div>
+                  <div className="min-w-0 space-y-1">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <Link href={hrefFor(row)} className="rounded-sm font-semibold tabular-nums text-strong underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring">
+                        {order.orderNumber}
+                      </Link>
+                      {urgent ? <Badge variant={order.priority === "URGENT" ? "destructive" : "warning"} size="sm">{order.priority === "URGENT" ? "ด่วน" : "สำคัญ"}</Badge> : null}
+                      {order.blindShip ? <Badge variant="warning" size="sm">Blind ship</Badge> : null}
                     </div>
-                  </DataTable.Td>
-                  <DataTable.Td align="right" className="whitespace-nowrap">
-                    <span className="text-base font-semibold tabular-nums text-strong">
-                      {(order.totalQuantity ?? 0).toLocaleString("th-TH")}
-                    </span>
-                    <span className="ml-1 text-xs text-muted">ตัว</span>
-                  </DataTable.Td>
-                  <DataTable.Td className="whitespace-nowrap">
-                    <DueTag dueInDays={row.dueInDays} dateLabel={deadlineLabel(order.deadline)} size="sm" />
-                  </DataTable.Td>
-                  <DataTable.Td className="w-28">
-                    <RouteRail rail={row.job.rail} />
-                  </DataTable.Td>
-                  <DataTable.Td className="max-w-56">
-                    <CurrentCell row={row} />
-                  </DataTable.Td>
-                  <DataTable.Td className="max-w-48">
-                    <OutsourceCell row={row} />
-                  </DataTable.Td>
-                  <DataTable.Td className="max-w-40">
-                    {row.responsible.length > 0 ? (
-                      <span className="inline-flex items-center gap-1.5 text-secondary">
-                        <UserRound className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
-                        {row.responsible.join(", ")}
-                      </span>
-                    ) : (
-                      <span className="text-muted">ยังไม่มีคนรับ</span>
-                    )}
-                  </DataTable.Td>
-                  <DataTable.Td align="right" className="w-12 pl-0">
-                    <ChevronRight
-                      className="ml-auto h-4 w-4 text-muted transition-colors group-hover/row:text-strong"
-                      aria-hidden="true"
-                    />
-                  </DataTable.Td>
-                </DataTable.Row>
-              );
-            })}
-          </Fragment>
-        ))}
+                    <p className="line-clamp-2 text-secondary" title={order.customerName ?? undefined}>{order.customerName ?? "ไม่ระบุลูกค้า"}</p>
+                  </div>
+                </div>
+              </DataTable.Td>
+              <DataTable.Td align="right" className="whitespace-nowrap">
+                <span className="font-semibold tabular-nums text-strong">{(order.totalQuantity ?? 0).toLocaleString("th-TH")}</span>
+                <span className="ml-1 text-muted">ตัว</span>
+              </DataTable.Td>
+              <DataTable.Td className="whitespace-nowrap">
+                <DueTag dueInDays={row.dueInDays} dateLabel={order.deadline ? formatDateShort(order.deadline) : null} size="sm" />
+              </DataTable.Td>
+              <DataTable.Td className="min-w-48 max-w-64">
+                <div className="space-y-2">
+                  <CurrentCell row={row} />
+                  <RouteRail rail={row.job.rail} />
+                </div>
+              </DataTable.Td>
+              <DataTable.Td className="min-w-40 max-w-56"><OutsourceCell row={row} /></DataTable.Td>
+              <DataTable.Td className="min-w-36 max-w-48">
+                {row.responsible.length > 0 ? (
+                  <span className="inline-flex items-start gap-1.5 text-secondary">
+                    <UserRound className="mt-0.5 h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
+                    <span>{row.responsible.join(", ")}</span>
+                  </span>
+                ) : <span className="text-muted">ยังไม่มีคนรับ</span>}
+              </DataTable.Td>
+            </DataTable.Row>
+          );
+        })}
       </DataTable.Body>
     </DataTable.Root>
   );
-}
-
-function deadlineLabel(deadline: Date | string | null): string | null {
-  if (!deadline) return null;
-  const date = new Date(deadline);
-  if (Number.isNaN(date.getTime())) return null;
-  return date.toLocaleDateString("th-TH", { day: "numeric", month: "short" });
 }

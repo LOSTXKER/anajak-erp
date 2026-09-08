@@ -5,11 +5,11 @@ import {
   daysFromNow,
   deskSummary,
   filterDeskRows,
-  groupDeskRows,
   jobOutsource,
   jobResponsible,
   type DeskStepLike,
 } from "./production-desk";
+import { resolveDeskSort, sortDeskRows } from "./production-desk-sort";
 
 const NOW = new Date("2026-09-02T09:00:00+07:00");
 
@@ -134,9 +134,52 @@ describe("production-desk", () => {
     expect(filterDeskRows(rows, "all")).toHaveLength(rows.length);
   });
 
-  it("กองเรียงตามความรีบ และกองว่างไม่โผล่", () => {
-    const groups = groupDeskRows(rows);
-    expect(groups.map((group) => group.key)).toEqual(["blocked", "outsource-due", "queue", "doing", "ready"]);
-    expect(groups.every((group) => group.rows.length > 0)).toBe(true);
+});
+
+describe("ตารางผลิตเรียงต่อเนื่องโดยไม่แบ่งกลุ่มสถานะ", () => {
+  const mixedOrders: Order[] = [
+    order({
+      id: "later",
+      orderNumber: "ORD-10",
+      deadline: "2026-09-05T00:00:00+07:00",
+      totalQuantity: 30,
+      productions: [{ id: "p-later", steps: [step({ id: "s-later", stepType: "HEAT_PRESS", status: "FAILED" })] }],
+    }),
+    order({ id: "earlier", orderNumber: "ORD-2", deadline: "2026-09-03T00:00:00+07:00", totalQuantity: 20, internalStatus: "READY_TO_SHIP" }),
+    order({ id: "undated", orderNumber: "ORD-1", deadline: null, totalQuantity: 10, internalStatus: "PRODUCTION_QUEUE" }),
+    order({ id: "same-day", orderNumber: "ORD-3", deadline: "2026-09-03T00:00:00+07:00", totalQuantity: 20, internalStatus: "PACKING" }),
+  ];
+  const mixedRows = buildDeskRows(buildProductionBoard(mixedOrders, { now: NOW, showBlocked: true }), NOW);
+  const numbers = (sorted: typeof mixedRows) => sorted.map((row) => row.job.order.orderNumber);
+
+  it("เรียงกำหนดส่งใกล้ก่อนข้ามสถานะ และงานไม่กำหนดส่งอยู่ท้าย", () => {
+    const sorted = sortDeskRows(mixedRows, { key: "deadline", direction: "asc" });
+    expect(numbers(sorted)).toEqual(["ORD-2", "ORD-3", "ORD-10", "ORD-1"]);
+    expect(sorted.map((row) => row.pile)).toEqual(["ready", "doing", "blocked", "queue"]);
+  });
+
+  it("เรียงกำหนดส่งไกลก่อน งานไม่กำหนดส่งยังอยู่ท้าย และวันเดียวกันเรียงเลขใบ", () => {
+    expect(numbers(sortDeskRows(mixedRows, { key: "deadline", direction: "desc" }))).toEqual(["ORD-10", "ORD-2", "ORD-3", "ORD-1"]);
+  });
+
+  it("เรียงเลขใบแบบตัวเลขจริงทั้งสองทิศ โดย ORD-2 มาก่อน ORD-10", () => {
+    expect(numbers(sortDeskRows(mixedRows, { key: "order", direction: "asc" }))).toEqual(["ORD-1", "ORD-2", "ORD-3", "ORD-10"]);
+    expect(numbers(sortDeskRows(mixedRows, { key: "order", direction: "desc" }))).toEqual(["ORD-10", "ORD-3", "ORD-2", "ORD-1"]);
+  });
+
+  it("เรียงจำนวนทั้งสองทิศ ยอดเท่ากันใช้เลขใบตัดสิน", () => {
+    expect(numbers(sortDeskRows(mixedRows, { key: "quantity", direction: "asc" }))).toEqual(["ORD-1", "ORD-2", "ORD-3", "ORD-10"]);
+    expect(numbers(sortDeskRows(mixedRows, { key: "quantity", direction: "desc" }))).toEqual(["ORD-10", "ORD-2", "ORD-3", "ORD-1"]);
+  });
+
+  it("ไม่เปลี่ยนลำดับข้อมูลต้นทางที่ตัวกรองและจำนวนสรุปใช้ร่วมกัน", () => {
+    const before = numbers(mixedRows);
+    expect(sortDeskRows(mixedRows, { key: "order", direction: "asc" })).not.toBe(mixedRows);
+    expect(numbers(mixedRows)).toEqual(before);
+  });
+
+  it("ตัวเลือกใน URL ที่ไม่รู้จักกลับไปเรียงกำหนดส่งใกล้ก่อน", () => {
+    expect(resolveDeskSort("unknown", "unknown")).toEqual({ key: "deadline", direction: "asc" });
+    expect(resolveDeskSort("quantity", "desc")).toEqual({ key: "quantity", direction: "desc" });
   });
 });
