@@ -15,7 +15,7 @@
  * ไม่มีคำอธิบายในจอ (A8 ระดับ 1) — ชื่อ ตัวเลข สถานะ และเหตุที่กดไม่ได้เท่านั้น
  */
 
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useMemo, useState, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
 import { AlertTriangle, CheckCircle2, Factory, Flag, History, ImageIcon, Pause, Printer, RotateCcw, Store, UserRound } from "lucide-react";
 
@@ -67,9 +67,18 @@ function ticksMissing(step: ProductionStep): number {
 
 function WorkOrder({ id }: { id: string }) {
   const c = useWorkOrderController(id);
-  const { production, order, me, productionQuery, meQuery, workflowSteps, nowById, nowMs } = c;
   // กระดาษเป็นหลัก (ROADMAP §A5): QR บนใบสั่งงานพกเวอร์ชันม็อกอัพที่พิมพ์ (?mockup=n) — สแกนใบเก่าต้องรู้ทันที
   const scannedMockup = Number(useSearchParams().get("mockup") ?? "");
+  return <WorkOrderView c={c} scannedMockup={scannedMockup} />;
+}
+
+/**
+ * ตัวหน้าทั้งหมดรับ controller เป็น prop — ของจริงส่ง useWorkOrderController · หน้าลอง /proto/work-order-states
+ * ส่ง controller ปลอมต่อสถานะ เพื่อให้เบสดูทุกสถานะจากหน้าเดียวกับที่ทีมใช้จริง (ไม่วาดซ้ำ)
+ * itemsTab = แทนเนื้อแท็บสินค้าทั้งก้อน (หน้าลองไม่มี tRPC ของใบจริง)
+ */
+export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab }: { c: WorkOrderController; scannedMockup?: number; itemsTab?: ReactNode }) {
+  const { production, order, me, productionQuery, meQuery, workflowSteps, nowById, nowMs } = c;
   const approvedMockup = order?.designs[0]?.versionNumber ?? null;
   const stalePaper = Number.isFinite(scannedMockup) && scannedMockup > 0 && approvedMockup !== null && scannedMockup < approvedMockup;
   const [problemOpen, setProblemOpen] = useState(false);
@@ -360,9 +369,13 @@ function WorkOrder({ id }: { id: string }) {
                   </TabsContent>
 
                   <TabsContent value="items" className="space-y-6">
-                    <ProductsTab orderId={order.id} />
-                    <ProductionDesignCard order={order} focusStepType={current?.stepType} />
-                    <MaterialUsage productionId={production.id} orderNumber={order.orderNumber} showCosts={c.canSeeCost} readOnly={!c.canUpdateStep} embedded />
+                    {itemsTab ?? (
+                      <>
+                        <ProductsTab orderId={order.id} />
+                        <ProductionDesignCard order={order} focusStepType={current?.stepType} />
+                        <MaterialUsage productionId={production.id} orderNumber={order.orderNumber} showCosts={c.canSeeCost} readOnly={!c.canUpdateStep} embedded />
+                      </>
+                    )}
                   </TabsContent>
                 </div>
               </Tabs>

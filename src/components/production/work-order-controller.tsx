@@ -203,74 +203,26 @@ export function useWorkOrderController(id: string) {
     reopen.mutate({ stepId: step.id });
   }
 
-  /** ปุ่มหลักปุ่มเดียวของขั้น — มาจาก NowStep.action ชุดเดียวกับหน้าเดิม */
+  /** ปุ่มหลักปุ่มเดียวของขั้น — กติกาอยู่ใน WorkOrderPrimaryButton (หน้าลองใช้ชุดเดียวกัน) */
   function primaryButton(step: ProductionStep, now: NowStep<ProductionStep> | undefined, options: WorkOrderButtonOptions = {}) {
-    const busy = quickPass.isPending;
-    const size = cn(options.touch && "h-16 text-lg");
-    if (step.status === "COMPLETED") {
-      return (
-        <Button variant="outline" className={size} disabled>
-          ผ่านแล้ว
-        </Button>
-      );
-    }
-    if (step.status === "FAILED" || step.status === "ON_HOLD") {
-      return canSuperviseStep && hasProductionPermission ? (
-        <Button variant="destructive" className={size} onClick={() => setEditStep({ step, mode: "manager" })}>
-          จัดการปัญหา
-        </Button>
-      ) : (
-        <Button variant="outline" className={size} disabled>
-          รอหัวหน้าจัดการ
-        </Button>
-      );
-    }
-    if (step.stepType === "GARMENT_RECEIVE" && canUpdateStep && canOwnOrSupervise(step)) {
-      return (
-        <Button className={size} onClick={() => setGoodsReceiptStepId(step.id)} disabled={busy}>
-          บันทึกตรวจรับเสื้อลูกค้า
-        </Button>
-      );
-    }
-    if (step.stepType === "GARMENT_PICK") {
-      return null; // การ์ดเบิกเสื้อ (GarmentPickCard) มีปุ่มเบิกของตัวเองใต้โซนนี้
-    }
-    if (step.stepType === "DTF_PRINT" && canUpdateStep && step.printRunItems.length > 0) {
-      return (
-        <Button variant="outline" className={size} disabled>
-          อยู่ในรอบพิมพ์ {step.printRunItems[0]!.printRun.runNumber}
-        </Button>
-      );
-    }
-    switch (now?.action) {
-      case "start":
-        return (
-          <Button className={size} onClick={() => void handleStart(step)} disabled={busy}>
-            {!step.assignedTo && !canSuperviseStep ? "รับงานนี้" : "เริ่มทำ"}
-          </Button>
-        );
-      case "complete":
-      case "record-qty":
-        return (
-          <Button className={size} onClick={() => handleComplete(step)} disabled={busy}>
-            {step.qtyTotal && (step.qtyDone ?? 0) < step.qtyTotal ? "บันทึกยอด / ปิดขั้น" : "ปิดขั้นนี้"}
-          </Button>
-        );
-      case "send-outsource":
-        return (
-          <Button className={size} onClick={() => setOutsourceStep(step)} disabled={busy}>
-            <Truck /> ส่งร้านนอก
-          </Button>
-        );
-      case "quick-pass":
-        return (
-          <Button className={size} onClick={() => void handleQuickPass(step)} disabled={busy}>
-            ผ่านรวด (ร้านทำเสร็จแล้ว)
-          </Button>
-        );
-      default:
-        return null;
-    }
+    return (
+      <WorkOrderPrimaryButton
+        step={step}
+        now={now}
+        options={options}
+        busy={quickPass.isPending}
+        canUpdateStep={canUpdateStep}
+        canSuperviseStep={canSuperviseStep}
+        hasProductionPermission={hasProductionPermission}
+        canOwnOrSupervise={canOwnOrSupervise}
+        onStart={handleStart}
+        onComplete={handleComplete}
+        onQuickPass={(s) => void handleQuickPass(s)}
+        onManage={(s) => setEditStep({ step: s, mode: "manager" })}
+        onGoodsReceipt={(stepId) => setGoodsReceiptStepId(stepId)}
+        onOutsource={(s) => setOutsourceStep(s)}
+      />
+    );
   }
 
   const notFound = productionQuery.error?.data?.code === "NOT_FOUND";
@@ -351,3 +303,91 @@ export function useWorkOrderController(id: string) {
 }
 
 export type WorkOrderController = ReturnType<typeof useWorkOrderController>;
+
+/* ───────────────────────── ปุ่มหลักของขั้น (pure — ไม่มี hook/tRPC) ─────────────────────────
+ * ใช้ทั้งใบผลิตจริง (ผ่าน useWorkOrderController) และหน้าลอง /proto/work-order-states (controller ปลอม)
+ * เพื่อให้ปุ่มที่เบสเห็นในหน้าลองเป็นตัวเดียวกับของจริงทุกกติกา */
+export type WorkOrderPrimaryButtonProps = {
+  step: ProductionStep;
+  now: NowStep<ProductionStep> | undefined;
+  options?: WorkOrderButtonOptions;
+  busy: boolean;
+  canUpdateStep: boolean;
+  canSuperviseStep: boolean;
+  hasProductionPermission: boolean;
+  canOwnOrSupervise: (step: ProductionStep) => boolean;
+  onStart: (step: ProductionStep) => void;
+  onComplete: (step: ProductionStep) => void;
+  onQuickPass: (step: ProductionStep) => void;
+  onManage: (step: ProductionStep) => void;
+  onGoodsReceipt: (stepId: string) => void;
+  onOutsource: (step: ProductionStep) => void;
+};
+
+export function WorkOrderPrimaryButton({ step, now, options = {}, busy, canUpdateStep, canSuperviseStep, hasProductionPermission, canOwnOrSupervise, onStart, onComplete, onQuickPass, onManage, onGoodsReceipt, onOutsource }: WorkOrderPrimaryButtonProps) {
+  const size = cn(options.touch && "h-16 text-lg");
+  if (step.status === "COMPLETED") {
+    return (
+      <Button variant="outline" className={size} disabled>
+        ผ่านแล้ว
+      </Button>
+    );
+  }
+  if (step.status === "FAILED" || step.status === "ON_HOLD") {
+    return canSuperviseStep && hasProductionPermission ? (
+      <Button variant="destructive" className={size} onClick={() => onManage(step)}>
+        จัดการปัญหา
+      </Button>
+    ) : (
+      <Button variant="outline" className={size} disabled>
+        รอหัวหน้าจัดการ
+      </Button>
+    );
+  }
+  if (step.stepType === "GARMENT_RECEIVE" && canUpdateStep && canOwnOrSupervise(step)) {
+    return (
+      <Button className={size} onClick={() => onGoodsReceipt(step.id)} disabled={busy}>
+        บันทึกตรวจรับเสื้อลูกค้า
+      </Button>
+    );
+  }
+  if (step.stepType === "GARMENT_PICK") {
+    return null; // การ์ดเบิกเสื้อ (GarmentPickCard) มีปุ่มเบิกของตัวเองใต้โซนนี้
+  }
+  if (step.stepType === "DTF_PRINT" && canUpdateStep && step.printRunItems.length > 0) {
+    return (
+      <Button variant="outline" className={size} disabled>
+        อยู่ในรอบพิมพ์ {step.printRunItems[0]!.printRun.runNumber}
+      </Button>
+    );
+  }
+  switch (now?.action) {
+    case "start":
+      return (
+        <Button className={size} onClick={() => onStart(step)} disabled={busy}>
+          {!step.assignedTo && !canSuperviseStep ? "รับงานนี้" : "เริ่มทำ"}
+        </Button>
+      );
+    case "complete":
+    case "record-qty":
+      return (
+        <Button className={size} onClick={() => onComplete(step)} disabled={busy}>
+          {step.qtyTotal && (step.qtyDone ?? 0) < step.qtyTotal ? "บันทึกยอด / ปิดขั้น" : "ปิดขั้นนี้"}
+        </Button>
+      );
+    case "send-outsource":
+      return (
+        <Button className={size} onClick={() => onOutsource(step)} disabled={busy}>
+          <Truck /> ส่งร้านนอก
+        </Button>
+      );
+    case "quick-pass":
+      return (
+        <Button className={size} onClick={() => onQuickPass(step)} disabled={busy}>
+          ผ่านรวด (ร้านทำเสร็จแล้ว)
+        </Button>
+      );
+    default:
+      return null;
+  }
+}
