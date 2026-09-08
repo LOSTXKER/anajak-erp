@@ -27,6 +27,7 @@ import {
   validateDemoDatabaseUrl,
   validateDemoSeedInvocation,
 } from "../src/lib/demo-seed-plan";
+import { FORM_STATES, seedWorkOrderFormStates } from "./seed-demo-form-states";
 
 const prisma = new PrismaClient();
 const DAY_MS = 24 * 60 * 60 * 1_000;
@@ -2366,6 +2367,14 @@ async function main() {
 
       // ทำหลัง seed ครบเพื่อคง scenario เดิมทุกใบ: ถอด flag V2 ออกจากขั้น + ลบเลข MO (production.create เช็คเลขนี้)
 
+      // ใบผลิตตัวอย่างทุกสถานะของฟอร์ม (เบสสั่ง 09-09) — เลขออเดอร์ต่อจาก scenario หลัก
+      await seedWorkOrderFormStates(tx, {
+        period,
+        ownerId: owner.id,
+        sequenceStart: DEMO_SEED_SCENARIOS.length + 1,
+        art: DEMO_ART,
+      });
+
       const demoV2 = process.env.DEMO_PRODUCTION_V2 === "1";
 
       if (!demoV2) {
@@ -2549,7 +2558,7 @@ async function main() {
         }),
       ]);
       if (
-        orderCount !== DEMO_SEED_SCENARIOS.length ||
+        orderCount !== DEMO_SEED_SCENARIOS.length + FORM_STATES.length ||
         productionRows.length < 8
       ) {
         throw new Error("Demo seed จำนวนออเดอร์หรือใบผลิตไม่ครบ");
