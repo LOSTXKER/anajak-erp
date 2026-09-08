@@ -101,6 +101,22 @@ export function useWorkOrderController(id: string) {
     onError: (err: { message?: string }) => toast.error(err.message ?? "ส่งงานเข้า QC ไม่สำเร็จ"),
   });
 
+  // ใบผลิตแบบฟอร์ม (ROADMAP §A9.2–A9.4): ติ๊กข้อกำหนด · ยอดต่อแถว · ย้อนขั้น — server ตัดสินทุกกติกา
+  const tickStandardMutation = useMutationWithInvalidation(trpc.production.tickStandard, {
+    invalidate,
+    onError: (err: { message?: string }) => toast.error(err.message ?? "ติ๊กไม่สำเร็จ"),
+  });
+  const pieceQty = useMutationWithInvalidation(trpc.production.reportPieceQty, {
+    invalidate,
+    onSuccess: () => toast.success("บันทึกยอดแล้ว"),
+    onError: (err: { message?: string }) => toast.error(err.message ?? "บันทึกยอดไม่สำเร็จ"),
+  });
+  const reopen = useMutationWithInvalidation(trpc.production.reopenStep, {
+    invalidate,
+    onSuccess: () => toast.success("เปิดขั้นให้ทำต่อแล้ว"),
+    onError: (err: { message?: string }) => toast.error(err.message ?? "ย้อนขั้นไม่สำเร็จ"),
+  });
+
   const order = production?.order;
   const workflowSteps = productionWorkflowSteps(production?.steps ?? []);
   const orderCanProduce = order?.internalStatus === "PRODUCING";
@@ -174,6 +190,17 @@ export function useWorkOrderController(id: string) {
     const ok = await confirm({ ...copy });
     if (!ok) return;
     quickPass.mutate({ stepId: step.id, status });
+  }
+
+  /** หัวหน้าย้อนขั้นที่ปิดแล้วให้กลับมาทำต่อ — ยืนยันก่อน · server ตรวจว่าย้อนได้จริง + จด audit */
+  async function handleReopen(step: ProductionStep) {
+    const ok = await confirm({
+      title: `ย้อนกลับไป "${stepLabel(step)}"?`,
+      description: "ขั้นนี้จะกลับมาเปิดให้ทำต่อ ยอดและผลติ๊กที่จดไว้ยังอยู่",
+      confirmText: "ย้อนกลับ",
+    });
+    if (!ok) return;
+    reopen.mutate({ stepId: step.id });
   }
 
   /** ปุ่มหลักปุ่มเดียวของขั้น — มาจาก NowStep.action ชุดเดียวกับหน้าเดิม */
@@ -312,6 +339,12 @@ export function useWorkOrderController(id: string) {
     openEdit: (step: ProductionStep, mode: "operation" | "manager") => setEditStep({ step, mode }),
     openQty: (stepId: string) => setQtyStepId(stepId),
     openOutsourceReturn: (stepId: string, outsourceOrderId: string) => setOutsourceReturn({ stepId, outsourceOrderId }),
+    tickStandard: (stepId: string, item: string, checked: boolean) => tickStandardMutation.mutate({ stepId, item, checked }),
+    tickPending: tickStandardMutation.isPending,
+    savePieceQty: (stepId: string, rows: { variantId: string; done: number; waste: number }[]) => pieceQty.mutate({ stepId, rows }),
+    piecePending: pieceQty.isPending,
+    handleReopen,
+    reopenPending: reopen.isPending,
     primaryButton,
     dialogs,
   };

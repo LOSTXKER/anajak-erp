@@ -28,6 +28,8 @@ const operationInput = z.object({
   executionMode: z.enum(["IN_HOUSE", "OUTSOURCE"]),
   workCenterId: z.string().nullable(),
   standardMinutes: z.number().int().min(0).nullable(),
+  // ช่องคู่ (ROADMAP §A9.5): ขั้นนี้เดินคู่กับขั้นก่อนหน้า — ใบผลิตรวมเป็นช่องเดียวบนราง
+  pairWithPrevious: z.boolean().default(false),
 });
 
 export const routingRouter = router({

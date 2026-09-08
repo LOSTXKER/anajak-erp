@@ -21,6 +21,7 @@ import { PageShell } from "@/components/page-shell";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
@@ -28,7 +29,7 @@ import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ToneMark } from "@/components/ui/section";
 import { useConfirm } from "@/components/ui/confirm-dialog";
-import { ArrowDown, ArrowUp, Check, Plus, Trash2, Truck, Workflow } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, Link2, Plus, Trash2, Truck, Workflow } from "lucide-react";
 import { HelpTip } from "@/components/ui/help-tip";
 import { cn } from "@/lib/utils";
 
@@ -49,6 +50,8 @@ type DraftOperation = {
   executionMode: "IN_HOUSE" | "OUTSOURCE";
   workCenterId: string | null;
   waitsFor: string[];
+  /** ช่องคู่: เดินคู่กับขั้นก่อนหน้า — ใบผลิตรวมสองขั้นเป็นช่องเดียวบนราง */
+  pairWithPrevious: boolean;
 };
 
 /** แถวเดียวของตารางแก้สูตร — แยกออกมาเพื่อไม่ให้ตัวหน้ายาวจนอ่านไม่ออก */
@@ -231,6 +234,18 @@ function DraftRow({
           </div>
         )}
       </div>
+
+      {index > 0 ? (
+        <label className="mt-3 flex cursor-pointer items-center gap-2 border-t border-divider pt-3 text-sm text-strong" htmlFor={`${fieldId}-pair`}>
+          <Checkbox
+            id={`${fieldId}-pair`}
+            checked={operation.pairWithPrevious}
+            onChange={(event) => onChange({ ...operation, pairWithPrevious: event.target.checked })}
+          />
+          เดินคู่กับขั้นก่อน
+          <HelpTip label="เดินคู่กับขั้นก่อน">ใบผลิตจะรวมขั้นนี้กับขั้นก่อนหน้าเป็นช่องเดียวบนแถบขั้นงาน</HelpTip>
+        </label>
+      ) : null}
     </div>
   );
 }
@@ -302,6 +317,7 @@ export default function RoutingSettingsPage() {
       executionMode: operation.executionMode as DraftOperation["executionMode"],
       workCenterId: operation.workCenterId,
       waitsFor: operation.waitsFor,
+      pairWithPrevious: operation.pairWithPrevious,
     })) ??
       []);
 
@@ -350,6 +366,7 @@ export default function RoutingSettingsPage() {
         executionMode: "IN_HOUSE",
         workCenterId: null,
         waitsFor: [],
+        pairWithPrevious: false,
       },
     ]);
   };
@@ -366,6 +383,7 @@ export default function RoutingSettingsPage() {
         executionMode: row.executionMode,
         workCenterId: row.workCenterId,
         standardMinutes: null,
+        pairWithPrevious: index > 0 && row.pairWithPrevious,
       })),
       dependencies: rows.flatMap((row) =>
         row.waitsFor.map((before) => [before, row.code.trim()] as [string, string]),
@@ -580,6 +598,12 @@ export default function RoutingSettingsPage() {
                                 <span className="inline-flex items-center gap-1 text-xs font-normal text-secondary">
                                   <Truck className="h-3.5 w-3.5" aria-hidden="true" />
                                   ส่งร้านนอก
+                                </span>
+                              ) : null}
+                              {operation.pairWithPrevious ? (
+                                <span className="inline-flex items-center gap-1 text-xs font-normal text-secondary">
+                                  <Link2 className="h-3.5 w-3.5" aria-hidden="true" />
+                                  คู่ขั้นก่อน
                                 </span>
                               ) : null}
                             </p>

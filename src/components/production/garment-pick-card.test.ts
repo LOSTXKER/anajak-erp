@@ -33,6 +33,9 @@ const garmentPickStep = {
   assignedTo: null,
   outsourceOrders: [],
   printRunItems: [],
+  pairWithPrevious: false,
+  checks: [],
+  quantities: [],
 } as ProductionStep;
 
 const baseProps: ComponentProps<typeof GarmentPickCard> = {

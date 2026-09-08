@@ -321,6 +321,7 @@ model User {
   routingVersionsReleased RoutingVersion[]       @relation("RoutingVersionReleasedBy")
   workOrdersReleased      Production[]           @relation("ProductionReleasedBy")
   operationEvents         OperationEvent[]       @relation("OperationEventActor")
+  productionStepChecks    ProductionStepCheck[]  @relation("ProductionStepCheckedBy")
   exceptionsRaised        ProductionException[]  @relation("ProductionExceptionRaisedBy")
   exceptionsOwned         ProductionException[]  @relation("ProductionExceptionOwner")
   reworksPlanned          ReworkCase[]           @relation("ReworkPlannedBy")
@@ -1383,6 +1384,9 @@ model ProductionStep {
   referenceSnapshot   Json?                  @map("reference_snapshot")
   // หน่วยงานจริงคือ "กองเสื้อ" — บอกบางส่วนได้ (ทำแล้ว 120/300) · qtyTotal null = ขั้นแบบติ๊กเฉยๆ
   qtyDone             Int                    @default(0) @map("qty_done")
+  // ช่องคู่ (ROADMAP §A9.5 เบสอนุมัติ 2026-09-09): ขั้นนี้เดินคู่กับขั้นก่อนหน้า — รางใบผลิตรวมสองขั้นเป็นช่องเดียว
+  // คัดลอกจากสูตรขั้นงาน (RoutingOperation.pairWithPrevious) หรือติ๊กตอนเปิดใบผลิตแบบเดิม
+  pairWithPrevious    Boolean                @default(false) @map("pair_with_previous")
   qtyTotal            Int?                   @map("qty_total")
   assignedToId        String?                @map("assigned_to_id")
   startedAt           DateTime?              @map("started_at")
@@ -1412,6 +1416,7 @@ model ProductionStep {
   quantities         OperationQuantity[]
   events             OperationEvent[]
   exceptions         ProductionException[]
+  checks             ProductionStepCheck[]
   predecessorLinks   OperationJobDependency[]         @relation("OperationDependencySuccessor")
   successorLinks     OperationJobDependency[]         @relation("OperationDependencyPredecessor")
   snapshots          ManufacturingReferenceSnapshot[]
@@ -1426,6 +1431,23 @@ model ProductionStep {
   @@index([routingOperationId])
   @@index([reworkCaseId])
   @@map("production_steps")
+}
+
+// ผลติ๊กข้อกำหนดต่อขั้น (ROADMAP §A9.2 เบสอนุมัติ 2026-09-09) — ข้อกำหนดมาจาก src/lib/work-order-standards.ts
+// itemKey = ข้อความข้อกำหนด (ข้อความเปลี่ยน = ข้อใหม่ ต้องติ๊กใหม่) · server ปิดขั้นผ่าน updateStep ได้เมื่อติ๊กครบ
+// แถวละคนละเวลา = ประวัติว่าใครติ๊กเมื่อไหร่ (ไม่ใช่ JSON บนขั้น)
+model ProductionStepCheck {
+  id               String   @id @default(cuid())
+  productionStepId String   @map("production_step_id")
+  itemKey          String   @map("item_key")
+  checkedById      String   @map("checked_by_id")
+  checkedAt        DateTime @default(now()) @map("checked_at")
+
+  productionStep ProductionStep @relation(fields: [productionStepId], references: [id], onDelete: Cascade)
+  checkedBy      User           @relation("ProductionStepCheckedBy", fields: [checkedById], references: [id])
+
+  @@unique([productionStepId, itemKey])
+  @@map("production_step_checks")
 }
 
 // ============================================================
@@ -1596,6 +1618,8 @@ model RoutingOperation {
   phase             OperationPhase         @default(MANUFACTURING)
   workCenterId      String?                @map("work_center_id")
   standardMinutes   Int?                   @map("standard_minutes")
+  // ช่องคู่: ขั้นนี้เดินคู่กับขั้นก่อนหน้าในสูตร — ใบผลิตรวมสองขั้นเป็นช่องเดียวบนราง (ROADMAP §A9.5)
+  pairWithPrevious  Boolean                @default(false) @map("pair_with_previous")
   instructions      Json?
   referenceTemplate Json?                  @map("reference_template")
   createdAt         DateTime               @default(now()) @map("created_at")

@@ -48,6 +48,13 @@ import {
   type OrderReadiness,
 } from "@/server/services/production-readiness";
 import { lockOrderRow, recalcOrderCost } from "@/server/services/order-cost";
+import {
+  assertStandardItem,
+  assertStandardsTicked,
+  assertStepReopenable,
+  FLOW_OWNED_STEP_TYPES,
+  pieceQtyPlan,
+} from "@/server/services/work-order-form";
 import { lockProductionTopology } from "@/server/services/production-topology-lock";
 import { assertProductionV2ApiEnabled } from "@/server/services/production-v2-gate";
 import {
@@ -107,6 +114,16 @@ const stepSelect = {
   qcPassed: true,
   qcNotes: true,
   notes: true,
+  // ช่องคู่บนราง (A9.5) · ผลติ๊กข้อกำหนด (A9.2) · ยอดต่อแถวไซซ์/สี (A9.3) — ไม่มี field เงิน
+  pairWithPrevious: true,
+  checks: {
+    orderBy: { checkedAt: "asc" as const },
+    select: { itemKey: true, checkedAt: true, checkedBy: { select: { id: true, name: true } } },
+  },
+  quantities: {
+    where: { sourceOrderItemVariantId: { not: null } },
+    select: { id: true, sourceOrderItemVariantId: true, qtyPlanned: true, qtyGood: true, qtyScrap: true },
+  },
   assignedTo: { select: { id: true, name: true } },
   outsourceOrders: {
     orderBy: { createdAt: "desc" as const },
@@ -582,6 +599,8 @@ export const productionRouter = router({
             sortOrder: z.number(),
             estimatedCost: z.number().optional(),
             notes: z.string().optional(),
+            // ช่องคู่ (A9.5): ขั้นนี้เดินคู่กับขั้นก่อนหน้า — รางใบผลิตรวมเป็นช่องเดียว
+            pairWithPrevious: z.boolean().optional(),
               })
               .refine((step) => step.stepType !== "PACKAGING", {
             message: "แพ็กเป็นขั้นหลัง QC และเพิ่มในใบผลิตไม่ได้",
@@ -1414,6 +1433,16 @@ export const productionRouter = router({
             latestOutsourceStatus: latestOutsource?.status ?? null,
             canSupervise,
           });
+          // เบสเคาะ 09-08: ต้องติ๊กข้อกำหนดครบถึงปิดขั้นได้ — ด่านอยู่ที่ server ไม่ใช่แค่ปุ่ม
+          // (หัวหน้าผ่านรวด/ผ่านแทนช่างก็ต้องติ๊ก — ติ๊กเองได้ในเช็คลิสต์เดียวกัน)
+          const ticked = await tx.productionStepCheck.findMany({
+            where: { productionStepId: stepId },
+            select: { itemKey: true },
+          });
+          assertStandardsTicked(
+            existing.stepType,
+            ticked.map((t) => t.itemKey),
+          );
         }
 
         const updateData = buildStepUpdateData({
@@ -1512,6 +1541,362 @@ export const productionRouter = router({
           where: { id: stepId },
           select: updateStepResultSelect,
         });
+      });
+    }),
+
+  // ---- ใบผลิตแบบฟอร์ม (ROADMAP §A9.2–A9.4 เบสอนุมัติ 2026-09-09) ----
+
+  // ติ๊ก/ยกเลิกติ๊กข้อกำหนดของขั้น — จดชื่อคนติ๊กต่อข้อ · ขั้นที่ปิดแล้วแก้ไม่ได้
+  // สิทธิ์ตาม updateStep: ช่างแตะได้เฉพาะขั้นของตัวเอง/ขั้นที่ยังไม่มีเจ้าของ (ไม่ claim) หัวหน้าแตะได้ทุกขั้น
+  tickStandard: protectedProcedure
+    .use(productionTeam)
+    .input(
+      z.object({
+        stepId: z.string(),
+        item: z.string().trim().min(1).max(200),
+        checked: z.boolean(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const canSupervise = hasPermission(
+        ctx.userRole,
+        ctx.permissionOverrides,
+        "supervise_operations",
+      );
+      return ctx.prisma.$transaction(async (tx) => {
+        // ผลติ๊กเป็นข้อมูลของฟอร์มใบผลิตอย่างเดียว ไม่แตะสถานะ/ยอด — ขั้น V2 (ledger) ก็ติ๊กได้
+        // จึงล็อกแค่แถวขั้นนี้ ไม่ต้องผ่านด่าน lockProductionStepScope ที่ปฏิเสธ V2
+        await tx.$queryRaw`SELECT id FROM production_steps WHERE id = ${input.stepId} FOR UPDATE`;
+        const existing = await tx.productionStep.findUniqueOrThrow({
+          where: { id: input.stepId },
+          select: updateStepResultSelect,
+        });
+        const production = await tx.production.findUniqueOrThrow({
+          where: { id: existing.productionId },
+          select: { orderId: true },
+        });
+        const liveOrder = await tx.order.findUniqueOrThrow({
+          where: { id: production.orderId },
+          select: { internalStatus: true },
+        });
+        if (liveOrder.internalStatus !== "PRODUCING") {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "ติ๊กไม่ได้ — ออเดอร์ไม่อยู่ในสถานะกำลังผลิต",
+          });
+        }
+        if (existing.status === "COMPLETED") {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "ขั้นนี้ปิดแล้ว — ย้อนขั้นก่อนถ้าต้องแก้",
+          });
+        }
+        if (
+          !canSupervise &&
+          existing.assignedToId &&
+          existing.assignedToId !== ctx.userId
+        ) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "ขั้นนี้เป็นงานของคนอื่น",
+          });
+        }
+        assertStandardItem(existing.stepType, input.item);
+
+        const where = {
+          productionStepId_itemKey: {
+            productionStepId: input.stepId,
+            itemKey: input.item,
+          },
+        };
+        if (input.checked) {
+          // ติ๊กซ้ำจากสองจอ = คงชื่อคนแรก (ไม่เขียนทับ)
+          await tx.productionStepCheck.upsert({
+            where,
+            create: {
+              productionStepId: input.stepId,
+              itemKey: input.item,
+              checkedById: ctx.userId,
+            },
+            update: {},
+          });
+        } else {
+          await tx.productionStepCheck.deleteMany({
+            where: { productionStepId: input.stepId, itemKey: input.item },
+          });
+        }
+        await createAuditLog(tx, {
+          userId: ctx.userId,
+          action: "UPDATE",
+          entityType: "PRODUCTION_STEP",
+          entityId: input.stepId,
+          newValue: { checklist: input.item, checked: input.checked },
+        });
+        return tx.productionStepCheck.findMany({
+          where: { productionStepId: input.stepId },
+          orderBy: { checkedAt: "asc" },
+          select: { itemKey: true, checkedAt: true, checkedById: true },
+        });
+      });
+    }),
+
+  // ยอดต่อแถว (ไซซ์/สี) ของขั้น — เก็บใน OperationQuantity แถวชนิด VARIANT · ยอดรวมของขั้น = ผลบวกทำแล้ว
+  // เดินกติกาเดียวกับ updateStep(qtyDone): ออเดอร์ต้อง PRODUCING · ขั้นต้องเป็นขั้นแรกที่ค้างในสายงาน ·
+  // ไม่อยู่ในรอบพิมพ์ · ช่างแตะได้เฉพาะงานตัวเอง (ขั้นไม่มีเจ้าของ = claim ให้) · ขั้นที่ปิดแล้วแก้ไม่ได้
+  reportPieceQty: protectedProcedure
+    .use(productionTeam)
+    .input(
+      z.object({
+        stepId: z.string(),
+        rows: z
+          .array(
+            z.object({
+              variantId: z.string(),
+              done: z.number().int().min(0),
+              waste: z.number().int().min(0),
+            }),
+          )
+          .min(1)
+          .max(200),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const canSupervise = hasPermission(
+        ctx.userRole,
+        ctx.permissionOverrides,
+        "supervise_operations",
+      );
+      return ctx.prisma.$transaction(async (tx) => {
+        const { existing, production } = await lockProductionStepScope(
+          tx,
+          input.stepId,
+        );
+        const liveOrder = await tx.order.findUniqueOrThrow({
+          where: { id: production.orderId },
+          select: { internalStatus: true },
+        });
+        if (liveOrder.internalStatus !== "PRODUCING") {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "บันทึกยอดไม่ได้ — ออเดอร์ไม่อยู่ในสถานะกำลังผลิต",
+          });
+        }
+        if (existing.status === "COMPLETED" || existing.status === "FAILED") {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message:
+              existing.status === "COMPLETED"
+                ? "ขั้นนี้ปิดแล้ว — ย้อนขั้นก่อนถ้าต้องแก้ยอด"
+                : "ขั้นที่มีปัญหาต้องให้หัวหน้าจัดการก่อน",
+          });
+        }
+        if (FLOW_OWNED_STEP_TYPES.has(existing.stepType)) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "ขั้นนี้นับยอดผ่านเมนูของตัวเอง (เบิก/ตรวจรับ/รอบพิมพ์)",
+          });
+        }
+        if (
+          !canSupervise &&
+          existing.assignedToId &&
+          existing.assignedToId !== ctx.userId
+        ) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "ขั้นนี้เป็นงานของคนอื่น",
+          });
+        }
+        const siblings = await tx.productionStep.findMany({
+          where: { productionId: existing.productionId },
+          select: { id: true, stepType: true, status: true, sortOrder: true },
+          orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+        });
+        if (!firstPendingStepIdsByLane(siblings).has(input.stepId)) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message:
+              "ยังบันทึกยอดขั้นนี้ไม่ได้ — ทำขั้นก่อนหน้าในสายงานเดียวกันให้เสร็จก่อน",
+          });
+        }
+        if (
+          existing.stepType === "HEAT_PRESS" &&
+          !evaluateHeatPressGate(siblings).ready
+        ) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `ยังรีดร้อนไม่ได้ — ${evaluateHeatPressGate(siblings).waitingOn.join(" และ ")}`,
+          });
+        }
+        const activeRun = await tx.printRunItem.findFirst({
+          where: {
+            productionStepId: input.stepId,
+            printRun: { status: { in: ["PRINTING", "PRINTED"] } },
+          },
+          select: { printRun: { select: { runNumber: true } } },
+        });
+        assertNotInActiveRun(activeRun?.printRun ?? null);
+
+        const variants = await tx.orderItemVariant.findMany({
+          where: { orderItemProduct: { orderItem: { orderId: production.orderId } } },
+          select: {
+            id: true,
+            size: true,
+            color: true,
+            quantity: true,
+            orderItemProduct: {
+              select: { id: true, description: true, product: { select: { sku: true } } },
+            },
+          },
+        });
+        const plan = pieceQtyPlan({
+          rows: input.rows,
+          qtyTotal: existing.qtyTotal,
+          variants: variants.map((v) => ({
+            id: v.id,
+            productId: v.orderItemProduct.id,
+            description: v.orderItemProduct.description,
+            sku: v.orderItemProduct.product?.sku ?? null,
+            size: v.size,
+            color: v.color,
+            quantity: v.quantity,
+          })),
+        });
+        for (const line of plan.lines) {
+          await tx.operationQuantity.upsert({
+            where: {
+              productionStepId_scopeKey: {
+                productionStepId: input.stepId,
+                scopeKey: line.scopeKey,
+              },
+            },
+            create: {
+              productionId: existing.productionId,
+              productionStepId: input.stepId,
+              scopeKey: line.scopeKey,
+              scopeKind: "VARIANT",
+              sourceOrderItemProductId: line.productId,
+              sourceOrderItemVariantId: line.variantId,
+              description: line.description,
+              sku: line.sku,
+              size: line.size,
+              color: line.color,
+              qtyPlanned: line.qtyPlanned,
+              qtyGood: line.qtyGood,
+              qtyScrap: line.qtyScrap,
+              referenceSnapshot: {
+                description: line.description,
+                size: line.size,
+                color: line.color,
+                quantity: line.qtyPlanned,
+                source: "WORK_ORDER_FORM",
+              },
+            },
+            update: { qtyGood: line.qtyGood, qtyScrap: line.qtyScrap, qtyPlanned: line.qtyPlanned },
+          });
+        }
+        // แถวที่ส่งมา = ยอดรวมของขั้น (แถวที่ไม่ได้ส่ง = 0)
+        await tx.operationQuantity.updateMany({
+          where: {
+            productionStepId: input.stepId,
+            sourceOrderItemVariantId: { notIn: plan.lines.map((l) => l.variantId) },
+          },
+          data: { qtyGood: 0, qtyScrap: 0 },
+        });
+
+        const autoClaim = canSupervise
+          ? false
+          : planAutoClaim({
+              existingAssignedToId: existing.assignedToId,
+              userId: ctx.userId,
+            }).autoClaim;
+        const now = new Date();
+        let step = await tx.productionStep.update({
+          where: { id: input.stepId },
+          data: {
+            qtyDone: plan.qtyDone,
+            ...(autoClaim ? { assignedToId: ctx.userId } : {}),
+          },
+          select: { ...updateStepResultSelect },
+        });
+        const followUp = qtyFollowUp(step, now);
+        if (followUp) {
+          step = await tx.productionStep.update({
+            where: { id: input.stepId },
+            data: followUp,
+            select: { ...updateStepResultSelect },
+          });
+        }
+        await createAuditLog(tx, {
+          userId: ctx.userId,
+          action: "UPDATE",
+          entityType: "PRODUCTION_STEP",
+          entityId: input.stepId,
+          oldValue: { qtyDone: existing.qtyDone },
+          newValue: { qtyDone: plan.qtyDone, rows: input.rows },
+        });
+        return step;
+      });
+    }),
+
+  // ย้อนขั้นที่ปิดแล้วให้กลับมาทำต่อ — หัวหน้าเท่านั้น · เฉพาะขั้นที่ปิดด้วยปุ่ม (ไม่มีใบส่งร้าน/ใบตรวจรับ/
+  // รอบพิมพ์ผูก) และขั้นถัดไปยังไม่มีใครเริ่ม · ยอด/ผลติ๊กที่จดไว้คงอยู่ · จด audit พร้อมเหตุผล
+  reopenStep: protectedProcedure
+    .use(managerUp)
+    .input(
+      z.object({
+        stepId: z.string(),
+        reason: z.string().trim().max(500).optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      return ctx.prisma.$transaction(async (tx) => {
+        const { existing, production } = await lockProductionStepScope(
+          tx,
+          input.stepId,
+        );
+        const liveOrder = await tx.order.findUniqueOrThrow({
+          where: { id: production.orderId },
+          select: { internalStatus: true },
+        });
+        if (liveOrder.internalStatus !== "PRODUCING") {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `ย้อนขั้นไม่ได้ — ออเดอร์อยู่สถานะ ${INTERNAL_STATUS_LABELS[liveOrder.internalStatus] ?? liveOrder.internalStatus}`,
+          });
+        }
+        const siblings = await tx.productionStep.findMany({
+          where: { productionId: existing.productionId },
+          select: { id: true, status: true, sortOrder: true },
+        });
+        const [outsourceOrders, goodsReceipts, printRunItems] = await Promise.all([
+          tx.outsourceOrder.count({ where: { productionStepId: input.stepId } }),
+          tx.goodsReceipt.count({ where: { productionStepId: input.stepId } }),
+          tx.printRunItem.count({ where: { productionStepId: input.stepId } }),
+        ]);
+        assertStepReopenable({
+          step: existing,
+          siblings,
+          evidence: { outsourceOrders, goodsReceipts, printRunItems },
+        });
+        const step = await tx.productionStep.update({
+          where: { id: input.stepId },
+          data: {
+            status: "IN_PROGRESS",
+            completedAt: null,
+            startedAt: existing.startedAt ?? new Date(),
+          },
+          select: updateStepResultSelect,
+        });
+        await createAuditLog(tx, {
+          userId: ctx.userId,
+          action: "UPDATE",
+          entityType: "PRODUCTION_STEP",
+          entityId: input.stepId,
+          oldValue: { status: existing.status, completedAt: existing.completedAt },
+          newValue: { status: "IN_PROGRESS", reopened: true },
+          reason: input.reason,
+        });
+        return step;
       });
     }),
 

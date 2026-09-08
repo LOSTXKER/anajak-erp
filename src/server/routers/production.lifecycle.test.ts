@@ -602,4 +602,179 @@ describe("production lifecycle invariants", () => {
     expect(tx.production.update).not.toHaveBeenCalled();
     expect(tx.auditLog.create).not.toHaveBeenCalled();
   });
+  // ---- ใบผลิตแบบฟอร์ม (ROADMAP §A9.2–A9.4) ----
+  function formStepTx(step: Record<string, unknown>, extra: Record<string, unknown> = {}) {
+    return {
+      $queryRaw: vi.fn().mockResolvedValue([]),
+      productionStep: {
+        findUniqueOrThrow: vi.fn().mockResolvedValue({
+          id: "press",
+          assignedToId: "production-staff-1",
+          productionId: "production-1",
+          stepType: "HEAT_PRESS",
+          status: "IN_PROGRESS",
+          sortOrder: 3,
+          qtyDone: 0,
+          qtyTotal: 10,
+          startedAt: new Date("2026-09-09T01:00:00.000Z"),
+          completedAt: null,
+          ...step,
+        }),
+        findMany: vi.fn().mockResolvedValue([
+          { id: "pick", stepType: "GARMENT_PICK", status: "COMPLETED", sortOrder: 1 },
+          { id: "print", stepType: "DTF_PRINT", status: "COMPLETED", sortOrder: 2 },
+          { id: "press", stepType: "HEAT_PRESS", status: "IN_PROGRESS", sortOrder: 3 },
+          { id: "fold", stepType: "CUSTOM", status: "PENDING", sortOrder: 4 },
+        ]),
+        update: vi.fn().mockResolvedValue({ id: "press", status: "IN_PROGRESS" }),
+      },
+      printRunItem: { findFirst: vi.fn().mockResolvedValue(null), count: vi.fn().mockResolvedValue(0) },
+      outsourceOrder: { findFirst: vi.fn().mockResolvedValue(null), count: vi.fn().mockResolvedValue(0) },
+      goodsReceipt: { count: vi.fn().mockResolvedValue(0) },
+      productionStepCheck: {
+        findMany: vi.fn().mockResolvedValue([]),
+        upsert: vi.fn().mockResolvedValue({}),
+        deleteMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
+      auditLog: { create: vi.fn().mockResolvedValue({ id: "audit-1" }) },
+      ...extra,
+    };
+  }
+  function managerContext(tx: Record<string, unknown>): Context {
+    return { ...transactionContext(tx), userId: "manager-1", userRole: "MANAGER" };
+  }
+
+  it("ปิดขั้นผ่าน updateStep ไม่ได้ถ้ายังติ๊กข้อกำหนดไม่ครบ (ด่านอยู่ที่ server)", async () => {
+    const tx = formStepTx({});
+    await expect(
+      productionRouter
+        .createCaller(transactionContext(tx))
+        .updateStep({ stepId: "press", status: "COMPLETED" }),
+    ).rejects.toThrow("ติ๊กข้อกำหนดให้ครบก่อนปิดขั้น — เหลืออีก 3 ข้อ");
+    expect(tx.productionStep.update).not.toHaveBeenCalled();
+  });
+
+  it("ติ๊กข้อกำหนด: ช่างแตะขั้นของคนอื่นไม่ได้ · ข้อที่ไม่อยู่ในรายการถูกปฏิเสธ · ติ๊กแล้วจำชื่อคนแรก", async () => {
+    const item = "ตั้งอุณหภูมิ/เวลา/แรงกดตามค่าของลายในใบงาน";
+    const other = formStepTx({ assignedToId: "other-staff" });
+    await expect(
+      productionRouter
+        .createCaller(transactionContext(other))
+        .tickStandard({ stepId: "press", item, checked: true }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+
+    const own = formStepTx({});
+    await expect(
+      productionRouter
+        .createCaller(transactionContext(own))
+        .tickStandard({ stepId: "press", item: "ข้อที่ไม่มี", checked: true }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+
+    await productionRouter
+      .createCaller(transactionContext(own))
+      .tickStandard({ stepId: "press", item, checked: true });
+    expect(own.productionStepCheck.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({ itemKey: item, checkedById: "production-staff-1" }),
+        update: {},
+      }),
+    );
+    expect(own.auditLog.create).toHaveBeenCalled();
+  });
+
+  it("ติ๊กข้อกำหนดบนขั้นที่ปิดแล้วไม่ได้", async () => {
+    const tx = formStepTx({ status: "COMPLETED" });
+    await expect(
+      productionRouter
+        .createCaller(transactionContext(tx))
+        .tickStandard({ stepId: "press", item: "ตั้งอุณหภูมิ/เวลา/แรงกดตามค่าของลายในใบงาน", checked: false }),
+    ).rejects.toThrow("ขั้นนี้ปิดแล้ว");
+    expect(tx.productionStepCheck.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it("ย้อนขั้น: ช่างยิงตรงไม่ได้ (หัวหน้าเท่านั้น)", async () => {
+    const tx = formStepTx({ status: "COMPLETED" });
+    await expect(
+      productionRouter.createCaller(transactionContext(tx)).reopenStep({ stepId: "press" }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(tx.productionStep.update).not.toHaveBeenCalled();
+  });
+
+  it("ย้อนขั้น: หัวหน้าเปิดขั้นที่ปิดแล้วกลับเป็นกำลังทำ + จด audit พร้อมเหตุผล", async () => {
+    const tx = formStepTx({ status: "COMPLETED", completedAt: new Date("2026-09-09T02:00:00.000Z") });
+    await productionRouter
+      .createCaller(managerContext(tx))
+      .reopenStep({ stepId: "press", reason: "รีดสลับไซซ์" });
+    expect(tx.productionStep.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "press" },
+        data: expect.objectContaining({ status: "IN_PROGRESS", completedAt: null }),
+      }),
+    );
+    expect(tx.auditLog.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ entityType: "PRODUCTION_STEP", reason: "รีดสลับไซซ์" }),
+      }),
+    );
+  });
+
+  it("ย้อนขั้นไม่ได้เมื่อขั้นถัดไปเริ่มแล้ว หรือขั้นมีใบส่งร้านผูก", async () => {
+    const started = formStepTx({ status: "COMPLETED" });
+    started.productionStep.findMany.mockResolvedValue([
+      { id: "press", stepType: "HEAT_PRESS", status: "COMPLETED", sortOrder: 3 },
+      { id: "tag", stepType: "TAGGING", status: "IN_PROGRESS", sortOrder: 4 },
+    ]);
+    await expect(
+      productionRouter.createCaller(managerContext(started)).reopenStep({ stepId: "press" }),
+    ).rejects.toThrow("ขั้นถัดไปเริ่มทำแล้ว");
+
+    const outsourced = formStepTx({ status: "COMPLETED", stepType: "EMBROIDERY" });
+    outsourced.outsourceOrder.count.mockResolvedValue(1);
+    await expect(
+      productionRouter.createCaller(managerContext(outsourced)).reopenStep({ stepId: "press" }),
+    ).rejects.toThrow("ใบส่งร้าน");
+    expect(outsourced.productionStep.update).not.toHaveBeenCalled();
+  });
+
+  it("ยอดต่อแถว: รวมเป็นยอดของขั้น + สร้างแถว OperationQuantity ชนิด VARIANT · เกินยอดถูกปฏิเสธ", async () => {
+    const variants = {
+      findMany: vi.fn().mockResolvedValue([
+        { id: "v1", size: "S", color: "กรมท่า", quantity: 4, orderItemProduct: { id: "p1", description: "โปโล", product: null } },
+        { id: "v2", size: "M", color: "กรมท่า", quantity: 6, orderItemProduct: { id: "p1", description: "โปโล", product: null } },
+      ]),
+    };
+    const quantities = { upsert: vi.fn().mockResolvedValue({}), updateMany: vi.fn().mockResolvedValue({ count: 0 }) };
+    const tx = formStepTx({}, { orderItemVariant: variants, operationQuantity: quantities });
+    tx.productionStep.update.mockResolvedValue({ status: "IN_PROGRESS", qtyDone: 7, qtyTotal: 10, startedAt: new Date() });
+    await productionRouter
+      .createCaller(transactionContext(tx))
+      .reportPieceQty({ stepId: "press", rows: [{ variantId: "v1", done: 4, waste: 0 }, { variantId: "v2", done: 3, waste: 1 }] });
+    expect(quantities.upsert).toHaveBeenCalledTimes(2);
+    expect(quantities.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({ scopeKind: "VARIANT", sourceOrderItemVariantId: "v2", qtyGood: 3, qtyScrap: 1 }),
+      }),
+    );
+    expect(tx.productionStep.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ qtyDone: 7 }) }),
+    );
+
+    const overQuantities = { upsert: vi.fn(), updateMany: vi.fn() };
+    const over = formStepTx({}, { orderItemVariant: variants, operationQuantity: overQuantities });
+    await expect(
+      productionRouter
+        .createCaller(transactionContext(over))
+        .reportPieceQty({ stepId: "press", rows: [{ variantId: "v1", done: 5, waste: 0 }] }),
+    ).rejects.toThrow("เกิน 4 ตัว");
+    expect(overQuantities.upsert).not.toHaveBeenCalled();
+  });
+
+  it("ยอดต่อแถว: ขั้นที่นับผ่าน flow ของตัวเอง (เบิก/ตรวจรับ/รอบพิมพ์) ถูกปฏิเสธ", async () => {
+    const tx = formStepTx({ stepType: "DTF_PRINT" });
+    await expect(
+      productionRouter
+        .createCaller(transactionContext(tx))
+        .reportPieceQty({ stepId: "press", rows: [{ variantId: "v1", done: 1, waste: 0 }] }),
+    ).rejects.toThrow("นับยอดผ่านเมนูของตัวเอง");
+  });
 });

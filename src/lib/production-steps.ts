@@ -188,6 +188,15 @@ export function isOutsourceStep(stepType: string): boolean {
   return OUTSOURCE_STEP_TYPES.has(stepType);
 }
 
+// ขั้นที่สถานะ/ยอดเดินผ่าน flow เฉพาะของตัวเอง (เบิกสต๊อก · ใบตรวจรับ · รอบพิมพ์ · แพ็กหลัง QC)
+// — ฟอร์มใบผลิตกรอกยอดต่อแถว/ย้อนขั้นให้ไม่ได้ (ROADMAP §A9.3–A9.4) · server และปุ่มใช้ชุดเดียวกัน
+export const FLOW_OWNED_STEP_TYPES: ReadonlySet<string> = new Set([
+  "GARMENT_PICK",
+  "GARMENT_RECEIVE",
+  "DTF_PRINT",
+  "PACKAGING",
+]);
+
 // คง re-export ไว้เพื่อไม่ให้หน้า production ที่ใช้อยู่ต้องเปลี่ยน import พร้อมกันทั้งระบบ
 // source of truth ย้ายไป outsource-ui ซึ่งรวมป้าย คิว และกติกาปุ่มไว้ชุดเดียว
 export {

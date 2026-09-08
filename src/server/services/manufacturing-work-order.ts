@@ -204,6 +204,7 @@ async function createWorkOrderInTransaction(
           phase: true,
           workCenterId: true,
           standardMinutes: true,
+          pairWithPrevious: true,
           instructions: true,
           referenceTemplate: true,
           successorLinks: {
@@ -342,6 +343,7 @@ async function createWorkOrderInTransaction(
         operationPhase: operation.phase,
         workCenterId: operation.workCenterId,
         routingOperationId: operation.id,
+        pairWithPrevious: operation.pairWithPrevious,
         dispatchSequence: operation.sequence || index + 1,
         standardMinutes: operation.standardMinutes,
         qtyPlanned: plannedQty,

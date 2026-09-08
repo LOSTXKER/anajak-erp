@@ -1,9 +1,9 @@
 /**
  * ข้อกำหนดมาตรฐานต่อขั้นงาน — v1 เป็นตารางนิ่งในโค้ด (เบสเคาะใบผลิตแบบ D 2026-09-03)
  *
- * ทำไมยังไม่อยู่ในสูตรขั้นงาน (/settings/routings): schema ยังไม่มีช่อง checklist ต่อขั้น
- * และการติ๊กต่อใบต้องมีที่เก็บ — ทั้งสองอย่างเป็นงาน schema (⚠️ ถามก่อน) จดไว้ ROADMAP §A
- * v1 จึงเป็น "ข้อกำหนดที่ต้องทำตามก่อนปิดขั้น" แสดงอ่านอย่างเดียวในโซนลงมือ ให้ทุกขั้นมีมาตรฐานเดียวกันก่อน
+ * ผลติ๊กต่อใบเก็บใน ProductionStepCheck (itemKey = ข้อความข้อกำหนด · ROADMAP §A9.2 เบสอนุมัติ 2026-09-09)
+ * server ปิดขั้นผ่าน updateStep ได้เมื่อติ๊กครบ — ข้อความเปลี่ยนที่นี่ = ข้อใหม่ ใบที่ค้างอยู่ต้องติ๊กใหม่
+ * ยังไม่อยู่ในสูตรขั้นงาน (/settings/routings) — ทุกขั้นชนิดเดียวกันใช้มาตรฐานเดียวกันก่อน
  *
  * pure data — ไม่มี DOM ไม่มี Date · ขั้นที่ไม่มีในตารางได้ชุดทั่วไป
  */
@@ -46,4 +46,10 @@ const GENERIC: readonly string[] = ["ทำตามสเปกในใบง�
 
 export function workOrderStandards(stepType: string): readonly string[] {
   return WORK_ORDER_STANDARDS[stepType] ?? GENERIC;
+}
+
+/** ข้อที่ยังไม่ได้ติ๊กของขั้น — ใช้ทั้งปุ่มบนหัวใบ (UI) และด่านปิดขั้น (server) ให้ตัดสินเหมือนกัน */
+export function missingStandards(stepType: string, ticked: Iterable<string>): string[] {
+  const done = new Set(ticked);
+  return workOrderStandards(stepType).filter((item) => !done.has(item));
 }

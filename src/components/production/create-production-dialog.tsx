@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   STEP_TYPE_LABELS,
   STEP_TYPE_OPTIONS,
@@ -37,6 +38,8 @@ import { Alert } from "@/components/ui/alert";
 type StepFormItem = {
   stepType: string;
   customStepName?: string;
+  /** ช่องคู่ (ROADMAP §A9.5): เดินคู่กับขั้นก่อนหน้า — ใบผลิตรวมสองขั้นเป็นช่องเดียวบนราง */
+  pairWithPrevious?: boolean;
 };
 
 interface CreateProductionDialogProps {
@@ -137,6 +140,7 @@ function StepBuilder({
   onCreated?: (production: { id: string }) => void;
 }) {
   // seed ครั้งเดียวตอน mount — mount หลัง context พร้อมแล้ว
+  const pairId = useId();
   const [steps, setSteps] = useState<StepFormItem[]>(() =>
     suggestProductionPlan({ printTypes, itemSources, addonTypes }).map((stepType) => ({
       stepType,
@@ -172,6 +176,7 @@ function StepBuilder({
         stepType: s.stepType as ProductionStepType,
         customStepName: s.customStepName || undefined,
         sortOrder: i + 1,
+        pairWithPrevious: i > 0 && s.pairWithPrevious ? true : undefined,
       })),
     });
   }
@@ -222,6 +227,21 @@ function StepBuilder({
                     <Badge variant="warning" size="sm">
                       ร้านนอก
                     </Badge>
+                  )}
+                  {index > 0 && (
+                    <label className="flex shrink-0 cursor-pointer items-center gap-1.5 text-xs text-secondary" htmlFor={`${pairId}-${index}`}>
+                      <Checkbox
+                        id={`${pairId}-${index}`}
+                        checked={!!step.pairWithPrevious}
+                        aria-label={`ขั้นที่ ${index + 1} เดินคู่กับขั้นก่อน`}
+                        onChange={(e) => {
+                          const updated = [...steps];
+                          updated[index] = { ...updated[index], pairWithPrevious: e.target.checked };
+                          setSteps(updated);
+                        }}
+                      />
+                      คู่ขั้นก่อน
+                    </label>
                   )}
                   {steps.length > 1 && (
                     <Button

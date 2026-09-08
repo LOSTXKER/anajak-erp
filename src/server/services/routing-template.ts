@@ -25,6 +25,8 @@ export type RoutingOperationDraft = {
   executionMode: "IN_HOUSE" | "OUTSOURCE";
   workCenterId: string | null;
   standardMinutes: number | null;
+  /** ช่องคู่: เดินคู่กับขั้นก่อนหน้า — ใบผลิตรวมสองขั้นเป็นช่องเดียวบนราง */
+  pairWithPrevious?: boolean;
 };
 
 /** [รหัสขั้นที่ต้องเสร็จก่อน, รหัสขั้นที่รออยู่] */
@@ -185,6 +187,7 @@ export async function getRoutingVersion(prisma: ExtendedPrismaClient, versionId:
       workCenterId: operation.workCenterId,
       workCenterName: operation.workCenter?.name ?? null,
       standardMinutes: operation.standardMinutes,
+      pairWithPrevious: operation.pairWithPrevious,
       /** รหัสขั้นที่ต้องเสร็จก่อนขั้นนี้ */
       waitsFor: operation.predecessorLinks.map(
         (link) => link.predecessorOperation.operationCode,
@@ -263,6 +266,7 @@ export async function createDraftFromVersion(
           phase: operation.phase,
           workCenterId: operation.workCenterId,
           standardMinutes: operation.standardMinutes,
+          pairWithPrevious: operation.pairWithPrevious,
           instructions: operation.instructions ?? undefined,
         },
       });
@@ -310,6 +314,7 @@ export async function saveDraftOperations(
           executionMode: operation.executionMode,
           workCenterId: operation.workCenterId,
           standardMinutes: operation.standardMinutes,
+          pairWithPrevious: operation.pairWithPrevious ?? false,
         },
       });
       idByCode.set(operation.code.trim(), created.id);

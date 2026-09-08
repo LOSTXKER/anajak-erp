@@ -32,7 +32,7 @@ function render(node: React.ReactNode) {
   );
 }
 
-const base = { customStepName: null, notes: null, qcNotes: null, outsourceOrders: [], printRunItems: [], qtyTotal: 240, startedAt: null, completedAt: null, assignedTo: null, qtyDone: 0 };
+const base = { customStepName: null, notes: null, qcNotes: null, outsourceOrders: [], printRunItems: [], qtyTotal: 240, startedAt: null, completedAt: null, assignedTo: null, qtyDone: 0, pairWithPrevious: false, checks: [], quantities: [] };
 const c = { reportProblem: { isPending: false, mutate() {} }, openQty() {}, openEdit() {}, handleSupervisorStatus: async () => {} } as never;
 const fakeOrder = {
   items: [
@@ -62,7 +62,7 @@ const fakeOrder = {
   ],
 } as never;
 const nowById = new Map();
-const ctrl = { reportProblem: { isPending: false, mutate() {} }, openEdit() {}, handleSupervisorStatus: async () => {}, nowById, canUpdateStep: true, canOwnOrSupervise: () => true, openQty() {} } as never;
+const ctrl = { reportProblem: { isPending: false, mutate() {} }, openEdit() {}, handleSupervisorStatus: async () => {}, nowById, canUpdateStep: true, canOwnOrSupervise: () => true, openQty() {}, tickStandard() {}, tickPending: false, savePieceQty() {}, piecePending: false } as never;
 
 /* ── ตารางรายตัวของขั้นที่ยืนอยู่ (เบสเคาะ 09-08 รอบ 11): แถวละไซซ์ · หัวตารางกลาง · ยอดตัวเลขเด่น ── */
 const rows = pieceRowsOf(fakeOrder);
@@ -74,16 +74,23 @@ const table = render(<StepPieceTable step={{ ...base, id: "h", stepType: "HEAT_P
 ok("ตาราง: หัวตารางใช้ TABLE_HEAD_SURFACE (โปร่งตามพื้นแม่)", table.includes("<thead class=\"border-b border-divider bg-transparent text-secondary\""));
 ok("ตาราง: 3 แถว + แถวรวม 120 ตัว", (table.match(/<tr/g) ?? []).length === 5 && table.includes("120"));
 ok("ตาราง: ยอดทำแล้วของขั้นอยู่หัวการ์ด (96 / 240)", /96\s*\/\s*240/.test(table.replace(/<[^>]+>/g, "")));
-ok("ตาราง: ขั้นที่นับยอดมีปุ่มบันทึกยอด (ไปแผ่นกรอกยอดเดิม)", table.includes(">บันทึกยอด<"));
+/* A9.3: ขั้นที่นับยอดกรอก ทำแล้ว/เสีย ต่อแถวได้ — ปุ่มบันทึกโผล่เมื่อแก้ (ไม่มีปุ่มกดไม่ได้) · ปุ่มครบทุกแถวมีตลอด */
+ok("ตาราง: ช่องกรอกทำแล้ว/เสีย แถวละไซซ์ (6 ช่อง)", (table.match(/aria-label="ทำแล้ว /g) ?? []).length === 3 && (table.match(/aria-label="เสีย /g) ?? []).length === 3);
+ok("ตาราง: มีปุ่มครบทุกแถว · ปุ่มบันทึกยอดยังไม่โผล่ตอนยังไม่แก้", table.includes(">ครบทุกแถว<") && !table.includes(">บันทึกยอด<"));
 ok("ตาราง: ไม่มีคำอธิบายวิธีใช้ (A8)", !table.includes("กรอก") && !table.includes("กดเพื่อ"));
+const savedQty = render(<StepPieceTable step={{ ...base, id: "h2", stepType: "HEAT_PRESS", status: "COMPLETED", qtyDone: 240, quantities: [{ id: "q1", sourceOrderItemVariantId: "v1", qtyPlanned: 20, qtyGood: 20, qtyScrap: 1 }] } as never} order={fakeOrder} c={ctrl} />);
+ok("ตาราง: ขั้นที่ปิดแล้วโชว์ยอดต่อแถวที่จดไว้ (อ่านอย่างเดียว)", !savedQty.includes("aria-label=\"ทำแล้ว") && savedQty.includes(">ทำแล้ว<") && savedQty.includes(">เสีย<"));
 const pick = render(<StepPieceTable step={{ ...base, id: "g", stepType: "GARMENT_PICK", status: "PENDING", qtyDone: 0, qtyTotal: 240 } as never} order={fakeOrder} c={ctrl} />);
-ok("ตาราง: ขั้นเบิกเสื้อไม่มีปุ่มบันทึกยอด (ยอดมาจากการเบิกจริง)", !pick.includes(">บันทึกยอด<"));
+ok("ตาราง: ขั้นเบิกเสื้อไม่มีช่องกรอก/ปุ่มบันทึกยอด (ยอดมาจากการเบิกจริง)", !pick.includes(">บันทึกยอด<") && !pick.includes("aria-label=\"ทำแล้ว"));
 
-/* ── เช็คลิสต์ก่อนปิดขั้น (ข้อกำหนดมาตรฐาน v1 อ่านอย่างเดียว · ติ๊กจริงรอ A9.2) ── */
-const check = render(<ChecklistCard step={{ ...base, id: "h", stepType: "HEAT_PRESS", status: "IN_PROGRESS", assignedTo: { id: "u", name: "บาส" } } as never} c={ctrl} nowMs={0} />);
+/* ── เช็คลิสต์ก่อนปิดขั้น (A9.2 ติ๊กได้ · ผลติ๊กมาจาก step.checks · ชิปบอกจำนวนที่เหลือ) ── */
+const check = render(<ChecklistCard step={{ ...base, id: "h", stepType: "HEAT_PRESS", status: "IN_PROGRESS", assignedTo: { id: "u", name: "บาส" }, checks: [{ itemKey: "ตั้งอุณหภูมิ/เวลา/แรงกดตามค่าของลายในใบงาน", checkedAt: new Date("2026-09-09"), checkedBy: { id: "u", name: "บาส" } }] } as never} c={ctrl} nowMs={0} />);
 ok("เช็คลิสต์: หัวการ์ด = ชื่อขั้น + สถานะ", check.includes("รีดร้อน") && check.includes(">กำลังทำ<"));
 ok("เช็คลิสต์: มีผู้ทำ", check.includes("บาส"));
-ok("เช็คลิสต์: ข้อกำหนดของรีดร้อนครบ 3 ข้อ แถวสูง 44px", (check.match(/min-h-11/g) ?? []).length === 3);
+ok("เช็คลิสต์: ข้อกำหนดของรีดร้อนครบ 3 ข้อ แถวสูง 44px เป็น checkbox ติ๊กได้", (check.match(/min-h-11/g) ?? []).length === 3 && (check.match(/type="checkbox"/g) ?? []).length === 3 && (check.match(/checked=""/g) ?? []).length === 1);
+ok("เช็คลิสต์: ชิปบอกจำนวนที่ยังไม่ติ๊ก", check.includes(">ติ๊กอีก 2 ข้อ<"));
+const closed = render(<ChecklistCard step={{ ...base, id: "h3", stepType: "HEAT_PRESS", status: "COMPLETED" } as never} c={ctrl} nowMs={0} />);
+ok("เช็คลิสต์ (ปิดแล้ว): ติ๊กครบ กดไม่ได้ ไม่มีชิปเหลือ", (closed.match(/checked=""/g) ?? []).length === 3 && (closed.match(/disabled=""/g) ?? []).length === 3 && !closed.includes("ติ๊กอีก"));
 ok("เช็คลิสต์: ไม่มีศัพท์ภายใน (จดในระบบ/จดบนกระดาษ/ถือว่าผ่าน)", !check.includes("จดในระบบ") && !check.includes("จดบนกระดาษ") && !check.includes("ถือว่าผ่าน"));
 const outsourced = render(
   <ChecklistCard
