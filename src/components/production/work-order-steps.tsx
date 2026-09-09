@@ -20,10 +20,13 @@ type WorkOrderStepsProps = {
   allDone: boolean;
   qcAction: "paper" | "legacy" | null;
   actionFor: (step: ProductionStep) => ReactNode;
+  /** แถวคำสั่งของขั้นที่ยืนอยู่ (แจ้งปัญหา/มอบหมาย/พัก/ย้อน) — มีเฉพาะหน้าลอง `/proto/step-commands`
+   *  ที่กำลังเทียบว่าคำสั่งควรอยู่บนหัวใบหรืออยู่กับขั้น · ของจริงยังไม่ส่งค่านี้ */
+  stepCommands?: ReactNode;
 };
 
 /** โครงฟอร์มเดิม: ตารางขั้นปัจจุบันซ้าย · เช็คลิสต์และข้อมูลใบขวา */
-export function WorkOrderSteps({ c, current, pairedOpen, allDone, qcAction, actionFor }: WorkOrderStepsProps) {
+export function WorkOrderSteps({ c, current, pairedOpen, allDone, qcAction, actionFor, stepCommands }: WorkOrderStepsProps) {
   const { production, order, workflowSteps, nowMs } = c;
   if (!production || !order) return null;
   const approvedMockup = order.designs[0]?.versionNumber ?? null;
@@ -68,6 +71,7 @@ export function WorkOrderSteps({ c, current, pairedOpen, allDone, qcAction, acti
                 <StepPieceTable key={step.id} step={step} order={order} c={c} stepAction={index > 0 ? actionFor(step) : undefined} />
               )
             ))}
+            {stepCommands}
           </>
         )}
       </div>

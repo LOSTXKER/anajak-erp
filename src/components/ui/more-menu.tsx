@@ -1,10 +1,11 @@
 "use client";
 
+import { Fragment } from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import type { LucideIcon } from "lucide-react";
 import { Ellipsis } from "lucide-react";
 import { Button } from "./button";
-import { RADIUS } from "./tokens";
+import { MENU_SEPARATOR, RADIUS } from "./tokens";
 import { cn } from "@/lib/utils";
 
 /* ============================================================
@@ -23,6 +24,8 @@ export type MoreMenuItem = {
   hint?: string;
   danger?: boolean;
   disabled?: boolean;
+  /** ขีดคั่นเหนือรายการนี้ — ใช้แยกกลุ่มความหมาย เช่น "คำสั่งกับงาน" ออกจาก "ลิงก์ดูข้อมูล" */
+  separatorBefore?: boolean;
   onSelect: () => void;
 };
 
@@ -49,11 +52,14 @@ export function MoreMenu({
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
         <DropdownMenu.Content align={align} sideOffset={6} className={cn("card-surface z-50 min-w-60 max-w-xs p-2 text-sm", RADIUS.inner)}>
-          {items.map((item) => {
+          {items.map((item, index) => {
             const Icon = item.icon;
             return (
+              <Fragment key={item.key}>
+              {item.separatorBefore && index > 0 ? (
+                <DropdownMenu.Separator className={MENU_SEPARATOR} />
+              ) : null}
               <DropdownMenu.Item
-                key={item.key}
                 disabled={item.disabled}
                 onSelect={item.onSelect}
                 className={cn(
@@ -67,6 +73,7 @@ export function MoreMenu({
                   {item.hint ? <span className="block text-xs text-secondary">{item.hint}</span> : null}
                 </span>
               </DropdownMenu.Item>
+              </Fragment>
             );
           })}
         </DropdownMenu.Content>

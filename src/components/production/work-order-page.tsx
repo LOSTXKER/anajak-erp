@@ -49,6 +49,31 @@ function focusFirst(anchor: string, selector: string) {
   el?.focus();
 }
 
+/** ตำแหน่งคำสั่งของขั้น: header = เมนู ⋯ บนหัวใบ (ของจริง) · step = อยู่ใต้การ์ดขั้นทั้งหมด · split = แจ้งปัญหา/มอบหมาย อยู่กับขั้น ที่เหลืออยู่เมนู */
+export type StepCommandPlacement = "header" | "step" | "split";
+
+/**
+ * แถวคำสั่งใต้การ์ดขั้น (หน้าลอง `/proto/step-commands`) — วาง**เฉพาะคำสั่งที่กดได้ตอนนั้น**
+ * ตามกติกา `docs/DESIGN.md` "ห้ามวางปุ่มที่กดไม่ได้" ซึ่งเป็นข้อแลกของทางนี้:
+ * คำสั่งที่ยังทำไม่ได้จะหายไปเลย ต่างจากเมนู ⋯ ที่โชว์ disabled พร้อมเหตุผล
+ */
+function StepCommandRow({ items }: { items: MoreMenuItem[] }) {
+  const usable = items.filter((item) => !item.disabled);
+  if (usable.length === 0) return null;
+  return (
+    <div className="flex flex-wrap gap-2">
+      {usable.map((item) => {
+        const Icon = item.icon;
+        return (
+          <Button key={item.key} size="sm" variant="outline" onClick={item.onSelect} className={item.danger ? "text-red-700 dark:text-red-300" : undefined}>
+            {Icon ? <Icon /> : null} {item.label}
+          </Button>
+        );
+      })}
+    </div>
+  );
+}
+
 /* ───────────────────────── หน้า ───────────────────────── */
 
 function WorkOrder({ id }: { id: string }) {
@@ -63,7 +88,7 @@ function WorkOrder({ id }: { id: string }) {
  * ส่ง controller ปลอมต่อสถานะ เพื่อให้เบสดูทุกสถานะจากหน้าเดียวกับที่ทีมใช้จริง (ไม่วาดซ้ำ)
  * itemsTab = แทนเนื้อแท็บสินค้าทั้งก้อน (หน้าลองไม่มี tRPC ของใบจริง)
  */
-export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab }: { c: WorkOrderController; scannedMockup?: number; itemsTab?: ReactNode }) {
+export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab, commands = "header" }: { c: WorkOrderController; scannedMockup?: number; itemsTab?: ReactNode; commands?: StepCommandPlacement }) {
   const { production, order, me, productionQuery, meQuery, workflowSteps, nowById } = c;
   const approvedMockup = order?.designs[0]?.versionNumber ?? null;
   const stalePaper = Number.isFinite(scannedMockup) && scannedMockup > 0 && approvedMockup !== null && scannedMockup < approvedMockup;
@@ -150,17 +175,13 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab }: { c: 
   const reopenTarget = allDone ? (workflowSteps[workflowSteps.length - 1] ?? null) : ([...workflowSteps.slice(0, flatIndex)].reverse().find((s) => s.status === "COMPLETED") ?? null);
   const reopenBlocked = !!reopenTarget && (FLOW_OWNED_STEP_TYPES.has(reopenTarget.stepType) || reopenTarget.outsourceOrders.length > 0);
   const canManage = c.canSuperviseStep && c.hasProductionPermission;
+  // เมนู "เพิ่มเติม" เรียงตามความถี่ที่หัวหน้าใช้จริง ไม่ใช่ตามลำดับที่เขียนโค้ด (เบสทัก 2026-09-10
+  // "บางอันจำเป็นต้องใช้ แต่ก็ไปซ่อน"): แจ้งปัญหา/มอบหมาย = งานประจำของหัวหน้าอยู่บนสุด ·
+  // พัก/ย้อนกลับ = นาน ๆ ใช้อยู่ล่าง · ขีดคั่นแยก "คำสั่งกับขั้นนี้" ออกจาก "ลิงก์ดูข้อมูลทั้งออเดอร์"
+  // ตำแหน่งคงที่ทุกสถานะ (ของที่กดไม่ได้ disabled + hint ไม่ย้ายที่/ไม่ซ่อน) เพื่อให้คนจำตำแหน่งได้
+  // แดงสงวนให้ย้อนกลับอย่างเดียว — พักขั้นเลิกได้จากเมนูเดิม ไม่ใช่ทางที่ต้องระวัง
   const menu: MoreMenuItem[] = current
     ? [
-        {
-          key: "undo",
-          label: reopenTarget ? `ย้อนกลับไป ${stepLabel(reopenTarget)}` : "ย้อนกลับขั้นก่อน",
-          icon: RotateCcw,
-          hint: !canManage ? "หัวหน้าเท่านั้น" : !reopenTarget ? "ยังไม่มีขั้นที่ปิดแล้ว" : reopenBlocked ? "ขั้นนี้ปิดผ่านหลักฐานของระบบ" : undefined,
-          disabled: !canManage || !reopenTarget || reopenBlocked || c.reopenPending,
-          danger: true,
-          onSelect: () => void (reopenTarget && c.handleReopen(reopenTarget)),
-        },
         {
           key: "problem",
           label: "แจ้งปัญหาขั้นนี้",
@@ -177,18 +198,33 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab }: { c: 
           disabled: !canManage || current.status === "COMPLETED",
           onSelect: () => c.openEdit(current, "manager"),
         },
-        ...(order ? [{ key: "history", label: "ประวัติออเดอร์", icon: History, onSelect: () => window.open(`/orders/${order.id}?tab=history`, "_blank") }] : []),
         {
           key: "hold",
           label: current.status === "ON_HOLD" ? "คืนขั้นนี้กลับคิว" : "พักขั้นนี้ไว้ก่อน",
           icon: Pause,
           hint: canManage ? (current.status === "COMPLETED" ? "ขั้นนี้ปิดแล้ว" : undefined) : "หัวหน้าเท่านั้น",
           disabled: !canManage || current.status === "COMPLETED" || current.status === "FAILED",
-          danger: current.status !== "ON_HOLD",
           onSelect: () => void c.handleSupervisorStatus(current, current.status === "ON_HOLD" ? "PENDING" : "ON_HOLD"),
+        },
+        {
+          key: "undo",
+          label: reopenTarget ? `ย้อนกลับไป ${stepLabel(reopenTarget)}` : "ย้อนกลับขั้นก่อน",
+          icon: RotateCcw,
+          hint: !canManage ? "หัวหน้าเท่านั้น" : !reopenTarget ? "ยังไม่มีขั้นที่ปิดแล้ว" : reopenBlocked ? "ขั้นนี้ปิดผ่านหลักฐานของระบบ" : undefined,
+          disabled: !canManage || !reopenTarget || reopenBlocked || c.reopenPending,
+          danger: true,
+          onSelect: () => void (reopenTarget && c.handleReopen(reopenTarget)),
         },
       ]
     : [];
+  const orderMenu: MoreMenuItem[] = order
+    ? [{ key: "history", label: "ประวัติออเดอร์", icon: History, onSelect: () => window.open(`/orders/${order.id}?tab=history`, "_blank") }]
+    : [];
+  // ตำแหน่งคำสั่งของขั้น — ของจริงเป็น "header" (ทุกคำสั่งอยู่ในเมนู ⋯ บนหัวใบ)
+  // "step"/"split" มีเฉพาะหน้าลอง `/proto/step-commands` ที่เบสกำลังเทียบ
+  const inStep = commands === "step" ? menu : commands === "split" ? menu.filter((m) => m.key === "problem" || m.key === "assign") : [];
+  const inHeader = [...menu.filter((m) => !inStep.includes(m)), ...orderMenu.map((m, i) => (i === 0 ? { ...m, separatorBefore: menu.length > inStep.length } : m))];
+  const stepCommands = inStep.length > 0 ? <StepCommandRow items={inStep} /> : undefined;
 
   return (
     <>
@@ -220,7 +256,7 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab }: { c: 
                 </a>
               </Button>
               {primary}
-              <MoreMenu items={menu} size="sm" />
+              <MoreMenu items={inHeader} size="sm" />
             </>
           ) : undefined
         }
@@ -307,7 +343,7 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab }: { c: 
                 </TabsBar>
                 <div className="mt-6">
                   <TabsContent value="steps">
-                    <WorkOrderSteps c={c} current={current} pairedOpen={pairedOpen} allDone={allDone} qcAction={qcAction} actionFor={actionFor} />
+                    <WorkOrderSteps c={c} current={current} pairedOpen={pairedOpen} allDone={allDone} qcAction={qcAction} actionFor={actionFor} stepCommands={stepCommands} />
                   </TabsContent>
 
                   <TabsContent value="items" className="space-y-6">
