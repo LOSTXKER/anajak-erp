@@ -9,6 +9,7 @@ import { formatDate } from "@/lib/utils";
 import type { ProductionStep } from "./types";
 import type { WorkOrderController } from "./work-order-controller";
 import { GarmentPickCard } from "./garment-pick-card";
+import { GarmentReceiveInline } from "./garment-receive-inline";
 import { checklistAnchor, ChecklistCard } from "./work-order-checklist";
 import { StepPieceTable } from "./work-order-quantities";
 import { daysFromNow } from "./work-order-pieces";
@@ -67,7 +68,24 @@ export function WorkOrderSteps({ c, current, pairedOpen, allDone, qcAction, step
                   />
                 </div>
               ) : (
-                <StepPieceTable key={step.id} step={step} order={order} c={c} footer={stepFooter?.(step)} />
+                <StepPieceTable
+                  key={step.id}
+                  step={step}
+                  order={order}
+                  c={c}
+                  footer={stepFooter?.(step)}
+                  // ตรวจรับเสื้อลูกค้า = นับจริงในกล่องเลย ไม่เด้ง dialog (เบสสั่ง 2026-09-10)
+                  replaceBody={
+                    step.stepType === "GARMENT_RECEIVE" ? (
+                      <GarmentReceiveInline
+                        orderId={order.id}
+                        productionStepId={step.id}
+                        canRecord={c.canUpdateStep && c.canOwnOrSupervise(step) && step.status !== "COMPLETED" && step.status !== "FAILED"}
+                        footer={stepFooter?.(step)}
+                      />
+                    ) : undefined
+                  }
+                />
               )
             ))}
           </>

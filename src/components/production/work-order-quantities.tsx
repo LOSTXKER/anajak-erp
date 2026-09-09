@@ -3,7 +3,6 @@ import { ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { InfoChip } from "@/components/ui/info-chip";
-import { Metric } from "@/components/ui/metric";
 import { NumberInput } from "@/components/ui/number-input";
 import { Section } from "@/components/ui/section";
 import { CONTROL_H } from "@/components/ui/control-size";
@@ -40,7 +39,7 @@ export function pieceRowsOf(order: ProductionDetail["order"]): PieceRow[] {
 }
 
 /** ตารางรายตัว: แถวละไซซ์ · ขั้นที่นับยอดกรอก "ทำแล้ว/เสีย" ต่อแถวได้ — ยอดรวมของขั้น = ผลบวก (server) */
-export function StepPieceTable({ step, order, c, stepAction, footer }: { step: ProductionStep; order: ProductionDetail["order"]; c: WorkOrderController; stepAction?: ReactNode; footer?: ReactNode }) {
+export function StepPieceTable({ step, order, c, stepAction, footer, replaceBody }: { step: ProductionStep; order: ProductionDetail["order"]; c: WorkOrderController; stepAction?: ReactNode; footer?: ReactNode; replaceBody?: ReactNode }) {
   const rows = pieceRowsOf(order);
   const total = rows.reduce((n, r) => n + r.qty, 0);
   const groups = new Map<string, PieceRow[]>();
@@ -107,7 +106,7 @@ export function StepPieceTable({ step, order, c, stepAction, footer }: { step: P
           </div>
         </div>
       ) : null}
-      {rows.length === 0 ? (
+      {replaceBody ?? (rows.length === 0 ? (
         <EmptyState icon={ImageIcon} title="ออเดอร์นี้ยังไม่มีรายการเสื้อ" />
       ) : (
         <div id={pieceTableAnchor(step.id)} role="region" aria-label={`รายการเสื้อ ขั้น${stepLabel(step)}`}>
@@ -191,15 +190,21 @@ export function StepPieceTable({ step, order, c, stepAction, footer }: { step: P
               );
             })}
           </div>
-          <div className={cn("grid items-center border-t border-divider bg-surface-muted py-4", showQty ? "grid-cols-[25%_23%_26%_26%]" : "grid-cols-[65%_35%]")}>
+          {/* แถวรวม: ไม่มีพื้นเทา และตัวเลขเป็นข้อความล้วนไม่มีหน่วยต่อท้าย เพื่อให้ตรงคอลัมน์
+              กับตัวเลขในตารางเป๊ะ (เบสทัก 2026-09-10 "รวมทั้งใบพื้นหลังไม่ต้องสีเทา ส่วนคอลัมจำนวนให้เลขมันตรงกัน") */}
+          <div className={cn("grid items-center border-t border-divider py-4", showQty ? "grid-cols-[25%_23%_26%_26%]" : "grid-cols-[65%_35%]")}>
             <span className="pl-5 text-xs text-muted">รวมทั้งใบ</span>
-            <Metric size="sm" value={total.toLocaleString("th-TH")} unit="ตัว" className={cn("px-3 text-right", !showQty && "pr-5")} />
-            {showQty ? <Metric size="sm" value={doneSum.toLocaleString("th-TH")} className="px-3 text-right" /> : null}
-            {showQty ? <Metric size="sm" value={wasteSum.toLocaleString("th-TH")} className="pl-3 pr-5 text-right" tone={wasteSum > 0 ? "warning" : undefined} /> : null}
+            <span className={cn("px-3 text-right text-sm font-semibold tabular-nums text-strong", !showQty && "pr-5")}>{total.toLocaleString("th-TH")}</span>
+            {showQty ? <span className="px-3 text-right text-sm font-semibold tabular-nums text-strong">{doneSum.toLocaleString("th-TH")}</span> : null}
+            {showQty ? (
+              <span className={cn("pl-3 pr-5 text-right text-sm font-semibold tabular-nums", wasteSum > 0 ? "text-amber-700 dark:text-amber-300" : "text-strong")}>
+                {wasteSum.toLocaleString("th-TH")}
+              </span>
+            ) : null}
           </div>
         </div>
-      )}
-      {footer ? <div className="flex flex-wrap items-center gap-2 border-t border-divider px-5 py-4">{footer}</div> : null}
+      ))}
+      {!replaceBody && footer ? <div className="flex flex-wrap items-center gap-2 border-t border-divider px-5 py-4">{footer}</div> : null}
     </Section>
   );
 }

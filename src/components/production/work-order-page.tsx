@@ -105,6 +105,8 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab }: { c: 
   // ปิดขั้นได้เมื่อติ๊กข้อกำหนดครบ (server กั้นอีกชั้น) — ปุ่มยังอยู่ที่เดิม กดแล้วพาไปเช็คลิสต์
   const hasVariantRows = order ? pieceRowsOf(order).some((r) => r.variantId) : false;
   function actionFor(step: ProductionStep) {
+    // ขั้นตรวจรับเสื้อลูกค้ามีปุ่มบันทึกอยู่ในฟอร์มนับจริงในกล่องแล้ว (ไม่เด้ง dialog อีก)
+    if (step.stepType === "GARMENT_RECEIVE") return null;
     const outsource = activeOutsource(step);
     if (outsource) {
       return c.canUpdateStep && c.canOwnOrSupervise(step) ? (
