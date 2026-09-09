@@ -167,7 +167,7 @@ function BaselineDetail({ state, role, view, onBack }: { state: FlowState; role:
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-3 px-4 pt-4 sm:px-6">
         <Button variant="outline" size="sm" onClick={onBack}><ArrowLeft /> กลับรายการ</Button>
-        <p className="text-sm text-secondary">แบบปัจจุบันสำหรับดูเปรียบเทียบ ใช้ข้อมูลสถานการณ์เดียวกับแบบ A/B</p>
+        <p className="text-sm text-secondary">แบบปัจจุบันสำหรับดูเปรียบเทียบ ใช้ข้อมูลสถานการณ์เดียวกับหน้าลองโครงเดิม</p>
       </div>
       {limitations.length ? <p className="mx-4 rounded-lg border border-divider bg-surface-muted px-4 py-3 text-sm text-secondary sm:mx-6">จอนี้ยังแสดง {limitations.join(" / ")} แยกกันไม่ได้ จึงใช้เทียบการจัดวางเท่านั้น</p> : null}
       <div onClickCapture={guardNavigation}>
@@ -218,7 +218,7 @@ function BaselineList({ state, role, onSelectOrder }: CurrentBaselineProps) {
   const visibleRows = station === STATION_OUTSOURCE_ALL ? outsourceRows : lensRows.filter((row) => stationKeys.has(row.job.key));
 
   return (
-    <PageShell title="การผลิต" icon={Factory} tone="production" description={`แบบปัจจุบัน · ${views.length} ออเดอร์จากสถานการณ์เดียวกับแบบ A/B`}>
+    <PageShell title="การผลิต" icon={Factory} tone="production" description={`แบบปัจจุบัน · ${views.length} ออเดอร์จากสถานการณ์เดียวกับหน้าลองโครงเดิม`}>
       <div className="space-y-5">
         <DeskTiles summary={deskSummary(rows)} lens={lens} onSelectLens={setLens} />
         <DeskToolbar searchDefault={search} searchInputRef={null} onSearchChange={setSearch} station={station} stations={stations} outsourceTotal={outsourceRows.length} outsourceOverdue={outsourceRows.filter((row) => row.dueInDays !== null && row.dueInDays < 0).length} onSelectStation={setStation} total={lensRows.length} />

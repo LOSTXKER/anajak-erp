@@ -1,8 +1,8 @@
 # PROGRESS — สถานะสด
 
-## ตอนนี้ (2026-09-09 · A12 · กลับโครงเดิม)
+## ตอนนี้ (2026-09-10 · A12 · เบสอนุมัติรวม main)
 - เบสแจ้ง “ใช้ยากกว่าเดิมอีก ขอเอาโครงแบบเดิม” → ยุติทิศ A/B แล้วคืนโครงหน้ารวมและใบผลิตแบบเดิมใน `/proto/production-flow`
-- ทำบน `codex/production-flow-proto`; ยังไม่เปลี่ยนหน้าการผลิตที่ใช้งานจริง และไม่เปิด Production V2
+- เบสสั่ง “commit push main” วันที่ 10 ก.ย. → รวมงานจาก `codex/production-flow-proto` เข้า main; หน้าลองยังเป็นข้อมูลจำลอง และไม่เปิด Production V2
 - ทะเบียน proto **รอเคาะรายละเอียดโครงเดิม**; คง 15 ออเดอร์ / 16 ตัวเลือกสถานการณ์และวันจำลอง 9 ก.ย. 2026
 
 ## สิ่งที่เปลี่ยนตามเบส
@@ -22,6 +22,8 @@
 - ภาพเสื้อเป็นภาพตัวอย่างสร้างเพื่อ proto มี provenance ไม่ใช่แบบอนุมัติลูกค้า
 
 ## ผลตรวจ
+- ตรวจซ้ำก่อนรวม main วันที่ 10 ก.ย. ที่ code a91060d: ด่านขั้นต่ำและ build ผ่านครบ; main 9761802 เป็นฐานตรงกัน ไม่มี conflict
+- Release source audit ผ่าน: ไม่มี API/DB/auth mutation; shared rail คง default หน้าจริง; A/B ไม่มี runtime route และแก้คำอ้าง A/B เก่าในหน้าเปรียบเทียบ
 - typecheck ผ่าน; lint 0 errors / 23 warnings เดิม; ESLint ไฟล์แก้ผ่าน
 - tests: 172 files / 1,763 tests ผ่าน รวม domain 28 tests; ตรวจ shared board/worklist/desk 60 tests หลังเพิ่ม tooltip override ผ่าน
 - verify:ui ผ่าน tokens/hierarchy, dots 32 จาก baseline35, muted243 จาก baseline254; work-order 34 ผ่าน / 0 ตก
@@ -48,4 +50,5 @@
 - npm run dev:demo ที่ port3000 ต่อ local demo; ใช้ HTTP/WebSocket proxy ชั่วคราว localhost:3005 →3000 เพราะ Chrome port3000 มี Fitness Service Worker ค้าง
 - รอบนี้เริ่ม dev+proxy ใหม่เมื่อ process เดิมหยุด; ต้องมีทั้งคู่ทำงานเพื่อเปิดลิงก์ local ใช้ Chrome ที่ล็อกอินไว้
 - ไม่ล้าง cookies/cache/Service Worker และไม่ bypass auth
-- ส่งงานบน feature branch; ผลตรวจเป็น local prototype ไม่มีการปล่อยขึ้น Production หรือ push main
+- การปล่อยรอบนี้ใช้ Git push main → Vercel Git deployment; ไม่สั่ง migration และไม่ deploy จาก env local demo
+- ผล CI และสถานะเว็บหลัง push รายงานแยกในข้อความส่งมอบ; ติดตามได้ใน GitHub Actions และ Vercel ของ commit main
