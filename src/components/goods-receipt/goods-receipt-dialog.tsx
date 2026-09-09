@@ -114,7 +114,7 @@ export function GoodsReceiptDialog(props: GoodsReceiptDialogProps) {
               0,
               props.operationJobId ? l.qtyReturnable : l.qtyReceivedNet,
             )
-          : Math.max(0, l.qtyExpected - l.qtyReceivedNet),
+          : Math.max(0, l.qtyExpected - l.qtyUsableNet),
     }));
 
   return <ReceiptForm {...props} initialLines={lines} />;

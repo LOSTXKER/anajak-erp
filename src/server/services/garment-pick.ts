@@ -332,11 +332,15 @@ export async function getGarmentPickState(
     },
   });
 
-  const fromStock = order.items
+  const stockProducts = order.items
     .flatMap((it) => it.products)
-    .filter((p) => p.itemSource === "FROM_STOCK" && p.productId);
+    .filter((p) => p.itemSource === "FROM_STOCK");
+  const missingProducts = stockProducts
+    .filter((product) => !product.productId)
+    .map((product) => `รายการ "${product.description}" ยังไม่ได้เลือกสินค้าจากสต๊อก`);
+  const fromStock = stockProducts.filter((product) => product.productId);
   if (fromStock.length === 0) {
-    return { orderId, orderNumber: order.orderNumber, lines: [], problems: [] };
+    return { orderId, orderNumber: order.orderNumber, lines: [], problems: missingProducts };
   }
 
   const productIds = [...new Set(fromStock.map((p) => p.productId!))];
@@ -370,7 +374,7 @@ export async function getGarmentPickState(
     orderId,
     orderNumber: order.orderNumber,
     lines,
-    problems: built.problems,
+    problems: [...missingProducts, ...built.problems],
   };
 }
 
@@ -545,6 +549,9 @@ export async function issueGarments(
     }
 
     const state = await getGarmentPickState(tx, production.orderId);
+    if (state.problems.length > 0) {
+      badRequest(`จับคู่รายการเสื้อกับสต๊อกไม่ครบ — ${state.problems.join(" · ")} กรุณาตรวจรายการและ sync สต๊อกก่อนเบิก`);
+    }
     const stateBySku = new Map(state.lines.map((line) => [line.sku, line]));
       const {
         requested,

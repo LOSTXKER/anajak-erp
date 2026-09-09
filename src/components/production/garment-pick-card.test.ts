@@ -20,6 +20,7 @@ const garmentPickStep = {
   id: "garment-pick-1",
   productionId: "production-1",
   stepType: "GARMENT_PICK",
+  executionMode: "IN_HOUSE",
   customStepName: null,
   status: "PENDING",
   sortOrder: 1,

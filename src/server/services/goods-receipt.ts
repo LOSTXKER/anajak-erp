@@ -23,6 +23,8 @@ import { RECEIPT_TYPE_LABELS, type ReceiptType } from "@/lib/goods-receipt";
 // สูตรรับสุทธิ/ด่านกรอก/สรุปขาดเกิน แยกไป goods-receipt-plan.ts — unit test ได้ไม่ต้องมี DB
 import {
   netReceivedByVariant,
+  netUsableReceivedByVariant,
+  type ReceiptNetRow,
   variantNetKey,
   receiptInspectionOfVariants,
   assertValidReceiptLines,
@@ -62,6 +64,7 @@ export interface ReceiptContextLine {
   color: string | null;
   qtyExpected: number; // ตามออเดอร์
   qtyReceivedNet: number; // รับแล้วสุทธิ (รับ − คืน) จากใบก่อนหน้า
+  qtyUsableNet: number; // รับสุทธิที่ใช้ผลิตได้ ไม่รวมตำหนิที่ยังไม่ได้คืน
   qtyReturnable: number; // ของเสียหรือส่วนเกินที่ยังคืนได้โดยไม่ถอนของดีที่ใช้ผลิต
 }
 
@@ -80,7 +83,7 @@ function customerGarmentReturnableByVariant(
 ) {
   const totals = new Map<
     string,
-    { received: number; defect: number; returned: number }
+    { received: number; defect: number; returned: number; returnedDefect: number }
   >();
   for (const row of rows) {
     if (!row.orderItemProductId) continue;
@@ -93,12 +96,14 @@ function customerGarmentReturnableByVariant(
       received: 0,
       defect: 0,
       returned: 0,
+      returnedDefect: 0,
     };
     if (row.receipt.receiptType === "CUSTOMER_GARMENT") {
       current.received += row.qtyCounted;
       current.defect += row.defectQty;
     } else if (row.receipt.receiptType === "CUSTOMER_RETURN") {
       current.returned += row.qtyCounted;
+      current.returnedDefect += row.defectQty;
     }
     totals.set(key, current);
   }
@@ -106,8 +111,8 @@ function customerGarmentReturnableByVariant(
   return new Map(
     [...totals].map(([key, total]) => {
       const planned = plannedByVariant.get(key) ?? 0;
-      const outstandingDefect = Math.max(0, total.defect - total.returned);
-      const returnsAfterDefects = Math.max(0, total.returned - total.defect);
+      const outstandingDefect = Math.max(0, total.defect - total.returnedDefect);
+      const returnsAfterDefects = Math.max(0, total.returned - total.returnedDefect);
       const usableReceived = Math.max(0, total.received - total.defect);
       const surplusUsable = Math.max(
         0,
@@ -179,6 +184,9 @@ export async function getReceiptContext(
       receiptType: l.receipt.receiptType,
     }))
   );
+  const usableByKey = netUsableReceivedByVariant(prior.map((line) => ({
+    ...line, receiptType: line.receipt.receiptType,
+  })));
   const plannedByVariant = new Map(
     products.flatMap((product) =>
       product.variants.map((variant) => [
@@ -200,6 +208,7 @@ export async function getReceiptContext(
       color: v.color,
       qtyExpected: v.quantity,
       qtyReceivedNet: netByKey.get(variantNetKey(p.id, v.size, v.color)) ?? 0,
+      qtyUsableNet: usableByKey.get(variantNetKey(p.id, v.size, v.color)) ?? 0,
       qtyReturnable:
         returnableByKey.get(variantNetKey(p.id, v.size, v.color)) ?? 0,
     }))
@@ -404,6 +413,7 @@ interface CanonicalReceiptValidation {
   productIds: string[];
   products: CanonicalReceiptProduct[];
   priorNetByVariant: Map<string, number>;
+  priorEvidence: ReceiptNetRow[];
 }
 
 function receiptTypeAppliesToProduct(receiptType: string, itemSource: string | null) {
@@ -481,6 +491,7 @@ async function validateCanonicalReceiptLines(
       productIds: inputProductIds,
       products,
       priorNetByVariant: new Map(),
+      priorEvidence: [],
     };
   }
 
@@ -515,22 +526,12 @@ async function validateCanonicalReceiptLines(
       receipt: { select: { receiptType: true } },
     },
   });
-  const priorNetByVariant = netReceivedByVariant(
-    priorRows
-      .filter((row) => {
-        const product = row.orderItemProductId
-          ? productById.get(row.orderItemProductId)
-          : undefined;
-        return !!product && receiptTypeAppliesToProduct(row.receipt.receiptType, product.itemSource);
-      })
-      .map((row) => ({
-        orderItemProductId: row.orderItemProductId,
-        size: row.size,
-        color: row.color,
-        qtyCounted: row.qtyCounted,
-        receiptType: row.receipt.receiptType,
-      })),
-  );
+  const priorEvidence = priorRows.filter((row) => {
+    const product = row.orderItemProductId ? productById.get(row.orderItemProductId) : undefined;
+    return !!product && receiptTypeAppliesToProduct(row.receipt.receiptType, product.itemSource);
+  }).map((row) => ({ ...row, receiptType: row.receipt.receiptType }));
+  const priorNetByVariant = netReceivedByVariant(priorEvidence);
+  const priorUsableByVariant = netUsableReceivedByVariant(priorEvidence);
   const plannedByVariant = new Map(
     [...canonicalByKey].map(([key, canonical]) => [key, canonical.quantity]),
   );
@@ -564,19 +565,24 @@ async function validateCanonicalReceiptLines(
         );
       }
     } else {
-      const remainingExpected = Math.max(0, canonical.quantity - priorNet);
+      const remainingExpected = Math.max(0, canonical.quantity - (priorUsableByVariant.get(key) ?? 0));
       if (line.qtyExpected !== remainingExpected) {
         badRequest("ยอดที่คาดในใบตรวจรับเปลี่ยนไปแล้ว กรุณาโหลดรายการใหม่ก่อนบันทึก");
       }
     }
     return {
       ...line,
+      // คืนตำหนิที่ค้างก่อนของดี และตรึงไว้ในใบคืนจริงเพื่อไม่ให้ receipt อนาคต
+      // ย้อนเปลี่ยนการจัดสรรของใบคืนเก่า (เช่น เคยคืนของดีก่อนรับชุดตำหนิ).
+      defectQty: params.receiptType === "CUSTOMER_RETURN"
+        ? Math.min(line.qtyCounted, Math.max(0, priorNet - (priorUsableByVariant.get(key) ?? 0)))
+        : line.defectQty,
       description: canonical.product.description,
       size: canonical.size,
       color: canonical.color ?? undefined,
       qtyExpected: params.receiptType === "CUSTOMER_RETURN"
         ? 0
-        : Math.max(0, canonical.quantity - priorNet),
+        : Math.max(0, canonical.quantity - (priorUsableByVariant.get(key) ?? 0)),
     };
   });
 
@@ -596,7 +602,7 @@ async function validateCanonicalReceiptLines(
             : Math.max(0, priorNetByVariant.get(key) ?? 0)
           : Math.max(
               0,
-              canonical.quantity - (priorNetByVariant.get(key) ?? 0),
+              canonical.quantity - (priorUsableByVariant.get(key) ?? 0),
             )),
       0,
     );
@@ -614,6 +620,7 @@ async function validateCanonicalReceiptLines(
     productIds: [...new Set(validatedLines.map((line) => line.orderItemProductId!))],
     products,
     priorNetByVariant,
+    priorEvidence,
   };
 }
 
@@ -623,26 +630,21 @@ async function assertReturnDoesNotInvalidateActiveProduction(
     orderId: string;
     lines: CreateReceiptLineInput[];
     products: CanonicalReceiptProduct[];
-    priorNetByVariant: Map<string, number>;
+    priorEvidence: ReceiptNetRow[];
   },
 ) {
-  const afterReturn = new Map(params.priorNetByVariant);
-  for (const line of params.lines) {
-    const key = variantNetKey(
-      line.orderItemProductId!,
-      line.size ?? null,
-      line.color ?? null,
-    );
-    afterReturn.set(key, (afterReturn.get(key) ?? 0) - line.qtyCounted);
-  }
-  const affectedIds = new Set(params.lines.map((line) => line.orderItemProductId!));
-  const wouldInvalidate = params.products
-    .filter((product) => affectedIds.has(product.id))
-    .some(
-      (product) =>
-        !receiptInspectionOfVariants(product.id, product.variants, afterReturn)
-          .receivedInspected,
-    );
+  const before = netUsableReceivedByVariant(params.priorEvidence);
+  const after = netUsableReceivedByVariant([
+    ...params.priorEvidence,
+    ...params.lines.map((line) => ({
+      ...line, orderItemProductId: line.orderItemProductId!, receiptType: "CUSTOMER_RETURN",
+    })),
+  ]);
+  const wouldInvalidate = params.products.some((product) => product.variants.some((variant) => {
+    const key = variantNetKey(product.id, variant.size, variant.color);
+    const afterQty = after.get(key) ?? 0;
+    return afterQty < variant.quantity && afterQty < (before.get(key) ?? 0);
+  }));
   if (!wouldInvalidate) return;
 
   // lock topology ถูกถืออยู่แล้ว: ตรวจสถานะใน transaction เดียวกันและ reject ทั้งใบ
@@ -667,7 +669,8 @@ async function assertReturnDoesNotInvalidateActiveProduction(
 
 // อัปเดต receivedInspected ของรายการสินค้าตามยอดรับสุทธิล่าสุด — เรียกใน tx เดียวกับใบ
 async function refreshReceivedInspected(tx: PrismaTx, orderId: string, productIds: string[]) {
-  if (productIds.length === 0) return;
+  const progress = { qtyDone: 0, qtyTotal: 0 };
+  if (productIds.length === 0) return progress;
   const products = await tx.orderItemProduct.findMany({
     where: { id: { in: productIds } },
     select: {
@@ -686,6 +689,7 @@ async function refreshReceivedInspected(tx: PrismaTx, orderId: string, productId
       size: true,
       color: true,
       qtyCounted: true,
+      defectQty: true,
       receipt: { select: { receiptType: true } },
     },
   });
@@ -696,7 +700,7 @@ async function refreshReceivedInspected(tx: PrismaTx, orderId: string, productId
         : p.itemSource === "CUSTOM_MADE"
           ? new Set(["SEWING_GARMENT"])
           : new Set(["CUSTOMER_GARMENT", "SEWING_GARMENT"]);
-    const netByVariant = netReceivedByVariant(
+    const netByVariant = netUsableReceivedByVariant(
       lines
         .filter(
           (line) =>
@@ -707,6 +711,7 @@ async function refreshReceivedInspected(tx: PrismaTx, orderId: string, productId
           size: line.size,
           color: line.color,
           qtyCounted: line.qtyCounted,
+          defectQty: line.defectQty,
           receiptType: line.receipt.receiptType,
         })),
     );
@@ -714,7 +719,14 @@ async function refreshReceivedInspected(tx: PrismaTx, orderId: string, productId
       where: { id: p.id },
       data: receiptInspectionOfVariants(p.id, p.variants, netByVariant),
     });
+    for (const variant of p.variants) {
+      progress.qtyTotal += variant.quantity;
+      progress.qtyDone += Math.min(variant.quantity, Math.max(0,
+        netByVariant.get(variantNetKey(p.id, variant.size, variant.color)) ?? 0,
+      ));
+    }
   }
+  return progress;
 }
 
 interface StationReceiptStep {
@@ -803,11 +815,9 @@ async function assertStationReceiptStep(
   return target;
 }
 
-export async function createGoodsReceipt(
-  prisma: ExtendedPrismaClient,
-  params: CreateReceiptParams
-) {
+function validateGoodsReceiptInput(params: CreateReceiptParams) {
   if (params.operationJobId) assertProductionV2ApiEnabled();
+  if (params.correction && !params.canSupervise) forbidden("แก้ยอดตรวจรับได้เฉพาะหัวหน้าฝ่ายผลิต");
   const stationInspection =
     (params.receiptType === "CUSTOMER_GARMENT" &&
       !!(params.productionStepId || params.operationJobId)) ||
@@ -819,295 +829,325 @@ export async function createGoodsReceipt(
     allowAllZero:
       stationInspection && params.receiptType === "CUSTOMER_GARMENT",
   });
+  return lines;
+}
+
+async function createGoodsReceiptInTransaction(
+  tx: PrismaTx,
+  params: CreateReceiptParams,
+) {
+  const lines = validateGoodsReceiptInput(params);
   const receiptId = goodsReceiptIdForRequest(params.orderId, params.idempotencyKey);
   const requestFingerprint = goodsReceiptRequestFingerprint({ ...params, lines });
 
   const typeLabel = RECEIPT_TYPE_LABELS[params.receiptType];
 
-  const result = await prisma.$transaction(async (tx) => {
-    const productionOwner = await lockGoodsReceiptWriteChain(tx, params.orderId);
+  const productionOwner = await lockGoodsReceiptWriteChain(tx, params.orderId);
 
-    // retry หลัง response หลุดต้องตอบผลเดิมก่อนเช็กสถานะสด: รอบแรกอาจปิดขั้น/ดันงานต่อแล้ว
-    const replay = await tx.goodsReceipt.findUnique({
-      where: { id: receiptId },
-      include: { lines: true },
+  // retry หลัง response หลุดต้องตอบผลเดิมก่อนเช็กสถานะสด: รอบแรกอาจปิดขั้น/ดันงานต่อแล้ว
+  const replay = await tx.goodsReceipt.findUnique({
+    where: { id: receiptId },
+    include: { lines: true },
+  });
+  if (replay) {
+    const audit = await tx.auditLog.findFirst({
+      where: {
+        action: "CREATE",
+        entityType: "GOODS_RECEIPT",
+        entityId: replay.id,
+      },
+      select: { newValue: true },
     });
-    if (replay) {
-      const audit = await tx.auditLog.findFirst({
-        where: {
-          action: "CREATE",
-          entityType: "GOODS_RECEIPT",
-          entityId: replay.id,
-        },
-        select: { newValue: true },
-      });
-      const stored = readReceiptStoredOutcome(audit?.newValue);
-      if (!stored) {
-        internal("พบใบตรวจรับเดิมแต่ไม่พบข้อมูลยืนยันคำขอ กรุณาแจ้งผู้ดูแลระบบ");
-      }
-      if (stored.requestFingerprint !== requestFingerprint) {
-        conflict("คำขอบันทึกใบตรวจรับนี้ถูกใช้กับข้อมูลคนละชุดแล้ว กรุณากดบันทึกเป็นใบใหม่");
-      }
-      return {
-        receipt: replay,
-        alreadyRecorded: true,
-        summary: summarizeReceiptLines(params.receiptType, replay.lines),
-      };
+    const stored = readReceiptStoredOutcome(audit?.newValue);
+    if (!stored) {
+      internal("พบใบตรวจรับเดิมแต่ไม่พบข้อมูลยืนยันคำขอ กรุณาแจ้งผู้ดูแลระบบ");
     }
+    if (stored.requestFingerprint !== requestFingerprint) {
+      conflict("คำขอบันทึกใบตรวจรับนี้ถูกใช้กับข้อมูลคนละชุดแล้ว กรุณากดบันทึกเป็นใบใหม่");
+    }
+    return {
+      receipt: replay,
+      alreadyRecorded: true,
+      summary: summarizeReceiptLines(params.receiptType, replay.lines),
+    };
+  }
 
-    if (!params.operationJobId && productionOwner.productionCompletionOwnerId) {
-      badRequest(
-        "งานนี้ต้องบันทึกการรับของจากงานปัจจุบันในโหมดสถานี",
-      );
-    }
-    if (params.productionStepId) {
-      await assertLegacyStationTargetIsNotV2(tx, params.productionStepId);
-    }
+  if (!params.operationJobId && productionOwner.productionCompletionOwnerId) {
+    badRequest(
+      "งานนี้ต้องบันทึกการรับของจากงานปัจจุบันในโหมดสถานี",
+    );
+  }
+  if (params.productionStepId) {
+    await assertLegacyStationTargetIsNotV2(tx, params.productionStepId);
+  }
 
-    await tx.order.findUniqueOrThrow({
-      where: { id: params.orderId },
-      select: { id: true },
-    });
+  await tx.order.findUniqueOrThrow({
+    where: { id: params.orderId },
+    select: { id: true },
+  });
 
-    // ใบผูก outsource ต้องเป็นของจริงและอยู่ใต้ออเดอร์เดียวกัน — schema ไม่มี FK
-    // จึงตรวจหลัง lock และ commit พร้อมใบ ไม่ใช้ snapshot นอก transaction
-    let outsourceProductionStepId: string | null = null;
-    if (params.outsourceOrderId) {
-      if (params.receiptType !== "OUTSOURCE_RETURN") {
-        badRequest("ผูกใบ outsource ได้เฉพาะใบตรวจนับชนิดรับกลับร้านนอก");
-      }
-      const outsource = await tx.outsourceOrder.findUnique({
-        where: { id: params.outsourceOrderId },
-        select: {
-          productionStepId: true,
-          productionStep: {
-            select: { production: { select: { orderId: true } } },
-          },
-        },
-      });
-      if (!outsource) badRequest("ไม่พบใบ outsource ที่อ้างถึง");
-      if (outsource.productionStep.production.orderId !== params.orderId) {
-        badRequest("ใบ outsource ที่อ้างถึงไม่ใช่ของออเดอร์นี้");
-      }
-      outsourceProductionStepId = outsource.productionStepId;
+  // ใบผูก outsource ต้องเป็นของจริงและอยู่ใต้ออเดอร์เดียวกัน — schema ไม่มี FK
+  // จึงตรวจหลัง lock และ commit พร้อมใบ ไม่ใช้ snapshot นอก transaction
+  let outsourceProductionStepId: string | null = null;
+  if (params.outsourceOrderId) {
+    if (params.receiptType !== "OUTSOURCE_RETURN") {
+      badRequest("ผูกใบ outsource ได้เฉพาะใบตรวจนับชนิดรับกลับร้านนอก");
     }
-
-    if (params.productionStepId && params.operationJobId) {
-      badRequest("ระบุ productionStepId และ operationJobId พร้อมกันไม่ได้");
-    }
-    if (
-      (params.productionStepId || params.operationJobId) &&
-      params.receiptType !== "CUSTOMER_GARMENT" &&
-      !(params.operationJobId && params.receiptType === "CUSTOMER_RETURN")
-    ) {
-      badRequest("ขั้นสถานีนี้รองรับเฉพาะการรับหรือคืนเสื้อลูกค้า");
-    }
-    if (params.operationJobId && params.expectedRevision === undefined) {
-      badRequest("คำสั่ง Production V2 ต้องระบุ expectedRevision");
-    }
-
-    let stationStep: StationReceiptStep | null = null;
-    let operation: SpecializedOperation | null = null;
-    if (params.productionStepId) {
-      stationStep = await assertStationReceiptStep(tx, {
-        stepId: params.productionStepId,
-        orderId: params.orderId,
-        userId: params.userId,
-        canSupervise: params.canSupervise,
-      });
-    }
-    if (params.operationJobId) {
-      operation = await loadSpecializedOperation(tx, {
-        operationJobId: params.operationJobId,
-        expectedRevision: params.expectedRevision!,
-        actorId: params.userId,
-        canSupervise: params.canSupervise === true,
-        requiredWorkCenterCode: "PREP",
-        orderId: params.orderId,
-      });
-    }
-
-    // ใช้ canonical product/variant + ยอดสุทธิสดหลังถือ order/topology lock เสมอ.
-    // Station ต้องส่งครบทุกไซส์/สี รวมแถวที่นับได้ 0 เพื่อเก็บ shortage evidence.
-    const validated = await validateCanonicalReceiptLines(tx, params, lines);
-    const receiptLines = validated.lines;
-    const productIds = validated.productIds;
-    if (params.receiptType === "CUSTOMER_RETURN") {
-      if (!params.operationJobId && !params.correction) {
-        await assertReturnDoesNotInvalidateActiveProduction(tx, {
-          orderId: params.orderId,
-          lines: receiptLines,
-          products: validated.products,
-          priorNetByVariant: validated.priorNetByVariant,
-        });
-      }
-    }
-    const summary = summarizeReceiptLines(params.receiptType, receiptLines);
-
-    const created = await tx.goodsReceipt.create({
-      data: {
-        id: receiptId,
-        orderId: params.orderId,
-        productionStepId:
-          params.operationJobId ??
-          params.productionStepId ??
-          outsourceProductionStepId,
-        receiptType: params.receiptType,
-        outsourceOrderId: params.outsourceOrderId,
-        notes: params.notes,
-        photoUrls: params.photoUrls,
-        receivedById: params.userId,
-        lines: {
-          create: receiptLines.map((l) => ({
-            orderItemProductId: l.orderItemProductId,
-            description: l.description,
-            size: l.size,
-            color: l.color,
-            qtyExpected: l.qtyExpected,
-            qtyCounted: l.qtyCounted,
-            defectQty: l.defectQty,
-            defectNote: l.defectNote,
-          })),
+    const outsource = await tx.outsourceOrder.findUnique({
+      where: { id: params.outsourceOrderId },
+      select: {
+        productionStepId: true,
+        status: true,
+        productionStep: {
+          select: { production: { select: { orderId: true } } },
         },
       },
-      include: { lines: true },
     });
-
-    // ยอดรับสุทธิ → ติ๊กตรวจรับต่อรายการสินค้า (ด่านพร้อมผลิตใช้ flag นี้)
-    if (params.receiptType !== "OUTSOURCE_RETURN") {
-      await refreshReceivedInspected(tx, params.orderId, productIds);
+    if (!outsource) badRequest("ไม่พบใบ outsource ที่อ้างถึง");
+    if (outsource.productionStep.production.orderId !== params.orderId) {
+      badRequest("ใบ outsource ที่อ้างถึงไม่ใช่ของออเดอร์นี้");
     }
+    if (!["SENT", "IN_PROGRESS", "COMPLETED"].includes(outsource.status)) {
+      badRequest("บันทึกรับกลับได้หลังส่งงานไปร้านนอก และก่อนยืนยันรับกลับเท่านั้น");
+    }
+    outsourceProductionStepId = outsource.productionStepId;
+  }
 
-    if (operation) {
-      const eventInput = {
-        operation,
-        commandId: `goods-receipt:${receiptId}`,
-        actorId: params.userId,
-        eventType:
-          params.receiptType === "CUSTOMER_RETURN"
-            ? ("MATERIAL_RETURNED" as const)
-            : ("RECEIPT_RECORDED" as const),
-        payload: {
-          receiptId: created.id,
-          receiptType: params.receiptType,
-          qtyCounted: summary.totalCounted,
-          qtyDefect: summary.totalDefect,
-        },
-      };
-      if (params.receiptType === "CUSTOMER_GARMENT") {
-        const quantityLines = await receiptQuantityOutputs(
-          tx,
-          operation.id,
-          receiptLines,
-        );
-        const qtyGood = quantityLines.reduce(
-          (sum, line) => sum + line.qtyGood,
-          0,
-        );
-        if (qtyGood > 0) {
-          await recordSpecializedOperationOutput(tx, {
-            ...eventInput,
-            delta: { qtyGood, qtyScrap: 0, qtyRework: 0 },
-            quantityLines,
-          });
-        } else {
-          await recordSpecializedOperationEvent(tx, eventInput);
-        }
+  if (params.productionStepId && params.operationJobId) {
+    badRequest("ระบุ productionStepId และ operationJobId พร้อมกันไม่ได้");
+  }
+  if (
+    (params.productionStepId || params.operationJobId) &&
+    params.receiptType !== "CUSTOMER_GARMENT" &&
+    !(params.operationJobId && params.receiptType === "CUSTOMER_RETURN")
+  ) {
+    badRequest("ขั้นสถานีนี้รองรับเฉพาะการรับหรือคืนเสื้อลูกค้า");
+  }
+  if (params.operationJobId && params.expectedRevision === undefined) {
+    badRequest("คำสั่ง Production V2 ต้องระบุ expectedRevision");
+  }
+
+  let stationStep: StationReceiptStep | null = null;
+  let operation: SpecializedOperation | null = null;
+  if (params.productionStepId) {
+    stationStep = await assertStationReceiptStep(tx, {
+      stepId: params.productionStepId,
+      orderId: params.orderId,
+      userId: params.userId,
+      canSupervise: params.canSupervise,
+    });
+  }
+  if (params.operationJobId) {
+    operation = await loadSpecializedOperation(tx, {
+      operationJobId: params.operationJobId,
+      expectedRevision: params.expectedRevision!,
+      actorId: params.userId,
+      canSupervise: params.canSupervise === true,
+      requiredWorkCenterCode: "PREP",
+      orderId: params.orderId,
+    });
+  }
+
+  // ใช้ canonical product/variant + ยอดสุทธิสดหลังถือ order/topology lock เสมอ.
+  // Station ต้องส่งครบทุกไซส์/สี รวมแถวที่นับได้ 0 เพื่อเก็บ shortage evidence.
+  const validated = await validateCanonicalReceiptLines(tx, params, lines);
+  const receiptLines = validated.lines;
+  const productIds = validated.productIds;
+  if (params.receiptType === "CUSTOMER_RETURN") {
+    if (!params.operationJobId && !params.correction) {
+      await assertReturnDoesNotInvalidateActiveProduction(tx, {
+        orderId: params.orderId,
+        lines: receiptLines,
+        products: validated.products,
+        priorEvidence: validated.priorEvidence,
+      });
+    }
+  }
+  const summary = summarizeReceiptLines(params.receiptType, receiptLines);
+
+  const created = await tx.goodsReceipt.create({
+    data: {
+      id: receiptId,
+      orderId: params.orderId,
+      productionStepId:
+        params.operationJobId ??
+        params.productionStepId ??
+        outsourceProductionStepId,
+      receiptType: params.receiptType,
+      outsourceOrderId: params.outsourceOrderId,
+      notes: params.notes,
+      photoUrls: params.photoUrls,
+      receivedById: params.userId,
+      lines: {
+        create: receiptLines.map((l) => ({
+          orderItemProductId: l.orderItemProductId,
+          description: l.description,
+          size: l.size,
+          color: l.color,
+          qtyExpected: l.qtyExpected,
+          qtyCounted: l.qtyCounted,
+          defectQty: l.defectQty,
+          defectNote: l.defectNote,
+        })),
+      },
+    },
+    include: { lines: true },
+  });
+
+  // ยอดรับสุทธิ → ติ๊กตรวจรับต่อรายการสินค้า (ด่านพร้อมผลิตใช้ flag นี้)
+  const receiptProgress = params.receiptType !== "OUTSOURCE_RETURN"
+    ? await refreshReceivedInspected(tx, params.orderId, productIds)
+    : null;
+
+  if (operation) {
+    const eventInput = {
+      operation,
+      commandId: `goods-receipt:${receiptId}`,
+      actorId: params.userId,
+      eventType:
+        params.receiptType === "CUSTOMER_RETURN"
+          ? ("MATERIAL_RETURNED" as const)
+          : ("RECEIPT_RECORDED" as const),
+      payload: {
+        receiptId: created.id,
+        receiptType: params.receiptType,
+        qtyCounted: summary.totalCounted,
+        qtyDefect: summary.totalDefect,
+      },
+    };
+    if (params.receiptType === "CUSTOMER_GARMENT") {
+      const quantityLines = await receiptQuantityOutputs(
+        tx,
+        operation.id,
+        receiptLines,
+      );
+      const qtyGood = quantityLines.reduce(
+        (sum, line) => sum + line.qtyGood,
+        0,
+      );
+      if (qtyGood > 0) {
+        await recordSpecializedOperationOutput(tx, {
+          ...eventInput,
+          delta: { qtyGood, qtyScrap: 0, qtyRework: 0 },
+          quantityLines,
+        });
       } else {
         await recordSpecializedOperationEvent(tx, eventInput);
       }
+    } else {
+      await recordSpecializedOperationEvent(tx, eventInput);
     }
+  }
 
-    // เสื้อลูกค้าครบทุกรายการ → ขั้นตรวจรับเสื้อลูกค้า (GARMENT_RECEIVE) ปิดเอง
-    if (params.receiptType === "CUSTOMER_GARMENT") {
-      const remaining = await tx.orderItemProduct.count({
-        where: {
-          orderItem: { orderId: params.orderId },
-          itemSource: "CUSTOMER_PROVIDED",
-          receivedInspected: false,
-        },
-      });
-      // การปิดขั้นเป็น semantic Station command เท่านั้น: caller ทั่วไปที่จงใจไม่ส่ง
-      // productionStepId บันทึกได้แค่ ledger evidence ห้ามปิด GARMENT_RECEIVE ทุกใบผลิต
-      if (remaining === 0 && stationStep) {
-        const steps = await tx.productionStep.findMany({
-          where: {
-            id: stationStep.id,
-            stepType: "GARMENT_RECEIVE",
-            status: { in: ["PENDING", "IN_PROGRESS"] },
-          },
-          select: { id: true, productionId: true },
-        });
-        for (const s of steps) {
-          await tx.productionStep.update({
-            where: { id: s.id },
-            data: {
-              status: "COMPLETED",
-              completedAt: new Date(),
-              ...(stationStep.assignedToId === null ? { assignedToId: params.userId } : {}),
-            },
-          });
-          await finalizeProductionIfComplete(tx, {
-            productionId: s.productionId,
-            changedBy: params.userId,
-          });
-        }
-      } else if (stationStep) {
-        // ใบรับบางส่วน/นับได้ศูนย์คือหลักฐานว่าช่างเริ่มตรวจจริงแล้ว จึงต้องขึ้น
-        // "กำลังทำ" ใน Station ไม่ใช่กลับไปกองพร้อมถัดไปทั้งที่มี owner/receipt แล้ว.
-        await tx.productionStep.update({
-          where: { id: stationStep.id },
-          data: {
-            ...(stationStep.status === "PENDING"
-              ? { status: "IN_PROGRESS" as const, startedAt: new Date() }
-              : {}),
-            ...(stationStep.assignedToId === null
-              ? { assignedToId: params.userId }
-              : {}),
-          },
-        });
-      }
-    }
-
-    const summaryParts = [
-      `${typeLabel} ${summary.totalCounted} ตัว`,
-      ...(summary.totalDefect > 0 ? [`ตำหนิ ${summary.totalDefect}`] : []),
-      ...(summary.discrepancies.length > 0
-        ? [`ขาด/เกิน: ${summary.discrepancies.join(" · ")}`]
-        : []),
-    ];
-    await addOrderRevision(tx, {
-      orderId: params.orderId,
-      changedBy: params.userId,
-      changeType: "STOCK",
-      description: summaryParts.join(" — "),
-    });
-    await tx.order.update({
-      where: { id: params.orderId },
-      data: { updatedAt: new Date() },
-      select: { id: true },
-    });
-
-    // audit เป็นหลักฐาน durable ของ fingerprint และต้อง rollback พร้อมใบเสมอ
-    await createAuditLog(tx, {
-      userId: params.userId,
-      action: "CREATE",
-      entityType: "GOODS_RECEIPT",
-      entityId: created.id,
-      newValue: {
-        orderId: params.orderId,
-        receiptType: params.receiptType,
-        lineCount: created.lines.length,
-        productionStepId:
-          params.operationJobId ?? params.productionStepId ?? null,
-        operationJobId: params.operationJobId ?? null,
-        requestFingerprint,
+  // เสื้อลูกค้าครบทุกรายการ → ขั้นตรวจรับเสื้อลูกค้า (GARMENT_RECEIVE) ปิดเอง
+  if (params.receiptType === "CUSTOMER_GARMENT") {
+    const remaining = await tx.orderItemProduct.count({
+      where: {
+        orderItem: { orderId: params.orderId },
+        itemSource: "CUSTOMER_PROVIDED",
+        receivedInspected: false,
       },
     });
+    // การปิดขั้นเป็น semantic Station command เท่านั้น: caller ทั่วไปที่จงใจไม่ส่ง
+    // productionStepId บันทึกได้แค่ ledger evidence ห้ามปิด GARMENT_RECEIVE ทุกใบผลิต
+    if (remaining === 0 && stationStep) {
+      const steps = await tx.productionStep.findMany({
+        where: {
+          id: stationStep.id,
+          stepType: "GARMENT_RECEIVE",
+          status: { in: ["PENDING", "IN_PROGRESS"] },
+        },
+        select: { id: true, productionId: true },
+      });
+      for (const s of steps) {
+        await tx.productionStep.update({
+          where: { id: s.id },
+          data: {
+            ...receiptProgress,
+            status: "COMPLETED",
+            completedAt: new Date(),
+            ...(stationStep.assignedToId === null ? { assignedToId: params.userId } : {}),
+          },
+        });
+        await finalizeProductionIfComplete(tx, {
+          productionId: s.productionId,
+          changedBy: params.userId,
+        });
+      }
+    } else if (stationStep) {
+      // ใบรับบางส่วน/นับได้ศูนย์คือหลักฐานว่าช่างเริ่มตรวจจริงแล้ว จึงต้องขึ้น
+      // "กำลังทำ" ใน Station ไม่ใช่กลับไปกองพร้อมถัดไปทั้งที่มี owner/receipt แล้ว.
+      await tx.productionStep.update({
+        where: { id: stationStep.id },
+        data: {
+            ...receiptProgress,
+          ...(stationStep.status === "PENDING"
+            ? { status: "IN_PROGRESS" as const, startedAt: new Date() }
+            : {}),
+          ...(stationStep.assignedToId === null
+            ? { assignedToId: params.userId }
+            : {}),
+        },
+      });
+    }
+  }
 
-    return { receipt: created, alreadyRecorded: false, summary };
+  const summaryParts = [
+    `${typeLabel} ${summary.totalCounted} ตัว`,
+    ...(summary.totalDefect > 0 ? [`ตำหนิ ${summary.totalDefect}`] : []),
+    ...(summary.discrepancies.length > 0
+      ? [`ขาด/เกิน: ${summary.discrepancies.join(" · ")}`]
+      : []),
+  ];
+  await addOrderRevision(tx, {
+    orderId: params.orderId,
+    changedBy: params.userId,
+    changeType: "STOCK",
+    description: summaryParts.join(" — "),
   });
-  const { receipt, alreadyRecorded, summary } = result;
+  await tx.order.update({
+    where: { id: params.orderId },
+    data: { updatedAt: new Date() },
+    select: { id: true },
+  });
+
+  // audit เป็นหลักฐาน durable ของ fingerprint และต้อง rollback พร้อมใบเสมอ
+  await createAuditLog(tx, {
+    userId: params.userId,
+    action: "CREATE",
+    entityType: "GOODS_RECEIPT",
+    entityId: created.id,
+    newValue: {
+      orderId: params.orderId,
+      receiptType: params.receiptType,
+      lineCount: created.lines.length,
+      productionStepId:
+        params.operationJobId ?? params.productionStepId ?? null,
+      operationJobId: params.operationJobId ?? null,
+      requestFingerprint,
+    },
+  });
+
+  return { receipt: created, alreadyRecorded: false, summary };
+}
+
+export async function createGoodsReceipt(
+  prisma: ExtendedPrismaClient,
+  params: CreateReceiptParams,
+) {
+  validateGoodsReceiptInput(params);
+  const result = await prisma.$transaction((tx) => createGoodsReceiptInTransaction(tx, params));
+  await notifyGoodsReceiptDiscrepancy(prisma, params, result);
+  return { ...result.receipt, alreadyRecorded: result.alreadyRecorded };
+}
+
+async function notifyGoodsReceiptDiscrepancy(
+  prisma: ExtendedPrismaClient,
+  params: CreateReceiptParams,
+  result: Awaited<ReturnType<typeof createGoodsReceiptInTransaction>>,
+) {
+  const { alreadyRecorded, summary } = result;
+  const typeLabel = RECEIPT_TYPE_LABELS[params.receiptType];
   const { totalDefect, discrepancies } = summary;
 
   // ขาด/เกิน/ตำหนิ → แจ้งแอดมิน (OWNER/MANAGER) ทันที — นอก tx (กระดิ่งพังต้องไม่ล้มใบ)
@@ -1142,7 +1182,6 @@ export async function createGoodsReceipt(
     }
   }
 
-  return { ...receipt, alreadyRecorded };
 }
 
 /**
@@ -1215,7 +1254,7 @@ export async function confirmCustomerGarmentEvidence(
     }
     // ห้ามเชื่อ cache เดิม: เวอร์ชันเก่าเคยติ๊กจากยอดรวมต่อสินค้าและงาน manual
     // อาจทิ้ง true ทั้งที่บางไซส์ขาด. คำนวณ ledger ต่อ variant สดหลัง lock ก่อนปิดขั้น.
-    await refreshReceivedInspected(
+    const receiptProgress = await refreshReceivedInspected(
       tx,
       orderId,
       customerProductIds.map((product) => product.id),
@@ -1224,7 +1263,7 @@ export async function confirmCustomerGarmentEvidence(
       where: { id: { in: customerProductIds.map((product) => product.id) } },
       select: { id: true, receivedInspected: true },
     });
-    if (customerProducts.some((product) => !product.receivedInspected)) {
+    if (!operation && customerProducts.some((product) => !product.receivedInspected)) {
       badRequest("หลักฐานรับเสื้อลูกค้ายังไม่ครบ กรุณานับและบันทึกรายการที่เหลือก่อน");
     }
 
@@ -1255,22 +1294,9 @@ export async function confirmCustomerGarmentEvidence(
           receipt: { select: { receiptType: true } },
         },
       });
-      const acceptedNetByVariant = new Map<string, number>();
-      for (const line of evidenceLines) {
-        if (!line.orderItemProductId) continue;
-        const key = variantNetKey(
-          line.orderItemProductId,
-          line.size ?? null,
-          line.color ?? null,
-        );
-        const signedAccepted = line.receipt.receiptType === "CUSTOMER_RETURN"
-          ? -line.qtyCounted
-          : Math.max(0, line.qtyCounted - line.defectQty);
-        acceptedNetByVariant.set(
-          key,
-          (acceptedNetByVariant.get(key) ?? 0) + signedAccepted,
-        );
-      }
+      const acceptedNetByVariant = netUsableReceivedByVariant(evidenceLines.map((line) => ({
+        ...line, receiptType: line.receipt.receiptType,
+      })));
       const evidenceQty = evidenceProducts.reduce(
         (productSum, product) =>
           productSum + product.variants.reduce(
@@ -1376,6 +1402,7 @@ export async function confirmCustomerGarmentEvidence(
       where: { id: target!.id },
       data: {
         status: "COMPLETED",
+        ...receiptProgress,
         completedAt,
         ...(target!.assignedToId === null ? { assignedToId: params.userId } : {}),
       },
@@ -1481,132 +1508,184 @@ export async function correctCustomerGarmentReceipt(
   const reason = params.reason.trim();
   if (reason.length < 3) badRequest("ต้องระบุเหตุผลที่แก้ยอดอย่างน้อย 3 ตัวอักษร");
 
-  const step = await prisma.productionStep.findUniqueOrThrow({
-    where: { id: params.productionStepId },
-    select: {
-      id: true,
-      stepType: true,
-      status: true,
-      executionEnabled: true,
-      production: { select: { id: true, orderId: true } },
-    },
-  });
-  if (step.stepType !== "GARMENT_RECEIVE" || step.production.orderId !== params.orderId) {
-    badRequest("ขั้นตรวจรับนี้ไม่ตรงกับใบผลิตและออเดอร์ที่เปิดอยู่");
-  }
-  if (step.executionEnabled) {
-    badRequest("ขั้นงานนี้ต้องแก้จากโหมดสถานี กรุณาเปิดงานปัจจุบันแล้วลองอีกครั้ง");
-  }
-
-  // ยอดรับสุทธิสด ณ ตอนนี้ — คำนวณส่วนต่างจากของจริง ไม่ใช่จากค่าที่ client ส่งมา
-  const current = await prisma.goodsReceiptLine.findMany({
-    where: {
-      orderItemProductId: { in: params.lines.map((l) => l.orderItemProductId) },
-      receipt: { orderId: params.orderId, receiptType: { in: ["CUSTOMER_GARMENT", "CUSTOMER_RETURN"] } },
-    },
-    select: {
-      orderItemProductId: true,
-      size: true,
-      color: true,
-      qtyCounted: true,
-      receipt: { select: { receiptType: true } },
-    },
-  });
-  const netByKey = netReceivedByVariant(
-    current.map((line) => ({
-      orderItemProductId: line.orderItemProductId,
-      size: line.size,
-      color: line.color,
-      qtyCounted: line.qtyCounted,
-      receiptType: line.receipt.receiptType,
-    })),
-  );
-
-  const returnLines: CreateReceiptLineInput[] = [];
-  const addLines: CreateReceiptLineInput[] = [];
+  if (!params.lines.length) badRequest("ต้องมีรายการที่ตรวจนับใหม่อย่างน้อย 1 รายการ");
+  const seenKeys = new Set<string>();
   for (const line of params.lines) {
-    if (line.qtyCorrect < 0) badRequest("ยอดที่ถูกต้องติดลบไม่ได้");
-    const net = netByKey.get(variantNetKey(line.orderItemProductId, line.size ?? null, line.color ?? null)) ?? 0;
-    const delta = line.qtyCorrect - net;
-    if (delta === 0) continue;
-    const target = delta < 0 ? returnLines : addLines;
-    target.push({
-      orderItemProductId: line.orderItemProductId,
-      description: line.description,
-      size: line.size,
-      color: line.color,
-      qtyExpected: delta < 0 ? 0 : delta,
-      qtyCounted: Math.abs(delta),
-      defectQty: 0,
-    });
+    if (!Number.isSafeInteger(line.qtyCorrect) || line.qtyCorrect < 0) {
+      badRequest("ยอดที่ถูกต้องต้องเป็นจำนวนเต็มตั้งแต่ 0 ขึ้นไป");
+    }
+    const key = variantNetKey(line.orderItemProductId, line.size ?? null, line.color ?? null);
+    if (seenKeys.has(key)) badRequest("รายการแก้ยอดมีไซส์/สีซ้ำ กรุณาโหลดรายการใหม่");
+    seenKeys.add(key);
   }
-  if (returnLines.length === 0 && addLines.length === 0) {
-    badRequest("ยอดที่กรอกตรงกับยอดที่รับไว้อยู่แล้ว — ไม่มีอะไรต้องแก้");
-  }
+  const correctionId = goodsReceiptIdForRequest(params.orderId, `correction:${params.idempotencyKey}`);
+  const requestFingerprint = createHash("sha256").update(JSON.stringify({
+    orderId: params.orderId,
+    productionStepId: params.productionStepId,
+    reason,
+    userId: params.userId,
+    lines: params.lines.map((line) => ({
+      key: variantNetKey(line.orderItemProductId, line.size ?? null, line.color ?? null),
+      qtyCorrect: line.qtyCorrect,
+    })).sort((a, b) => a.key.localeCompare(b.key)),
+  })).digest("hex");
 
-  // ออกใบส่วนต่างก่อน แล้วค่อยให้สถานะขั้นเดินตามยอด: กดซ้ำได้เพราะใบใช้ idempotencyKey เดิม
-  // (รอบสองจะ replay ใบเดิมแล้วมาปรับสถานะขั้นให้ตรงยอดอีกครั้ง)
-  if (returnLines.length > 0) {
-    await createGoodsReceipt(prisma, {
-      orderId: params.orderId,
-      idempotencyKey: `${params.idempotencyKey}:return`,
-      receiptType: "CUSTOMER_RETURN",
-      notes: `แก้ยอดตรวจรับ: ${reason}`,
-      photoUrls: [],
-      lines: returnLines,
-      userId: params.userId,
-      canSupervise: params.canSupervise,
-      correction: { reason },
+  const result = await prisma.$transaction(async (tx) => {
+    const owner = await lockGoodsReceiptWriteChain(tx, params.orderId);
+    // Replay the original outcome before recalculating deltas. Recount is an absolute
+    // target, so calculating it again after commit would erase or change the command.
+    const replay = await tx.auditLog.findFirst({
+      where: { action: "UPDATE", entityType: "GOODS_RECEIPT_CORRECTION", entityId: correctionId },
+      select: { newValue: true },
     });
-  }
-  if (addLines.length > 0) {
-    await createGoodsReceipt(prisma, {
-      orderId: params.orderId,
-      idempotencyKey: `${params.idempotencyKey}:add`,
-      receiptType: "CUSTOMER_GARMENT",
-      notes: `แก้ยอดตรวจรับ: ${reason}`,
-      photoUrls: [],
-      lines: addLines,
-      userId: params.userId,
-      canSupervise: params.canSupervise,
-      correction: { reason },
-    });
-  }
+    if (replay) {
+      const stored = replay.newValue as {
+        requestFingerprint?: string;
+        stepReopened?: boolean;
+        remainingProducts?: number;
+      } | null;
+      if (stored?.requestFingerprint !== requestFingerprint) {
+        conflict("คำขอแก้ยอดนี้ถูกใช้กับข้อมูลคนละชุดแล้ว กรุณาเปิดรายการใหม่");
+      }
+      if (typeof stored.stepReopened !== "boolean" || typeof stored.remainingProducts !== "number") {
+        internal("พบประวัติแก้ยอดแต่ผลบันทึกไม่ครบ กรุณาแจ้งผู้ดูแลระบบ");
+      }
+      return {
+        outcome: { stepReopened: stored.stepReopened, remainingProducts: stored.remainingProducts },
+        receipts: [],
+      };
+    }
 
-  // สถานะขั้นเดินตามยอดเสมอ — ยอดครบทุกรายการ = ปิดไว้ · ยังไม่ครบ = เปิดกลับให้รับต่อ
-  return prisma.$transaction(async (tx) => {
-    await lockGoodsReceiptWriteChain(tx, params.orderId);
-    const remaining = await tx.orderItemProduct.count({
-      where: {
-        orderItem: { orderId: params.orderId },
-        itemSource: "CUSTOMER_PROVIDED",
-        receivedInspected: false,
+    const step = await tx.productionStep.findUniqueOrThrow({
+      where: { id: params.productionStepId },
+      select: {
+        id: true, productionId: true, stepType: true, status: true,
+        assignedToId: true, executionEnabled: true,
+        production: { select: { orderId: true } },
       },
     });
-    const live = await tx.productionStep.findUniqueOrThrow({
-      where: { id: params.productionStepId },
-      select: { id: true, status: true },
+    if (step.stepType !== "GARMENT_RECEIVE" || step.production.orderId !== params.orderId) {
+      badRequest("ขั้นตรวจรับนี้ไม่ตรงกับใบผลิตและออเดอร์ที่เปิดอยู่");
+    }
+    if (step.executionEnabled || owner.productionCompletionOwnerId) {
+      badRequest("ขั้นงานนี้ต้องแก้จากโหมดสถานี กรุณาเปิดงานปัจจุบันแล้วลองอีกครั้ง");
+    }
+    const order = await tx.order.findUniqueOrThrow({
+      where: { id: params.orderId }, select: { internalStatus: true },
     });
-    const shouldBeOpen = remaining > 0;
-    if (shouldBeOpen && live.status === "COMPLETED") {
-      await tx.productionStep.update({
-        where: { id: live.id },
-        data: { status: "IN_PROGRESS", completedAt: null },
+    if (order.internalStatus !== "PRODUCING") {
+      conflict("ออเดอร์ออกจากช่วงผลิตแล้ว ให้หัวหน้าจัดการงานแก้กลับเข้าผลิตก่อนแก้ยอดตรวจรับเสื้อ");
+    }
+    if (step.status === "FAILED" || step.status === "ON_HOLD") {
+      conflict("ขั้นตรวจรับมีปัญหาหรือถูกพักอยู่ ให้หัวหน้าแก้ปัญหาหรือยกเลิกพักก่อนแก้ยอดตรวจรับ");
+    }
+
+    const products = await tx.orderItemProduct.findMany({
+      where: { orderItem: { orderId: params.orderId }, itemSource: "CUSTOMER_PROVIDED" },
+      select: { id: true, description: true, variants: { select: { size: true, color: true, quantity: true } } },
+    });
+    const canonical = new Map<string, { description: string; quantity: number }>();
+    for (const product of products) {
+      for (const variant of product.variants) {
+        const key = variantNetKey(product.id, variant.size, variant.color);
+        if (canonical.has(key)) badRequest("รายการออเดอร์มีไซส์/สีซ้ำ กรุณาแก้รายการออเดอร์ก่อนตรวจรับ");
+        canonical.set(key, { description: product.description, quantity: variant.quantity });
+      }
+    }
+    if ([...seenKeys].some((key) => !canonical.has(key))) {
+      badRequest("สินค้า/ไซส์/สีที่แก้ยอดไม่ตรงกับเสื้อลูกค้าในออเดอร์นี้ กรุณาโหลดรายการใหม่");
+    }
+    const current = await tx.goodsReceiptLine.findMany({
+      where: {
+        orderItemProductId: { in: products.map((product) => product.id) },
+        receipt: { orderId: params.orderId, receiptType: { in: ["CUSTOMER_GARMENT", "CUSTOMER_RETURN"] } },
+      },
+      select: {
+        orderItemProductId: true, size: true, color: true, qtyCounted: true, defectQty: true,
+        receipt: { select: { receiptType: true } },
+      },
+    });
+    const netByKey = netReceivedByVariant(current.map((line) => ({
+      ...line, receiptType: line.receipt.receiptType,
+    })));
+    const usableByKey = netUsableReceivedByVariant(current.map((line) => ({ ...line, receiptType: line.receipt.receiptType })));
+    const returnLines: CreateReceiptLineInput[] = [];
+    const addLines: CreateReceiptLineInput[] = [];
+    for (const line of params.lines) {
+      const key = variantNetKey(line.orderItemProductId, line.size ?? null, line.color ?? null);
+      const net = netByKey.get(key) ?? 0;
+      const delta = line.qtyCorrect - net;
+      if (delta === 0) continue;
+      const expected = canonical.get(key)!;
+      (delta < 0 ? returnLines : addLines).push({
+        orderItemProductId: line.orderItemProductId,
+        description: expected.description,
+        size: line.size,
+        color: line.color,
+        qtyExpected: delta < 0 ? 0 : Math.max(0, expected.quantity - (usableByKey.get(key) ?? 0)),
+        qtyCounted: Math.abs(delta),
+        defectQty: 0,
       });
     }
+    if (!returnLines.length && !addLines.length) {
+      badRequest("ยอดที่กรอกตรงกับยอดที่รับไว้อยู่แล้ว — ไม่มีอะไรต้องแก้");
+    }
+    const receipts: Array<{
+      params: CreateReceiptParams;
+      result: Awaited<ReturnType<typeof createGoodsReceiptInTransaction>>;
+    }> = [];
+    for (const [receiptType, suffix, lines] of [
+      ["CUSTOMER_RETURN", "return", returnLines],
+      ["CUSTOMER_GARMENT", "add", addLines],
+    ] as const) {
+      if (!lines.length) continue;
+      const receiptParams: CreateReceiptParams = {
+        orderId: params.orderId,
+        idempotencyKey: `${params.idempotencyKey}:${suffix}`,
+        receiptType,
+        notes: `แก้ยอดตรวจรับ: ${reason}`,
+        photoUrls: [], lines, userId: params.userId,
+        canSupervise: true, correction: { reason },
+      };
+      receipts.push({ params: receiptParams, result: await createGoodsReceiptInTransaction(tx, receiptParams) });
+    }
+
+    // Re-evaluate every customer product, including unchanged lines. Opening this
+    // receipt step blocks further work without erasing completed downstream evidence.
+    const receiptProgress = await refreshReceivedInspected(tx, params.orderId, products.map((product) => product.id));
+    const remaining = await tx.orderItemProduct.count({
+      where: { orderItem: { orderId: params.orderId }, itemSource: "CUSTOMER_PROVIDED", receivedInspected: false },
+    });
+    const stepReopened = remaining > 0 && step.status === "COMPLETED";
+    if (remaining > 0) {
+      await tx.productionStep.update({
+        where: { id: step.id },
+        data: { ...receiptProgress, status: "IN_PROGRESS", completedAt: null, ...(step.assignedToId === null ? { assignedToId: params.userId } : {}) },
+      });
+      await tx.production.update({
+        where: { id: step.productionId }, data: { status: "IN_PROGRESS", endDate: null },
+      });
+    } else if (step.status !== "COMPLETED") {
+      await tx.productionStep.update({
+        where: { id: step.id },
+        data: { ...receiptProgress, status: "COMPLETED", completedAt: new Date(), ...(step.assignedToId === null ? { assignedToId: params.userId } : {}) },
+      });
+      await finalizeProductionIfComplete(tx, { productionId: step.productionId, changedBy: params.userId });
+    } else {
+      await tx.productionStep.update({ where: { id: step.id }, data: receiptProgress });
+    }
+    const outcome = { stepReopened, remainingProducts: remaining };
     await createAuditLog(tx, {
-      userId: params.userId,
-      action: "UPDATE",
-      entityType: "PRODUCTION_STEP",
-      entityId: live.id,
-      reason,
+      userId: params.userId, action: "UPDATE", entityType: "GOODS_RECEIPT_CORRECTION", entityId: correctionId, reason,
       newValue: {
-        correctedCustomerGarmentReceipt: true,
-        returnedLines: returnLines.length,
-        addedLines: addLines.length,
-        stepReopened: shouldBeOpen && live.status === "COMPLETED",
+        requestFingerprint, productionStepId: step.id, correctedCustomerGarmentReceipt: true,
+        returnedLines: returnLines.length, addedLines: addLines.length, ...outcome,
       },
     });
-    return { stepReopened: shouldBeOpen && live.status === "COMPLETED", remainingProducts: remaining };
+    return { outcome, receipts };
   });
+  for (const receipt of result.receipts) {
+    await notifyGoodsReceiptDiscrepancy(prisma, receipt.params, receipt.result);
+  }
+  return result.outcome;
 }

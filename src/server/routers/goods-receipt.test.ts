@@ -75,6 +75,12 @@ describe("goodsReceipt.create permission by surface", () => {
     );
   });
 
+  it("ใบรับกลับร้านนอกที่ผูกใบงานใช้สิทธิ์ฝ่ายผลิต", async () => {
+    const outsource = { ...input, receiptType: "OUTSOURCE_RETURN" as const, outsourceOrderId: "outsource-1" };
+    await expect(caller("PRODUCTION_STAFF", { manage_delivery: false }).create(outsource)).resolves.toMatchObject({ id: "receipt-1" });
+    await expect(caller("SALES", { manage_production: false }).create(outsource)).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
   it("V2 Station รับ operationJobId+expectedRevision และไม่ยอม revision หาย", async () => {
     await expect(
       caller("PRODUCTION_STAFF").create({

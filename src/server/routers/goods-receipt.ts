@@ -72,7 +72,8 @@ export const goodsReceiptRouter = router({
     .mutation(async ({ ctx, input }) => {
       const stationCommand =
         input.productionStepId !== undefined || input.operationJobId !== undefined;
-      const requiredPermission = stationCommand ? "manage_production" : "manage_delivery";
+      const outsourceReturn = input.receiptType === "OUTSOURCE_RETURN" && !!input.outsourceOrderId;
+      const requiredPermission = stationCommand || outsourceReturn ? "manage_production" : "manage_delivery";
       if (!hasPermission(ctx.userRole, ctx.permissionOverrides, requiredPermission)) {
         throw new TRPCError({
           code: "FORBIDDEN",

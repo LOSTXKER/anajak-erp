@@ -77,7 +77,7 @@ export function GarmentReceiveInline({
   const [fixDraft, setFixDraft] = useState<Record<string, number>>({});
   const [fixReason, setFixReason] = useState("");
   // คงคีย์เดิมตลอดอายุฟอร์ม: ยิงซ้ำหลัง network error ต้องได้ใบเดิม ไม่ใช่ใบใหม่
-  const [idempotencyKey] = useState(() => crypto.randomUUID());
+  const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
 
   const invalidate = [
     utils.goodsReceipt.listByOrder,
@@ -94,6 +94,7 @@ export function GarmentReceiveInline({
       setDraft({});
       setNotes("");
       setPhotoUrls([]);
+      setIdempotencyKey(crypto.randomUUID());
     },
     onError: (err: { message?: string }) => toast.error("บันทึกไม่สำเร็จ", { description: err.message }),
   });
@@ -106,6 +107,7 @@ export function GarmentReceiveInline({
       setCorrecting(false);
       setFixDraft({});
       setFixReason("");
+      setIdempotencyKey(crypto.randomUUID());
     },
     onError: (err: { message?: string }) => toast.error("แก้ยอดไม่สำเร็จ", { description: err.message }),
   });
@@ -126,7 +128,7 @@ export function GarmentReceiveInline({
 
   const rows: Row[] = data.lines.map((line) => {
     const key = `${line.orderItemProductId}:${line.size ?? ""}:${line.color ?? ""}`;
-    const remaining = Math.max(0, line.qtyExpected - line.qtyReceivedNet);
+    const remaining = Math.max(0, line.qtyExpected - line.qtyUsableNet);
     const value = draft[key];
     return {
       orderItemProductId: line.orderItemProductId,
@@ -152,13 +154,12 @@ export function GarmentReceiveInline({
   // รับครบไปแล้วทั้งใบ = ไม่มีอะไรให้นับ เหลือแค่ยืนยันว่าหลักฐานเดิมครบเพื่อปิดขั้น
   const alreadyReceived = rows.length > 0 && totalRemaining === 0;
   const pending = create.isPending || confirmExisting.isPending || correct.isPending;
-  const fixKey = () => crypto.randomUUID();
 
   function saveCorrection() {
     correct.mutate({
       orderId,
       productionStepId,
-      idempotencyKey: fixKey(),
+      idempotencyKey,
       reason: fixReason.trim(),
       lines: rows.map((row) => ({
         orderItemProductId: row.orderItemProductId!,
@@ -196,6 +197,10 @@ export function GarmentReceiveInline({
 
   return (
     <div>
+      <p className="flex items-center justify-between gap-3 border-b border-divider px-5 py-3 text-sm text-secondary">
+        <span>เสื้อที่ใช้ผลิตได้</span>
+        <strong className="text-base tabular-nums text-strong">{(totalPlanned - totalRemaining).toLocaleString("th-TH")} / {totalPlanned.toLocaleString("th-TH")} ตัว</strong>
+      </p>
       {rows.length === 0 ? (
         <p className="px-5 py-6 text-center text-sm text-muted">ออเดอร์นี้ไม่มีรายการเสื้อที่ลูกค้าส่งมา</p>
       ) : (
@@ -211,7 +216,7 @@ export function GarmentReceiveInline({
             <thead className={TABLE_HEAD_SURFACE}>
               <tr>
                 <th scope="col" className={cn(TH, "pl-5 text-left")}>ไซซ์</th>
-                <th scope="col" className={cn(TH, "text-right", !canRecord && "pr-5")}>ยังไม่ได้รับ</th>
+                <th scope="col" className={cn(TH, "text-right", !canRecord && "pr-5")}>ยังขาด</th>
                 {canRecord ? <th scope="col" className={cn(TH, "text-right")}>นับได้</th> : null}
                 {canRecord ? <th scope="col" className={cn(TH, "pr-5 text-right")}>ตำหนิ</th> : null}
               </tr>

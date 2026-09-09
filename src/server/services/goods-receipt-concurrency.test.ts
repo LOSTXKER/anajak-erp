@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { ExtendedPrismaClient } from "@/lib/prisma";
 import {
   confirmCustomerGarmentEvidence,
+  correctCustomerGarmentReceipt,
   createGoodsReceipt,
   getReceiptContext,
   type CreateReceiptParams,
@@ -104,7 +105,7 @@ describe("goods receipt context for V2 customer return", () => {
         size: "M",
         color: null,
         qtyCounted: 5,
-        defectQty: 0,
+        defectQty: 5,
         receipt: { receiptType: "CUSTOMER_RETURN" },
       },
       {
@@ -139,6 +140,7 @@ function makeHarness(options: {
   productionCompletionOwnerId?: string | null;
   operationPlanned?: number;
   operationGood?: number;
+  liveInspectionCount?: boolean;
 } = {}) {
   let topology = (options.topology ?? baseTopology).map((step) => ({ ...step }));
   let receipts = new Map<string, {
@@ -252,6 +254,7 @@ function makeHarness(options: {
           predecessorLinks: [],
           exceptions: [],
           production: {
+            id: step.productionId,
             orderId: "order-1",
             workOrderState: "IN_PROGRESS",
             revision: 1,
@@ -268,6 +271,7 @@ function makeHarness(options: {
           ...step,
           executionEnabled: step.executionEnabled ?? false,
           production: {
+            id: step.productionId,
             orderId: "order-1",
             steps: topology
               .filter((candidate) => candidate.productionId === step.productionId)
@@ -410,7 +414,9 @@ function makeHarness(options: {
         }
         return { id: where.id };
       }),
-      count: vi.fn().mockResolvedValue(options.remaining ?? 1),
+      count: vi.fn(async () => options.liveInspectionCount
+        ? [...receivedInspectedById.values()].filter((value) => !value).length
+        : options.remaining ?? 1),
     },
     outsourceOrder: { findUnique: vi.fn().mockResolvedValue(null) },
     workCenterMember: {
@@ -488,11 +494,8 @@ function makeHarness(options: {
   });
   const prisma = {
     $transaction: transaction,
-    productionStep: {
-      findUniqueOrThrow: vi.fn().mockResolvedValue({
-        production: { id: "production-1", orderId: "order-1" },
-      }),
-    },
+    productionStep: tx.productionStep,
+    goodsReceiptLine: tx.goodsReceiptLine,
     order: { findUniqueOrThrow: vi.fn().mockResolvedValue({ id: "order-1", orderNumber: "ORD-001", title: "งานทดสอบ" }) },
     user: { findMany: vi.fn().mockResolvedValue([{ id: "manager-1" }]) },
     notification: { create: notificationCreate },
@@ -515,6 +518,145 @@ function makeHarness(options: {
     },
   };
 }
+
+describe("customer garment recount correction", () => {
+  const makeCorrectionHarness = (priorM: number, priorL = 10) => makeHarness({
+    liveInspectionCount: true,
+    products: [{
+      id: "product-1", itemSource: "CUSTOMER_PROVIDED", description: "เสื้อลูกค้า",
+      variants: [{ size: "M", color: null, quantity: 10 }, { size: "L", color: null, quantity: 10 }],
+    }],
+    priorReceiptLines: [
+      { orderItemProductId: "product-1", size: "M", color: null, qtyCounted: priorM, receiptType: "CUSTOMER_GARMENT" },
+      { orderItemProductId: "product-1", size: "L", color: null, qtyCounted: priorL, receiptType: "CUSTOMER_GARMENT" },
+    ],
+  });
+  const correction = (qtyM: number, qtyL = 10) => ({
+    orderId: "order-1", productionStepId: "step-receive-1",
+    idempotencyKey: "correction-request-0001", userId: "user-1", canSupervise: true,
+    reason: "ตรวจนับใหม่กับของจริง",
+    lines: [
+      { orderItemProductId: "product-1", description: "เสื้อลูกค้า", size: "M", qtyCorrect: qtyM },
+      { orderItemProductId: "product-1", description: "เสื้อลูกค้า", size: "L", qtyCorrect: qtyL },
+    ],
+  });
+
+  it("นับจาก 5 เป็น 8 ตัวได้แม้ยังไม่ครบยอดสั่ง 10", async () => {
+    const harness = makeCorrectionHarness(5);
+    await expect(correctCustomerGarmentReceipt(harness.prisma, correction(8)))
+      .resolves.toMatchObject({ remainingProducts: 1 });
+    expect(harness.tx.goodsReceipt.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ lines: { create: [expect.objectContaining({ qtyExpected: 5, qtyCounted: 3 })] } }),
+    }));
+  });
+
+  it("กดซ้ำหลังบันทึกสำเร็จคืนผลเดิม ไม่ออกใบหรือ audit ซ้ำ", async () => {
+    const harness = makeCorrectionHarness(10);
+    harness.setStepStatus("step-receive-1", "COMPLETED");
+    const first = await correctCustomerGarmentReceipt(harness.prisma, correction(8));
+    const replay = await correctCustomerGarmentReceipt(harness.prisma, correction(8));
+    expect(replay).toMatchObject(first);
+    expect(harness.getReceiptCount()).toBe(1);
+    expect(harness.getAuditCount()).toBe(2);
+  });
+
+  it("ใบคืนและใบเพิ่ม rollback พร้อมกันเมื่อบันทึกใบเพิ่มล้มเหลว", async () => {
+    const harness = makeCorrectionHarness(10, 5);
+    const create = harness.tx.goodsReceipt.create.getMockImplementation()!;
+    harness.tx.goodsReceipt.create.mockImplementation(async (input) => {
+      if (input.data.receiptType === "CUSTOMER_GARMENT") throw new Error("insert failed");
+      return create(input);
+    });
+    await expect(correctCustomerGarmentReceipt(harness.prisma, correction(8, 10))).rejects.toThrow("insert failed");
+    expect(harness.getReceiptCount()).toBe(0);
+    expect(harness.getAuditCount()).toBe(0);
+  });
+
+  it("คนละคำขอแก้เป็นยอดเดียวกันพร้อมกันไม่หักยอดซ้ำ", async () => {
+    const harness = makeCorrectionHarness(10);
+    const input = correction(8);
+    const outcomes = await Promise.allSettled([
+      correctCustomerGarmentReceipt(harness.prisma, input),
+      correctCustomerGarmentReceipt(harness.prisma, { ...input, idempotencyKey: "correction-request-0002" }),
+    ]);
+    expect(outcomes.filter((outcome) => outcome.status === "fulfilled")).toHaveLength(1);
+    expect(harness.getReceiptCount()).toBe(1);
+  });
+
+  it("ยอดเพิ่มจนรับครบปิดขั้นตรวจรับที่เปิดค้างได้", async () => {
+    const harness = makeCorrectionHarness(8);
+    harness.setStepStatus("step-receive-1", "IN_PROGRESS");
+    await correctCustomerGarmentReceipt(harness.prisma, correction(10));
+    expect(harness.getTopology().find((step) => step.id === "step-receive-1")?.status).toBe("COMPLETED");
+  });
+
+  it("แก้นับขาดได้แม้ขั้นถัดไปเริ่มแล้ว โดยเปิดตรวจรับกลับและคงหลักฐานขั้นถัดไป", async () => {
+    const harness = makeCorrectionHarness(10);
+    harness.setStepStatus("step-receive-1", "COMPLETED");
+    harness.setStepStatus("step-pack-1", "IN_PROGRESS");
+    await expect(correctCustomerGarmentReceipt(harness.prisma, correction(8))).resolves.toMatchObject({ stepReopened: true });
+    expect(harness.getTopology().find((step) => step.id === "step-receive-1")?.status).toBe("IN_PROGRESS");
+    expect(harness.getTopology().find((step) => step.id === "step-pack-1")?.status).toBe("IN_PROGRESS");
+  });
+});
+
+describe("customer garment defects and replacements", () => {
+  it("legacy รับ100ตำหนิ5ยังไม่ปิด → คืนตำหนิ → รับทดแทน5จึงปิด", async () => {
+    const harness = makeHarness({
+      activeProductions: 1, liveInspectionCount: true,
+      products: [{ id: "product-1", itemSource: "CUSTOMER_PROVIDED", description: "เสื้อลูกค้า", variants: [{ size: "M", color: null, quantity: 100 }] }],
+    });
+    const line = { orderItemProductId: "product-1", description: "เสื้อลูกค้า", size: "M", qtyExpected: 100, qtyCounted: 100, defectQty: 5 };
+    await createGoodsReceipt(harness.prisma, stationInput({ lines: [line] }));
+    expect(harness.getTopology().find((step) => step.id === "step-receive-1")?.status).toBe("IN_PROGRESS");
+    await createGoodsReceipt(harness.prisma, stationInput({
+      idempotencyKey: "return-defective-five", productionStepId: undefined, receiptType: "CUSTOMER_RETURN",
+      lines: [{ ...line, qtyExpected: 0, qtyCounted: 5, defectQty: 0 }],
+    }));
+    expect(harness.tx.goodsReceipt.create.mock.calls[1]?.[0].data.lines.create[0]).toMatchObject({ qtyCounted: 5, defectQty: 5 });
+    await createGoodsReceipt(harness.prisma, stationInput({
+      idempotencyKey: "replacement-five", lines: [{ ...line, qtyExpected: 5, qtyCounted: 5, defectQty: 0 }],
+    }));
+    expect(harness.getTopology().find((step) => step.id === "step-receive-1")?.status).toBe("COMPLETED");
+  });
+
+  it("ยืนยันหลักฐาน legacy ไม่ใช้ตัวตำหนิกลบยอดขาด", async () => {
+    const harness = makeHarness({ priorReceiptLines: [{ orderItemProductId: "product-1", size: "M", color: null, qtyCounted: 1, defectQty: 1, receiptType: "CUSTOMER_GARMENT" }] });
+    await expect(confirmCustomerGarmentEvidence(harness.prisma, { productionStepId: "step-receive-1", userId: "user-1" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
+  it("คืนของดีก่อนเปิดผลิตแล้วรับชุดตำหนิภายหลัง ไม่ทำให้หลักฐานพร้อมผลิตปลอม", async () => {
+    const harness = makeHarness({
+      topology: [], activeProductions: 0,
+      products: [{ id: "product-1", itemSource: "CUSTOMER_PROVIDED", description: "เสื้อลูกค้า", variants: [{ size: "M", color: null, quantity: 100 }] }],
+    });
+    const line = { orderItemProductId: "product-1", description: "เสื้อลูกค้า", size: "M", qtyExpected: 100, qtyCounted: 100, defectQty: 0 };
+    await createGoodsReceipt(harness.prisma, stationInput({ productionStepId: undefined, lines: [line] }));
+    await createGoodsReceipt(harness.prisma, stationInput({ productionStepId: undefined, receiptType: "CUSTOMER_RETURN", idempotencyKey: "return-ten-good-before-production", lines: [{ ...line, qtyExpected: 0, qtyCounted: 10 }] }));
+    await createGoodsReceipt(harness.prisma, stationInput({ productionStepId: undefined, idempotencyKey: "receive-ten-defects-after-good-return", lines: [{ ...line, qtyExpected: 10, qtyCounted: 10, defectQty: 10 }] }));
+    expect(harness.tx.goodsReceipt.create.mock.calls[1]?.[0].data.lines.create[0]).toMatchObject({ qtyCounted: 10, defectQty: 0 });
+    expect(harness.tx.orderItemProduct.update).toHaveBeenLastCalledWith({ where: { id: "product-1" }, data: { receivedInspected: false, receiveNote: "รับสุทธิ 90/100" } });
+  });
+});
+
+describe("outsource receipt lifecycle", () => {
+  it.each(["DRAFT", "RECEIVED_BACK", "QC_PASSED", "QC_FAILED"])("ไม่รับก่อนส่ง/หลังตรวจรับปิดแล้ว: %s", async (status) => {
+    const harness = makeHarness();
+    harness.tx.outsourceOrder.findUnique.mockResolvedValue({
+      status, productionStepId: "step-outsource", productionStep: { production: { orderId: "order-1" } },
+    } as never);
+    await expect(createGoodsReceipt(harness.prisma, outsourceInput({ outsourceOrderId: "outsource-1" }))).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    expect(harness.getReceiptCount()).toBe(0);
+  });
+
+  it.each(["SENT", "IN_PROGRESS", "COMPLETED"])("บันทึกรับของบางส่วนได้: %s", async (status) => {
+    const harness = makeHarness();
+    harness.tx.outsourceOrder.findUnique.mockResolvedValue({
+      status, productionStepId: "step-outsource", productionStep: { production: { orderId: "order-1" } },
+    } as never);
+    await expect(createGoodsReceipt(harness.prisma, outsourceInput({ outsourceOrderId: "outsource-1" }))).resolves.toMatchObject({ productionStepId: "step-outsource" });
+  });
+});
 
 describe("goods receipt idempotency + atomic evidence", () => {
   it("concurrent retry key เดิมคืนใบเดิมและไม่สร้าง receipt/audit ซ้ำ", async () => {
@@ -934,6 +1076,8 @@ describe("goods receipt Station scope + topology locks", () => {
         status: "COMPLETED",
         completedAt: expect.any(Date),
         assignedToId: "user-1",
+        qtyDone: 1,
+        qtyTotal: 1,
       },
     });
     expect(harness.getTopology().find((step) => step.id === "step-receive-2")?.status).toBe("PENDING");
@@ -1047,6 +1191,8 @@ describe("goods receipt Station scope + topology locks", () => {
         status: "IN_PROGRESS",
         startedAt: expect.any(Date),
         assignedToId: "user-1",
+        qtyDone: 0,
+        qtyTotal: 1,
       },
     });
     expect(harness.getTopology().find((step) => step.id === "step-receive-1")).toMatchObject({

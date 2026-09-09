@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   netReceivedByVariant,
+  netUsableReceivedByVariant,
   netReceivedByProduct,
   variantNetKey,
   receiptInspectionOf,
@@ -45,6 +46,29 @@ describe("netReceivedByVariant / netReceivedByProduct — รับสุทธ�
     ]);
     expect(net.get(variantNetKey("p1", null, null))).toBe(7);
     expect(net.get(variantNetKey("p1", "M", null))).toBeUndefined();
+  });
+});
+
+describe("netUsableReceivedByVariant — ตำหนิไม่ผ่านไปผลิตและคืนไม่หักของเสียซ้ำ", () => {
+  it("คืนของดีไปก่อน แล้วรับชุดตำหนิทีหลัง ต้องไม่เปลี่ยนยอดคืนเก่าเป็นการคืนตำหนิ", () => {
+    const key = variantNetKey("p1", "M", null);
+    expect(netUsableReceivedByVariant([
+      { orderItemProductId: "p1", size: "M", qtyCounted: 100, defectQty: 0, receiptType: "CUSTOMER_GARMENT" },
+      { orderItemProductId: "p1", size: "M", qtyCounted: 10, defectQty: 0, receiptType: "CUSTOMER_RETURN" },
+      { orderItemProductId: "p1", size: "M", qtyCounted: 10, defectQty: 10, receiptType: "CUSTOMER_GARMENT" },
+    ]).get(key)).toBe(90);
+  });
+
+  it("รับ100ตำหนิ5 คืนตำหนิ5 รับทดแทน5 ใช้ผลิตได้100", () => {
+    const received = { orderItemProductId: "p1", size: "M", color: null, qtyCounted: 100, defectQty: 5, receiptType: "CUSTOMER_GARMENT" };
+    const returned = { ...received, qtyCounted: 5, defectQty: 5, receiptType: "CUSTOMER_RETURN" };
+    const replacement = { ...received, qtyCounted: 5, defectQty: 0 };
+    const key = variantNetKey("p1", "M", null);
+    expect(netUsableReceivedByVariant([received]).get(key)).toBe(95);
+    expect(netUsableReceivedByVariant([received, returned]).get(key)).toBe(95);
+    expect(netUsableReceivedByVariant([received, returned, replacement]).get(key)).toBe(100);
+    expect(netUsableReceivedByVariant([replacement, returned, received]).get(key)).toBe(100);
+    expect(netUsableReceivedByVariant([received, { ...returned, qtyCounted: 10 }]).get(key)).toBe(90);
   });
 });
 
@@ -104,11 +128,11 @@ describe("receiptInspectionOfVariants — ครบทุกไซส์/สี"
 });
 
 describe("assertValidReceiptLines — ด่านกรอกใบตรวจรับ", () => {
-  it("ทิ้งบรรทัดว่าง (นับ 0 + ตำหนิ 0) — บรรทัดมีแต่ตำหนิยังนับเป็นบรรทัดจริง", () => {
+  it("ทิ้งบรรทัดว่าง (นับ 0 + ตำหนิ 0) — บรรทัดมีตำหนิยังนับเป็นบรรทัดจริง", () => {
     const lines = assertValidReceiptLines([
       { qtyCounted: 10, defectQty: 0 },
       { qtyCounted: 0, defectQty: 0 },
-      { qtyCounted: 0, defectQty: 2 },
+      { qtyCounted: 3, defectQty: 2 },
     ]);
     expect(lines).toHaveLength(2);
   });
@@ -117,6 +141,10 @@ describe("assertValidReceiptLines — ด่านกรอกใบตรวจ
     expect(() => assertValidReceiptLines([{ qtyCounted: 0, defectQty: 0 }])).toThrow(
       "ยังไม่ได้นับของ — ระบุจำนวนอย่างน้อย 1 บรรทัด"
     );
+  });
+
+  it("ตำหนิต้องเป็นส่วนหนึ่งของยอดนับจริง", () => {
+    expect(() => assertValidReceiptLines([{ qtyCounted: 1, defectQty: 2 }])).toThrow("จำนวนตำหนิมากกว่าจำนวนที่นับได้ไม่ได้");
   });
 
   it("Station เก็บแถวนับ 0 เป็นหลักฐานของขาดได้", () => {

@@ -12,6 +12,7 @@ export interface ReceiptNetRow {
   size?: string | null;
   color?: string | null;
   qtyCounted: number;
+  defectQty?: number;
   receiptType: string;
 }
 
@@ -30,6 +31,20 @@ export function netReceivedByVariant(rows: ReceiptNetRow[]): Map<string, number>
     net.set(key, (net.get(key) ?? 0) + signOf(r.receiptType) * r.qtyCounted);
   }
   return net;
+}
+
+/** ของใช้ผลิตได้ = ของดีที่รับ - ของดีที่คืน. defectQty ของใบคืนคือจำนวนตำหนิ
+ * ที่คืนจริงซึ่ง server จัดสรรตอนบันทึก จึงไม่ให้ใบรับใหม่เปลี่ยนความหมายใบคืนเก่า.
+ */
+export function netUsableReceivedByVariant(rows: ReceiptNetRow[]): Map<string, number> {
+  const totals = new Map<string, number>();
+  for (const row of rows) {
+    if (!row.orderItemProductId) continue;
+    const key = variantNetKey(row.orderItemProductId, row.size ?? null, row.color ?? null);
+    const good = Math.max(0, row.qtyCounted - (row.defectQty ?? 0));
+    totals.set(key, (totals.get(key) ?? 0) + signOf(row.receiptType) * good);
+  }
+  return new Map([...totals].map(([key, total]) => [key, Math.max(0, total)]));
 }
 
 // ยอดรับสุทธิต่อรายการสินค้า (รวมทุกไซส์/สี)
@@ -106,6 +121,7 @@ export function assertValidReceiptLines<T extends { qtyCounted: number; defectQt
       badRequest("จำนวนต้องเป็นจำนวนเต็ม");
     }
     if (l.qtyCounted < 0 || l.defectQty < 0) badRequest("จำนวนติดลบไม่ได้");
+    if (l.defectQty > l.qtyCounted) badRequest("จำนวนตำหนิมากกว่าจำนวนที่นับได้ไม่ได้");
   }
   const lines = options.preserveZeroLines
     ? inputLines

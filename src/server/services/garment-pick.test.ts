@@ -32,6 +32,8 @@ function garmentHarness(params?: {
   orderId?: string;
   executionEnabled?: boolean;
   stockDocuments?: Map<string, string>;
+  missingVariant?: boolean;
+  missingProduct?: boolean;
   siblings?: Array<{
     id: string;
     stepType: string;
@@ -153,9 +155,9 @@ function garmentHarness(params?: {
               products: [
                 {
                   itemSource: "FROM_STOCK",
-                  productId: "product-1",
+                  productId: params?.missingProduct ? null : "product-1",
                   description: "เสื้อยืด",
-                  variants: [{ size: "M", color: "ดำ", quantity: 10 }],
+                  variants: [{ size: params?.missingVariant ? "L" : "M", color: "ดำ", quantity: 10 }],
                 },
               ],
             },
@@ -376,6 +378,16 @@ function garmentHarness(params?: {
 }
 
 describe("garment pick concurrency", () => {
+  it.each(["missingVariant", "missingProduct"] as const)("ไม่ตัดสต๊อกเมื่อจับคู่รายการเสื้อไม่ครบ: %s", async (problem) => {
+    const harness = garmentHarness({ [problem]: true });
+    await expect(issueGarments(harness.prisma as never, {
+      productionId: "production-1", stepId: "step-pick", lines: [{ sku: "TSHIRT", qty: 5 }],
+      idempotencyKey: "issue-incomplete-stock-reference", userId: "user-a", canSupervise: true,
+    }, harness.client)).rejects.toThrow("จับคู่รายการเสื้อกับสต๊อกไม่ครบ");
+    expect(harness.createMovement).not.toHaveBeenCalled();
+    expect(harness.usages).toHaveLength(0);
+  });
+
   it("V2 ISSUE ผูกยอด fulfilled กับ quantity line ตามสินค้า/ไซซ์/สี", async () => {
     const harness = garmentHarness({ orderStatus: "PRODUCING" });
 
