@@ -18,7 +18,15 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      // A12: only this fictional-data prototype can compare desktop/mobile
+      // in same-origin frames. All operational and public pages stay DENY.
+      { source: "/proto/production-flow", headers: [
+        { key: "X-Frame-Options", value: "SAMEORIGIN" },
+        { key: "Content-Security-Policy", value: "frame-ancestors 'self'" },
+      ] },
+    ];
   },
 };
 
