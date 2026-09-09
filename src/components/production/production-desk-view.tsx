@@ -248,12 +248,13 @@ function RouteRail({ rail }: { rail: readonly BoardRailPoint[] }) {
         aria-valuemax={total}
         aria-valuenow={completed}
         aria-label={`ผ่านแล้ว ${completed} จาก ${total} ช่วง`}
+        aria-valuetext={points.some((point) => point.statusLabel) ? points.map((point) => `${point.label} · ${point.statusLabel ?? RAIL_WORD[point.state]}`).join(", ") : undefined}
         className="flex h-1.5 gap-0.5"
       >
         {points.map((point) => (
           <span
             key={point.key}
-            title={`${point.label} · ${RAIL_WORD[point.state]}`}
+            title={`${point.label} · ${point.statusLabel ?? RAIL_WORD[point.state]}`}
             className={cn("flex-1 rounded-sm", RAIL_CLASS[point.state])}
           />
         ))}

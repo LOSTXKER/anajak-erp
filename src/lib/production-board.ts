@@ -78,7 +78,13 @@ export type BoardBucketKey =
 
 /** จุดไล่สายบนแถว — บอกว่างานเดินถึงไหนแล้วทั้งเส้น (งานผสมติดหลายจุดพร้อมกันได้) */
 export type BoardRailState = "done" | "now" | "stuck" | "failed" | "wait" | "na";
-export type BoardRailPoint = { key: string; label: string; state: BoardRailState };
+export type BoardRailPoint = {
+  key: string;
+  label: string;
+  state: BoardRailState;
+  /** Optional exact status from a richer source; absent keeps the established rail wording. */
+  statusLabel?: string;
+};
 
 const RAIL_STEPS: { key: string; label: string; match: (stepType: string) => boolean }[] = [
   { key: "prep", label: "เตรียมเสื้อ", match: (t) => laneOf(t) === "PREP" },
