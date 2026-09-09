@@ -212,7 +212,7 @@ describe("production.create topology reconciliation", () => {
     );
   });
 
-  it("receipt-before-production ครบทุก customer product ปิด GARMENT_RECEIVE พร้อมจำนวน", async () => {
+  it("รับเสื้อลูกค้าครบไปแล้วก็ไม่ปิด GARMENT_RECEIVE ให้เอง — ขั้นเกิดเป็นรอทำเสมอ", async () => {
     const products = [
       customerProduct("customer-1", 3, false),
       customerProduct("customer-2", 2, false),
@@ -234,25 +234,24 @@ describe("production.create topology reconciliation", () => {
     const createSteps = harness.tx.production.create.mock.calls[0]?.[0].data.steps.create;
     expect(createSteps[0]).toMatchObject({
       stepType: "GARMENT_RECEIVE",
-      status: "COMPLETED",
       qtyTotal: 5,
-      qtyDone: 5,
-      completedAt: expect.any(Date),
     });
-    expect(createSteps[1]).toEqual(
-      expect.not.objectContaining({ status: "COMPLETED", completedAt: expect.any(Date) }),
-    );
-    expect(harness.tx.auditLog.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        newValue: expect.objectContaining({ autoCompletedGarmentReceiveSteps: 1 }),
-      }),
-    });
+    // ปิดขั้นนี้ได้ทางใบตรวจรับในใบผลิตเท่านั้น (ROADMAP §A13) — เปิดใบแล้วต้องไม่มีขั้นไหนปิดอยู่ก่อน
+    for (const step of createSteps) {
+      expect(step).toEqual(
+        expect.not.objectContaining({ status: "COMPLETED", completedAt: expect.any(Date) }),
+      );
+      expect(step).toEqual(expect.not.objectContaining({ qtyDone: expect.anything() }));
+    }
+    // ไม่อ่าน ledger ใบตรวจรับตอนเปิดใบอีกแล้ว
+    expect(harness.tx.goodsReceiptLine.findMany).not.toHaveBeenCalled();
+    expect(harness.events).not.toContain("receipt-ledger-read");
     expect(harness.tx.production.update).not.toHaveBeenCalled();
     expect(harness.state.productionStatus()).toBe("PENDING");
     expect(harness.state.orderStatus()).toBe("PRODUCING");
   });
 
-  it("มีเพียง GARMENT_RECEIVE ที่ auto-complete ต้องปิด production และดัน order เข้า QC", async () => {
+  it("ใบที่มีแต่ขั้นตรวจรับเสื้อ ยังเปิดค้างรอคนกดปิด ไม่ปิดใบและไม่ดันออเดอร์เข้า QC", async () => {
     const products = [customerProduct("customer-1", 5, false)];
     const harness = makeCreateHarness(products, receivedLedger(products));
 
@@ -261,20 +260,15 @@ describe("production.create topology reconciliation", () => {
       steps: [{ stepType: "GARMENT_RECEIVE", sortOrder: 1 }],
     });
 
-    expect(harness.tx.production.update).toHaveBeenCalledWith({
-      where: { id: "production-1" },
-      data: { status: "COMPLETED", endDate: expect.any(Date) },
-      select: { orderId: true },
-    });
-    expect(harness.tx.production.count).toHaveBeenCalledWith({
-      where: { orderId: "order-1", status: { not: "COMPLETED" } },
-    });
-    expect(harness.tx.order.updateMany).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ internalStatus: "QUALITY_CHECK" }) }),
+    expect(harness.tx.production.update).not.toHaveBeenCalled();
+    expect(harness.tx.order.updateMany).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ internalStatus: "QUALITY_CHECK" }),
+      }),
     );
-    expect(harness.state.productionStatus()).toBe("COMPLETED");
-    expect(harness.state.orderStatus()).toBe("QUALITY_CHECK");
-    expect(result).toMatchObject({ status: "COMPLETED" });
+    expect(harness.state.productionStatus()).toBe("PENDING");
+    expect(harness.state.orderStatus()).toBe("PRODUCING");
+    expect(result).toMatchObject({ status: "PENDING" });
   });
 
   it.each([
@@ -311,9 +305,12 @@ describe("production.create topology reconciliation", () => {
     expect(garmentStep).not.toEqual(
       expect.objectContaining({ status: "COMPLETED", completedAt: expect.any(Date) }),
     );
+    // audit ไม่มีช่องนับขั้นที่ปิดให้เองอีกแล้ว — กันการเอา auto-complete กลับมาแบบมีเงื่อนไข
     expect(harness.tx.auditLog.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
-        newValue: expect.objectContaining({ autoCompletedGarmentReceiveSteps: 0 }),
+        newValue: expect.not.objectContaining({
+          autoCompletedGarmentReceiveSteps: expect.anything(),
+        }),
       }),
     });
   });

@@ -57,10 +57,6 @@ import {
 } from "@/server/services/work-order-form";
 import { lockProductionTopology } from "@/server/services/production-topology-lock";
 import { assertProductionV2ApiEnabled } from "@/server/services/production-v2-gate";
-import {
-  netReceivedByVariant,
-  receiptInspectionOfVariants,
-} from "@/server/services/goods-receipt-plan";
 import { getStockClientFromSettings } from "@/lib/stock-api";
 import { notFound } from "@/server/errors";
 import type { PrismaTx } from "@/lib/prisma";
@@ -633,9 +629,9 @@ export const productionRouter = router({
             message: `ออเดอร์นี้ใช้ Production V2 (${v2WorkOrder.workOrderNumber}) แล้ว — เปิดใบผลิตแบบเดิมไม่ได้`,
           });
         }
-        // receipt อาจเกิดก่อนเปิดใบผลิต: ต้องอ่าน evidence สดหลังถือ topology mutex
-        // และ order row lock เดียวกับ Goods Receipt/หน้าแก้ ห้ามใช้ snapshot ก่อน transaction
-        // มิฉะนั้นสร้าง step ค้างหลอกหรือผูกกับรายการคนละชุด
+        // รายการออเดอร์ต้องอ่านสดหลังถือ topology mutex และ order row lock เดียวกับ
+        // Goods Receipt/หน้าแก้รายการ ห้ามใช้ snapshot ก่อน transaction มิฉะนั้นสร้าง
+        // step ค้างหลอกหรือผูกกับรายการคนละชุด
         const orderProducts = await tx.orderItemProduct.findMany({
           where: { orderItem: { orderId: input.orderId } },
           select: {
@@ -677,60 +673,10 @@ export const productionRouter = router({
             ),
           0,
         );
-        const customerProducts = orderProducts.filter(
-          (product) => product.itemSource === "CUSTOMER_PROVIDED",
-        );
-        const receiptLines =
-          customerProducts.length > 0
-            ? await tx.goodsReceiptLine.findMany({
-                where: {
-                  orderItemProductId: {
-                    in: customerProducts.map((product) => product.id),
-                  },
-                  receipt: {
-                    orderId: input.orderId,
-                    receiptType: {
-                      in: ["CUSTOMER_GARMENT", "CUSTOMER_RETURN"],
-                    },
-                  },
-                },
-                select: {
-                  orderItemProductId: true,
-                  size: true,
-                  color: true,
-                  qtyCounted: true,
-                  receipt: { select: { receiptType: true } },
-                },
-              })
-            : [];
-        const receivedNetByVariant = netReceivedByVariant(
-          receiptLines.map((line) => ({
-            orderItemProductId: line.orderItemProductId,
-            size: line.size,
-            color: line.color,
-            qtyCounted: line.qtyCounted,
-            receiptType: line.receipt.receiptType,
-          })),
-        );
-        const customerGarmentsAlreadyInspected =
-          customerProducts.length > 0 &&
-          customerProducts.every(
-            (product) =>
-              receiptInspectionOfVariants(
-                product.id,
-                product.variants,
-                receivedNetByVariant,
-              ).receivedInspected,
-          );
-        const completedAt = customerGarmentsAlreadyInspected
-          ? new Date()
-          : null;
-        const autoCompletedGarmentReceiveSteps = input.steps.filter(
-          (step) =>
-            step.stepType === "GARMENT_RECEIVE" &&
-            customerGarmentsAlreadyInspected,
-        ).length;
-
+        // ทุกขั้นเกิดเป็น "รอทำ" เสมอ (เบสเคาะ 2026-09-10 · ROADMAP §A13): เดิมขั้นตรวจรับ
+        // เสื้อลูกค้าปิดให้เองตอนเปิดใบถ้ามีใบตรวจรับครบอยู่ก่อน — คนเปิดใบอ่านว่า "ระบบข้ามขั้น"
+        // และไม่มีประวัติว่าใครยืนยัน. ปิดขั้นนี้ผ่านใบตรวจรับในใบผลิตเท่านั้น
+        // (`goodsReceipt.confirmCustomerGarmentEvidence` สำหรับเคสรับครบไปแล้ว)
         const production = await tx.production.create({
           data: {
             orderId: input.orderId,
@@ -738,14 +684,6 @@ export const productionRouter = router({
               create: input.steps.map((s) => ({
                 ...s,
                 qtyTotal: orderTotalQty > 0 ? orderTotalQty : null,
-                ...(s.stepType === "GARMENT_RECEIVE" &&
-                customerGarmentsAlreadyInspected
-                  ? {
-                      status: "COMPLETED" as const,
-                      completedAt,
-                      qtyDone: orderTotalQty,
-                    }
-                  : {}),
               })),
             },
           },
@@ -775,17 +713,6 @@ export const productionRouter = router({
           changedBy: ctx.userId,
         });
 
-        const createdWorkflowSteps = productionWorkflowSteps(production.steps);
-        if (
-          createdWorkflowSteps.length > 0 &&
-          createdWorkflowSteps.every((step) => step.status === "COMPLETED")
-        ) {
-          await finalizeProductionIfComplete(tx, {
-            productionId: production.id,
-            changedBy: ctx.userId,
-          });
-        }
-
         await createAuditLog(tx, {
           userId: ctx.userId,
           action: "CREATE",
@@ -794,7 +721,6 @@ export const productionRouter = router({
           newValue: {
             orderId: input.orderId,
             stepsCount: input.steps.length,
-            autoCompletedGarmentReceiveSteps,
           },
         });
 
