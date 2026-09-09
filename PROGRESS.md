@@ -1,7 +1,8 @@
 # PROGRESS — สถานะสด
 
-## ตอนนี้ (2026-09-09 · A11)
-- เบสอนุญาต UX/UI และ refactor ทุกหน้า/ส่วนกลางได้เลยเมื่อช่วยพัฒนาต่อและใช้ง่ายขึ้น; ทำบน codex/production-table-refine ต่อจาก A10 5856b9f ไม่ใช่ main/Production
+## ตอนนี้ (2026-09-09 · A11 · ปล่อยผ่าน main)
+- เบสสั่ง commit push main; รวม codex/production-table-refine เข้า main แบบ fast-forward จาก 856c3bc ถึง e9640f8 ไม่มี conflict หรือโค้ดใหม่หลังผลตรวจ A11
+- โค้ด A10/A11 อยู่ใน 5856b9f / 4a910c6 / e9640f8; commit นี้บันทึกการนำขึ้น main เท่านั้น ผล CI และ Vercel ต้องยืนยันกับ SHA ที่ push จริง
 - Inventory: page.tsx58 = dashboard35/auth1/public5/print5/factory1/floor1/station-redirect1/v2-redirect4/proto5; ไม่นับหน้าลองและ redirects เหลือ **47 หน้าจอจริง**; layout7 (รวมproto1)
 - ตรวจระดับ route/component/shared dependency; ไม่ได้ตรวจทุกบรรทัดของ92บริการ/router และไม่เปลี่ยนของที่แยกขอบเขตธุรกิจเหมาะอยู่แล้วเพื่อให้เกิดdiff
 
@@ -35,10 +36,10 @@
 - Browser Station: เปิดคิวDTF→ใบรีด พบsaved checks0/3และปุ่มปิดdisabled; หลังแก้boardสถานีOTHERพร้อม0/รอ16; ไม่กดเขียนสถานะจริง
 - Public fixtureเฉพาะlocal anajak_erp_demo: approve/design, quote(ขอแก้ไขเปิดช่องมีlabel), upload; Light390/mainครบ/ชนิดไฟล์ตรงserver. ไม่ยืนยัน/ส่งข้อความ/อัปโหลดจริง; process cleanupลบfixture+token fileแล้ว
 - Proto qty-partial: ใส่ครบ→บันทึกยอด39→60และปุ่มปิดenabled; ปิดขั้นเป็นtoastจำลองของproto จึงไม่ใช่หลักฐานDB transitionสำเร็จ
-- ไม่มีschema/migration/dependency/envใหม่ ไม่reset/reseedข้อมูลเดิม ไม่deploy; เก็บSPEC/DESIGN/ARCHITECTUREตรงส่วนกลางใหม่
+- ไม่มีschema/migration/dependency/envใหม่ ไม่reset/reseedข้อมูลเดิม; เก็บSPEC/DESIGN/ARCHITECTUREตรงส่วนกลางใหม่; ปล่อยผ่าน Git integration เดิมตามคำสั่งเบส
 
 ## NEXT / ขอบเขตที่ยังคงไว้
-1. ดู /production และ /production/demo-production-form-tag-press บนlocalhost:3000; งานอยู่branchเดิมเพื่อreview/รวมขึ้นmainภายหลัง
+1. หลัง push ตรวจ GitHub CI + Vercel READY/alias ให้ตรง SHA บน main และเปิด https://anajak-erp.vercel.app/production แบบอ่านอย่างเดียว; ใบ demo-production-form-tag-press มีเฉพาะฐาน local ไม่ใช่ข้อมูล Production
 2. A2–A8/B/C/Fที่เป็นfeatureตามROADMAPยังเปิด; A11ไม่ได้สร้างหน้าprint-runs/films/outsourceที่ถอด หรือcutoverProduction V2
 3. A9 server sendToQc shortcutของlegacyยังเดิม, ข้อกำหนดยังstatic standards; helpers3ตัวที่เหลือtest-only importsคงไว้จนทบทวนสัญญาเก่าแยก ไม่ลบtestsเพื่อให้ตรวจผ่าน
 4. ไม่ทดสอบเขียนธุรกรรมเงินจริงและsubmitทุกฟอร์มผ่านbrowserซ้ำ; core unit/guardsผ่านและคงwriter semantics. warningsที่เหลือไม่ปิดกฎซ่อน
@@ -46,4 +47,4 @@
 ## สภาพแวดล้อม
 - dev3000ใช้ npm run dev:demo กับฐานlocal; พบdevเก่าหยุดและFitness offline cacheในChrome จึงrestart canonical demoแล้วเปิดใหม่ยืนยัน3000ได้
 - Chrome serviceworker-internals ถูกbrowser policyปฏิเสธ; ไม่ล้างcookies/cache/Service Worker และไม่แก้AppShellเพื่อซ่อนปัญหาcache
-- Branchต่อจากงานformก่อนA10; ผลbranchไม่เท่ากับสถานะremote mainหรือProduction deploy
+- main รวมงานformก่อนA10ด้วย; ผลตรวจ local เป็นฐานก่อนปล่อย ส่วนสถานะ remote/CI/Production ต้องอ่านจากระบบจริงแยกกัน
