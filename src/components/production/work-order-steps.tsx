@@ -63,7 +63,6 @@ export function WorkOrderSteps({ c, current, pairedOpen, allDone, qcAction, acti
                     stepId={step.id}
                     canIssueGarments={c.canUpdateStep && c.canOwnOrSupervise(step)}
                     canReturnGarments={c.canSuperviseStep && c.hasProductionPermission && !c.writeDataStale}
-                    embedded
                     primaryTask
                   />
                 </div>

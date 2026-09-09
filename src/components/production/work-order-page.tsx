@@ -49,7 +49,12 @@ function focusFirst(anchor: string, selector: string) {
   el?.focus();
 }
 
-/** ตำแหน่งคำสั่งของขั้น: header = เมนู ⋯ บนหัวใบ (ของจริง) · step = อยู่ใต้การ์ดขั้นทั้งหมด · split = แจ้งปัญหา/มอบหมาย อยู่กับขั้น ที่เหลืออยู่เมนู */
+/**
+ * ตำแหน่งคำสั่งของขั้น — **ของจริงใช้ `split`** (เบสเคาะ 2026-09-10 จากหน้าลอง `/proto/step-commands`):
+ * แจ้งปัญหา + มอบหมาย/แก้ให้ = งานประจำของหัวหน้า อยู่ใต้การ์ดขั้นที่กำลังมองอยู่ กดครั้งเดียว ·
+ * พัก · ย้อนกลับ · ประวัติ = นาน ๆ ใช้ ยังอยู่ในเมนู ⋯ พร้อมเหตุผลตอนกดไม่ได้
+ * ค่าอื่นเหลือไว้ให้หน้าลองเปิดเทียบย้อนหลัง: header = ทุกคำสั่งอยู่ในเมนู · step = ทุกคำสั่งอยู่กับขั้น
+ */
 export type StepCommandPlacement = "header" | "step" | "split";
 
 /**
@@ -88,7 +93,7 @@ function WorkOrder({ id }: { id: string }) {
  * ส่ง controller ปลอมต่อสถานะ เพื่อให้เบสดูทุกสถานะจากหน้าเดียวกับที่ทีมใช้จริง (ไม่วาดซ้ำ)
  * itemsTab = แทนเนื้อแท็บสินค้าทั้งก้อน (หน้าลองไม่มี tRPC ของใบจริง)
  */
-export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab, commands = "header" }: { c: WorkOrderController; scannedMockup?: number; itemsTab?: ReactNode; commands?: StepCommandPlacement }) {
+export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab, commands = "split" }: { c: WorkOrderController; scannedMockup?: number; itemsTab?: ReactNode; commands?: StepCommandPlacement }) {
   const { production, order, me, productionQuery, meQuery, workflowSteps, nowById } = c;
   const approvedMockup = order?.designs[0]?.versionNumber ?? null;
   const stalePaper = Number.isFinite(scannedMockup) && scannedMockup > 0 && approvedMockup !== null && scannedMockup < approvedMockup;

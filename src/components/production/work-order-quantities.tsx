@@ -193,9 +193,9 @@ export function StepPieceTable({ step, order, c, stepAction }: { step: Productio
           </div>
           <div className={cn("grid items-center border-t border-divider bg-surface-muted py-4", showQty ? "grid-cols-[25%_23%_26%_26%]" : "grid-cols-[65%_35%]")}>
             <span className="pl-5 text-xs text-muted">รวมทั้งใบ</span>
-            <Metric size="sm" value={total.toLocaleString("th-TH")} unit="ตัว" className={cn("items-end px-3", !showQty && "pr-5")} />
-            {showQty ? <Metric size="sm" value={doneSum.toLocaleString("th-TH")} className="items-end px-3" /> : null}
-            {showQty ? <Metric size="sm" value={wasteSum.toLocaleString("th-TH")} className="items-end pl-3 pr-5" tone={wasteSum > 0 ? "warning" : undefined} /> : null}
+            <Metric size="sm" value={total.toLocaleString("th-TH")} unit="ตัว" className={cn("px-3 text-right", !showQty && "pr-5")} />
+            {showQty ? <Metric size="sm" value={doneSum.toLocaleString("th-TH")} className="px-3 text-right" /> : null}
+            {showQty ? <Metric size="sm" value={wasteSum.toLocaleString("th-TH")} className="pl-3 pr-5 text-right" tone={wasteSum > 0 ? "warning" : undefined} /> : null}
           </div>
         </div>
       )}

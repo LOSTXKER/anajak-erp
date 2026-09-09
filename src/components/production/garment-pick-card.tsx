@@ -5,6 +5,7 @@ import { trpc } from "@/lib/trpc";
 import { SPOILAGE_RATE_PCT } from "@/lib/production-steps";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { InfoChip } from "@/components/ui/info-chip";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -228,34 +229,29 @@ export function GarmentPickCard({
       embedded={embedded}
       aria-labelledby="production-garment-title"
     >
-      <CardHeader className={cn("pb-3", embedded && "p-0 pb-3")}>
+      {/* หัวการ์ดใช้โครงเดียวกับหัวการ์ดขั้นอื่นในใบผลิต (`Section`: ชื่อ text-base → ยอดใต้ชื่อ →
+          ชิปสถานะชิดขวา) เบสทัก 2026-09-10 ว่าขั้นนี้ "UI ไม่เข้าพวก" — ก่อนหน้านี้ชื่อใหญ่กว่าขั้นอื่น
+          และป้ายขวาเขียนสีเอง ไม่ได้ใช้ชิปมาตรฐาน */}
+      <CardHeader className={cn("pb-4", embedded && "p-0 pb-3")}>
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h2
-              id="production-garment-title"
-              className={cn(
-                "flex items-center gap-2 font-semibold text-strong",
-                embedded && primaryTask ? "text-2xl" : "text-lg",
-              )}
-            >
-              <Shirt className="h-5 w-5 text-secondary" />
+          <div className="min-w-0 space-y-0.5">
+            <h2 id="production-garment-title" className="text-base font-semibold text-strong">
               {primaryTask ? "เบิกเสื้อจากสต๊อค" : "เสื้อจากสต๊อค"}
             </h2>
+            <p className="text-xs tabular-nums text-muted">
+              {fulfilledQty.toLocaleString("th-TH")} / {totalNeeded.toLocaleString("th-TH")} ตัว
+            </p>
           </div>
-          <span
-            className={cn(
-              "inline-flex shrink-0 items-center rounded-full px-3 py-1 text-sm font-medium tabular-nums",
-              needMore
-                ? "bg-amber-50 text-amber-800 dark:bg-amber-950/50 dark:text-amber-200"
-                : "bg-green-50 text-green-700 dark:bg-green-950/50 dark:text-green-200",
-            )}
+          <InfoChip
+            size="sm"
+            tone={garmentDataStale ? "neutral" : needMore ? "warning" : "success"}
           >
             {garmentDataStale
               ? "ข้อมูลอาจไม่สด"
               : needMore
-                ? `ยังขาด ${missingQty} ตัว`
-                : `ครบ ${fulfilledQty}/${totalNeeded} ตัว`}
-          </span>
+                ? `ยังขาด ${missingQty.toLocaleString("th-TH")} ตัว`
+                : "เบิกครบแล้ว"}
+          </InfoChip>
         </div>
       </CardHeader>
       <CardContent className={cn("space-y-3", embedded && "p-0")}>
