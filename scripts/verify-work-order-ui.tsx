@@ -104,8 +104,8 @@ const pairedController = {
   nowMs: 0,
   totalQty: 120,
 } as never;
-const paired = render(<WorkOrderSteps c={pairedController} current={pairedPrimary} pairedOpen={[pairedSecondary]} allDone={false} qcAction={null} actionFor={() => <Button>ปิดขั้นคู่</Button>} />);
-ok("ขั้นคู่: ทั้งสองขั้นมีตารางยอดของตัวเอง และปุ่มขั้นคู่ยังอยู่", (paired.match(/aria-label="ทำแล้ว /g) ?? []).length === 6 && paired.includes('id="work-order-pieces-paired-primary"') && paired.includes('id="work-order-pieces-paired-secondary"') && paired.includes(">ปิดขั้นคู่<"));
+const paired = render(<WorkOrderSteps c={pairedController} current={pairedPrimary} pairedOpen={[pairedSecondary]} allDone={false} qcAction={null} stepFooter={() => <Button>ปิดขั้นคู่</Button>} />);
+ok("ขั้นคู่: ทั้งสองขั้นมีตารางยอดและปุ่มของตัวเองอยู่ในกล่องของขั้นนั้น (A14)", (paired.match(/aria-label="ทำแล้ว /g) ?? []).length === 6 && paired.includes('id="work-order-pieces-paired-primary"') && paired.includes('id="work-order-pieces-paired-secondary"') && (paired.match(/>ปิดขั้นคู่</g) ?? []).length === 2);
 ok("ขั้นคู่: แต่ละเช็คลิสต์มีพิกัดของตัวเองให้ปุ่มปิดขั้นพาไป", paired.includes('id="work-order-checklist-paired-primary"') && paired.includes('id="work-order-checklist-paired-secondary"'));
 
 /* ── เช็คลิสต์ก่อนปิดขั้น (A9.2 ติ๊กได้ · ผลติ๊กมาจาก step.checks · ชิปบอกจำนวนที่เหลือ) ── */

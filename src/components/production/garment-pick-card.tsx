@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ComponentPropsWithoutRef } from "react";
+import { useState, type ComponentPropsWithoutRef, type ReactNode } from "react";
 import { trpc } from "@/lib/trpc";
 import { SPOILAGE_RATE_PCT } from "@/lib/production-steps";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
@@ -65,6 +65,8 @@ interface GarmentPickCardProps {
   primaryTask?: boolean;
   /** ขยายเฉพาะปุ่มเบิกหลักบน Station โดยไม่แตะปุ่มรองหรือ presentation ฝั่ง ERP */
   stationMode?: boolean;
+  /** แถบปุ่มเสริมท้ายกล่อง (ใบผลิตส่ง "แจ้งปัญหาขั้นนี้" มา) — จอสถานีไม่ส่ง */
+  footer?: ReactNode;
 }
 
 const lineLabel = (l: GarmentLine) =>
@@ -103,6 +105,7 @@ export function GarmentPickCard({
   embedded = false,
   primaryTask = false,
   stationMode = false,
+  footer,
 }: GarmentPickCardProps) {
   // snapshot target ตอนเปิด: refetch จากอีกจอห้ามสลับ dialog ไปผูก GARMENT_PICK
   // ตัวถัดไปเงียบ ๆ. ถ้า target ปัจจุบันเปลี่ยน dialog จะ unmount และให้เปิดใหม่.
@@ -454,6 +457,7 @@ export function GarmentPickCard({
             )}
           </div>
         )}
+        {footer ? <div className="flex flex-wrap items-center gap-2">{footer}</div> : null}
       </CardContent>
 
       {!garmentDataStale &&

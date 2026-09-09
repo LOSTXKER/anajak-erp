@@ -40,7 +40,7 @@ export function pieceRowsOf(order: ProductionDetail["order"]): PieceRow[] {
 }
 
 /** ตารางรายตัว: แถวละไซซ์ · ขั้นที่นับยอดกรอก "ทำแล้ว/เสีย" ต่อแถวได้ — ยอดรวมของขั้น = ผลบวก (server) */
-export function StepPieceTable({ step, order, c, stepAction }: { step: ProductionStep; order: ProductionDetail["order"]; c: WorkOrderController; stepAction?: ReactNode }) {
+export function StepPieceTable({ step, order, c, stepAction, footer }: { step: ProductionStep; order: ProductionDetail["order"]; c: WorkOrderController; stepAction?: ReactNode; footer?: ReactNode }) {
   const rows = pieceRowsOf(order);
   const total = rows.reduce((n, r) => n + r.qty, 0);
   const groups = new Map<string, PieceRow[]>();
@@ -199,6 +199,7 @@ export function StepPieceTable({ step, order, c, stepAction }: { step: Productio
           </div>
         </div>
       )}
+      {footer ? <div className="flex flex-wrap items-center gap-2 border-t border-divider px-5 py-4">{footer}</div> : null}
     </Section>
   );
 }

@@ -19,14 +19,14 @@ type WorkOrderStepsProps = {
   pairedOpen: ProductionStep[];
   allDone: boolean;
   qcAction: "paper" | "legacy" | null;
-  actionFor: (step: ProductionStep) => ReactNode;
-  /** แถวคำสั่งของขั้นที่ยืนอยู่ (แจ้งปัญหา/มอบหมาย/พัก/ย้อน) — มีเฉพาะหน้าลอง `/proto/step-commands`
-   *  ที่กำลังเทียบว่าคำสั่งควรอยู่บนหัวใบหรืออยู่กับขั้น · ของจริงยังไม่ส่งค่านี้ */
-  stepCommands?: ReactNode;
+  /** ปุ่มของขั้นนั้น (ปุ่มดำเนินการ + แจ้งปัญหา) — วางท้ายกล่องของขั้นเอง ไม่ใช่บนหัวใบ (เบสสั่ง 2026-09-10) */
+  stepFooter?: (step: ProductionStep) => ReactNode;
+  /** ปุ่มมอบหมาย/แก้ให้ — วางในกล่องเช็คลิสต์ บรรทัดเดียวกับ "ผู้ทำ" */
+  assignAction?: (step: ProductionStep) => ReactNode;
 };
 
 /** โครงฟอร์มเดิม: ตารางขั้นปัจจุบันซ้าย · เช็คลิสต์และข้อมูลใบขวา */
-export function WorkOrderSteps({ c, current, pairedOpen, allDone, qcAction, actionFor, stepCommands }: WorkOrderStepsProps) {
+export function WorkOrderSteps({ c, current, pairedOpen, allDone, qcAction, stepFooter, assignAction }: WorkOrderStepsProps) {
   const { production, order, workflowSteps, nowMs } = c;
   if (!production || !order) return null;
   const approvedMockup = order.designs[0]?.versionNumber ?? null;
@@ -53,10 +53,9 @@ export function WorkOrderSteps({ c, current, pairedOpen, allDone, qcAction, acti
           </Section>
         ) : (
           <>
-            {[current, ...pairedOpen].map((step, index) => (
+            {[current, ...pairedOpen].map((step) => (
               step.stepType === "GARMENT_PICK" ? (
                 <div key={step.id} className="space-y-3">
-                  {index > 0 ? <div className="flex justify-end">{actionFor(step)}</div> : null}
                   <GarmentPickCard
                     productionId={production.id}
                     steps={workflowSteps}
@@ -64,13 +63,13 @@ export function WorkOrderSteps({ c, current, pairedOpen, allDone, qcAction, acti
                     canIssueGarments={c.canUpdateStep && c.canOwnOrSupervise(step)}
                     canReturnGarments={c.canSuperviseStep && c.hasProductionPermission && !c.writeDataStale}
                     primaryTask
+                    footer={stepFooter?.(step)}
                   />
                 </div>
               ) : (
-                <StepPieceTable key={step.id} step={step} order={order} c={c} stepAction={index > 0 ? actionFor(step) : undefined} />
+                <StepPieceTable key={step.id} step={step} order={order} c={c} footer={stepFooter?.(step)} />
               )
             ))}
-            {stepCommands}
           </>
         )}
       </div>
@@ -78,7 +77,7 @@ export function WorkOrderSteps({ c, current, pairedOpen, allDone, qcAction, acti
         {!allDone
           ? [current, ...pairedOpen].filter((s): s is ProductionStep => !!s).map((s) => (
               <div key={s.id} id={checklistAnchor(s.id)}>
-                <ChecklistCard step={s} c={c} nowMs={nowMs} showStepName={pairedOpen.length > 0} />
+                <ChecklistCard step={s} c={c} nowMs={nowMs} showStepName={pairedOpen.length > 0} assignAction={assignAction?.(s)} />
               </div>
             ))
           : null}

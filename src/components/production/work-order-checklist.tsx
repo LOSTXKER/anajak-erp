@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Store, UserRound } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DueTag } from "@/components/ui/due-tag";
@@ -19,7 +20,7 @@ export function ticksMissing(step: ProductionStep): number {
 /* ───────────────────────── ขวา: เช็คลิสต์ของขั้นที่ยืนอยู่ ───────────────────────── */
 
 /** เช็คลิสต์ของขั้น — ชื่อการ์ด "เช็คลิสต์" (ชื่อขั้นอยู่ที่ตารางซ้ายแล้ว) · ขั้นคู่ค่อยใส่ชื่อขั้นให้แยกกันออก */
-export function ChecklistCard({ step, c, nowMs, showStepName = false }: { step: ProductionStep; c: WorkOrderController; nowMs: number; showStepName?: boolean }) {
+export function ChecklistCard({ step, c, nowMs, showStepName = false, assignAction }: { step: ProductionStep; c: WorkOrderController; nowMs: number; showStepName?: boolean; assignAction?: ReactNode }) {
   const standards = workOrderStandards(step.stepType);
   const done = step.status === "COMPLETED";
   const halted = step.status === "FAILED" || step.status === "ON_HOLD";
@@ -30,9 +31,14 @@ export function ChecklistCard({ step, c, nowMs, showStepName = false }: { step: 
   return (
     <Section title={showStepName ? stepLabel(step) : "เช็คลิสต์"} action={missing > 0 ? <InfoChip size="sm" tone="warning">ติ๊กอีก {missing} ข้อ</InfoChip> : undefined}>
       <div className="space-y-4">
-        <FactList columns={1}>
-          <Fact size="sm" icon={UserRound} label="ผู้ทำ" value={step.assignedTo?.name ?? "ยังไม่มีคนรับ"} tone={step.assignedTo ? "default" : "muted"} />
-        </FactList>
+        {/* ใครทำขั้นนี้ + ปุ่มเปลี่ยนคนทำ อยู่บรรทัดเดียวกัน (เบสสั่ง 2026-09-10) — เดิมปุ่มมอบหมาย
+            ซ่อนอยู่ในเมนู ⋯ บนหัวใบ ทั้งที่ข้อมูล "ผู้ทำ" อยู่ตรงนี้ */}
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <FactList columns={1} className="min-w-0 flex-1">
+            <Fact size="sm" icon={UserRound} label="ผู้ทำ" value={step.assignedTo?.name ?? "ยังไม่มีคนรับ"} tone={step.assignedTo ? "default" : "muted"} />
+          </FactList>
+          {assignAction}
+        </div>
         {outsource ? (
           <FactList columns={1} className="border-t border-divider pt-4">
             <Fact icon={Store} label="ร้านนอก" value={outsource.vendor.name} />
