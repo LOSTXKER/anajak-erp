@@ -2,7 +2,7 @@
  * ใบผลิตตัวอย่างสำหรับ "กดไล่จากขั้นแรก" บนฐานทดลอง (เบสสั่ง 2026-09-09 "ให้ทุกใบผลิตเป็นสถานะแรกหมด จะได้ลองกดไล่ดู")
  *
  * ทุกใบ: ออเดอร์กำลังผลิต · ทุกขั้นยังไม่เริ่ม · ไม่มีติ๊ก/ยอด/ใบส่งร้าน — ต่างกันที่ "เส้นทาง" (ชุดขั้น) เพื่อให้เห็น UX ครบ:
- * รีดร้อน · รับเสื้อลูกค้า · ร้านนอกชนิดต่าง ๆ · ช่องคู่ · ใบขั้นเดียว (พิมพ์ DTF รอหน้ารอบพิมพ์ใหม่ §A3)
+ * รีดร้อน · รับเสื้อลูกค้า · ร้านนอกชนิดต่าง ๆ · ช่องคู่ · ใบขั้นเดียว · รับเสื้อและ DTF คู่กัน · รวมพิมพ์หลายใบ
  * ชื่อลูกค้า = ชื่อเส้นทาง ("ลอง 2 · เสื้อลูกค้า → รีดร้อน → ตรวจ") เห็นจากหน้ารายการผลิตและหัวใบทันที
  * แยกจาก scenario หลักใน seed-demo.ts · ใบแบบเดิม (legacy) ล้วน · เลขออเดอร์ต่อจาก scenario หลัก · id `demo-production-form-<key>`
  */
@@ -15,6 +15,7 @@ const money = (value: number | string) => new Prisma.Decimal(value);
 
 type StepType =
   | "GARMENT_RECEIVE"
+  | "DTF_PRINT"
   | "HEAT_PRESS"
   | "EMBROIDERY"
   | "SCREEN_PRINTING"
@@ -30,22 +31,21 @@ type FormRoute = {
   customerName: string;
   note: string;
   deadlineInDays: number;
-  printType: "HEAT_TRANSFER" | "EMBROIDERY" | "SILK_SCREEN" | "SUBLIMATION";
+  printType: "DTF" | "HEAT_TRANSFER" | "EMBROIDERY" | "SILK_SCREEN" | "SUBLIMATION" | null;
   /** เสื้อลูกค้ายังไม่ได้ตรวจรับ (มีขั้นรับเสื้อลูกค้า) */
   awaitingGarments?: boolean;
+  source?: "CUSTOMER_PROVIDED" | "CUSTOM_MADE";
   steps: StepSpec[];
 };
-
-const QC: StepSpec = { key: "qc", stepType: "CUSTOM", name: "ตรวจคุณภาพขั้นสุดท้าย" };
 
 export const FORM_ROUTES: FormRoute[] = [
   {
     key: "press",
     customerName: "ลอง 1 · รีดร้อน → ตรวจ",
-    note: "เส้นทางสั้นสุด: เริ่มทำ → ติ๊ก 3 ข้อ → กรอกยอด → ปิดขั้น → ตรวจ → ส่งเข้า QC",
+    note: "เส้นทางสั้นสุด: เริ่มทำ → ติ๊ก 3 ข้อ → กรอกยอด → ปิดขั้น → ตรวจ QC จริงที่ออเดอร์ → แพ็ก/ส่ง",
     deadlineInDays: 7,
     printType: "HEAT_TRANSFER",
-    steps: [{ key: "press", stepType: "HEAT_PRESS" }, QC],
+    steps: [{ key: "press", stepType: "HEAT_PRESS" }],
   },
   {
     key: "receive",
@@ -54,9 +54,8 @@ export const FORM_ROUTES: FormRoute[] = [
     deadlineInDays: 8,
     printType: "HEAT_TRANSFER",
     awaitingGarments: true,
-    steps: [{ key: "receive", stepType: "GARMENT_RECEIVE" }, { key: "press", stepType: "HEAT_PRESS" }, QC],
+    steps: [{ key: "receive", stepType: "GARMENT_RECEIVE" }, { key: "press", stepType: "HEAT_PRESS" }],
   },
-  // ยังไม่มีเส้นทางพิมพ์ DTF: หน้ารอบพิมพ์ฟิล์มถอดออกแล้ว รอสร้างใหม่ (ROADMAP §A3) — ใส่แล้วจะกดต่อไม่ได้
   // กติกาโรงงาน: งานร้านนอกไปก่อนเสมอ — รีดร้อนเริ่มได้เมื่อของกลับจากร้านครบ (evaluateHeatPressGate)
   {
     key: "tag-press",
@@ -64,7 +63,7 @@ export const FORM_ROUTES: FormRoute[] = [
     note: "ส่งร้านนอกก่อน ของกลับแล้วค่อยรีดเอง",
     deadlineInDays: 6,
     printType: "HEAT_TRANSFER",
-    steps: [{ key: "tag", stepType: "TAGGING" }, { key: "press", stepType: "HEAT_PRESS" }, QC],
+    steps: [{ key: "tag", stepType: "TAGGING" }, { key: "press", stepType: "HEAT_PRESS" }],
   },
   {
     key: "embroidery",
@@ -72,7 +71,7 @@ export const FORM_ROUTES: FormRoute[] = [
     note: "งานร้านนอก: ส่งร้านนอก → รอ → รับงานกลับ (ใบตรวจรับ) → ตรวจ",
     deadlineInDays: 10,
     printType: "EMBROIDERY",
-    steps: [{ key: "emb", stepType: "EMBROIDERY" }, QC],
+    steps: [{ key: "emb", stepType: "EMBROIDERY" }],
   },
   {
     key: "screen-tag",
@@ -80,7 +79,7 @@ export const FORM_ROUTES: FormRoute[] = [
     note: "ร้านนอกสองร้านต่อกัน",
     deadlineInDays: 12,
     printType: "SILK_SCREEN",
-    steps: [{ key: "screen", stepType: "SCREEN_PRINTING" }, { key: "tag", stepType: "TAGGING" }, QC],
+    steps: [{ key: "screen", stepType: "SCREEN_PRINTING" }, { key: "tag", stepType: "TAGGING" }],
   },
   {
     key: "pair",
@@ -91,13 +90,12 @@ export const FORM_ROUTES: FormRoute[] = [
     steps: [
       { key: "fold", stepType: "CUSTOM", name: "พับ + ติดป้ายไซซ์" },
       { key: "emb", stepType: "EMBROIDERY", pairWithPrevious: true },
-      QC,
     ],
   },
   {
     key: "long",
     customerName: "ลอง 7 · เสื้อลูกค้า → ปัก → รีดร้อน → ตรวจ → แพ็ก",
-    note: "เส้นทางยาว 5 ขั้น ผสมทำเองกับร้านนอก",
+    note: "รับเสื้อ → ปัก → รีด แล้วตรวจ QC และแพ็กจริงที่ออเดอร์",
     deadlineInDays: 14,
     printType: "EMBROIDERY",
     awaitingGarments: true,
@@ -105,17 +103,16 @@ export const FORM_ROUTES: FormRoute[] = [
       { key: "receive", stepType: "GARMENT_RECEIVE" },
       { key: "emb", stepType: "EMBROIDERY" },
       { key: "press", stepType: "HEAT_PRESS" },
-      QC,
-      { key: "pack", stepType: "CUSTOM", name: "แพ็กขั้นสุดท้าย" },
     ],
   },
   {
     key: "sewing",
+    source: "CUSTOM_MADE",
     customerName: "ลอง 8 · ตัดเย็บร้านนอก → ตรวจ",
     note: "ตัดเย็บใหม่ทั้งตัวที่ร้านนอก",
     deadlineInDays: 20,
-    printType: "SILK_SCREEN",
-    steps: [{ key: "sew", stepType: "SEWING" }, QC],
+    printType: null,
+    steps: [{ key: "sew", stepType: "SEWING" }],
   },
   {
     key: "sublimation",
@@ -123,7 +120,7 @@ export const FORM_ROUTES: FormRoute[] = [
     note: "งานซับลิเมชันที่ร้านนอก",
     deadlineInDays: 11,
     printType: "SUBLIMATION",
-    steps: [{ key: "sub", stepType: "SUBLIMATION" }, QC],
+    steps: [{ key: "sub", stepType: "SUBLIMATION" }],
   },
   {
     key: "single",
@@ -132,6 +129,27 @@ export const FORM_ROUTES: FormRoute[] = [
     deadlineInDays: 3,
     printType: "HEAT_TRANSFER",
     steps: [{ key: "sticker", stepType: "CUSTOM", name: "ติดสติกเกอร์ทับลาย" }],
+  },
+  {
+    key: "dtf",
+    customerName: "ลอง 11 · รับเสื้อ + พิมพ์ DTF → รีด → QC",
+    note: "รับเสื้อและพิมพ์ฟิล์มเดินคู่กัน ลองพิมพ์บางส่วน/ฟิล์มเสียแล้วพิมพ์เพิ่มให้ครบก่อนรีด",
+    deadlineInDays: 5,
+    printType: "DTF",
+    awaitingGarments: true,
+    steps: [
+      { key: "receive", stepType: "GARMENT_RECEIVE" },
+      { key: "dtf", stepType: "DTF_PRINT", pairWithPrevious: true },
+      { key: "press", stepType: "HEAT_PRESS" },
+    ],
+  },
+  {
+    key: "dtf-batch",
+    customerName: "ลอง 12 · รวมพิมพ์ DTF หลายออเดอร์",
+    note: "ลองรวมในรอบพิมพ์เดียวกับใบ 11 แล้วตัดแยกติดป้ายให้ตรงออเดอร์",
+    deadlineInDays: 6,
+    printType: "DTF",
+    steps: [{ key: "dtf", stepType: "DTF_PRINT" }, { key: "press", stepType: "HEAT_PRESS" }],
   },
 ];
 
@@ -149,10 +167,10 @@ export async function seedWorkOrderFormStates(
   const color = "ขาว";
   const unit = money(105);
   const printUnit = money(65);
-  const subtotal = unit.plus(printUnit).mul(QUANTITY);
-  const tax = subtotal.mul(7).div(100).toDecimalPlaces(2);
 
   for (const [index, route] of FORM_ROUTES.entries()) {
+    const subtotal = unit.plus(route.printType ? printUnit : money(0)).mul(QUANTITY);
+    const tax = subtotal.mul(7).div(100).toDecimalPlaces(2);
     const sequence = input.sequenceStart + index;
     const orderId = `demo-order-form-${route.key}`;
     const customerId = `demo-customer-form-${route.key}`;
@@ -160,7 +178,7 @@ export async function seedWorkOrderFormStates(
     const itemId = `demo-item-form-${route.key}`;
     const productLineId = `demo-item-product-form-${route.key}`;
     const createdAt = fromNow(-3);
-    const received = !route.awaitingGarments;
+    const received = !route.awaitingGarments && route.source !== "CUSTOM_MADE";
 
     await tx.customer.create({
       data: {
@@ -221,7 +239,7 @@ export async function seedWorkOrderFormStates(
         baseUnitPrice: unit,
         totalQuantity: QUANTITY,
         subtotal: unit.mul(QUANTITY),
-        itemSource: "CUSTOMER_PROVIDED",
+        itemSource: route.source ?? "CUSTOMER_PROVIDED",
         garmentCondition: received ? "สภาพดี พร้อมผลิต" : null,
         receivedInspected: received,
         receiveNote: received ? "ตรวจจำนวนและสภาพครบตามใบรับ" : null,
@@ -230,7 +248,28 @@ export async function seedWorkOrderFormStates(
     await tx.orderItemVariant.createMany({
       data: VARIANTS.map((v) => ({ id: `demo-variant-form-${route.key}-${v.size}`, orderItemProductId: productLineId, size: v.size, color, quantity: v.quantity })),
     });
-    await tx.orderItemPrint.create({
+    if (received) {
+      await tx.goodsReceipt.create({
+        data: {
+          id: `demo-receipt-form-${route.key}`,
+          orderId,
+          receiptType: "CUSTOMER_GARMENT",
+          receivedById: input.ownerId,
+          receivedAt: fromNow(-2),
+          createdAt: fromNow(-2),
+          notes: "รับและตรวจสภาพครบก่อนเปิดใบผลิตตัวอย่าง",
+          lines: { create: VARIANTS.map((variant) => ({
+            orderItemProductId: productLineId,
+            description: `เสื้อยืด Cotton 100% สี${color}`,
+            size: variant.size,
+            color,
+            qtyExpected: variant.quantity,
+            qtyCounted: variant.quantity,
+          })) },
+        },
+      });
+    }
+    if (route.printType) await tx.orderItemPrint.create({
       data: {
         id: `demo-print-form-${route.key}`,
         orderItemId: itemId,

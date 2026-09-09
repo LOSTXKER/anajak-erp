@@ -28,6 +28,7 @@ import {
   validateDemoSeedInvocation,
 } from "../src/lib/demo-seed-plan";
 import { FORM_ROUTES, seedWorkOrderFormStates } from "./seed-demo-form-states";
+import { recordLegacyQcCount } from "../src/server/services/qc-ledger";
 
 const prisma = new PrismaClient();
 const DAY_MS = 24 * 60 * 60 * 1_000;
@@ -1647,6 +1648,26 @@ async function main() {
                 : {}),
             },
           });
+          // Demo knows exactly which sizes passed; keep its packing-ready fixtures
+          // consistent with the same durable evidence used by a real QC count.
+          let goodRemaining = isPartialCheck ? 20 : scenario.quantity;
+          const goodLines = variants.map((variant, variantIndex) => {
+            const capacity = variant.quantity - (isPartialCheck && variantIndex === 0 ? 3 : 0);
+            const qtyGood = Math.min(goodRemaining, Math.max(0, capacity));
+            goodRemaining -= qtyGood;
+            return { variantId: `demo-variant-${scenario.key}-${variant.size}-${variant.color}`, qtyGood };
+          }).filter((line) => line.qtyGood > 0);
+          if (goodRemaining !== 0) throw new Error(`QC demo allocation incomplete: ${scenario.key}`);
+          // The demo uses base Prisma; this helper only writes OrderRevision,
+          // whose fields are unaffected by the app's Decimal result extension.
+          await recordLegacyQcCount(tx as unknown as Parameters<typeof recordLegacyQcCount>[0], {
+            orderId: id,
+            userId: "demo-user-press",
+            qcRecordId: `demo-qc-${scenario.key}`,
+            scopeRevisionId: null,
+            qtyGood: isPartialCheck ? 20 : scenario.quantity,
+            lines: goodLines,
+          });
         }
 
         const deliveryFeature = scenario.features.find((feature) =>
@@ -2372,11 +2393,16 @@ async function main() {
       // ทำหลัง seed ครบเพื่อคง scenario เดิมทุกใบ: ถอด flag V2 ออกจากขั้น + ลบเลข MO (production.create เช็คเลขนี้)
 
       // ใบผลิตตัวอย่างทุกสถานะของฟอร์ม (เบสสั่ง 09-09) — เลขออเดอร์ต่อจาก scenario หลัก
-      await seedWorkOrderFormStates(tx, {
+      const formSequenceStart = Math.max(...DEMO_SEED_SCENARIOS.map((scenario) => scenario.sequence)) + 1;
+      const formCount = await seedWorkOrderFormStates(tx, {
         period,
         ownerId: owner.id,
-        sequenceStart: DEMO_SEED_SCENARIOS.length + 1,
+        sequenceStart: formSequenceStart,
         art: DEMO_ART,
+      });
+      await tx.documentSequence.update({
+        where: { docType_period: { docType: "ORDER", period } },
+        data: { lastNumber: formSequenceStart + formCount - 1 },
       });
 
 
