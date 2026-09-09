@@ -17,7 +17,7 @@
 
 import { Suspense, useState, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
-import { Factory, Flag, History, Pause, Printer, RotateCcw, UserRound } from "lucide-react";
+import { ClipboardCheck, Factory, Flag, History, Pause, Printer, RotateCcw, UserRound } from "lucide-react";
 
 import { PageShell } from "@/components/page-shell";
 import { OrderStatusBar } from "@/components/orders/detail/order-status-bar";
@@ -29,6 +29,8 @@ import { MoreMenu, type MoreMenuItem } from "@/components/ui/more-menu";
 import { RecordNotFound } from "@/components/ui/record-not-found";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsBar, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { GarmentReceiveInline } from "@/components/production/garment-receive-inline";
 import { ProblemDialog } from "@/components/production/step-command-dialogs";
 import type { ProductionStep } from "@/components/production/types";
 import { PRIORITY_LABELS } from "@/lib/order-status";
@@ -82,6 +84,8 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab }: { c: 
   const approvedMockup = order?.designs[0]?.versionNumber ?? null;
   const stalePaper = Number.isFinite(scannedMockup) && scannedMockup > 0 && approvedMockup !== null && scannedMockup < approvedMockup;
   const [problemStep, setProblemStep] = useState<ProductionStep | null>(null);
+  // แก้ยอดตรวจรับที่นับผิด (A15) — เปิดจากเมนู ⋯ เพราะกล่องของขั้นนั้นไม่แสดงแล้วเมื่อขั้นปิดไป
+  const [fixReceiveOpen, setFixReceiveOpen] = useState(false);
 
   // ราง: ช่องละขั้น · ขั้นที่ตั้ง "เดินคู่กับขั้นก่อน" รวมอยู่ช่องเดียวกัน · ยืนที่ช่องแรกที่ยังมีขั้นไม่ปิด (แบบ A)
   const nodes = railNodesOf(workflowSteps);
@@ -217,6 +221,7 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab }: { c: 
   const reopenTarget = allDone ? (workflowSteps[workflowSteps.length - 1] ?? null) : ([...workflowSteps.slice(0, flatIndex)].reverse().find((s) => s.status === "COMPLETED") ?? null);
   const reopenBlocked = !!reopenTarget && (FLOW_OWNED_STEP_TYPES.has(reopenTarget.stepType) || reopenTarget.outsourceOrders.length > 0);
   const canManage = canManageStep;
+  const receiveStep = workflowSteps.find((step) => step.stepType === "GARMENT_RECEIVE") ?? null;
   // เมนู "เพิ่มเติม" เรียงตามความถี่ที่หัวหน้าใช้จริง ไม่ใช่ตามลำดับที่เขียนโค้ด (เบสทัก 2026-09-10
   // "บางอันจำเป็นต้องใช้ แต่ก็ไปซ่อน"): แจ้งปัญหา/มอบหมาย = งานประจำของหัวหน้าอยู่บนสุด ·
   // พัก/ย้อนกลับ = นาน ๆ ใช้อยู่ล่าง · ขีดคั่นแยก "คำสั่งกับขั้นนี้" ออกจาก "ลิงก์ดูข้อมูลทั้งออเดอร์"
@@ -235,6 +240,18 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab }: { c: 
           disabled: !canManage || current.status === "COMPLETED" || current.status === "FAILED",
           onSelect: () => void c.handleSupervisorStatus(current, current.status === "ON_HOLD" ? "PENDING" : "ON_HOLD"),
         },
+        ...(receiveStep
+          ? [
+              {
+                key: "fix-receive",
+                label: "แก้ยอดตรวจรับเสื้อ",
+                icon: ClipboardCheck,
+                hint: canManage ? "นับผิด/รับไม่ครบ — กรอกยอดที่ถูกต้อง ระบบออกใบส่วนต่างให้" : "หัวหน้าเท่านั้น",
+                disabled: !canManage,
+                onSelect: () => setFixReceiveOpen(true),
+              },
+            ]
+          : []),
         {
           key: "undo",
           label: reopenTarget ? `ย้อนกลับไป ${stepLabel(reopenTarget)}` : "ย้อนกลับขั้นก่อน",
@@ -380,6 +397,25 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab }: { c: 
         )}
       </PageShell>
       {problemStep ? <ProblemDialog open onClose={() => setProblemStep(null)} step={problemStep} c={c} /> : null}
+      {fixReceiveOpen && order && receiveStep ? (
+        <Dialog open onOpenChange={(open) => !open && setFixReceiveOpen(false)}>
+          <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>แก้ยอดตรวจรับเสื้อลูกค้า</DialogTitle>
+              <DialogDescription>
+                ใช้เมื่อนับผิดหรือรับมาไม่ครบตามที่บันทึกไว้ — กรอกยอดที่ถูกต้อง ระบบจะออกใบส่วนต่างและเปิดขั้นกลับให้ถ้ายอดยังไม่ครบ
+              </DialogDescription>
+            </DialogHeader>
+            <GarmentReceiveInline
+              orderId={order.id}
+              productionStepId={receiveStep.id}
+              canRecord={false}
+              canCorrect
+              startCorrecting
+            />
+          </DialogContent>
+        </Dialog>
+      ) : null}
       {c.dialogs}
     </>
   );

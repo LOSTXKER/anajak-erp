@@ -8,6 +8,7 @@ import {
   getReceiptContext,
   createGoodsReceipt,
   confirmCustomerGarmentEvidence,
+  correctCustomerGarmentReceipt,
   listGoodsReceipts,
 } from "@/server/services/goods-receipt";
 
@@ -99,6 +100,42 @@ export const goodsReceiptRouter = router({
           ctx.permissionOverrides,
           "supervise_operations",
         ),
+      });
+    }),
+
+  /** แก้ยอดตรวจรับที่นับผิด (A15) — หัวหน้ากรอกยอดที่ถูกต้อง ระบบออกใบส่วนต่างและเปิดขั้นกลับให้เอง */
+  correctCustomerGarment: protectedProcedure
+    .input(
+      z.object({
+        orderId: z.string().min(1),
+        productionStepId: z.string().min(1),
+        idempotencyKey: z.string().min(8).max(100),
+        reason: z.string().trim().min(3, "กรุณาระบุเหตุผลที่แก้ยอดอย่างน้อย 3 ตัวอักษร"),
+        lines: z
+          .array(
+            z.object({
+              orderItemProductId: z.string().min(1),
+              description: z.string().min(1),
+              size: z.string().optional(),
+              color: z.string().optional(),
+              qtyCorrect: z.number().int().nonnegative(),
+            }),
+          )
+          .min(1),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const canSupervise = hasPermission(ctx.userRole, ctx.permissionOverrides, "supervise_operations");
+      if (!canSupervise) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "แก้ยอดตรวจรับได้เฉพาะหัวหน้าฝ่ายผลิต",
+        });
+      }
+      return correctCustomerGarmentReceipt(ctx.prisma, {
+        ...input,
+        userId: ctx.userId,
+        canSupervise,
       });
     }),
 

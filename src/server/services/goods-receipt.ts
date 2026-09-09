@@ -236,6 +236,11 @@ export interface CreateReceiptParams {
   lines: CreateReceiptLineInput[];
   userId: string;
   canSupervise?: boolean;
+  /**
+   * คำสั่ง "แก้ยอดตรวจรับที่นับผิด" ของหัวหน้า (A15) — ใบนี้ออกเพื่อแก้หลักฐานให้ตรงของจริง
+   * จึงข้ามด่านกันคืนหลังเปิดใบผลิตได้ ส่วนใบคืนปกติจากหน้าออเดอร์ยังถูกกันเหมือนเดิม
+   */
+  correction?: { reason: string };
 }
 
 function sameOptionalText(left: string | null | undefined, right: string | null | undefined) {
@@ -928,7 +933,7 @@ export async function createGoodsReceipt(
     const receiptLines = validated.lines;
     const productIds = validated.productIds;
     if (params.receiptType === "CUSTOMER_RETURN") {
-      if (!params.operationJobId) {
+      if (!params.operationJobId && !params.correction) {
         await assertReturnDoesNotInvalidateActiveProduction(tx, {
           orderId: params.orderId,
           lines: receiptLines,
@@ -1437,5 +1442,171 @@ export async function listGoodsReceipts(prisma: ExtendedPrismaClient, orderId: s
       lines: true,
       receivedBy: { select: { id: true, name: true } },
     },
+  });
+}
+
+/**
+ * แก้ยอดตรวจรับเสื้อลูกค้าที่นับผิด (A15 · เบสเคาะ 2026-09-10 "ย้อนขั้นได้ แต่ต้องแก้ยอดพร้อมกัน")
+ *
+ * ทำไมไม่ใช่ปุ่มย้อนสถานะเปล่า ๆ: ขั้น GARMENT_RECEIVE ปิดเพราะ "ใบตรวจรับ" เป็นหลักฐาน
+ * (ยอดนับจริงต่อไซซ์ · ตำหนิ · รูป · ใครนับเมื่อไหร่) — ย้อนแค่สถานะจะทำให้ขั้นบอกว่า
+ * ยังไม่ตรวจรับ ทั้งที่หลักฐานบอกว่ารับแล้ว. คำสั่งนี้จึงแก้ "ยอด" เป็นหลัก แล้วให้สถานะขั้น
+ * เดินตามยอดเสมอ: ยอดครบ = ปิดไว้เหมือนเดิม · ยอดไม่ครบ = เปิดขั้นกลับให้รับต่อ
+ *
+ * ส่วนต่างออกเป็นใบจริงเสมอ ไม่แก้ใบเก่า: นับเกินไป → ใบคืน (CUSTOMER_RETURN) ·
+ * นับขาดไป → ใบรับเพิ่ม (CUSTOMER_GARMENT) — ประวัติจึงอ่านย้อนได้ว่าใครแก้อะไรเพราะอะไร
+ */
+export async function correctCustomerGarmentReceipt(
+  prisma: ExtendedPrismaClient,
+  params: {
+    orderId: string;
+    productionStepId: string;
+    /** ยอดรับสุทธิที่ "ควรจะเป็น" ต่อไซซ์/สี หลังนับใหม่ */
+    lines: Array<{
+      orderItemProductId: string;
+      description: string;
+      size?: string;
+      color?: string;
+      qtyCorrect: number;
+    }>;
+    reason: string;
+    idempotencyKey: string;
+    userId: string;
+    canSupervise: boolean;
+  },
+) {
+  if (!params.canSupervise) {
+    forbidden("แก้ยอดตรวจรับได้เฉพาะหัวหน้าฝ่ายผลิต");
+  }
+  const reason = params.reason.trim();
+  if (reason.length < 3) badRequest("ต้องระบุเหตุผลที่แก้ยอดอย่างน้อย 3 ตัวอักษร");
+
+  const step = await prisma.productionStep.findUniqueOrThrow({
+    where: { id: params.productionStepId },
+    select: {
+      id: true,
+      stepType: true,
+      status: true,
+      executionEnabled: true,
+      production: { select: { id: true, orderId: true } },
+    },
+  });
+  if (step.stepType !== "GARMENT_RECEIVE" || step.production.orderId !== params.orderId) {
+    badRequest("ขั้นตรวจรับนี้ไม่ตรงกับใบผลิตและออเดอร์ที่เปิดอยู่");
+  }
+  if (step.executionEnabled) {
+    badRequest("ขั้นงานนี้ต้องแก้จากโหมดสถานี กรุณาเปิดงานปัจจุบันแล้วลองอีกครั้ง");
+  }
+
+  // ยอดรับสุทธิสด ณ ตอนนี้ — คำนวณส่วนต่างจากของจริง ไม่ใช่จากค่าที่ client ส่งมา
+  const current = await prisma.goodsReceiptLine.findMany({
+    where: {
+      orderItemProductId: { in: params.lines.map((l) => l.orderItemProductId) },
+      receipt: { orderId: params.orderId, receiptType: { in: ["CUSTOMER_GARMENT", "CUSTOMER_RETURN"] } },
+    },
+    select: {
+      orderItemProductId: true,
+      size: true,
+      color: true,
+      qtyCounted: true,
+      receipt: { select: { receiptType: true } },
+    },
+  });
+  const netByKey = netReceivedByVariant(
+    current.map((line) => ({
+      orderItemProductId: line.orderItemProductId,
+      size: line.size,
+      color: line.color,
+      qtyCounted: line.qtyCounted,
+      receiptType: line.receipt.receiptType,
+    })),
+  );
+
+  const returnLines: CreateReceiptLineInput[] = [];
+  const addLines: CreateReceiptLineInput[] = [];
+  for (const line of params.lines) {
+    if (line.qtyCorrect < 0) badRequest("ยอดที่ถูกต้องติดลบไม่ได้");
+    const net = netByKey.get(variantNetKey(line.orderItemProductId, line.size ?? null, line.color ?? null)) ?? 0;
+    const delta = line.qtyCorrect - net;
+    if (delta === 0) continue;
+    const target = delta < 0 ? returnLines : addLines;
+    target.push({
+      orderItemProductId: line.orderItemProductId,
+      description: line.description,
+      size: line.size,
+      color: line.color,
+      qtyExpected: delta < 0 ? 0 : delta,
+      qtyCounted: Math.abs(delta),
+      defectQty: 0,
+    });
+  }
+  if (returnLines.length === 0 && addLines.length === 0) {
+    badRequest("ยอดที่กรอกตรงกับยอดที่รับไว้อยู่แล้ว — ไม่มีอะไรต้องแก้");
+  }
+
+  // ออกใบส่วนต่างก่อน แล้วค่อยให้สถานะขั้นเดินตามยอด: กดซ้ำได้เพราะใบใช้ idempotencyKey เดิม
+  // (รอบสองจะ replay ใบเดิมแล้วมาปรับสถานะขั้นให้ตรงยอดอีกครั้ง)
+  if (returnLines.length > 0) {
+    await createGoodsReceipt(prisma, {
+      orderId: params.orderId,
+      idempotencyKey: `${params.idempotencyKey}:return`,
+      receiptType: "CUSTOMER_RETURN",
+      notes: `แก้ยอดตรวจรับ: ${reason}`,
+      photoUrls: [],
+      lines: returnLines,
+      userId: params.userId,
+      canSupervise: params.canSupervise,
+      correction: { reason },
+    });
+  }
+  if (addLines.length > 0) {
+    await createGoodsReceipt(prisma, {
+      orderId: params.orderId,
+      idempotencyKey: `${params.idempotencyKey}:add`,
+      receiptType: "CUSTOMER_GARMENT",
+      notes: `แก้ยอดตรวจรับ: ${reason}`,
+      photoUrls: [],
+      lines: addLines,
+      userId: params.userId,
+      canSupervise: params.canSupervise,
+      correction: { reason },
+    });
+  }
+
+  // สถานะขั้นเดินตามยอดเสมอ — ยอดครบทุกรายการ = ปิดไว้ · ยังไม่ครบ = เปิดกลับให้รับต่อ
+  return prisma.$transaction(async (tx) => {
+    await lockGoodsReceiptWriteChain(tx, params.orderId);
+    const remaining = await tx.orderItemProduct.count({
+      where: {
+        orderItem: { orderId: params.orderId },
+        itemSource: "CUSTOMER_PROVIDED",
+        receivedInspected: false,
+      },
+    });
+    const live = await tx.productionStep.findUniqueOrThrow({
+      where: { id: params.productionStepId },
+      select: { id: true, status: true },
+    });
+    const shouldBeOpen = remaining > 0;
+    if (shouldBeOpen && live.status === "COMPLETED") {
+      await tx.productionStep.update({
+        where: { id: live.id },
+        data: { status: "IN_PROGRESS", completedAt: null },
+      });
+    }
+    await createAuditLog(tx, {
+      userId: params.userId,
+      action: "UPDATE",
+      entityType: "PRODUCTION_STEP",
+      entityId: live.id,
+      reason,
+      newValue: {
+        correctedCustomerGarmentReceipt: true,
+        returnedLines: returnLines.length,
+        addedLines: addLines.length,
+        stepReopened: shouldBeOpen && live.status === "COMPLETED",
+      },
+    });
+    return { stepReopened: shouldBeOpen && live.status === "COMPLETED", remainingProducts: remaining };
   });
 }

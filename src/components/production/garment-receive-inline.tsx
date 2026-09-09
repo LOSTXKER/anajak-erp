@@ -38,6 +38,8 @@ type Row = {
   /** ยอดที่ยังค้างรับของแถวนี้ (แผนทั้งหมด − ที่รับมาแล้วสุทธิ) */
   remaining: number;
   planned: number;
+  /** ยอดที่รับไว้แล้วจริง — อาจมากกว่าแผนได้ถ้าเคยรับเกิน จึงใช้ค่านี้ตั้งต้นตอนแก้ยอด */
+  receivedNet: number;
   counted: number;
   defect: number;
 };
@@ -46,11 +48,17 @@ export function GarmentReceiveInline({
   orderId,
   productionStepId,
   canRecord,
+  canCorrect = false,
+  startCorrecting = false,
   footer,
 }: {
   orderId: string;
   productionStepId: string;
   canRecord: boolean;
+  /** หัวหน้าแก้ยอดที่นับผิดได้แม้ขั้นปิดไปแล้ว (A15) */
+  canCorrect?: boolean;
+  /** เปิดมาที่โหมดแก้ยอดเลย — ใช้ตอนเรียกจากเมนู ⋯ ของใบผลิตหลังขั้นปิดไปแล้ว */
+  startCorrecting?: boolean;
   /** ปุ่มอื่นของขั้น (แจ้งปัญหา) — วางแถวเดียวกับปุ่มบันทึก */
   footer?: React.ReactNode;
 }) {
@@ -64,6 +72,10 @@ export function GarmentReceiveInline({
   const [notes, setNotes] = useState("");
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [extraOpen, setExtraOpen] = useState(false);
+  // โหมดแก้ยอดที่นับผิด: กรอก "ยอดที่ถูกต้อง" ต่อไซซ์ + เหตุผล ระบบออกใบส่วนต่างให้เอง
+  const [correcting, setCorrecting] = useState(startCorrecting);
+  const [fixDraft, setFixDraft] = useState<Record<string, number>>({});
+  const [fixReason, setFixReason] = useState("");
   // คงคีย์เดิมตลอดอายุฟอร์ม: ยิงซ้ำหลัง network error ต้องได้ใบเดิม ไม่ใช่ใบใหม่
   const [idempotencyKey] = useState(() => crypto.randomUUID());
 
@@ -84,6 +96,18 @@ export function GarmentReceiveInline({
       setPhotoUrls([]);
     },
     onError: (err: { message?: string }) => toast.error("บันทึกไม่สำเร็จ", { description: err.message }),
+  });
+  const correct = useMutationWithInvalidation(trpc.goodsReceipt.correctCustomerGarment, {
+    invalidate,
+    onSuccess: (result: { stepReopened: boolean }) => {
+      toast.success("แก้ยอดตรวจรับแล้ว", {
+        description: result.stepReopened ? "ยอดยังไม่ครบ ขั้นนี้จึงเปิดกลับให้รับต่อ" : "ยอดครบตามที่แก้ ขั้นนี้ยังปิดเหมือนเดิม",
+      });
+      setCorrecting(false);
+      setFixDraft({});
+      setFixReason("");
+    },
+    onError: (err: { message?: string }) => toast.error("แก้ยอดไม่สำเร็จ", { description: err.message }),
   });
   const confirmExisting = useMutationWithInvalidation(trpc.goodsReceipt.confirmCustomerGarmentEvidence, {
     invalidate,
@@ -111,6 +135,7 @@ export function GarmentReceiveInline({
       color: line.color,
       remaining,
       planned: line.qtyExpected,
+      receivedNet: line.qtyReceivedNet,
       // ค่าเริ่มต้น = ที่ยังค้าง (นับแล้วตรงก็กดบันทึกได้เลย แก้เฉพาะไซซ์ที่ไม่ตรง)
       counted: value?.counted ?? remaining,
       defect: value?.defect ?? 0,
@@ -126,7 +151,24 @@ export function GarmentReceiveInline({
   const totalDefect = rows.reduce((n, r) => n + r.defect, 0);
   // รับครบไปแล้วทั้งใบ = ไม่มีอะไรให้นับ เหลือแค่ยืนยันว่าหลักฐานเดิมครบเพื่อปิดขั้น
   const alreadyReceived = rows.length > 0 && totalRemaining === 0;
-  const pending = create.isPending || confirmExisting.isPending;
+  const pending = create.isPending || confirmExisting.isPending || correct.isPending;
+  const fixKey = () => crypto.randomUUID();
+
+  function saveCorrection() {
+    correct.mutate({
+      orderId,
+      productionStepId,
+      idempotencyKey: fixKey(),
+      reason: fixReason.trim(),
+      lines: rows.map((row) => ({
+        orderItemProductId: row.orderItemProductId!,
+        description: row.description,
+        size: row.size || undefined,
+        color: row.color || undefined,
+        qtyCorrect: fixDraft[keyOf(row)] ?? row.receivedNet,
+      })),
+    });
+  }
 
   function save() {
     if (alreadyReceived) {
@@ -236,6 +278,52 @@ export function GarmentReceiveInline({
         </div>
       )}
 
+      {correcting ? (
+        <div className="space-y-3 border-t border-divider px-5 py-4">
+          <p className="text-sm text-secondary">
+            กรอกยอดที่ถูกต้องจริงต่อไซซ์ — ระบบจะออกใบส่วนต่างให้เอง และเปิดขั้นนี้กลับถ้ายอดยังไม่ครบ
+          </p>
+          <ul className="divide-y divide-divider border-y border-divider">
+            {rows.map((row) => {
+              const received = row.receivedNet;
+              const label = [row.description, row.color, row.size].filter(Boolean).join(" ");
+              return (
+                <li key={`fix-${keyOf(row)}`} className="flex items-center gap-3 py-3">
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-base font-semibold text-strong">{row.size ?? "ไม่ระบุ"}</span>
+                    <span className="block text-xs text-secondary">รับไว้แล้ว {received.toLocaleString("th-TH")} จาก {row.planned.toLocaleString("th-TH")} ตัว</span>
+                  </span>
+                  <NumberInput
+                    integer
+                    min={0}
+                    value={fixDraft[keyOf(row)] ?? received}
+                    onValueChange={(n) => setFixDraft((d) => ({ ...d, [keyOf(row)]: n }))}
+                    disabled={pending}
+                    aria-label={`ยอดที่ถูกต้อง ${label}`}
+                    className={cn(CONTROL_H, "w-28 text-right")}
+                  />
+                </li>
+              );
+            })}
+          </ul>
+          <Textarea
+            value={fixReason}
+            onChange={(e) => setFixReason(e.target.value)}
+            aria-label="เหตุผลที่แก้ยอดตรวจรับ"
+            rows={2}
+            placeholder="เหตุผลที่แก้ เช่น นับซ้ำแล้วขาดจริง 3 ตัว"
+          />
+          <div className="flex flex-wrap items-center gap-2">
+            <Button onClick={saveCorrection} disabled={pending || fixReason.trim().length < 3}>
+              บันทึกการแก้ยอด
+            </Button>
+            <Button variant="outline" onClick={() => setCorrecting(false)} disabled={pending}>
+              ยกเลิก
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
       {canRecord && rows.length > 0 ? (
         <div className="space-y-3 border-t border-divider px-5 py-4">
           {alreadyReceived ? (
@@ -286,8 +374,15 @@ export function GarmentReceiveInline({
             {footer}
           </div>
         </div>
-      ) : footer ? (
-        <div className="flex flex-wrap items-center gap-2 border-t border-divider px-5 py-4">{footer}</div>
+      ) : (canCorrect && !correcting) || footer ? (
+        <div className="flex flex-wrap items-center gap-2 border-t border-divider px-5 py-4">
+          {canCorrect && !correcting ? (
+            <Button variant="outline" onClick={() => setCorrecting(true)}>
+              แก้ยอดตรวจรับ
+            </Button>
+          ) : null}
+          {footer}
+        </div>
       ) : null}
     </div>
   );

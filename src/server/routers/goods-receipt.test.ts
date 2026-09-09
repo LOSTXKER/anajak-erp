@@ -4,6 +4,7 @@ import type { Context } from "../trpc";
 const serviceMocks = vi.hoisted(() => ({
   createGoodsReceipt: vi.fn(),
   confirmCustomerGarmentEvidence: vi.fn(),
+  correctCustomerGarmentReceipt: vi.fn(),
 }));
 
 vi.mock("@/server/services/goods-receipt", async (importOriginal) => {
@@ -12,6 +13,7 @@ vi.mock("@/server/services/goods-receipt", async (importOriginal) => {
     ...original,
     createGoodsReceipt: serviceMocks.createGoodsReceipt,
     confirmCustomerGarmentEvidence: serviceMocks.confirmCustomerGarmentEvidence,
+    correctCustomerGarmentReceipt: serviceMocks.correctCustomerGarmentReceipt,
   };
 });
 
@@ -40,6 +42,9 @@ describe("goodsReceipt.create permission by surface", () => {
     serviceMocks.confirmCustomerGarmentEvidence
       .mockReset()
       .mockResolvedValue({ id: "step-receive-1", status: "COMPLETED" });
+    serviceMocks.correctCustomerGarmentReceipt
+      .mockReset()
+      .mockResolvedValue({ stepReopened: true, remainingProducts: 1 });
   });
 
   it("ใบทั่วไปใช้ manage_delivery แต่ Station ใช้ manage_production", async () => {
@@ -182,5 +187,45 @@ describe("goodsReceipt.create permission by surface", () => {
         expectedRevision: 3,
       }),
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+});
+
+/* ── แก้ยอดตรวจรับที่นับผิด (A15) — คำสั่งของหัวหน้าเท่านั้น และต้องมีเหตุผลเสมอ ── */
+describe("goodsReceipt.correctCustomerGarment", () => {
+  const fix = {
+    orderId: "order-1",
+    productionStepId: "step-receive-1",
+    idempotencyKey: "fix-receipt-0001",
+    reason: "นับซ้ำแล้วขาดจริง 3 ตัว",
+    lines: [{ orderItemProductId: "product-1", description: "เสื้อลูกค้า", size: "S", qtyCorrect: 12 }],
+  };
+
+  beforeEach(() => {
+    serviceMocks.correctCustomerGarmentReceipt
+      .mockReset()
+      .mockResolvedValue({ stepReopened: true, remainingProducts: 1 });
+  });
+
+  it("ช่างที่ไม่ได้เป็นหัวหน้าแก้ยอดไม่ได้", async () => {
+    await expect(caller("PRODUCTION_STAFF").correctCustomerGarment(fix)).rejects.toThrow(
+      "แก้ยอดตรวจรับได้เฉพาะหัวหน้าฝ่ายผลิต",
+    );
+    expect(serviceMocks.correctCustomerGarmentReceipt).not.toHaveBeenCalled();
+  });
+
+  it("หัวหน้าแก้ได้ และส่งต่อให้ service พร้อมผู้กดกับสิทธิ์", async () => {
+    const result = await caller("MANAGER").correctCustomerGarment(fix);
+    expect(result).toMatchObject({ stepReopened: true });
+    expect(serviceMocks.correctCustomerGarmentReceipt).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ ...fix, userId: "user-1", canSupervise: true }),
+    );
+  });
+
+  it("เหตุผลสั้นเกินไปถูกปฏิเสธตั้งแต่ผิว router", async () => {
+    await expect(
+      caller("MANAGER").correctCustomerGarment({ ...fix, reason: "ก" }),
+    ).rejects.toThrow();
+    expect(serviceMocks.correctCustomerGarmentReceipt).not.toHaveBeenCalled();
   });
 });

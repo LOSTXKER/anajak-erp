@@ -81,6 +81,7 @@ export function WorkOrderSteps({ c, current, pairedOpen, allDone, qcAction, step
                         orderId={order.id}
                         productionStepId={step.id}
                         canRecord={c.canUpdateStep && c.canOwnOrSupervise(step) && step.status !== "COMPLETED" && step.status !== "FAILED"}
+                        canCorrect={c.canSuperviseStep && c.hasProductionPermission && step.status === "COMPLETED"}
                         footer={stepFooter?.(step)}
                       />
                     ) : undefined
