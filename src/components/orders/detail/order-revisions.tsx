@@ -11,6 +11,8 @@ import { Clock, ArrowRight } from "lucide-react";
 
 const CHANGE_TYPE_LABELS: Record<string, string> = {
   STATUS: "สถานะ",
+  QC_COUNT: "ผลตรวจ QC",
+  QC_RETURN: "รับคืนตรวจ QC",
   ITEMS: "รายการ",
   FEES: "ค่าธรรมเนียม",
   DESIGN: "งานออกแบบ",

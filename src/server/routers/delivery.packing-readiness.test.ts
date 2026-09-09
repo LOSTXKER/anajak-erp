@@ -35,6 +35,47 @@ const incompleteEvidence = {
 };
 
 describe("delivery packing evidence persistence", () => {
+  it("คนกดส่งชนะ lock ก่อนคนลบ: ต้องอ่านสถานะสดแล้วเก็บประวัติใบส่งไว้", async () => {
+    const tx = {
+      $queryRaw: vi.fn().mockResolvedValue([]),
+      delivery: {
+        findUniqueOrThrow: vi.fn()
+          .mockResolvedValueOnce({ orderId: "order-1", status: "PREPARING" })
+          .mockResolvedValueOnce({ status: "SHIPPED" }),
+        delete: vi.fn(),
+      },
+    };
+    await expect(deliveryRouter.createCaller(ctxFor(tx, "MANAGER")).delete({ id: "delivery-1" }))
+      .rejects.toThrow("ใบส่งที่ออกแล้วต้องเก็บประวัติ");
+    expect(tx.delivery.delete).not.toHaveBeenCalled();
+  });
+
+  it("ห้ามนำใบตีกลับกลับมาแพ็กเมื่อเปิดใบส่งทดแทนครบยอดแล้ว", async () => {
+    const line = { description: "เสื้อยืด", size: "M", color: "ดำ", qty: 5 };
+    const tx = {
+      $queryRaw: vi.fn().mockResolvedValue([]),
+      delivery: {
+        findUniqueOrThrow: vi.fn().mockResolvedValue({
+          id: "delivery-returned", status: "RETURNED", orderId: "order-1", lines: [line],
+        }),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
+      order: {
+        findUniqueOrThrow: vi.fn().mockResolvedValue({
+          items: incompleteEvidence.items,
+          deliveries: [
+            { status: "RETURNED", lines: [line] },
+            { status: "PREPARING", lines: [line] },
+          ],
+        }),
+      },
+    };
+    await expect(deliveryRouter.createCaller(ctxFor(tx)).updateStatus({
+      id: "delivery-returned", status: "PREPARING",
+    })).rejects.toThrow("เปลี่ยนเป็น");
+    expect(tx.delivery.updateMany).not.toHaveBeenCalled();
+  });
+
   it("ปฏิเสธคืนใบ evidence เดียวขณะออเดอร์ READY_TO_SHIP", async () => {
     const tx = {
       $queryRaw: vi.fn().mockResolvedValue([]),

@@ -5,7 +5,31 @@ import {
   assertQcNotOverCount,
   qcNextMove,
   assertQcReadyForPacking,
+  qcReworkLines,
 } from "./qc-count";
+
+describe("qcReworkLines — ส่งแก้เฉพาะรายการที่เสียจริง", () => {
+  const variants = [
+    { variantId: "tee-m", productId: "tee", description: "เสื้อยืด", size: "M", color: "ดำ" },
+    { variantId: "polo-m", productId: "polo", description: "โปโล", size: "M", color: "ดำ" },
+    { variantId: "tee-l", productId: "tee", description: "เสื้อยืด", size: "L", color: "ดำ" },
+  ];
+  it("ไซซ์ M เหมือนกันคนละรุ่นต้องไม่เดาสินค้าแทนกัน", () => {
+    expect(() => qcReworkLines({ variants, defects: [{ size: "M", color: "ดำ", qty: 2 }] }))
+      .toThrow("ระบุสินค้า สี และไซซ์");
+    expect(() => qcReworkLines({ variants, defects: [{ variantId: "foreign-order", qty: 2 }] }))
+      .toThrow("ระบุสินค้า สี และไซซ์");
+  });
+  it("รวมหลายสาเหตุในไซซ์เดียว แต่ไม่เพิ่มแถวที่ไม่เสีย", () => {
+    expect(qcReworkLines({ variants, defects: [
+      { variantId: "polo-m", qty: 2 }, { variantId: "polo-m", qty: 1 }, { variantId: "tee-l", qty: 1 },
+    ] })).toEqual([{ ...variants[1], qty: 3 }, { ...variants[2], qty: 1 }]);
+  });
+  it("รับหลักฐานเก่าที่จับคู่ไซซ์ได้เพียงรายการเดียว", () => {
+    expect(qcReworkLines({ variants, defects: [{ size: "L", qty: 2 }] }))
+      .toEqual([{ ...variants[2], qty: 2 }]);
+  });
+});
 
 describe("assertQcReadyForPacking — manual recovery ห้ามข้ามยอด QC", () => {
   it("ดีบางส่วนหรือรอบล่าสุดยังมีของเสียเข้าแพ็กไม่ได้", () => {

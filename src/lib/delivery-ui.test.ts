@@ -57,7 +57,7 @@ describe("delivery UI policy", () => {
     ["PREPARING", "SHIPPED", "ยืนยันส่งแล้ว"],
     ["SHIPPED", "DELIVERED", "ยืนยันถึงแล้ว"],
     ["DELIVERED", "DELIVERED", "จัดการสถานะ"],
-    ["RETURNED", "PREPARING", "เตรียมส่งใหม่"],
+    ["RETURNED", "RETURNED", "รับคืนแล้ว"],
   ] as const)("เสนอ action ถัดไปจาก %s", (status, nextStatus, label) => {
     const policy = deliveryActionAvailability({
       status,
@@ -65,7 +65,7 @@ describe("delivery UI policy", () => {
       canDeleteDelivery: true,
     });
 
-    expect(policy.canUpdateStatus).toBe(true);
+    expect(policy.canUpdateStatus).toBe(status !== "RETURNED");
     expect(policy.nextAction).toEqual({ status: nextStatus, label });
   });
 });

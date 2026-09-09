@@ -64,6 +64,7 @@ import {
   assertOrderPackingReadyToShip,
   assertV2FinalPackReadyToShip,
 } from "@/server/services/packing-readiness";
+import { getLegacyQcEvidence, openQcReturnInspection } from "@/server/services/qc-ledger";
 import { assertQcReadyForPacking } from "@/server/services/qc-count";
 import type { OrderType, TaxLineType } from "@prisma/client";
 import {
@@ -1301,6 +1302,9 @@ export const orderRouter = router({
             where: { id: input.id },
             select: { internalStatus: true },
           });
+          if (live.internalStatus === "SHIPPED") {
+            await openQcReturnInspection(tx, { orderId: input.id, userId: ctx.userId, reason: input.reason ?? "รับคืนตรวจ QC" });
+          }
           if (live.internalStatus === "PRODUCING") {
             const productions = await tx.production.findMany({
               where: { orderId: input.id },
@@ -1404,42 +1408,8 @@ export const orderRouter = router({
         if (result.changed && from === "QUALITY_CHECK" && input.internalStatus === "PACKING") {
           // เส้นปกติบันทึก QC ครบแล้วเด้งเอง; ทางมือมีไว้ recovery แต่ต้องพิสูจน์
           // ยอดดีครบ + รอบล่าสุดไม่มี defect + ไม่มีใบผลิตงานแก้ค้างจริง
-          const qcEvidence = await tx.order.findUniqueOrThrow({
-            where: { id: input.id },
-            select: {
-              items: {
-                select: {
-                  products: {
-                    select: {
-                      variants: { select: { quantity: true } },
-                    },
-                  },
-                },
-              },
-              qcRecords: {
-                orderBy: { checkedAt: "desc" },
-                select: { qtyGood: true, qtyDefect: true },
-              },
-            },
-          });
-          const totalExpected = qcEvidence.items.reduce(
-            (sum, item) =>
-              sum +
-              item.products.reduce(
-                (productSum, product) =>
-                  productSum +
-                  product.variants.reduce(
-                    (variantSum, variant) => variantSum + variant.quantity,
-                    0,
-                  ),
-                0,
-              ),
-            0,
-          );
-          assertQcReadyForPacking({
-            totalExpected,
-            records: qcEvidence.qcRecords,
-          });
+          const qcEvidence = await getLegacyQcEvidence(tx, input.id);
+          assertQcReadyForPacking({ totalExpected: qcEvidence.totalExpected, records: qcEvidence.records });
           const openProductions = await tx.production.count({
             where: { orderId: input.id, status: { not: "COMPLETED" } },
           });

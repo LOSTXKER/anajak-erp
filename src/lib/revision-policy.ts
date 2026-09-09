@@ -13,6 +13,8 @@ export const REVISION_FEE_TYPE = "DESIGN_REVISION"; // feeType บน OrderFee (
 // description บางชนิดฝังยอดเงินหรือเหตุผลที่ผู้ใช้พิมพ์เอง (ซึ่งอาจมียอดเงิน) จึงห้าม
 // ส่งข้อความจริงให้ role ที่ไม่มี see_order_money แม้หน้าเว็บจะไม่ได้ render ตัวเลขก็ตาม
 const SAFE_REVISION_DESCRIPTIONS: Record<string, string> = {
+  QC_COUNT: "บันทึกผลตรวจ QC รายสินค้า/ไซซ์",
+  QC_RETURN: "รับคืนสินค้าเพื่อตรวจ QC",
   ITEMS: "แก้ไขรายการสินค้า",
   FEES: "แก้ไขค่าธรรมเนียม",
   CHANGE_ORDER: "ออกใบแก้ไขออเดอร์",

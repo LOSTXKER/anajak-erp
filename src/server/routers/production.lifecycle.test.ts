@@ -654,6 +654,21 @@ describe("production lifecycle invariants", () => {
     expect(tx.productionStep.update).not.toHaveBeenCalled();
   });
 
+  it.each(["update", "piece"])("แก้ยอดรับเสื้อจนขาดบล็อกรีดที่กำลังทำอยู่ผ่าน %s", async (command) => {
+    const tx = formStepTx({ qtyDone: 1 });
+    tx.productionStep.findMany.mockResolvedValue([
+      { id: "receive", stepType: "GARMENT_RECEIVE", status: "IN_PROGRESS", sortOrder: 1 },
+      { id: "print", stepType: "DTF_PRINT", status: "COMPLETED", sortOrder: 2 },
+      { id: "press", stepType: "HEAT_PRESS", status: "IN_PROGRESS", sortOrder: 3 },
+    ]);
+    const caller = productionRouter.createCaller(transactionContext(tx));
+    await expect(command === "update"
+      ? caller.updateStep({ stepId: "press", qtyDone: 2 })
+      : caller.reportPieceQty({ stepId: "press", rows: [{ variantId: "size-m", done: 2, waste: 0 }] }),
+    ).rejects.toThrow("รอเสื้อ");
+    expect(tx.productionStep.update).not.toHaveBeenCalled();
+  });
+
   it("ติ๊กข้อกำหนด: ช่างแตะขั้นของคนอื่นไม่ได้ · ข้อที่ไม่อยู่ในรายการถูกปฏิเสธ · ติ๊กแล้วจำชื่อคนแรก", async () => {
     const item = "ตั้งอุณหภูมิ/เวลา/แรงกดตามค่าของลายในใบงาน";
     const other = formStepTx({ assignedToId: "other-staff" });

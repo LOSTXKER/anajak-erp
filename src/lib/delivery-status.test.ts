@@ -36,10 +36,10 @@ describe("delivery state machine (B13)", () => {
     expect(isValidDeliveryTransition("DELIVERED", "SHIPPED")).toBe(true);
   });
 
-  it("จัดการใหม่หลังตีกลับ: RETURNED → PENDING/PREPARING/SHIPPED", () => {
-    expect(isValidDeliveryTransition("RETURNED", "PREPARING")).toBe(true);
-    expect(isValidDeliveryTransition("RETURNED", "SHIPPED")).toBe(true);
-    expect(isValidDeliveryTransition("RETURNED", "PENDING")).toBe(true);
+  it("ใบตีกลับคงประวัติ: ใช้ใบส่งทดแทนหลัง QC", () => {
+    expect(isValidDeliveryTransition("RETURNED", "PREPARING")).toBe(false);
+    expect(isValidDeliveryTransition("RETURNED", "SHIPPED")).toBe(false);
+    expect(isValidDeliveryTransition("RETURNED", "PENDING")).toBe(false);
   });
 
   it("บล็อกถอยไกลข้ามขั้น (ต้องถอยทีละก้าว)", () => {

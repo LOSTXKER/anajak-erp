@@ -80,8 +80,16 @@ export function pieceQtyPlan(params: {
   rows: readonly PieceQtyRowInput[];
   variants: readonly PieceQtyVariant[];
   qtyTotal: number | null;
+  reworkQuantities?: readonly { sourceOrderItemVariantId: string | null; qtyPlanned: number }[];
 }): { lines: PieceQtyLine[]; qtyDone: number } {
-  const byId = new Map(params.variants.map((v) => [v.id, v]));
+  const plannedByVariant = params.reworkQuantities === undefined ? null : new Map(
+    params.reworkQuantities.map((line) => [line.sourceOrderItemVariantId, line.qtyPlanned]),
+  );
+  const byId = new Map(params.variants
+    .filter((variant) => !plannedByVariant || plannedByVariant.has(variant.id))
+    .map((variant) => [variant.id, {
+      ...variant, quantity: plannedByVariant?.get(variant.id) ?? variant.quantity,
+    }]));
   const seen = new Set<string>();
   const lines: PieceQtyLine[] = [];
   for (const row of params.rows) {
@@ -110,4 +118,20 @@ export function pieceQtyPlan(params: {
     badRequest(`จำนวนทำแล้วเกินยอดขั้นผลิต — บันทึกได้ไม่เกิน ${params.qtyTotal} ตัว`);
   }
   return { lines, qtyDone };
+}
+
+export function assertStepQuantitiesCounted(params: {
+  qtyTotal: number | null;
+  qtyDone: number;
+  quantities: readonly { qtyPlanned: number; qtyGood: number; qtyScrap: number }[];
+}): void {
+  if (params.quantities.length > 0) {
+    const totalPlanned = params.quantities.reduce((sum, line) => sum + line.qtyPlanned, 0);
+    if ((params.qtyTotal !== null && totalPlanned !== params.qtyTotal) ||
+      params.quantities.some((line) => line.qtyGood + line.qtyScrap !== line.qtyPlanned)) {
+      badRequest("บันทึกผลดีและเสียของขั้นผลิตให้ครบทุกไซซ์ก่อนปิดขั้น");
+    }
+  } else if (params.qtyTotal !== null && params.qtyDone < params.qtyTotal) {
+    badRequest("บันทึกจำนวนขั้นผลิตให้ครบก่อนปิดขั้น");
+  }
 }

@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Field } from "@/components/ui/field";
 import { STEP_TYPE_LABELS } from "@/lib/production-steps";
+import { OUTSOURCE_ACTIVE_STATUSES } from "@/lib/outsource-ui";
 import { cn } from "@/lib/utils";
 import { TINT } from "@/components/ui/tokens";
 import { Truck } from "lucide-react";
@@ -36,14 +37,16 @@ interface StepOutsourceDialogProps {
 export function StepOutsourceDialog({ step, onClose }: StepOutsourceDialogProps) {
   const formId = useId();
   const [vendorId, setVendorId] = useState("");
+  const [commandId] = useState(() => crypto.randomUUID());
   const [description, setDescription] = useState(
     () => step.customStepName || STEP_TYPE_LABELS[step.stepType] || step.stepType
   );
-  // default = ส่วนที่ยังไม่ผ่าน (แบ่งส่งหลายรอบได้ — ส่งบางส่วนแก้เลขเอา)
+  const outstanding = step.outsourceOrders.filter((order) => OUTSOURCE_ACTIVE_STATUSES.includes(order.status))
+    .reduce((sum, order) => sum + order.quantity, 0);
+  const remaining = step.qtyTotal === null ? null : Math.max(0, step.qtyTotal - step.qtyDone - outstanding);
+  // แบ่งส่งหลายรอบ: หักทั้งที่ผ่านแล้วและที่มีใบรอส่ง/อยู่กับร้านเพื่อไม่ส่งกองเดิมซ้ำ
   const [quantity, setQuantity] = useState(() =>
-    step.qtyTotal !== null && step.qtyTotal > 0
-      ? String(Math.max(0, step.qtyTotal - step.qtyDone) || step.qtyTotal)
-      : ""
+    remaining === null ? "" : String(remaining)
   );
   const [expectedBack, setExpectedBack] = useState("");
   const [notes, setNotes] = useState("");
@@ -62,7 +65,7 @@ export function StepOutsourceDialog({ step, onClose }: StepOutsourceDialogProps)
       utils.order.getById,
     ],
     onSuccess: () => {
-      toast.success("สร้างงาน outsource แล้ว — ติดตามสถานะได้ที่หน้า Outsource");
+      toast.success("สร้างใบส่งร้านแล้ว — กดส่งของจริงในขั้นงานนี้เมื่อส่งแล้ว");
       onClose();
     },
     onError: (err: { message?: string }) => {
@@ -76,7 +79,7 @@ export function StepOutsourceDialog({ step, onClose }: StepOutsourceDialogProps)
         <DialogHeader>
           <DialogTitle>ส่งงานร้านนอก</DialogTitle>
           <DialogDescription>
-            ติดตาม/รับกลับ/QC ต่อที่หน้างานร้านนอก
+            สร้างใบก่อน แล้วบันทึกส่งจริง รับกลับ และตรวจคุณภาพในขั้นงานนี้
           </DialogDescription>
         </DialogHeader>
         {/* label เขียนเองถูกยุบเข้า Field กลาง (UX4) — id/aria เดินสายอัตโนมัติ
@@ -116,7 +119,7 @@ export function StepOutsourceDialog({ step, onClose }: StepOutsourceDialogProps)
               label="จำนวน (ชิ้น)"
               description={
                 step.qtyTotal !== null && step.qtyTotal > 0
-                  ? `ทั้งขั้น ${step.qtyTotal} · ผ่านแล้ว ${step.qtyDone} — แบ่งส่งหลายรอบได้`
+                  ? `เหลือส่งได้ ${remaining} ตัว — มีใบค้างกับร้าน ${outstanding} ตัว`
                   : undefined
               }
             >
@@ -125,6 +128,8 @@ export function StepOutsourceDialog({ step, onClose }: StepOutsourceDialogProps)
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}
                 min="1"
+                max={remaining ?? undefined}
+                step="1"
               />
             </Field>
             <Field label="กำหนดรับกลับ">
@@ -144,9 +149,9 @@ export function StepOutsourceDialog({ step, onClose }: StepOutsourceDialogProps)
         </div>
         <DialogSubmitFooter
           pending={createOutsource.isPending}
-          pendingLabel="กำลังส่งร้านนอก..."
-          disabled={!vendorId || !description || !(parseInt(quantity, 10) > 0)}
-          submitLabel="ส่งร้านนอก"
+          pendingLabel="กำลังสร้างใบ..."
+          disabled={!vendorId || !description.trim() || !Number.isInteger(Number(quantity)) || Number(quantity) <= 0 || (remaining !== null && Number(quantity) > remaining)}
+          submitLabel="สร้างใบส่งร้าน"
           submitIcon={<Truck />}
           onCancel={onClose}
           onSubmit={() =>
@@ -157,6 +162,7 @@ export function StepOutsourceDialog({ step, onClose }: StepOutsourceDialogProps)
               quantity: parseInt(quantity, 10) || 0,
               expectedBackAt: expectedBack || undefined,
               notes: notes || undefined,
+              commandId,
             })
           }
         />

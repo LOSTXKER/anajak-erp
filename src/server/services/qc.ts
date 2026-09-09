@@ -13,20 +13,21 @@
 import { createHash } from "node:crypto";
 import { badRequest, conflict, internal } from "@/server/errors";
 import { createAuditLog, createNotification } from "@/server/helpers";
-import { qcReasonLabel } from "@/lib/qc";
+import { qcReasonLabel, qcStockAvailability } from "@/lib/qc";
 // สูตรตัดสินล้วน (validate/นับเกิน/สำรอง/ทางไปต่อ) แยกไป qc-count.ts — unit test ได้ไม่ต้องมี DB
 import {
   spareAvailableOf,
   assertValidQcCounts,
   assertQcNotOverCount,
   qcNextMove,
+  qcReworkLines,
 } from "@/server/services/qc-count";
 import {
   transitionOrder,
   advanceOrderForward,
   reopenProductionsForRework,
 } from "@/server/services/order-status";
-import { getGarmentPickState } from "@/server/services/garment-pick";
+import { getGarmentPickState, type GarmentPickState } from "@/server/services/garment-pick";
 import { promoteOrderArtworks } from "@/server/services/artwork";
 import { lockProductionTopology } from "@/server/services/production-topology-lock";
 import type { ExtendedPrismaClient, PrismaTx } from "@/lib/prisma";
@@ -37,9 +38,24 @@ import {
   recordSpecializedOperationOutput,
   type SpecializedQuantityOutput,
 } from "@/server/services/manufacturing-operation-adapter";
+import { getLegacyQcEvidence, allocateLegacyQcGood, recordLegacyQcCount, openQcReturnInspection, type QcGoodLine } from "./qc-ledger";
 import { assertProductionV2ApiEnabled } from "@/server/services/production-v2-gate";
 
 // ============================================================
+
+function stockForQcVariant(
+  product: { itemSource?: string | null; productId?: string | null },
+  variant: { size: string; color: string | null },
+  pick: GarmentPickState,
+) {
+  if (product.itemSource !== "FROM_STOCK") return { stockKey: null, spareAvailable: 0 };
+  const stock = pick.lines.find((line) => line.productId === product.productId &&
+    line.size === variant.size && (line.color ?? null) === variant.color);
+  return {
+    stockKey: `${product.productId ?? "unmapped"}:${variant.size}:${variant.color ?? ""}`,
+    spareAvailable: stock ? spareAvailableOf([stock]) : 0,
+  };
+}
 // บริบทก่อนตรวจ — ยอดคาดต่อไซส์ + ลายของงาน + เสื้อสำรองที่เบิกเผื่อไว้
 // ============================================================
 
@@ -57,7 +73,8 @@ export async function getQcContext(prisma: ExtendedPrismaClient, orderId: string
               id: true,
               description: true,
               itemSource: true,
-              variants: { select: { size: true, color: true, quantity: true } },
+              productId: true,
+              variants: { select: { id: true, size: true, color: true, quantity: true } },
             },
           },
           prints: { select: { position: true, printType: true } },
@@ -66,20 +83,6 @@ export async function getQcContext(prisma: ExtendedPrismaClient, orderId: string
       qcRecords: { select: { qtyGood: true, qtyDefect: true } },
     },
   });
-
-  // แถวนับต่อไซส์/สี — ยอดคาดจากเนื้อออเดอร์ (เหมือนใบตรวจรับของเข้า)
-  const lines = order.items.flatMap((it) =>
-    it.products.flatMap((p) =>
-      p.variants
-        .filter((v) => v.quantity > 0)
-        .map((v) => ({
-          description: p.description,
-          size: v.size,
-          color: v.color,
-          qtyExpected: v.quantity,
-        }))
-    )
-  );
 
   // ลายของงาน — ให้เลือกตอนระบุว่าชิ้นเสียเป็นลายไหน (งานหลายลายชี้ตัวปัญหาได้)
   const printLabels = [
@@ -94,18 +97,25 @@ export async function getQcContext(prisma: ExtendedPrismaClient, orderId: string
   const pick = await getGarmentPickState(prisma, orderId);
   const spareAvailable = spareAvailableOf(pick.lines);
 
-  const checkedGood = order.qcRecords.reduce((s, r) => s + r.qtyGood, 0);
-  const checkedDefect = order.qcRecords.reduce((s, r) => s + r.qtyDefect, 0);
+  const evidence = await getLegacyQcEvidence(prisma, orderId);
+  const { checkedGood, checkedDefect } = evidence;
 
   return {
     orderNumber: order.orderNumber,
     internalStatus: order.internalStatus,
-    lines,
+    lines: evidence.lines.map((line) => {
+      const product = order.items.flatMap((item) => item.products)
+        .find((item) => item.variants.some((variant) => variant.id === line.variantId))!;
+      return { ...line, ...stockForQcVariant(product, line, pick) };
+    }),
     printLabels,
     spareAvailable,
+    hasFromStock: pick.lines.length > 0,
     checkedGood,
     checkedDefect,
-    totalExpected: lines.reduce((s, l) => s + l.qtyExpected, 0),
+    totalExpected: evidence.totalExpected,
+    isReturnInspection: evidence.isReturnInspection,
+    needsLegacyRecount: evidence.needsLegacyRecount,
   };
 }
 
@@ -121,7 +131,9 @@ export interface CreateQcRecordParams {
   canSupervise?: boolean;
   qtyGood: number;
   quantityLines?: Array<{ quantityLineId: string; qtyGood: number }>;
+  goodLines?: QcGoodLine[];
   defects: Array<{
+    variantId?: string;
     quantityLineId?: string;
     qty: number;
     size?: string;
@@ -160,8 +172,10 @@ function qcRequestFingerprint(params: CreateQcRecordParams) {
         expectedRevision: params.expectedRevision ?? null,
         qtyGood: params.qtyGood,
         quantityLines: params.quantityLines ?? [],
+        ...(params.goodLines ? { goodLines: params.goodLines } : {}),
         defects: params.defects.map((defect) => ({
           quantityLineId: defect.quantityLineId ?? null,
+          ...(defect.variantId ? { variantId: defect.variantId } : {}),
           qty: defect.qty,
           size: defect.size ?? null,
           color: defect.color ?? null,
@@ -235,6 +249,7 @@ async function lockQcProductionChain(tx: PrismaTx, orderId: string) {
         select: {
           workOrderNumber: true,
           completionOwnerStepId: true,
+          steps: { select: { executionEnabled: true } },
         },
       },
     },
@@ -244,7 +259,8 @@ async function lockQcProductionChain(tx: PrismaTx, orderId: string) {
 function hasProductionV2Owner(owner: Awaited<ReturnType<typeof lockQcProductionChain>>) {
   return Boolean(owner.productionCompletionOwnerId) || owner.productions.some(
     (production) =>
-      production.workOrderNumber !== null || production.completionOwnerStepId !== null,
+      production.workOrderNumber !== null || production.completionOwnerStepId !== null ||
+      production.steps?.some((step) => step.executionEnabled),
   );
 }
 
@@ -315,7 +331,10 @@ export async function createQcRecord(prisma: ExtendedPrismaClient, params: Creat
         orderNumber: true,
         internalStatus: true,
         items: {
-          select: { products: { select: { variants: { select: { quantity: true } } } } },
+          select: { products: { select: {
+            id: true, description: true, itemSource: true, productId: true,
+            variants: { select: { id: true, size: true, color: true, quantity: true } },
+          } } },
         },
         qcRecords: { select: { qtyGood: true } },
         productions: { select: { id: true } },
@@ -402,17 +421,28 @@ export async function createQcRecord(prisma: ExtendedPrismaClient, params: Creat
     // อ่านยอดเบิก/คืนสดหลัง order lock — issue/return ของออเดอร์เดียวกันใช้ lock นี้เช่นกัน
     // จึงไม่ตัดสิน REWORK/รอของจาก snapshot ก่อน transaction
     const pick = await getGarmentPickState(tx, params.orderId);
-    const spareAvailable = spareAvailableOf(pick.lines);
+    const totalSpareAvailable = spareAvailableOf(pick.lines);
 
     // นับครบหรือยัง — ตรวจได้หลายรอบ (รอบแรกดีบางส่วน → ตรวจต่อ · เสียกลับมาแก้แล้วตรวจซ้ำ)
-    const totalExpected = order.items.reduce(
-      (s, it) => s + it.products.reduce((ps, p) => ps + p.variants.reduce((vs, v) => vs + v.quantity, 0), 0),
-      0
+    const evidence = !operation ? await getLegacyQcEvidence(tx, params.orderId) : null;
+    const totalExpected = evidence?.totalExpected ?? 0;
+    const checkedGood = evidence?.checkedGood ?? 0;
+    if (!operation) assertQcNotOverCount({ totalExpected, checkedGood, qtyGood: params.qtyGood });
+    const defectLines = evidence && qtyDefect > 0 ? qcReworkLines({ variants: evidence.lines, defects: params.defects }) : [];
+    const goodLines = evidence ? allocateLegacyQcGood({ lines: evidence.lines, qtyGood: params.qtyGood,
+      goodLines: params.goodLines, defects: defectLines, isReturnInspection: evidence.isReturnInspection }) : [];
+    const reworkQuantityLines = evidence ? defectLines.map((line) => {
+      const source = evidence.lines.find((variant) => variant.variantId === line.variantId)!;
+      const newGood = goodLines.find((good) => good.variantId === line.variantId)?.qtyGood ?? 0;
+      return { ...line, qty: Math.min(line.qty, Math.max(0, source.qtyExpected - source.checkedGood - newGood)) };
+    }).filter((line) => line.qty > 0) : [];
+    const qtyNeedsRework = evidence?.lines.length ? reworkQuantityLines.reduce((sum, line) => sum + line.qty, 0) : qtyDefect;
+    const stockAvailability = qcStockAvailability(
+      order.items.flatMap((item) => item.products.flatMap((product) => product.variants.map((variant) => ({
+        variantId: variant.id, ...stockForQcVariant(product, variant, pick),
+      })))), reworkQuantityLines,
     );
-    const checkedGood = order.qcRecords.reduce((s, r) => s + r.qtyGood, 0);
-    if (!operation) {
-      assertQcNotOverCount({ totalExpected, checkedGood, qtyGood: params.qtyGood });
-    }
+    const spareAvailable = reworkQuantityLines.length > 0 ? stockAvailability.available : totalSpareAvailable;
 
     const created = await tx.qcRecord.create({
       data: {
@@ -442,6 +472,9 @@ export async function createQcRecord(prisma: ExtendedPrismaClient, params: Creat
       include: { defects: true },
     });
 
+    if (evidence) await recordLegacyQcCount(tx, { orderId: params.orderId, userId: params.userId,
+      qcRecordId: created.id, scopeRevisionId: evidence.scopeRevisionId, lines: goodLines, qtyGood: params.qtyGood });
+
     let reworkOpened = false;
     let heldForStock = false;
     let movedToPacking = false;
@@ -452,11 +485,12 @@ export async function createQcRecord(prisma: ExtendedPrismaClient, params: Creat
       ? "STAY"
       : qcNextMove({
           qtyGood: params.qtyGood,
-          qtyDefect,
+          qtyDefect: qtyNeedsRework,
           totalExpected,
           checkedGood,
           hasFromStock: pick.lines.length > 0,
           spareAvailable,
+          ...(reworkQuantityLines.length > 0 ? { stockShortage: stockAvailability.shortage > 0 } : {}),
         });
 
     if (operation) {
@@ -546,8 +580,10 @@ export async function createQcRecord(prisma: ExtendedPrismaClient, params: Creat
       // เปิดงานแก้เฉพาะออเดอร์ที่มีใบผลิตจริง — ไม่มีใบ (เช่น งานสต๊อคล้วน) reopen เป็น
       // no-op เงียบ ห้ามไปบอกผู้ใช้ว่า "เปิดขั้นงานแก้แล้ว" ทั้งที่ไม่มีอะไรเกิด
       if (order.productions.length > 0) {
-        await reopenProductionsForRework(tx, { orderId: params.orderId, reason });
-        reworkOpened = true;
+        reworkOpened = await reopenProductionsForRework(tx, {
+          orderId: params.orderId, reason,
+          qtyTotal: qtyNeedsRework, quantityLines: reworkQuantityLines, sourceQcRecordId: created.id,
+        }) > 0;
       }
     } else if (move === "PACK") {
       await advanceOrderForward(tx, {
@@ -607,7 +643,7 @@ export async function createQcRecord(prisma: ExtendedPrismaClient, params: Creat
     try {
       const order = await prisma.order.findUniqueOrThrow({
         where: { id: params.orderId },
-        select: { orderNumber: true },
+        select: { orderNumber: true, internalStatus: true },
       });
       const reasons = [...new Set(record.defects.map((d) => qcReasonLabel(d.reason)))].join("/");
       const statusNote = params.operationJobId
@@ -618,7 +654,9 @@ export async function createQcRecord(prisma: ExtendedPrismaClient, params: Creat
             ? `เสื้อสำรองไม่พอ (เหลือ ${spareAvailable}/${qtyDefect} ตัว) — งานพักรอของ คุยลูกค้า/สั่งเพิ่มแล้วปลดพัก`
             : reworkOpened
               ? `งานถอยกลับผลิตพร้อมขั้นงานแก้แล้ว · เสื้อสำรองเหลือ ${spareAvailable} ตัว`
-              : `งานถอยกลับผลิตแล้ว แต่ยังไม่มีใบผลิต — เปิดใบผลิตสำหรับงานแก้ที่หน้า /production`;
+              : order.internalStatus === "QUALITY_CHECK"
+                ? "บันทึกของเสียส่วนเกินแล้ว — ยังเหลือรายการอื่นที่ต้องตรวจ QC ต่อ"
+                : `งานถอยกลับผลิตแล้ว แต่ยังไม่มีใบผลิต — เปิดใบผลิตสำหรับงานแก้ที่หน้า /production`;
       const admins = await prisma.user.findMany({
         where: { role: { in: ["OWNER", "MANAGER"] }, isActive: true },
         select: { id: true },
@@ -646,4 +684,15 @@ export async function createQcRecord(prisma: ExtendedPrismaClient, params: Creat
     movedToPacking,
     alreadyRecorded,
   };
+}
+
+/** Return inspection shares production locks with QC and never activates V2. */
+export async function startQcReturnInspection(prisma: ExtendedPrismaClient, params: {
+  orderId: string; userId: string; reason: string; returnedLines: { deliveryLineId: string; qty: number }[];
+}) {
+  return prisma.$transaction(async (tx) => {
+    const owner = await lockQcProductionChain(tx, params.orderId);
+    if (hasProductionV2Owner(owner)) badRequest("งาน V2 ต้องรับคืนผ่านเส้นงานที่มีเจ้าของการปิดงาน");
+    return openQcReturnInspection(tx, params);
+  });
 }

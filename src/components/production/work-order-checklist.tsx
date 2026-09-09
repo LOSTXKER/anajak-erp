@@ -7,6 +7,7 @@ import { InfoChip } from "@/components/ui/info-chip";
 import { Section } from "@/components/ui/section";
 import type { ProductionStep } from "./types";
 import { missingStandards, workOrderStandards } from "@/lib/work-order-standards";
+import { FLOW_OWNED_STEP_TYPES, isOutsourceStep } from "@/lib/production-steps";
 import { cn, formatDate } from "@/lib/utils";
 import type { WorkOrderController } from "./work-order-controller";
 import { activeOutsource, daysFromNow, stepLabel } from "./work-order-pieces";
@@ -14,6 +15,7 @@ import { activeOutsource, daysFromNow, stepLabel } from "./work-order-pieces";
 export const checklistAnchor = (stepId: string) => `work-order-checklist-${stepId}`;
 
 export function ticksMissing(step: ProductionStep): number {
+  if (FLOW_OWNED_STEP_TYPES.has(step.stepType) || isOutsourceStep(step.stepType) || step.executionMode === "OUTSOURCE") return 0;
   return missingStandards(step.stepType, step.checks.map((t) => t.itemKey)).length;
 }
 
@@ -27,7 +29,8 @@ export function ChecklistCard({ step, c, nowMs, showStepName = false, assignActi
   const outsource = activeOutsource(step);
   const ticked = new Map(step.checks.map((t) => [t.itemKey, t.checkedBy.name]));
   const missing = done || halted ? 0 : ticksMissing(step);
-  const canTick = c.canUpdateStep && c.canOwnOrSupervise(step) && !done && !halted;
+  const evidenceOwned = FLOW_OWNED_STEP_TYPES.has(step.stepType) || isOutsourceStep(step.stepType) || step.executionMode === "OUTSOURCE";
+  const canTick = c.canUpdateStep && c.canOwnOrSupervise(step) && !done && !halted && !evidenceOwned;
   return (
     <Section title={showStepName ? stepLabel(step) : "เช็คลิสต์"} action={missing > 0 ? <InfoChip size="sm" tone="warning">ติ๊กอีก {missing} ข้อ</InfoChip> : undefined}>
       <div className="space-y-4">
@@ -55,17 +58,17 @@ export function ChecklistCard({ step, c, nowMs, showStepName = false, assignActi
         {standards.length > 0 ? (
           <ul className="divide-y divide-divider border-t border-divider">
             {standards.map((label) => {
-              const on = done || ticked.has(label);
+              const on = ticked.has(label);
               const who = ticked.get(label);
               return (
                 <li key={label}>
                   <label className={cn("flex min-h-11 items-start gap-3 py-3 text-sm", canTick ? "cursor-pointer" : "cursor-default")}>
-                    <Checkbox
+                    {!evidenceOwned ? <Checkbox
                       checked={on}
                       disabled={!canTick || c.tickPending}
                       onChange={(e) => c.tickStandard(step.id, label, e.target.checked)}
                       className="mt-0.5 h-5 w-5 shrink-0"
-                    />
+                    /> : null}
                     <span className="min-w-0 flex-1 space-y-1">
                       <span className={cn("block leading-relaxed", on ? "text-secondary" : "font-medium text-strong")}>{label}</span>
                       {who ? <span className="block text-xs text-muted">ติ๊กโดย {who}</span> : null}

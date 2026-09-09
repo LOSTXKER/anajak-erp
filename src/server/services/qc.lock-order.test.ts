@@ -11,7 +11,8 @@ const serviceMocks = vi.hoisted(() => ({
   createNotification: vi.fn(),
 }));
 
-vi.mock("@/server/services/order-status", () => ({
+vi.mock("@/server/services/order-status", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/server/services/order-status")>(),
   transitionOrder: serviceMocks.transitionOrder,
   advanceOrderForward: serviceMocks.advanceOrderForward,
   reopenProductionsForRework: serviceMocks.reopenProductionsForRework,
@@ -32,6 +33,7 @@ import { createQcRecord } from "./qc";
 describe("createQcRecord production lock contract", () => {
   it("ใช้ลำดับเดียวกับ production writer: step IDs → production IDs → order แล้วค่อยอ่าน state สดและเปิด rework", async () => {
     const log: string[] = [];
+    const revisions: Array<{ id: string; changeType: string; newValue: string | null; version: number }> = [];
     serviceMocks.transitionOrder.mockImplementation(async () => {
       log.push("write:order-status");
       return { changed: true, from: "QUALITY_CHECK" };
@@ -80,10 +82,23 @@ describe("createQcRecord production lock contract", () => {
             id: "order-1",
             orderNumber: "ORD-1",
             internalStatus: "QUALITY_CHECK",
-            items: [{ products: [{ variants: [{ quantity: 10 }] }] }],
+            items: [{ products: [{
+              id: "order-product-1", description: "เสื้อลูกค้า", itemSource: "CUSTOMER_PROVIDED", productId: null,
+              variants: [{ id: "order-variant-m", size: "M", color: "ดำ", quantity: 10 }],
+            }] }],
             qcRecords: [],
+            revisions,
             productions: [{ id: "production-a" }, { id: "production-b" }],
           };
+        }),
+      },
+      orderRevision: {
+        count: vi.fn(async () => revisions.length),
+        create: vi.fn(async ({ data }: { data: { changeType: string; newValue?: string; version: number } }) => {
+          log.push("write:qc-ledger");
+          const revision = { ...data, id: `revision-${data.version}`, newValue: data.newValue ?? null };
+          revisions.push(revision);
+          return revision;
         }),
       },
       qcRecord: {
@@ -149,10 +164,17 @@ describe("createQcRecord production lock contract", () => {
       "read:qc-replay",
       "read:order-live",
       "read:garment-live",
+      "read:order-live",
       "write:qc",
+      "write:qc-ledger",
       "write:order-status",
       "write:rework",
       "write:audit",
     ]);
+    expect(revisions).toHaveLength(1);
+    expect(JSON.parse(revisions[0]!.newValue!)).toMatchObject({
+      kind: "LEGACY_QC_COUNT", scopeRevisionId: null,
+      lines: [{ variantId: "order-variant-m", qtyGood: 8 }],
+    });
   });
 });

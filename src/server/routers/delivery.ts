@@ -1,3 +1,4 @@
+import { qcReturnSnapshots } from "@/server/services/qc-ledger";
 import { z } from "zod";
 import { router, protectedProcedure, requirePermission } from "../trpc";
 import { byIdInput } from "@/server/schemas";
@@ -56,10 +57,20 @@ export const deliveryRouter = router({
   getByOrderId: protectedProcedure
     .input(z.object({ orderId: z.string() }))
     .query(async ({ ctx, input }) => {
-      return ctx.prisma.delivery.findMany({
-        where: { orderId: input.orderId },
-        orderBy: { createdAt: "desc" },
-        include: { lines: true },
+      const [deliveries, order] = await Promise.all([
+        ctx.prisma.delivery.findMany({ where: { orderId: input.orderId }, orderBy: { createdAt: "desc" }, include: { lines: true } }),
+        ctx.prisma.order.findUniqueOrThrow({ where: { id: input.orderId }, select: {
+          revisions: { where: { changeType: "QC_RETURN" }, select: { changeType: true, newValue: true } },
+        } }),
+      ]);
+      const returned = qcReturnSnapshots(order.revisions).flatMap((revision) => revision.sourceLines);
+      return deliveries.map((delivery) => {
+        const lines = delivery.lines.map((line) => {
+          const qtyReturned = delivery.status === "RETURNED" ? line.qty : returned.filter((source) => source.deliveryLineId === line.id).reduce((sum, source) => sum + source.qty, 0);
+          return { ...line, qtyReturned, qtyRemainingWithCustomer: Math.max(0, line.qty - qtyReturned) };
+        });
+        return { ...delivery, lines, qtyReturned: lines.reduce((sum, line) => sum + line.qtyReturned, 0),
+          qtyRemainingWithCustomer: lines.reduce((sum, line) => sum + line.qtyRemainingWithCustomer, 0) };
       });
     }),
 
@@ -85,10 +96,11 @@ export const deliveryRouter = router({
               },
             },
           },
+          revisions: { where: { changeType: "QC_RETURN" }, select: { changeType: true, newValue: true } },
           deliveries: {
             select: {
-              status: true,
-              lines: { select: { description: true, size: true, color: true, qty: true } },
+              id: true, status: true,
+              lines: { select: { id: true, description: true, size: true, color: true, qty: true } },
             },
           },
         },
@@ -190,10 +202,11 @@ export const deliveryRouter = router({
                 },
               },
             },
-            deliveries: {
+            revisions: { where: { changeType: "QC_RETURN" }, select: { changeType: true, newValue: true } },
+          deliveries: {
               select: {
-                status: true,
-                lines: { select: { description: true, size: true, color: true, qty: true } },
+                id: true, status: true,
+                lines: { select: { id: true, description: true, size: true, color: true, qty: true } },
               },
             },
           },
@@ -207,6 +220,11 @@ export const deliveryRouter = router({
         // V2 ใช้ Final Pack ledger เป็นหลักฐานแพ็กจริง ส่วน Delivery เป็นการจัดสรร
         // ของที่แพ็กแล้วไปยังรอบส่งเท่านั้น. ถ้าหน้าเก่าไม่ส่ง lines มา ให้เติมยอด
         // ที่ยังไม่ได้จัดลงใบส่งจาก ledger โดยไม่ให้ผู้ใช้นับซ้ำอีกบ้านหนึ่ง.
+        const inspectedReturns = qcReturnSnapshots(order.revisions ?? []).flatMap((revision) => revision.sourceLines);
+        if (order.deliveries.some((delivery) => delivery.status === "RETURNED" && delivery.lines.some((line) =>
+          line.qty > inspectedReturns.filter((returned) => returned.deliveryLineId === line.id).reduce((sum, returned) => sum + returned.qty, 0)))) {
+          badRequest("มีของรับคืนที่ยังไม่ตรวจ QC — เปิดตรวจรับคืนก่อนสร้างใบส่งทดแทน");
+        }
         const packingEvidence = packingEvidenceFromOrder(order);
         const finalPackLedger = await assertV2FinalPackReadyToShip(
           tx,
@@ -417,7 +435,11 @@ export const deliveryRouter = router({
         // พร้อมกัน คนช้า count=0 เจอ error ไม่ใช่เขียนทับ (validate เฉยๆ ไม่พอ กัน race)
         const current = await tx.delivery.findUniqueOrThrow({
           where: { id: input.id },
-          select: { status: true, orderId: true },
+          select: {
+            status: true,
+            orderId: true,
+            lines: { select: { id: true, description: true, size: true, color: true, qty: true } },
+          },
         });
         const fromStatus = current.status as DeliveryStatus;
         const statusChanged = fromStatus !== input.status;
@@ -429,6 +451,14 @@ export const deliveryRouter = router({
         if (statusChanged) {
           // ใช้ lock ลำดับเดียวกับสร้างใบส่ง/กดพร้อมส่ง เพื่อไม่ให้ RETURNED แทรกหลังอ่าน evidence
           await lockOrderRow(tx, current.orderId);
+        }
+        if (statusChanged && ["PENDING", "PREPARING"].includes(input.status)) {
+          const history = await tx.order.findUniqueOrThrow({ where: { id: current.orderId }, select: {
+            revisions: { where: { changeType: "QC_RETURN" }, select: { changeType: true, newValue: true } },
+          } });
+          if (qcReturnSnapshots(history.revisions ?? []).some((revision) => revision.sourceLines.some((line) => line.deliveryId === input.id))) {
+            badRequest("ใบส่งนี้มีประวัติรับคืนแล้ว — เก็บใบเดิมและสร้างใบส่งทดแทนหลังตรวจ QC");
+          }
         }
         // ด่าน B4 ขาส่ง: ของออกจริง (SHIPPED/DELIVERED) ได้เฉพาะออเดอร์ที่เลย QC —
         // กันเคสออเดอร์ถูกถอยกลับไปแก้งานแล้วยังกดส่งใบเดิมออก
@@ -575,14 +605,19 @@ export const deliveryRouter = router({
       return ctx.prisma.$transaction(async (tx) => {
         const current = await tx.delivery.findUniqueOrThrow({
           where: { id: input.id },
-          select: { orderId: true },
+          select: { orderId: true, status: true },
         });
         await lockOrderRow(tx, current.orderId);
-        const deleted = await tx.delivery.delete({ where: { id: input.id } });
+        const live = await tx.delivery.findUniqueOrThrow({ where: { id: input.id }, select: { status: true } });
+        if (["SHIPPED", "DELIVERED", "RETURNED"].includes(live.status)) badRequest("ใบส่งที่ออกแล้วต้องเก็บประวัติ — บันทึกรับคืนแทนการลบ");
         const orderState = await tx.order.findUniqueOrThrow({
           where: { id: current.orderId },
-          select: { internalStatus: true },
+          select: { internalStatus: true, revisions: { where: { changeType: "QC_RETURN" }, select: { changeType: true, newValue: true } } },
         });
+        if (qcReturnSnapshots(orderState.revisions ?? []).some((revision) => revision.sourceLines.some((line) => line.deliveryId === input.id))) {
+          badRequest("ใบส่งนี้มีประวัติรับคืนแล้ว จึงลบหลักฐานการส่งเดิมไม่ได้");
+        }
+        const deleted = await tx.delivery.delete({ where: { id: input.id } });
         if (orderState.internalStatus === "READY_TO_SHIP") {
           await assertOrderPackingReadyToShip(tx, current.orderId);
         }

@@ -17,7 +17,7 @@ import {
 } from "@/lib/production-steps";
 import { factoryStationKeyForStep } from "@/lib/factory-station";
 import { firstPendingStepIdsByLane } from "@/lib/production-step-actions";
-import { paperDoneMarker, paperStepsToClose, stepsBlockingQc } from "@/lib/work-order-record-mode";
+import { isQcReworkStep } from "@/lib/qc";
 import {
   activeStationProblemReason,
   normalizedProblemReason,
@@ -54,6 +54,7 @@ import {
   assertStepReopenable,
   FLOW_OWNED_STEP_TYPES,
   pieceQtyPlan,
+  assertStepQuantitiesCounted,
 } from "@/server/services/work-order-form";
 import { lockProductionTopology } from "@/server/services/production-topology-lock";
 import { assertProductionV2ApiEnabled } from "@/server/services/production-v2-gate";
@@ -100,6 +101,7 @@ const stepSelect = {
   id: true,
   productionId: true,
   stepType: true,
+  executionMode: true,
   customStepName: true,
   status: true,
   sortOrder: true,
@@ -157,6 +159,7 @@ const updateStepResultSelect = {
   id: true,
   productionId: true,
   stepType: true,
+  executionMode: true,
   customStepName: true,
   status: true,
   sortOrder: true,
@@ -1206,6 +1209,9 @@ export const productionRouter = router({
               "ขั้นแพ็กเดิมแก้จากใบผลิตไม่ได้ — งานต้องผ่าน QC แล้วจึงแพ็กสุดท้าย",
           });
         }
+        if (existing.executionMode === "OUTSOURCE") {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "ขั้นนี้ส่งร้านนอกแล้ว — บันทึกผลผ่านใบส่งร้านและตรวจรับกลับ" });
+        }
 
         if (existing.status === "FAILED") {
           throw new TRPCError({
@@ -1369,6 +1375,19 @@ export const productionRouter = router({
             existing.stepType,
             ticked.map((t) => t.itemKey),
           );
+          if (existing.qtyTotal !== null && existing.qtyTotal > 0) {
+            const quantities = await tx.operationQuantity.findMany({
+              where: { productionStepId: stepId, scopeKind: "VARIANT" },
+              select: { qtyPlanned: true, qtyGood: true, qtyScrap: true },
+            });
+            assertStepQuantitiesCounted({
+              qtyTotal: existing.qtyTotal, qtyDone: nextQtyDone, quantities,
+            });
+            if (quantities.length > 0) {
+              // ยอดดีต้องมาจากผลต่อไซซ์ ห้ามปุ่มปิดขั้น/ยอดรวมปลอมของเสียให้เป็นของดี.
+              effectiveData.qtyDone = quantities.reduce((sum, line) => sum + line.qtyGood, 0);
+            }
+          }
         }
 
         const updateData = buildStepUpdateData({
@@ -1386,7 +1405,9 @@ export const productionRouter = router({
 
         // กติกา qty: ปิดขั้น → จำนวนทำแล้ว snap เท่าทั้งหมด (ติ๊กเสร็จ = ครบ ไม่ต้องกรอกเลขซ้ำ)
         // · กรอกจำนวนบนขั้นที่ยังรอ → ขั้นเริ่มเอง (กันสถานะค้าง PENDING ทั้งที่ทำไปแล้วครึ่งกอง)
-        const followUp = qtyFollowUp(step, new Date());
+        const followUp = effectiveData.status === "COMPLETED"
+          ? null
+          : qtyFollowUp(step, new Date());
         if (followUp) {
           step = await tx.productionStep.update({
             where: { id: stepId },
@@ -1607,6 +1628,9 @@ export const productionRouter = router({
             message: "บันทึกยอดไม่ได้ — ออเดอร์ไม่อยู่ในสถานะกำลังผลิต",
           });
         }
+        if (existing.executionMode === "OUTSOURCE") {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "ขั้นนี้ส่งร้านนอกแล้ว — บันทึกจำนวนผ่านใบส่งร้านและตรวจรับกลับ" });
+        }
         if (existing.status === "COMPLETED" || existing.status === "FAILED") {
           throw new TRPCError({
             code: "BAD_REQUEST",
@@ -1674,9 +1698,16 @@ export const productionRouter = router({
             },
           },
         });
+        const reworkQuantities = isQcReworkStep(existing)
+          ? await tx.operationQuantity.findMany({
+              where: { productionStepId: input.stepId, scopeKind: "VARIANT" },
+              select: { sourceOrderItemVariantId: true, qtyPlanned: true },
+            })
+          : undefined;
         const plan = pieceQtyPlan({
           rows: input.rows,
           qtyTotal: existing.qtyTotal,
+          reworkQuantities,
           variants: variants.map((v) => ({
             id: v.id,
             productId: v.orderItemProduct.id,
@@ -1922,9 +1953,8 @@ export const productionRouter = router({
       });
     }),
 
-  // กระดาษเป็นหลัก (เบสเคาะ A 2026-09-05 · ROADMAP §A5): ขั้นที่ "จดบนกระดาษ" (รีดร้อน ฯลฯ) ช่างไม่กดในระบบ
-  // จุดถัดไปที่จดคือ QC — ปุ่ม "ส่งเข้า QC" จึงเป็นคนปิดขั้นกระดาษให้เป็น "ถือว่าผ่าน" (marker ใน notes)
-  // แล้ว finalize ใบตามทางเดิม · ขั้นที่จดในระบบ (เบิก/ตรวจรับ/ร้านนอก/รอบพิมพ์) ต้องปิดจริงก่อน ห้ามถือว่าผ่านแทน
+  // A9/A16: ส่งเข้า QC ได้เมื่อปิดทุกขั้นจริงแล้วเท่านั้น — ห้ามถือว่าผ่านแทนการติ๊ก/นับยอด
+  // ใช้ finalizer กลางสำหรับหลายใบผลิต/แถว PACKAGING เก่า และตอบ retry โดยไม่เขียนซ้ำ
   sendToQc: protectedProcedure
     .use(productionTeam)
     .input(z.object({ productionId: z.string() }))
@@ -1976,41 +2006,38 @@ export const productionRouter = router({
           where: { id: current.orderId },
           select: { internalStatus: true },
         });
-        if (liveOrder.internalStatus !== "PRODUCING") {
+        const workflow = productionWorkflowSteps(current.steps);
+        if (current.steps.some((step) => step.executionEnabled)) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: `ส่งเข้า QC ไม่ได้ — ออเดอร์อยู่สถานะ ${INTERNAL_STATUS_LABELS[liveOrder.internalStatus] ?? liveOrder.internalStatus}`,
+            message: "Production V2 ต้องปิด Operation Job ผ่านคำสั่ง Manufacturing เท่านั้น",
           });
         }
-        const workflow = productionWorkflowSteps(current.steps);
-        const blocking = stepsBlockingQc(workflow);
+        const blocking = workflow.filter((step) => step.status !== "COMPLETED");
         if (blocking.length > 0) {
           const names = blocking.map((s) => s.customStepName || STEP_TYPE_LABELS[s.stepType] || s.stepType).join(", ");
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: `ยังส่งเข้า QC ไม่ได้ — ${names} ต้องปิดในระบบก่อน (ขั้นที่จดในระบบ หรือขั้นที่ติดปัญหา/พักอยู่)`,
+            message: `ยังส่งเข้า QC ไม่ได้ — ${names} ต้องปิดให้ครบก่อน`,
           });
         }
-        const toClose = paperStepsToClose(workflow);
-        if (toClose.length === 0) {
+        if (workflow.length === 0) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: "ไม่มีขั้นที่จดบนกระดาษให้ถือว่าผ่าน — ใบนี้ปิดครบทุกขั้นในระบบแล้ว",
+            message: "ใบนี้ยังไม่มีขั้นผลิต — ให้หัวหน้าตรวจใบผลิตก่อนส่งเข้า QC",
           });
         }
-        const completedAt = new Date();
-        const marker = paperDoneMarker();
-        for (const step of toClose) {
-          await tx.productionStep.update({
-            where: { id: step.id },
-            data: {
-              status: "COMPLETED",
-              completedAt,
-              startedAt: step.startedAt ?? completedAt,
-              // ยอดจริงอยู่บนกระดาษ — ระบบถือว่าครบตามที่ต้องทำ (แก้ทีหลังได้จาก "บันทึกรายละเอียด")
-              qtyDone: step.qtyTotal != null && step.qtyTotal > 0 ? Math.max(step.qtyDone, step.qtyTotal) : step.qtyDone,
-              notes: step.notes ? `${step.notes}\n${marker}` : marker,
-            },
+        if (current.status === "COMPLETED") {
+          return {
+            closed: 0,
+            movedToQc: liveOrder.internalStatus === "QUALITY_CHECK",
+            orderStatus: liveOrder.internalStatus,
+          };
+        }
+        if (liveOrder.internalStatus !== "PRODUCING") {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `ส่งเข้า QC ไม่ได้ — ออเดอร์อยู่สถานะ ${INTERNAL_STATUS_LABELS[liveOrder.internalStatus] ?? liveOrder.internalStatus}`,
           });
         }
         const finalized = await finalizeProductionIfComplete(tx, {
@@ -2020,7 +2047,7 @@ export const productionRouter = router({
         if (!finalized) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: "ปิดขั้นกระดาษแล้วแต่ยังปิดใบไม่ได้ — โหลดใหม่แล้วดูว่าขั้นไหนยังค้าง",
+            message: "ยังปิดใบผลิตไม่ได้ — โหลดใหม่แล้วตรวจขั้นที่ยังค้าง",
           });
         }
         await createAuditLog(tx, {
@@ -2028,14 +2055,14 @@ export const productionRouter = router({
           action: "UPDATE",
           entityType: "PRODUCTION",
           entityId: input.productionId,
-          newValue: { sendToQc: true, paperStepsClosed: toClose.map((s) => s.id) },
+          newValue: { sendToQc: true },
         });
         const after = await tx.order.findUniqueOrThrow({
           where: { id: current.orderId },
           select: { internalStatus: true },
         });
         return {
-          closed: toClose.length,
+          closed: 0,
           movedToQc: after.internalStatus === "QUALITY_CHECK",
           orderStatus: after.internalStatus,
         };

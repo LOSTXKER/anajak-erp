@@ -606,6 +606,7 @@ export async function getPrintQueue(
       OR: [
         {
           executionEnabled: false,
+          executionMode: "IN_HOUSE",
           status: { in: ["PENDING", "IN_PROGRESS"] },
           production: { order: { internalStatus: "PRODUCING" } },
           ...(ownAssignment ? { AND: [ownAssignment] } : {}),
@@ -833,6 +834,7 @@ export async function createPrintRun(prisma: ExtendedPrismaClient, params: Creat
         stepType: true,
         status: true,
         executionEnabled: true,
+        executionMode: true,
         assignedToId: true,
         qtyDone: true,
         qtyTotal: true,
@@ -889,6 +891,9 @@ export async function createPrintRun(prisma: ExtendedPrismaClient, params: Creat
         : null;
       if (!operation && step.stepType !== "DTF_PRINT") {
         badRequest(`งาน ${order.orderNumber}: รอบพิมพ์รับเฉพาะขั้นพิมพ์ฟิล์ม DTF`);
+      }
+      if (!operation && step.executionMode === "OUTSOURCE") {
+        badRequest(`งาน ${order.orderNumber}: ขั้นพิมพ์นี้ส่งร้านนอกแล้ว — บันทึกผ่านใบส่งร้านและตรวจรับกลับ`);
       }
       assertPrintRunOrdersProducing([{ order }]);
       if (
@@ -1130,6 +1135,8 @@ export async function markPrintRunPrinted(
 export interface CompletePrintRunParams {
   runId: string;
   commandId?: string;
+  /** ผลจริงของรอบ legacy: ของดีเท่านั้นเดินต่อ ส่วนเสียกลับคิวพิมพ์ใหม่ */
+  legacyResults?: Array<{ itemId: string; qtyGood: number; qtyScrap: number }>;
   results?: Array<{
     itemId: string;
     expectedRevision: number;
@@ -1191,6 +1198,32 @@ export async function completePrintRun(
     }
     if (v2Items.length > 0 && !params.commandId) {
       badRequest("คำสั่ง Production V2 ต้องระบุ commandId");
+    }
+    if (v2Items.length > 0 && params.legacyResults) {
+      badRequest("ผลรอบพิมพ์ legacy ใช้กับ Operation Job V2 ไม่ได้");
+    }
+    const legacyResults = params.legacyResults ?? run.items.map((item) => ({
+      itemId: item.id, qtyGood: item.qty, qtyScrap: 0,
+    }));
+    const legacyResultByItem = new Map(legacyResults.map((result) => [result.itemId, result]));
+    if (v2Items.length === 0) {
+      if (
+        legacyResultByItem.size !== legacyResults.length ||
+        legacyResults.length !== run.items.length ||
+        run.items.some((item) => !legacyResultByItem.has(item.id))
+      ) {
+        badRequest("ต้องรายงานฟิล์มดีและเสียให้ตรงครบทุกงานในรอบพิมพ์ และห้ามซ้ำงาน");
+      }
+      for (const item of run.items) {
+        const result = legacyResultByItem.get(item.id)!;
+        if (
+          !Number.isInteger(result.qtyGood) || result.qtyGood < 0 ||
+          !Number.isInteger(result.qtyScrap) || result.qtyScrap < 0 ||
+          result.qtyGood + result.qtyScrap !== item.qty
+        ) {
+          badRequest(`งาน ${item.order.orderNumber}: ฟิล์มดี + เสียต้องเป็นจำนวนเต็มรวม ${item.qty} ชิ้น`);
+        }
+      }
     }
     const resultByItem = new Map(
       (params.results ?? []).map((result) => [result.itemId, result] as const),
@@ -1304,9 +1337,19 @@ export async function completePrintRun(
           },
         });
       } else {
+      const result = legacyResultByItem.get(item.id)!;
+      await tx.printRunItem.update({
+        where: { id: item.id },
+        data: {
+          qtyGood: result.qtyGood,
+          qtyScrap: result.qtyScrap,
+          qtyReprint: result.qtyScrap,
+          resultReportedAt: new Date(),
+        },
+      });
       const bumped = await tx.productionStep.update({
         where: { id: item.productionStepId },
-        data: { qtyDone: { increment: item.qty } },
+        data: { qtyDone: { increment: result.qtyGood } },
         select: { qtyDone: true, qtyTotal: true, productionId: true },
       });
       // รอบ active อื่นที่ยังกินขั้นนี้อยู่ — ยังปิดขั้นไม่ได้ (แบ่งพิมพ์หลายรอบ)
@@ -1321,7 +1364,7 @@ export async function completePrintRun(
         where: { id: item.productionStepId },
         data: shouldCloseStep({ qtyDone: bumped.qtyDone, qtyTotal: bumped.qtyTotal, openRuns })
           ? { status: "COMPLETED", completedAt: new Date() }
-          : { status: "IN_PROGRESS" },
+          : { status: "IN_PROGRESS", completedAt: null },
       });
       touchedProductions.add(bumped.productionId);
       }
@@ -1714,6 +1757,18 @@ export async function listPrintRuns(
     }
 
     const availableCommands: PrintRunAvailableCommand[] = [];
+    if (active && !isV2) {
+      if (access.canOperate === false) {
+        blockedReason = "บัญชีนี้ดูรอบพิมพ์ได้อย่างเดียว";
+      } else if (!canManage) {
+        blockedReason = "รอบนี้เป็นงานของผู้สร้างหรือผู้รับผิดชอบคนอื่น";
+      } else {
+        if (run.status === "PRINTING") availableCommands.push("cancel");
+        if (!orderBlock) {
+          availableCommands.push(run.status === "PRINTING" ? "markPrinted" : "complete");
+        }
+      }
+    }
     if (
       active &&
       pureV2 &&

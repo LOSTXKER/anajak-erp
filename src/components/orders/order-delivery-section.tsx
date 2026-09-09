@@ -311,6 +311,11 @@ export function OrderDeliverySection({
                               </div>
                             )}
 
+                            {delivery.qtyReturned > 0 && (
+                              <p className="text-sm font-medium text-strong">
+                                รับคืนแล้ว {delivery.qtyReturned} ตัว · ยังอยู่กับลูกค้า {delivery.qtyRemainingWithCustomer} ตัว
+                              </p>
+                            )}
                             <div className="flex flex-wrap gap-3 text-xs text-muted">
                               {delivery.shippedAt && (
                                 <span>ส่ง: {formatDateTime(delivery.shippedAt)}</span>

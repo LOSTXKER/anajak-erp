@@ -1,4 +1,5 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { toast } from "sonner";
 import { ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -9,12 +10,22 @@ import { CONTROL_H } from "@/components/ui/control-size";
 import { RADIUS, TABLE_HEAD_SURFACE } from "@/components/ui/tokens";
 import type { ProductionDetail, ProductionStep } from "./types";
 import { FLOW_OWNED_STEP_TYPES } from "@/lib/production-steps";
+import { isQcReworkStep } from "@/lib/qc";
 import { PRINT_POSITIONS, PRINT_TYPES, PRODUCT_TYPES } from "@/types/order-form";
 import { cn, isImageUrl } from "@/lib/utils";
+import { APP_NAVIGATION_REQUEST_EVENT, isAppNavigationRequestEvent } from "@/lib/navigation-request";
+import { guardWorkOrderDraft } from "@/lib/work-order-draft-guard";
 import type { WorkOrderController } from "./work-order-controller";
 import { activeOutsource, stepLabel, viewOf } from "./work-order-pieces";
 
 export const pieceTableAnchor = (stepId: string) => `work-order-pieces-${stepId}`;
+
+/** ปิดขั้นเมื่อประมวลผลครบกอง โดยแยกของดี/เสียไว้ให้ QC ตัดสินต่อ */
+export function accountedStepQty(step: ProductionStep): number {
+  return step.quantities.length > 0
+    ? step.quantities.reduce((sum, line) => sum + line.qtyGood + line.qtyScrap, 0)
+    : step.qtyDone ?? 0;
+}
 
 /* ───────────────────────── ซ้าย: ตารางรายตัวของขั้นที่ยืนอยู่ ───────────────────────── */
 
@@ -40,7 +51,12 @@ export function pieceRowsOf(order: ProductionDetail["order"]): PieceRow[] {
 
 /** ตารางรายตัว: แถวละไซซ์ · ขั้นที่นับยอดกรอก "ทำแล้ว/เสีย" ต่อแถวได้ — ยอดรวมของขั้น = ผลบวก (server) */
 export function StepPieceTable({ step, order, c, stepAction, footer, replaceBody }: { step: ProductionStep; order: ProductionDetail["order"]; c: WorkOrderController; stepAction?: ReactNode; footer?: ReactNode; replaceBody?: ReactNode }) {
-  const rows = pieceRowsOf(order);
+  const orderRows = pieceRowsOf(order);
+  const isRework = isQcReworkStep(step);
+  const planned = new Map(step.quantities.map((line) => [line.sourceOrderItemVariantId, line.qtyPlanned]));
+  const rows = isRework && step.quantities.length > 0
+    ? orderRows.filter((row) => row.variantId && planned.has(row.variantId)).map((row) => ({ ...row, qty: planned.get(row.variantId)! }))
+    : orderRows;
   const total = rows.reduce((n, r) => n + r.qty, 0);
   const groups = new Map<string, PieceRow[]>();
   for (const row of rows) {
@@ -50,7 +66,7 @@ export function StepPieceTable({ step, order, c, stepAction, footer, replaceBody
   }
   const counting = step.qtyTotal !== null && step.qtyTotal > 0;
   // ของอยู่ร้านนอก = ยอดมาจากใบตรวจรับตอนรับกลับ ไม่กรอกเอง
-  const editable = counting && c.canUpdateStep && c.canOwnOrSupervise(step) && step.status !== "COMPLETED" && step.status !== "FAILED" && !FLOW_OWNED_STEP_TYPES.has(step.stepType) && !activeOutsource(step);
+  const editable = counting && c.canUpdateStep && c.canOwnOrSupervise(step) && step.status !== "COMPLETED" && step.status !== "FAILED" && step.status !== "ON_HOLD" && !FLOW_OWNED_STEP_TYPES.has(step.stepType) && !activeOutsource(step);
   const view = viewOf(step, c.nowById.get(step.id));
   const saved = useMemo(() => {
     const map: Record<string, RowQty> = {};
@@ -67,6 +83,46 @@ export function StepPieceTable({ step, order, c, stepAction, footer, replaceBody
     const s = saved[r.key] ?? { done: 0, waste: 0 };
     return d.done !== s.done || d.waste !== s.waste;
   });
+  useEffect(() => {
+    if (!dirty) return;
+    const notifyUnsaved = () => toast.error("ยังมียอดที่ไม่บันทึก", {
+      description: "บันทึกยอดหรือกดคืนค่าที่บันทึกก่อนดำเนินการต่อ",
+    });
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    const onLink = (event: MouseEvent) => {
+      if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      if (!(event.target instanceof Element)) return;
+      const anchor = event.target.closest<HTMLAnchorElement>("a[href]");
+      if (!anchor || anchor.target === "_blank" || anchor.hasAttribute("download")) return;
+      const next = new URL(anchor.href, window.location.href);
+      const current = new URL(window.location.href);
+      if (next.origin !== current.origin || (next.pathname === current.pathname && next.search === current.search)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      notifyUnsaved();
+    };
+    const onNavigation = (event: Event) => {
+      if (event.defaultPrevented || !isAppNavigationRequestEvent(event)) return;
+      const next = new URL(event.detail.href, window.location.href);
+      const current = new URL(window.location.href);
+      if (next.origin !== current.origin || (next.pathname === current.pathname && next.search === current.search)) return;
+      event.preventDefault();
+      notifyUnsaved();
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    const stopGuardingChanges = guardWorkOrderDraft(window, notifyUnsaved);
+    document.addEventListener("click", onLink, true);
+    window.addEventListener(APP_NAVIGATION_REQUEST_EVENT, onNavigation);
+    return () => {
+      stopGuardingChanges();
+      window.removeEventListener("beforeunload", onBeforeUnload);
+      document.removeEventListener("click", onLink, true);
+      window.removeEventListener(APP_NAVIGATION_REQUEST_EVENT, onNavigation);
+    };
+  }, [dirty]);
   const doneSum = variantRows.reduce((n, r) => n + valueOf(r.key).done, 0);
   const wasteSum = variantRows.reduce((n, r) => n + valueOf(r.key).waste, 0);
   const setRow = (key: string, patch: Partial<RowQty>) => setDraft((d) => ({ ...d, [key]: { ...valueOf(key), ...patch } }));
@@ -76,7 +132,7 @@ export function StepPieceTable({ step, order, c, stepAction, footer, replaceBody
   return (
     <Section
       title={stepLabel(step)}
-      meta={counting ? <span className="tabular-nums">{(step.qtyDone ?? 0).toLocaleString("th-TH")} / {step.qtyTotal!.toLocaleString("th-TH")} ตัว</span> : undefined}
+      meta={counting && step.stepType !== "GARMENT_RECEIVE" ? <span className="tabular-nums">บันทึกแล้ว {accountedStepQty(step).toLocaleString("th-TH")} / {step.qtyTotal!.toLocaleString("th-TH")} ตัว</span> : undefined}
       action={
         <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center">
           <InfoChip size="sm" tone={view.chip}>{view.label}</InfoChip>
@@ -85,11 +141,11 @@ export function StepPieceTable({ step, order, c, stepAction, footer, replaceBody
       }
       flush
     >
-      {editable ? (
+      {editable || dirty ? (
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-divider px-5 py-3">
           <span className="text-xs text-muted" aria-live="polite">{dirty ? "ยอดที่แก้ยังไม่บันทึก" : variantRows.length > 0 ? `${variantRows.length.toLocaleString("th-TH")} ไซซ์` : "ยอดรวมของขั้น"}</span>
           <div className="flex flex-wrap items-center gap-2">
-            {variantRows.length > 0 ? (
+            {editable && (variantRows.length > 0 ? (
               <Button size="sm" variant="outline" onClick={fillAll} disabled={c.piecePending}>
                 ใส่ครบทุกไซซ์
               </Button>
@@ -97,8 +153,13 @@ export function StepPieceTable({ step, order, c, stepAction, footer, replaceBody
               <Button size="sm" variant="outline" onClick={() => c.openQty(step.id)}>
                 บันทึกยอด
               </Button>
-            )}
+            ))}
             {dirty ? (
+              <Button size="sm" variant="ghost" onClick={() => setDraft({})} disabled={c.piecePending}>
+                คืนค่าที่บันทึก
+              </Button>
+            ) : null}
+            {dirty && editable ? (
               <Button size="sm" onClick={save} disabled={c.piecePending}>
                 บันทึกยอด
               </Button>
@@ -204,7 +265,10 @@ export function StepPieceTable({ step, order, c, stepAction, footer, replaceBody
           </div>
         </div>
       ))}
-      {!replaceBody && footer ? <div className="flex flex-wrap items-center gap-2 border-t border-divider px-5 py-4">{footer}</div> : null}
+      {!replaceBody && footer ? <div className="space-y-2 border-t border-divider px-5 py-4">
+        {dirty ? <p className="text-sm text-secondary" role="status">บันทึกยอดที่แก้ก่อนดำเนินการต่อ</p> : null}
+        <fieldset disabled={dirty || c.piecePending} className="flex flex-wrap items-center gap-2">{footer}</fieldset>
+      </div> : null}
     </Section>
   );
 }

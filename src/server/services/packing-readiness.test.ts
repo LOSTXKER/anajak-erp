@@ -322,6 +322,25 @@ describe("V2 Final Pack shipping boundary", () => {
     ).toThrow("ไม่ตรงกับเจ้าของการปิดงาน");
   });
 
+  it("owner V2 ที่ยังค้างอยู่ห้ามหลุดไปใช้หลักฐานส่งแบบ legacy", () => {
+    expect(() => v2FinalPackLedgerFromOrder({
+      ...finalPackOrder(),
+      productions: [],
+    })).toThrow("เจ้าของการปิดงาน");
+    expect(() => v2FinalPackLedgerFromOrder({
+      ...finalPackOrder({ ownerId: null }),
+      productions: [{ id: "legacy-1", workOrderNumber: null, completionOwnerStepId: "pack-orphan" }],
+    })).toThrow("เจ้าของการปิดงาน");
+  });
+
+  it("ใบผลิต legacy ล้วนยังใช้หลักฐานนับแพ็กเดิมได้", () => {
+    expect(v2FinalPackLedgerFromOrder({
+      productionCompletionOwnerId: null,
+      productionCompletionOwner: null,
+      productions: [{ id: "legacy-1", workOrderNumber: null }],
+    })).toBeNull();
+  });
+
   it("สร้าง delivery lines จากยอด Final Pack ที่ยังไม่ถูกจัดลงใบส่ง", () => {
     const ledger = v2FinalPackLedgerFromOrder(finalPackOrder())!;
     const evidence = packingEvidenceFromOrder(

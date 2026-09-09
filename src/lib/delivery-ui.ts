@@ -16,7 +16,7 @@ const NEXT_DELIVERY_ACTION: Record<
   PREPARING: { status: "SHIPPED", label: "ยืนยันส่งแล้ว" },
   SHIPPED: { status: "DELIVERED", label: "ยืนยันถึงแล้ว" },
   DELIVERED: { status: "DELIVERED", label: "จัดการสถานะ" },
-  RETURNED: { status: "PREPARING", label: "เตรียมส่งใหม่" },
+  RETURNED: { status: "RETURNED", label: "รับคืนแล้ว" },
 };
 
 export function canCreateDelivery(internalStatus: string, canManageDelivery: boolean): boolean {

@@ -74,14 +74,14 @@ async function main() {
     };
     const d1 = await caller.delivery.create({
       ...base,
-      lines: [{ description: "เสื้อยืด", size: "M", color: "ดำ", qty: 4 }],
+      lines: [{ description: `${MARK} เสื้อยืด`, size: "M", color: "ดำ", qty: 4 }],
     });
     ctx = await caller.delivery.packContext({ orderId: order.id });
     check("2.1 รอบแรก M×4 → เหลือ M2/L4", ctx.totalRemaining === 6);
 
     // ── 3. กันแพ็คเกินต่อไซส์ ──
     await caller.delivery
-      .create({ ...base, lines: [{ description: "เสื้อยืด", size: "M", color: "ดำ", qty: 3 }] })
+      .create({ ...base, lines: [{ description: `${MARK} เสื้อยืด`, size: "M", color: "ดำ", qty: 3 }] })
       .then(
         () => check("3.1 แพ็คเกิน (M เหลือ 2 ใส่ 3) → โดนกัน", false),
         (e) => check("3.1 แพ็คเกิน (M เหลือ 2 ใส่ 3) → โดนกัน", String(e.message).includes("แพ็คเกินยอดงาน"))
@@ -91,8 +91,8 @@ async function main() {
     const d2 = await caller.delivery.create({
       ...base,
       lines: [
-        { description: "เสื้อยืด", size: "M", color: "ดำ", qty: 2 },
-        { description: "เสื้อยืด", size: "L", color: "ดำ", qty: 4 },
+        { description: `${MARK} เสื้อยืด`, size: "M", color: "ดำ", qty: 2 },
+        { description: `${MARK} เสื้อยืด`, size: "L", color: "ดำ", qty: 4 },
       ],
     });
     await caller.delivery.updateStatus({ id: d1.id, status: "SHIPPED", trackingNumber: "TRK-001" });
@@ -127,11 +127,11 @@ async function main() {
         },
       },
     });
-    const e1 = await caller.delivery.create({ ...base, orderId: order2.id, lines: [{ description: "เสื้อยืด", size: "M", color: "ดำ", qty: 4 }] });
+    const e1 = await caller.delivery.create({ ...base, orderId: order2.id, lines: [{ description: `${MARK} เสื้อยืด`, size: "M", color: "ดำ", qty: 4 }] });
     await caller.delivery.updateStatus({ id: e1.id, status: "SHIPPED", trackingNumber: "TRK-E1" });
     let o2 = await prisma.order.findUniqueOrThrow({ where: { id: order2.id } });
     check("6.1 กล่องเดียวออก 4/10 ตัว (ไม่มีใบอื่นค้าง) → ไม่เด้ง SHIPPED", o2.internalStatus === "PACKING");
-    const e2 = await caller.delivery.create({ ...base, orderId: order2.id, lines: [{ description: "เสื้อยืด", size: "M", color: "ดำ", qty: 6 }] });
+    const e2 = await caller.delivery.create({ ...base, orderId: order2.id, lines: [{ description: `${MARK} เสื้อยืด`, size: "M", color: "ดำ", qty: 6 }] });
     await caller.delivery.updateStatus({ id: e2.id, status: "SHIPPED", trackingNumber: "TRK-E2" });
     o2 = await prisma.order.findUniqueOrThrow({ where: { id: order2.id } });
     check("6.2 ครบ 10/10 ตัว → เด้ง SHIPPED", o2.internalStatus === "SHIPPED");
@@ -189,10 +189,22 @@ async function main() {
     await caller.delivery.updateStatus({ id: d4.id, status: "RETURNED" });
     const d4db = await prisma.delivery.findUniqueOrThrow({ where: { id: d4.id } });
     check("7.8 DELIVERED→RETURNED ได้ (ของส่งถึงแล้วตีกลับ · เดิม UI ปุ่มซ่อนกดไม่ได้)", d4db.status === "RETURNED");
+
+    // ใบเดิมตีกลับ แล้วเปิดใบส่งทดแทน: ห้ามเปิดใบเก่าซ้ำจนเกินยอด.
+    await caller.delivery.updateStatus({ id: d1.id, status: "RETURNED" });
+    await caller.order.updateStatus({ id: base.orderId, internalStatus: "QUALITY_CHECK", reason: "ตรวจรับคืน M4 ก่อนส่งทดแทน" });
+    await caller.qc.create({ orderId: base.orderId, idempotencyKey: "verify-pack-return-good", qtyGood: 4, defects: [] });
+    const replacement = await caller.delivery.create({ ...base,
+      lines: [{ description: `${MARK} เสื้อยืด`, size: "M", color: "ดำ", qty: 4 }] });
+    check("8.1 ใบส่งทดแทนรับยอด M4 ที่ตีกลับ", Boolean(replacement.id));
+    check("8.2 เปิดใบตีกลับซ้ำขณะมีใบแทนครบ → กันจำนวนเกิน",
+      await expectThrow(() => caller.delivery.updateStatus({ id: d1.id, status: "PREPARING" })));
   } finally {
     const allOrders = await prisma.order.findMany({ where: { notes: { contains: MARK } }, select: { id: true } });
     const orderIds = allOrders.map((o) => o.id);
     const dels = await prisma.delivery.findMany({ where: { orderId: { in: orderIds } }, select: { id: true } });
+    const qcRecords = await prisma.qcRecord.findMany({ where: { orderId: { in: orderIds } }, select: { id: true } });
+    await prisma.auditLog.deleteMany({ where: { entityId: { in: [...orderIds, ...qcRecords.map((record) => record.id), ...dels.map((delivery) => delivery.id)] } } });
     await prisma.deliveryLine.deleteMany({ where: { deliveryId: { in: dels.map((d) => d.id) } } });
     await prisma.delivery.deleteMany({ where: { orderId: { in: orderIds } } });
     // แจ้งเตือนของตีกลับ (B13 test) ผูก entityId = orderId — ลบก่อน order

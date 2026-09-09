@@ -228,6 +228,33 @@ describe("finalizeProductionIfComplete — legacy PACKAGING compatibility", () =
 });
 
 describe("reopenProductionsForRework — V2 boundary", () => {
+  it("QC เสีย M 2/L 1 สร้างงานแก้ครั้งเดียวพร้อมยอดเฉพาะไซซ์ แม้มีใบผลิตเดิมหลายใบ", async () => {
+    const tx = {
+      production: {
+        findMany: vi.fn().mockResolvedValue([
+          { id: "production-1", workOrderNumber: null, steps: [{ sortOrder: 2, executionEnabled: false }] },
+          { id: "production-2", workOrderNumber: null, steps: [{ sortOrder: 3, executionEnabled: false }] },
+        ]),
+        update: vi.fn().mockResolvedValue({}),
+      },
+      productionStep: { create: vi.fn().mockResolvedValue({ id: "rework-1" }) },
+    };
+    const lines = [
+      { variantId: "variant-m", productId: "product-1", description: "เสื้อ", size: "M", color: "ดำ", qty: 2 },
+      { variantId: "variant-l", productId: "product-1", description: "เสื้อ", size: "L", color: "ดำ", qty: 1 },
+    ];
+    await reopenProductionsForRework(tx as never, {
+      orderId: "order-1", reason: "QC ไม่ผ่าน", qtyTotal: 3, quantityLines: lines, sourceQcRecordId: "qc-1",
+    });
+    expect(tx.productionStep.create).toHaveBeenCalledOnce();
+    expect(tx.productionStep.create).toHaveBeenCalledWith({ data: expect.objectContaining({
+      productionId: "production-1", qtyTotal: 3,
+      quantities: { create: expect.arrayContaining([
+        expect.objectContaining({ sourceOrderItemVariantId: "variant-m", qtyPlanned: 2, qtyGood: 0 }),
+        expect.objectContaining({ sourceOrderItemVariantId: "variant-l", qtyPlanned: 1, qtyGood: 0 }),
+      ]) },
+    }) });
+  });
   it("ไม่สร้าง legacy CUSTOM step ลง Work Order V2", async () => {
     const tx = {
       production: {

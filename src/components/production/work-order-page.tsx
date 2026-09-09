@@ -17,7 +17,7 @@
 
 import { Suspense, useState, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
-import { ClipboardCheck, Factory, Flag, History, Pause, Printer, RotateCcw, UserRound } from "lucide-react";
+import { ClipboardCheck, Factory, Flag, History, Pause, Printer, RotateCcw, Truck, UserRound } from "lucide-react";
 
 import { PageShell } from "@/components/page-shell";
 import { OrderStatusBar } from "@/components/orders/detail/order-status-bar";
@@ -34,13 +34,13 @@ import { GarmentReceiveInline } from "@/components/production/garment-receive-in
 import { ProblemDialog } from "@/components/production/step-command-dialogs";
 import type { ProductionStep } from "@/components/production/types";
 import { PRIORITY_LABELS } from "@/lib/order-status";
-import { FLOW_OWNED_STEP_TYPES } from "@/lib/production-steps";
+import { FLOW_OWNED_STEP_TYPES, isOutsourceStep } from "@/lib/production-steps";
 import { currentRailNode, railNodesOf } from "@/lib/work-order-rail";
 import { routeWaitingOn } from "@/lib/work-order-route";
 import { useWorkOrderController, type WorkOrderController } from "./work-order-controller";
 import { activeOutsource, ProblemCard, stepLabel } from "./work-order-pieces";
 import { checklistAnchor, ticksMissing } from "./work-order-checklist";
-import { pieceTableAnchor, pieceRowsOf } from "./work-order-quantities";
+import { accountedStepQty, pieceTableAnchor, pieceRowsOf } from "./work-order-quantities";
 import { WorkOrderSteps } from "./work-order-steps";
 import { WorkOrderItems } from "./work-order-items";
 
@@ -110,7 +110,7 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab }: { c: 
   const hasVariantRows = order ? pieceRowsOf(order).some((r) => r.variantId) : false;
   function actionFor(step: ProductionStep) {
     // ขั้นตรวจรับเสื้อลูกค้ามีปุ่มบันทึกอยู่ในฟอร์มนับจริงในกล่องแล้ว (ไม่เด้ง dialog อีก)
-    if (step.stepType === "GARMENT_RECEIVE") return null;
+    if (step.stepType === "GARMENT_RECEIVE" || step.stepType === "DTF_PRINT" || isOutsourceStep(step.stepType) || step.executionMode === "OUTSOURCE" || step.outsourceOrders.length > 0) return null;
     const outsource = activeOutsource(step);
     if (outsource) {
       return c.canUpdateStep && c.canOwnOrSupervise(step) ? (
@@ -130,7 +130,7 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab }: { c: 
           </Button>
         );
       }
-      if (hasVariantRows && step.qtyTotal && (step.qtyDone ?? 0) < step.qtyTotal) {
+      if (hasVariantRows && step.qtyTotal && accountedStepQty(step) < step.qtyTotal) {
         return (
           <Button aria-disabled onClick={() => focusFirst(pieceTableAnchor(step.id), "input")}>
             ปิดขั้นนี้
@@ -176,15 +176,21 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab }: { c: 
     const outsource = activeOutsource(step);
     if (step.status === "ON_HOLD") return "ขั้นนี้ถูกพักไว้";
     if (step.status === "FAILED") return "ขั้นนี้ติดปัญหา รอหัวหน้าจัดการ";
+    if (outsource?.status === "DRAFT") return `รอส่งของให้ ${outsource.vendor.name} — บันทึกส่งจริงในกล่องด้านล่าง`;
+    if (outsource?.status === "RECEIVED_BACK") return `รอตรวจรับของจาก ${outsource.vendor.name} ในกล่องด้านล่าง`;
     if (outsource) return `ของอยู่ที่ ${outsource.vendor.name} รอรับงานกลับ`;
     const waiting = routeWaitingOn(step, workflowSteps).map(stepLabel);
     if (waiting.length > 0 && !nowById.get(step.id)?.action) return `รอ ${waiting.length === 1 ? waiting[0] : `${waiting.length} ขั้นก่อนหน้า`}`;
     if (!c.canUpdateStep && c.hasProductionPermission) return "ออเดอร์ยังไม่อยู่ในสถานะกำลังผลิต";
     if (step.assignedTo && !c.canOwnOrSupervise(step)) return `งานของ ${step.assignedTo.name}`;
+    if (step.stepType === "GARMENT_RECEIVE") return "บันทึกจำนวนที่นับได้ในกล่องตรวจรับด้านล่าง — รับไม่ครบก็บันทึกได้";
+    if (step.stepType === "GARMENT_PICK") return "เบิกเสื้อที่ยังขาดในกล่องด้านล่าง";
+    if (isOutsourceStep(step.stepType) || step.executionMode === "OUTSOURCE") return "สร้างใบส่งร้านสำหรับจำนวนที่ยังค้างในกล่องด้านล่าง";
+    if (step.stepType === "DTF_PRINT") return "บันทึกรอบพิมพ์และตรวจฟิล์มที่ตัดแยกแล้วในกล่องด้านล่าง";
     const missing = ticksMissing(step);
     if (missing > 0) return `ติ๊กข้อกำหนดของขั้นนี้อีก ${missing} ข้อ`;
-    if (hasVariantRows && step.qtyTotal && (step.qtyDone ?? 0) < step.qtyTotal) {
-      return `ยอดยังไม่ครบ ${(step.qtyDone ?? 0).toLocaleString("th-TH")} / ${step.qtyTotal.toLocaleString("th-TH")} ตัว`;
+    if (hasVariantRows && step.qtyTotal && accountedStepQty(step) < step.qtyTotal) {
+      return `ยังบันทึกผลไม่ครบ ${accountedStepQty(step).toLocaleString("th-TH")} / ${step.qtyTotal.toLocaleString("th-TH")} ตัว`;
     }
     // ขั้นที่เดินด้วย flow อื่นมีประโยคของตัวเองอยู่แล้ว ("จัดการผ่านหน้ารอบพิมพ์ฟิล์ม DTF" ฯลฯ)
     const note = nowById.get(step.id)?.note;
@@ -195,11 +201,11 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab }: { c: 
   // ปุ่มบนหัวใบ = **ขั้นถัดไป** ไม่ใช่ปุ่มลงมือ (เบสสั่ง 2026-09-10 "CTA ข้างบนจะเป็นปุ่มขั้นถัดไป
   // แต่จะกดไม่ได้ และจะบอกด้วยว่าทำไมกดไม่ได้") — ปุ่มลงมือย้ายไปอยู่ในกล่องของขั้นแล้ว
   // ไม่ใช่ปุ่มตาย: กดแล้วพาไปกล่องขั้นที่ต้องทำ (pattern เดียวกับปุ่ม "ปิดขั้นนี้" ตอนติ๊กไม่ครบ)
-  const qcAction = production && c.canUpdateStep && allDone && (c.readyForQcViaPaper || c.legacyPackagingReadyForQc) ? (c.readyForQcViaPaper ? "paper" : "legacy") : null;
+  const qcAction = production && c.canUpdateStep && allDone && (c.readyForQc || c.legacyPackagingReadyForQc) ? (c.legacyPackagingReadyForQc ? "legacy" : "complete") : null;
   const nextLabel = railLabels[currentNodeIndex + 1] ?? null;
   const primary = qcAction ? (
     <Button
-      onClick={() => (qcAction === "paper" ? c.sendToQc.mutate({ productionId: production!.id }) : c.legacyFinalize.mutate({ productionId: production!.id }))}
+      onClick={() => (qcAction === "complete" ? c.sendToQc.mutate({ productionId: production!.id }) : c.legacyFinalize.mutate({ productionId: production!.id }))}
       disabled={c.sendToQc.isPending || c.legacyFinalize.isPending}
     >
       ส่งเข้า QC
@@ -232,6 +238,16 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab }: { c: 
   // ที่มีบรรทัด "ผู้ทำ" อยู่แล้ว · ที่เหลือ (พัก · ย้อนกลับ · ประวัติ) ยังอยู่ที่นี่พร้อมเหตุผลตอนกดไม่ได้
   const menu: MoreMenuItem[] = current
     ? [
+        ...(["DTF_PRINT", "HEAT_PRESS", "CUSTOM"].includes(current.stepType) && current.executionMode !== "OUTSOURCE" && current.outsourceOrders.length === 0
+          ? [{
+              key: "outsource-fallback",
+              label: "ส่งร้านแทน",
+              icon: Truck,
+              hint: "เครื่องเสียหรืองานล้น — ส่งเฉพาะจำนวนที่ยังทำไม่เสร็จ",
+              disabled: !c.canOutsource || current.status === "COMPLETED" || current.status === "FAILED" || c.writeDataStale,
+              onSelect: () => c.openOutsource(current),
+            }]
+          : []),
         {
           key: "hold",
           label: current.status === "ON_HOLD" ? "คืนขั้นนี้กลับคิว" : "พักขั้นนี้ไว้ก่อน",
@@ -381,7 +397,7 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab }: { c: 
                   </TabsList>
                 </TabsBar>
                 <div className="mt-6">
-                  <TabsContent value="steps">
+                  <TabsContent value="steps" keepMounted>
                     <WorkOrderSteps c={c} current={current} pairedOpen={pairedOpen} allDone={allDone} qcAction={qcAction} stepFooter={stepFooter} assignAction={assignAction} />
                   </TabsContent>
 

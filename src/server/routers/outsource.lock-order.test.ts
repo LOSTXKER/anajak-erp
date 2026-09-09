@@ -21,6 +21,9 @@ type HarnessOptions = {
   siblings?: Array<{ id: string; stepType: string; status: string; sortOrder: number }>;
   remainingOrders?: number;
   executionEnabled?: boolean;
+  outstandingQty?: number;
+  receivedQty?: number;
+  defectQty?: number;
 };
 
 function makeHarness(options: HarnessOptions = {}) {
@@ -83,6 +86,7 @@ function makeHarness(options: HarnessOptions = {}) {
       return [];
     }),
     outsourceOrder: {
+      findUnique: vi.fn().mockResolvedValue(null),
       findUniqueOrThrow: vi.fn(async (args: { select?: Record<string, unknown> }) => {
         if (!args.select) log.push("read:outsource-result");
         else if (args.select.status && args.select.productionStep) log.push("read:outsource-live");
@@ -108,6 +112,7 @@ function makeHarness(options: HarnessOptions = {}) {
         return { count: 1 };
       }),
       count: vi.fn(async () => options.remainingOrders ?? 0),
+      aggregate: vi.fn(async () => ({ _sum: { quantity: options.outstandingQty ?? 0 } })),
     },
     productionStep: {
       findUniqueOrThrow: vi.fn(async () => ({ ...step })),
@@ -153,6 +158,9 @@ function makeHarness(options: HarnessOptions = {}) {
       })),
     },
     goodsReceipt: { count: vi.fn(async () => 1) },
+    goodsReceiptLine: { aggregate: vi.fn(async () => ({ _sum: {
+      qtyCounted: options.receivedQty ?? 10, defectQty: options.defectQty ?? 0,
+    } })) },
     auditLog: {
       create: vi.fn(async () => {
         log.push("write:audit");
@@ -207,6 +215,77 @@ afterEach(() => {
 });
 
 describe("outsource production boundary + lock order", () => {
+  it("เปิดใบส่งบางส่วนซ้ำด้วย command เดิมตอบใบเดิม และห้ามเปลี่ยน payload ของคำขอเดิม", async () => {
+    const harness = makeHarness({ qtyTotal: 10 });
+    const input = { productionStepId: "step-outsource", vendorId: "vendor-1", description: "ส่งปัก", quantity: 3, commandId: "dispatch-request-1" };
+    const caller = outsourceRouter.createCaller(harness.ctx);
+    const first = await caller.createOrder(input);
+    harness.tx.outsourceOrder.findUnique.mockResolvedValue(first);
+    const second = await caller.createOrder(input);
+    expect(second.id).toBe(first.id);
+    expect(harness.tx.outsourceOrder.create).toHaveBeenCalledOnce();
+    expect(harness.tx.auditLog.create).toHaveBeenCalledOnce();
+    await expect(caller.createOrder({ ...input, quantity: 4 })).rejects.toMatchObject({ code: "CONFLICT" });
+    expect(harness.tx.outsourceOrder.create).toHaveBeenCalledOnce();
+  });
+
+  it("รับกลับ 4 จาก 10 ยังเปลี่ยนเป็นรับครบไม่ได้ แม้มีใบตรวจรับแล้ว", async () => {
+    const harness = makeHarness({ outsourceStatus: "SENT", receivedQty: 4 });
+    await expect(outsourceRouter.createCaller(harness.ctx).updateOrderStatus({
+      id: "outsource-1", status: "RECEIVED_BACK",
+    })).rejects.toThrow("ยังรับกลับไม่ครบ");
+    expect(harness.tx.outsourceOrder.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("QC ผ่านไม่ได้เมื่อของดีกลับ 8 จาก 10 แม้จำนวนรับรวมครบ", async () => {
+    const harness = makeHarness({ receivedQty: 10, defectQty: 2 });
+    await expect(outsourceRouter.createCaller(harness.ctx).updateOrderStatus({
+      id: "outsource-1", status: "QC_PASSED",
+    })).rejects.toThrow("ของดีรับกลับไม่ครบ");
+    expect(harness.step.qtyDone).toBe(0);
+    expect(harness.tx.outsourceOrder.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("ยืนยันรับของดี8จาก10เก็บยอด8ไว้ แล้วเปิดใบส่งแก้ได้อีก2", async () => {
+    const harness = makeHarness({ receivedQty: 10, defectQty: 2 });
+    const caller = outsourceRouter.createCaller(harness.ctx);
+    await expect(caller.updateOrderStatus({
+      id: "outsource-1", status: "QC_PASSED", acceptGoodQuantity: 8,
+    })).resolves.toMatchObject({ status: "QC_PASSED" });
+    expect(harness.step).toMatchObject({ qtyDone: 8, status: "IN_PROGRESS" });
+    expect(harness.tx.auditLog.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ newValue: expect.objectContaining({ acceptedQuantity: 8, needsReworkQuantity: 2 }) }),
+    }));
+    await expect(caller.createOrder({ productionStepId: "step-outsource", vendorId: "vendor-1", description: "ส่งแก้2", quantity: 2 })).resolves.toMatchObject({ quantity: 2 });
+    await expect(caller.createOrder({ productionStepId: "step-outsource", vendorId: "vendor-1", description: "ส่งเกิน", quantity: 3 })).rejects.toThrow("เหลือส่งได้ 2");
+    await expect(caller.updateOrderStatus({ id: "outsource-1", status: "QC_PASSED", acceptGoodQuantity: 8 })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    expect(harness.step.qtyDone).toBe(8);
+  });
+
+  it("รับของดีบางส่วนต้องตรงหลักฐานและยังต้องรับกายภาพครบทั้งใบ", async () => {
+    const stale = makeHarness({ receivedQty: 10, defectQty: 2 });
+    await expect(outsourceRouter.createCaller(stale.ctx).updateOrderStatus({ id: "outsource-1", status: "QC_PASSED", acceptGoodQuantity: 9 })).rejects.toMatchObject({ code: "CONFLICT" });
+    expect(stale.step.qtyDone).toBe(0);
+    const short = makeHarness({ receivedQty: 8 });
+    await expect(outsourceRouter.createCaller(short.ctx).updateOrderStatus({ id: "outsource-1", status: "QC_PASSED", acceptGoodQuantity: 8 })).rejects.toThrow("ยังรับกลับไม่ครบ");
+  });
+
+  it("เปิดรอบใหม่ได้เท่าที่ยังไม่ได้ผ่าน QC และยังไม่ได้อยู่ในใบค้าง", async () => {
+    const harness = makeHarness({ qtyTotal: 10, qtyDone: 4, outstandingQty: 4 });
+    await expect(outsourceRouter.createCaller(harness.ctx).createOrder({
+      productionStepId: "step-outsource", vendorId: "vendor-1", description: "ส่งรอบเกิน", quantity: 3,
+    })).rejects.toThrow("เหลือส่งได้ 2");
+    expect(harness.tx.outsourceOrder.create).not.toHaveBeenCalled();
+  });
+
+  it("รับเพิ่มรอบสองจนของดีครบจึงผ่านได้และไม่บวกซ้ำ", async () => {
+    const harness = makeHarness({ receivedQty: 10, defectQty: 0 });
+    await expect(outsourceRouter.createCaller(harness.ctx).updateOrderStatus({
+      id: "outsource-1", status: "QC_PASSED",
+    })).resolves.toMatchObject({ status: "QC_PASSED" });
+    expect(harness.step.qtyDone).toBe(10);
+  });
+
   it("ปิด V2 lifecycle API เมื่อ rollout flag ปิด โดย legacy path ไม่ถูกแตะ", async () => {
     vi.stubEnv("PRODUCTION_V2_ENABLED", "0");
     const harness = makeHarness({
@@ -276,7 +355,7 @@ describe("outsource production boundary + lock order", () => {
     },
     {
       label: "service-managed DTF",
-      options: { stepType: "DTF_PRINT" },
+      options: { stepType: "GARMENT_PICK" },
       message: "เฉพาะขั้นที่กำหนดให้ส่งร้านนอก",
     },
     {

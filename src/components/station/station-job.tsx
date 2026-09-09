@@ -20,12 +20,14 @@ import { Metric } from "@/components/ui/metric";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RADIUS, SUNK_PANEL } from "@/components/ui/tokens";
 import { GarmentPickCard } from "@/components/production/garment-pick-card";
+import { DtfPrintCard } from "@/components/production/dtf-print-card";
+import { OutsourceStepCard } from "@/components/production/outsource-step-card";
 import { ProductionDesignCard } from "@/components/production/production-design-card";
 import { FixDialog, ProblemDialog } from "@/components/production/step-command-dialogs";
 import type { ProductionStep } from "@/components/production/types";
 import { useWorkOrderController, type WorkOrderController } from "@/components/production/work-order-controller";
 import { OutsourceFacts, Owner, ProblemCard, StateChip, daysFromNow, stepLabel, viewOf } from "@/components/production/work-order-pieces";
-import { isOutsourceStep } from "@/lib/production-steps";
+import { FLOW_OWNED_STEP_TYPES, isOutsourceStep } from "@/lib/production-steps";
 import type { StationDef } from "@/lib/station-desk";
 import { isInferredDone } from "@/lib/work-order-record-mode";
 import { missingStandards, workOrderStandards } from "@/lib/work-order-standards";
@@ -185,7 +187,9 @@ export function StationStepZone({
               ? c.tickPending ? "กำลังบันทึกข้อกำหนด" : "ติ๊กข้อกำหนดให้ครบก่อนปิดขั้น"
               : undefined;
 
-  const primary = gated ? (
+  const outsourced = step.executionMode === "OUTSOURCE" || isOutsourceStep(step.stepType) || step.outsourceOrders.length > 0;
+  const specializedCard = step.stepType === "DTF_PRINT" || outsourced;
+  const primary = specializedCard && !stuck ? null : gated ? (
     <Button
       className="h-16 text-lg"
       aria-disabled="true"
@@ -255,6 +259,8 @@ export function StationStepZone({
           </div>
         ) : null}
 
+        {step.stepType === "DTF_PRINT" && !outsourced ? <DtfPrintCard stepId={step.id} canOperate={c.hasProductionPermission && c.canOwnOrSupervise(step) && !c.writeDataStale && !done} /> : null}
+        {outsourced && c.order ? <OutsourceStepCard step={step} orderId={c.order.id} canCreate={c.canOutsource} enabled={c.canUpdateStep && c.canOwnOrSupervise(step) && !done} canCancelDraft={c.canSuperviseStep} /> : null}
         <StationStepChecklist step={step} c={c} />
       </div>
 
@@ -293,7 +299,8 @@ export function StationStepChecklist({ step, c }: {
   const done = step.status === "COMPLETED";
   const stuck = step.status === "FAILED" || step.status === "ON_HOLD";
   const ticked = new Map(step.checks.map((check) => [check.itemKey, check.checkedBy.name]));
-  const canTick = c.canUpdateStep && c.canOwnOrSupervise(step) && !done && !stuck;
+  const evidenceOwned = FLOW_OWNED_STEP_TYPES.has(step.stepType) || isOutsourceStep(step.stepType) || step.executionMode === "OUTSOURCE";
+  const canTick = c.canUpdateStep && c.canOwnOrSupervise(step) && !done && !stuck && !evidenceOwned;
   const checkedCount = standards.filter((label) => ticked.has(label)).length;
 
   return (
@@ -301,7 +308,7 @@ export function StationStepChecklist({ step, c }: {
       <p className="flex items-center justify-between text-sm font-medium text-strong">
         <span>ข้อกำหนดของขั้นนี้</span>
         <span className="tabular-nums text-muted">
-          {checkedCount}/{standards.length}
+          {evidenceOwned ? "ยืนยันด้วยหลักฐานของขั้น" : `${checkedCount}/${standards.length}`}
         </span>
       </p>
       <ul className="mt-2 space-y-1.5">

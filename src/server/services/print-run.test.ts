@@ -26,6 +26,36 @@ import {
   markPrintRunPrinted,
 } from "./print-run";
 
+describe("legacy DTF real output", () => {
+  it("ฟิล์มดี 8 เสีย 2 บวกงานสำเร็จแค่ 8 และเหลือพิมพ์ใหม่ 2", async () => {
+    const harness = printRunHarness({ runStatus: "PRINTED" });
+    await completePrintRun(harness.prisma, {
+      runId: "run-1", userId: "user-1", canSupervise: true,
+      legacyResults: [{ itemId: "item-1", qtyGood: 8, qtyScrap: 2 }],
+    } as Parameters<typeof completePrintRun>[1]);
+    expect(harness.step.qtyDone).toBe(8);
+    expect(harness.step.status).toBe("IN_PROGRESS");
+    expect(harness.tx.printRunItem.update).toHaveBeenCalledWith({
+      where: { id: "item-1" },
+      data: expect.objectContaining({ qtyGood: 8, qtyScrap: 2, resultReportedAt: expect.any(Date) }),
+    });
+  });
+
+  it.each([
+    [{ itemId: "item-1", qtyGood: 8, qtyScrap: 1 }],
+    [{ itemId: "item-other", qtyGood: 10, qtyScrap: 0 }],
+    [{ itemId: "item-1", qtyGood: 10, qtyScrap: 0 }, { itemId: "item-1", qtyGood: 10, qtyScrap: 0 }],
+    [{ itemId: "item-1", qtyGood: 10.5, qtyScrap: -0.5 }],
+  ])("ไม่ปิดรอบเมื่อผลฟิล์มไม่ตรงกับรายการในรอบ %j", async (...rows) => {
+    const harness = printRunHarness({ runStatus: "PRINTED" });
+    await expect(completePrintRun(harness.prisma, {
+      runId: "run-1", userId: "user-1", canSupervise: true, legacyResults: rows,
+    } as Parameters<typeof completePrintRun>[1])).rejects.toThrow();
+    expect(harness.runStatus).toBe("PRINTED");
+    expect(harness.step.qtyDone).toBe(0);
+  });
+});
+
 function printRunHarness(params?: {
   orderStatus?: string;
   runStatus?: "PRINTING" | "PRINTED" | "COMPLETED" | "CANCELLED";
@@ -58,6 +88,7 @@ function printRunHarness(params?: {
     stepType: "DTF_PRINT",
     status: "PENDING",
     executionEnabled: false,
+    executionMode: "IN_HOUSE",
     assignedToId,
     qtyDone: 0,
     qtyTotal: 10,
@@ -1245,5 +1276,16 @@ describe("DTF queue/list DTO", () => {
           },
         },
       });
+  });
+});
+
+describe("DTF outsourced fallback boundary", () => {
+  it("งาน DTF ที่ส่งร้านแล้วห้ามกลับเข้ารอบเครื่องในโรงงานซ้ำ", async () => {
+    const harness = printRunHarness();
+    harness.step.executionMode = "OUTSOURCE";
+    await expect(createPrintRun(harness.prisma, {
+      items: [{ stepId: "step-1", qty: 6 }], userId: "user-1", canSupervise: true,
+    })).rejects.toThrow("ส่งร้านนอกแล้ว");
+    expect(harness.tx.printRun.create).not.toHaveBeenCalled();
   });
 });

@@ -35,6 +35,7 @@ src/server/services/ ★ business logic แกน — เงิน/สถาน�
   payment-plan.ts · receivables.ts · overdue.ts · dunning.ts   เทอม/ลูกหนี้/aging/วงเงิน/ทวง
   manufacturing*.ts · routing-template.ts · production-v2-gate.ts   Production V2 (MO/Operation/routing/command)
   production-readiness.ts · qc.ts · print-run*.ts · stock-reservation.ts   ด่านผลิต/QC/รอบพิมพ์/จองสต๊อก
+  qc-ledger.ts       หลักฐาน QC รายสินค้า/ไซซ์และรอบรับคืน legacy ใน OrderRevision (QC_COUNT/QC_RETURN) ผูก QcRecord/DeliveryLine; ไม่อาศัยอายุ audit และไม่แก้ยอดส่งต้นฉบับ
 src/server/trpc.ts  context + auth middleware (requireRole)
 src/server/helpers.ts createAuditLog / createNotification
 

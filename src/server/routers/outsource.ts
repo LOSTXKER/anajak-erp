@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { createHash } from "node:crypto";
 import { TRPCError } from "@trpc/server";
 import type {
   InternalStatus,
@@ -33,6 +34,7 @@ import { assertProductionV2ApiEnabled } from "@/server/services/production-v2-ga
 const settingsAdmin = requirePermission("manage_settings");
 const productionSupervisor = requirePermission("supervise_operations");
 const productionUp = requirePermission("manage_production");
+const INTERNAL_OUTSOURCE_FALLBACK_TYPES = new Set(["DTF_PRINT", "HEAT_PRESS", "CUSTOM"]);
 
 const OUTSOURCE_RECEIVE_STATUSES = new Set<OutsourceStatus>([
   "SENT",
@@ -265,6 +267,7 @@ type OutsourceProductionReference = {
     status: string;
     qtyDone: number;
     executionEnabled: boolean;
+    executionMode: string;
     production: { orderId: string };
   };
 };
@@ -278,6 +281,7 @@ const outsourceProductionReferenceSelect = {
       status: true,
       qtyDone: true,
       executionEnabled: true,
+      executionMode: true,
       production: { select: { orderId: true } },
     },
   },
@@ -332,6 +336,7 @@ async function lockOutsourceProductionChain(tx: PrismaTx, id: string) {
     where: { id },
     select: {
       status: true,
+      quantity: true,
       ...outsourceProductionReferenceSelect,
     },
   });
@@ -379,7 +384,9 @@ async function lockOutsourceStepChain(tx: PrismaTx, stepId: string) {
       status: true,
       sortOrder: true,
       qtyDone: true,
+      qtyTotal: true,
       executionEnabled: true,
+      executionMode: true,
     },
   });
   const production = await tx.production.findUniqueOrThrow({
@@ -415,7 +422,7 @@ function assertOutsourceStepActionable(input: Awaited<ReturnType<typeof lockOuts
       `เปิดใบงานร้านนอกไม่ได้ — ออเดอร์ ${input.order.orderNumber} ไม่ได้อยู่สถานะกำลังผลิต`,
     );
   }
-  if (!isOutsourceStep(input.step.stepType)) {
+  if (!isOutsourceStep(input.step.stepType) && !INTERNAL_OUTSOURCE_FALLBACK_TYPES.has(input.step.stepType)) {
     badRequest("เปิดใบงานร้านนอกได้เฉพาะขั้นที่กำหนดให้ส่งร้านนอกเท่านั้น");
   }
   if (input.step.status !== "PENDING" && input.step.status !== "IN_PROGRESS") {
@@ -439,7 +446,8 @@ function assertOutsourceQcActionable(
       `ตัดสิน QC งานนอกไม่ได้ — ออเดอร์ ${scope.order.orderNumber} ไม่ได้อยู่สถานะกำลังผลิต`,
     );
   }
-  if (!isOutsourceStep(step.stepType)) {
+  if (!isOutsourceStep(step.stepType) &&
+    !(step.executionMode === "OUTSOURCE" && INTERNAL_OUTSOURCE_FALLBACK_TYPES.has(step.stepType))) {
     badRequest("ใบนี้ไม่ได้ผูกกับขั้นงานร้านนอกที่ระบบรองรับ — ให้หัวหน้าตรวจใบผลิตก่อน");
   }
   if (step.status !== "PENDING" && step.status !== "IN_PROGRESS") {
@@ -547,12 +555,14 @@ export const outsourceRouter = router({
       z.object({
         status: z.string().optional(),
         vendorId: z.string().optional(),
+        productionStepId: z.string().optional(),
       })
     )
     .query(async ({ ctx, input }) => {
       const where: Record<string, unknown> = {};
       if (input.status) where.status = input.status;
       if (input.vendorId) where.vendorId = input.vendorId;
+      if (input.productionStepId) where.productionStepId = input.productionStepId;
       const access: OutsourceListAccess = {
         actorId: ctx.userId,
         canHandleGoods: hasPermission(
@@ -780,7 +790,7 @@ export const outsourceRouter = router({
         productionStepId: z.string(),
         vendorId: z.string(),
         description: z.string(),
-        quantity: z.number().min(1),
+        quantity: z.number().int().min(1),
         quantityLines: z
           .array(
             z.object({
@@ -831,15 +841,65 @@ export const outsourceRouter = router({
       // สร้างใบ + ดันสถานะ step + audit = ก้อนเดียวกัน · validate ใต้ transaction
       return ctx.prisma.$transaction(async (tx) => {
         const locked = await lockOutsourceStepChain(tx, input.productionStepId);
+        const unitCost = moneyInput(input.unitCost);
+        const expectedBackAt = input.expectedBackAt ? new Date(input.expectedBackAt) : null;
+        const requestId = input.commandId
+          ? `osreq_${createHash("sha256").update(`${input.productionStepId}:${input.commandId}`).digest("hex")}`
+          : undefined;
+        if (requestId) {
+          const replay = await tx.outsourceOrder.findUnique({ where: { id: requestId } });
+          if (replay) {
+            if (
+              replay.productionStepId !== input.productionStepId ||
+              replay.vendorId !== input.vendorId ||
+              replay.description !== input.description ||
+              replay.quantity !== input.quantity ||
+              Number(replay.unitCost) !== unitCost.toNumber() ||
+              (replay.notes ?? null) !== (input.notes ?? null) ||
+              (replay.expectedBackAt?.getTime() ?? null) !== (expectedBackAt?.getTime() ?? null)
+            ) {
+              conflict("คำขอสร้างใบส่งร้านนี้ถูกใช้กับข้อมูลคนละชุดแล้ว — ปิดแล้วเปิดฟอร์มใหม่เพื่อสร้างอีกใบ");
+            }
+            return replay;
+          }
+        }
         assertOutsourceStepActionable(locked);
+        const isInternalFallback = INTERNAL_OUTSOURCE_FALLBACK_TYPES.has(locked.step.stepType);
+        if (isInternalFallback) {
+          const activePrintRun = await tx.printRunItem.findFirst({
+            where: {
+              productionStepId: input.productionStepId,
+              printRun: { status: { in: ["PRINTING", "PRINTED"] } },
+            },
+            select: { printRun: { select: { runNumber: true } } },
+          });
+          if (activePrintRun) {
+            badRequest(`ขั้นนี้ยังอยู่ในรอบพิมพ์ ${activePrintRun.printRun.runNumber} — ยกเลิกหรือปิดรอบเดิมก่อนส่งร้านแทน`);
+          }
+        }
+        if (locked.step.qtyTotal !== null) {
+          const outstanding = await tx.outsourceOrder.aggregate({
+            where: {
+              productionStepId: input.productionStepId,
+              status: { notIn: ["QC_PASSED", "QC_FAILED"] },
+            },
+            _sum: { quantity: true },
+          });
+          const remaining = Math.max(
+            0, locked.step.qtyTotal - locked.step.qtyDone - (outstanding._sum.quantity ?? 0),
+          );
+          if (input.quantity > remaining) {
+            badRequest(`จำนวนส่งร้านเกินยอดขั้นผลิต — เหลือส่งได้ ${remaining} ตัว (หักใบที่ยังค้างกับร้านแล้ว)`);
+          }
+        }
         // แบ่งส่งหลายรอบ (FLOW-REDESIGN ก้อน 1): ขั้นเดียวเปิดหลายใบพร้อมกันได้ —
         // ส่งของบางส่วนไปก่อนปลดล็อกงานค้าง (เดิมบังคับทีละใบ รอ QC จบถึงเปิดใหม่)
         // ขั้นจะปิดเองเมื่อทุกใบตัดสินแล้ว + จำนวนผ่าน QC ครบ (ดู updateOrderStatus)
 
         // เงินผ่าน Decimal — ปัด 2 ตำแหน่งก่อนเขียน DB
-        const unitCost = moneyInput(input.unitCost);
         const order = await tx.outsourceOrder.create({
           data: {
+            ...(requestId ? { id: requestId } : {}),
             productionStepId: input.productionStepId,
             vendorId: input.vendorId,
             description: input.description,
@@ -847,13 +907,13 @@ export const outsourceRouter = router({
             notes: input.notes,
             unitCost: unitCost.toNumber(),
             totalCost: round2(unitCost.times(input.quantity)).toNumber(),
-            expectedBackAt: input.expectedBackAt ? new Date(input.expectedBackAt) : null,
+            expectedBackAt,
           },
         });
 
         await tx.productionStep.update({
           where: { id: input.productionStepId },
-          data: { status: "IN_PROGRESS" },
+          data: { status: "IN_PROGRESS", ...(isInternalFallback ? { executionMode: "OUTSOURCE" } : {}) },
         });
 
         await createAuditLog(tx, {
@@ -939,6 +999,17 @@ export const outsourceRouter = router({
             data: { status: "PENDING" },
           });
         }
+        if (remaining === 0 && lockedScope.current.productionStep.executionMode === "OUTSOURCE" &&
+          INTERNAL_OUTSOURCE_FALLBACK_TYPES.has(lockedScope.current.productionStep.stepType)) {
+          const historyCount = await tx.outsourceOrder.count({ where: { productionStepId: order.productionStepId } });
+          if (historyCount === 0) {
+            // ยกเลิกร่างก่อนของออกจริง = กลับทำในโรงงานได้ โดยเก็บยอดเดิมไว้.
+            await tx.productionStep.updateMany({
+              where: { id: order.productionStepId, executionMode: "OUTSOURCE" },
+              data: { executionMode: "IN_HOUSE" },
+            });
+          }
+        }
 
         await createAuditLog(tx, {
           userId: ctx.userId,
@@ -959,6 +1030,8 @@ export const outsourceRouter = router({
       z.object({
         id: z.string(),
         status: z.enum(["SENT", "IN_PROGRESS", "COMPLETED", "RECEIVED_BACK", "QC_PASSED", "QC_FAILED"]),
+        // Legacy: ยืนยันเฉพาะของดีจากหลักฐานรับกลับ ไม่เหมาว่าผ่านทั้งใบ.
+        acceptGoodQuantity: z.number().int().positive().optional(),
         qcNotes: z.string().optional(),
         disposition: z.enum(["REWORK", "SCRAP"]).optional(),
         commandId: z.string().min(1).optional(),
@@ -978,6 +1051,9 @@ export const outsourceRouter = router({
     .mutation(async ({ ctx, input }) => {
       const { id } = input;
       const data = { status: input.status, qcNotes: input.qcNotes };
+      if (input.acceptGoodQuantity !== undefined && input.status !== "QC_PASSED") {
+        badRequest("ระบุจำนวนรับผ่านได้เฉพาะตอนยืนยันผลตรวจของดี");
+      }
 
       // ตัดสิน QC (ซึ่งปิด production step อัตโนมัติ) = อำนาจหัวหน้า
       // staff อัปเดตได้แค่สถานะรับ-ส่งของ (SENT/RECEIVED_BACK ฯลฯ)
@@ -998,6 +1074,9 @@ export const outsourceRouter = router({
         },
       });
       if (target?.productionStep.executionEnabled) {
+        if (input.acceptGoodQuantity !== undefined) {
+          badRequest("Production V2 ต้องตัดสินจำนวนผ่านตาม quantity line จากโหมดสถานี");
+        }
         assertProductionV2ApiEnabled();
         if (!input.commandId || input.expectedRevision === undefined) {
           badRequest("Production V2 ต้องระบุ commandId และ expectedRevision");
@@ -1037,7 +1116,7 @@ export const outsourceRouter = router({
         // จึงต้องถือ chain lock ก่อน CAS ใบ outsource เพื่อไม่ให้เกิดวงจร
         // outsource row → step สวนทางกับ writer อื่นที่ถือ step → outsource row.
         const lockedScope =
-          data.status === "QC_PASSED" || data.status === "QC_FAILED"
+          data.status === "QC_PASSED" || data.status === "QC_FAILED" || data.status === "RECEIVED_BACK"
             ? await lockOutsourceProductionChain(tx, id)
             : null;
         const current = lockedScope
@@ -1046,6 +1125,7 @@ export const outsourceRouter = router({
               where: { id },
               select: {
                 status: true,
+                quantity: true,
                 productionStepId: true,
                 productionStep: { select: { executionEnabled: true } },
               },
@@ -1060,7 +1140,7 @@ export const outsourceRouter = router({
             message: `ใบนี้สถานะ "${OUTSOURCE_STATUS_TH[current.status] ?? current.status}" แล้ว — เปลี่ยนเป็น "${OUTSOURCE_STATUS_TH[data.status] ?? data.status}" ไม่ได้ (อาจมีคนอัปเดตไปก่อน ลองรีเฟรช)`,
           });
         }
-        if (lockedScope) {
+        if (lockedScope && (data.status === "QC_PASSED" || data.status === "QC_FAILED")) {
           assertOutsourceQcActionable(lockedScope);
         }
 
@@ -1075,6 +1155,31 @@ export const outsourceRouter = router({
             badRequest(
               "ยังไม่มีใบตรวจนับรับของกลับ — นับของจริงผ่านใบตรวจรับก่อน แล้วสถานะจะขยับให้เอง"
             );
+          }
+        }
+        let acceptedQuantity = current.quantity;
+        if (data.status === "RECEIVED_BACK" || data.status === "QC_PASSED") {
+          const receiptTotals = await tx.goodsReceiptLine.aggregate({
+            where: { receipt: { outsourceOrderId: id, receiptType: "OUTSOURCE_RETURN" } },
+            _sum: { qtyCounted: true, defectQty: true },
+          });
+          const counted = receiptTotals._sum.qtyCounted ?? 0;
+          if (counted < current.quantity) {
+            badRequest(`ยังรับกลับไม่ครบ — มีหลักฐานรับ ${counted} จาก ${current.quantity} ตัว รับส่วนที่เหลือก่อน`);
+          }
+          const usable = Math.min(current.quantity, Math.max(0, counted - (receiptTotals._sum.defectQty ?? 0)));
+          if (data.status === "QC_PASSED") {
+            if (input.acceptGoodQuantity === undefined && usable < current.quantity) {
+              badRequest(`ของดีรับกลับไม่ครบ — มี ${usable} จาก ${current.quantity} ตัว ให้ยืนยันรับเฉพาะของดีหรือบันทึกไม่ผ่านตามจริง`);
+            }
+            if (input.acceptGoodQuantity !== undefined && input.acceptGoodQuantity !== usable) {
+              conflict("จำนวนของดีเปลี่ยนจากหน้าจอแล้ว กรุณาโหลดหลักฐานรับกลับใหม่ก่อนยืนยัน");
+            }
+            if (usable <= 0) badRequest("ไม่มีของดีให้รับผ่าน ให้บันทึกไม่ผ่านและส่งแก้ตามจริง");
+            acceptedQuantity = usable;
+            if (acceptedQuantity < current.quantity) {
+              updateData.qcNotes = `รับผ่าน ${acceptedQuantity} ตัว ต้องแก้ ${current.quantity - acceptedQuantity} ตัว${data.qcNotes ? ` — ${data.qcNotes}` : ""}`;
+            }
           }
         }
 
@@ -1103,7 +1208,7 @@ export const outsourceRouter = router({
           // chain lock ถือ target + sibling steps (รวม PACKAGING เก่า) ครบแล้ว
           const bumped = await tx.productionStep.update({
             where: { id: order.productionStepId },
-            data: { qtyDone: { increment: order.quantity } },
+            data: { qtyDone: { increment: acceptedQuantity } },
             select: { qtyDone: true, qtyTotal: true },
           });
           const openOrders = await tx.outsourceOrder.count({
@@ -1112,7 +1217,9 @@ export const outsourceRouter = router({
               status: { notIn: ["QC_PASSED", "QC_FAILED"] },
             },
           });
-          const qtyComplete = bumped.qtyTotal === null || bumped.qtyDone >= bumped.qtyTotal;
+          const qtyComplete = bumped.qtyTotal === null
+            ? acceptedQuantity === current.quantity
+            : bumped.qtyDone >= bumped.qtyTotal;
           const step = await (openOrders === 0 && qtyComplete
             ? tx.productionStep.update({
                 where: { id: order.productionStepId },
@@ -1183,7 +1290,14 @@ export const outsourceRouter = router({
           entityType: "OUTSOURCE_ORDER",
           entityId: id,
           oldValue: { status: current.status },
-          newValue: { status: data.status, qcNotes: data.qcNotes },
+          newValue: {
+            status: data.status,
+            qcNotes: updateData.qcNotes,
+            ...(data.status === "QC_PASSED" ? {
+              acceptedQuantity,
+              needsReworkQuantity: current.quantity - acceptedQuantity,
+            } : {}),
+          },
         });
 
         return order;

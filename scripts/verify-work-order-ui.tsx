@@ -95,7 +95,7 @@ const pick = render(<StepPieceTable step={{ ...base, id: "g", stepType: "GARMENT
 ok("ตาราง: ขั้นเบิกเสื้อไม่มีช่องกรอก/ปุ่มบันทึกยอด (ยอดมาจากการเบิกจริง)", !pick.includes(">บันทึกยอด<") && !pick.includes("aria-label=\"ทำแล้ว"));
 
 const pairedPrimary = { ...base, id: "paired-primary", stepType: "HEAT_PRESS", status: "IN_PROGRESS" } as never;
-const pairedSecondary = { ...base, id: "paired-secondary", stepType: "TAGGING", status: "IN_PROGRESS", pairWithPrevious: true } as never;
+const pairedSecondary = { ...base, id: "paired-secondary", stepType: "CUSTOM", customStepName: "ติดป้ายไซซ์", status: "IN_PROGRESS", pairWithPrevious: true } as never;
 const pairedController = {
   ...(ctrl as unknown as Record<string, unknown>),
   production: { id: "paired-production", notes: null },
@@ -115,7 +115,9 @@ ok("เช็คลิสต์: มีผู้ทำ", check.includes("บา�
 ok("เช็คลิสต์: ข้อกำหนดของรีดร้อนครบ 3 ข้อ แถวสูง 44px เป็น checkbox ติ๊กได้", (check.match(/min-h-11/g) ?? []).length === 3 && (check.match(/type="checkbox"/g) ?? []).length === 3 && (check.match(/checked=""/g) ?? []).length === 1);
 ok("เช็คลิสต์: ชิปบอกจำนวนที่ยังไม่ติ๊ก", check.includes(">ติ๊กอีก 2 ข้อ<"));
 const closed = render(<ChecklistCard step={{ ...base, id: "h3", stepType: "HEAT_PRESS", status: "COMPLETED" } as never} c={ctrl} nowMs={0} />);
-ok("เช็คลิสต์ (ปิดแล้ว): ติ๊กครบ กดไม่ได้ ไม่มีชิปเหลือ", (closed.match(/checked=""/g) ?? []).length === 3 && (closed.match(/disabled=""/g) ?? []).length === 3 && !closed.includes("ติ๊กอีก"));
+ok("เช็คลิสต์ (ปิดแล้ว): แสดงเฉพาะผลติ๊กจริง กดไม่ได้ ไม่มีชิปเหลือ", (closed.match(/checked=""/g) ?? []).length === 0 && (closed.match(/disabled=""/g) ?? []).length === 3 && !closed.includes("ติ๊กอีก"));
+const receiptChecklist = render(<ChecklistCard step={{ ...base, id: "receipt", stepType: "GARMENT_RECEIVE", status: "IN_PROGRESS" } as never} c={ctrl} nowMs={0} />);
+ok("ตรวจรับเสื้อใช้ใบรับเป็นหลักฐาน ไม่บังคับติ๊กซ้ำ", !receiptChecklist.includes('type="checkbox"') && !receiptChecklist.includes("ติ๊กอีก"));
 ok("เช็คลิสต์: ไม่มีศัพท์ภายใน (จดในระบบ/จดบนกระดาษ/ถือว่าผ่าน)", !check.includes("จดในระบบ") && !check.includes("จดบนกระดาษ") && !check.includes("ถือว่าผ่าน"));
 const outsourced = render(
   <ChecklistCard

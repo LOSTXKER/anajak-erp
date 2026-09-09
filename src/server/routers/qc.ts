@@ -1,14 +1,24 @@
 import { z } from "zod";
 import { router, protectedProcedure, requirePermission } from "../trpc";
 import { fileUrlArraySchema } from "@/server/schemas";
-import { getQcContext, createQcRecord } from "@/server/services/qc";
+import { getQcContext, createQcRecord, startQcReturnInspection } from "@/server/services/qc";
 import { QC_DEFECT_REASONS } from "@/lib/qc";
+import { getQcReturnContext } from "@/server/services/qc-ledger";
 import { hasPermission } from "@/lib/permissions";
 
 // ตรวจนับ QC = งานหน้างานทีมผลิต (staff นับเองได้ — เร็วหน้างานสำคัญกว่า มติเดียวกับผ่านรวด)
 const productionTeam = requirePermission("manage_production");
 
 export const qcRouter = router({
+  returnContext: protectedProcedure.input(z.object({ orderId: z.string() })).query(async ({ ctx, input }) => ({
+    ...await getQcReturnContext(ctx.prisma, input.orderId),
+    canStartReturn: hasPermission(ctx.userRole, ctx.permissionOverrides, "supervise_operations"),
+  })),
+  startReturnInspection: protectedProcedure.use(requirePermission("supervise_operations"))
+    .input(z.object({ orderId: z.string(), reason: z.string().trim().min(1).max(500),
+      returnedLines: z.array(z.object({ deliveryLineId: z.string(), qty: z.number().int().positive() })).min(1).max(200),
+    })).mutation(({ ctx, input }) => startQcReturnInspection(ctx.prisma, { ...input, userId: ctx.userId })),
+
   /** บริบทก่อนตรวจ — ยอดคาดต่อไซส์ + ลาย + เสื้อสำรอง (ไม่มีเงิน เปิดทุก role) */
   context: protectedProcedure
     .input(z.object({ orderId: z.string() }))
@@ -36,6 +46,7 @@ export const qcRouter = router({
         operationJobId: z.string().optional(),
         expectedRevision: z.number().int().nonnegative().optional(),
         qtyGood: z.number().int().min(0),
+        goodLines: z.array(z.object({ variantId: z.string(), qtyGood: z.number().int().nonnegative() })).max(200).optional(),
         quantityLines: z.array(z.object({
           quantityLineId: z.string().min(1),
           qtyGood: z.number().int().nonnegative(),
@@ -43,6 +54,7 @@ export const qcRouter = router({
         defects: z
           .array(
             z.object({
+              variantId: z.string().min(1).optional(),
               quantityLineId: z.string().min(1).optional(),
               qty: z.number().int().positive(),
               size: z.string().max(50).optional(),

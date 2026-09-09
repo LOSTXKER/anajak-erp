@@ -37,48 +37,72 @@ interface QcCreateDataFixture {
   }> };
 }
 
+interface RevisionFixture {
+  id: string;
+  changeType: string;
+  newValue: string | null;
+  version: number;
+}
+
 function createPartialQcFixture() {
   const state: {
     records: QcRecordFixture[];
+    revisions: RevisionFixture[];
     audits: Array<{ data: Record<string, unknown> }>;
     failAudit: boolean;
-  } = { records: [], audits: [], failAudit: false };
+    orphanV2Step: boolean;
+  } = { records: [], revisions: [], audits: [], failAudit: false, orphanV2Step: false };
+  const items = [{ products: [{
+    id: "order-product-1", itemSource: "CUSTOMER_PROVIDED", productId: null,
+    description: "เสื้อลูกค้า",
+    variants: [{ id: "order-variant-m", size: "M", color: "BLACK", quantity: 10 }],
+  }] }];
 
   const tx = {
     $queryRaw: vi.fn().mockResolvedValue([]),
-    production: { findMany: vi.fn().mockResolvedValue([]) },
+    production: { findMany: vi.fn(async () => state.orphanV2Step
+      ? [{ id: "orphan-production", steps: [{ id: "orphan-v2-step" }] }] : []) },
     order: {
       findUniqueOrThrow: vi.fn(async (args: { select: Record<string, unknown> }) => {
+        if (args.select.productionCompletionOwnerId) {
+          return {
+            productionCompletionOwnerId: null,
+            productions: state.orphanV2Step ? [{
+              workOrderNumber: null, completionOwnerStepId: null,
+              steps: [{ executionEnabled: true }],
+            }] : [],
+          };
+        }
         if (args.select.productions) {
           return {
             id: "order-1",
             orderNumber: "ORD-1",
             internalStatus: "QUALITY_CHECK",
-            items: [{ products: [{ variants: [{ quantity: 10 }] }] }],
-            qcRecords: state.records.map(({ qtyGood }) => ({ qtyGood })),
+            items,
+            qcRecords: state.records,
+            revisions: state.revisions,
             productions: [],
           };
         }
         return {
           id: "order-1",
           orderNumber: "ORD-1",
-          items: [
-            {
-              products: [
-                {
-                  itemSource: "CUSTOMER_SUPPLIED",
-                  productId: null,
-                  description: "เสื้อลูกค้า",
-                  variants: [{ size: "M", color: "BLACK", quantity: 10 }],
-                },
-              ],
-            },
-          ],
+          items,
+          qcRecords: state.records,
+          revisions: state.revisions,
         };
       }),
     },
     product: { findMany: vi.fn().mockResolvedValue([]) },
     materialUsage: { findMany: vi.fn().mockResolvedValue([]) },
+    orderRevision: {
+      count: vi.fn(async () => state.revisions.length),
+      create: vi.fn(async ({ data }: { data: Omit<RevisionFixture, "id" | "newValue"> & { newValue?: string } }) => {
+        const revision = { ...data, id: `revision-${data.version}`, newValue: data.newValue ?? null };
+        state.revisions.push(revision);
+        return revision;
+      }),
+    },
     qcRecord: {
       findUnique: vi.fn(async ({ where }: { where: { id: string } }) =>
         state.records.find((record) => record.id === where.id) ?? null
@@ -122,11 +146,13 @@ function createPartialQcFixture() {
   const prisma = {
     $transaction: vi.fn(async (callback: (transaction: typeof tx) => unknown) => {
       const recordsBefore = structuredClone(state.records);
+      const revisionsBefore = structuredClone(state.revisions);
       const auditsBefore = structuredClone(state.audits);
       try {
         return await callback(tx);
       } catch (error) {
         state.records.splice(0, state.records.length, ...recordsBefore);
+        state.revisions.splice(0, state.revisions.length, ...revisionsBefore);
         state.audits.splice(0, state.audits.length, ...auditsBefore);
         throw error;
       }
@@ -137,6 +163,19 @@ function createPartialQcFixture() {
 }
 
 describe("createQcRecord lifecycle", () => {
+  it("ห้ามใช้ QC เดิมเมื่อเหลือขั้น V2 แม้หมายเลขใบและเจ้าของปิดงานหายไป", async () => {
+    const { prisma, state, tx } = createPartialQcFixture();
+    state.orphanV2Step = true;
+    await expect(createQcRecord(prisma, {
+      orderId: "order-1", qtyGood: 2, defects: [], userId: "staff-1",
+      idempotencyKey: "qc-orphan-v2-0001",
+    })).rejects.toThrow("Final QC ในโหมดสถานี");
+    expect(tx.qcRecord.create).not.toHaveBeenCalled();
+    expect(state.records).toHaveLength(0);
+    expect(state.revisions).toHaveLength(0);
+    expect(state.audits).toHaveLength(0);
+  });
+
   it("retry key เดิมเป็น no-op และ key ใหม่ยังบันทึก partial รอบถัดไปได้", async () => {
     const { prisma, state } = createPartialQcFixture();
     const firstInput = {
@@ -159,6 +198,10 @@ describe("createQcRecord lifecycle", () => {
     expect(retry).toMatchObject({ alreadyRecorded: true, movedToPacking: false });
     expect(next).toMatchObject({ alreadyRecorded: false, movedToPacking: false });
     expect(state.records.map((record) => record.qtyGood)).toEqual([2, 3]);
+    expect(state.revisions.map((revision) => JSON.parse(revision.newValue!))).toEqual([
+      expect.objectContaining({ qcRecordId: first.record.id, lines: [{ variantId: "order-variant-m", qtyGood: 2 }] }),
+      expect.objectContaining({ qcRecordId: next.record.id, lines: [{ variantId: "order-variant-m", qtyGood: 3 }] }),
+    ]);
     expect(state.audits).toHaveLength(2);
     expect(JSON.stringify(first)).not.toMatch(/price|cost|amount|money/i);
   });
@@ -177,12 +220,14 @@ describe("createQcRecord lifecycle", () => {
     state.failAudit = true;
     await expect(createQcRecord(prisma, input)).rejects.toThrow("audit unavailable");
     expect(state.records).toHaveLength(0);
+    expect(state.revisions).toHaveLength(0);
 
     state.failAudit = false;
     await createQcRecord(prisma, input);
     await createQcRecord(prisma, input);
 
     expect(state.records).toHaveLength(1);
+    expect(state.revisions).toHaveLength(1);
     expect(state.audits).toHaveLength(1);
     expect(state.audits[0]?.data.newValue).toEqual(
       expect.objectContaining({
@@ -213,6 +258,7 @@ describe("createQcRecord lifecycle", () => {
     ).rejects.toMatchObject({ code: "CONFLICT" });
 
     expect(state.records.map((record) => record.qtyGood)).toEqual([2]);
+    expect(state.revisions).toHaveLength(1);
     expect(state.audits).toHaveLength(1);
   });
 
@@ -234,18 +280,22 @@ describe("createQcRecord lifecycle", () => {
         movementType: "ISSUE",
       },
     ]);
+    const storedRevisions: RevisionFixture[] = [];
+    const items = [{ products: [{
+      id: "order-product-1", itemSource: "FROM_STOCK", productId: "product-1", description: "เสื้อยืด",
+      variants: [{ id: "order-variant-m", size: "M", color: "BLACK", quantity: 100 }],
+    }] }];
 
     const txOrderRead = vi.fn(async (args: { select: Record<string, unknown> }) => {
+      if (args.select.revisions) {
+        return { items, revisions: storedRevisions, qcRecords: storedRecord ? [storedRecord] : [] };
+      }
       if (args.select.productions) {
         return {
           id: "order-1",
           orderNumber: "ORD-1",
           internalStatus: "QUALITY_CHECK",
-          items: [
-            {
-              products: [{ variants: [{ quantity: 100 }] }],
-            },
-          ],
+          items,
           qcRecords: [],
           productions: [],
         };
@@ -254,18 +304,7 @@ describe("createQcRecord lifecycle", () => {
         return {
           id: "order-1",
           orderNumber: "ORD-1",
-          items: [
-            {
-              products: [
-                {
-                  itemSource: "FROM_STOCK",
-                  productId: "product-1",
-                  description: "เสื้อยืด",
-                  variants: [{ size: "M", color: "BLACK", quantity: 100 }],
-                },
-              ],
-            },
-          ],
+          items,
         };
       }
       if (args.select.customerId) {
@@ -339,8 +378,12 @@ describe("createQcRecord lifecycle", () => {
         }),
       },
       orderRevision: {
-        count: vi.fn().mockResolvedValue(0),
-        create: vi.fn().mockResolvedValue({ id: "revision-1" }),
+        count: vi.fn(async () => storedRevisions.length),
+        create: vi.fn(async ({ data }: { data: Omit<RevisionFixture, "id" | "newValue"> & { newValue?: string } }) => {
+          const revision = { ...data, id: `revision-${data.version}`, newValue: data.newValue ?? null };
+          storedRevisions.push(revision);
+          return revision;
+        }),
       },
       orderItemPrint: { findMany: vi.fn().mockResolvedValue([]) },
       filmStock: { updateMany: vi.fn() },
@@ -388,6 +431,7 @@ describe("createQcRecord lifecycle", () => {
     );
     expect(updateOrder).toHaveBeenCalledTimes(1);
     expect(tx.qcRecord.create).toHaveBeenCalledTimes(1);
+    expect(storedRevisions.filter((revision) => revision.changeType === "QC_COUNT")).toHaveLength(1);
     expect(tx.auditLog.create).toHaveBeenCalledTimes(1);
     expect(result.record.id).not.toContain(input.idempotencyKey);
     expect(liveStatus).toBe("PACKING");

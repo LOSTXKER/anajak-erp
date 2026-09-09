@@ -24,9 +24,10 @@ import { StepUpdateDialog } from "@/components/production/step-update-dialog";
 import type { ProductionStep } from "@/components/production/types";
 import { selectNowSteps, type NowStep } from "@/lib/production-step-actions";
 import { evaluateHeatPressGate, productionWorkflowSteps } from "@/lib/production-steps";
-import { canSendToQc, paperStepsToClose } from "@/lib/work-order-record-mode";
 import { cn } from "@/lib/utils";
+import { canChangeWorkOrder } from "@/lib/work-order-draft-guard";
 import { stepLabel } from "./work-order-pieces";
+import { accountedStepQty } from "./work-order-quantities";
 
 export type WorkOrderButtonOptions = {
   /** จอทัช: ปุ่มสูง 64px ตัวหนังสือใหญ่ */
@@ -60,7 +61,7 @@ export function useWorkOrderController(id: string) {
   // สิทธิ์ชุดเดียวกับหน้าเดิม — ปุ่มที่ server จะปฏิเสธต้องไม่ถูกวาด
   const canSeeCost = !meQuery.isError && permAllows(me?.permissions, "see_finance");
   const canSuperviseOperations = !!me && permAllows(me.permissions, "supervise_operations");
-  const canCreateOutsource = !!me && permAllows(me.permissions, "manage_settings");
+  const canCreateOutsource = canSuperviseOperations;
   const hasProductionPermission = !!me && permAllows(me.permissions, "manage_production");
 
   const invalidate = [
@@ -90,13 +91,12 @@ export function useWorkOrderController(id: string) {
     },
     onError: (err: { message?: string }) => toast.error(err.message ?? "ส่งงานเข้า QC ไม่สำเร็จ"),
   });
-  // กระดาษเป็นหลัก (ROADMAP §A5): ขั้นที่จดบนกระดาษถือว่าผ่านตอนส่งเข้า QC — server ปิดให้ + finalize ใบ
+  // ส่งเข้า QC ได้เมื่อทุกขั้นมีหลักฐานปิดครบแล้วเท่านั้น (A16)
   const sendToQc = useMutationWithInvalidation(trpc.production.sendToQc, {
     invalidate: [...invalidate, utils.factory.stationContext],
     onSuccess: (data: { closed: number; orderStatus: string }) => {
-      const closed = data.closed > 0 ? `ถือว่าผ่านขั้นกระดาษ ${data.closed} ขั้น · ` : "";
-      if (data.orderStatus === "QUALITY_CHECK") toast.success(`${closed}ส่งงานเข้า QC แล้ว`);
-      else toast.success(`${closed}ปิดใบผลิตนี้แล้ว — ยังมีใบผลิตอื่นค้างอยู่`);
+      if (data.orderStatus === "QUALITY_CHECK") toast.success("ส่งงานเข้า QC แล้ว");
+      else toast.success("ปิดใบผลิตนี้แล้ว — ยังมีใบผลิตอื่นค้างอยู่");
     },
     onError: (err: { message?: string }) => toast.error(err.message ?? "ส่งงานเข้า QC ไม่สำเร็จ"),
   });
@@ -144,9 +144,7 @@ export function useWorkOrderController(id: string) {
   const problemSteps = workflowSteps.filter((s) => s.status === "FAILED" || s.status === "ON_HOLD");
   const hasPendingLegacyPackaging = production?.steps.some((s) => s.stepType === "PACKAGING" && s.status !== "COMPLETED") ?? false;
   const legacyPackagingReadyForQc = orderCanProduce && hasPendingLegacyPackaging && workflowSteps.every((s) => s.status === "COMPLETED");
-  /** ขั้นกระดาษที่ยังเปิด + ทุกขั้นที่จดในระบบปิดแล้ว → ปุ่ม "ส่งเข้า QC" (ถือว่าผ่านให้) */
-  const paperStepsPending = paperStepsToClose(workflowSteps);
-  const readyForQcViaPaper = orderCanProduce && !writeDataStale && canSendToQc(workflowSteps);
+  const readyForQc = orderCanProduce && !writeDataStale && workflowSteps.length > 0 && workflowSteps.every((step) => step.status === "COMPLETED");
 
   const defaultStepId =
     problemSteps[0]?.id ??
@@ -160,17 +158,20 @@ export function useWorkOrderController(id: string) {
 
   // ---- ลงมือ: ยิง updateStep เดิมเสมอ (ทางเดียวกับหน้าเดิม) ----
   function handleStart(step: ProductionStep) {
+    if (!canChangeWorkOrder()) return;
     quickPass.mutate({ stepId: step.id, status: "IN_PROGRESS" });
   }
   function handleComplete(step: ProductionStep) {
+    if (!canChangeWorkOrder()) return;
     const counting = step.qtyTotal !== null && step.qtyTotal > 0;
-    if (counting && (step.qtyDone ?? 0) < (step.qtyTotal ?? 0)) {
+    if (counting && accountedStepQty(step) < (step.qtyTotal ?? 0)) {
       setQtyStepId(step.id);
       return;
     }
     quickPass.mutate({ stepId: step.id, status: "COMPLETED" });
   }
   async function handleQuickPass(step: ProductionStep) {
+    if (!canChangeWorkOrder()) return;
     const ok = await confirm({
       title: "ผ่านรวดขั้นตอนนี้?",
       description: `"${stepLabel(step)}" จะถูกปิดเป็นเสร็จ — ใช้เมื่อร้านนอกทำเสร็จแล้วแต่ไม่ได้เปิดใบส่งร้าน`,
@@ -181,6 +182,7 @@ export function useWorkOrderController(id: string) {
   }
   /** หัวหน้าพักงาน / ผ่านขั้นแทนช่าง — ยืนยันก่อน แล้วยิง updateStep เดิม (server จดชื่อผู้กดใน audit) */
   async function handleSupervisorStatus(step: ProductionStep, status: "ON_HOLD" | "COMPLETED" | "PENDING") {
+    if (!canChangeWorkOrder()) return;
     const copy =
       status === "ON_HOLD"
         ? { title: "พักงานนี้ไว้ก่อน?", description: `"${stepLabel(step)}" จะออกจากคิวพร้อมทำจนกว่าหัวหน้าจะปลด`, confirmText: "พักไว้" }
@@ -194,6 +196,7 @@ export function useWorkOrderController(id: string) {
 
   /** หัวหน้าย้อนขั้นที่ปิดแล้วให้กลับมาทำต่อ — ยืนยันก่อน · server ตรวจว่าย้อนได้จริง + จด audit */
   async function handleReopen(step: ProductionStep) {
+    if (!canChangeWorkOrder()) return;
     const ok = await confirm({
       title: `ย้อนกลับไป "${stepLabel(step)}"?`,
       description: "ขั้นนี้จะกลับมาเปิดให้ทำต่อ ยอดและผลติ๊กที่จดไว้ยังอยู่",
@@ -201,6 +204,16 @@ export function useWorkOrderController(id: string) {
     });
     if (!ok) return;
     reopen.mutate({ stepId: step.id });
+  }
+
+  function openEdit(step: ProductionStep, mode: "operation" | "manager") {
+    if (!canChangeWorkOrder()) return;
+    setEditStep({ step, mode });
+  }
+
+  function openOutsource(step: ProductionStep) {
+    if (!canChangeWorkOrder()) return;
+    setOutsourceStep(step);
   }
 
   /** ปุ่มหลักปุ่มเดียวของขั้น — กติกาอยู่ใน WorkOrderPrimaryButton (หน้าลองใช้ชุดเดียวกัน) */
@@ -218,9 +231,9 @@ export function useWorkOrderController(id: string) {
         onStart={handleStart}
         onComplete={handleComplete}
         onQuickPass={(s) => void handleQuickPass(s)}
-        onManage={(s) => setEditStep({ step: s, mode: "manager" })}
+        onManage={(s) => openEdit(s, "manager")}
         onGoodsReceipt={(stepId) => setGoodsReceiptStepId(stepId)}
-        onOutsource={(s) => setOutsourceStep(s)}
+        onOutsource={openOutsource}
       />
     );
   }
@@ -271,12 +284,12 @@ export function useWorkOrderController(id: string) {
     completedSteps,
     problemSteps,
     legacyPackagingReadyForQc,
-    paperStepsPending,
-    readyForQcViaPaper,
+    readyForQc,
     canSeeCost,
     canSuperviseOperations,
     hasProductionPermission,
     canUpdateStep,
+    canOutsource,
     canSuperviseStep,
     writeDataStale,
     canOwnOrSupervise,
@@ -284,12 +297,18 @@ export function useWorkOrderController(id: string) {
     selectedNow,
     setSelectedStepId,
     quickPass,
-    reportProblem,
+    reportProblem: {
+      ...reportProblem,
+      mutate: (...args: Parameters<typeof reportProblem.mutate>) => {
+        if (canChangeWorkOrder()) reportProblem.mutate(...args);
+      },
+    },
     legacyFinalize,
     sendToQc,
     handleSupervisorStatus,
-    openEdit: (step: ProductionStep, mode: "operation" | "manager") => setEditStep({ step, mode }),
-    openQty: (stepId: string) => setQtyStepId(stepId),
+    openEdit,
+    openQty: (stepId: string) => { if (canChangeWorkOrder()) setQtyStepId(stepId); },
+    openOutsource,
     openOutsourceReturn: (stepId: string, outsourceOrderId: string) => setOutsourceReturn({ stepId, outsourceOrderId }),
     tickStandard: (stepId: string, item: string, checked: boolean) => tickStandardMutation.mutate({ stepId, item, checked }),
     tickPending: tickStandardMutation.isPending,
@@ -372,7 +391,7 @@ export function WorkOrderPrimaryButton({ step, now, options = {}, busy, canUpdat
     case "record-qty":
       return (
         <Button className={size} onClick={() => onComplete(step)} disabled={busy}>
-          {step.qtyTotal && (step.qtyDone ?? 0) < step.qtyTotal ? "บันทึกยอด / ปิดขั้น" : "ปิดขั้นนี้"}
+          {step.qtyTotal && accountedStepQty(step) < step.qtyTotal ? "บันทึกยอด / ปิดขั้น" : "ปิดขั้นนี้"}
         </Button>
       );
     case "send-outsource":

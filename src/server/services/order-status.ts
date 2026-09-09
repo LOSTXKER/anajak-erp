@@ -7,6 +7,7 @@ import {
 import { badRequest, conflict } from "@/server/errors";
 import type { PrismaTx } from "@/lib/prisma";
 import { productionWorkflowSteps } from "@/lib/production-steps";
+import { QC_REWORK_STEP_NAME } from "@/lib/qc";
 
 // จุดเดียวที่อนุญาตให้เปลี่ยน internalStatus ของออเดอร์ (นอกจากสถานะเริ่มต้นตอน create)
 // - validate ผ่าน isValidTransition เสมอ — ห้าม set ตรงจาก router ใดๆ
@@ -247,10 +248,17 @@ export async function finalizeProductionIfComplete(
 // ทั้งที่เป็นงานเร่งสุดในโรงงาน · audit ข้อ 19/26) — reopen + เปิด step "งานแก้" ให้มีที่ติ๊ก
 export async function reopenProductionsForRework(
   tx: PrismaTx,
-  params: { orderId: string; reason?: string }
+  params: {
+    orderId: string;
+    reason?: string;
+    qtyTotal?: number;
+    quantityLines?: readonly import("./qc-count").QcReworkLine[];
+    sourceQcRecordId?: string;
+  }
 ) {
   const closed = await tx.production.findMany({
     where: { orderId: params.orderId, status: "COMPLETED" },
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
     select: {
       id: true,
       workOrderNumber: true,
@@ -268,7 +276,9 @@ export async function reopenProductionsForRework(
       "Production V2 ต้องเปิดงานแก้ผ่าน Rework Case ใน Manufacturing เท่านั้น",
     );
   }
-  for (const p of closed) {
+  // QC ตรวจทั้งออเดอร์ จึงเปิดงานแก้เพียงหนึ่งใบ; เปิดทุกใบจะคูณจำนวนเสียซ้ำ.
+  const reworkOwners = closed.slice(0, 1);
+  for (const p of reworkOwners) {
     const maxSort = Math.max(0, ...p.steps.map((s) => s.sortOrder));
     await tx.production.update({
       where: { id: p.id },
@@ -278,14 +288,37 @@ export async function reopenProductionsForRework(
       data: {
         productionId: p.id,
         stepType: "CUSTOM",
-        customStepName: "งานแก้ (QC ไม่ผ่าน)",
+        customStepName: QC_REWORK_STEP_NAME,
         sortOrder: maxSort + 1,
         status: "PENDING",
+        qtyTotal: params.qtyTotal ?? null,
         notes: params.reason ?? null,
+        ...(params.quantityLines?.length ? {
+          quantities: {
+            create: params.quantityLines.map((line) => ({
+              productionId: p.id,
+              scopeKind: "VARIANT" as const,
+              scopeKey: `${line.productId}:${line.variantId}:NO_PRINT`,
+              sourceOrderItemProductId: line.productId,
+              sourceOrderItemVariantId: line.variantId,
+              description: line.description,
+              size: line.size,
+              color: line.color,
+              qtyPlanned: line.qty,
+              qtyGood: 0,
+              qtyScrap: 0,
+              referenceSnapshot: {
+                source: "QC_REWORK",
+                sourceQcRecordId: params.sourceQcRecordId ?? null,
+                quantity: line.qty,
+              },
+            })),
+          },
+        } : {}),
       },
     });
   }
-  return closed.length;
+  return reworkOwners.length;
 }
 
 // ผลตัดสินแบบ (อนุมัติ/ขอแก้) → สถานะออเดอร์ + revision — ใช้ทั้งฝั่งพนักงานและลูกค้าผ่าน token

@@ -74,12 +74,12 @@ export function useProtoController(fx: StateFixture, role: Role): WorkOrderContr
       completedSteps: workflowSteps.filter((s) => s.status === "COMPLETED").length,
       problemSteps,
       legacyPackagingReadyForQc: false,
-      paperStepsPending: 0,
-      readyForQcViaPaper: allDone && orderCanProduce,
+      readyForQc: allDone && orderCanProduce,
       canSeeCost: role === "boss",
       canSuperviseOperations,
       hasProductionPermission,
       canUpdateStep,
+      canOutsource: canSuperviseStep && hasProductionPermission,
       canSuperviseStep,
       writeDataStale,
       canOwnOrSupervise,
@@ -94,6 +94,7 @@ export function useProtoController(fx: StateFixture, role: Role): WorkOrderContr
       openEdit: protoOnly,
       openQty: protoOnly,
       openOutsourceReturn: protoOnly,
+      openOutsource: protoOnly,
       tickStandard: (stepId: string, item: string, checked: boolean) =>
         setTicked((prev) => {
           const k = `${fx.key}:${stepId}`;

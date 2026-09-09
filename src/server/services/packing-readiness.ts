@@ -1,5 +1,6 @@
 import type { PrismaTx } from "@/lib/prisma";
 import { badRequest } from "@/server/errors";
+import { qcReturnSnapshots } from "./qc-ledger";
 
 type PackingDimension = string | null | undefined;
 
@@ -14,9 +15,12 @@ export interface PackingOrderShape {
       }>;
     }>;
   }>;
+  revisions?: ReadonlyArray<{ changeType: string; newValue: string | null }>;
   deliveries: ReadonlyArray<{
+    id?: string;
     status: string;
     lines: ReadonlyArray<{
+      id?: string;
       description: string;
       size: PackingDimension;
       color: PackingDimension;
@@ -80,7 +84,12 @@ export interface V2FinalPackLedger {
 
 type V2FinalPackOrderShape = {
   productionCompletionOwnerId: string | null;
-  productions: ReadonlyArray<{ id: string; workOrderNumber: string | null }>;
+  productions: ReadonlyArray<{
+    id: string;
+    workOrderNumber: string | null;
+    completionOwnerStepId?: string | null;
+    steps?: ReadonlyArray<{ executionEnabled: boolean }>;
+  }>;
   productionCompletionOwner: {
     id: string;
     workOrderNumber: string | null;
@@ -112,11 +121,15 @@ export function packingEvidenceFromOrder(order: PackingOrderShape): PackingEvide
     (delivery) => delivery.status !== "RETURNED",
   );
 
+  const returnedByLine = new Map<string, number>();
+  for (const line of qcReturnSnapshots(order.revisions ?? []).flatMap((revision) => revision.sourceLines)) {
+    returnedByLine.set(line.deliveryLineId, (returnedByLine.get(line.deliveryLineId) ?? 0) + line.qty);
+  }
   const packedByKey = new Map<string, number>();
   for (const delivery of nonReturnedDeliveries) {
     for (const line of delivery.lines) {
       const key = packingLineKey(line.description, line.size, line.color);
-      packedByKey.set(key, (packedByKey.get(key) ?? 0) + line.qty);
+      packedByKey.set(key, (packedByKey.get(key) ?? 0) + Math.max(0, line.qty - (line.id ? returnedByLine.get(line.id) ?? 0 : 0)));
     }
   }
 
@@ -214,15 +227,21 @@ export function findPackingOverflow(
 export function v2FinalPackLedgerFromOrder(
   order: V2FinalPackOrderShape,
 ): V2FinalPackLedger | null {
-  if (!order.productions || order.productions.length === 0) return null;
-  if (order.productions.length !== 1) {
+  const productions = order.productions ?? [];
+  const hasV2Owner = Boolean(order.productionCompletionOwnerId) || productions.some(
+    (production) => Boolean(production.workOrderNumber || production.completionOwnerStepId) ||
+      production.steps?.some((step) => step.executionEnabled),
+  );
+  if (!hasV2Owner) return null;
+  if (productions.length > 1) {
     badRequest(
       "ออเดอร์มีใบสั่งผลิต V2 มากกว่าหนึ่งใบ แต่ยังไม่มีการแบ่งจำนวนสำหรับปิดงาน",
     );
   }
-  const workOrder = order.productions[0]!;
+  const workOrder = productions[0];
   const owner = order.productionCompletionOwner;
   if (
+    !workOrder ||
     !order.productionCompletionOwnerId ||
     order.productionCompletionOwnerId !== workOrder.id ||
     !owner ||
@@ -266,9 +285,13 @@ export async function getV2FinalPackLedger(
     select: {
       productionCompletionOwnerId: true,
       productions: {
-        where: { workOrderNumber: { not: null } },
         orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-        select: { id: true, workOrderNumber: true },
+        select: {
+          id: true,
+          workOrderNumber: true,
+          completionOwnerStepId: true,
+          steps: { where: { executionEnabled: true }, select: { executionEnabled: true } },
+        },
       },
       productionCompletionOwner: {
         select: {
@@ -369,10 +392,11 @@ export async function getOrderPackingEvidence(
           },
         },
       },
+      revisions: { where: { changeType: "QC_RETURN" }, select: { changeType: true, newValue: true } },
       deliveries: {
         select: {
-          status: true,
-          lines: { select: { description: true, size: true, color: true, qty: true } },
+          id: true, status: true,
+          lines: { select: { id: true, description: true, size: true, color: true, qty: true } },
         },
       },
     },

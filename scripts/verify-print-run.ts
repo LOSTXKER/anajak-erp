@@ -7,8 +7,10 @@
 import { appRouter } from "@/server/routers/_app";
 import { prisma } from "@/lib/prisma";
 import { evaluateHeatPressGate } from "@/lib/production-steps";
+import { validateDemoDatabaseUrl } from "@/lib/demo-seed-plan";
 
-const MARK = "[PRINTRUN-VERIFY]";
+validateDemoDatabaseUrl(process.env.DATABASE_URL ?? "");
+const MARK = `[PRINTRUN-VERIFY-${Date.now()}]`;
 let pass = 0;
 const fails: string[] = [];
 function check(name: string, ok: boolean, detail?: string) {
@@ -160,6 +162,26 @@ async function main() {
       () => check("7.3 รอบที่ยกเลิกกดพิมพ์จบไม่ได้", false),
       () => check("7.3 รอบที่ยกเลิกกดพิมพ์จบไม่ได้", true)
     );
+
+    // ── 7. ของเสียจากการพิมพ์ต้องไม่ถูกนับเป็นฟิล์มพร้อมรีด ──
+    const D = await makeOrder({ suffix: "D", qty: 10, customerId: customer.id, userId: owner.id });
+    const run4 = await caller.printRun.create({ items: [{ stepId: D.printStep.id, qty: 10 }] });
+    await caller.printRun.markPrinted({ runId: run4.id });
+    await caller.printRun.complete({
+      runId: run4.id,
+      legacyResults: [{ itemId: run4.items[0].id, qtyGood: 8, qtyScrap: 2 }],
+    });
+    const partial = await prisma.productionStep.findUniqueOrThrow({ where: { id: D.printStep.id } });
+    const partialResult = await prisma.printRunItem.findUniqueOrThrow({ where: { id: run4.items[0].id } });
+    check("8.1 ดี 8 เสีย 2 → ยอดดีเป็น 8 และขั้นยังไม่ปิด", partial.qtyDone === 8 && partial.status === "IN_PROGRESS");
+    check("8.2 เก็บหลักฐานดี/เสีย/เวลาในรายการรอบพิมพ์", partialResult.qtyGood === 8 && partialResult.qtyScrap === 2 && partialResult.resultReportedAt !== null);
+    queue = await caller.printRun.queue();
+    check("8.3 ของเสียกลับคิวพิมพ์ใหม่ 2 ชิ้น", queue.find((entry) => entry.stepId === D.printStep.id)?.remaining === 2);
+    const replacement = await caller.printRun.create({ items: [{ stepId: D.printStep.id, qty: 2 }] });
+    await caller.printRun.markPrinted({ runId: replacement.id });
+    await caller.printRun.complete({ runId: replacement.id, legacyResults: [{ itemId: replacement.items[0].id, qtyGood: 2, qtyScrap: 0 }] });
+    const finished = await prisma.productionStep.findUniqueOrThrow({ where: { id: D.printStep.id } });
+    check("8.4 พิมพ์ทดแทนครบ → ของดี 10 และปิดขั้นได้", finished.qtyDone === 10 && finished.status === "COMPLETED");
   } finally {
     // ── cleanup เกลี้ยง ──
     const orders = await prisma.order.findMany({
@@ -167,9 +189,12 @@ async function main() {
       select: { id: true },
     });
     const orderIds = orders.map((o) => o.id);
+    const testRuns = await prisma.printRun.findMany({
+      where: { items: { some: { orderId: { in: orderIds } } } }, select: { id: true },
+    });
     await prisma.filmStock.deleteMany({ where: { OR: [{ orderId: { in: orderIds } }, { label: { contains: MARK } }] } });
     await prisma.printRunItem.deleteMany({ where: { orderId: { in: orderIds } } });
-    await prisma.printRun.deleteMany({ where: { items: { none: {} }, runNumber: { startsWith: "FR-" } } });
+    await prisma.printRun.deleteMany({ where: { id: { in: testRuns.map((run) => run.id) }, items: { none: {} } } });
     await prisma.production.deleteMany({ where: { orderId: { in: orderIds } } });
     await prisma.order.deleteMany({ where: { id: { in: orderIds } } });
     await prisma.customer.deleteMany({ where: { name: { contains: MARK } } });

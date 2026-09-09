@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assertStandardItem, assertStandardsTicked, assertStepReopenable, pieceQtyPlan } from "./work-order-form";
+import { assertStandardItem, assertStandardsTicked, assertStepReopenable, pieceQtyPlan, assertStepQuantitiesCounted } from "./work-order-form";
 import { workOrderStandards } from "@/lib/work-order-standards";
 
 describe("ด่านเช็คลิสต์ก่อนปิดขั้น", () => {
@@ -42,5 +42,26 @@ describe("ยอดต่อแถว", () => {
     expect(() => pieceQtyPlan({ rows: [{ variantId: "v2", done: 40, waste: 0 }], variants, qtyTotal: 30 })).toThrow("ไม่เกิน 30 ตัว");
     expect(() => pieceQtyPlan({ rows: [{ variantId: "zz", done: 1, waste: 0 }], variants, qtyTotal: null })).toThrow("โหลดหน้าใหม่");
     expect(() => pieceQtyPlan({ rows: [{ variantId: "v1", done: 1, waste: 0 }, { variantId: "v1", done: 1, waste: 0 }], variants, qtyTotal: null })).toThrow("ซ้ำ");
+  });
+  it("งานแก้ M 2 ใช้แผน 2 ตัว ไม่ยืมยอด M 40 หรือไซซ์อื่นในออเดอร์", () => {
+    const reworkQuantities = [{ sourceOrderItemVariantId: "v2", qtyPlanned: 2 }];
+    const base = { variants, qtyTotal: 2, reworkQuantities };
+    expect(pieceQtyPlan({ ...base, rows: [{ variantId: "v2", done: 1, waste: 1 }] }).lines[0])
+      .toMatchObject({ qtyPlanned: 2, qtyGood: 1, qtyScrap: 1 });
+    expect(() => pieceQtyPlan({ ...base, rows: [{ variantId: "v2", done: 3, waste: 0 }] })).toThrow("เกิน 2 ตัว");
+    expect(() => pieceQtyPlan({ ...base, rows: [{ variantId: "v1", done: 1, waste: 0 }] })).toThrow("ไม่อยู่ในรายการ");
+  });
+});
+
+describe("ปิดงานแก้ต้องบันทึกผลจริง", () => {
+  it("จำนวนดีรวมดูครบแต่มีไซซ์ตกหล่นก็ปิดไม่ได้", () => {
+    expect(() => assertStepQuantitiesCounted({ qtyTotal: 3, qtyDone: 3, quantities: [
+      { qtyPlanned: 2, qtyGood: 2, qtyScrap: 0 }, { qtyPlanned: 1, qtyGood: 0, qtyScrap: 0 },
+    ] })).toThrow("ครบทุกไซซ์");
+  });
+  it("ตรวจผลครบแล้วแม้แก้ไม่ผ่านบางตัวก็ส่งกลับ QC ได้", () => {
+    expect(() => assertStepQuantitiesCounted({ qtyTotal: 3, qtyDone: 2, quantities: [
+      { qtyPlanned: 2, qtyGood: 1, qtyScrap: 1 }, { qtyPlanned: 1, qtyGood: 1, qtyScrap: 0 },
+    ] })).not.toThrow();
   });
 });

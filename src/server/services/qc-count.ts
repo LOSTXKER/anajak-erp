@@ -17,6 +17,37 @@ export function spareAvailableOf(
   return lines.reduce((s, l) => s + Math.max(0, l.issued - l.returned - l.needed), 0);
 }
 
+export interface QcReworkLine {
+  variantId: string;
+  productId: string;
+  description: string;
+  size: string;
+  color: string | null;
+  qty: number;
+}
+
+/** งานแก้ใช้แถวที่เสียจริงเท่านั้น; ไซซ์เดียวกันต่างรุ่นต้องให้คนเลือก ห้ามเดาแทนกัน */
+export function qcReworkLines(params: {
+  variants: readonly Omit<QcReworkLine, "qty">[];
+  defects: readonly { variantId?: string; size?: string; color?: string; qty: number }[];
+}): QcReworkLine[] {
+  if (params.variants.length === 0) return [];
+  const grouped = new Map<string, QcReworkLine>();
+  for (const defect of params.defects) {
+    const candidates = params.variants.filter((variant) => defect.variantId
+      ? variant.variantId === defect.variantId
+      : (!defect.size || variant.size === defect.size) &&
+        (!defect.color || variant.color === defect.color));
+    if (candidates.length !== 1) {
+      badRequest("ระบุสินค้า สี และไซซ์ของของเสียให้ชัดเจนก่อนเปิดงานแก้");
+    }
+    const variant = candidates[0]!;
+    const existing = grouped.get(variant.variantId);
+    grouped.set(variant.variantId, { ...variant, qty: (existing?.qty ?? 0) + defect.qty });
+  }
+  return [...grouped.values()];
+}
+
 // ด่านกรอก: ของเสียเป็นจำนวนเต็ม >0 + สาเหตุต้องรู้จัก · ของดีเป็นจำนวนเต็ม ≥0 ·
 // ต้องนับอย่างน้อย 1 ตัว — คืนยอดของเสียรวม (ข้อความ error คงเดิมเป๊ะ UI อ้างอยู่)
 export function assertValidQcCounts(params: {
@@ -69,13 +100,14 @@ export function qcNextMove(i: {
   // งานมีแถวเบิกเสื้อจากสต๊อค — ระบบถึงรู้ยอดสำรองจริง ตัดสิน "รอของ" ได้
   hasFromStock: boolean;
   spareAvailable: number;
+  stockShortage?: boolean;
 }): QcNextMove {
   const checkedGoodAfter = i.checkedGood + i.qtyGood;
   if (i.totalExpected > 0 && checkedGoodAfter >= i.totalExpected) {
     return "PACK";
   }
   if (i.qtyDefect > 0) {
-    return i.hasFromStock && i.spareAvailable < i.qtyDefect ? "HOLD_FOR_STOCK" : "REWORK";
+    return (i.stockShortage ?? (i.hasFromStock && i.spareAvailable < i.qtyDefect)) ? "HOLD_FOR_STOCK" : "REWORK";
   }
   if (i.qtyGood > 0 && i.totalExpected === 0) {
     return "PACK";

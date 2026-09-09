@@ -307,7 +307,7 @@ export function CreateDeliveryDialog({
                           )}
                         </p>
                         <p className="text-xs text-muted">
-                          สั่ง {r.ordered} · ส่งแล้ว {r.packed}
+                          สั่ง {r.ordered} · จัดไว้ในใบส่งแล้ว {r.packed}
                         </p>
                       </div>
                       <Input size="sm"

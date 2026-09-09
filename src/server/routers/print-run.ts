@@ -139,6 +139,11 @@ export const printRunRouter = router({
       z.object({
         runId: z.string(),
         commandId: z.string().trim().min(8).max(100).optional(),
+        legacyResults: z.array(z.object({
+          itemId: z.string().min(1),
+          qtyGood: z.number().int().nonnegative(),
+          qtyScrap: z.number().int().nonnegative(),
+        })).min(1).max(200).optional(),
         results: z
           .array(
             z.object({

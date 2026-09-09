@@ -212,11 +212,20 @@ describe("order.updateStatus — QC evidence", () => {
             items: [
               {
                 products: [
-                  { variants: [{ quantity: 100 }] },
+                  { id: "order-product-1", description: "เสื้อยืด", variants: [
+                    { id: "order-variant-m", size: "M", color: "ดำ", quantity: 100 },
+                  ] },
                 ],
               },
             ],
-            qcRecords: [{ qtyGood: 40, qtyDefect: 0 }],
+            qcRecords: [{ id: "qc-partial", qtyGood: 40, qtyDefect: 0 }],
+            revisions: [{
+              id: "revision-qc-partial", changeType: "QC_COUNT",
+              newValue: JSON.stringify({
+                kind: "LEGACY_QC_COUNT", version: 1, qcRecordId: "qc-partial", scopeRevisionId: null,
+                lines: [{ variantId: "order-variant-m", qtyGood: 40 }],
+              }),
+            }],
           }),
         updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       },

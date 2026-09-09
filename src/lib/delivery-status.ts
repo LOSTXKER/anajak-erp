@@ -13,14 +13,14 @@ export type DeliveryStatus = (typeof DELIVERY_STATUSES)[number];
 
 // เส้นทางที่ "เปลี่ยนสถานะ" ได้ (ไม่รวม self — self จัดการแยกให้แก้เลขพัสดุโดยไม่เปลี่ยนสถานะ)
 // อนุญาต: เดินหน้าตามคิว · ส่งตรง/รับเอง (PENDING/PREPARING → DELIVERED) · ตีกลับได้ทุกจุด ·
-//   แก้พลาดถอย "หนึ่งก้าว" (SHIPPED→PREPARING · DELIVERED→SHIPPED) · จัดการใหม่หลังตีกลับ
+//   แก้พลาดถอย "หนึ่งก้าว" (SHIPPED→PREPARING · DELIVERED→SHIPPED) · ใบตีกลับเก็บประวัติแล้วสร้างใบส่งทดแทน
 // บล็อก: ถอยไกลข้ามขั้น (SHIPPED→PENDING · DELIVERED→PENDING/PREPARING) — ถอยทีละก้าว
 const DELIVERY_TRANSITIONS: Record<DeliveryStatus, DeliveryStatus[]> = {
   PENDING: ["PREPARING", "SHIPPED", "DELIVERED", "RETURNED"],
   PREPARING: ["PENDING", "SHIPPED", "DELIVERED", "RETURNED"],
   SHIPPED: ["PREPARING", "DELIVERED", "RETURNED"],
   DELIVERED: ["SHIPPED", "RETURNED"],
-  RETURNED: ["PENDING", "PREPARING", "SHIPPED"],
+  RETURNED: [],
 };
 
 // เปลี่ยนสถานะได้ไหม — self (from === to) = ได้เสมอ (อัปเดตเลขพัสดุ/field โดยไม่เปลี่ยนสถานะ)

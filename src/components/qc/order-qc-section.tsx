@@ -26,6 +26,7 @@ import {
   QC_DEFECT_REASONS,
   QC_DEFECT_REASON_LABELS,
   qcReasonLabel,
+  qcStockAvailability,
   type QcDefectReason,
 } from "@/lib/qc";
 import { ShieldCheck, ClipboardCheck, Plus, Trash2, AlertTriangle, CheckCircle2 } from "lucide-react";
@@ -61,6 +62,8 @@ interface OrderQcSectionProps {
 
 export function OrderQcSection({ orderId, internalStatus, canCount }: OrderQcSectionProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [returnOpen, setReturnOpen] = useState(false);
+  const { data: returnContext } = trpc.qc.returnContext.useQuery({ orderId }, { enabled: ["SHIPPED", "PACKING"].includes(internalStatus) });
 
   const isQualityCheck = internalStatus === "QUALITY_CHECK";
   const { data: records, isLoading, isError, refetch } = trpc.qc.listByOrder.useQuery({ orderId });
@@ -109,6 +112,9 @@ export function OrderQcSection({ orderId, internalStatus, canCount }: OrderQcSec
               ตรวจนับ QC
             </SectionTitle>
           </CardTitle>
+          {["SHIPPED", "PACKING"].includes(internalStatus) && returnContext?.canStartReturn && returnContext.lines.length > 0 && (
+            <Button size="sm" variant="outline" onClick={() => setReturnOpen(true)}>รับคืนเพื่อตรวจ QC</Button>
+          )}
           {isQualityCheck &&
             (canCount ? (
               <Button size="sm" className="h-9 gap-1.5" onClick={() => setDialogOpen(true)}>
@@ -121,7 +127,7 @@ export function OrderQcSection({ orderId, internalStatus, canCount }: OrderQcSec
         </div>
         {rounds.length > 0 && (
           <p className="text-xs text-muted">
-            ตรวจแล้ว {rounds.length} รอบ · ดี {totalGood} ตัว · เสีย {totalDefect} ตัว
+            ประวัติการตรวจ {rounds.length} รอบ · ผ่านรวม {totalGood} ตัว · ไม่ผ่านรวม {totalDefect} ตัว (รวมการตรวจซ้ำ)
             {latestReasons ? ` · รอบล่าสุดเสีย: ${latestReasons}` : ""}
           </p>
         )}
@@ -225,6 +231,7 @@ export function OrderQcSection({ orderId, internalStatus, canCount }: OrderQcSec
         )}
       </CardContent>
 
+      {returnOpen && returnContext && <QcReturnDialog orderId={orderId} context={returnContext} onClose={() => setReturnOpen(false)} />}
       {dialogOpen && <QcCountDialog orderId={orderId} onClose={() => setDialogOpen(false)} />}
     </Card>
   );
@@ -306,6 +313,7 @@ export function QcCountDialog({
 const NONE = "__NONE__";
 
 interface DefectRow {
+  variantId: string;
   quantityLineId: string;
   qty: number;
   size: string; // "" = ไม่ระบุ
@@ -336,6 +344,10 @@ function QcCountForm({
   onClose: () => void;
   onCreated?: () => void;
 }) {
+  const countLines: readonly ManufacturingQuantityLine[] = operationJobId ? (quantityLines ?? []) : context.lines.map((line) => ({
+    id: line.variantId, description: line.description, size: line.size, color: line.color, printPosition: null,
+    qtyPlanned: line.qtyExpected, qtyGood: line.checkedGood,
+  }));
   // default = เหลือที่ยังไม่ผ่านตรวจ (ดีล้วนกดบันทึกเดียวจบ — ห้ามเพิ่มงานกรอกหน้างาน)
   const remaining = Math.max(
     0,
@@ -346,7 +358,7 @@ function QcCountForm({
   const [legacyQtyGood, setLegacyQtyGood] = useState(remaining);
   const [goodByLine, setGoodByLine] = useState<Record<string, number>>(() =>
     Object.fromEntries(
-      (quantityLines ?? []).map((line) => [
+      countLines.map((line) => [
         line.id,
         Math.max(0, line.qtyPlanned - line.qtyGood),
       ]),
@@ -356,8 +368,6 @@ function QcCountForm({
   const [notes, setNotes] = useState("");
   // คง key เดิมตลอดฟอร์ม: network/response fail แล้วกดซ้ำต้องได้ผลเดิม ไม่เพิ่มยอด QC
   const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
-
-  const sizes = [...new Set(context.lines.map((l) => l.size).filter(Boolean))] as string[];
 
   const utils = trpc.useUtils();
   const create = useMutationWithInvalidation(trpc.qc.create, {
@@ -430,7 +440,7 @@ function QcCountForm({
   function defectQtyForLine(rows: readonly DefectRow[], quantityLineId: string) {
     return rows.reduce(
       (sum, defect) =>
-        sum + (defect.quantityLineId === quantityLineId ? defect.qty : 0),
+        sum + ((operationJobId ? defect.quantityLineId : defect.variantId) === quantityLineId ? defect.qty : 0),
       0,
     );
   }
@@ -439,10 +449,15 @@ function QcCountForm({
     previous: readonly DefectRow[],
     next: readonly DefectRow[],
   ) {
-    if (!operationJobId) return;
+    if (countLines.length === 0) {
+      const previousMaximum = Math.max(0, remaining - previous.reduce((sum, row) => sum + row.qty, 0));
+      const nextMaximum = Math.max(0, remaining - next.reduce((sum, row) => sum + row.qty, 0));
+      setLegacyQtyGood((current) => current === previousMaximum ? nextMaximum : Math.min(current, nextMaximum));
+      return;
+    }
     setGoodByLine((current) =>
       Object.fromEntries(
-        (quantityLines ?? []).map((line) => {
+        countLines.map((line) => {
           const lineRemaining = Math.max(0, line.qtyPlanned - line.qtyGood);
           const previousMaximum = Math.max(
             0,
@@ -476,39 +491,45 @@ function QcCountForm({
     syncGoodWithDefects(defects, next);
     setDefects(next);
   };
-  const addRow = () =>
-    setDefects((prev) => [
-      ...prev,
+  const addRow = () => {
+    const onlyLine = !operationJobId && context.lines.length === 1 ? context.lines[0] : undefined;
+    const next: DefectRow[] = [
+      ...defects,
       {
+        variantId: onlyLine?.variantId ?? "",
         quantityLineId: "",
         qty: 1,
-        size: "",
-        color: "",
+        size: onlyLine?.size ?? "",
+        color: onlyLine?.color ?? "",
         printLabel: "",
         reason: "",
         disposition: "",
         photoUrls: [],
         note: "",
       },
-    ]);
+    ];
+    syncGoodWithDefects(defects, next);
+    setDefects(next);
+  };
 
   const qtyDefectTotal = defects.reduce((s, d) => s + d.qty, 0);
-  const qtyGood = operationJobId
+  const defectStock = qcStockAvailability(context.lines, defects);
+  const qtyGood = countLines.length > 0
     ? Object.values(goodByLine).reduce((sum, value) => sum + value, 0)
     : legacyQtyGood;
   const missingReason = defects.some(
     (d) =>
       d.qty <= 0 ||
       !d.reason ||
-      (operationJobId ? !d.disposition || !d.quantityLineId : false),
+      (operationJobId ? !d.disposition || !d.quantityLineId : context.lines.length > 0 && !d.variantId),
   );
-  const lineGoodOverLimit = (quantityLines ?? []).some(
+  const lineGoodOverLimit = countLines.some(
     (line) => {
       const lineRemaining = Math.max(0, line.qtyPlanned - line.qtyGood);
       const lineGood = goodByLine[line.id] ?? 0;
       return (
         lineGood < 0 ||
-        lineGood + defectQtyForLine(defects, line.id) > lineRemaining
+        lineGood + ((operationJobId || context.isReturnInspection) ? defectQtyForLine(defects, line.id) : 0) > lineRemaining
       );
     },
   );
@@ -541,8 +562,10 @@ function QcCountForm({
       expectedRevision,
       qtyGood,
       quantityLines: operationJobId ? allocateGoodToLines() : undefined,
+      goodLines: !operationJobId && countLines.length > 0 ? countLines.map((line) => ({ variantId: line.id, qtyGood: goodByLine[line.id] ?? 0 })) : undefined,
       notes: notes || undefined,
       defects: defects.map((d) => ({
+        variantId: d.variantId || undefined,
         quantityLineId: d.quantityLineId || undefined,
         qty: d.qty,
         size: d.size || undefined,
@@ -562,21 +585,15 @@ function QcCountForm({
         <DialogHeader>
           <DialogTitle>นับจริง: ดีกี่ตัว เสียกี่ตัว</DialogTitle>
           <DialogDescription>
-            ยอดงาน {context.totalExpected} ตัว · เสื้อสำรองเบิกเผื่อไว้ {context.spareAvailable} ตัว
+            {context.isReturnInspection ? "รับคืนรอบนี้" : "ยอดงาน"} {context.totalExpected} ตัว · เสื้อสำรองเบิกเผื่อไว้ {context.spareAvailable} ตัว
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3">
-          {/* นับดีครบยอดไปแล้ว (เช่น ของตีกลับหลังส่ง) — บอกทางเดินจริง ไม่ปล่อยเจอฟอร์มตัน:
-              นับดีเพิ่มโดนกันนับเกิน · เดินหน้าใช้ปุ่มเปลี่ยนสถานะ (มีผลตรวจแล้วระบบให้ผ่าน) */}
-          {context.totalExpected > 0 && remaining === 0 && (
-            <Alert variant="info" icon={CheckCircle2} className="px-3 py-2 text-xs">
-              นับดีครบยอดงานไปแล้ว — บันทึกรอบนี้เพื่อเก็บสถิติของเสียจากเสื้อเผื่อ
-              แล้วระบบจะพางานเข้าแพ็ก
-            </Alert>
-          )}
+          {context.isReturnInspection && <Alert variant="info">ตรวจเฉพาะของที่รับคืนรอบนี้ ของที่ลูกค้าไม่ได้คืนคงอยู่ในใบส่งเดิม</Alert>}
+          {context.needsLegacyRecount && <Alert variant="info">ผลตรวจเก่ายังไม่แยกไซซ์ กรุณานับของที่อยู่หน้างานใหม่ตามรายการด้านล่างหนึ่งครั้ง</Alert>}
           {/* ของดี — default เหลือที่ยังไม่ผ่านตรวจ นับตรงกดบันทึกได้เลย */}
-          {operationJobId ? (
+          {countLines.length > 0 || operationJobId ? (
             <section aria-labelledby="qc-good-lines-title" className="space-y-2">
               <div className="flex items-baseline justify-between gap-3">
                 <h3 id="qc-good-lines-title" className="text-sm font-medium text-strong">
@@ -586,12 +603,12 @@ function QcCountForm({
                   รวม {qtyGood.toLocaleString("th-TH")} ตัว
                 </p>
               </div>
-              {(quantityLines ?? []).map((line) => {
+              {countLines.map((line) => {
                 const lineRemaining = Math.max(0, line.qtyPlanned - line.qtyGood);
                 const lineDefect = defectQtyForLine(defects, line.id);
                 const lineGoodMaximum = Math.max(0, lineRemaining - lineDefect);
                 const value = goodByLine[line.id] ?? 0;
-                const invalid = value < 0 || value + lineDefect > lineRemaining;
+                const invalid = value < 0 || value + ((operationJobId || context.isReturnInspection) ? lineDefect : 0) > lineRemaining;
                 return (
                   <div
                     key={line.id}
@@ -620,7 +637,7 @@ function QcCountForm({
                         type="number"
                         inputMode="numeric"
                         min={0}
-                        max={lineGoodMaximum}
+                        max={operationJobId || context.isReturnInspection ? lineGoodMaximum : lineRemaining}
                         value={value}
                         aria-invalid={invalid || undefined}
                         onChange={(event) =>
@@ -740,13 +757,16 @@ function QcCountForm({
                   </div>
                 ) : (
                   <div className="space-y-1">
-                    <label htmlFor={`qc-defect-size-${idx}`} className="text-xs text-muted">ไซส์</label>
-                    <Select value={d.size === "" ? NONE : d.size}
-                      onChange={(e) => update(idx, { size: e.target.value === NONE ? "" : e.target.value })} id={`qc-defect-size-${idx}`}>
-                        <option value={NONE}>ไม่ระบุ</option>
-                        {sizes.map((s) => (
-                          <option key={s} value={s}>
-                            {s}
+                    <label htmlFor={`qc-defect-size-${idx}`} className="text-xs text-muted">สินค้า / สี / ไซซ์ที่เสีย</label>
+                    <Select value={d.variantId || undefined}
+                      placeholder="เลือกรายการที่เสีย"
+                      onChange={(e) => {
+                        const line = context.lines.find((item) => item.variantId === e.target.value);
+                        update(idx, { variantId: e.target.value, size: line?.size ?? "", color: line?.color ?? "" });
+                      }} id={`qc-defect-size-${idx}`}>
+                        {context.lines.map((line) => (
+                          <option key={line.variantId} value={line.variantId}>
+                            {[line.description, line.color, line.size].filter(Boolean).join(" / ")}
                           </option>
                         ))}
                       </Select>
@@ -883,9 +903,9 @@ function QcCountForm({
                 : ""}
             </Alert>
           ) : qtyDefectTotal > 0 ? (
-            context.spareAvailable < qtyDefectTotal ? (
+            defectStock.shortage > 0 ? (
               <Alert variant="error" icon={AlertTriangle} className="px-3 py-2 text-xs">
-                เสื้อสำรองไม่พอ (เหลือ {context.spareAvailable}/{qtyDefectTotal} ตัว) —
+                เสื้อสำรองในสินค้า สี และไซซ์ที่เสียไม่พอ (ขาด {defectStock.shortage} ตัว) —
                 บันทึกแล้วงานจะพักรอของ คุยลูกค้า/สั่งเสื้อเพิ่มก่อน
               </Alert>
             ) : (
@@ -918,4 +938,42 @@ function QcCountForm({
       </DialogContent>
     </Dialog>
   );
+}
+
+function QcReturnDialog({ orderId, context, onClose }: {
+  orderId: string; context: RouterOutput["qc"]["returnContext"]; onClose: () => void;
+}) {
+  const [quantities, setQuantities] = useState<Record<string, number>>(() => Object.fromEntries(context.lines.map((line) => [line.deliveryLineId, line.wholeParcelReturned ? line.available : 0])));
+  const [reason, setReason] = useState("");
+  const utils = trpc.useUtils();
+  const start = useMutationWithInvalidation(trpc.qc.startReturnInspection, {
+    invalidate: [utils.qc.context, utils.qc.returnContext, utils.order.getById, utils.delivery.packContext, utils.delivery.getByOrderId],
+    onSuccess: () => { toast.success("เปิดตรวจรับคืนแล้ว — ตรวจนับของที่คืนก่อนส่งทดแทน"); onClose(); },
+  });
+  const returnedLines = context.lines.map((line) => ({ deliveryLineId: line.deliveryLineId, qty: quantities[line.deliveryLineId] ?? 0 })).filter((line) => line.qty > 0);
+  const invalid = context.lines.some((line) => (quantities[line.deliveryLineId] ?? 0) > line.available);
+  return <Dialog open onOpenChange={(open) => !open && onClose()}>
+    <DialogContent className="sm:max-w-lg">
+      <DialogHeader><DialogTitle>รับคืนเพื่อตรวจ QC</DialogTitle>
+        <DialogDescription>ใส่จำนวนที่รับคืนจริง ของที่ลูกค้าเก็บไว้ยังนับในใบส่งเดิม</DialogDescription>
+      </DialogHeader>
+      <div className="space-y-3">
+        {context.lines.map((line) => <div key={line.deliveryLineId} className="flex items-center gap-3 rounded-lg border border-divider p-3">
+          <div className="min-w-0 flex-1"><p className="text-sm font-medium">{[line.description, line.color, line.size].filter(Boolean).join(" · ")}</p>
+            <p className="text-sm text-soft">{line.parcelLabel} / {line.trackingNumber || line.recipientName}</p>
+            {line.shippedAt && <p className="text-sm text-soft">ส่ง {formatDate(line.shippedAt)}</p>}
+            <p className="text-sm font-medium text-strong">คืนได้อีก {line.available} ตัว</p>
+          </div>
+          <Input aria-label={`รับคืน ${line.parcelLabel} ${line.description} ${line.size}`} type="number" inputMode="numeric" min={0} max={line.available}
+            className="w-24 text-center" value={quantities[line.deliveryLineId] ?? 0}
+            onChange={(event) => setQuantities((current) => ({ ...current, [line.deliveryLineId]: Math.max(0, Math.floor(Number(event.target.value) || 0)) }))} />
+        </div>)}
+        <label htmlFor="qc-return-reason" className="block space-y-1 text-sm">เหตุผลรับคืน<Textarea id="qc-return-reason" value={reason} onChange={(event) => setReason(event.target.value)} rows={2} maxLength={500} /></label>
+        {invalid && <Alert variant="error">จำนวนคืนเกินของที่อยู่กับลูกค้า</Alert>}
+      </div>
+      <DialogSubmitFooter pending={start.isPending} disabled={invalid || returnedLines.length === 0 || !reason.trim()}
+        submitLabel={`เปิดตรวจรับคืน ${returnedLines.reduce((sum, line) => sum + line.qty, 0)} ตัว`}
+        onCancel={onClose} onSubmit={() => start.mutate({ orderId, reason, returnedLines })} />
+    </DialogContent>
+  </Dialog>;
 }
