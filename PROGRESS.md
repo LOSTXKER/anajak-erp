@@ -61,3 +61,5 @@
 - `npm run dev:demo` port3000 · Docker `anajak-postgres` · `127.0.0.1:5433/anajak_erp_demo`
 - รีเซ็ต demo หลัง QA แล้ว ทุกใบลองกลับจุดเริ่มต้น; ไม่มี Stock credentials และไม่เรียก Anajak Stock
 - ไม่แก้ schema/migration/dependency/env; ใช้ Chrome ที่ล็อกอินเดิม ไม่ล้าง cookie และไม่ bypass auth
+
+- 2026-09-10 — ถอด impeccable (ลบ `.impeccable/`) ตามที่เบสสั่ง "ออกให้หมดทั้งราก" · ดีไซน์ = มาตรฐานของสมอง (skill new-repo §A5 · proto · ด่าน ui-text-gate/proto-sheet-gate)
