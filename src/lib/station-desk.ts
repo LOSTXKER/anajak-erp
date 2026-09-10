@@ -179,7 +179,7 @@ export function stationCards<S extends StationStepLike, O extends BoardOrderLike
 
 export type StationViewer = { id: string | null; canSupervise: boolean };
 
-/** ช่างเห็นเฉพาะงานของตน/ยังไม่มีคนรับ · หัวหน้าเห็นข้ามคน (กติกาเดิมของจอสถานี docs/DESIGN.md) */
+/** ช่างเห็นเฉพาะงานของตน/ยังไม่มีคนรับ · หัวหน้าเห็นข้ามคน (กติกาเดิมของจอสถานี DESIGN.md) */
 export function visibleCards<O, S extends StationStepLike>(cards: readonly StationCard<O, S>[], viewer: StationViewer): StationCard<O, S>[] {
   if (viewer.canSupervise) return [...cards];
   return cards.filter((card) => !card.owner || card.owner.id === viewer.id);

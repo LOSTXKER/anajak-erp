@@ -1,5 +1,5 @@
 /**
- * ด่าน "ลำดับความสำคัญทางสายตา" — ratchet (เพิ่ม 2026-09-02 · docs/DESIGN.md §ลำดับความสำคัญทางสายตา)
+ * ด่าน "ลำดับความสำคัญทางสายตา" — ratchet (เพิ่ม 2026-09-02 · DESIGN.md §ลำดับความสำคัญทางสายตา)
  *
  * นับต่อไฟล์ .tsx ใน src (ยกเว้น test):
  *   dots  = บรรทัดที่ต่อข้อมูล ≥3 อย่างด้วย " · " (มีจุดคั่น ≥2 ตัวในบรรทัดเดียว)
@@ -79,7 +79,7 @@ const baseTotals = Object.values(baseline).reduce(
 );
 
 if (problems.length) {
-  console.log("❌ ลำดับความสำคัญทางสายตาถอยหลัง (docs/DESIGN.md §ลำดับความสำคัญทางสายตา)");
+  console.log("❌ ลำดับความสำคัญทางสายตาถอยหลัง (DESIGN.md §ลำดับความสำคัญทางสายตา)");
   problems.forEach((p) => console.log(`   ${p}`));
   process.exit(1);
 }

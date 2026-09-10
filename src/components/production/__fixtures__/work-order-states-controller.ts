@@ -13,7 +13,7 @@ import { WorkOrderPrimaryButton } from "@/components/production/work-order-contr
 import type { ProductionStep } from "@/components/production/types";
 import { selectNowSteps } from "@/lib/production-step-actions";
 import { evaluateHeatPressGate, productionWorkflowSteps } from "@/lib/production-steps";
-import { QUANTITY, USERS, type Role, type StateFixture } from "./_fixtures";
+import { QUANTITY, USERS, type Role, type StateFixture } from "./work-order-states-fixtures";
 
 const noop = () => {};
 const protoOnly = () => toast.message("หน้าลอง — ปุ่มนี้ไม่บันทึกอะไร เลือกสถานะจากแถบซ้ายแทน");

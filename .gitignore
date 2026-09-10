@@ -49,5 +49,11 @@ prisma/migrations/**/migration_lock.toml
 # editor plan files (Cursor)
 .cursor/plans/
 
-# ของชั่วคราวของเครื่องมือ (proto-shots เขียนที่นี่)
+# ของชั่วคราวของเครื่องมือ
 .cache/
+
+# AI / local — กันความลับ+ไฟล์ส่วนตัวหลุดขึ้น git (มาตรฐาน new-repo · .env และ .cache/ มีด้านบนแล้ว)
+CLAUDE.local.md
+.claude/settings.local.json
+.env.*
+!.env.example

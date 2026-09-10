@@ -6,8 +6,8 @@ import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared
 import { PathnameContext, SearchParamsContext } from "next/dist/shared/lib/hooks-client-context.shared-runtime";
 import { WorkOrderView } from "@/components/production/work-order-page";
 import { ChecklistCard, ticksMissing } from "@/components/production/work-order-checklist";
-import { useProtoController } from "@/app/proto/work-order-states/_controller";
-import { stateOf } from "@/app/proto/work-order-states/_fixtures";
+import { useProtoController } from "@/components/production/__fixtures__/work-order-states-controller";
+import { stateOf } from "@/components/production/__fixtures__/work-order-states-fixtures";
 import { workOrderStandards } from "@/lib/work-order-standards";
 import type { ProductionStep } from "@/components/production/types";
 import type { WorkOrderController } from "@/components/production/work-order-controller";

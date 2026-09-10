@@ -6,7 +6,7 @@
 ## Supabase
 
 - [ ] **ปิด public signup — สำคัญ / ยังไม่ยืนยัน** — `Authentication → Sign In / Providers → ปิด "Allow new users to sign up"` · เดิม (2026-06-13) เปิดอยู่ → anon key เป็น public บนหน้าเว็บ คนนอกสมัครเองได้ session `authenticated` แล้วอัปไฟล์เข้าบัคเก็ตผ่าน INSERT policy ได้ · ระบบสร้าง user ทาง Settings → ผู้ใช้ เท่านั้น **ไม่มีเหตุต้องเปิด signup**
-- [ ] **ทบทวน `Storage → Policies`** — ต้องมีแค่ INSERT policy `erp_staff_upload_designs` (จาก `docs/sql/storage-private-rollout.sql`) · ห้ามมี SELECT/UPDATE/DELETE ให้ anon/authenticated บน `storage.objects` — การอ่าน/ลบทั้งหมดผ่าน service role (`/api/files` signed URL)
+- [ ] **ทบทวน `Storage → Policies`** — ต้องมีแค่ INSERT policy `erp_staff_upload_designs` (จาก `scripts/storage-private-rollout.sql`) · ห้ามมี SELECT/UPDATE/DELETE ให้ anon/authenticated บน `storage.objects` — การอ่าน/ลบทั้งหมดผ่าน service role (`/api/files` signed URL)
 - [x] bucket `designs` เป็น private + anon list/อ่านไม่ได้ + RLS INSERT เฉพาะ authenticated — `verify:supabase` 3/3 ผ่าน 2026-07-03
 - **backup / เอกสารภาษีต้องอยู่ครบ 5 ปี** — เบสเคาะ 2026-07-07: **ไม่อัปเกรด Pro** (แผนฟรีไม่มี backup อัตโนมัติ) → ใช้ **export ในแอป** (ตั้งค่า → สำรองข้อมูล · JSON ทุกตาราง snapshot เดียวกัน + audit) กดเก็บสัปดาห์ละครั้ง + หลังปิดเดือน · backup มือก้อนแรก pg_dump อยู่ที่เครื่องเบส `~/Backups/anajak-erp-db/` (2026-07-07) · ไฟล์ใน storage bucket **ไม่รวมใน export** → ถ้าธุรกิจพึ่งระบบมากขึ้นค่อยทบทวน Pro + PITR (`Database → Backups`)
 

@@ -6,7 +6,7 @@
 import type { ProductionDetail, ProductionStep } from "@/components/production/types";
 import { stationProblemNotes } from "@/lib/production-problem";
 import { workOrderStandards } from "@/lib/work-order-standards";
-import { CASE_4 } from "../work-order-form/_data";
+import { CASE_4 } from "./work-order-form-data";
 
 const DAY_MS = 24 * 60 * 60 * 1_000;
 const fromNow = (days: number, hours = 0) => new Date(Date.now() + days * DAY_MS + hours * 60 * 60 * 1_000);
