@@ -1,5 +1,5 @@
 # DESIGN — Anajak ERP (ฉบับบาง · มาตรฐาน 2026-09-10)
-> ฉบับเต็มเดิม (~90KB · เป็นสมุดคำห้าม 77 จุด) อยู่ใน git: `git show e9640f8:docs/DESIGN.md` · กติกา: ≤4KB · คำห้าม ≤8 · กฎ visual = ผลลัพธ์จากหน้าลองที่เจ้าของเคาะ ไม่ใช่ input ล่วงหน้า
+> ฉบับเต็มเดิม: `git show e9640f8:docs/DESIGN.md` · กติกา: ≤4KB · คำห้าม ≤8 · กฎ visual = ผลลัพธ์จากหน้าลองที่เจ้าของเคาะ
 ## ตัวตนบน UI
 - โรงงานสกรีนเสื้อ: หัวหน้าดูภาพรวม · ทีม ~5 คนบนคอม/มือถือ/จอทัช · ลูกค้า/ร้านนอกเปิดลิงก์ไม่มีบัญชี
 - 2 วินาทีแรกต้องเห็นว่าอะไรสำคัญ — เด่นด้วยขนาด/พื้นจม สีเฉพาะสถานะ
@@ -7,9 +7,9 @@
 ## ground truth ของ token และ component (ชี้ไฟล์ ไม่ลอกค่า)
 - สี/ระยะ/มุม/ตัวอักษร `src/app/globals.css` · ฟอนต์ `src/app/layout.tsx` · class กลาง `src/components/ui/tokens.ts`
 - `src/components/ui/`: `PageShell` (`src/components/page-shell.tsx`) · `DataTable` · `ActionZone` · `Alert` · `Fact` · `Metric` · `InfoChip` · `DueTag` · ม็อกอัพ `src/components/mockup/`
-- ด่าน `verify:ui` (`scripts/verify-ui-tokens.tsx`) · ตัวอย่าง `src/app/(dashboard)/customers/page.tsx`
-- สัญญาหน้า production/station (route/shell · data/command · station · permission · rollback): `docs/production-contract.md` — ไม่ใช่ดีไซน์ ย้ายออกจากไฟล์นี้ 09-10
-## ตอนนี้ใช้อะไร (ทบทวนได้ · เปลี่ยนได้เมื่อเจ้าของเคาะใหม่)
+- ด่าน `verify:ui` (`scripts/verify-ui-tokens.tsx`)
+- สัญญาหน้า production/station (route/shell · data/command · station · permission): `docs/production-contract.md`
+## ตอนนี้ใช้อะไร (ทบทวนได้)
 - ตอนนี้ใช้กฎ 3 ชั้น (โฟกัส 1 → ข้อเท็จจริง → ประกอบ) แทนเทาต่อกันด้วยจุด (เบสสั่ง 2026-09-02)
 - ตอนนี้ใช้คำอธิบาย 3 ระดับ (ไม่บอก/ⓘ/เห็นตลอด) แทนประโยคใต้ช่อง (เบสสั่ง 2026-09-06)
 - ตอนนี้ใช้ `ActionZone` ปุ่มหลักเดียว+เมนู · `Alert` แถบสีข้าง แทนปุ่มอัดกัน/พื้นสีเต็ม (เบสเคาะ 2026-09-03)
@@ -21,4 +21,4 @@
 - แถวตารางต้องสูงเท่า `page-skeleton.tsx` ไม่งั้นจอกระโดด
 - input มือถือ 16px กันซูม · เป้ากด ≥44px บนจอทัช · หน้า ops จาก 320px เลื่อนเฉพาะตาราง
 - บรรทัดไทยบีบด้วย `leading-tight/snug/none` ไม่ได้ (ยกเว้นตัวเลขล้วน)
-- เอกสารขัดกับโค้ด = เชื่อโค้ด: มุมโค้งจริงอยู่ `tokens.ts` (นุ่มเต็มที่ 08-26) · การ์ดแยกด้วยเงา (08-27) แม้ contract 08-23 เขียนอีกแบบ
+- เอกสารขัดกับโค้ด = เชื่อโค้ด (`tokens.ts`: มุมโค้งนุ่ม 08-26 · การ์ดแยกด้วยเงา 08-27)
