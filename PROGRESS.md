@@ -63,3 +63,5 @@
 - ไม่แก้ schema/migration/dependency/env; ใช้ Chrome ที่ล็อกอินเดิม ไม่ล้าง cookie และไม่ bypass auth
 
 - 2026-09-10 — ถอด impeccable (ลบ `.impeccable/`) ตามที่เบสสั่ง "ออกให้หมดทั้งราก" · ดีไซน์ = มาตรฐานของสมอง (skill new-repo §A5 · proto · ด่าน ui-text-gate/proto-sheet-gate)
+
+- 2026-09-10 — มาตรฐาน UI ใหม่ (สมอง new-repo §A5): กติกา UI ใน AGENTS · โครง `/proto` ใหม่ (ProtoCompare วางเทียบข้างกัน · component จริงรับ variant) · `/proto` เปิดได้โดยไม่ login ตอน dev · `.cache/` ใน .gitignore (proto-shots) · ไม่มี engine ดีไซน์ภายนอก

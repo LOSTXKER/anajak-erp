@@ -48,3 +48,6 @@ prisma/migrations/**/migration_lock.toml
 
 # editor plan files (Cursor)
 .cursor/plans/
+
+# ของชั่วคราวของเครื่องมือ (proto-shots เขียนที่นี่)
+.cache/

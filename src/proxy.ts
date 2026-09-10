@@ -5,6 +5,7 @@ import { safeAfterLoginHref } from "@/lib/auth-redirect";
 type CookieToSet = { name: string; value: string; options?: CookieOptions };
 
 export async function proxy(request: NextRequest) {
+  if (process.env.NODE_ENV === "development" && request.nextUrl.pathname.startsWith("/proto")) return NextResponse.next(); // หน้าลอง: ตอน dev เปิดได้โดยไม่ login (มาตรฐาน UI 2026-09-10)
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
