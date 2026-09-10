@@ -65,3 +65,5 @@
 - 2026-09-10 — ถอด impeccable (ลบ `.impeccable/`) ตามที่เบสสั่ง "ออกให้หมดทั้งราก" · ดีไซน์ = มาตรฐานของสมอง (skill new-repo §A5 · proto · ด่าน ui-text-gate/proto-sheet-gate)
 
 - 2026-09-10 — มาตรฐาน UI ใหม่ (สมอง new-repo §A5): กติกา UI ใน AGENTS · โครง `/proto` ใหม่ (ProtoCompare วางเทียบข้างกัน · component จริงรับ variant) · `/proto` เปิดได้โดยไม่ login ตอน dev · `.cache/` ใน .gitignore (proto-shots) · ไม่มี engine ดีไซน์ภายนอก
+
+- 2026-09-10 — docs/DESIGN.md ย่อเป็นฉบับบาง (93KB→4KB · ฉบับเต็มอยู่ใน git) · สัญญาระบบหน้า production/station แยกไป docs/production-contract.md · PRODUCT.md ย่อ · AGENTS ชี้ที่ใหม่

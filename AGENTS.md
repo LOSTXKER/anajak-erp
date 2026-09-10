@@ -32,7 +32,8 @@ stack: Next.js 16.3 + React 19 + tRPC 11 + Prisma 6 + Supabase + Tailwind 4 + sh
 | `SPEC.md` | เกณฑ์ "เสร็จ" · กฎเหล็กข้อมูล · UI ที่เคาะแล้ว · gate | กติกาเปลี่ยน = แก้ที่นี่ก่อนเขียนโค้ด |
 | `PRODUCT.md` | product context สำหรับ skill ดีไซน์ (impeccable) | |
 | `docs/ARCHITECTURE.md` | ของอยู่ตรงไหน วางของใหม่ที่ไหน | อ่านก่อนวางโค้ดใหม่ |
-| `docs/DESIGN.md` | design system + contract หน้า production/station | UI ใหม่ต้องตาม |
+| `docs/DESIGN.md` | ฉบับบาง (มาตรฐาน 09-10): ตัวตน · ground truth ชี้ไฟล์ · ตอนนี้ใช้อะไร · บทเรียนเทคนิค | UI ใหม่ยึด · เอกสารขัดกับโค้ด = เชื่อโค้ด |
+| `docs/production-contract.md` | สัญญาหน้า production/station (route/shell · data/command · station · permission · rollback) | งาน production ต้องตาม |
 | `docs/deploy-checklist.md` | สิ่งที่ต้องทำใน Supabase/Vercel console ก่อนใช้จริง | |
 | `docs/local-demo-data.md` | ฐานทดลอง local (`npm run dev:demo`) | |
 mockup/audit/spec ที่จบแล้ว **ไม่เก็บใน repo** — ดูใน git history (`git log --all -- <path>`) หรือ bestos records · หน้าลอง `/proto` ที่เคาะแล้วเก็บตามสถานะในทะเบียน
@@ -42,7 +43,7 @@ mockup/audit/spec ที่จบแล้ว **ไม่เก็บใน repo
 - **เงิน = Decimal เท่านั้น** (ห้าม Float ใหม่) · เลขเอกสารรันต่อเนื่องผ่าน `DocumentSequence` (ห้ามสุ่ม) · การเงินหลายขั้น = `$transaction` + lock แถว
 - **status เปลี่ยนผ่าน `transitionOrder` / `isValidTransition` ที่ server เท่านั้น** — ห้าม set ตรง · business logic แกน (ราคา/สถานะ/เลขเอกสาร) อยู่ `src/server/services/` · tRPC router = ผิว
 - ใบกำกับภาษี: ออก**ทุกงวดรับเงินรวมมัดจำ** (จ้างทำของ) · ยกเลิก-ออกใหม่เท่านั้น **ห้ามลบ**
-- UI: component มาตรฐานใน `docs/DESIGN.md` · mobile-first หน้า ops · ห้าม `window.prompt/confirm` · Station/TV ห้ามมีเงินโดยโครงสร้าง · ด่าน `npm run verify:ui` ห้ามปิด
+- UI: component มาตรฐาน = `src/components/ui/*` (`tokens.ts` = ground truth · ห้ามสร้างซ้ำ) · mobile-first หน้า ops · ห้าม `window.prompt/confirm` · Station/TV ห้ามมีเงินโดยโครงสร้าง · ด่าน `npm run verify:ui` ห้ามปิด
 - **ไม่ build**: GL/บัญชี · job costing/ต้นทุนต่อออเดอร์ (เบสเคาะ 2026-06-12 — ห้ามเพิ่มช่องเงินใน flow ผลิต/outsource) · DTF auto-nesting · in-app chat · online designer · time-clock · WMS (Anajak Stock มี) — เต็ม+เหตุผล `ROADMAP.md` §จงใจไม่ทำ
 
 ## คำสั่งหลัก
