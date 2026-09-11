@@ -41,18 +41,5 @@
       "Bash(vercel deploy --prod:*)",
       "Bash(npx vercel --prod:*)"
     ]
-  },
-  "hooks": {
-    "SessionStart": [
-      {
-        "matcher": "startup|resume|clear",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/progress-on-start.mjs\""
-          }
-        ]
-      }
-    ]
   }
 }

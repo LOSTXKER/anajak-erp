@@ -1,18 +1,70 @@
-# Anajak ERP
+# Anajak ERP — หลังบ้านโรงงานสกรีนเสื้อ
 
-ระบบหลังบ้านของโรงงานสกรีนเสื้อ Anajak — ออเดอร์ · ใบเสนอราคา · ออกแบบ/อนุมัติแบบ · การผลิตและงานส่งร้านนอก · QC · จัดส่ง · บิล/เอกสารภาษี/ลูกหนี้ · เชื่อมระบบคลัง Anajak Stock
+ระบบจัดการงานของโรงงาน Anajak ตั้งแต่รับออเดอร์ อนุมัติแบบ ผลิต ส่งร้านนอก ตรวจคุณภาพ แพ็กและส่งสินค้า ไปจนถึงวางบิล รับเงิน และติดตามลูกหนี้
 
-Next.js 16 · React 19 · tRPC · Prisma (PostgreSQL บน Supabase) · Tailwind CSS 4
+เจ้าของและหัวหน้างานใช้ดูภาพรวม ฝ่ายขาย กราฟิก คลัง และช่างใช้ทำงานตามสิทธิ์บนคอมพิวเตอร์ มือถือ หรือจอทัช ลูกค้าและร้านนอกดูหรือยืนยันงานผ่านลิงก์เฉพาะโดยไม่ต้องมีบัญชีพนักงาน โรงงานยังใช้กระดาษร่วมกับระบบ; ขอบเขตที่ต้องบันทึกในระบบอยู่ใน [SPEC](SPEC.md)
 
-## รันบนเครื่อง
-1. Node 24 (ตรงกับ CI) + npm → `npm ci`
-2. คัดลอก `.env.example` เป็น `.env` แล้วเติมค่า (Supabase + PostgreSQL)
-3. `npm run dev` → http://localhost:3000
+## งานหลักและระบบที่เชื่อม
 
-- ฐานข้อมูลใหม่: `npm run db:migrate` → `npm run db:seed` (master data) → สร้างเจ้าของคนแรกด้วย `scripts/create-owner.ts`
-- ฐานทดลองในเครื่อง (Docker): `npm run db:seed:demo` แล้ว `npm run dev:demo` — ดู `docs/local-demo-data.md`
-- ด่านก่อน commit: `npm run typecheck && npm run lint && npm test && npm run verify:ui`
+| งาน | สิ่งที่ระบบดูแล |
+|---|---|
+| ขายและแบบ | ลูกค้า ใบเสนอราคา ออเดอร์เสื้อสำเร็จ/สั่งผลิต ลายพิมพ์และเวอร์ชันแบบ ลิงก์อนุมัติ |
+| ผลิต | ใบผลิต ขั้นงาน ผู้รับผิดชอบ จำนวนดี/เสีย วัตถุดิบ รอบพิมพ์ DTF และการส่งร้านนอก |
+| คุณภาพและส่งของ | QC งานแก้ แพ็กแยกสินค้า/สี/ไซซ์ ใบส่งของ การคืนและส่งทดแทน |
+| การเงิน | ใบกำกับ/ใบเสร็จ ใบวางบิล CN/DN เงินรับและหัก ณ ที่จ่าย ลูกหนี้ และไฟล์ส่งต่อบัญชี |
+| ดูแลระบบ | สิทธิ์พนักงาน การตั้งค่า บันทึกการเปลี่ยนแปลง สำรองข้อมูล และ MCP ตามสิทธิ์ |
 
-## กติกาและเอกสาร
-- กติกาการทำงาน · โครงสร้าง · คำสั่ง → `AGENTS.md`
-- อะไรคือ "เสร็จ" → `SPEC.md` · งานค้าง → `ROADMAP.md` · สถานะล่าสุด → `PROGRESS.md` · ดีไซน์ → `PRODUCT.md` + `DESIGN.md`
+- **Anajak Stock:** เชื่อมการจอง เบิก/คืน และข้อมูลสินค้า ผ่าน `/api/erp/*` กับ `X-API-Key`; ตั้งค่าที่ Settings → Stock เป็นหลัก ค่า env เป็นสำรอง
+- **Supabase:** PostgreSQL, บัญชีเข้าใช้ และไฟล์ใน Storage ส่วนตัว
+- **Vercel:** โฮสต์เว็บและงานตามเวลา; การปล่อยงานต้องแยกจากการตรวจในเครื่อง
+- **เว็บสั่งสกรีนในอนาคต:** ออเดอร์ธรรมดาและ custom ต้องเข้าออเดอร์/กระบวนการเดียวกัน เป้าหมายนี้ยังเป็นแผนใน [ROADMAP](ROADMAP.md) ไม่ใช่ช่องทางขายที่เอกสารนี้รับรองว่าเปิดแล้ว
+
+ระบบนี้ไม่ใช่บัญชีแยกประเภทหรือระบบคิดต้นทุนต่องาน ดูขอบเขตเต็มใน [SPEC](SPEC.md) และดูงานปัจจุบัน/ผลตรวจ/จุดทำต่อที่ [ROADMAP](ROADMAP.md) เพียงแห่งเดียว
+
+## เริ่มพัฒนา
+
+ใช้ Node.js 24 ตาม CI และ npm เทคโนโลยีหลักคือ Next.js App Router, React, tRPC, Prisma, Tailwind และ Vitest; รุ่นที่ติดตั้งจริงอยู่ใน [package.json](package.json) และ lockfile
+
+1. ติดตั้งด้วย `npm ci` (สร้าง Prisma Client ให้อัตโนมัติ)
+2. เตรียมค่าจาก [.env.example](.env.example) ลง `.env` ของเครื่อง และตรวจว่า Database, Auth, Storage และ Stock ชี้ระบบใดก่อนเริ่ม ค่าใช้งานจริงไม่เก็บใน Git
+3. เริ่มด้วย `npm run dev:demo` เมื่อมีฐานทดลองพร้อมตามหัวข้อถัดไป หรือใช้ `npm run dev` เมื่อตั้งใจเชื่อมระบบตาม `.env` แล้ว เว็บเริ่มที่ `http://localhost:3000`
+
+| คำสั่ง | ใช้เมื่อ |
+|---|---|
+| `npm run typecheck` | สร้างชนิด route แล้วตรวจ TypeScript |
+| `npm run lint` | ตรวจโค้ดและข้อกำหนด UI |
+| `npm test` | รัน unit tests ที่ `src/**/*.test.ts` |
+| `npm run verify:ui` | ตรวจ token ลำดับความเด่น และใบผลิตแบบ local |
+| `npm run build` | สร้าง Prisma Client และ build เว็บ; ไม่ apply migration |
+
+CI ใน [.github/workflows/ci.yml](.github/workflows/ci.yml) รัน install, lint, typecheck และ test บน PR/push main การตรวจ build, หน้าจอ และระบบจริงต้องมีหลักฐานแยก
+
+### ฐานทดลอง
+
+ตัวรัน [scripts/run-local-demo.ts](scripts/run-local-demo.ts) อ่านค่าเชื่อมต่อจาก Docker container `anajak-postgres` โดยไม่พิมพ์รหัสผ่าน และล็อกเป้าที่ `127.0.0.1:5433/anajak_erp_demo` ตาม [demo-seed-plan.ts](src/lib/demo-seed-plan.ts)
+
+ครั้งแรกต้องมีฐานที่ apply migrations ครบ และ active OWNER ที่ `supabaseId` ตรงกับบัญชีผู้ทดสอบ ตัว seed ไม่สร้างบัญชี Supabase ให้เอง ใช้ `npm run dev:demo` เพื่อเปิดเว็บ และ `npm run db:seed:demo` เมื่อต้องการ **ล้างข้อมูลธุรกิจในฐานทดลองแล้วสร้างใหม่** โดยเก็บ User mapping และ master data ที่กำหนดไว้
+
+ตัวรันตั้ง `ANAJAK_ERP_DEMO_MODE=1` และตัด Stock credentials; seed ปฏิเสธฐานที่ยังมี Stock credentials สินค้าทดลองเป็น `DEMO-*` และการเบิก/คืนเป็น ledger ในฐานทดลอง ไม่มีการ sync สินค้าจาก Stock
+
+- ชุดข้อมูลหลัก: [seed-demo.ts](prisma/seed-demo.ts) ครอบคลุมออเดอร์ แบบ ผลิต QC การส่ง และเอกสารเงิน
+- ใบสำหรับกดจากขั้นแรก: `FORM_ROUTES` ใน [seed-demo-form-states.ts](prisma/seed-demo-form-states.ts); เปิด `/production/demo-production-form-<key>` เช่น `press`, `receive`, `dtf`, `dtf-batch`
+- ลองเบิก/คืน: `/production/demo-production-stock-pick-ready` ใช้ยอดและเอกสารที่หน้าจอแสดง; ลองของขาดที่ `/orders/demo-order-blocked-stock`; reset ฐานทดลองได้เมื่ออยากเริ่มใหม่
+- ค่าเริ่มต้น seed เป็นใบผลิตแบบเดิม ซ้อมข้อมูล V2 ได้ด้วย `DEMO_PRODUCTION_V2=1 npm run db:seed:demo` แต่คำสั่งนี้ไม่เปิด feature flag ของเว็บ; ฟอร์มเดิมปฏิเสธการเปลี่ยนสถานะใบที่ V2 เป็นเจ้าของ ดูเงื่อนไขซ้อมใน ROADMAP §B
+
+**สคริปต์ตรวจที่ต่อระบบจริง:** `verify:*` หลายตัวโหลด `.env` และสร้าง/ลบข้อมูลใน Database, Auth หรือ Storage การเปลี่ยนเฉพาะ `DATABASE_URL` ไม่ทำให้ปลอดภัยครบทุกระบบ ต้องตรวจ env ทั้งชุดและโค้ดสคริปต์ก่อนใช้ `verify:ui` เป็นการตรวจ local; `verify:printrun` มีด่านฐานทดลองของตัวเอง; `verify:manufacturing-v2` ใช้ได้เฉพาะฐานทิ้งได้พร้อม sentinel และ token ส่วน `verify:backup`/`verify:supabase` อ่านระบบตาม env จึงไม่ใช่ unit tests
+
+### ข้อมูลและการสำรอง
+
+`npm run db:migrate` ใช้ migration สำหรับพัฒนา และ `npm run db:seed` เติม master data แบบไม่ล้างข้อมูลธุรกิจ ทั้งคู่ใช้ฐานตาม env จึงต้องระบุเป้าหมายและมีสำรองก่อนใช้กับฐานร่วม/ฐานจริง ห้ามใช้ reset หรือ `db:push` กับฐานดังกล่าว
+
+แผนสำรองที่เลือกใช้คือ Settings → สำรองข้อมูล: export JSON ของตารางใน snapshot เดียวพร้อม audit เก็บสัปดาห์ละครั้งและหลังปิดเดือน **ไฟล์ใน Storage ไม่รวมใน JSON** ต้องเก็บไฟล์แยกและตรวจการกู้คืน ไม่ถือว่ามี backup อัตโนมัติโดยยังไม่ตรวจบัญชีผู้ให้บริการ
+
+## อ่านต่อ
+
+- [SPEC.md](SPEC.md) — พฤติกรรมและเกณฑ์รับระบบ
+- [ROADMAP.md](ROADMAP.md) — งานปัจจุบัน ผลตรวจ จุดติดขัด คิว และงานพัก
+- [AGENTS.md](AGENTS.md) — กติกาพัฒนาและจุดสำคัญของโค้ด
+- [DESIGN.md](DESIGN.md) — ทิศหน้าตาที่เลือกใช้และแหล่ง token
+
+เครื่องที่ติดตั้ง BestOS ใช้ hook ระดับเครื่องโหลดบริบท/สถานะจาก ROADMAP ส่วน repo นี้เก็บข้อห้ามเฉพาะ Claude Code ใน `.claude/settings.json` การเปิด repo ในโปรแกรมหรือเครื่องอื่นไม่ได้ติดตั้ง hook ให้เอง

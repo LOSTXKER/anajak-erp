@@ -17,7 +17,7 @@ export function AddCard({
 }: {
   icon: LucideIcon;
   label: string;
-  /** บรรทัดรอง — ปกติไม่ใส่ (DESIGN.md §คำอธิบายในหน้าจอ ระดับ 1) */
+  /** บรรทัดรอง — ปกติไม่ใส่ (DESIGN.md §ตอนนี้ใช้อะไร) */
   desc?: string;
   onClick: () => void;
 }) {

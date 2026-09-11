@@ -1,5 +1,5 @@
 // Supabase security audit (Gate B15) — เช็คส่วนที่ service role ตรวจได้เอง
-// รัน: npm run verify:supabase · ส่วนที่ต้องทำใน console (signup/PITR/backup) ดู docs/deploy-checklist.md
+// รัน: npm run verify:supabase · ส่วนที่ต้องทำใน console (signup/policy/backup) ดู ROADMAP.md §D
 import { createAdminClient } from "@/lib/supabase-admin";
 import { createClient } from "@supabase/supabase-js";
 
@@ -30,9 +30,9 @@ async function main() {
   });
 
   console.log(`\n${pass} passed, ${fails.length} failed`);
-  console.log("⚠️ ส่วนที่สคริปต์เช็คไม่ได้ (ต้องทำ/ยืนยันใน Supabase Console) — ดู docs/deploy-checklist.md:");
+  console.log("⚠️ ส่วนที่สคริปต์เช็คไม่ได้ (ต้องทำ/ยืนยันใน Supabase Console) — ดู ROADMAP.md §D:");
   console.log("   - ปิด public signup (Authentication → Sign In/Up)");
-  console.log("   - เปิด PITR + ตั้ง retention ให้เอกสารภาษีอยู่ครบ 5 ปี (Database → Backups)");
+  console.log("   - ตรวจสำรอง JSON ในแอป + Storage แยก และการกู้คืนตาม README.md");
   if (fails.length > 0) process.exit(1);
 }
 

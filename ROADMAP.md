@@ -1,63 +1,61 @@
-# Anajak ERP — ROADMAP (แผนโค้ด · ไม่ใช่แผนธุรกิจ)
-> งานที่ยังเปิดเท่านั้น · 3 ช่อง: ตอนนี้ทำ · คิว · พักไว้ · งานเสร็จลบออก (ไม่ติ๊กเก็บ · ประวัติอยู่ git) · เพดาน 20KB
-> รหัสใบงานที่โค้ดอ้างแต่ปิดแล้ว (A9.x · A13 ฯลฯ) และรายละเอียดรอบเก่า: `git show 42c408a:ROADMAP.md` · แผนธุรกิจ + เหตุผลที่จงใจไม่ทำ: สมองของ Nami `records/projects/anajak-erp/plan.md`
+# Anajak ERP — งานและสถานะ
 
-## ตอนนี้ทำ — Milestone: ใบผลิตพร้อมใช้จริง แล้วขึ้น main
-> A16 (ตรวจ+แก้ flow ผลิตครบวงจร) อยู่บน branch `codex/production-flow-audit-20260910` ยังไม่ merge · V2 ยังปิด · หน้าลอง `/proto` ทั้งหมดถูกลบ 2026-09-11 (เบสสั่ง · ของเดิม `git show 42c408a:src/app/proto/`)
-- [ ] A4 เบสไล่ demo 12 เส้นทาง `/production/demo-production-form-<key>` (รายชื่อ `FORM_ROUTES` ใน `prisma/seed-demo-form-states.ts`) + ซ้อม 2 บทบาท (บัญชีหัวหน้า → ใบผลิต แก้ให้/แจ้งปัญหา · บัญชีช่าง → ล็อกอินแล้วตกที่ `/production/floor`) แล้วลองกับพนักงานจริง
-- [ ] review branch codex → เบสกด merge → ตรวจ CI / deploy / เว็บจริง แยกจากผล local · branch `repo-standard-2026-09-10` merge หลังหรือพร้อมกัน
-- [ ] A5 กระดาษ: เบสตอบ 2026-09-11 "ยังใช้กระดาษอยู่ แต่ผสมกัน" (ไม่ได้เลิก · ใบผลิตแบบฟอร์มปิดทุกขั้นด้วยปุ่ม 2026-09-08 · `sendToQc` ไม่ถือว่าผ่านแทน 2026-09-10) → ถามเบสก่อนว่าขั้นไหนจดกระดาษ ขั้นไหนกดในระบบ แล้วแก้ข้อความที่ยังอธิบายแบบเก่า: `src/app/(print)/print/job-ticket/[id]/page.tsx` ("ขั้นที่จดบนกระดาษถือว่าผ่าน") + หัวไฟล์ `src/lib/work-order-record-mode.ts` · คำถาม A5 ที่ค้าง (กระดาษต่อใบผลิตหรือต่อกอง · QC เสียแล้วรีดใหม่จดที่ไหน · จำฉบับใบที่พิมพ์ = schema) ทบทวนหรือพับ · ห้ามถอดการเตือน QR ใบเก่า `?mockup=` (SPEC §การผลิต)
-- [ ] ยอดร่างใบผลิต: เทสต์ Back/Forward แบบ SPA
+เก็บเฉพาะงานที่ยังเปิด งานเสร็จลบออก ประวัติอยู่ Git; พฤติกรรมที่ต้องรักษาอยู่ [SPEC](SPEC.md) คงรหัสเดิมให้ค้นจากโค้ดได้ ใช้ไฟล์นี้เป็นแผนและจุดรับงานต่อเพียงแห่งเดียว
+
+## ตอนนี้ทำ — ทดลองใบผลิตและเตรียมปล่อย A16
+
+- **ทำถึงไหน:** จัดเอกสาร/ย้ายสถานะเข้า ROADMAP แล้วบน codex/erp-new-repo-standard-20260911; โค้ด A16 ฐาน a41edbd ยังรอรับงาน/ปล่อยจริง
+- **ตรวจแล้ว:** 2026-09-11 typecheck/test 1,823/verify:ui ผ่าน; lint 0 errors, 23 warnings; ลิงก์/ตัวอ่าน ROADMAP ผ่าน (ขอบเขตด้านล่าง)
+- **ติดอะไร:** ยังไม่ตรวจ Production ด้วยบัญชีทีม/Back–Forward แบบ SPA; เบสยังใช้กระดาษผสมระบบและยังไม่ซ้อม V2
+- **ทำต่อ:** ทดลอง A4/A16 ด้านล่างก่อนเสนอ merge branch; หลังอนุมัติตรวจ CI/deploy/Production โดยคง V2 ปิด
+
+หลักฐานรอบนี้: 179 test files ผ่าน; verify-work-order-ui 35 ผ่าน; AST ของไฟล์ TS/TSX ที่แก้มีเฉพาะ comment/ข้อความชี้เอกสาร; fixture และตัวประกอบการ์ดจริงอ่าน ROADMAP ได้ ไม่ได้เริ่ม session ใหม่เพื่อทดสอบ hook event หรือเปิด DB/Production ผล local A16 เดิมอ่านด้วย `git show 054a46e:PROGRESS.md`
+
+- [ ] **A4:** ลองทุกเส้นทางใน `FORM_ROUTES` (`prisma/seed-demo-form-states.ts`) ด้วยบัญชีหัวหน้า/ช่าง แล้วเดินกับพนักงานจริง หัวหน้าต้องทำครบจากใบผลิต ช่างลงที่ `/production/floor`
+- [ ] **A16:** ตรวจยอดร่างเมื่อ Back/Forward แบบ SPA; review งานบน branch ก่อนเสนอ merge และตรวจ CI/deploy/Production หลังอนุมัติ ผล local เดิมไม่ปิดรายการนี้
+- [ ] **A5:** ระบุขั้นที่จดกระดาษ/กดระบบ ต่อใบหรือต่อกอง, จุดบันทึก QC เสีย/ใบแก้ และฉบับพิมพ์ก่อนเปลี่ยน flow (schema ต้องเคาะ) แก้ข้อความเก่าที่บอกส่ง QC แล้วปิดขั้นกระดาษให้เองในใบพิมพ์และ `work-order-record-mode.ts`; คง parser `[ถือว่าผ่าน]` เพื่ออ่านประวัติและคำเตือน QR `?mockup=` ห้ามย้อน server ให้ปิดขั้นค้างแทนผู้ใช้
 
 ## คิว
 
-### A2 · A3 หน้างานและรายการผลิต (ค้างจากรอบรื้อ 2026-09-02)
-- [ ] หน้าลงมือ QC / แพ็กสุดท้ายบนจอหน้างาน (ตอนนี้การ์ดพาไปหน้าออเดอร์ — `src/components/station/station-screen.tsx`) · สแกน QR ที่สถานี QC ยังไปหน้าลงมือของสถานี
-- [ ] PIN ต่อคนบนจอร่วม (auth — ถามก่อน) · ทางกลับจากหน้างานไป My Tasks/แจ้งเตือนของช่าง (เบส 2026-09-11: ค่อยว่ากัน)
-- [ ] สถานีอ่านจาก work center ในหน้าตั้งค่าเมื่อ V2 cutover (`src/lib/station-desk.ts`)
-- [ ] คลังฟิล์มยังไม่มีทางเข้า · `manufacturing.controlList` / `manufacturing.workOrder` ยังไม่ต่อจอ · ตารางผลิตบนมือถือเลื่อนแนวนอน (ทำเมื่อเบสยืนยันว่ามีคนใช้มือถือ)
-- [ ] ข้อกำหนดต่อขั้นยังเป็นตารางนิ่ง `src/lib/work-order-standards.ts` — ย้ายเข้าสูตรขั้นงาน `/settings/routings` = แก้ schema (ถามก่อน)
+1. [ ] **A2 — QC/แพ็ก:** ทำจอลงมือ QC/แพ็กสุดท้ายและทาง QR ของ QC; `station-screen.tsx` ยังพาไปหน้าออเดอร์
+2. [ ] **A2 — จอร่วม:** PIN ต่อคนบนจอร่วม แตะ auth ต้องมีขอบเขตที่เคาะแล้ว; เรื่องนี้ยังอยู่คิวแม้ทางกลับหน้างานถูกพัก
+3. [ ] **A2/A3 — หลัง V2 cutover:** สถานีอ่าน work center จาก settings แทนตารางนิ่ง และต่อ `manufacturing.controlList/workOrder` เข้าจอ
+4. [ ] **A3 — ทางเข้าหน้างาน:** ทางเข้า “คลังฟิล์ม”; ตารางผลิตมือถือปรับเมื่อยืนยันว่ามีผู้ใช้งานจริงบนมือถือ
+5. [ ] **A2 — ข้อกำหนดขั้น:** ย้ายมาตรฐานใน `work-order-standards.ts` ไปสูตร `/settings/routings`; schema ต้องเคาะก่อน
+6. [ ] **B1–B3 / PV2.8 — เปิดใช้ V2:** ตามรายละเอียด §B ด้านล่าง; เบสตอบ 2026-09-11 ว่า “ยังไม่ซ้อม”
+7. [ ] **B4 — หลัง cutover:** QC rework ระบุ target work center; DTF partial/waste/reprint event; owner/plan/SLA/audit actor; supervisor material recovery; WIP ของ QC/final pack
+8. [ ] **MFG1–MFG3 — ตัวชี้วัดโรงงาน:** อ่านอย่างเดียว ไม่เพิ่ม schema/เงิน; ส่งตรงเวลาเทียบ `Delivery.shippedAt` กับ `Order.deadline` (ไม่มี deadline ไม่นับ และต้องเคาะวิธีนับแบ่งส่ง), ทำถูกครั้งแรก = good/(good+defect), เลือกเดือนไทย; แสดงสาเหตุเสีย `QcDefect.reason`/ป้าย `qc.ts` แยกไซซ์/สี/ลายและรูป; pure functions + tests กรณีขอบ + 1440/390 สองธีม + เติม SPEC
+9. [ ] **D · B6/B16 — ตรวจรับระบบ:** นักบัญชี พนักงาน และ console ตามรายละเอียด §D ด้านล่าง ผลแต่ละส่วนต้องมีหลักฐานแยก
+10. [ ] **C1/C2/C5/C6 — หลังใช้จริงประมาณหนึ่งเดือน:** pricing service ตามจำนวน×เทคนิค×ตำแหน่ง/ราคาลูกค้าเพื่อ P4; เตือนใบเสนอ/แบบ/INQUIRY/ร้านนอกค้างเกิน N วัน; เก็บ UX ปฏิบัติการหลัง cutover; LINE OA
+11. [ ] **E2/F — UI เมื่อแตะไฟล์:** เคาะภาพรวม/แถบสถานะออเดอร์ก่อนเปลี่ยน; ลด baseline ด้วย Fact/Metric/DueTag และถอด class ซ้ำใน Alert; factory alpha/จอทัชจริง, quotations/new → Section/Field, settings labels, dashboard width, addon labels และ lint เดิม; ประวัติละเอียดในใบผลิตยังพาไปออเดอร์ ให้ทบทวนเมื่อแตะ UX โดยรักษาข้อมูลและ logic
+12. [ ] **B15/PERM — สิทธิ์/ความปลอดภัย:** CSP ที่ยังรองรับ inline Next และ Supabase signed image; ย้าย router `requireRole` → `requirePermission` เมื่อแตะไฟล์
+13. [ ] **F — ข้อมูล:** ตรวจโค้ดล่าสุดก่อนแตกงานและ tests: เชื่อม inquiry→ใบเสนอ→ออเดอร์/รายการจริงแทน `quotationSkeletonItems` (เกี่ยว P4); `recordPayment` เตือนเมื่อใบอยู่บนใบวางบิลแล้ว
+14. [ ] **F — เก็บกวาด:** ตรวจ caller ก่อนลบ `order-info-edit-dialog`, `order-items-editor`, `orders/new/product-adaptive-card` และปรับ verify-ui-tokens/baseline ใน commit เดียวเมื่อจำเป็น; Stock เลือก location เมื่อ ERP ไม่ระบุแทนค่าใน `stock-constants.ts`
+15. [ ] **P2–P4 — ทบทวนก่อนเริ่ม:** P2 หลัง cutover = per-item/waste/reprint, AP ร้านนอก/WHT ขาจ่าย 3%/50ทวิ/ภงด53, stock reservation/ใบแพ็ก; P3 = portal/OA/ทวงหนี้/WIP/CRM/โควตาแก้แบบ+ล็อก/strike-off/preflight/analytics; P4 = ออเดอร์เว็บธรรมดา+custom เข้า flow เดียวกับหน้าร้านโดยใช้ชนิดออเดอร์/แหล่งเสื้อ/design/approval/payment เดิม, MCP ตามสิทธิ์/ฟอร์มไซซ์ และ e-Tax/PEAK/courier เมื่อปริมาณงานคุ้ม
 
-### B. Cutover Production V2 (PV2.8 · เสี่ยงสูง · เบสอนุมัติทุกขั้น)
-> เว็บจริงยังเป็นแบบเดิม (`PRODUCTION_V2_ENABLED=0`) · ฐานจริงยังไม่ seed routing/work center · ซ้อมบนฐานทดลองด้วย `DEMO_PRODUCTION_V2=1 npm run db:seed:demo`
-- [ ] B1 เบสซ้อมบนฐานทดลอง: เปิดใบจากสูตรมาตรฐาน → กดทีละขั้นบนจอหน้างาน (รวมส่งร้านนอก · QC ไม่ผ่าน/งานแก้ · แพ็กแยกไซซ์) → บอกจุดที่ไม่ตรงหน้างาน · จากการซ้อม 2026-09-01: รายงานผลผลิตต้องแยกตาม quantity line · DTF เริ่มจากรอบพิมพ์ที่ผูกหลักฐาน · เดิมรอ "จอสถานีใหม่" — `/production/floor` มีแล้ว · เบสตอบ 2026-09-11: ยังไม่ซ้อม
-- [ ] B2 แก้ตามที่ซ้อมเจอ (แตก task ใต้ข้อนี้) · ฟอร์มใบผลิตยังขับใบ V2 ไม่ได้ (`lockProductionStepScope` ปฏิเสธ)
-- [ ] B3 ก่อนเปิด flag: รัน `scripts/verify-production-v2-migration.sql` บนฐานทิ้งได้หลัง `prisma migrate deploy` (สคริปต์ยัง INSERT `orders.title` ที่ลบแล้วใน migration `20260830120000_drop_job_title` → รันไม่ผ่านจนกว่าจะแก้ ดู §F) + `npm run verify:manufacturing-v2` บนฐานทิ้งได้ที่มี sentinel / `PRODUCTION_V2_VERIFY_TOKEN` · ห้าม merge main/deploy cutover ก่อนเบสรับ walkthrough B1 → seed routing + work center ลงฐานจริง (additive) → backup → เปิด flag → ลบ UI/writer แบบเดิมหลังพ้นช่วงย้อนกลับ (ลบ `src/lib/production-v2-flag.ts` พร้อมกัน · ด่านใน `order.updateStatus` ต้องคงไว้แบบไม่มีเงื่อนไข ห้ามลบไปพร้อม flag)
-- [ ] B4 ของที่ V2 ยังขาด (ปิดหลัง cutover): QC rework target work center · DTF partial/waste/reprint event · owner/plan/SLA/audit actor read model · supervisor material recovery · WIP ownership ของ QC/final pack
+### B — เงื่อนไขเปิดใช้ Production V2
 
-### C. MFG ตัวชี้วัดฝ่ายผลิต (เบสสั่ง 2026-08-15 · อ่านอย่างเดียว · ไม่เพิ่ม schema · ไม่มีเงิน)
-- [ ] MFG1 หน้าเดียว 2 ตัวเลข: ส่งตรงเวลา % (ออเดอร์ที่ส่งในงวด — วันส่งอยู่ที่ `Delivery.shippedAt` (Order ไม่มีช่องนี้ · เคาะว่านับใบส่งใบไหนเมื่อแบ่งส่ง) เทียบ `Order.deadline` · ไม่มี deadline ไม่นับ) + ทำถูกครั้งแรก % (`Σ qtyGood / (Σ qtyGood + Σ qtyDefect)`) · เลือกงวดเดือนไทยแบบ `/billing/tax`
-- [ ] MFG2 ของเสียตาม `QcDefect.reason` ในงวด แยกไซซ์/สี/ลาย + เปิดรูป · ป้ายสาเหตุจาก `src/lib/qc.ts` (ห้ามประกาศ map ใหม่)
-- [ ] MFG3 pure function แยกจาก router + unit test เคสขอบ (งวดว่าง · ไม่มี deadline · หารศูนย์ · ยังไม่ส่ง · ยกเลิก) · จอ 1440/390 สองธีม · เพิ่มเกณฑ์ใน `SPEC.md`
+**B1:** ซ้อมบนฐานทดลอง สูตร→สถานี→ร้านนอก→QC เสีย/งานแก้→แพ็กตามไซซ์ รวม quantity line และหลักฐาน DTF คำตอบ “ยังไม่ซ้อม” ไม่ใช่ยกเลิก V2 และไม่ใช่อนุมัติเปิดจริง
 
-### D. Gate ก่อนใช้จริง
-- [ ] B6 นักบัญชีรีวิว template ใบกำกับ/CN/DN + เลขรัน จากเอกสารพิมพ์จริง
-- [ ] B16 walkthrough ของจริงกับทีม (login จริงบน Production) + นักบัญชีดูเอกสารเงินพิมพ์จริง 1 รอบ
-- [ ] เบสทำใน console ข้อที่ยังไม่ติ๊กใน `docs/deploy-checklist.md`: ปิด public signup ของ Supabase · ทบทวน Storage policies · rate-limit หน้า public token ด้วย Vercel Firewall · env บน Vercel ตั้ง `CRON_SECRET` และคง `PRODUCTION_V2_ENABLED=0`
+**B2:** แก้ผลจากการซ้อมก่อนรับงาน ฟอร์ม legacy ยังปฏิเสธ `executionEnabled` ผ่าน `lockProductionStepScope`; อย่าถือว่าฟอร์ม A16 ขับใบ V2 ได้แล้ว
 
-### E. หลังใช้จริง ~1 เดือน (ดูข้อมูลจริงก่อนสร้าง)
-- [ ] C1 pricing engine ใบเสนอ (qty break × เทคนิค × ตำแหน่ง + ราคาต่อลูกค้า) เป็น service เรียกซ้ำได้ — ฐานราคาออเดอร์เว็บ P4 (`src/server/services/pricing.ts` วันนี้เป็นสูตรยอดรวม)
-- [ ] C2 stale sweep: ใบเสนอ SENT / แบบรอลูกค้า / INQUIRY / ร้านนอกเลยกำหนด ค้างเกิน N วัน → แจ้งเตือน (โครง cron + notification มีแล้ว)
-- [ ] C5 UX ฝั่งปฏิบัติการที่เหลือหลัง cutover · C6 แจ้งเตือนผ่าน LINE OA
+**B3:** แก้ `scripts/verify-production-v2-migration.sql` ที่ยัง INSERT `orders.title` ซึ่ง migration `20260830120000_drop_job_title` ลบไปแล้ว แล้วตรวจ migration/manufacturing บนฐานทิ้งได้พร้อม sentinel และ `PRODUCTION_V2_VERIFY_TOKEN` รับ walkthrough ก่อน deploy cutover ให้เบสอนุมัติ target+backup **ก่อน** apply migration/seed routing/work center แล้วค่อยเปิด flag ทีละขั้น เมื่อพ้นช่วงย้อนกลับจึงถอด legacy/flag โดยคง ownership gate ของ `order.updateStatus`
 
-### E2. ลำดับความสำคัญทางสายตา
-- [ ] หน้าออเดอร์ `/orders/[id]` แท็บภาพรวม + แถบสถานะ → ให้เบสเคาะทางก่อน
-- [ ] ลดตัวเลขใน `scripts/ui-hierarchy-baseline.json` ตอนแตะไฟล์: "ป้าย: ค่า" → `Fact` · ตัวเลขนำ → `Metric` · กำหนดส่ง → `DueTag` แล้ว `npx tsx scripts/ui-hierarchy-ratchet.ts --update` · `Alert` ที่ยังใส่ `text-xs`/สีเองใน children ถอด class ตอนแตะไฟล์
+Gate นี้คุมการ cutover V2; การปล่อย A16 ที่ V2 ปิดใช้การตรวจรับของตนเอง ไม่ถือว่าต้องเปิด V2 ไปพร้อมกัน
 
-### F. หนี้ (ทำตอนแตะไฟล์ หรือเปิดใบงานเมื่อถึงคิว — อย่าแก้เงียบ)
-- [ ] B15 ตั้ง Content-Security-Policy ใน `next.config.ts` (ไล่ทดสอบ inline script/style ของ Next + รูปจาก Supabase signed URL ก่อน)
-- [ ] PERM router ที่ยังใช้ `requireRole` เปลี่ยนเป็น `requirePermission` ตอนแตะไฟล์ (`grep -rl "requireRole(" src/server/routers`)
-- [ ] โค้ดที่แอปไม่เรียกแล้ว รออนุญาตลบ (ลบเมื่อไหร่ต้องแก้รายชื่อใน `scripts/verify-ui-tokens.tsx` + entry ใน `scripts/ui-hierarchy-baseline.json` ในคอมมิตเดียวกัน ไม่งั้น verify:ui พัง): `src/components/orders/order-info-edit-dialog.tsx` · `src/components/orders/order-items-editor.tsx` · `src/components/orders/new/product-adaptive-card.tsx`
-- [ ] UI: `/factory` ใช้สี alpha ดิบ · ยังไม่ตรวจกับจอทัชโรงงานจริง · `/quotations/new` ยังใช้ Card รุ่นเก่า → `Section`/`Field` (คง logic แปลงเป็นออเดอร์) · settings ยังมี label ดิบ · หน้าแรก dashboard ซ่อน `max-w-6xl` (`src/components/dashboard/dashboard-home.tsx`) · รหัสส่วนเสริม (SIZE_LABEL ฯลฯ) เป็นศัพท์ภายใน · lint warning เก่าเก็บตอนแตะไฟล์ ห้ามเพิ่มใหม่
-- [ ] ข้อมูล (ต้องมีใบงาน + test · ยังไม่ verify กับโค้ดล่าสุด): inquiry ↔ ใบเสนอ ↔ ออเดอร์ไม่ผูกกัน + `convertToOrder` ได้รายการแค่โครง (`quotationSkeletonItems` · productType OTHER ไม่มีลาย/จุดพิมพ์) (เกี่ยว P4) · `recordPayment` ไม่เตือนว่าใบอยู่บนใบวางบิลแล้ว
-- [ ] แก้ `scripts/verify-production-v2-migration.sql` ให้ตรง schema ปัจจุบัน (ตัดคอลัมน์ `title` ออกจาก INSERT orders) ก่อนใช้เป็นด่าน B3 · แตะโค้ด ถามก่อน
-- [ ] Stock: ให้ Anajak Stock เลือก location เองเมื่อ ERP ไม่ระบุ (ตอนนี้ตายตัวที่ `src/lib/stock-constants.ts` · comment ในไฟล์นั้นยังชี้ `PROGRESS.md`)
-- [ ] ล้าง `docs/` ให้หมด (รอเบสเคาะ · แตะโค้ด): แก้ข้อความที่ชี้ `docs/deploy-checklist.md` (`scripts/verify-supabase-audit.ts`) และ `docs/local-demo-data.md` (`prisma/seed-demo.ts`) แล้วย้ายเนื้อเข้าไฟล์มาตรฐาน → `git rm` โฟลเดอร์ (SQL policy bucket `designs` ย้ายไป `scripts/storage-private-rollout.sql` แล้ว)
+### D — ตรวจรับและค่าผู้ให้บริการที่ยังไม่ยืนยัน
 
-### P2–P4 (ยังไม่เริ่ม · ทบทวนขอบเขตกับเบสก่อนเริ่ม)
-- [ ] P2 หลัง cutover: per-item tracking + ของเสีย/reprint log ต่อยอด V2 · AP ร้านนอก + หัก ณ ที่จ่ายขาจ่าย 3% + 50ทวิ + ภงด.53 export · จองสต๊อกลึกกับ Anajak Stock · ใบแพ็ค
-- [ ] P3 ฝั่งลูกค้า: portal เต็ม · LINE OA + ทวงหนี้ + รูประหว่างผลิต · CRM follow-up/RFM · โควตาแก้แบบ + ล็อกหลังอนุมัติ · strike-off · preflight ไฟล์ · analytics ลึก
-- [ ] P4 เว็บสกรีน (`anajak-print-web`): API รับออเดอร์ธรรมดา + custom เข้าเป็นออเดอร์เดียวกับหน้าร้าน (ใช้ order type / garment source / design version / approval token / payment terms เดิม · ไม่สร้างสถานะ/flow แยก) · MCP ขยายตามสิทธิ์ · ฟอร์มไซซ์ลูกค้าองค์กร · e-Tax / PEAK / courier API เมื่อ volume ถึง
+**B6/B16:** นักบัญชีตรวจเอกสารพิมพ์จริง ใบกำกับ/CN/DN และเลขรัน; ทีมเดิน flow ด้วยบัญชีจริงบน Production การทดสอบในเครื่องไม่ทดแทนทั้งสองส่วน
+
+**Supabase:** ยืนยันปิด public signup ใน Authentication → Providers; พนักงานสร้างผ่าน Settings → ผู้ใช้ ตรวจ Storage policy กับ `scripts/storage-private-rollout.sql`: upload INSERT ตาม policy ที่กำหนด ไม่เปิด SELECT/UPDATE/DELETE ให้ anon/authenticated; การอ่านผ่าน service role/signed URL ตรวจ private bucket และ anon access ด้วยหลักฐานใหม่ก่อนปิด gate นี้ `verify:supabase` อ่านบางข้อได้ แต่ยืนยันสถานะ console ทั้งหมดไม่ได้
+
+**Backup:** ตรวจ export/การกู้ตาม README และการเก็บ Storage แยก รักษาแผนเก็บเอกสารภาษีอย่างน้อย 5 ปีตามข้อกำหนดเดิมให้ผู้รับผิดชอบบัญชีตรวจรับ ไม่เพิ่มค่าใช้จ่าย Pro/PITR โดยอัตโนมัติ
+
+**Vercel:** rate-limit หน้า token ตาม `src/lib/public-routes.ts` ผ่าน platform ตามทิศที่เลือกไว้ เริ่ม log ตรวจ traffic ก่อนบล็อกจริงและพิจารณา Bot Protection โดยไม่บล็อก crawler/LINE unfurler ด้วย user-agent; ตรวจสิทธิ์แพ็กเกจและคำสั่งผู้ให้บริการปัจจุบันก่อนตั้งจริง ไม่ใช้ `deny` บน path กว้าง
+
+**Env:** ยืนยัน `CRON_SECRET` และให้ `PRODUCTION_V2_ENABLED=0` จนผ่าน §B; Stock API key ตั้งใน Settings → Stock การตั้งค่ากับผล deploy ต้องมีหลักฐานของ environment เป้าหมาย
 
 ## พักไว้
-- A17 (หน้าลองถูกลบ 2026-09-11 · เบสสั่ง) ปุ่มลงมือในใบผลิต: A ทำในหน้า หรือ B เปิดแผงทำงาน (ของเดิม `git show 42c408a:src/app/proto/work-order-actions/page.tsx`) → เบสสั่งกลับมาทำเมื่อไหร่ ลงของจริงเฉพาะทิศที่เลือก · ข้อคุณภาพใน checklist ต้องเชื่อมด่าน server ของแต่ละ flow โดยไม่ใช้แทนหลักฐานจำนวน · เพิ่ม test ตอนลงจริง · ช่องว่างตอนนี้ (อยู่แม้ A17 พัก): ขั้นของ flow อื่น (ใบรับ/รอบพิมพ์) ซ่อนช่องติ๊ก จึงไม่มีหลักฐานตรวจสี/ตัวอย่าง
+
+- **A17 — รูปแบบปุ่มลงมือ:** ตัวเลือกทำในหน้า/เปิดแผงและ proto ถูกพัก/ลบตามสั่ง 2026-09-11 กลับมาทำเมื่อเบสสั่งและเลือกทิศ ช่องว่าง checklist คุณภาพของ DTF/รับเสื้อ/ร้านนอกที่ซ่อน checkbox ยังไม่ปิด ต้องเชื่อมกับ gate ของแต่ละ flow แยกจากหลักฐานจำนวนและเพิ่ม test ก่อนรับงาน
+- **A4 — ทางกลับหน้างาน:** My Tasks/แจ้งเตือน เบสตอบ 2026-09-11 ว่า “ค่อยว่ากัน”
