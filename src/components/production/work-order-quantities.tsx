@@ -39,7 +39,7 @@ export function pieceRowsOf(order: ProductionDetail["order"]): PieceRow[] {
 }
 
 /** ตารางรายตัว: แถวละไซซ์ · ขั้นที่นับยอดกรอก "ทำแล้ว/เสีย" ต่อแถวได้ — ยอดรวมของขั้น = ผลบวก (server) */
-export function StepPieceTable({ step, order, c, stepAction, footer, replaceBody }: { step: ProductionStep; order: ProductionDetail["order"]; c: WorkOrderController; stepAction?: ReactNode; footer?: ReactNode; replaceBody?: ReactNode }) {
+export function StepPieceTable({ step, order, c, stepAction, footer, replaceBody, presentation = "current" }: { step: ProductionStep; order: ProductionDetail["order"]; c: WorkOrderController; stepAction?: ReactNode; footer?: ReactNode; replaceBody?: ReactNode; presentation?: "current" | "embedded" }) {
   const rows = pieceRowsOf(order);
   const total = rows.reduce((n, r) => n + r.qty, 0);
   const groups = new Map<string, PieceRow[]>();
@@ -75,14 +75,16 @@ export function StepPieceTable({ step, order, c, stepAction, footer, replaceBody
 
   return (
     <Section
-      title={stepLabel(step)}
-      meta={counting ? <span className="tabular-nums">{(step.qtyDone ?? 0).toLocaleString("th-TH")} / {step.qtyTotal!.toLocaleString("th-TH")} ตัว</span> : undefined}
-      action={
+      title={presentation === "current" ? stepLabel(step) : undefined}
+      meta={presentation === "current" && counting ? <span className="tabular-nums">{(step.qtyDone ?? 0).toLocaleString("th-TH")} / {step.qtyTotal!.toLocaleString("th-TH")} ตัว</span> : undefined}
+      bordered={presentation === "embedded" ? false : undefined}
+      surface={presentation === "embedded" ? "plain" : undefined}
+      action={presentation === "current" ? (
         <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center">
           <InfoChip size="sm" tone={view.chip}>{view.label}</InfoChip>
           {stepAction}
         </div>
-      }
+      ) : undefined}
       flush
     >
       {editable ? (

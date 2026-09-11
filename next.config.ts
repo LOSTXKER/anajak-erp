@@ -18,7 +18,14 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      // เทียบ component จริงใน iframe บนเครื่องพัฒนาเท่านั้น; ยังต้อง login
+      // หน้าอื่นและทุกหน้าใน Production คง DENY ตามเดิม
+      ...(process.env.NODE_ENV === "development"
+        ? [{ source: "/proto/:path*", headers: [{ key: "X-Frame-Options", value: "SAMEORIGIN" }] }]
+        : []),
+    ];
   },
 };
 

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" role="img" aria-label="โลโก้จำลอง Studio Coffee">
+  <rect width="320" height="320" rx="20" fill="#173047"/>
+  <g transform="translate(160 150)" fill="#f2e5cb" text-anchor="middle">
+    <path d="M-39-52H26V-24Q24 6-6 6Q-39 6-39-24ZM26-44H42Q60-44 57-25Q55-10 29-10" fill="none" stroke="#f2e5cb" stroke-width="7" stroke-linecap="round"/>
+    <path d="M-46 20H42M-23-70Q-35-88-20-99M3-70Q-10-88 6-99" fill="none" stroke="#f2e5cb" stroke-width="5" stroke-linecap="round"/>
+    <text y="73" font-family="Arial,sans-serif" font-size="35" font-weight="700" letter-spacing="5">STUDIO</text>
+    <text y="111" font-family="Arial,sans-serif" font-size="24" letter-spacing="8">COFFEE</text>
+  </g>
+</svg>

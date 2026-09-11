@@ -13,10 +13,15 @@ import { WorkOrderPrimaryButton } from "@/components/production/work-order-contr
 import type { ProductionStep } from "@/components/production/types";
 import { selectNowSteps } from "@/lib/production-step-actions";
 import { evaluateHeatPressGate, productionWorkflowSteps } from "@/lib/production-steps";
-import { QUANTITY, USERS, type Role, type StateFixture } from "./_fixtures";
+import { defaultPermissionsOf, permAllows } from "@/lib/permissions";
+import { FIXTURE_NOW, QUANTITY, USERS, type Role, type StateFixture } from "./_fixtures";
 
 const noop = () => {};
-const protoOnly = () => toast.message("หน้าลอง — ปุ่มนี้ไม่บันทึกอะไร เลือกสถานะจากแถบซ้ายแทน");
+const protoOnly = () => toast.message("หน้าลอง — คำสั่งนี้ไม่เปลี่ยนข้อมูลหรือสถานะจริง");
+const PROTO_USERS = {
+  boss: { ...USERS.boss, role: "MANAGER", permissions: defaultPermissionsOf("MANAGER") },
+  staff: { ...USERS.staff, role: "PRODUCTION_STAFF", permissions: defaultPermissionsOf("PRODUCTION_STAFF") },
+} as const;
 
 type RowQty = { variantId: string; done: number; waste: number };
 
@@ -24,8 +29,8 @@ export function useProtoController(fx: StateFixture, role: Role): WorkOrderContr
   // ติ๊ก/ยอดที่แก้ในหน้า — key ต่อสถานะ เพื่อให้สลับสถานะแล้วกลับค่าเริ่มต้น
   const [ticked, setTicked] = useState<Record<string, string[]>>({});
   const [qty, setQty] = useState<Record<string, RowQty[]>>({});
-  const me = role === "boss" ? USERS.boss : USERS.staff;
-  const [nowMs] = useState(() => Date.now());
+  const me = PROTO_USERS[role];
+  const nowMs = FIXTURE_NOW;
 
   return useMemo(() => {
     const steps: ProductionStep[] = fx.steps.map((s) => {
@@ -47,14 +52,15 @@ export function useProtoController(fx: StateFixture, role: Role): WorkOrderContr
     const notFound = !!fx.flags?.notFound;
     const writeDataStale = !!fx.flags?.stale;
     const production = loading || notFound ? undefined : { id: "proto-prod", orderId: order.id, status: fx.productionStatus ?? "IN_PROGRESS", notes: null, order, steps };
-    const hasProductionPermission = true;
-    const canSuperviseOperations = role === "boss";
+    const hasProductionPermission = permAllows(me.permissions, "manage_production");
+    const canSuperviseOperations = permAllows(me.permissions, "supervise_operations");
     const orderCanProduce = order.internalStatus === "PRODUCING";
     const canUpdateStep = hasProductionPermission && orderCanProduce && !writeDataStale;
     const canSuperviseStep = canSuperviseOperations && !writeDataStale;
     const canOwnOrSupervise = (step: ProductionStep) => canSuperviseStep || !step.assignedTo || step.assignedTo.id === me.id;
     const pressGate = evaluateHeatPressGate(workflowSteps);
-    const nowSteps = production ? selectNowSteps(workflowSteps, { canOutsource: canUpdateStep, canUpdateStep, canSupervise: canSuperviseStep, meId: me.id, pressGate }) : [];
+    const canOutsource = orderCanProduce && permAllows(me.permissions, "manage_settings") && !writeDataStale;
+    const nowSteps = production ? selectNowSteps(workflowSteps, { canOutsource, canUpdateStep, canSupervise: canSuperviseStep, meId: me.id, pressGate }) : [];
     const nowById = new Map(nowSteps.map((n) => [n.step.id, n]));
     const allDone = workflowSteps.length > 0 && workflowSteps.every((s) => s.status === "COMPLETED");
     const problemSteps = workflowSteps.filter((s) => s.status === "FAILED" || s.status === "ON_HOLD");
@@ -76,7 +82,7 @@ export function useProtoController(fx: StateFixture, role: Role): WorkOrderContr
       legacyPackagingReadyForQc: false,
       paperStepsPending: 0,
       readyForQcViaPaper: allDone && orderCanProduce,
-      canSeeCost: role === "boss",
+      canSeeCost: permAllows(me.permissions, "see_finance"),
       canSuperviseOperations,
       hasProductionPermission,
       canUpdateStep,
@@ -127,5 +133,5 @@ export function useProtoController(fx: StateFixture, role: Role): WorkOrderContr
       dialogs: null,
     };
     return ctrl as unknown as WorkOrderController;
-  }, [fx, role, ticked, qty, me, nowMs]);
+  }, [fx, ticked, qty, me, nowMs]);
 }

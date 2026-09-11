@@ -7,11 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Section, SectionTitle } from "@/components/ui/section";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MockupThumbRow } from "@/components/mockup/mockup-thumb-row";
+import { MockupGallery } from "@/components/mockup/mockup-gallery";
 import { trpc } from "@/lib/trpc";
 import { APPROVAL_STATUS_LABELS, APPROVAL_STATUS_VARIANTS } from "@/lib/status-config";
 import { layerForCategory } from "@/lib/file-layers";
 import { formatDate } from "@/lib/utils";
 import type { MockupVersionLike } from "@/lib/mockup";
+import type { OrderOverviewVariant } from "./order-overview-tab";
 
 /** เท่าที่การ์ดนี้ใช้จริงจาก DesignVersion — รูปทั้งชุดอ่านผ่านสูตรกลางใน lib/mockup */
 export type ArtworkVersion = MockupVersionLike & {
@@ -74,6 +76,7 @@ export function OrderArtworkCard({
 /** ตัวที่วาดจริง — ไม่ยิง query เอง จึงเอาไปวางในหน้าลอง/จอทดสอบด้วยข้อมูลนิ่งได้
  *  (pattern เดียวกับ OrderFilesPanel → OrderFilesCard) */
 export function OrderArtworkCardView({
+  variant = "current",
   latest,
   versionCount,
   rawCount,
@@ -82,6 +85,7 @@ export function OrderArtworkCardView({
   onOpenFiles,
   isLoading = false,
 }: {
+  variant?: OrderOverviewVariant;
   latest: ArtworkVersion | null;
   versionCount: number;
   rawCount: number;
@@ -92,11 +96,18 @@ export function OrderArtworkCardView({
 }) {
   const revisionRounds = versionCount - 1;
   const hasDescription = Boolean(description?.trim());
+  const descriptionBlock = hasDescription ? (
+    <div className={variant === "current" ? "space-y-3 border-t border-divider pt-4" : "space-y-2 pt-3"}>
+      <p className="text-xs font-semibold text-muted">รายละเอียดงาน</p>
+      <p className="max-w-[75ch] text-sm leading-6 text-secondary [overflow-wrap:anywhere]">{description}</p>
+    </div>
+  ) : null;
 
   return (
     <Section
       data-order-overview-card="artwork"
-      compact
+      compact={variant === "current"}
+      surface={variant === "current" ? undefined : "plain"}
       title={
         <SectionTitle icon={Shirt} tone="production">
           งานนี้พิมพ์อะไร
@@ -115,8 +126,14 @@ export function OrderArtworkCardView({
         {isLoading ? (
           <Skeleton className="h-20 rounded-lg" />
         ) : latest ? (
-          <div className="flex flex-wrap items-start gap-x-5 gap-y-3">
-            <MockupThumbRow version={latest} versionNumber={latest.versionNumber} />
+          <div className={variant === "current" ? "flex flex-wrap items-start gap-x-5 gap-y-3" : "flex flex-col items-start gap-5 sm:flex-row"}>
+            {variant === "current" ? (
+              <MockupThumbRow version={latest} versionNumber={latest.versionNumber} />
+            ) : (
+              <div className="w-full max-w-[220px] shrink-0">
+                <MockupGallery version={latest} versionNumber={latest.versionNumber} className="grid-cols-1 sm:grid-cols-1 lg:grid-cols-1" />
+              </div>
+            )}
             <div className="min-w-0 flex-1 space-y-1">
               <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
                 <Badge
@@ -141,6 +158,7 @@ export function OrderArtworkCardView({
                   : `ส่งให้ลูกค้า ${formatDate(latest.createdAt)}`}
                 {revisionRounds > 0 && ` · แก้มาแล้ว ${revisionRounds} รอบ`}
               </p>
+              {variant !== "current" && descriptionBlock}
             </div>
           </div>
         ) : (
@@ -155,14 +173,7 @@ export function OrderArtworkCardView({
           </div>
         )}
 
-        {hasDescription && (
-          <div className="space-y-3 border-t border-divider pt-4">
-            <p className="text-xs font-semibold text-muted">รายละเอียดงาน</p>
-            <p className="max-w-[75ch] text-sm leading-6 text-secondary [overflow-wrap:anywhere]">
-              {description}
-            </p>
-          </div>
-        )}
+        {(variant === "current" || !latest) && descriptionBlock}
 
         {/* สรุปว่ามีไฟล์อยู่กี่ชิ้น — ชื่อไฟล์อยู่แท็บม็อกอัพ & ไฟล์ (กางที่นี่ด้วยจะยาวอีกครึ่งจอ)
             ชั้นที่ยังไม่มีไฟล์ไม่ต้องขึ้น "0 ไฟล์" — เลขศูนย์อ่านเป็นข้อมูลทั้งที่ไม่ใช่ */}

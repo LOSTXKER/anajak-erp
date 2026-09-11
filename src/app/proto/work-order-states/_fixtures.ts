@@ -1,7 +1,7 @@
 /**
  * หน้าลอง "ใบผลิตทุกสถานะ" — ข้อมูลปลอมรูปเดียวกับ production.getById ต่อสถานะ (เบสสั่ง 2026-09-09)
  * ตัวหน้าใช้ WorkOrderView ของจริง — ที่นี่มีแค่ "ใบผลิตหน้าตาไหนในสถานะนั้น" ไม่มี UI
- * pure data — ไม่มี DOM · วันเวลาคิดจากวันนี้เพื่อให้ป้ายกำหนดส่ง/นัดรับพูดถูก
+ * pure data — ไม่มี DOM · ตรึงนาฬิกาตัวอย่างให้ server/browser แสดงวันเวลาเดียวกัน
  */
 import type { ProductionDetail, ProductionStep } from "@/components/production/types";
 import { stationProblemNotes } from "@/lib/production-problem";
@@ -9,7 +9,8 @@ import { workOrderStandards } from "@/lib/work-order-standards";
 import { CASE_4 } from "../work-order-form/_data";
 
 const DAY_MS = 24 * 60 * 60 * 1_000;
-const fromNow = (days: number, hours = 0) => new Date(Date.now() + days * DAY_MS + hours * 60 * 60 * 1_000);
+export const FIXTURE_NOW = Date.parse("2026-09-11T09:00:00+07:00");
+const fromNow = (days: number, hours = 0) => new Date(FIXTURE_NOW + days * DAY_MS + hours * 60 * 60 * 1_000);
 
 export const ART =
   "data:image/svg+xml;charset=utf-8," +

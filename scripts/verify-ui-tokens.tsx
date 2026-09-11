@@ -2257,8 +2257,9 @@ check(
   }
 }
 
-/* ── ภาพรวมออเดอร์: สรุปก่อน + optional ว่างไม่สร้าง field dump ───────────
-   หลัง edit ย้ายไปหน้าเต็ม แท็บนี้ต้องเป็น read surface ไม่ใช่ฟอร์มแบบอ่านอย่างเดียว */
+/* ── ภาพรวมออเดอร์: คงหน้าปัจจุบันและข้อมูล/สิทธิ์ทุกทางเลือก ──────────────
+   A16 ทดลองจัดวางใหม่ได้; ตำแหน่ง/compact ด้านล่างตรวจเฉพาะ current จาก DOM
+   ที่ render แล้ว ไม่ผูกกับลำดับการประกาศ JSX ในไฟล์ */
 {
   const overviewSource = readFileSync(
     "src/components/orders/detail/order-overview-tab.tsx",
@@ -2268,16 +2269,51 @@ check(
     "src/components/orders/detail/order-detail-page.tsx",
     "utf8",
   );
-  const summaryIndex = overviewSource.indexOf(
+  const { OrderOverviewTab } = require("../src/components/orders/detail/order-overview-tab") as typeof import("../src/components/orders/detail/order-overview-tab");
+  const { OrderArtworkCardView } = require("../src/components/orders/detail/order-artwork-card") as typeof import("../src/components/orders/detail/order-artwork-card");
+  const { PREVIEW_ORDER, PREVIEW_ARTWORK } = require("../src/app/proto/ui-reset/_order-data") as typeof import("../src/app/proto/ui-reset/_order-data");
+  const noop = () => {};
+  const overviewProps: React.ComponentProps<typeof OrderOverviewTab> = {
+    order: PREVIEW_ORDER, showMoney: true, totalAmount: 5992, totalQuantity: 30,
+    onOpenMoney: noop, onOpenDelivery: noop, onEditInfo: noop, onOpenCustomer: noop,
+    channelColor: { bg: "bg-green-50", text: "text-green-700" }, isMarketplace: false,
+    artwork: <OrderArtworkCardView latest={PREVIEW_ARTWORK} versionCount={2} rawCount={2} printCount={0} description={PREVIEW_ORDER.description} onOpenFiles={noop} />,
+  };
+  const renderOverview = (overrides: Partial<typeof overviewProps> = {}) =>
+    renderToStaticMarkup(<OrderOverviewTab {...overviewProps} {...overrides} />);
+  const currentHtml = renderOverview();
+  const summaryIndex = currentHtml.indexOf(
     'data-order-overview-card="summary"',
   );
-  const customerIndex = overviewSource.indexOf(
+  const customerIndex = currentHtml.indexOf(
     'data-order-overview-card="customer"',
   );
-  const shippingIndex = overviewSource.indexOf(
+  const shippingIndex = currentHtml.indexOf(
     'data-order-overview-card="shipping"',
   );
   const problems: string[] = [];
+
+  if (currentHtml !== renderOverview({ variant: "current" })) {
+    problems.push("ไม่ส่ง variant ต้องได้หน้าปัจจุบันเหมือน variant=current");
+  }
+
+  // การทดลองย้ายข้อมูลต้องไม่ทำให้ข้อเท็จจริงหรือทางทำงานหาย และเงินต้องไม่อยู่ใน DOM ของผู้ไม่มีสิทธิ์
+  const textParts = (html: string) => html.replace(/<[^>]*>/g, " ").split(/\s+/).filter(Boolean).sort().join(" ");
+  const baselineText = textParts(currentHtml);
+  const baselineButtons = (currentHtml.match(/<button\b/g) ?? []).length;
+  for (const variant of ["current", "a", "b"] as const) {
+    const html = renderOverview({ variant });
+    if (textParts(html) !== baselineText || (html.match(/<button\b/g) ?? []).length !== baselineButtons) {
+      problems.push(`${variant}: ข้อมูลหรือจำนวนปุ่มเปลี่ยนไปจาก current`);
+    }
+    for (const label of ["แก้ไขข้อมูลออเดอร์", "แก้ไขที่อยู่จัดส่ง", "เปิดหน้าลูกค้า", "มาตรฐานลูกค้า:"]) {
+      if (!html.includes(label)) problems.push(`${variant}: ไม่มี ${label}`);
+    }
+    const restrictedHtml = renderOverview({ variant, showMoney: false, onOpenMoney: undefined, onEditInfo: undefined });
+    for (const hidden of ["ยอดรวม", "ซื้อสะสม", "วงเงินเครดิต", "87,342.50", "5,992", "แก้ไขข้อมูลออเดอร์", "แก้ไขที่อยู่จัดส่ง"]) {
+      if (restrictedHtml.includes(hidden)) problems.push(`${variant}: ยัง render ${hidden} เมื่อไม่ได้รับสิทธิ์`);
+    }
+  }
 
   /* ลำดับ DOM = ลำดับที่มือถือซ้อนกัน · สรุปต้องมาก่อนการ์ดลูกค้าที่ยาวมาก
      ไม่งั้นบนมือถือกว่าจะเห็นกำหนดส่ง/ยอดต้องเลื่อนผ่านที่อยู่กับประวัติลูกค้าทั้งหมด */
@@ -2287,27 +2323,28 @@ check(
     shippingIndex < 0 ||
     !(summaryIndex < shippingIndex && shippingIndex < customerIndex)
   ) {
-    problems.push("DOM ต้องเรียงสรุปออเดอร์ → การจัดส่ง → ลูกค้า");
+    problems.push("current: DOM ต้องเรียงสรุปออเดอร์ → การจัดส่ง → ลูกค้า");
   }
   if (
-    !overviewSource.includes('className="space-y-5"') ||
-    !overviewSource.includes("grid items-start gap-5") ||
+    !currentHtml.includes('class="space-y-5"') ||
+    !currentHtml.includes("grid items-start gap-5") ||
     // คอลัมน์สรุปมาก่อนใน DOM แล้วดันไปขวาบนจอกว้าง — ถอด col-start ออกเมื่อไหร่
     // มือถือยังถูกอยู่ แต่จอคอมจะกลายเป็นสรุปอยู่ซ้าย/ลูกค้าอยู่ขวา ซึ่งไม่ใช่ที่เบสเคาะ
-    !overviewSource.includes("xl:col-start-2 xl:row-start-1") ||
-    !overviewSource.includes("xl:col-start-1 xl:row-start-1") ||
-    !overviewSource.includes(
-      '"grid grid-cols-2 gap-x-4 gap-y-4 sm:gap-x-6 sm:gap-y-5 lg:grid-cols-3"',
+    !currentHtml.includes("xl:col-start-2 xl:row-start-1") ||
+    !currentHtml.includes("xl:col-start-1 xl:row-start-1") ||
+    !currentHtml.includes(
+      'class="grid grid-cols-2 gap-x-4 gap-y-4 sm:gap-x-6 sm:gap-y-5 lg:grid-cols-3"',
     )
   ) {
     problems.push(
-      "แท็บภาพรวมต้องเป็นสองคอลัมน์โดยคอลัมน์สรุปมาก่อนใน DOM และสามค่าหลักเป็น 2×2 บนมือถือ",
+      "current: คงสองคอลัมน์เดิมและสามค่าหลักเป็น 2×2 บนมือถือ",
     );
   }
   /* หัวข้อการ์ดในแท็บนี้ต้องเงียบ (compact) — หัวใบเป็นจุดเดียวที่เสียงดัง
      ถ้าการ์ดกลับไปหัวหนาเท่าเดิม ลำดับความสำคัญที่เบสเคาะไว้จะหายทันที */
-  if ((overviewSource.match(/\n\s+compact\n/g) ?? []).length < 4) {
-    problems.push("หัวข้อการ์ดในแท็บภาพรวมต้องเป็น compact ทุกใบ");
+  const currentCards = [...currentHtml.matchAll(/<section\b[^>]*data-order-overview-card="([^"]+)"[^>]*>[\s\S]*?<h2\b[^>]*class="([^"]*)"/g)];
+  if (currentCards.length !== 5 || currentCards.some((card) => !card[2]!.includes("text-xs font-medium text-muted"))) {
+    problems.push("current: หัวข้อการ์ดทั้งห้าใบต้องคง compact");
   }
   /* หัวใบ (2026-08-30 เบสสั่ง "ข้างบนไม่ต้องมีอะไรเยอะ มีแค่สถานะและ CTA ก็พอ")
      — ต้องเป็นแผ่นเดียวที่ห่อ PageHeader + แถบสถานะ · และห้ามมีข้อเท็จจริง
@@ -2362,7 +2399,7 @@ check(
      ③ เป็น "ที่ดู" ไม่ใช่ "ที่จัดการ" — ห้ามมี mutation ของม็อกอัพ/ไฟล์ในการ์ดนี้
         (ม็อกอัพมีบ้านเดียวคือแท็บม็อกอัพ & ไฟล์ · กติกาเดิมตั้งแต่ 2026-08-22)
      ④ รายละเอียดงานอยู่ในการ์ดนี้ ไม่ใช่การ์ดตัวหนังสือลอยอีกใบ */
-  const artworkIndex = overviewSource.indexOf("{artwork}");
+  const artworkIndex = currentHtml.indexOf('data-order-overview-card="artwork"');
   const artworkSource = readFileSync(
     "src/components/orders/detail/order-artwork-card.tsx",
     "utf8",
@@ -2378,7 +2415,7 @@ check(
     !detailSource.includes("<OrderArtworkCard")
   ) {
     problems.push(
-      "การ์ด “งานนี้พิมพ์อะไร” ต้องอยู่บนสุดคอลัมน์ซ้าย ใช้รูปย่อจากสูตรกลาง และห้ามมีปุ่มจัดการม็อกอัพ/ไฟล์",
+      "current: การ์ดแบบต้องอยู่ก่อนลูกค้าและใช้รูปย่อกลาง; ทุกทางเลือกห้ามมี mutation ของม็อกอัพ/ไฟล์",
     );
   }
   /* ประวัติลูกค้า = กล่องสีประจำหมวดสี่ช่อง (แบบ B "สีบอกหมวด" · เบสเคาะ 2026-08-31)
@@ -2395,7 +2432,7 @@ check(
     overviewSource.includes('<Group label="ประวัติลูกค้า"')
   ) {
     problems.push(
-      "ประวัติลูกค้าต้องเป็นกล่องสีประจำหมวด และยัง gate ด้วย showMoney ทั้งก้อน",
+      "current: คงสีประจำหมวดของประวัติลูกค้า; ทุกทางเลือกยัง gate ด้วย showMoney ทั้งก้อน",
     );
   }
   if (
@@ -2431,10 +2468,10 @@ check(
 
   if (problems.length) {
     failed++;
-    console.log("❌ ภาพรวมออเดอร์กลับไปเป็น field dump หรือเรียงผิดลำดับ");
+    console.log("❌ ภาพรวมออเดอร์ผิด contract ของ current หรือข้อมูล/สิทธิ์ในทางเลือก");
     problems.forEach((problem) => console.log(`   ${problem}`));
   } else {
-    console.log("✅ ภาพรวมออเดอร์สรุปก่อนและแสดงเฉพาะข้อมูลที่มีความหมาย");
+    console.log("✅ ภาพรวมออเดอร์คง current/default และข้อมูล/ปุ่ม/สิทธิ์ครบทุกทางเลือก");
   }
 }
 

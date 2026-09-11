@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" role="img" aria-labelledby="title desc">
+  <title id="title">เสื้อทีม Studio Coffee สีกรม สกรีนโลโก้สีครีมอกซ้าย</title>
+  <desc id="desc">ภาพม็อกอัพจำลองด้านหน้า เสื้อคอกลมแขนสั้น พื้นหลังสีครีมอ่อน</desc>
+  <defs>
+    <linearGradient id="shirt" x1="0" x2="1" y2="1"><stop stop-color="#203e55"/><stop offset="1" stop-color="#102b40"/></linearGradient>
+    <linearGradient id="fold" x1="0" x2="1"><stop stop-color="#071a29" stop-opacity=".25"/><stop offset=".5" stop-color="#6c8595" stop-opacity=".08"/><stop offset="1" stop-color="#071a29" stop-opacity=".3"/></linearGradient>
+  </defs>
+  <rect width="640" height="640" rx="28" fill="#f4f0e9"/>
+  <ellipse cx="320" cy="560" rx="161" ry="18" fill="#b9afa0" opacity=".22"/>
+  <path d="M239 97 171 123 71 231 147 296 188 251 179 548Q320 570 461 548L452 251 493 296 569 231 469 123 401 97Q320 135 239 97Z" fill="url(#shirt)" stroke="#0d263a" stroke-width="3"/>
+  <path d="M239 97Q254 176 320 179Q386 176 401 97L381 102Q368 146 320 150Q272 146 259 102Z" fill="#091f30"/>
+  <path d="M259 102Q320 132 381 102Q368 146 320 150Q272 146 259 102Z" fill="#e1d9cd"/>
+  <path d="M239 105Q255 166 320 169Q385 166 401 105" fill="none" stroke="#3a5263" stroke-width="3"/>
+  <path d="M188 251 202 177M452 251 438 177M96 222 152 270M544 222 488 270M183 535Q320 554 457 535" fill="none" stroke="#587083" stroke-opacity=".45" stroke-width="2"/>
+  <path d="M211 236Q227 357 202 534M428 236Q410 357 438 534" fill="none" stroke="#091d2d" stroke-opacity=".35" stroke-width="7"/>
+  <path d="M241 195H399V541H241Z" fill="url(#fold)" opacity=".3"/>
+  <g transform="translate(373 224)" fill="#f2e5cb" text-anchor="middle">
+    <path d="M-15-15H10V-4Q9 8-3 8Q-15 8-15-4ZM10-12H16Q23-12 22-5Q21 1 11 1" fill="none" stroke="#f2e5cb" stroke-width="3" stroke-linecap="round"/>
+    <path d="M-18 12H16M-9-22Q-14-29-8-34M1-22Q-4-29 2-34" fill="none" stroke="#f2e5cb" stroke-width="2" stroke-linecap="round"/>
+    <text y="32" font-family="Arial,sans-serif" font-size="14" font-weight="700" letter-spacing="2">STUDIO</text>
+    <text y="47" font-family="Arial,sans-serif" font-size="10" letter-spacing="3">COFFEE</text>
+  </g>
+  <text x="320" y="607" text-anchor="middle" fill="#756f66" font-family="Arial,sans-serif" font-size="14" letter-spacing="3">STUDIO COFFEE · FRONT</text>
+</svg>

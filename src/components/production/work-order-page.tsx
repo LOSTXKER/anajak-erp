@@ -15,7 +15,7 @@
  * คำช่วยและเหตุที่ทำต่อไม่ได้อยู่ตรงขั้นที่เกี่ยว ตาม ui-guidance (A16)
  */
 
-import { Suspense, useState, type ReactNode } from "react";
+import { Suspense, useState, type MouseEvent, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
 import { ClipboardCheck, Factory, Flag, History, Pause, Printer, RotateCcw, UserRound } from "lucide-react";
 
@@ -43,7 +43,7 @@ import { useWorkOrderController, type WorkOrderController } from "./work-order-c
 import { activeOutsource, dtfUnavailableReason, outsourceReceiptCandidates, outsourceStepReason, ProblemCard, stepLabel } from "./work-order-pieces";
 import { checklistAnchor, ticksMissing } from "./work-order-checklist";
 import { pieceTableAnchor, pieceRowsOf } from "./work-order-quantities";
-import { WorkOrderSteps } from "./work-order-steps";
+import { WorkOrderRouteOverview, WorkOrderSteps, type WorkOrderVariant } from "./work-order-steps";
 import { WorkOrderItems } from "./work-order-items";
 
 /** พาไปช่องแรกที่ยังต้องทำในโซนนั้น (ติ๊กที่ยังว่าง / ช่องยอดแถวแรก) — ปุ่มบนหัวใบใช้แทนการ disabled */
@@ -81,7 +81,7 @@ function WorkOrder({ id }: { id: string }) {
  * ส่ง controller ปลอมต่อสถานะ เพื่อให้เบสดูทุกสถานะจากหน้าเดียวกับที่ทีมใช้จริง (ไม่วาดซ้ำ)
  * itemsTab = แทนเนื้อแท็บสินค้าทั้งก้อน (หน้าลองไม่มี tRPC ของใบจริง)
  */
-export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab }: { c: WorkOrderController; scannedMockup?: number; itemsTab?: ReactNode }) {
+export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab, variant = "current", onNavigate }: { c: WorkOrderController; scannedMockup?: number; itemsTab?: ReactNode; variant?: WorkOrderVariant; onNavigate?: (label: string) => void }) {
   const { production, order, me, productionQuery, meQuery, workflowSteps, nowById } = c;
   const approvedMockup = order?.designs[0]?.versionNumber ?? null;
   const stalePaper = Number.isFinite(scannedMockup) && scannedMockup > 0 && approvedMockup !== null && scannedMockup < approvedMockup;
@@ -162,10 +162,18 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab }: { c: 
     const action = actionFor(step);
     const canReport = c.canUpdateStep && c.canOwnOrSupervise(step) && step.status !== "COMPLETED" && step.status !== "FAILED";
     const reason = step.status !== "COMPLETED" ? blockReason(step) : null;
+    const now = nowById.get(step.id);
+    // หน้าลองให้ปุ่มบอกทางที่พร้อมทำเอง คงคำช่วยเมื่อมีเงื่อนไขจริงที่ต้องแก้ก่อน
+    const readyAction = c.canUpdateStep && c.canOwnOrSupervise(step) && !activeOutsource(step) && !dtfUnavailableReason(step)
+      && step.status !== "ON_HOLD" && step.status !== "FAILED"
+      && (now?.action === "start" || now?.action === "send-outsource"
+        || ((now?.action === "complete" || now?.action === "record-qty" || now?.action === "quick-pass")
+          && ticksMissing(step) === 0 && !(hasVariantRows && step.qtyTotal && (step.qtyDone ?? 0) < step.qtyTotal)));
+    const visibleReason = variant === "current" || !readyAction ? reason : null;
     if (!action && !canReport && !reason) return null;
     return (
       <>
-        {reason ? <p className="w-full text-sm text-secondary">{reason}</p> : null}
+        {visibleReason ? <p className="w-full text-sm text-secondary">{visibleReason}</p> : null}
         {action}
         {canReport ? (
           <Button variant="outline" onClick={() => setProblemStep(step)}>
@@ -232,7 +240,7 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab }: { c: 
     >
       ส่งเข้า QC
     </Button>
-  ) : current && !allDone && nextLabel ? (
+  ) : variant === "current" && current && !allDone && nextLabel ? (
     <Button variant="outline" aria-disabled className="max-w-[15rem] text-secondary" onClick={() => focusWhatIsBlocking(current.id)}>
       <span className="truncate">ถัดไป: {nextLabel}</span>
     </Button>
@@ -289,17 +297,17 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab }: { c: 
           danger: true,
           onSelect: () => void (reopenTarget && c.handleReopen(reopenTarget)),
         },
-        ...(order ? [{ key: "history", label: "ประวัติออเดอร์", icon: History, separatorBefore: true, onSelect: () => window.open(`/orders/${order.id}?tab=history`, "_blank") }] : []),
+        ...(order ? [{ key: "history", label: "ประวัติออเดอร์", icon: History, separatorBefore: true, onSelect: () => onNavigate ? onNavigate("เปิดประวัติออเดอร์") : window.open(`/orders/${order.id}?tab=history`, "_blank") }] : []),
       ]
     : [];
 
-  return (
+  const content = (
     <>
       <PageShell
         title={order?.orderNumber ?? "ใบผลิต"}
         icon={Factory}
         tone="production"
-        back={{ href: "/production", label: "กลับหน้าการผลิต" }}
+        back={{ href: onNavigate ? "#work-order-preview" : "/production", label: "กลับหน้าการผลิต" }}
         description={order ? (order.customer?.name ?? "ไม่ระบุลูกค้า") : ""}
         titleBadge={
           order && (order.priority === "URGENT" || order.priority === "HIGH" || allDone) ? (
@@ -317,7 +325,7 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab }: { c: 
           production && order ? (
             <>
               <Button asChild variant="outline" size="sm">
-                <a href={`/print/job-ticket/${order.id}?production=${production.id}`} target="_blank" rel="noreferrer" aria-label="พิมพ์ใบสั่งงาน (เปิดแท็บใหม่)">
+                <a href={onNavigate ? "#work-order-preview" : `/print/job-ticket/${order.id}?production=${production.id}`} target="_blank" rel="noreferrer" aria-label="พิมพ์ใบสั่งงาน (เปิดแท็บใหม่)">
                   <Printer />
                   <span className="hidden sm:inline">ใบสั่งงาน</span>
                 </a>
@@ -346,10 +354,10 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab }: { c: 
         }
       >
         {c.notFound || !production || !order ? (
-          <RecordNotFound what="ใบผลิตนี้" backHref="/production" backLabel="กลับหน้าการผลิต" />
+          <RecordNotFound what="ใบผลิตนี้" backHref={onNavigate ? "#work-order-preview" : "/production"} backLabel="กลับหน้าการผลิต" />
         ) : (
           <div className="space-y-6">
-            {workflowSteps.length > 0 ? (
+            {workflowSteps.length > 0 && variant === "current" ? (
               <OrderStatusBar
                 flowSteps={railLabels}
                 currentStepIndex={currentNodeIndex}
@@ -360,7 +368,7 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab }: { c: 
                 cancelledReason={null}
                 blockers={blockers}
               />
-            ) : null}
+            ) : workflowSteps.length > 0 && variant === "a" ? <WorkOrderRouteOverview c={c} /> : null}
 
             {c.writeDataStale ? (
               <Alert
@@ -385,7 +393,7 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab }: { c: 
                 ]}
                 action={
                   <Button asChild size="sm">
-                    <a href={`/print/job-ticket/${order.id}?production=${production.id}`} target="_blank" rel="noreferrer">
+                    <a href={onNavigate ? "#work-order-preview" : `/print/job-ticket/${order.id}?production=${production.id}`} target="_blank" rel="noreferrer">
                       <Printer /> พิมพ์ใบใหม่
                     </a>
                   </Button>
@@ -409,8 +417,8 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab }: { c: 
                   </TabsList>
                 </TabsBar>
                 <div className="mt-6">
-                  <TabsContent value="steps">
-                    <WorkOrderSteps c={c} current={current} pairedOpen={pairedOpen} allDone={allDone} qcAction={qcAction} stepFooter={stepFooter} assignAction={assignAction} />
+                  <TabsContent value="steps" keepMounted={variant !== "current"}>
+                    <WorkOrderSteps c={c} current={current} pairedOpen={pairedOpen} allDone={allDone} qcAction={qcAction} stepFooter={stepFooter} assignAction={assignAction} variant={variant} />
                   </TabsContent>
 
                   <TabsContent value="items" className="space-y-6">
@@ -447,6 +455,15 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab }: { c: 
       {c.dialogs}
     </>
   );
+  if (!onNavigate) return content;
+  const interceptNavigation = (event: MouseEvent<HTMLDivElement>) => {
+    const link = (event.target as HTMLElement).closest("a");
+    if (!link) return;
+    event.preventDefault();
+    event.stopPropagation();
+    onNavigate(link.getAttribute("aria-label") || link.textContent?.trim() || "เปิดลิงก์");
+  };
+  return <div id="work-order-preview" onClickCapture={interceptNavigation} onAuxClickCapture={interceptNavigation}>{content}</div>;
 }
 
 export function WorkOrderPage({ id }: { id: string }) {

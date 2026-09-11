@@ -20,7 +20,7 @@ export function ticksMissing(step: ProductionStep): number {
 /* ───────────────────────── ขวา: เช็คลิสต์ของขั้นที่ยืนอยู่ ───────────────────────── */
 
 /** เช็คลิสต์ของขั้น — ชื่อการ์ด "เช็คลิสต์" (ชื่อขั้นอยู่ที่ตารางซ้ายแล้ว) · ขั้นคู่ค่อยใส่ชื่อขั้นให้แยกกันออก */
-export function ChecklistCard({ step, c, nowMs, showStepName = false, assignAction }: { step: ProductionStep; c: WorkOrderController; nowMs: number; showStepName?: boolean; assignAction?: ReactNode }) {
+export function ChecklistCard({ step, c, nowMs, showStepName = false, assignAction, presentation = "current" }: { step: ProductionStep; c: WorkOrderController; nowMs: number; showStepName?: boolean; assignAction?: ReactNode; presentation?: "current" | "embedded" }) {
   const standards = workOrderStandards(step.stepType);
   const done = step.status === "COMPLETED";
   const halted = step.status === "FAILED" || step.status === "ON_HOLD";
@@ -30,7 +30,7 @@ export function ChecklistCard({ step, c, nowMs, showStepName = false, assignActi
   const missing = done || halted ? 0 : ticksMissing(step);
   const canTick = c.canUpdateStep && c.canOwnOrSupervise(step) && !done && !halted;
   return (
-    <Section title={showStepName ? stepLabel(step) : "เช็คลิสต์"} action={missing > 0 ? <InfoChip size="sm" tone="warning">ติ๊กอีก {missing} ข้อ</InfoChip> : undefined}>
+    <Section title={showStepName ? stepLabel(step) : "เช็คลิสต์"} bordered={presentation === "embedded" ? false : undefined} surface={presentation === "embedded" ? "plain" : undefined} action={missing > 0 ? <InfoChip size="sm" tone="warning">ติ๊กอีก {missing} ข้อ</InfoChip> : undefined}>
       <div className="space-y-4">
         {/* ใครทำขั้นนี้ + ปุ่มเปลี่ยนคนทำ อยู่บรรทัดเดียวกัน (เบสสั่ง 2026-09-10) — เดิมปุ่มมอบหมาย
             ซ่อนอยู่ในเมนู ⋯ บนหัวใบ ทั้งที่ข้อมูล "ผู้ทำ" อยู่ตรงนี้ */}

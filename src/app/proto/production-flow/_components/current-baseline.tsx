@@ -185,11 +185,8 @@ function BaselineDetail({ state, role, view, onBack }: { state: FlowState; role:
   );
 }
 
-function BaselineList({ state, role, onSelectOrder }: CurrentBaselineProps) {
-  const [lens, setLens] = useState<DeskLens>("all");
-  const [search, setSearch] = useState("");
-  const [station, setStation] = useState("");
-  const [sort, setSort] = useState<DeskSort>({ key: "deadline", direction: "asc" });
+/** Shared read-only mapping for layout comparisons using the same scenario. */
+export function baselineDeskOrders(state: FlowState, role: FlowRole) {
   const views: OrderView[] = selectOrders(state, role);
   // The current desk cannot represent an unknown ledger; keep those records visible separately.
   const unknownOrders = views.filter((view) => view.unknown);
@@ -206,6 +203,15 @@ function BaselineList({ state, role, onSelectOrder }: CurrentBaselineProps) {
       productions: order.released === false ? [] : [{ id: order.workOrders[0]?.id ?? order.id, steps: fixture.steps }],
     };
   });
+  return { views, unknownOrders, orders };
+}
+
+function BaselineList({ state, role, onSelectOrder }: CurrentBaselineProps) {
+  const [lens, setLens] = useState<DeskLens>("all");
+  const [search, setSearch] = useState("");
+  const [station, setStation] = useState("");
+  const [sort, setSort] = useState<DeskSort>({ key: "deadline", direction: "asc" });
+  const { views, unknownOrders, orders } = baselineDeskOrders(state, role);
   const now = new Date(state.clock);
   const board = buildProductionBoard(orders, { now, viewerId: DEFAULT_ACTORS[role].id, showBlocked: true });
   const rows = buildDeskRows(board, now);
