@@ -178,6 +178,10 @@ export function ManufacturingFactoryBoard() {
                 <Skeleton className="h-16 rounded-lg" />
                 <Skeleton className="h-16 rounded-lg" />
               </div>
+            ) : exceptions.isError && !exceptions.data ? (
+              <Alert variant="warning" title="โหลดรายการปัญหาไม่สำเร็จ" className="mt-3">
+                ยังยืนยันไม่ได้ว่ามีงานติดปัญหาหรือไม่ ระบบจะลองใหม่ทุก 30 วินาที
+              </Alert>
             ) : exceptions.data?.items.length ? (
               <ul className="mt-3 space-y-2 overflow-hidden">
                 {exceptions.data.items.slice(0, 8).map((exception) => (

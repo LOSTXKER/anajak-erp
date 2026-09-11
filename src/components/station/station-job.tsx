@@ -24,7 +24,7 @@ import { ProductionDesignCard } from "@/components/production/production-design-
 import { FixDialog, ProblemDialog } from "@/components/production/step-command-dialogs";
 import type { ProductionStep } from "@/components/production/types";
 import { useWorkOrderController, type WorkOrderController } from "@/components/production/work-order-controller";
-import { OutsourceFacts, Owner, ProblemCard, StateChip, daysFromNow, stepLabel, viewOf } from "@/components/production/work-order-pieces";
+import { OutsourceFacts, Owner, ProblemCard, StateChip, activeOutsource, daysFromNow, dtfUnavailableReason, outsourceStepReason, stepLabel, viewOf } from "@/components/production/work-order-pieces";
 import { isOutsourceStep } from "@/lib/production-steps";
 import type { StationDef } from "@/lib/station-desk";
 import { isInferredDone } from "@/lib/work-order-record-mode";
@@ -97,7 +97,7 @@ export function StationJobBody({ c, step, boss, autoFix = false }: { c: WorkOrde
   return (
     <>
       {c.writeDataStale ? (
-        <Alert variant="warning" title="ข้อมูลล่าสุดอาจยังไม่ครบ" className="mb-4">
+        <Alert variant="warning" title="ข้อมูลล่าสุดอาจยังไม่ครบ" className="mb-4" action={<Button variant="outline" onClick={() => { void c.productionQuery.refetch(); void c.meQuery.refetch(); }}>โหลดใหม่</Button>}>
           กำลังแสดงข้อมูลเดิมที่โหลดไว้ — ปุ่มลงมือถูกปิดจนกว่าจะโหลดใหม่สำเร็จ
         </Alert>
       ) : null}
@@ -165,6 +165,8 @@ export function StationStepZone({
   // A9/A11: หน้างานปิดทุกขั้นผ่าน controller เดียวกับใบผลิต รวมขั้นที่เคยจดบนกระดาษ
   const inferredDone = isInferredDone(step);
   const gated = !done && !stuck && TICK_GATED.has(now?.action ?? "") && (!allTicked || c.tickPending);
+  const dtfReason = dtfUnavailableReason(step);
+  const outsource = activeOutsource(step);
 
   const canReport = c.canUpdateStep && c.canOwnOrSupervise(step) && !done && step.status !== "FAILED";
   const note = done
@@ -177,13 +179,17 @@ export function StationStepZone({
         : "ติดปัญหาอยู่ — รอหัวหน้าแก้ก่อน จึงทำต่อได้"
       : now && now.waitingOn.length > 0
         ? `รอ: ${now.waitingOn.join(" และ ")}`
-        : now?.note
-          ? now.note
-          : !now
-            ? "ยังไม่ถึงคิวขั้นนี้ — ทำขั้นก่อนหน้าให้จบก่อน"
-            : gated
-              ? c.tickPending ? "กำลังบันทึกข้อกำหนด" : "ติ๊กข้อกำหนดให้ครบก่อนปิดขั้น"
-              : undefined;
+        : outsource
+          ? `${outsourceStepReason(step)} — การรับกลับให้หัวหน้าตรวจจากใบผลิต`
+          : dtfReason
+            ? dtfReason
+            : now?.note
+              ? now.note
+              : !now
+                ? "ยังไม่ถึงคิวขั้นนี้ — ทำขั้นก่อนหน้าให้จบก่อน"
+                : gated
+                  ? c.tickPending ? "กำลังบันทึกข้อกำหนด" : "ติ๊กข้อกำหนดให้ครบก่อนปิดขั้น"
+                  : undefined;
 
   const primary = gated ? (
     <Button
@@ -333,6 +339,7 @@ export function StationStepChecklist({ step, c }: {
           );
         })}
       </ul>
+      {done && checkedCount < standards.length ? <p className="mt-3 text-sm text-secondary">ขั้นนี้ปิดแล้ว มีผลตรวจบันทึกไว้ {checkedCount}/{standards.length} ข้อ</p> : null}
     </div>
   );
 }

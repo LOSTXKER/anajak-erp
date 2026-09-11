@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
 import {
   Dialog,
   DialogContent,
@@ -62,11 +63,11 @@ export function StepOutsourceDialog({ step, onClose }: StepOutsourceDialogProps)
       utils.order.getById,
     ],
     onSuccess: () => {
-      toast.success("สร้างงาน outsource แล้ว — ติดตามสถานะได้ที่หน้า Outsource");
+      toast.success("สร้างใบร้านนอกแล้ว — ดูร้านและกำหนดรับกลับได้ในขั้นนี้ของใบผลิต");
       onClose();
     },
     onError: (err: { message?: string }) => {
-      toast.error(err.message ?? "สร้างงาน outsource ไม่สำเร็จ");
+      toast.error(err.message ?? "สร้างใบร้านนอกไม่สำเร็จ");
     },
   });
 
@@ -74,9 +75,9 @@ export function StepOutsourceDialog({ step, onClose }: StepOutsourceDialogProps)
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>ส่งงานร้านนอก</DialogTitle>
+          <DialogTitle>สร้างใบร้านนอก</DialogTitle>
           <DialogDescription>
-            ติดตาม/รับกลับ/QC ต่อที่หน้างานร้านนอก
+            บันทึกร้าน จำนวน และนัดรับกลับ ใบที่สร้างยังเป็นร่างและยังไม่ยืนยันว่าของออกจากโรงงาน
           </DialogDescription>
         </DialogHeader>
         {/* label เขียนเองถูกยุบเข้า Field กลาง (UX4) — id/aria เดินสายอัตโนมัติ
@@ -84,8 +85,8 @@ export function StepOutsourceDialog({ step, onClose }: StepOutsourceDialogProps)
             จึงส่ง id เดียวกันให้ Field เพื่อให้ label htmlFor ชี้ตรง trigger */}
         <div className="space-y-4">
           <div>
-            <Field label="ร้าน (Vendor)" id={`${formId}-vendor`}>
-              <Select value={vendorId} onChange={(e) => setVendorId(e.target.value)} id={`${formId}-vendor`} placeholder="เลือกร้าน...">
+            <Field label="ร้าน" id={`${formId}-vendor`}>
+              <Select value={vendorId} onChange={(e) => setVendorId(e.target.value)} id={`${formId}-vendor`} disabled={vendors.isLoading || vendors.isError} placeholder={vendors.isLoading ? "กำลังโหลดรายชื่อร้าน…" : "เลือกร้าน..."}>
                   {vendors.data?.map((v) => (
                     <option key={v.id} value={v.id}>
                       {v.name}
@@ -93,7 +94,11 @@ export function StepOutsourceDialog({ step, onClose }: StepOutsourceDialogProps)
                   ))}
                 </Select>
             </Field>
-            {vendors.data?.length === 0 && (
+            {vendors.isError ? (
+              <Alert variant="error" title="โหลดรายชื่อร้านไม่สำเร็จ" className="mt-2" action={<Button variant="outline" size="sm" onClick={() => void vendors.refetch()}>ลองใหม่</Button>}>
+                โหลดรายชื่อร้านให้สำเร็จก่อนสร้างใบ ข้อมูลที่กรอกไว้ยังอยู่
+              </Alert>
+            ) : vendors.data?.length === 0 && (
               <div className={cn(TINT.warning, "mt-2 rounded-lg border p-3")}>
                 <p className="text-xs text-current">
                   ยังไม่มีร้านในระบบ
@@ -144,9 +149,9 @@ export function StepOutsourceDialog({ step, onClose }: StepOutsourceDialogProps)
         </div>
         <DialogSubmitFooter
           pending={createOutsource.isPending}
-          pendingLabel="กำลังส่งร้านนอก..."
-          disabled={!vendorId || !description || !(parseInt(quantity, 10) > 0)}
-          submitLabel="ส่งร้านนอก"
+          pendingLabel="กำลังสร้างใบ..."
+          disabled={vendors.isLoading || vendors.isError || !vendorId || !description || !(parseInt(quantity, 10) > 0)}
+          submitLabel="สร้างใบร้านนอก"
           submitIcon={<Truck />}
           onCancel={onClose}
           onSubmit={() =>

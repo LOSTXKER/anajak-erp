@@ -83,7 +83,7 @@ ok("ตาราง: ไซซ์นำแถว และชื่อสิน�
 ok("ตาราง: สีหลักของเสื้อไม่หาย และลายแยกเป็นรายการอ่านได้", table.includes(">กรมท่า<") && table.includes(">หน้า DTF</li>") && table.includes(">แขนซ้าย ปัก</li>"));
 ok("ตาราง: ชื่อพื้นที่และหัวคอลัมน์อ่านได้ด้วยเครื่องช่วยอ่าน", table.includes('role="region"') && table.includes('aria-label="รายการเสื้อ ขั้นรีดร้อน"') && (table.match(/scope="col"/g) ?? []).length === 4);
 ok("ตาราง: ช่องกรอกสูงพอนิ้วบนจอทัช (CONTROL_H)", table.includes("[@media(pointer:coarse)]:h-11"));
-ok("ตาราง: ไม่มีคำอธิบายวิธีใช้ (A8)", !table.includes("กรอก") && !table.includes("กดเพื่อ"));
+ok("ตาราง: แจ้งสถานะบันทึกยอดให้เครื่องช่วยอ่านรับรู้", table.includes('aria-live="polite"'));
 const distinctProductsOrder = structuredClone(fakeOrder as ProductionDetail["order"]);
 const originalProduct = distinctProductsOrder.items[0]!.products[0]!;
 distinctProductsOrder.items[0]!.products.push({ ...originalProduct, id: "pr2", totalQuantity: 20, variants: [{ ...originalProduct.variants[0]!, id: "v4", quantity: 20 }] });
@@ -115,7 +115,9 @@ ok("เช็คลิสต์: มีผู้ทำ", check.includes("บา�
 ok("เช็คลิสต์: ข้อกำหนดของรีดร้อนครบ 3 ข้อ แถวสูง 44px เป็น checkbox ติ๊กได้", (check.match(/min-h-11/g) ?? []).length === 3 && (check.match(/type="checkbox"/g) ?? []).length === 3 && (check.match(/checked=""/g) ?? []).length === 1);
 ok("เช็คลิสต์: ชิปบอกจำนวนที่ยังไม่ติ๊ก", check.includes(">ติ๊กอีก 2 ข้อ<"));
 const closed = render(<ChecklistCard step={{ ...base, id: "h3", stepType: "HEAT_PRESS", status: "COMPLETED" } as never} c={ctrl} nowMs={0} />);
-ok("เช็คลิสต์ (ปิดแล้ว): ติ๊กครบ กดไม่ได้ ไม่มีชิปเหลือ", (closed.match(/checked=""/g) ?? []).length === 3 && (closed.match(/disabled=""/g) ?? []).length === 3 && !closed.includes("ติ๊กอีก"));
+ok("เช็คลิสต์ (ปิดแล้ว): ไม่เติมหลักฐานติ๊กให้เอง กดไม่ได้ และบอกว่าบันทึกกี่ข้อ", (closed.match(/checked=""/g) ?? []).length === 0 && (closed.match(/disabled=""/g) ?? []).length === 3 && closed.includes("มีผลตรวจบันทึกไว้ 0/3 ข้อ"));
+const closedWithEvidence = render(<ChecklistCard step={{ ...base, id: "h4", stepType: "HEAT_PRESS", status: "COMPLETED", checks: [{ itemKey: "ตั้งอุณหภูมิ/เวลา/แรงกดตามค่าของลายในใบงาน", checkedBy: { name: "บาส" } }] } as never} c={ctrl} nowMs={0} />);
+ok("เช็คลิสต์ (ปิดแล้ว): แสดงเฉพาะผลที่บันทึกจริงพร้อมผู้ตรวจ", (closedWithEvidence.match(/checked=""/g) ?? []).length === 1 && closedWithEvidence.includes("ติ๊กโดย บาส") && closedWithEvidence.includes("มีผลตรวจบันทึกไว้ 1/3 ข้อ"));
 ok("เช็คลิสต์: ไม่มีศัพท์ภายใน (จดในระบบ/จดบนกระดาษ/ถือว่าผ่าน)", !check.includes("จดในระบบ") && !check.includes("จดบนกระดาษ") && !check.includes("ถือว่าผ่าน"));
 const outsourced = render(
   <ChecklistCard

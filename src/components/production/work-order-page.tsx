@@ -12,7 +12,7 @@
  * ยอดต่อแถวเก็บใน OperationQuantity (ยอดรวมของขั้น = ผลบวก) · ย้อนขั้นผ่าน production.reopenStep (หัวหน้า) ·
  * ช่องคู่ = ขั้นที่ตั้ง pairWithPrevious รวมกับขั้นก่อนเป็นช่องเดียวบนราง (src/lib/work-order-rail.ts)
  * ราง = ขั้นเรียงตาม sortOrder ยืนที่ช่องแรกที่ยังมีขั้นไม่ปิด (แบบ A — ทุกขั้นปิดด้วยปุ่ม รวมขั้นที่เคยจดบนกระดาษ)
- * ไม่มีคำอธิบายในจอ (A8 ระดับ 1) — ชื่อ ตัวเลข สถานะ และเหตุที่กดไม่ได้เท่านั้น
+ * คำช่วยและเหตุที่ทำต่อไม่ได้อยู่ตรงขั้นที่เกี่ยว ตาม ui-guidance (A16)
  */
 
 import { Suspense, useState, type ReactNode } from "react";
@@ -34,11 +34,13 @@ import { GarmentReceiveInline } from "@/components/production/garment-receive-in
 import { ProblemDialog } from "@/components/production/step-command-dialogs";
 import type { ProductionStep } from "@/components/production/types";
 import { PRIORITY_LABELS } from "@/lib/order-status";
+import { permAllows } from "@/lib/permissions";
+import { formatDateTime } from "@/lib/utils";
 import { FLOW_OWNED_STEP_TYPES } from "@/lib/production-steps";
 import { currentRailNode, railNodesOf } from "@/lib/work-order-rail";
 import { routeWaitingOn } from "@/lib/work-order-route";
 import { useWorkOrderController, type WorkOrderController } from "./work-order-controller";
-import { activeOutsource, ProblemCard, stepLabel } from "./work-order-pieces";
+import { activeOutsource, dtfUnavailableReason, outsourceReceiptCandidates, outsourceStepReason, ProblemCard, stepLabel } from "./work-order-pieces";
 import { checklistAnchor, ticksMissing } from "./work-order-checklist";
 import { pieceTableAnchor, pieceRowsOf } from "./work-order-quantities";
 import { WorkOrderSteps } from "./work-order-steps";
@@ -113,11 +115,22 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab }: { c: 
     if (step.stepType === "GARMENT_RECEIVE") return null;
     const outsource = activeOutsource(step);
     if (outsource) {
-      return c.canUpdateStep && c.canOwnOrSupervise(step) ? (
-        <Button onClick={() => c.openOutsourceReturn(step.id, outsource.id)}>
-          รับงานกลับ
-        </Button>
-      ) : null;
+      const receipts = outsourceReceiptCandidates(step);
+      if (!c.canUpdateStep || !c.canOwnOrSupervise(step) || !permAllows(me?.permissions, "manage_delivery") || receipts.length === 0) return null;
+      return (
+        <div className="w-full divide-y divide-divider">
+          {receipts.map((receipt) => (
+            <div key={receipt.id} className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-strong">{receipt.vendor.name} · {receipt.quantity.toLocaleString("th-TH")} ตัว</p>
+                <p className="text-sm text-secondary">{receipt.description || stepLabel(step)}</p>
+                <p className="text-xs text-muted">ใบวันที่ {formatDateTime(receipt.createdAt)}</p>
+              </div>
+              <Button aria-label={`บันทึกหลักฐานรับกลับจาก ${receipt.vendor.name} ${receipt.quantity} ตัว ใบวันที่ ${formatDateTime(receipt.createdAt)}`} onClick={() => c.openOutsourceReturn(step.id, receipt.id)}>บันทึกหลักฐานรับกลับ</Button>
+            </div>
+          ))}
+        </div>
+      );
     }
     const now = nowById.get(step.id);
     const closes = now?.action === "complete" || now?.action === "record-qty" || now?.action === "quick-pass";
@@ -148,9 +161,11 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab }: { c: 
   function stepFooter(step: ProductionStep) {
     const action = actionFor(step);
     const canReport = c.canUpdateStep && c.canOwnOrSupervise(step) && step.status !== "COMPLETED" && step.status !== "FAILED";
-    if (!action && !canReport) return null;
+    const reason = step.status !== "COMPLETED" ? blockReason(step) : null;
+    if (!action && !canReport && !reason) return null;
     return (
       <>
+        {reason ? <p className="w-full text-sm text-secondary">{reason}</p> : null}
         {action}
         {canReport ? (
           <Button variant="outline" onClick={() => setProblemStep(step)}>
@@ -174,20 +189,33 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab }: { c: 
   /** ทำไมยังไปขั้นถัดไปไม่ได้ — ประโยคเดียวที่หัวใบใช้บอกคนอ่าน (เรียงจากเหตุที่ "แก้ได้ที่นี่เลย" ก่อน) */
   function blockReason(step: ProductionStep): string {
     const outsource = activeOutsource(step);
+    if (c.writeDataStale) return "โหลดข้อมูลล่าสุดก่อนลงมือ เพื่อไม่บันทึกทับข้อมูลที่เปลี่ยนไป";
+    if (!c.hasProductionPermission) return "บัญชีนี้ดูงานได้ ให้ทีมผลิตหรือหัวหน้าเป็นผู้บันทึกขั้นนี้";
     if (step.status === "ON_HOLD") return "ขั้นนี้ถูกพักไว้";
     if (step.status === "FAILED") return "ขั้นนี้ติดปัญหา รอหัวหน้าจัดการ";
-    if (outsource) return `ของอยู่ที่ ${outsource.vendor.name} รอรับงานกลับ`;
+    if (outsource) {
+      const receipts = outsourceReceiptCandidates(step);
+      if (receipts.length > 0) return `${receipts.length} ใบรอรับกลับ — ${permAllows(me?.permissions, "manage_delivery") ? "บันทึกได้เฉพาะหลักฐานรับกลับ สถานะร้านนอกยังไม่เปลี่ยน" : "ให้ผู้มีสิทธิ์รับของเข้าเป็นผู้บันทึกหลักฐานรับกลับ"}`;
+      const state = outsourceStepReason(step);
+      return `${state} — หน้าจัดการสถานะร้านนอกยังไม่พร้อมใช้งาน`;
+    }
     const waiting = routeWaitingOn(step, workflowSteps).map(stepLabel);
     if (waiting.length > 0 && !nowById.get(step.id)?.action) return `รอ ${waiting.length === 1 ? waiting[0] : `${waiting.length} ขั้นก่อนหน้า`}`;
     if (!c.canUpdateStep && c.hasProductionPermission) return "ออเดอร์ยังไม่อยู่ในสถานะกำลังผลิต";
     if (step.assignedTo && !c.canOwnOrSupervise(step)) return `งานของ ${step.assignedTo.name}`;
+    const dtfReason = dtfUnavailableReason(step);
+    if (dtfReason) return dtfReason;
+    if (step.stepType === "GARMENT_RECEIVE") return "นับเสื้อที่รับจริงในตาราง แล้วบันทึกหลักฐานตรวจรับ";
+    const now = nowById.get(step.id);
+    if (now?.action === "start") return `กด “${!step.assignedTo && !c.canSuperviseStep ? "รับงานนี้" : "เริ่มทำ"}” เมื่อพร้อมลงมือ`;
+    if (now?.action === "send-outsource") return "สร้างใบร้านนอกเพื่อระบุร้าน จำนวน และกำหนดรับกลับ";
+    const closes = now?.action === "complete" || now?.action === "record-qty" || now?.action === "quick-pass";
     const missing = ticksMissing(step);
-    if (missing > 0) return `ติ๊กข้อกำหนดของขั้นนี้อีก ${missing} ข้อ`;
-    if (hasVariantRows && step.qtyTotal && (step.qtyDone ?? 0) < step.qtyTotal) {
+    if (closes && missing > 0) return `ติ๊กข้อกำหนดของขั้นนี้อีก ${missing} ข้อ`;
+    if (closes && hasVariantRows && step.qtyTotal && (step.qtyDone ?? 0) < step.qtyTotal) {
       return `ยอดยังไม่ครบ ${(step.qtyDone ?? 0).toLocaleString("th-TH")} / ${step.qtyTotal.toLocaleString("th-TH")} ตัว`;
     }
-    // ขั้นที่เดินด้วย flow อื่นมีประโยคของตัวเองอยู่แล้ว ("จัดการผ่านหน้ารอบพิมพ์ฟิล์ม DTF" ฯลฯ)
-    const note = nowById.get(step.id)?.note;
+    const note = now?.note;
     if (note) return note;
     return `กดปิดขั้น ${stepLabel(step)} ในกล่องด้านล่าง`;
   }

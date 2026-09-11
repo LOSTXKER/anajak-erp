@@ -135,8 +135,8 @@ function ReceiptForm({
   const [lines, setLines] = useState<LineState[]>(() =>
     initialLines.map((l) => ({
       ...l,
-      // ใบรับ default = ที่คาด (นับแล้วตรงก็กดบันทึกได้เลย — แก้เฉพาะตัวที่ไม่ตรง)
-      qtyCounted: isReturn ? 0 : l.qtyExpected,
+      // ของร้านนอกต้องนับรอบที่รับจริง ไม่ใส่ยอดทั้งใบซ้ำให้ทุกครั้งที่เปิด
+      qtyCounted: isReturn || receiptType === "OUTSOURCE_RETURN" ? 0 : l.qtyExpected,
       defectQty: 0,
       defectNote: "",
     }))
@@ -257,6 +257,8 @@ function ReceiptForm({
           <DialogDescription>
             {isReturn
               ? "ยอดคืนจะหักออกจากยอดรับของออเดอร์นี้"
+              : receiptType === "OUTSOURCE_RETURN"
+                ? "นับเฉพาะของที่รับกลับรอบนี้ ไม่นับซ้ำใบก่อน การบันทึกนี้เก็บหลักฐานและยังไม่เปลี่ยนสถานะงานร้านนอก"
               : canConfirmExistingEvidence
                 ? "รายการนี้มีหลักฐานรับครบแล้ว — ยืนยันเพื่อปิดเฉพาะขั้นของสถานีนี้"
               : "นับจริงต่อไซส์ — ขาด/เกิน/มีตำหนิ ระบบแจ้งแอดมินให้ทันที"}

@@ -1,10 +1,12 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DueTag } from "@/components/ui/due-tag";
 import { Fact, FactList } from "@/components/ui/fact";
 import { Section } from "@/components/ui/section";
 import { latestPlainProductionNote } from "@/lib/production-problem";
+import { INTERNAL_STATUS_LABELS } from "@/lib/order-status";
 import { formatDate } from "@/lib/utils";
 import type { ProductionStep } from "./types";
 import type { WorkOrderController } from "./work-order-controller";
@@ -31,26 +33,30 @@ export function WorkOrderSteps({ c, current, pairedOpen, allDone, qcAction, step
   const { production, order, workflowSteps, nowMs } = c;
   if (!production || !order) return null;
   const approvedMockup = order.designs[0]?.versionNumber ?? null;
+  const afterProduction = ["PACKING", "READY_TO_SHIP", "SHIPPED", "COMPLETED"].includes(order.internalStatus);
+  const nextTab = afterProduction ? "delivery" : "production";
+  const nextLabel = order.internalStatus === "QUALITY_CHECK" ? "ไปตรวจ QC" : afterProduction ? "ดูการแพ็กและจัดส่ง" : "ดูงานผลิตทั้งออเดอร์";
   return (
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start">
       <div className="min-w-0 space-y-5">
         {allDone || !current ? (
           <Section
-            title="ครบทุกขั้นแล้ว"
+            title="ครบทุกขั้นในใบนี้แล้ว"
             icon={CheckCircle2}
             tone="production"
             action={
               qcAction ? undefined : (
                 <Button asChild size="sm" variant="outline">
-                  <a href={`/orders/${order.id}?tab=qc`}>ไปหน้า QC</a>
+                  <Link href={`/orders/${order.id}?tab=${nextTab}`}>{nextLabel}</Link>
                 </Button>
               )
             }
           >
             <FactList columns={2}>
               <Fact size="sm" label="ทำแล้ว" value={`${c.totalQty.toLocaleString("th-TH")} ตัว`} />
-              <Fact size="sm" label="ตอนนี้" value={qcAction ? "รอส่งเข้า QC" : "อยู่ที่ QC"} />
+              <Fact size="sm" label="สถานะออเดอร์" value={INTERNAL_STATUS_LABELS[order.internalStatus]} />
             </FactList>
+            {qcAction ? <p className="mt-3 text-sm text-secondary">กด “ส่งเข้า QC” เพื่อยืนยันใบนี้ ออเดอร์จะเข้า QC เมื่อทุกใบผลิตเสร็จ</p> : order.internalStatus === "PRODUCING" ? <p className="mt-3 text-sm text-secondary">ออเดอร์ยังอยู่ระหว่างผลิต เปิดดูงานทั้งออเดอร์เพื่อตรวจใบที่เหลือ</p> : null}
           </Section>
         ) : (
           <>

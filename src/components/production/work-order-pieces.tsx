@@ -17,6 +17,7 @@ import type { NowStep } from "@/lib/production-step-actions";
 import { OUTSOURCE_STATUS_LABELS, STEP_TYPE_LABELS } from "@/lib/production-steps";
 import { formatDate } from "@/lib/utils";
 import { differenceInBangkokDays } from "@/lib/date-utils";
+import { outsourceQueueForStatus } from "@/lib/outsource-ui";
 
 export const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -26,6 +27,15 @@ export function daysFromNow(value: Date | string | null | undefined, nowMs: numb
 
 export function stepLabel(step: Pick<ProductionStep, "customStepName" | "stepType">) {
   return step.customStepName || STEP_TYPE_LABELS[step.stepType] || step.stepType;
+}
+
+/** รอบพิมพ์ยังไม่มีหน้าจัดการใน ERP รุ่นนี้ — ไม่ชี้คนใช้ไปหน้าที่ไม่มีแล้ว */
+export function dtfUnavailableReason(step: ProductionStep): string | null {
+  if (step.stepType !== "DTF_PRINT" || ["COMPLETED", "FAILED", "ON_HOLD"].includes(step.status) || activeOutsource(step)) return null;
+  const run = step.printRunItems[0]?.printRun.runNumber;
+  return run
+    ? `อยู่ในรอบพิมพ์ ${run} แต่หน้าจัดรอบพิมพ์ยังไม่พร้อมใช้งาน จึงปิดรอบจากหน้านี้ไม่ได้`
+    : "หน้าจัดรอบพิมพ์ DTF ยังไม่พร้อมใช้งาน จึงเริ่มหรือปิดขั้นนี้จากระบบไม่ได้";
 }
 
 export type StepView = {
@@ -64,6 +74,19 @@ export function viewOf(step: ProductionStep, now: NowStep<ProductionStep> | unde
 
 export function activeOutsource(step: ProductionStep) {
   return step.outsourceOrders.find((o) => !["QC_PASSED", "QC_FAILED", "CANCELLED"].includes(o.status)) ?? null;
+}
+
+/** ขั้นหนึ่งแบ่งส่งหลายใบได้ ใบร่างล่าสุดต้องไม่บังใบก่อนหน้าที่รอรับกลับ */
+export function outsourceReceiptCandidates(step: ProductionStep) {
+  return step.outsourceOrders.filter((order) => outsourceQueueForStatus(order.status) === "receive");
+}
+
+export function outsourceStepReason(step: ProductionStep): string | null {
+  const outsource = activeOutsource(step);
+  if (!outsource) return null;
+  return outsource.status === "DRAFT"
+    ? `ใบร้านนอกของ ${outsource.vendor.name} ยังรอส่ง ยังไม่ยืนยันว่าของออกจากโรงงาน`
+    : `${OUTSOURCE_STATUS_LABELS[outsource.status] ?? outsource.status} · ${outsource.vendor.name}`;
 }
 
 export function StateChip({ view, kind, size = "sm" }: { view: StepView; kind: "inhouse" | "outsource"; size?: "sm" | "md" | "lg" }) {

@@ -229,8 +229,9 @@ function Screen() {
       list.replaceListState({ s: "job", job: card.spot.productionId, step: card.step.id, fix: fix ? "1" : null });
       return;
     }
-    // ช่วงหลังผลิต (QC / แพ็ก) ยังไม่มีหน้าลงมือบนจอนี้ — ไปทำในหน้าออเดอร์ (ROADMAP §A2)
-    router.push(`/orders/${card.job.order.id}`);
+    // เปิดแท็บที่ลงมือได้จริงทันที ไม่ให้ช่างต้องหา QC/แพ็กใหม่ในหน้าออเดอร์
+    const tab = station.key === "post:qc" ? "production" : "delivery";
+    router.push(`/orders/${card.job.order.id}?tab=${tab}`);
   };
   return (
     <StationShell
@@ -258,7 +259,7 @@ function Screen() {
       {staleAlert}
       {station.kind === "post" ? (
         <Alert variant="info" className="mb-4" title={`${station.label}ทำในหน้าออเดอร์`}>
-          กดการ์ดแล้วจะเปิดหน้าออเดอร์ของงานนั้น — หน้าลงมือของ QC/แพ็กบนจอนี้จะตามมารุ่นถัดไป
+          กดการ์ดเพื่อเปิด{station.key === "post:qc" ? "แท็บงานผลิตและตรวจนับ QC" : "แท็บจัดส่งและบันทึกแพ็ก"}ของออเดอร์นั้น
         </Alert>
       ) : null}
       <QueueGroups

@@ -26,6 +26,7 @@ export function ChecklistCard({ step, c, nowMs, showStepName = false, assignActi
   const halted = step.status === "FAILED" || step.status === "ON_HOLD";
   const outsource = activeOutsource(step);
   const ticked = new Map(step.checks.map((t) => [t.itemKey, t.checkedBy.name]));
+  const checkedCount = standards.filter((label) => ticked.has(label)).length;
   const missing = done || halted ? 0 : ticksMissing(step);
   const canTick = c.canUpdateStep && c.canOwnOrSupervise(step) && !done && !halted;
   return (
@@ -55,7 +56,7 @@ export function ChecklistCard({ step, c, nowMs, showStepName = false, assignActi
         {standards.length > 0 ? (
           <ul className="divide-y divide-divider border-t border-divider">
             {standards.map((label) => {
-              const on = done || ticked.has(label);
+              const on = ticked.has(label);
               const who = ticked.get(label);
               return (
                 <li key={label}>
@@ -75,6 +76,9 @@ export function ChecklistCard({ step, c, nowMs, showStepName = false, assignActi
               );
             })}
           </ul>
+        ) : null}
+        {done && checkedCount < standards.length ? (
+          <p className="text-sm text-secondary">ขั้นนี้ปิดแล้ว มีผลตรวจบันทึกไว้ {checkedCount}/{standards.length} ข้อ</p>
         ) : null}
       </div>
     </Section>

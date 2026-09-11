@@ -27,6 +27,7 @@ import { evaluateHeatPressGate, productionWorkflowSteps } from "@/lib/production
 import { canSendToQc, paperStepsToClose } from "@/lib/work-order-record-mode";
 import { cn } from "@/lib/utils";
 import { stepLabel } from "./work-order-pieces";
+import { outsourceQueueForStatus } from "@/lib/outsource-ui";
 
 export type WorkOrderButtonOptions = {
   /** จอทัช: ปุ่มสูง 64px ตัวหนังสือใหญ่ */
@@ -226,6 +227,7 @@ export function useWorkOrderController(id: string) {
   }
 
   const notFound = productionQuery.error?.data?.code === "NOT_FOUND";
+  const outsourceReturnStep = outsourceReturn ? workflowSteps.find((step) => step.id === outsourceReturn.stepId) : undefined;
 
   /** dialog ทั้งชุด — วางครั้งเดียวท้ายหน้าของผู้เรียก */
   const dialogs: ReactNode = (
@@ -243,13 +245,12 @@ export function useWorkOrderController(id: string) {
       {goodsReceiptStepId && order ? (
         <GoodsReceiptDialog key={goodsReceiptStepId} orderId={order.id} productionStepId={goodsReceiptStepId} receiptType="CUSTOMER_GARMENT" onClose={() => setGoodsReceiptStepId(null)} />
       ) : null}
-      {outsourceReturn && order ? (
-        <GoodsReceiptDialog
+      {outsourceReturn && order && outsourceReturnStep ? (
+        <OutsourceReturnReceipt
           key={outsourceReturn.outsourceOrderId}
           orderId={order.id}
-          productionStepId={outsourceReturn.stepId}
+          step={outsourceReturnStep}
           outsourceOrderId={outsourceReturn.outsourceOrderId}
-          receiptType="OUTSOURCE_RETURN"
           onClose={() => setOutsourceReturn(null)}
         />
       ) : null}
@@ -303,6 +304,26 @@ export function useWorkOrderController(id: string) {
 }
 
 export type WorkOrderController = ReturnType<typeof useWorkOrderController>;
+
+/** ใบรับกลับผูกกับใบร้านนอกและยอดของใบนั้น ไม่ส่งคำสั่งตรวจรับเสื้อลูกค้าปนไปด้วย */
+export function OutsourceReturnReceipt({ orderId, step, outsourceOrderId, onClose }: {
+  orderId: string;
+  step: ProductionStep;
+  outsourceOrderId: string;
+  onClose: () => void;
+}) {
+  const outsource = step.outsourceOrders.find((item) => item.id === outsourceOrderId);
+  if (!outsource || outsourceQueueForStatus(outsource.status) !== "receive") return null;
+  return (
+    <GoodsReceiptDialog
+      orderId={orderId}
+      outsourceOrderId={outsource.id}
+      receiptType="OUTSOURCE_RETURN"
+      presetLines={[{ description: outsource.description || stepLabel(step), qtyExpected: outsource.quantity }]}
+      onClose={onClose}
+    />
+  );
+}
 
 /* ───────────────────────── ปุ่มหลักของขั้น (pure — ไม่มี hook/tRPC) ─────────────────────────
  * ใช้ทั้งใบผลิตจริง (ผ่าน useWorkOrderController) และหน้าลอง /proto/work-order-states (controller ปลอม)
@@ -378,7 +399,7 @@ export function WorkOrderPrimaryButton({ step, now, options = {}, busy, canUpdat
     case "send-outsource":
       return (
         <Button className={size} onClick={() => onOutsource(step)} disabled={busy}>
-          <Truck /> ส่งร้านนอก
+          <Truck /> สร้างใบร้านนอก
         </Button>
       );
     case "quick-pass":
