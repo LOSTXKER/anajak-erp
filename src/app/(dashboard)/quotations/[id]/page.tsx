@@ -19,6 +19,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
 import { QUOTATION_STATUS_LABELS, QUOTATION_STATUS_VARIANTS } from "@/lib/status-config";
 import type { QuotationStatus } from "@/lib/quotation-status";
+import { PAYMENT_TERMS_LABELS } from "@/lib/payment-terms";
 import { DISPLAY_AMOUNT } from "@/components/ui/tokens";
 import { PageHeader } from "@/components/page-header";
 import {
@@ -405,7 +406,19 @@ export default function QuotationDetailPage({
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <DataTable.Root bordered={false}>
+              <ul aria-label="รายการสินค้าในใบเสนอราคา" className="divide-y divide-divider sm:hidden">
+                {quotation.items?.map((item) => (
+                  <li key={item.id} className="space-y-2 py-3 first:pt-0">
+                    <p className="font-medium text-strong">{item.name}</p>
+                    {item.description && <p className="text-sm text-secondary">{item.description}</p>}
+                    <div className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
+                      <span className="text-secondary">{item.quantity} {item.unit} × {formatCurrency(item.unitPrice)}</span>
+                      <span className="font-semibold tabular-nums text-strong">{formatCurrency(item.totalPrice)}</span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <DataTable.Root bordered={false} className="hidden sm:block">
                 <DataTable.Head>
                   <tr>
                     <DataTable.Th>#</DataTable.Th>
@@ -434,7 +447,7 @@ export default function QuotationDetailPage({
                         <DataTable.Td className="text-muted">
                           {index + 1}
                         </DataTable.Td>
-                        <DataTable.Td>
+                        <DataTable.Td className="min-w-48">
                           <p className="text-sm font-medium text-strong">
                             {item.name}
                           </p>
@@ -523,7 +536,7 @@ export default function QuotationDetailPage({
                       เงื่อนไข
                     </p>
                     <p className="whitespace-pre-wrap text-secondary">
-                      {quotation.terms}
+                      {PAYMENT_TERMS_LABELS[quotation.terms] ?? quotation.terms}
                     </p>
                   </div>
                 )}

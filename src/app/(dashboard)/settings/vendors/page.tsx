@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Pencil, Plus, Star, Store } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { permAllows } from "@/lib/permissions";
+import { STEP_TYPE_LABELS } from "@/lib/production-steps";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -218,7 +219,7 @@ export default function VendorsSettingsPage() {
                   {vendor.capabilities.length > 0 ? (
                     vendor.capabilities.map((capability) => (
                       <Badge key={capability} size="sm">
-                        {capability}
+                        {STEP_TYPE_LABELS[capability]?.replace(" (ร้านนอก)", "") ?? capability}
                       </Badge>
                     ))
                   ) : (

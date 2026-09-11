@@ -299,7 +299,7 @@ export default function ProductDetailPage({
                     </div>
                   );
                 })()}
-                {canSeeCost && product.costPrice && product.costPrice > 0 && (
+                {canSeeCost && product.costPrice != null && product.costPrice > 0 && (
                   <div className="flex items-center justify-between">
                     <span className="text-muted">ราคาทุน</span>
                     <span className="tabular-nums">
