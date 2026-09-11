@@ -2,6 +2,8 @@ import type { HTMLAttributes, ReactNode } from "react";
 import { Inbox } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { QueryError } from "@/components/ui/query-error";
+import { Alert } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { ListSkeleton } from "@/components/ui/page-skeleton";
 import { cn } from "@/lib/utils";
 
@@ -84,6 +86,17 @@ export function ResponsiveList<T>({
       aria-busy={isLoading || undefined}
       {...props}
     >
+      {isError && (
+        <Alert
+          variant="warning"
+          title="อัปเดตรายการไม่สำเร็จ"
+          className="mb-3"
+          action={onRetry ? <Button type="button" variant="outline" size="sm" onClick={onRetry}>ลองใหม่</Button> : undefined}
+        >
+          {errorMessage ? <p>{errorMessage}</p> : null}
+          <p>กำลังแสดงข้อมูลที่โหลดไว้ก่อนหน้า รายการอาจไม่ตรงกับตัวกรองหรือหน้าที่เลือก</p>
+        </Alert>
+      )}
       {/* ที่ md sidebar กิน 256px ทำให้พื้นที่เนื้อหาจริงแคบกว่ามือถือแนวนอน
           จึงคง card ถึงก่อน lg แล้วค่อยสลับเป็น table */}
       <div className="hidden lg:block">{renderDesktop(resolvedItems)}</div>

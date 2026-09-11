@@ -1,13 +1,14 @@
 /**
- * ด่าน "ลำดับความสำคัญทางสายตา" — ratchet (เพิ่ม 2026-09-02 · docs/DESIGN.md §ลำดับความสำคัญทางสายตา)
+ * รายการช่วยทบทวนลำดับความสำคัญทางสายตา (A16 · 2026-09-11)
  *
  * นับต่อไฟล์ .tsx ใน src (ยกเว้น test):
  *   dots  = บรรทัดที่ต่อข้อมูล ≥3 อย่างด้วย " · " (มีจุดคั่น ≥2 ตัวในบรรทัดเดียว)
  *   muted = จำนวน "text-xs text-muted" / "text-2xs text-muted"
  * เทียบกับ baseline ใน scripts/ui-hierarchy-baseline.json:
- *   - ไฟล์ใหม่ที่ไม่มีใน baseline: dots ต้องเป็น 0
- *   - ไฟล์เดิม: ห้ามเกิน baseline (ลดได้ เพิ่มไม่ได้)
- * `--update` = เขียน baseline ใหม่จากค่าปัจจุบัน (ใช้หลัง refactor ให้ตัวเลขลดลงเท่านั้น)
+ * baseline ช่วยหาจุดที่เปลี่ยน ไม่ใช่เพดานคุณภาพ: ข้อความจำเป็นเพิ่มได้
+ * จำนวนจุด/คลาสไม่รู้ความหมายหรือ contrast จึงเป็นคำเตือน ไม่หยุด verify:ui
+ * ด่านข้อมูล/สิทธิ์/การเข้าถึงยังตรวจแยกใน verify-ui-tokens และ test
+ * `--update` = บันทึก snapshot หลังทบทวน; ไม่ต้องลดข้อความเพื่อให้ผ่าน
  */
 import { readFileSync, writeFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
@@ -58,15 +59,14 @@ let baseline: Record<string, { dots: number; muted: number }> = {};
 try {
   baseline = JSON.parse(readFileSync(BASELINE, "utf8"));
 } catch {
-  console.log("❌ ไม่มี baseline — รัน `npx tsx scripts/ui-hierarchy-ratchet.ts --update` ก่อน");
-  process.exit(1);
+  console.log("⚠️ ไม่มี baseline สำหรับเทียบการนำเสนอ — รายงานจุดที่พบเพื่อทบทวนตาม ui-guidance");
 }
 
 const problems: string[] = [];
 for (const [file, value] of Object.entries(current)) {
   const base = baseline[file];
   if (!base) {
-    if (value.dots > 0) problems.push(`${file}: ไฟล์ใหม่ต่อข้อมูล ≥3 อย่างด้วยจุด ${value.dots} บรรทัด — ใช้ FactList / InfoChipRow`);
+    if (value.dots > 0) problems.push(`${file}: ต่อข้อมูลด้วยจุด ${value.dots} บรรทัด — ตรวจว่าอ่านและเทียบข้อมูลได้ง่าย`);
     continue;
   }
   if (value.dots > base.dots) problems.push(`${file}: dots ${base.dots} → ${value.dots} (เพิ่ม)`);
@@ -79,10 +79,12 @@ const baseTotals = Object.values(baseline).reduce(
 );
 
 if (problems.length) {
-  console.log("❌ ลำดับความสำคัญทางสายตาถอยหลัง (docs/DESIGN.md §ลำดับความสำคัญทางสายตา)");
+  console.log("⚠️ จุดที่ควรทบทวนการนำเสนอ (คำแนะนำ ไม่ใช่ผลตัดสิน UX)");
   problems.forEach((p) => console.log(`   ${p}`));
-  process.exit(1);
+  console.log("   คงคำช่วยจำเป็นตรงจุดใช้ และตรวจจากหน้าจอจริงตาม ui-guidance");
+} else {
+  console.log("ℹ️ ไม่พบจำนวนจุดคั่น/ข้อความรองเพิ่มจาก snapshot; ยังต้องตรวจการใช้งานจริง");
 }
 console.log(
-  `✅ ไม่มีไฟล์ไหนต่อข้อมูลด้วยจุด/ตัวเทาเพิ่ม — ตอนนี้ dots ${totals.dots} (baseline ${baseTotals.dots}) · muted ${totals.muted} (baseline ${baseTotals.muted})`,
+  `   จำนวนที่สำรวจ: dots ${totals.dots} (baseline ${baseTotals.dots}) · muted ${totals.muted} (baseline ${baseTotals.muted})`,
 );

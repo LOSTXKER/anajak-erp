@@ -4,7 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { PageIdentityIcon, pageDescriptionForLabel } from "@/lib/page-identity";
+import { PageIdentityIcon } from "@/lib/page-identity";
 import { HelpTip } from "@/components/ui/help-tip";
 import {
   INTERACTIVE_PAGE_HOVER,
@@ -23,7 +23,7 @@ export interface BreadcrumbItem {
 
 interface PageHeaderProps {
   title: ReactNode;
-  /** หน้านี้ใช้ทำอะไร — สั้นหนึ่งประโยคและเห็นเสมอใต้หัวข้อ */
+  /** คำแนะนำที่จำเป็นต่อหน้านี้; ไม่เติมคำโปรยอัตโนมัติจากชื่อหน้า */
   description?: ReactNode;
   /** ข้อเท็จจริงเฉพาะรายการ/สถานะ เช่น SKU จำนวนงาน หรือชื่อโปรเจกต์ */
   meta?: ReactNode;
@@ -69,15 +69,11 @@ export function PageHeader({
     .filter(Boolean)
     .join(" ");
   const resolvedTone = tone ?? visualToneForLabel(descriptionSource);
-  const resolvedDescription =
-    description === undefined
-      ? pageDescriptionForLabel(descriptionSource)
-      : description;
   /* แถบ breadcrumb ("บิล/การเงิน › ลูกหนี้") ถูกถอดออกจากทุกหน้า 2026-08-26
      เบสส่งภาพมาชี้ตรงนั้นแล้วบอกว่า "ทุกหน้าไม่ต้องมีหัวข้อเล็กๆแบบนี้"
 
      prop `breadcrumb` ยังอยู่และยังมีประโยชน์สองอย่าง ห้ามลบทิ้ง:
-     ① เป็นที่มาของ identity/description ปริยายของหน้า (ดู identityLabel ข้างบน)
+     ① เป็นที่มาของ identity ของหน้า (ดู identityLabel ข้างบน)
      ② เป็นที่มาของ "ปุ่มย้อนกลับ" เมื่อหน้าไม่ได้ส่ง back มาเอง — 5 หน้าที่เคยมีแต่
         breadcrumb ไม่มี back จะไม่เหลือทางกลับบนจอเลยถ้าไม่ทำตรงนี้
         (ลูกค้ารายตัว · ภาษีขาย · แก้ออเดอร์ · เปิดออเดอร์ 2 ไฟล์) */
@@ -144,12 +140,12 @@ export function PageHeader({
               {titleBadge}
               {help && <HelpTip label={typeof title === "string" ? title : "หัวข้อนี้"}>{help}</HelpTip>}
             </div>
-            {resolvedDescription && (
+            {description && (
               <p
                 className="max-w-[72ch] text-sm leading-relaxed text-secondary"
                 data-page-description=""
               >
-                {resolvedDescription}
+                {description}
               </p>
             )}
             {meta && (

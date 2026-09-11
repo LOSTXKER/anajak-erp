@@ -6,6 +6,8 @@ import { VISUAL_TONE_CLASSES, type VisualTone } from "@/lib/visual-tone";
 
 interface SectionProps extends Omit<React.HTMLAttributes<HTMLElement>, "title"> {
   title?: React.ReactNode;
+  /** คำแนะนำที่ต้องเห็นก่อนลงมือในกลุ่มนี้; รายละเอียดเสริมใช้ help */
+  description?: React.ReactNode;
   meta?: React.ReactNode;
   help?: React.ReactNode;
   action?: React.ReactNode;
@@ -35,6 +37,7 @@ export const Section = React.forwardRef<HTMLDivElement, SectionProps>(
   (
     {
       title,
+      description,
       meta,
       help,
       action,
@@ -52,7 +55,7 @@ export const Section = React.forwardRef<HTMLDivElement, SectionProps>(
     ref
   ) => {
     const Heading = headingLevel === 3 ? "h3" : "h2";
-    const hasHeader = Boolean(title || meta || help || action);
+    const hasHeader = Boolean(title || description || meta || help || action);
     const isCard = surface === "card" || (surface !== "plain" && bordered);
     return (
       <section
@@ -66,7 +69,7 @@ export const Section = React.forwardRef<HTMLDivElement, SectionProps>(
         {hasHeader && (
           <header
             className={cn(
-              "flex items-start justify-between gap-3",
+              "flex flex-wrap items-start justify-between gap-3",
               // ขอบ 28px (เบสเคาะ 2026-08-03 รอบ "ปรับสัดส่วน") — การ์ดกว้าง 1,024px
               // ขอบ 24px แน่นเกินสัดส่วน · หัวข้อ→เนื้อหา 20px ให้เป็นบันได 8/16/20/28
               isCard
@@ -106,6 +109,7 @@ export const Section = React.forwardRef<HTMLDivElement, SectionProps>(
                     {help && <HelpTip label={typeof title === "string" ? title : "หัวข้อนี้"}>{help}</HelpTip>}
                   </div>
                 ))}
+              {description && <p className="max-w-prose text-sm leading-relaxed text-secondary" data-section-description="">{description}</p>}
               {meta && <p className="text-xs text-muted">{meta}</p>}
               </div>
             </div>

@@ -9,7 +9,6 @@ import { Section } from "./ui/section";
 import { PublicPageShell } from "./public/public-page";
 import { DocumentStamp } from "./print/print-document";
 import { HelpTip } from "./ui/help-tip";
-import { pageDescriptionForLabel } from "@/lib/page-identity";
 import { visualToneForLabel } from "@/lib/visual-tone";
 
 describe("system visual identity", () => {
@@ -19,11 +18,10 @@ describe("system visual identity", () => {
     expect(html).toContain("page-module-mark");
     expect(html.match(/<h1/g)).toHaveLength(1);
     expect(html).toContain("ควบคุมการผลิต");
-    expect(html).toContain("text-secondary");
     expect(html).not.toContain("bg-module-production-solid");
     expect(html).not.toContain("shadow-sm");
-    expect(html).toContain('data-page-description=""');
-    expect(html).toContain("ดูคิวผลิต งานที่ติดขัด และขั้นตอนที่ต้องจัดการต่อ");
+    expect(html).not.toContain('data-page-description=""');
+    expect(html).not.toContain("ดูคิวผลิต งานที่ติดขัด และขั้นตอนที่ต้องจัดการต่อ");
   });
 
   it("แยกคำอธิบายหน้าที่เห็นเสมอออกจาก metadata ของรายการ", () => {
@@ -40,23 +38,16 @@ describe("system visual identity", () => {
     expect(html).toContain("DEMO-TEE-001");
   });
 
-  it("มีคำอธิบายสั้น fallback ครบทุกกลุ่มหน้าหลัก", () => {
-    const labels = [
-      "ภาพรวมวันนี้",
-      "ออเดอร์ทั้งหมด",
-      "ลูกค้า",
-      "ใบเสนอราคา",
-      "ควบคุมการผลิต",
-      "บิล/การเงิน",
-      "สินค้า",
-      "ตั้งค่า",
-      "หน้าระบบอื่น",
-    ];
-    for (const label of labels) {
-      const description = pageDescriptionForLabel(label);
-      expect(description.length).toBeGreaterThan(10);
-      expect(description.length).toBeLessThanOrEqual(80);
-    }
+  it("กลุ่มงานแสดงคำช่วยที่จำเป็นก่อนเนื้อหา โดยไม่ซ่อนหลังปุ่มข้อมูล", () => {
+    const instruction = "ตรวจยอดรับจริงก่อนยืนยัน หากนับผิดให้แก้ยอดพร้อมเหตุผล";
+    const html = renderToStaticMarkup(createElement(Section, {
+      title: "ตรวจรับเสื้อ", description: instruction,
+    }, "รายการไซซ์"));
+    expect(html).toContain('data-section-description=""');
+    expect(html).toContain(instruction);
+    expect(html.indexOf(instruction)).toBeLessThan(html.indexOf("รายการไซซ์"));
+    expect(html).not.toContain('aria-label="ดูคำอธิบาย');
+    expect(html).not.toContain(`description="${instruction}"`);
   });
 
   it("ผูกสีตามบริบทโดยไม่เปลี่ยนน้ำเงินของงานขาย", () => {
