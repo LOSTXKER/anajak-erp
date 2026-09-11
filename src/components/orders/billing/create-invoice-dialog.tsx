@@ -218,12 +218,11 @@ export function CreateInvoiceDialog({
               <div className="mt-1.5 space-y-2">
                 <p className="text-xs text-blue-600 dark:text-blue-400">
                   ออกเป็นใบกำกับของงวดรับเงินวันที่ {formatDate(receiptForPayment.date)} ยอด{" "}
-                  {formatCurrency(receiptForPayment.gross)} — ยอดใบต้องเท่างวดเป๊ะ
-                  (server ตรวจอีกชั้น)
+                  {formatCurrency(receiptForPayment.gross)} — ยอดเอกสารต้องตรงกับเงินที่รับงวดนี้
                 </p>
                 <Field
-                  label="วันที่เอกสาร (tax point)"
-                  help="ตามกฎหมาย = วันรับเงินจริง — แก้ได้เคสบันทึกย้อนหลัง (เงินเข้าแบงก์คนละวันกับวันบันทึก)"
+                  label="วันที่เอกสาร"
+                  description="ใช้วันที่รับเงินจริง หากบันทึกย้อนหลังให้เลือกวันที่เงินเข้า"
                 >
                   <DatePicker
                     value={receiptIssueDate}
@@ -286,7 +285,7 @@ export function CreateInvoiceDialog({
                 <Field
                   label={`เหตุผลการ${invoiceType === "CREDIT_NOTE" ? "ลดหนี้" : "เพิ่มหนี้"}`}
                   required
-                  help="จะพิมพ์บนเอกสารตามข้อกำหนดใบลดหนี้/เพิ่มหนี้ (ม.86/10)"
+                  description="เหตุผลนี้จะพิมพ์บนเอกสารที่ส่งให้ลูกค้า"
                 >
                   <Input
                     value={adjustmentReason}

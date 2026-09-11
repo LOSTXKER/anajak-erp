@@ -67,14 +67,52 @@ export function OrderNextStepAction({
     <Button
       onClick={() => dispatch(action)}
       disabled={isPending}
-      // ชื่อปุ่มสั้น ("เข้าคิวผลิต") — บริบทเต็มอยู่ใน title สำหรับคนที่ยังไม่ชิน
-      title={`${nextStep.title} — ${nextStep.description}`}
+      aria-describedby="order-next-step-guidance"
       className="shrink-0"
     >
       {nextStep.buttonLabel}
       <ChevronRight />
     </Button>
   );
+}
+
+/** คำช่วยและทางแก้อยู่ข้างสถานะ อ่านได้ทั้งจอทัชและคีย์บอร์ด */
+export function OrderNextStepGuidance({
+  nextStep,
+  readiness,
+  onEditItems,
+  onAnchor,
+  canSeeMoney = true,
+}: Pick<OrderNextStepActionProps, "nextStep" | "readiness" | "onEditItems" | "onAnchor" | "canSeeMoney">) {
+  if (!nextStep) return null;
+
+  if (shouldGateOnReadiness(nextStep.action, readiness)) {
+    const missing = new Set(readiness?.checks.filter((check) => !check.ok).map((check) => check.key));
+    return (
+      <div id="order-next-step-guidance" className="space-y-2">
+        <p className="text-sm text-secondary">เตรียมสิ่งที่ยังขาดด้านบนก่อนเข้าคิวผลิต</p>
+        <div className="flex flex-wrap gap-2">
+          {missing.has("payment") && canSeeMoney && (
+            <Button size="sm" variant="outline" onClick={() => onAnchor("billing")}>ดูเงินและบิล</Button>
+          )}
+          {missing.has("design") && (
+            <Button size="sm" variant="outline" onClick={() => onAnchor("design")}>ดูม็อกอัพและไฟล์</Button>
+          )}
+          {missing.has("materials") && (
+            <Button size="sm" variant="outline" onClick={() => onAnchor("production")}>ตรวจเสื้อและใบผลิต</Button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  const description = nextStep.action.type === "EDIT_ITEMS" && !onEditItems
+    ? "รอฝ่ายขายเพิ่มรายการสินค้าและราคา จึงจะยืนยันออเดอร์ได้"
+    : nextStep.action.type === "ANCHOR" && nextStep.action.target === "billing" && !canSeeMoney
+      ? "รอฝ่ายขายหรือการเงินจัดการบิลและการรับชำระของออเดอร์นี้"
+      : nextStep.description;
+
+  return <p id="order-next-step-guidance" className="text-sm leading-relaxed text-secondary">{description}</p>;
 }
 
 /** ข้อความ "ติดอะไร" สำหรับแถบสถานะ — คืน [] เมื่อไม่ได้ติดด่าน (แถบจะไม่โชว์อะไรเลย) */
@@ -86,7 +124,8 @@ export function nextStepBlockers(
   return (readiness?.checks ?? [])
     .filter((c) => !c.ok)
     .map((c) => {
-      const why = c.waitingOn ? ` · ${c.waitingOn}` : c.detail ? ` — ${c.detail}` : "";
-      return `${c.label}${why}`;
+      const detail = c.detail ? `: ${c.detail}` : "";
+      const waitingOn = c.waitingOn ? ` — ${c.waitingOn}` : "";
+      return `${c.label}${detail}${waitingOn}`;
     });
 }

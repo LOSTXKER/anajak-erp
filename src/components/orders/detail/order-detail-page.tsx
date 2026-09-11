@@ -84,6 +84,7 @@ import {
   OrderMoneyTab,
 } from "@/components/orders/detail";
 import { RecordNotFound } from "@/components/ui/record-not-found";
+import { OrderNextStepGuidance } from "@/components/orders/detail/order-next-step-action";
 
 
 // ============================================================
@@ -803,6 +804,13 @@ function OrderDetailContent({
         cancelledReason={order.cancelledReason}
         // ปุ่มขั้นต่อไปหายไปตอนติดด่าน — เหตุผลต้องมาโผล่ตรงนี้แทน ไม่งั้นปุ่มหายเงียบ
         blockers={nextStepBlockers(nextStep, orderContext.data?.readiness ?? null)}
+      />
+      <OrderNextStepGuidance
+        nextStep={nextStep}
+        readiness={orderContext.data?.readiness ?? null}
+        onEditItems={canUseEditForm && canEditItems ? openItemsEditPage : undefined}
+        onAnchor={handleAnchor}
+        canSeeMoney={canSeeMoney}
       />
       </div>
 

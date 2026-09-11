@@ -141,7 +141,7 @@ export function CustomerFormFields({
         <Field
           label="ที่อยู่ผู้ติดต่อ"
           className="sm:col-span-2"
-          help="ใช้เป็นที่อยู่ประจำบนใบเสนอราคาและใบกำกับ เมื่อไม่ได้กรอกที่อยู่ออกเอกสารแยกไว้"
+          description="ใช้บนใบเสนอราคาและใบกำกับด้วย หากไม่ได้กรอกที่อยู่ออกเอกสารแยกไว้"
         >
           <Input value={form.address} onChange={(e) => set({ address: e.target.value })} />
         </Field>

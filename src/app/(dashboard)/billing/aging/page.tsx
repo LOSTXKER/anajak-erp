@@ -194,26 +194,26 @@ function AgingPageContent() {
           : null
       }
     >
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard moduleTone="finance"
+      {(!isError || data) && <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatCard loading={isLoading} moduleTone="finance"
           title="ลูกหนี้รวม"
           value={formatCurrency(data?.grandTotal ?? 0)}
           icon={DollarSign}
         />
         {/* เลขเสี่ยงของหน้านี้ — แดงเมื่อมีจริง ให้ตรงกับเซลล์แดงในตารางข้างล่าง (UX4.3) */}
-        <StatCard moduleTone="finance"
+        <StatCard loading={isLoading} moduleTone="finance"
           title="เลยกำหนดแล้ว"
           value={formatCurrency(overdueTotal)}
           icon={AlertCircle}
           tone={overdueTotal > 0 ? "danger" : "muted"}
         />
-        <StatCard moduleTone="finance"
+        <StatCard loading={isLoading} moduleTone="finance"
           title="ยังไม่ครบกำหนด"
           value={formatCurrency(data?.totals.current ?? 0)}
           icon={Hourglass}
         />
-        <StatCard moduleTone="finance" title="ลูกหนี้" value={data?.rows.length ?? 0} icon={Users} caption="ราย" />
-      </div>
+        <StatCard loading={isLoading} moduleTone="finance" title="ลูกหนี้" value={data?.rows.length ?? 0} icon={Users} caption="ราย" />
+      </div>}
 
       {/* แถบเครื่องมือของกลาง — จุดตัดวัดจากความกว้างพื้นที่เนื้อหาจริง (@container)
           ไม่ใช่ความกว้างหน้าต่าง เลยใช้ @2xl: แทน sm: ที่เขียนไว้เดิม

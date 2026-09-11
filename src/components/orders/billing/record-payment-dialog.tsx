@@ -156,7 +156,7 @@ export function RecordPaymentDialog({
               <div className="mt-3 space-y-3">
                 <Field
                   label="ยอดที่หัก (บาท)"
-                  help={`มาตรฐาน 3% ของฐานก่อน VAT = ${formatCurrency(whtSuggested)}`}
+                  description={`ยอดแนะนำ 3% ของฐานก่อน VAT = ${formatCurrency(whtSuggested)} ตรวจให้ตรงกับยอดที่ลูกค้าหักจริง`}
                 >
                   <Input
                     type="number"
@@ -167,7 +167,7 @@ export function RecordPaymentDialog({
                   />
                 </Field>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <Field label="เลขที่หนังสือรับรอง" help="ยังไม่ได้หนังสือรับรองก็เว้นว่างได้ — กรอกทีหลังได้ที่ทะเบียน 50ทวิ">
+                  <Field label="เลขที่หนังสือรับรอง" description="ยังไม่ได้ใบก็เว้นว่างได้ แล้วเติมภายหลังที่ทะเบียนหัก ณ ที่จ่าย">
                     <Input
                       type="text"
                       value={whtCertNumber}

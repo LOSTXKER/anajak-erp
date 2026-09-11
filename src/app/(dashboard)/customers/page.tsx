@@ -152,10 +152,10 @@ function CustomersPageContent() {
         <QueryError message="โหลดสถิติไม่สำเร็จ" onRetry={() => statsQuery.refetch()} />
       ) : (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard moduleTone="brand" title="ลูกค้าทั้งหมด" value={statsQuery.data?.total ?? 0} icon={Users} />
-          <StatCard moduleTone="brand" title="ใหม่เดือนนี้" value={statsQuery.data?.newThisMonth ?? 0} icon={UserPlus} />
-          <StatCard moduleTone="brand" title="VIP" value={statsQuery.data?.vip ?? 0} icon={Crown} />
-          <StatCard moduleTone="brand" title="ไม่เคลื่อนไหว" value={statsQuery.data?.inactive ?? 0} icon={UserX} />
+          <StatCard loading={statsQuery.isLoading} moduleTone="brand" title="ลูกค้าทั้งหมด" value={statsQuery.data?.total ?? 0} icon={Users} />
+          <StatCard loading={statsQuery.isLoading} moduleTone="brand" title="ใหม่เดือนนี้" value={statsQuery.data?.newThisMonth ?? 0} icon={UserPlus} />
+          <StatCard loading={statsQuery.isLoading} moduleTone="brand" title="VIP" value={statsQuery.data?.vip ?? 0} icon={Crown} />
+          <StatCard loading={statsQuery.isLoading} moduleTone="brand" title="ไม่เคลื่อนไหว" value={statsQuery.data?.inactive ?? 0} icon={UserX} />
         </div>
       )}
 

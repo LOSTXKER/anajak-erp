@@ -6,6 +6,7 @@ import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { useListPageState, usePageClamp } from "@/hooks/use-list-page-state";
 import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
 import { StatusLabel } from "@/components/ui/status-label";
 import { SearchInput } from "@/components/ui/search-input";
 import { Toolbar } from "@/components/ui/toolbar";
@@ -74,6 +75,7 @@ function BillingNotesPageContent() {
   const [showCreate, setShowCreate] = useState(false);
   const [voidTarget, setVoidTarget] = useState<string | null>(null);
   const [voidReason, setVoidReason] = useState("");
+  const [createdNote, setCreatedNote] = useState<{ id: string; billingNoteNumber: string } | null>(null);
 
   // Create form state
   const [customerSearch, setCustomerSearch] = useState("");
@@ -104,11 +106,10 @@ function BillingNotesPageContent() {
 
   const createNote = useMutationWithInvalidation(trpc.billingNote.create, {
     invalidate: [utils.billingNote.list, utils.billingNote.eligibleInvoices],
-    onSuccess: (note: { billingNoteNumber: string }) => {
+    onSuccess: (note: { id: string; billingNoteNumber: string }) => {
       setShowCreate(false);
       resetCreateForm();
-      // ไม่ window.open ตรงนี้ — ไม่ใช่ user gesture โดน popup blocker ได้ ให้กดพิมพ์จากตาราง
-      toast.success(`สร้างใบวางบิล ${note.billingNoteNumber} แล้ว — กดไอคอนพิมพ์ในตารางเพื่อส่งลูกค้า`);
+      setCreatedNote({ id: note.id, billingNoteNumber: note.billingNoteNumber });
     },
     onError: (err: { message?: string }) => {
       toast.error(err.message ?? "สร้างใบวางบิลไม่สำเร็จ");
@@ -168,6 +169,22 @@ function BillingNotesPageContent() {
           : null
       }
     >
+      {createdNote && (
+        <Alert
+          variant="success"
+          title={`สร้างใบวางบิล ${createdNote.billingNoteNumber} แล้ว`}
+          action={
+            <Button asChild size="sm" variant="outline">
+              <a href={`/print/billing-note/${createdNote.id}`} target="_blank" rel="noreferrer">
+                <Printer />
+                เปิด / พิมพ์ใบวางบิล
+              </a>
+            </Button>
+          }
+        >
+          เปิดตรวจเอกสารก่อนส่งให้ลูกค้า
+        </Alert>
+      )}
       <Toolbar>
         <SearchInput
           surface="raised"

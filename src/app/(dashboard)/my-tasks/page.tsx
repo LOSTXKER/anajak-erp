@@ -160,7 +160,7 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
       : null;
     items.push({
       key: `order:${design.order.id}`,
-      href: `/orders/${design.order.id}`,
+      href: `/orders/${design.order.id}?tab=files`,
       title: design.order.orderNumber,
       description: design.order.customer.name,
       deadline: design.order.deadline,
@@ -176,7 +176,7 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
   for (const outsource of admin.outsourceDue.items) {
     items.push({
       key: `outsource:${outsource.id}`,
-      href: `/orders/${outsource.orderId}`,
+      href: `/orders/${outsource.orderId}?tab=production`,
       title: `รับงานกลับจาก ${outsource.vendorName}`,
       description: outsource.orderNumber,
       deadline: outsource.expectedBackAt,
@@ -189,7 +189,7 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
   for (const order of admin.awaitingInspection.items) {
     items.push({
       key: `order:${order.orderId}`,
-      href: `/orders/${order.orderId}`,
+      href: `/orders/${order.orderId}?tab=production`,
       title: order.orderNumber,
       description: order.customerName,
       attention: "normal",
@@ -201,7 +201,7 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
   for (const order of admin.designsAwaiting.items) {
     items.push({
       key: `order:${order.orderId}`,
-      href: `/orders/${order.orderId}`,
+      href: `/orders/${order.orderId}?tab=files`,
       title: order.orderNumber,
       description: order.customerName,
       attention: "normal",

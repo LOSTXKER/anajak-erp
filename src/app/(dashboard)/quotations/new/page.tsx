@@ -19,6 +19,7 @@ import { ListPageSkeleton } from "@/components/ui/page-skeleton";
 import { formatCurrency } from "@/lib/utils";
 import { CustomerPicker } from "@/components/customers/customer-picker";
 import { permAllows } from "@/lib/permissions";
+import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
 import { Plus, Trash2, FileText, User } from "lucide-react";
 
 // ============================================================
@@ -31,6 +32,17 @@ type LineItem = {
   quantity: number;
   unit: string;
   unitPrice: number;
+};
+
+type QuotationFormValues = {
+  customerId: string;
+  description: string;
+  validUntil: string;
+  terms: string;
+  notes: string;
+  items: LineItem[];
+  discount: number;
+  tax: number;
 };
 
 // ============================================================
@@ -122,14 +134,17 @@ function QuotationFormPage() {
   // -- Pricing --
   const [discount, setDiscount] = useState(0);
   const [tax, setTax] = useState(0);
+  const [initialValues, setInitialValues] = useState<QuotationFormValues | null>(null);
+  const formValues: QuotationFormValues = { customerId, description, validUntil, terms, notes, items, discount, tax };
+  const isDirty = initialValues !== null && JSON.stringify(formValues) !== JSON.stringify(initialValues);
+  const { navigateAfterSave } = useUnsavedChanges(isDirty);
 
   // prefill ครั้งเดียวเมื่อข้อมูลมาถึง — ไม่ทับของที่ผู้ใช้แก้ต่อ
   const prefilled = useRef(false);
   useEffect(() => {
     if (prefilled.current) return;
+    let values: QuotationFormValues;
     if (fromOrderId && linkedOrder) {
-      prefilled.current = true;
-      setCustomerId(linkedOrder.customerId);
       setCustomerLabel(linkedOrder.customer?.name ?? "");
       const orderItems = (linkedOrder.items ?? []) as Array<{
         description: string | null;
@@ -137,9 +152,14 @@ function QuotationFormPage() {
         subtotal: number;
         products: Array<{ description: string }>;
       }>;
-      if (orderItems.length > 0) {
-        setItems(
-          orderItems.map((it) => ({
+      values = {
+        customerId: linkedOrder.customerId,
+        description: "",
+        validUntil: new Date(Date.now() + 7 * 86400_000).toISOString().slice(0, 10),
+        terms: "",
+        notes: "",
+        items: orderItems.length > 0
+          ? orderItems.map((it) => ({
             name: it.description || it.products[0]?.description || "รายการ",
             description: it.products.map((p) => p.description).join(", "),
             quantity: it.totalQuantity || 1,
@@ -149,43 +169,45 @@ function QuotationFormPage() {
                 ? Math.round((it.subtotal / it.totalQuantity) * 100) / 100
                 : 0,
           }))
-        );
-      }
+          : [{ ...emptyItem }],
+        discount: 0,
+        tax: 0,
+      };
     } else if (editId && editing) {
-      prefilled.current = true;
-      setCustomerId(editing.customerId);
       setCustomerLabel(editing.customer?.name ?? "");
-      setDescription(editing.description ?? "");
-      setValidUntil(new Date(editing.validUntil).toISOString().slice(0, 10));
-      setTerms(editing.terms ?? "");
-      setNotes(editing.notes ?? "");
-      setDiscount(editing.discount);
-      setTax(editing.tax);
-      setItems(
-        editing.items.map((it) => ({
+      values = {
+        customerId: editing.customerId,
+        description: editing.description ?? "",
+        validUntil: new Date(editing.validUntil).toISOString().slice(0, 10),
+        terms: editing.terms ?? "",
+        notes: editing.notes ?? "",
+        items: editing.items.map((it) => ({
           name: it.name,
           description: it.description ?? "",
           quantity: it.quantity,
           unit: it.unit,
           unitPrice: it.unitPrice,
-        }))
-      );
-    }
+        })),
+        discount: editing.discount,
+        tax: editing.tax,
+      };
+    } else return;
+    prefilled.current = true;
+    setInitialValues(values);
+    setCustomerId(values.customerId);
+    setDescription(values.description);
+    setValidUntil(values.validUntil);
+    setTerms(values.terms);
+    setNotes(values.notes);
+    setItems(values.items);
+    setDiscount(values.discount);
+    setTax(values.tax);
   }, [fromOrderId, linkedOrder, editId, editing]);
-
-  // ค่าเริ่มอายุใบเสนอ +7 วัน — กรอกเร็วจากแชทไม่ต้องคิดวัน
-  useEffect(() => {
-    if (!validUntil && !editId) {
-      const d = new Date(Date.now() + 7 * 86400_000);
-      setValidUntil(d.toISOString().slice(0, 10));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const createQuotation = trpc.quotation.create.useMutation({
     onSuccess: (data) => {
       utils.quotation.list.invalidate();
-      router.push(`/quotations/${data.id}`);
+      navigateAfterSave(`/quotations/${data.id}`);
     },
   });
   const updateDraft = trpc.quotation.updateDraft.useMutation();
@@ -257,7 +279,7 @@ function QuotationFormPage() {
         });
         utils.quotation.list.invalidate();
         utils.quotation.getById.invalidate({ id: editId });
-        router.push(`/quotations/${editId}`);
+        navigateAfterSave(`/quotations/${editId}`);
       } catch (err) {
         setEditError(err instanceof Error ? err.message : "บันทึกไม่สำเร็จ");
       } finally {
