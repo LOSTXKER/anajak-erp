@@ -17,7 +17,6 @@ import {
   X,
   Check,
   Package,
-  GripVertical,
 } from "lucide-react";
 import { Alert } from "@/components/ui/alert";
 import { DataTable } from "@/components/ui/data-table";
@@ -181,7 +180,6 @@ export default function PackagingSettingsPage() {
             <DataTable.Root bordered={false}>
               <DataTable.Head>
                 <tr>
-                  <DataTable.Th aria-label="ลำดับ" className="w-8" />
                   <DataTable.Th>ชื่อแพ็คเกจ</DataTable.Th>
                   <DataTable.Th align="center">ลำดับ</DataTable.Th>
                   <DataTable.Th align="center">สถานะ</DataTable.Th>
@@ -196,9 +194,6 @@ export default function PackagingSettingsPage() {
                       key={opt.id}
                       className={!opt.isActive ? "opacity-50" : undefined}
                     >
-                      <DataTable.Td align="center">
-                        <GripVertical aria-hidden="true" className="inline h-4 w-4 text-muted" />
-                      </DataTable.Td>
                       <DataTable.Td>
                         {isEditing ? (
                           <Input size="sm"

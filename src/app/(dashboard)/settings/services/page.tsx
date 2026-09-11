@@ -43,14 +43,14 @@ type NewItemForm = {
   type: string;
   name: string;
   description: string;
-  defaultPrice: number;
+  defaultPrice: number | "";
   pricingType: "PER_PIECE" | "PER_ORDER";
 };
 
 type EditingItem = {
   id: string;
   name: string;
-  defaultPrice: number;
+  defaultPrice: number | "";
   pricingType: "PER_PIECE" | "PER_ORDER";
 };
 
@@ -110,6 +110,7 @@ export default function ServicesPage() {
   // ---- handlers ----
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
+    if (formData.defaultPrice === "" || formData.defaultPrice < 0) return;
     createItem.mutate({
       category: activeTab,
       type: formData.type,
@@ -121,7 +122,7 @@ export default function ServicesPage() {
   };
 
   const handleSaveEdit = () => {
-    if (!editingItem) return;
+    if (!editingItem || editingItem.defaultPrice === "" || editingItem.defaultPrice < 0) return;
     updateItem.mutate({
       id: editingItem.id,
       name: editingItem.name,
@@ -269,16 +270,18 @@ export default function ServicesPage() {
                     type="number"
                     min={0}
                     step={0.01}
-                    value={formData.defaultPrice || ""}
+                    value={formData.defaultPrice}
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        defaultPrice: parseFloat(e.target.value) || 0,
+                        defaultPrice: Number.isFinite(e.target.valueAsNumber) ? e.target.valueAsNumber : "",
                       })
                     }
                     placeholder="0.00"
+                    aria-describedby={`${formId}-price-help`}
                     required
                   />
+                  <p id={`${formId}-price-help`} className="mt-1 text-xs text-secondary">กรอก 0 ได้หากบริการนี้ไม่คิดเงิน</p>
                 </div>
                 <div>
                   <label htmlFor={`${formId}-pricing-type`} className="mb-1 block text-xs font-medium text-muted">
@@ -385,12 +388,11 @@ export default function ServicesPage() {
                               type="number"
                               min={0}
                               step={0.01}
-                              value={editingItem.defaultPrice || ""}
+                              value={editingItem.defaultPrice}
                               onChange={(e) =>
                                 setEditingItem({
                                   ...editingItem,
-                                  defaultPrice:
-                                    parseFloat(e.target.value) || 0,
+                                  defaultPrice: Number.isFinite(e.target.valueAsNumber) ? e.target.valueAsNumber : "",
                                 })
                               }
                               className="ml-auto w-28 text-right"
@@ -441,7 +443,7 @@ export default function ServicesPage() {
                                 size="icon-sm"
                                 aria-label={`บันทึกการแก้ไข ${item.name}`}
                                 onClick={handleSaveEdit}
-                                disabled={updateItem.isPending}
+                                disabled={updateItem.isPending || editingItem.defaultPrice === "" || editingItem.defaultPrice < 0}
                                 className="text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
                               >
                                 <Check />

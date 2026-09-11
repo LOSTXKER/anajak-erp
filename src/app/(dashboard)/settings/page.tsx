@@ -192,10 +192,10 @@ export default function SettingsPage() {
                     aria-hidden="true"
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-strong">
+                    <p className="break-words text-sm font-medium text-strong">
                       {link.title}
                     </p>
-                    <p className="truncate text-xs text-muted">
+                    <p className="mt-1 text-xs leading-relaxed text-secondary">
                       {link.meta}
                     </p>
                   </div>

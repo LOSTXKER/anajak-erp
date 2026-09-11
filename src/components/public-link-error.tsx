@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, Mail, Phone, RefreshCw, Undo2 } from "lucide-react";
+import { AlertCircle, Mail, Phone, RefreshCw } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,6 +9,7 @@ interface PublicLinkErrorProps {
   message?: string;
   onRetry?: () => void;
   contactLabel?: string;
+  error?: { data?: { code?: string } | null } | null;
 }
 
 /**
@@ -19,15 +20,17 @@ export function PublicLinkError({
   message = "ลิงก์อาจไม่ถูกต้องหรือหมดอายุแล้ว",
   onRetry,
   contactLabel = "ติดต่อทีมงาน",
+  error,
 }: PublicLinkErrorProps) {
   const contact = trpc.settings.publicContact.useQuery(undefined, {
     retry: false,
     staleTime: 5 * 60 * 1000,
   });
 
-  const fallbackToSender = () => {
-    if (window.history.length > 1) window.history.back();
-  };
+  const linkUnavailable = !error || ["NOT_FOUND", "BAD_REQUEST", "UNAUTHORIZED", "FORBIDDEN"].includes(error.data?.code ?? "");
+  const explanation = linkUnavailable
+    ? message
+    : "โหลดข้อมูลไม่สำเร็จ ตรวจการเชื่อมต่ออินเทอร์เน็ตแล้วลองเปิดอีกครั้ง หากยังไม่ได้ ให้ติดต่อผู้ส่งลิงก์";
 
   return (
     // พื้นหน้าเดียวกับหน้าลูกค้าอื่น (ตัวนี้ตกหล่นตอนเปลี่ยนพื้นเป็นขาว 2026-08-01)
@@ -41,7 +44,7 @@ export function PublicLinkError({
             </span>
             <div className="min-w-0">
               <h1 className="text-2xl font-semibold text-strong">เปิดลิงก์ไม่ได้</h1>
-              <p className="mt-1 text-sm leading-relaxed text-secondary">{message}</p>
+              <p className="mt-1 text-sm leading-relaxed text-secondary" role="alert">{explanation}</p>
             </div>
           </div>
 
@@ -61,13 +64,12 @@ export function PublicLinkError({
                 </a>
               </Button>
             ) : (
-              <Button onClick={fallbackToSender}>
-                <Undo2 aria-hidden="true" />
-                กลับไปติดต่อผู้ส่งลิงก์
-              </Button>
+              <p className="text-sm leading-relaxed text-secondary">
+                {contact.isLoading ? "กำลังโหลดช่องทางติดต่อ…" : "กลับไปที่แชตหรืออีเมลที่ได้รับลิงก์นี้ แล้วแจ้งผู้ส่งให้ช่วยตรวจสอบลิงก์"}
+              </p>
             )}
             {onRetry && (
-              <Button variant="outline" onClick={onRetry}>
+              <Button variant="outline" onClick={() => { void contact.refetch(); onRetry(); }}>
                 <RefreshCw aria-hidden="true" />
                 ลองเปิดอีกครั้ง
               </Button>

@@ -58,7 +58,7 @@ export default function QuoteConfirmPage({
   }
 
   if (quote.error || !quote.data) {
-    return <PublicLinkError message="ใบเสนออาจหมดอายุหรือกำลังปรับปรุง กรุณาขอลิงก์ฉบับใหม่" onRetry={() => void quote.refetch()} />;
+    return <PublicLinkError error={quote.error} message="ใบเสนออาจหมดอายุหรือกำลังปรับปรุง กรุณาขอลิงก์ฉบับใหม่" onRetry={() => void quote.refetch()} />;
   }
 
   const q = quote.data;

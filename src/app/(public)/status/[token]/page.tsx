@@ -48,7 +48,7 @@ export default function OrderStatusPage({
   }
 
   if (status.error || !status.data) {
-    return <PublicLinkError message="ลิงก์ติดตามงานอาจไม่ถูกต้องหรือหมดอายุแล้ว" onRetry={() => void status.refetch()} />;
+    return <PublicLinkError error={status.error} message="ลิงก์ติดตามงานอาจไม่ถูกต้องหรือหมดอายุแล้ว" onRetry={() => void status.refetch()} />;
   }
 
   const d = status.data;

@@ -31,7 +31,7 @@ export function JobShareView({ token }: { token: string }) {
   }
 
   if (job.error || !job.data) {
-    return <PublicLinkError message="ลิงก์ใบงานอาจไม่ถูกต้องหรือหมดอายุแล้ว" contactLabel="ติดต่อผู้ส่งงาน" onRetry={() => void job.refetch()} />;
+    return <PublicLinkError error={job.error} message="ลิงก์ใบงานอาจไม่ถูกต้องหรือหมดอายุแล้ว" contactLabel="ติดต่อผู้ส่งงาน" onRetry={() => void job.refetch()} />;
   }
 
   const d = job.data;

@@ -109,7 +109,7 @@ export default function CustomerUploadPage({
   }
 
   if (info.error || !info.data) {
-    return <PublicLinkError message="ลิงก์ส่งไฟล์อาจไม่ถูกต้องหรือหมดอายุแล้ว" onRetry={() => void info.refetch()} />;
+    return <PublicLinkError error={info.error} message="ลิงก์ส่งไฟล์อาจไม่ถูกต้องหรือหมดอายุแล้ว" onRetry={() => void info.refetch()} />;
   }
 
   const d = info.data;
