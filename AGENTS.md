@@ -1,60 +1,63 @@
-# Anajak ERP — AGENTS.md
-> แหล่งความจริงเดียวสำหรับ AI ทุกเจ้า (Claude/Codex/Cursor) · Claude อ่านผ่าน `CLAUDE.md` (`@AGENTS.md`)
-> ไฟล์ใน repo = สเปค + แผน + สถานะ + โค้ด เท่านั้น · แผนธุรกิจ/research/ดีไซน์ยาว → `/Users/lostxker/dev/Git/bestos-brain/records/projects/anajak-erp/`
+# Anajak ERP — กติกาการพัฒนา
 
-## โปรเจคนี้คือ
-ERP หลังบ้านโรงงานสกรีนเสื้อ Anajak — ทีม 5 คน + เจ้าของ (เบส · non-coder) · ลูกค้า B2B เครดิตเทอม = ฐานรายได้ · **ทำเองมีแค่ DTF** (DTG/silkscreen/ปัก/sublimation/ตัดเย็บ/ป้ายคอ = ส่งร้านนอกทั้งหมด · เบสเคาะ 2026-06-12)
-stack: Next.js 16.3 + React 19 + tRPC 11 + Prisma 6 + Supabase + Tailwind 4 + shadcn · deploy Vercel (**push main = ขึ้นเว็บจริง**)
+อ่าน [README.md](README.md) สำหรับผู้ใช้ ขอบเขต วิธีเริ่มใช้ ฐานทดลอง และการปล่อยระบบ; [SPEC.md](SPEC.md) คือพฤติกรรมและเกณฑ์ตรวจ; งานและสถานะอยู่ [ROADMAP.md](ROADMAP.md) เพียงไฟล์เดียว
 
-## เป้าหมาย (เบสย้ำ 2026-09-02 — ใช้ตัดสินทุกงาน)
-1. **ครอบคลุมทุกอย่างของโรงงานเสื้อ** — ขาย → ออกแบบ/อนุมัติ → ผลิต → QC → แพ็ก/ส่ง → บิล/ภาษี/ลูกหนี้ ในระบบเดียว ไม่ต้องพึ่งกระดาษ/ความจำ
-2. **โยนงานให้ที่อื่นอย่างมีประสิทธิภาพ** — ขั้นไหนก็ส่งร้านนอกได้ (รวม DTF วันเครื่องเสีย) · รู้ว่างานอยู่ไหน กลับเมื่อไร ตรวจรับยังไง · ร้านนอกดูงานผ่านลิงก์ ไม่ต้องคุยซ้ำ
-3. **UX/UI สวย ทันสมัย ใช้ง่าย** — เปิดหน้าแล้วรู้สถานะและทำอะไรต่อได้ · มือถือ/จอทัชหน้างานใช้ได้จริง · แต่ละงานอิสระมีคำสั่งชัดตรงจุดใช้
-4. **รองรับเว็บสกรีนเสื้อในอนาคต** — ออเดอร์จากเว็บ ทั้งแบบธรรมดาและ custom ต้องไหลเข้าเป็นออเดอร์เดียวกับหน้าร้าน (P4) · order model / ราคา / ไฟล์ / อนุมัติแบบ ต้องออกแบบเผื่อ **ไม่ทำทางแยก**
+## จุดสำคัญของโค้ด
 
-## 🔄 วงจรการทำงาน (บังคับ)
-1. **เริ่ม** → อ่าน `PROGRESS.md` (ทำถึงไหน + NEXT) · `ROADMAP.md` (ใบงานที่เปิดอยู่) · `SPEC.md` (อะไรคือเสร็จ) + `git log --oneline -10` · งานทุกชิ้น trace กลับ ROADMAP ได้ — **งานใหม่ที่เบสสั่งให้บันทึกขอบเขตใน ROADMAP ก่อนลงมือ; นอกขอบเขตที่อนุมัติจึงถามก่อน**
-2. **งานใหญ่/หลายขั้น** → เขียนใบงานใน ROADMAP ก่อนลงมือ · ทำทีละ task ไม่กระโดด
-3. **งาน UI** → อ่าน `/Users/lostxker/dev/Git/bestos-brain/global-skills/ui-guidance/SKILL.md` และ `docs/DESIGN.md`. ทิศหลักที่ต้องเทียบให้ทำ `/proto/<slug>` 2–4 ทางบน component จริง; งานแก้เฉพาะจุดตรวจเฉพาะผลกระทบ. A16 อนุมัติตรวจและปรับ UI ทุกส่วนรวมกฎหน้าตาที่ขัดการใช้งานแล้ว; ไม่ต้องขออนุญาตซ้ำเพื่อทำงานในขอบเขตนี้. ตรวจภารกิจจริงตาม skill ก่อนส่ง ไม่ถือว่ากฎรูปทรงหรือจำนวนคำพิสูจน์ UX ได้
-4. **ก่อนเคลม "เสร็จ"** → รัน/เปิดดูจริง — type check ผ่าน ≠ ใช้งานได้ (ด่านขั้นต่ำท้าย `SPEC.md`)
-5. **ก่อนจบ session** → เขียนทับ `PROGRESS.md` (ตอนนี้/NEXT/เสร็จ/ติด) + commit ก้อนเล็ก **บรรทัดแรกเป็นภาษาคน** (ไม่ใช่ `feat:`/`chore:`) + push เป็น branch
+| ตำแหน่ง | หน้าที่ |
+|---|---|
+| `src/app/(dashboard)/` | หลังบ้าน: ออเดอร์ ลูกค้า ผลิต การเงิน สินค้า ตั้งค่า และรายงาน |
+| `src/app/(public)/` | ลิงก์ลูกค้า/ร้านนอกตาม token; คงขอบเขตข้อมูลของแต่ละลิงก์ |
+| `src/app/(print)/print/` | เอกสารพิมพ์ 5 แบบ; ใช้ส่วนกลาง `src/components/print/` |
+| `src/app/production/floor/`, `src/app/station/`, `src/app/factory/` | จอช่าง ทางเข้าสถานีเดิม และ TV; ตรวจ route จริงก่อนแก้ |
+| `src/proxy.ts`, `src/app/(dashboard)/layout.tsx` | ต่อ session, public allowlist และ guard หลังบ้าน |
+| `src/app/api/` | tRPC, private files, MCP, cron และ export สำรองข้อมูล |
+| `src/server/routers/`, `src/server/trpc.ts` | validate input, auth/permission และเรียก service |
+| `src/server/services/` | กฎธุรกิจแกน: เงิน เลขเอกสาร สถานะ ผลิต QC และจองสต๊อก |
+| `src/server/services/{pricing,billing-payment,document-number,money}.ts` | สูตรราคา ธุรกรรมรับเงิน เลขรัน และ Decimal helpers |
+| `src/server/services/order-status.ts`, `src/lib/order-status.ts` | transition และ state machine; ไม่ตั้งสถานะจาก UI |
+| `src/server/services/manufacturing-*.ts`, `routing-template.ts`, `production-v2-gate.ts` | Manufacturing V2, routing และด่านเปิดใช้ |
+| `src/lib/prisma.ts`, `src/lib/superjson.ts` | Prisma client/Decimal extension และ serialization |
+| `src/lib/pricing.ts` | สูตร preview ต้องตรงกับ service และทดสอบคู่กัน |
+| `src/lib/permissions.ts`, `roles.ts` | สิทธิ์และกลุ่มที่เห็นเงิน; ใช้ effective permission ชุดเดียวกับ server |
+| `src/lib/status-config.ts`, `payment-methods.ts`, `payment-terms.ts`, `shipping-methods.ts`, `date-utils.ts` | ค่า/ป้ายร่วมและวันตาม Asia/Bangkok; ค้นของเดิมก่อนประกาศซ้ำ |
+| `src/lib/stock-api.ts`, `stock-sync.ts`, `customer-upload-policy.ts` | เชื่อม Anajak Stock และนโยบายไฟล์ร่วม client/server |
+| `src/components/`, `src/hooks/` | ส่วนแสดงผลและ hooks; UI ที่เลือกและส่วนกลางดู [DESIGN.md](DESIGN.md) |
+| `prisma/schema.prisma`, `prisma/migrations/` | Schema และ migration; master data อยู่ `prisma/seed.ts` |
+| `prisma/seed-demo.ts`, `scripts/run-local-demo.ts` | ฐานทดลองที่ระบุเป้าหมายตายตัว; วิธีใช้และผลของ reset อยู่ README |
+| `scripts/verify-*.ts`, `scripts/verify-*.tsx` | ด่านเฉพาะเรื่อง; ตรวจแต่ละคำสั่งว่าใช้ DB หรือไม่ก่อนรัน |
 
-## เอกสารในโปรเจค (แค่นี้ — ห้ามเพิ่มไฟล์แผน/สเปค/mockup ใหม่ที่ root)
-| ไฟล์ | ใช้ทำอะไร | กติกา |
-|---|---|---|
-| `PROGRESS.md` | สถานะสด + NEXT | **เขียนทับ ไม่สะสมประวัติ** (ประวัติ = `git log`) · เพดาน ~100 บรรทัด |
-| `ROADMAP.md` | ใบงานที่ยังเปิด · ลองแล้วไม่เอา · จงใจไม่ทำ | เสร็จแล้ว = ย้ายไปดัชนี "เสร็จแล้ว" 1 บรรทัด |
-| `SPEC.md` | เกณฑ์ "เสร็จ" · กฎเหล็กข้อมูล · UI ที่เคาะแล้ว · gate | กติกาเปลี่ยน = แก้ที่นี่ก่อนเขียนโค้ด |
-| `PRODUCT.md` | ผู้ใช้ งานหลัก และบริบทของผลิตภัณฑ์ | |
-| `docs/ARCHITECTURE.md` | ของอยู่ตรงไหน วางของใหม่ที่ไหน | อ่านก่อนวางโค้ดใหม่ |
-| `docs/DESIGN.md` | design system + contract หน้า production/station | UI ใหม่ต้องตาม |
-| `docs/deploy-checklist.md` | สิ่งที่ต้องทำใน Supabase/Vercel console ก่อนใช้จริง | |
-| `docs/local-demo-data.md` | ฐานทดลอง local (`npm run dev:demo`) | |
-mockup/audit/spec ที่จบแล้ว **ไม่เก็บใน repo** — ดูใน git history (`git log --all -- <path>`) หรือ bestos records · หน้าลอง `/proto` ที่เคาะแล้วเก็บตามสถานะในทะเบียน
+## กติกาเฉพาะโครงการ
 
-## กติกา build (ย่อ — เต็ม `ROADMAP.md` §กติกา)
-- **surgical**: แตะเฉพาะที่ใบงานสั่ง · เลียน pattern เดิม (grep ก่อนสร้างใหม่) · refactor = targeted + test ก่อน ห้าม big-bang
-- **เงิน = Decimal เท่านั้น** (ห้าม Float ใหม่) · เลขเอกสารรันต่อเนื่องผ่าน `DocumentSequence` (ห้ามสุ่ม) · การเงินหลายขั้น = `$transaction` + lock แถว
-- **status เปลี่ยนผ่าน `transitionOrder` / `isValidTransition` ที่ server เท่านั้น** — ห้าม set ตรง · business logic แกน (ราคา/สถานะ/เลขเอกสาร) อยู่ `src/server/services/` · tRPC router = ผิว
-- ใบกำกับภาษี: ออก**ทุกงวดรับเงินรวมมัดจำ** (จ้างทำของ) · ยกเลิก-ออกใหม่เท่านั้น **ห้ามลบ**
-- UI: component มาตรฐานใน `docs/DESIGN.md` · mobile-first หน้า ops · ห้าม `window.prompt/confirm` · Station/TV ห้ามมีเงินโดยโครงสร้าง · ด่าน `npm run verify:ui` ห้ามปิด
-- **ไม่ build**: GL/บัญชี · job costing/ต้นทุนต่อออเดอร์ (เบสเคาะ 2026-06-12 — ห้ามเพิ่มช่องเงินใน flow ผลิต/outsource) · DTF auto-nesting · in-app chat · online designer · time-clock · WMS (Anajak Stock มี) — เต็ม+เหตุผล `ROADMAP.md` §จงใจไม่ทำ
+- แตะตามขอบเขตที่เบสสั่ง ค้น pattern เดิมก่อนสร้างใหม่; refactor เฉพาะจุดและตรวจผลจริง
+- เงินฝั่งเขียนใช้ Decimal; aggregate แปลงผ่าน `aggToNumber`. ราคา สถานะ เลขเอกสาร และธุรกรรมต้องผ่าน service/transaction/lock ตาม SPEC; ห้ามสร้างกฎอีกชุดใน router หรือ UI
+- mutation ตรวจสิทธิ์ที่ server; สถานะผ่าน `transitionOrder`/`isValidTransition`, เลขเอกสารผ่าน `nextDocumentNumber` ใน transaction เดียวกัน. Station/TV DTO ไม่มีเงินแม้เป็น OWNER
+- ใบกำกับออกทุกงวดรวมมัดจำ; ยกเลิกและออกใหม่ตาม SPEC ห้ามลบ. งานตั้ง repo/UI ไม่เปลี่ยนสูตรเงิน สิทธิ์ สถานะ API หรือเปิด Production V2
+- Schema ใช้ migration เท่านั้น ห้าม `db push`; ฐาน shared/remote ต้องระบุ target, backup และมีการอนุมัติก่อนเขียน
+- ทุกงาน UI ใช้สกิล `ui-guidance` ฉบับปัจจุบัน (`global-skills/ui-guidance/SKILL.md` ในสมองที่ป้ายระดับเครื่องระบุ) ร่วมกับ DESIGN/SPEC. คงคำช่วย เหตุผลที่ทำไม่ได้ และผลคำสั่งตรงจุดใช้
+- ทิศทางที่ยังไม่เลือกใช้ตัวอย่างเล็กจากงานจริงให้ตัดสินใจ; เพิ่มทางเลือกเมื่อมีข้อแลกเปลี่ยนจริง ไม่สร้าง `/proto` หรือกำหนดจำนวนแบบโดยอัตโนมัติ. ทิศที่อนุมัติแล้วทำต่อได้ตามขอบเขตใน ROADMAP
+- ไม่ปิด tests, lint หรือ `verify:ui` เพื่อให้ผ่าน; ไม่ใช้ `window.prompt/confirm`. งานพิมพ์ต้องคงยอด ข้อความทางบัญชี และสิทธิ์ตาม SPEC
 
-## คำสั่งหลัก
-```bash
-npm run dev            # localhost:3000 — ต่อ Supabase จริง
-npm run dev:demo       # ฐานทดลอง local (ดู docs/local-demo-data.md) — dev สองตัวพร้อมกันไม่ได้
-npm run typecheck && npm run lint && npm test && npm run verify:ui   # ด่านขั้นต่ำก่อน commit
-npx prisma migrate dev # หลังแก้ schema (ห้าม db push)
-npm run db:seed        # master data (idempotent)
-npm run verify:<x>     # integration กับ DB — สร้างข้อมูลจริง ห้ามรันบนฐานที่ใช้งาน (รายชื่อใน package.json)
-```
-external: Anajak Stock (sibling `../anajaktshirt-stock`) — ERP คุยผ่าน `/api/erp/*` + X-API-Key (Settings → Stock)
+## วิธีทำงาน
 
-## permission (3 ชั้น)
-- ✅ ทำได้เลย: แก้โค้ดตามใบงาน · รัน test/lint/typecheck · housekeeping เล็ก
-- ⚠️ ถามก่อน: ลบไฟล์โค้ด · แก้ schema/migration · เพิ่ม dependency · แตะ config/env · งานนอกขอบเขตที่เบสอนุมัติ (A16 ครอบ UI และกฎการนำเสนอที่เกี่ยว)
-- ⛔ ห้าม: push main ตรง · commit secret · ลบ/ปิด test หรือด่าน verify เพื่อให้ผ่าน · set status ตรง · Float ให้ฟิลด์เงิน · apply/reset ฐาน shared/remote โดยไม่ระบุ target + backup
+1. เปิด README, กฎนี้, SPEC ส่วนที่เกี่ยว, ROADMAP `§ ตอนนี้ทำ` และ `git status`/`git log` ก่อนเริ่ม; การ์ดจาก hook เป็นทางลัด ถ้าถูกตัดต้องเปิดไฟล์เต็ม
+2. มีงานปัจจุบันเดียวใน ROADMAP; งานใหญ่แตกขั้นก่อนแก้โค้ด เก็บคิวถัดไปใน `§ คิว` และงานพักใน `§ พักไว้`. งานใหม่ที่ได้รับอนุมัติบันทึกขอบเขตก่อนลงมือ ไม่ถามซ้ำเรื่องที่อนุมัติแล้ว
+3. ทำและตรวจทีละส่วนกับเกณฑ์ SPEC; UI ต้องเปิดผลจริงและลองภารกิจ/กรณีติดขัดตามขนาดงาน. ผลจาก agent ต้องอ่านหลักฐานก่อนสรุป
+4. ปิดรอบอัปเดตทำถึงไหน/ผลตรวจ/ข้อขัดข้อง/จุดต่อใน ROADMAP ครั้งเดียวเมื่อมีการเปลี่ยนแปลง; งานเสร็จเอาออกจากแผน เกณฑ์ถาวรเก็บใน SPEC ประวัติอยู่ Git
+5. ตรวจ `npm run typecheck`, `npm run lint`, `npm test`, `npm run verify:ui` ก่อน commit ตามเกณฑ์ SPEC; ด่านที่เขียน DB ใช้ฐานทดลองที่ยืนยัน target แล้วเท่านั้น. ไม่ยกผลตรวจเอกสารเป็นผลตรวจแอปหรือ release
+6. ตรวจ diff แล้ว stage เฉพาะไฟล์งานนี้; commit บรรทัดแรกเป็นภาษาไทยที่คนอ่านเข้าใจด้วย `git commit -F -`, push branch. โครงการต่อ Vercel: merge/release ตามการอนุมัติ ห้าม push main ตรง
+7. ใช้ hook กลางของ BestOS ที่เครื่องติดตั้งไว้; ไม่เพิ่มตัวโหลดสถานะซ้ำใน repo และไม่เปลี่ยน trust แทนผู้ใช้. เครื่องอื่น/cloud ต้องตรวจการติดตั้งและเหตุการณ์จริงแยก
+
+## เจ้าของเอกสาร
+
+- README = ภาพรวมและวิธีใช้; SPEC = ข้อกำหนดที่ตรวจได้; ROADMAP = งานและสถานะ; DESIGN = ทิศทาง/แหล่ง token; AGENTS = กติกาและตำแหน่งโค้ด; CLAUDE = `@AGENTS.md` เท่านั้น
+- ไม่เพิ่ม PRODUCT/PROGRESS/PLAN ซ้ำกับ ROADMAP หรือเอกสารรายงานที่ root. ROADMAP ≤20KB, DESIGN ≤4KB, AGENTS+CLAUDE <200 บรรทัด
+- เรื่องธุรกิจ research และบัตรโครงการอยู่ในสมอง `records/projects/anajak-erp/`; ไม่คัดสถานะ repo ลงบัตร
+- คง `docs/sql/storage-private-rollout.sql` ซึ่งเป็นสคริปต์ตั้ง Storage, `.github/**` และไฟล์ที่โค้ด/CI ใช้; ตรวจผู้อ่านก่อนย้ายไฟล์หรือถอด hook
+
+## ขอบเขตการลงมือ
+
+ทำตามใบงาน ตรวจโค้ด/เอกสาร และ housekeeping ที่ย้อนกลับได้ตามสิทธิ์เดิม. การตั้ง repo ไม่อนุมัติเปลี่ยนผลิตภัณฑ์ ปล่อยเว็บ เพิ่ม dependency หรือแก้ schema เอง; ขอข้อมูลเพิ่มเฉพาะเรื่องนอกขอบเขตที่จำเป็น. ห้าม force push, commit secret, ล้างข้อมูลจริง หรือแก้สถานะตรงเพื่อให้หน้าจอดูคุ้น
 
 <!-- BEGIN:nextjs-agent-rules -->
 

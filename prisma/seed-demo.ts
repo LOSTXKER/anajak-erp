@@ -1094,7 +1094,7 @@ async function main() {
       let finalInvoiceNumber = 0;
       let receiptNumber = 0;
 
-      // ฐานทดลองเริ่มต้นเป็นใบผลิตแบบเดิม — ซ้อม V2 ตั้ง DEMO_PRODUCTION_V2=1 (ดู docs/local-demo-data.md)
+      // ฐานทดลองเริ่มต้นเป็นใบผลิตแบบเดิม — ซ้อม V2 ตั้ง DEMO_PRODUCTION_V2=1 (ดู README.md หัวข้อฐานทดลองบนเครื่อง)
       const demoV2 = process.env.DEMO_PRODUCTION_V2 === "1";
       for (const [index, scenario] of DEMO_SEED_SCENARIOS.entries()) {
         const id = `demo-order-${scenario.key}`;

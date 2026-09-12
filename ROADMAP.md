@@ -1,16 +1,26 @@
-# Anajak ERP — งานปัจจุบันและคิว
+# Anajak ERP — งานและสถานะ
 
-งานเปิดเท่านั้น; งานปิด/แบบที่ปฏิเสธดู `git log -- ROADMAP.md` สถานะล่าสุด: `PROGRESS.md`; เกณฑ์/ข้อมูล: `SPEC.md`; วิธีทำงาน: `AGENTS.md`; โครงระบบ: `docs/ARCHITECTURE.md`; สัญญาจอ: `docs/DESIGN.md`
+ข้อกำหนดอยู่ [SPEC.md](SPEC.md), วิธีใช้ [README.md](README.md), กติกา [AGENTS.md](AGENTS.md), ทิศทางหน้าจอ [DESIGN.md](DESIGN.md). งานที่จบและแบบที่ไม่เลือกดู Git; ไฟล์นี้เก็บเฉพาะงานที่ยังทำต่อ
 
 ## ตอนนี้ทำ
 
-### A16. ตรวจและรื้อ UI ด้วย ui-guidance ใหม่ (เบสสั่ง 2026-09-11)
+- [ ] **A16: ตรวจและปรับ UI ทุกส่วนตาม ui-guidance** — เกณฑ์เสร็จ: ทิศที่เบสเลือกทำงานได้ตาม SPEC และผ่านภารกิจจริงหลายบทบาทบนฐานทดลอง
+- ทำถึงไหน: มี `/proto/ui-reset` เทียบคิวผลิต ออเดอร์ ใบผลิต ด้วย component จริง; ยังไม่รื้อครบระบบ. งานปัจจุบันต่อจาก `d998b86` บน `codex/erp-repo-refresh-20260912`
+- ตรวจแล้ว: จัด repo 2026-09-12 ผ่านลิงก์/เพดาน/ตัวอ่าน ROADMAP และ hook จำลอง 4/4; typecheck/lint/verify:ui และ 1,840 tests ผ่าน. หลักฐาน `.tmp-test/repo-refresh/`; ผล UI เดิมอยู่ด้านล่าง
+- ติดอะไร: รอเลือกทิศสามหน้าหลัก; ยังไม่ครบการบันทึกหลายบทบาท public token ที่ใช้ได้ และพิมพ์จริง
+- ทำต่อ: ใช้หน้าลองเลือกทิศ แล้วต่อหน้าจริงและตรวจ flow ที่ยังค้างใน A16 ด้านล่าง
 
-**อนุมัติ:** ตรวจทุกหน้า/ส่วนย่อย แก้กฎและส่วนกลาง ปรับตามงานจริงบน `codex/ui-reset-20260911` ใช้ `global-skills/ui-guidance/SKILL.md` ใน `bestos-brain` คงคำช่วย/เหตุผลล็อก/ผลคำสั่งตรงจุดใช้ แต่ละรายการมี action ได้ ไม่บังคับคำโปรยหรือรูปแบบเดียว
+### ขอบเขตและจุดส่งต่อ A16
 
-**รอบนี้:** ปรับกฎ/ส่วนกลางแล้ว เปิดหลังบ้านบนฐานทดลองหลัง login และสร้าง `/proto/ui-reset` เทียบของเดิม/A เอกสารโปร่ง/B พื้นที่ทำงาน ด้วย component จริง 3 หน้า (คิวผลิต/ออเดอร์/ใบผลิต) **รอเลือกทิศ ยังไม่รื้อหน้าตาครบระบบ** แก้ใบเสนอบนมือถือ/ชื่อบริการร้านนอก/เลข 0 เกินในหน้าสินค้าแล้ว
+เบสอนุมัติ 2026-09-11 ให้ตรวจทุกหน้า/ส่วนย่อย แก้กฎที่ขัดการใช้งานและส่วนกลางตามภารกิจจริง คงคำช่วย เหตุผลล็อก และผลคำสั่งตรงจุดใช้; ไม่รวม schema/สูตรเงิน/status/permission/API ใหม่หรือเปิด V2
 
-**ขอบเขตโค้ด:** 60 `page.tsx` = dashboard 35 + public 5 + print 5 + proto 7 + v2 4 + login/factory/floor/station 4 รวม redirect/หน้าลอง
+หน้าลองเทียบของเดิม/A เอกสารโปร่ง/B พื้นที่ทำงาน; iframe ผ่อน SAMEORIGIN เฉพาะ dev `/proto` จึงต้องใช้ local dev. รอเลือกทิศก่อนขยายหน้าตา งานแก้เฉพาะจุดที่อยู่ในขอบเขตทำต่อได้
+
+**ผลตรวจ UI เดิม 2026-09-11 (commit `d998b86`):** typecheck/verify:ui ผ่าน, lint 0 errors/22 warnings, 183 files/1,840 tests. หลังบ้านเปิดผ่าน CUA ที่ login; หน้าลอง desktop/mobile 18 ภาพ ทดลองค้น/กรอง/เรียง/กลับคิว/แท็บ/ซูมรูป/ยอด/เช็คลิสต์/งานคู่/ติดปัญหา/ธีม. แก้ hydration และ Back ใบเสนอเตือนก่อนทิ้ง draft แล้ว. หลักฐาน local `.tmp-test/ui-reset/{sheet.png,report.json,audit.json}`; การตรวจ public มีเพียง error 5 หน้า, print มีเพียง HTML และยังไม่มีธุรกรรมหลายบทบาท ผลเดิมนี้ไม่ใช่ผลทดสอบใหม่หรือการปล่อย Production
+
+### พื้นที่ที่ยังต้องเดินให้ครบ
+
+บัญชีจากการตรวจ 2026-09-11; จำนวน route ปัจจุบันให้นับ `page.tsx` ใน `src/app` รวม redirect/หน้าลองก่อนขยายงาน
 
 | กลุ่มและทางเข้า | ตรวจ/แก้แล้ว | ยังต้องตรวจจริง |
 |---|---|---|
@@ -28,71 +38,43 @@
 | `/login`; `/v2`, orders/new/`[id]` | login ผ่านบัญชีเจ้าของ; ตรวจทางเข้า v2 ในโค้ด | บทบาทอื่นและความเข้ากันได้เดิม |
 | `/proto`; production-flow, work-order-states/form + view, ui-reset | A16 เทียบ 3 หน้า × ของเดิม/A/B × desktop/mobile; สว่าง/มืดและกรณีติดขัด | เคาะแต่ละหน้า; หน้าลองเดิมยังไม่ครบ |
 
-**หลักฐาน 2026-09-11:** typecheck ผ่าน; lint 0 errors/22 warnings; 183 files/1,840 tests; `verify:ui` ผ่าน (ใบผลิต 35 ข้อ) หน้าลอง 18 ภาพไม่มีจอล้น/รูปเสีย/หน้าว่าง; ทดลองกดผ่าน CUA ใน IAB ที่ login แล้ว คำสั่งจำลองไม่เขียน DB; ภาพ/รายงาน local `.tmp-test/ui-reset/{sheet.png,report.json,audit.json}` ใช้ CUA แทน browser แยกของ proto-shots ซึ่งไม่มี login. ผู้ตรวจอิสระตรวจโค้ด/44 tests; browser โดย root. แก้เวลาจำลองและปุ่มธีมที่ทำ hydration ไม่ตรงแล้ว ไม่พบ error ใหม่หลังแก้สุดท้าย. ด่านภาพรวมออเดอร์เปลี่ยนจาก regex โค้ดเป็น render ตรวจเนื้อหา/สิทธิ์ทุกแบบ. iframe ผ่อน SAMEORIGIN เฉพาะ dev `/proto`; หน้าลองนี้ยังไม่รองรับ iframe บน Production
+### ขั้นต่อภายใน A16
 
-- [ ] เคาะคิวผลิต/ออเดอร์/ใบผลิตจาก `/proto/ui-reset` แล้วต่อโครงที่เลือก; รื้อ shell/เมนู/รายการ/ฟอร์ม/dialog ส่วนที่เหลือ ตรวจ keyboard/focus/loading/refetch/empty/error/no-permission/ทัช
-- [ ] เดิน flow บันทึกบน demo ครบหลายบทบาท รวมเงิน/ฟอร์มลูกค้า/settings; รอบนี้ตรวจอ่านและ draft ไม่มีธุรกรรม
-- [ ] คืน DTF รอบพิมพ์/คลังฟิล์ม และร้านนอก ส่ง → รับ → QC ตามบริการเดิม รับกลับบันทึกหลักฐานเท่านั้น ไม่ปิดขั้น/เปลี่ยนสถานะ
-- [ ] แยกขั้นที่เปิดดูกับขั้นที่ลงมือบนหน้าจริง; ตรวจ My Tasks ที่รวมงานต่างชนิดด้วย order key เดียวก่อนเปลี่ยนคิว
-- [ ] ลอง public ทุกสถานะ/พิมพ์จริง 5 แบบ; ตรวจยอด/เงื่อนไข print และหน้าแสดงสินค้าเทียบหน้าแก้
-
-A16 ไม่รวม schema/เงิน/status/permission/API ใหม่ ไม่ทดสอบเขียนฐานจริง การปล่อย Production ต้องอนุมัติ
+1. เลือกคิวผลิต/ออเดอร์/ใบผลิตจากหน้าลอง แล้วต่อโครงที่เลือก; เก็บ shell/เมนู/รายการ/ฟอร์ม/dialog พร้อม keyboard/focus/loading/refetch/empty/error/no-permission/ทัช
+2. เดิน flow บันทึกบน demo หลายบทบาท รวมลูกค้า เงิน settings และร้านนอก → รับกลับ → QC. คืนทางใช้ DTF รอบพิมพ์/คลังฟิล์มตามบริการเดิม; หลักฐานรับกลับไม่ใช่การปิดขั้นเอง
+3. แยกขั้นที่เปิดดูกับขั้นที่ลงมือบนหน้าจริง; ตรวจ My Tasks ที่รวมงานต่างชนิดด้วย order key เดียวก่อนเปลี่ยนคิว
+4. ลอง public ทุกสถานะและพิมพ์จริง 5 แบบ; ตรวจยอด/ค่าบริการ/NET30 ใน print และหน้าแสดงสินค้าเทียบหน้าแก้
 
 ## คิว
 
-### หนี้ผลิตที่ยังจริงจาก A2–A15
-
-- [ ] **A15:** DB harness ของ `correctCustomerGarmentReceipt`: ส่วนต่างขึ้น/ลง เปิดขั้นกลับ กดซ้ำ มีเพียง router test และลองลด S 15 → 12 บน demo แล้ว
-- [ ] **A12:** production-flow โครงเดิมยังจำลอง รอเคาะรายละเอียดก่อนต่อ Manufacturing จริง A/B ถูกปฏิเสธแล้ว การปล่อยหน้าลองไม่ใช่เปิดระบบผลิตใหม่
-- [ ] **A9:** ฟอร์มยังขับ V2 ไม่ได้ (`lockProductionStepScope`) รอ cutover; server `sendToQc` ยังปิดขั้นกระดาษข้ามได้แม้ UI รอครบ การปิดทางลัดต้องมีใบงานบริการ/test A5
-- [ ] **A9:** ข้อกำหนดนิ่งใน `work-order-standards.ts` รอผูก routing; `work-order-route.tsx` ไม่ใช้ พิจารณาก่อนลบ ร้านนอก/QC/รอบพิมพ์/ใบตรวจรับใช้หลักฐาน flow แทน checkbox ต้องคงไว้
-- [ ] **A2/A4:** ต่อ QC/final-pack ทางกลับ floor → My Tasks/แจ้งเตือน ซ้อมหัวหน้า/ช่าง; PIN เครื่องร่วมตกลงสิทธิ์ก่อนทำ สถานีจาก settings/V2 `controlList/workOrder` รอ cutover
-- [ ] **A5:** ครั้งพิมพ์/รุ่นกระดาษ (อนุมัติ schema ก่อน), QR ไป QC, `verify:print` บน demo; เวลาที่อนุมานจากปิดงานกระดาษเดิมไม่ใช่เวลาทำจริง
-- [ ] **A7/F:** ตรวจหน้าแสดง/แก้สินค้าให้ตรงกันและชื่อ accessory enum; พิจารณา orphan `OrderInfoEditDialog`/`OrderItemsEditor` และ lint เมื่อแตะไฟล์
+- [ ] **A15:** DB harness ของ `correctCustomerGarmentReceipt`: ส่วนต่างขึ้น/ลง เปิดขั้นกลับ กดซ้ำ; ปัจจุบันมี router test และผลลองลด S 15 → 12 บน demo
+- [ ] **A12:** production-flow โครงเดิมยังจำลอง รอเคาะรายละเอียดก่อนต่อ Manufacturing จริง; A/B เดิมถูกปฏิเสธ การปล่อยหน้าลองไม่ใช่เปิดระบบผลิตใหม่
+- [ ] **A9/A5:** ฟอร์มยังขับ V2 ไม่ได้ (`lockProductionStepScope`); `sendToQc` ยังปิดขั้นกระดาษข้ามได้ ต้องมีใบงานบริการ/test. ผูกข้อกำหนดนิ่งใน `work-order-standards.ts` กับ routing; ตรวจผู้ใช้ `work-order-route.tsx` ก่อนพิจารณาลบ คงหลักฐานร้านนอก/QC/รอบพิมพ์/ใบตรวจรับแทน checkbox
+- [ ] **A2/A4:** ต่อ QC/final-pack และทางกลับ floor → My Tasks/แจ้งเตือน ซ้อมหัวหน้า/ช่าง; PIN เครื่องร่วมต้องตกลงสิทธิ์ก่อนทำ สถานี settings/V2 `controlList/workOrder` รอ cutover
+- [ ] **A5:** ครั้งพิมพ์/รุ่นกระดาษต้องอนุมัติ schema ก่อน, QR ไป QC, ตรวจงานพิมพ์จาก `scripts/verify-print.tsx` บน demo; เวลาที่อนุมานจากปิดงานกระดาษเดิมไม่ใช่เวลาทำจริง
+- [ ] **A7/F:** หน้าแสดง/แก้สินค้าและชื่อ accessory enum ให้ตรงกัน; ตรวจ orphan `OrderInfoEditDialog`/`OrderItemsEditor` และ lint เมื่อแตะไฟล์
 - [ ] **F:** แจ้งรับเงินใบที่อยู่ในใบวางบิล; quotation Card/form row → Section/Field คง conversion; ทบทวน dashboard width
-- [ ] **F → A16:** ตรวจ factory alpha/hairline/แสงสะท้อนทัช, แถบยังไม่อ่าน/SegmentedControl, ลำดับชั้นธีมมืดตามจอจริง
-
-A9/A15 ทำการบันทึกเช็คลิสต์/ย้อนขั้น/ช่องคู่/แก้ยอดแล้ว หนี้เดิมที่โค้ดปิดแล้วตัดจากคิว ไม่เปิดซ้ำ
-
-### B. Cutover Production V2 — อนุมัติเป็นขั้น
-
-สถานะเดิม: Production legacy (`PRODUCTION_V2_ENABLED=0`), ยังไม่ seed routing/work center จริง **ตรวจสดก่อน rollout** demo เริ่ม legacy; ซ้อม V2 `DEMO_PRODUCTION_V2=1` ตาม `docs/local-demo-data.md` โค้ด/migration/seed/settings มีแล้ว แต่ยังไม่ยืนยันเปิดจริง
-
-- [ ] B1 ซ้อมหัวหน้า/ช่างบน demo: สูตร → สถานี → ร้านนอก → QC fail/rework → แพ็กแยกไซซ์ ตรวจ/ต่อ UI ที่ขาด
-- [ ] B2 แก้ผลซ้อมเป็นใบงานย่อย; ตรวจ mapping CUSTOM/งานขนานเมื่อจำเป็น ไม่คืนผังเก่าที่ถูกปฏิเสธ
-- [ ] B3 target/backup ก่อนเขียนจริง; additive seed → flag → ตรวจ → ลบ legacy UI/writer ตาม rollout window เบสอนุมัติแต่ละขั้น (`SPEC.md` §Production V2)
-- [ ] B4 หลัง cutover: QC rework target work center; DTF partial/waste/reprint event; owner/plan/SLA/audit actor read model; supervisor material recovery; WIP ownership ของ QC/final pack
-
-### C. MFG — ตัวชี้วัดผลิต อ่านอย่างเดียว ไม่มีเงิน/ไม่เพิ่ม schema
-
-- [ ] MFG1 เลือกงวดเดือนไทย: ส่งตรงเวลา = ออเดอร์ที่ `shippedAt` ในงวดเทียบ `deadline` (ไม่มี deadline ไม่นับ); ทำถูกครั้งแรก = `ΣqtyGood / (ΣqtyGood + ΣqtyDefect)`
-- [ ] MFG2 ของเสียตาม `QcDefect.reason` แยกไซซ์/สี/ลาย เปิดรูปหน้างานได้ ใช้ป้ายจาก `src/lib/qc.ts`
-- [ ] MFG3 แยกสูตรบริสุทธิ์จาก router; test งวดว่าง/ไม่มี deadline/หารศูนย์/ยังไม่ส่ง/ยกเลิก; ตรวจ 1440/390 ทั้งสองธีม และเพิ่มเกณฑ์ใน SPEC
-
-### D. ก่อนใช้จริง
-
-- [ ] B6 นักบัญชีตรวจใบกำกับ/CN/DN และเลขรันจากเอกสารพิมพ์จริง
-- [ ] B16 เดินงานจริงกับทีมและนักบัญชีดูเอกสารเงิน 1 รอบ
-- [ ] ตรวจ Supabase/Vercel console ตาม `docs/deploy-checklist.md` รวมสิ่งที่ SPEC ระบุว่ายังไม่ยืนยัน; ตรวจ release/deployment แยกจากผลโค้ด
+- [ ] **F → A16:** factory alpha/hairline/แสงสะท้อนทัช, แถบยังไม่อ่าน/SegmentedControl และลำดับธีมมืดตามจอจริง
+- [ ] **B1:** ก่อนซ้อม V2 ตรวจข้อขัดกันใน seed: `seed-demo-form-states.ts` สร้างใบไม่มีเลข MO แต่ `seed-demo.ts` ตรวจ V2 ทุกใบ (พบจากโค้ด 2026-09-12 ยังไม่รัน reset). จากนั้นซ้อมสูตร → สถานี → ร้านนอก → QC fail/rework → แพ็กแยกไซซ์บน demo ตาม README; ผลเดิมใช้ legacy/flag 0 ต้องตรวจค่าจริงก่อนเริ่ม
+- [ ] **B2:** แก้ผลซ้อม V2 เป็นงานย่อย; ตรวจ mapping CUSTOM/งานขนานเมื่อจำเป็น ไม่คืนผังเก่าที่ถูกปฏิเสธ
+- [ ] **B3:** ขออนุมัติ rollout ทีละขั้นตาม SPEC: target/backup → additive seed → flag → ตรวจ → ลบ legacy UI/writer ตาม rollout window. มีโค้ด/migration/seed/settings ไม่เท่ากับเปิดใช้จริง
+- [ ] **B4:** หลัง cutover ต่อ QC rework target work center; DTF partial/waste/reprint event; owner/plan/SLA/audit actor read model; supervisor material recovery; WIP ownership ของ QC/final pack
+- [ ] **MFG1–3:** ตัวชี้วัดผลิตแบบอ่านอย่างเดียว ไม่มีเงิน/ไม่เพิ่ม schema: งวดเดือนไทย ส่งตรงเวลา (`shippedAt` เทียบ `deadline`, ไม่มี deadline ไม่นับ), ทำถูกครั้งแรก `ΣqtyGood / (ΣqtyGood + ΣqtyDefect)`, ของเสียตาม `QcDefect.reason`/ไซซ์/สี/ลายและรูป. แยกสูตรจาก router; ทดสอบงวดว่าง/หารศูนย์/ยังไม่ส่ง/ยกเลิก/ไม่มี deadline, ตรวจ 1440/390 สองธีม แล้วเพิ่มเกณฑ์ใน SPEC
+- [ ] **B6/B16:** นักบัญชีตรวจใบกำกับ/CN/DN และเลขรันจากเอกสารพิมพ์จริง; เดินงานกับทีมและนักบัญชีหนึ่งรอบก่อนเปลี่ยน flow การเงิน
+- [ ] **สภาพแวดล้อมก่อนใช้จริง:** ยืนยัน public signup ปิด/Storage policies, Vercel rate limit/Bot Protection, env และผล cron สอง route, สำรองไฟล์/Auth พร้อมซ้อมกู้คืน ตาม README. เก็บผลตรวจ target/commit/เวลา แยกจาก CI/deployment; ยังไม่มีหลักฐานครบในรอบนี้
 
 ## พักไว้
 
-### E. หลังมีข้อมูลใช้งานจริงประมาณ 1 เดือน
+### หลังมีข้อมูลใช้งานจริงประมาณหนึ่งเดือน
 
-- C1 ราคาตามจำนวน × เทคนิค × ตำแหน่ง และราคาต่อลูกค้า เป็น service เรียกซ้ำได้สำหรับ P4
-- C2 กวาดงานค้างตามอายุ: ใบเสนอ SENT/แบบรอลูกค้า/INQUIRY/ร้านนอกเกินกำหนด → กระดิ่ง ใช้ cron เดิม
-- C5 ตรวจ UX หน้างานที่ยังเหลือหลัง V2; C6 LINE OA notify ระหว่างนี้ใช้ข้อความก๊อปส่ง
+- C1 ราคาตามจำนวน × เทคนิค × ตำแหน่ง และราคาต่อลูกค้า เป็น service ใช้ต่อ P4 — รอข้อมูลราคา/งานจริงตามแผนเดิม
+- C2 กวาดใบเสนอ SENT/แบบรอลูกค้า/INQUIRY/ร้านนอกเกินกำหนด → กระดิ่งผ่าน cron เดิม — รอเห็นอายุงานจริง
+- C5 เก็บ UX หน้างานหลัง V2; C6 LINE OA notify — ระหว่างนี้ใช้ข้อความก๊อปส่ง
 
 ### P2–P4
 
-- **P2 หลัง V2:** ต่อ quantity line/event เดิมเพื่อติดตามชิ้น ของเสีย/พิมพ์ซ้ำ; จองสต๊อกลึกขึ้นกับ Anajak Stock; ตรวจใบแพ็ก/การแบ่งส่งจาก DeliveryLine ที่มีแล้ว AP ร้านนอก + WHT ขาจ่าย 3%/50ทวิ/ภงด.53 ต้องทบทวนขอบเขตก่อนเริ่ม ไม่ใช่ job costing
-- **P3 ลูกค้า:** portal สถานะ/ประวัติ/เอกสาร/อนุมัติ/สั่งซ้ำ; LINE แจ้ง/ทวง/รูป WIP; CRM follow-up/RFM; โควตาแก้แบบ/ค่าเกิน/ล็อกหลังอนุมัติ; ตัวอย่างจริงแบบ opt-in; ตรวจ DPI/พื้นโปร่ง; analytics ลึก
-- **P4 เว็บ/ระบบอื่น:** intake API ของ `anajak-print-web` ทั้งเสื้อธรรมดาและ custom ใช้ order/garment source/design version/approval token/payment terms เดียวกับหน้าร้าน ราคาจาก C1 ไฟล์เข้า pipeline เดิม ไม่เพิ่มสถานะหรือ flow แยก MCP/API ใช้สิทธิ์เดียวกัน; ขยาย MCP/ฟอร์มเก็บไซซ์องค์กร/e-Tax/PEAK/courier ตามปริมาณงาน
+- **P2 หลัง V2:** quantity line/event เพื่อติดตามชิ้น ของเสีย/พิมพ์ซ้ำ; จองสต๊อกลึกขึ้นกับ Anajak Stock และให้ Stock เลือก location เมื่อ ERP ไม่ระบุแทนค่าคงที่ใน `src/lib/stock-constants.ts`; ใบแพ็ก/แบ่งส่งจาก DeliveryLine. AP ร้านนอก + WHT ขาจ่าย 3%/50ทวิ/ภงด.53 ต้องทบทวนขอบเขตก่อนเริ่ม ไม่ใช่ job costing
+- **P3 ลูกค้า:** portal สถานะ/ประวัติ/เอกสาร/อนุมัติ/สั่งซ้ำ; LINE แจ้ง/ทวง/รูป WIP; CRM follow-up/RFM; โควตาแก้แบบ/ค่าเกิน/ล็อกหลังอนุมัติ; ตัวอย่างจริง opt-in; ตรวจ DPI/พื้นโปร่ง; analytics ลึก — รอข้อมูลใช้จริงและคิวหลัง V2
+- **P4 เว็บ/ระบบอื่น:** intake ของ `anajak-print-web` ใช้ order/design/payment pipeline เดียวกับหน้าร้านตาม SPEC; ราคาจาก C1, ขยาย MCP/ฟอร์มเก็บไซซ์องค์กร/e-Tax/PEAK/courier ตามปริมาณงาน — ยังไม่เริ่มเชื่อมเพิ่มในรอบนี้
 
-### ขอบเขตที่ต้องคง
-
-คงกฎ SPEC/AGENTS: Decimal, DocumentSequence, transaction/lock, สถานะผ่าน server, ใบกำกับทุกงวดรวมมัดจำยกเลิก/ออกใหม่ไม่ลบ; Station/TV ไม่มีเงิน; ไม่ปิด tests/verify; schema additive; ฐาน shared/remote ต้อง target/backup/อนุมัติ
-
-ทำก้อนเล็กตามใบงาน/pattern เดิม/test จริง เปิดด่านทีละด่าน คน/CSV ก่อน API; ทบทวนคิวรายไตรมาส (1–2 โมดูลเล็ก/เดือน) A16 ยกเลิกข้อห้าม refactor UI เดิม คงสัญญาข้อมูล/เคาะทิศก่อนรื้อ
-
-**จงใจไม่ทำ:** GL/งบการเงิน; job costing/เงินในผลิตและร้านนอก; DTF auto-nesting (ใช้โปรแกรม RIP); in-app chat; online designer เต็ม; ใบกำกับอย่างย่อ; time-clock/payroll; WMS/PR-PO-GRN; mockup generator; CMMS เต็ม; anomaly detection; capacity planning เต็ม (ใช้ปฏิทินภาระงานเบา); Block reuse/BOM เต็ม ไม่มีงานทำบล็อกในบ้าน ใช้ Anajak Stock/ระบบ HR/นักบัญชีตามขอบเขตเดิม
+ขอบเขตที่จงใจไม่ทำและกฎข้อมูลถาวรอยู่ SPEC; วิธีลงมือและข้อห้ามอยู่ AGENTS ไม่สร้างข้อกำหนดอีกชุดในแผน

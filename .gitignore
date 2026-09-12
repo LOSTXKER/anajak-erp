@@ -45,6 +45,9 @@ prisma/migrations/**/migration_lock.toml
 # temp verification artifacts (เคยมี session cookie หลุด — ห้าม track)
 .tmp-test/
 .env*
+!.env.example
+CLAUDE.local.md
+.claude/settings.local.json
 
 # editor plan files (Cursor)
 .cursor/plans/
