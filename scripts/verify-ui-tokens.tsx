@@ -426,6 +426,15 @@ assert("เพิ่มรายการแล้วพาไปยังรา
 // tsx ใช้ classic runtime ในชิ้นส่วนแอป จึงติดตั้ง React ก่อนโหลด fixture/component.
 (globalThis as Record<string, unknown>).React = React;
 /* eslint-disable @typescript-eslint/no-require-imports */
+// ตัวตรวจนี้ render เฉพาะ HTML ผ่าน Node; ให้ CSS Modules คืนชื่อคลาสที่มีจริง
+// เหมือน asset mapping ของ bundler. สี/ขนาด/focus ของ CSS ยังตรวจจาก browser ตาม SPEC.
+require.extensions[".css"] = (module, filename) => {
+  if (!filename.endsWith(".module.css")) throw new Error(`Unsupported CSS import: ${filename}`);
+  const css = readFileSync(filename, "utf8");
+  module.exports = Object.fromEntries(
+    [...css.matchAll(/\.([a-zA-Z_][\w-]*)/g)].map((match) => [match[1], match[1]]),
+  );
+};
 const { OrderItemCard } = require("../src/components/orders/new/order-item-card");
 const { EMPTY_ITEM } = require("../src/types/order-form");
 const noop = () => {};
@@ -468,7 +477,7 @@ for (const variant of ["current", "a", "b"] as const) {
 }
 const overviewSource = sourceOf("src/components/orders/detail/order-overview-tab.tsx");
 const artworkSource = sourceOf("src/components/orders/detail/order-artwork-card.tsx");
-assert("ภาพรวมใช้สูตรรูปย่อกลางและไม่เพิ่ม writer ของม็อกอัพ/ไฟล์", artworkSource.includes("MockupThumbRow") && !/useMutation|design\.(upload|approve)|attachment\.(create|delete)/.test(artworkSource) && detailSource.includes("<OrderArtworkCard"));
+assert("ภาพรวมใช้แกลเลอรีกลางและไม่เพิ่ม writer ของม็อกอัพ/ไฟล์", artworkSource.includes("MockupGallery") && sourceOf("src/components/mockup/mockup-gallery.tsx").includes("mockupImages") && !/useMutation|design\.(upload|approve)|attachment\.(create|delete)/.test(artworkSource) && detailSource.includes("<OrderArtworkCard"));
 assert("เงิน/edit คง permission และ URL กลับไปงานเดิม", overviewSource.includes("isMarketplace && showMoney && order.platformFee != null") && overviewSource.includes("showMoney && hasCustomerHistory") && detailSource.includes('onOpenMoney={canSeeMoney ? () => changeTab("money") : undefined}') && /onEditInfo=\{\s*canUseEditForm\s*\?/.test(detailSource) && detailSource.includes('openInfoEditPage(section, "overview")') && detailSource.includes('router.push(buildOrderEditHref(id, { tab: "intake", focus, returnTab }))') && detailSource.includes('onOpenDelivery={() => changeTab("delivery")}'));
 assert("หัวออเดอร์คงเลขใบ ไม่กลับไปใช้ชื่อที่ถอดจากระบบ", !/order\.title/.test(detailSource));
 

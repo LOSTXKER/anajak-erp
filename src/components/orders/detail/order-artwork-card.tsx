@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Section, SectionTitle } from "@/components/ui/section";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
-import { MockupThumbRow } from "@/components/mockup/mockup-thumb-row";
 import { MockupGallery } from "@/components/mockup/mockup-gallery";
 import { trpc } from "@/lib/trpc";
 import { APPROVAL_STATUS_LABELS, APPROVAL_STATUS_VARIANTS } from "@/lib/status-config";
@@ -15,6 +14,7 @@ import { layerForCategory } from "@/lib/file-layers";
 import { formatDate } from "@/lib/utils";
 import type { MockupVersionLike } from "@/lib/mockup";
 import type { OrderOverviewVariant } from "./order-overview-tab";
+import styles from "./order-overview-cards.module.css";
 
 /** เท่าที่การ์ดนี้ใช้จริงจาก DesignVersion — รูปทั้งชุดอ่านผ่านสูตรกลางใน lib/mockup */
 export type ArtworkVersion = MockupVersionLike & {
@@ -99,11 +99,21 @@ export function OrderArtworkCardView({
   return (
     <Section
       data-order-overview-card="artwork"
-      surface="plain"
+      className={variant === "current" ? styles.card : undefined}
+      surface={variant === "current" ? "card" : "plain"}
       title={
-        <SectionTitle icon={Shirt} tone="production">
-          งานนี้พิมพ์อะไร
-        </SectionTitle>
+        variant === "current" ? (
+          <span className="flex items-center gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-module-production-surface text-module-production-text" aria-hidden="true">
+              <Shirt className="h-5 w-5" />
+            </span>
+            งานนี้พิมพ์อะไร
+          </span>
+        ) : (
+          <SectionTitle icon={Shirt} tone="production">
+            งานนี้พิมพ์อะไร
+          </SectionTitle>
+        )
       }
       action={
         onOpenFiles ? (
@@ -117,17 +127,19 @@ export function OrderArtworkCardView({
       <div className="space-y-4">
         {loadError && <QueryError message={loadError} onRetry={onRetry} />}
         {isLoading ? (
-          <Skeleton className="h-20 rounded-lg" />
+          <Skeleton className={variant === "current" ? "h-48 rounded-xl" : "h-20 rounded-lg"} />
         ) : latest ? (
-          <div className={variant === "current" ? "flex flex-wrap items-start gap-x-5 gap-y-4" : "flex flex-col items-start gap-5 sm:flex-row"}>
+          <div className={variant === "current" ? "space-y-4" : "flex flex-col items-start gap-5 sm:flex-row"}>
             {variant === "current" ? (
-              <MockupThumbRow version={latest} versionNumber={latest.versionNumber} className="max-w-full gap-3 [&_img]:object-contain" />
+              <div className={styles.artworkStage}>
+                <MockupGallery version={latest} versionNumber={latest.versionNumber} className="mx-auto max-w-[26rem] grid-cols-2 sm:grid-cols-2 lg:grid-cols-2 [&_button]:bg-surface [&_button]:shadow-sm" />
+              </div>
             ) : (
               <div className="w-full max-w-[220px] shrink-0">
                 <MockupGallery version={latest} versionNumber={latest.versionNumber} className="grid-cols-1 sm:grid-cols-1 lg:grid-cols-1" />
               </div>
             )}
-            <div className="min-w-0 flex-1 space-y-2">
+            <div className={variant === "current" ? "flex min-w-0 flex-wrap items-center justify-between gap-x-4 gap-y-2" : "min-w-0 flex-1 space-y-2"}>
               <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
                 <Badge
                   variant={
@@ -156,7 +168,7 @@ export function OrderArtworkCardView({
           </div>
         ) : loadError ? null : (
           // ยังไม่มีแบบ = บอกว่าขั้นต่อไปคืออะไร ไม่ใช่กล่องว่างเปล่า
-          <div className="space-y-0.5">
+          <div className={variant === "current" ? "space-y-1.5 rounded-xl border border-dashed border-border bg-surface-muted p-5" : "space-y-0.5"}>
             <p className="text-sm font-medium text-strong">ยังไม่มีม็อกอัพของใบนี้</p>
             <p className="text-xs text-muted">
               {rawCount > 0

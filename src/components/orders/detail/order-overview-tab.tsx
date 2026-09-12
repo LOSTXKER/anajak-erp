@@ -9,6 +9,7 @@ import {
   Repeat2,
   CalendarClock,
   CreditCard,
+  Package,
 } from "lucide-react";
 import { Section, SectionTitle } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +26,7 @@ import {
 import { PAYMENT_TERMS_LABELS } from "@/lib/payment-terms";
 import { DISPLAY_AMOUNT, FOCUS_BUTTON } from "@/components/ui/tokens";
 import { VISUAL_TONE_CLASSES, type VisualTone } from "@/lib/visual-tone";
+import styles from "./order-overview-cards.module.css";
 
 /** ภาพรวมเรียงข้อมูลตัดสินใจ ลูกค้า และการจัดส่ง พร้อมปุ่มแก้ตรงเรื่อง
  * TabsContent คง DOM หลังเปิดแท็บ: ข้อมูลเงินต้อง gate ด้วย showMoney ใน JSX
@@ -142,10 +144,33 @@ interface OrderOverviewTabProps {
 // ชิ้นส่วนหน้าตา
 // ============================================================
 
-/** กริดของช่องข้อมูลรอง — การ์ดล่างค่อยแยก 2 คอลัมน์เมื่อพื้นที่พอ */
-function FieldGrid({ children }: { children: React.ReactNode }) {
+function OverviewTitle({
+  icon: Icon,
+  tone,
+  framed,
+  children,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  tone: VisualTone;
+  framed: boolean;
+  children: React.ReactNode;
+}) {
+  if (!framed) return <SectionTitle icon={Icon} tone={tone}>{children}</SectionTitle>;
+
   return (
-    <dl className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
+    <span className="flex items-center gap-3">
+      <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl", VISUAL_TONE_CLASSES[tone].soft)} aria-hidden="true">
+        <Icon className="h-5 w-5" />
+      </span>
+      {children}
+    </span>
+  );
+}
+
+/** กริดของช่องข้อมูลรอง — การ์ดล่างค่อยแยก 2 คอลัมน์เมื่อพื้นที่พอ */
+function FieldGrid({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <dl className={cn("grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2", className)}>
       {children}
     </dl>
   );
@@ -244,8 +269,7 @@ function ReferenceItem({
   );
 }
 
-/** กลุ่มย่อยในการ์ด — หัวกลุ่มเป็นคำถามที่คนถามจริง ไม่ใช่ชื่อตารางในฐานข้อมูล
- *  divided = ขึ้นกลุ่มใหม่ คั่นด้วยเส้นบาง (การ์ดไม่มีขอบ เส้นในนี้คือตัวแบ่งจังหวะอ่าน) */
+/** กลุ่มย่อยในการ์ด — เส้นแบ่งคั่นเรื่องที่คนค้นหาแยกกัน */
 function Group({
   label,
   divided,
@@ -444,16 +468,16 @@ export function OrderOverviewTab({
   const summarySection = (
     <Section
       data-order-overview-card="summary"
-      className={currentLayout ? "@container" : undefined}
-      surface="plain"
-      title={<SectionTitle icon={Info} tone="brand">ข้อมูลออเดอร์</SectionTitle>}
+      className={currentLayout ? cn("@container", styles.card) : undefined}
+      surface={currentLayout ? "card" : "plain"}
+      title={<OverviewTitle icon={Info} tone="brand" framed={currentLayout}>ข้อมูลออเดอร์</OverviewTitle>}
       action={editButton("info", "แก้ไขข้อมูลออเดอร์")}
     >
       <div className="space-y-5">
         {/* ข้อมูลที่ใช้ตัดสินใจก่อนเปิดรายละเอียด */}
-        <dl className={cn("grid grid-cols-2 gap-x-4 gap-y-4 sm:gap-x-6 sm:gap-y-5", currentLayout && "@lg:grid-cols-3")}>
+        <dl className={cn("grid grid-cols-2 gap-x-4 gap-y-4 sm:gap-x-6 sm:gap-y-5", currentLayout && styles.summaryFacts)}>
           <SummaryFact
-            label="กำหนดส่ง"
+            label={<span className="inline-flex items-center gap-1.5">{currentLayout && <CalendarClock className="h-4 w-4" aria-hidden="true" />}กำหนดส่ง</span>}
             detail={
               <span className="inline-flex flex-wrap items-center gap-1.5">
                 <span>ความเร่งด่วน</span>
@@ -481,7 +505,7 @@ export function OrderOverviewTab({
             )}
           </SummaryFact>
 
-          <SummaryFact label="จำนวนรวม">
+          <SummaryFact label={<span className="inline-flex items-center gap-1.5">{currentLayout && <Package className="h-4 w-4" aria-hidden="true" />}จำนวนรวม</span>}>
             {totalQuantity > 0 ? (
               `${totalQuantity.toLocaleString()} ชิ้น`
             ) : order.estimatedQuantity ? (
@@ -497,7 +521,7 @@ export function OrderOverviewTab({
           {showMoney && (
             <SummaryFact
               label="ยอดรวม"
-              className={currentLayout ? "col-span-2 @lg:col-span-1" : undefined}
+              className={currentLayout ? cn("col-span-2", styles.orderTotal, !hasPricedWork && styles.unpricedTotal) : undefined}
               detail={
                 totalNeedsReview ? (
                   <span className="text-amber-700 dark:text-amber-300">
@@ -510,6 +534,7 @@ export function OrderOverviewTab({
                 <button
                   type="button"
                   onClick={onOpenMoney}
+                  aria-label={currentLayout ? `ดูเงินและบิล ยอดรวม ${hasPricedWork ? formatCurrency(totalAmount) : "ยังไม่ตีราคา"}` : undefined}
                   className={cn(
                     "inline-flex min-h-11 min-w-11 items-center rounded-lg text-left hover:underline",
                     hasPricedWork
@@ -521,6 +546,7 @@ export function OrderOverviewTab({
                   {hasPricedWork
                     ? formatCurrency(totalAmount)
                     : "ยังไม่ตีราคา"}
+                  {currentLayout && <ArrowRight className="ml-3 h-5 w-5 shrink-0" aria-hidden="true" />}
                 </button>
               ) : (
                 <span
@@ -540,7 +566,7 @@ export function OrderOverviewTab({
         </dl>
 
         <Group divided>
-          <FieldGrid>
+          <FieldGrid className={currentLayout ? "grid-cols-2 gap-x-4" : undefined}>
             <Field label="ประเภทงาน">
               <Badge
                 variant={order.orderType === "CUSTOM" ? "accent" : "default"}
@@ -609,8 +635,9 @@ export function OrderOverviewTab({
   const shippingSection = (
     <Section
       data-order-overview-card="shipping"
-      surface="plain"
-      title={<SectionTitle icon={Truck} tone="production">การจัดส่ง</SectionTitle>}
+      className={currentLayout ? styles.card : undefined}
+      surface={currentLayout ? "card" : "plain"}
+      title={<OverviewTitle icon={Truck} tone="production" framed={currentLayout}>การจัดส่ง</OverviewTitle>}
       action={editButton(
         "shipping",
         hasShipping ? "แก้ไขที่อยู่จัดส่ง" : "เพิ่มที่อยู่จัดส่ง",
@@ -685,8 +712,9 @@ export function OrderOverviewTab({
     order.brandProfile && (
       <Section
         data-order-overview-card="brand"
-        surface="plain"
-        title={<SectionTitle icon={Palette} tone="product">แบรนด์ลูกค้า</SectionTitle>}
+        className={currentLayout ? styles.card : undefined}
+        surface={currentLayout ? "card" : "plain"}
+        title={<OverviewTitle icon={Palette} tone="product" framed={currentLayout}>แบรนด์ลูกค้า</OverviewTitle>}
       >
         <FieldGrid>
           <Field label="ชื่อแบรนด์">{order.brandProfile.brandName}</Field>
@@ -774,9 +802,9 @@ export function OrderOverviewTab({
   const customerSection = (
     <Section
       data-order-overview-card="customer"
-      className={currentLayout ? "@container" : undefined}
-      surface="plain"
-      title={<SectionTitle icon={User} tone="brand">ลูกค้าและผู้ติดต่อ</SectionTitle>}
+      className={currentLayout ? cn("@container", styles.card) : undefined}
+      surface={currentLayout ? "card" : "plain"}
+      title={<OverviewTitle icon={User} tone="brand" framed={currentLayout}>ลูกค้าและผู้ติดต่อ</OverviewTitle>}
       action={
         customer ? onOpenCustomer ? (
           <Button type="button" variant="ghost" size="sm" onClick={onOpenCustomer}>
@@ -791,9 +819,9 @@ export function OrderOverviewTab({
     >
       {customer ? (
         <div className="space-y-5">
-          <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className={cn("flex flex-wrap items-start justify-between gap-3", currentLayout && "rounded-xl bg-module-brand-surface p-4")}>
             <div className="min-w-0">
-              <p className="text-base font-semibold text-strong [overflow-wrap:anywhere]">
+              <p className={cn("font-semibold text-strong [overflow-wrap:anywhere]", currentLayout ? "text-xl" : "text-base")}>
                 {customer.name}
               </p>
               {customer.company && (
@@ -813,13 +841,13 @@ export function OrderOverviewTab({
               ทั้งก้อน ช่างจึงไม่เห็นอะไรเลยแม้แต่หัวข้อ (TabsContent forceMount
               → ต้อง gate ที่ JSX ห้ามซ่อนด้วยคลาส) */}
           {showMoney && hasCustomerHistory && customerHistoryCells.length > 0 && (
-            <dl className={cn("grid grid-cols-2 gap-x-5 gap-y-4", currentLayout ? "@xl:grid-cols-4" : variant !== "b" && "sm:grid-cols-4")}>
+            <dl className={cn("grid grid-cols-2 gap-x-5 gap-y-4", currentLayout ? "rounded-xl border border-divider bg-surface-muted/50 p-4 @xl:grid-cols-4" : variant !== "b" && "sm:grid-cols-4")}>
               {customerHistoryCells.map((cell) => (
                 <div
                   key={cell.key}
                   className={cn(
                     currentLayout
-                      ? "border-l-2 border-divider py-1 pl-3"
+                      ? "min-w-0 py-1"
                       : "border-l border-divider pl-3",
                   )}
                 >
@@ -982,13 +1010,13 @@ export function OrderOverviewTab({
   return (
     <div className="space-y-5">
       <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-        <div className="space-y-5 xl:col-start-2 xl:row-start-1">
+        <div className="min-w-0 space-y-5 xl:col-start-2 xl:row-start-1">
           {summarySection}
           {shippingSection}
           {brandSection}
           {referenceSection}
         </div>
-        <div className="space-y-5 xl:col-start-1 xl:row-start-1">
+        <div className="min-w-0 space-y-5 xl:col-start-1 xl:row-start-1">
           {artwork}
           {customerSection}
         </div>

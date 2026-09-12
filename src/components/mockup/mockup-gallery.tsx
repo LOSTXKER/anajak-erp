@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { RADIUS, DASHED, FOCUS_BUTTON } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
@@ -24,6 +24,7 @@ export function MockupGallery({
   className?: string;
 }) {
   const [zoom, setZoom] = useState<{ src: string; label: string } | null>(null);
+  const zoomTriggerRef = useRef<HTMLButtonElement | null>(null);
   const images = mockupImages(version);
 
   return (
@@ -47,9 +48,10 @@ export function MockupGallery({
               {image.previewUrl ? (
                 <button
                   type="button"
-                  onClick={() =>
-                    setZoom({ src: image.previewUrl!, label })
-                  }
+                  onClick={(event) => {
+                    zoomTriggerRef.current = event.currentTarget;
+                    setZoom({ src: image.previewUrl!, label });
+                  }}
                   // เป้านิ้วเต็มการ์ด — หน้างานใช้มือถือ กดขยายดูรายละเอียดลายบ่อย
                   className={cn(
                     "group relative block w-full overflow-hidden border border-border bg-surface-muted",
@@ -101,7 +103,17 @@ export function MockupGallery({
       </ul>
 
       <Dialog open={zoom !== null} onOpenChange={(open) => !open && setZoom(null)}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent
+          className="max-w-3xl"
+          onCloseAutoFocus={(event) => {
+            // Gallery มีหลายปุ่มเปิด แต่ dialog mount ค้างไว้ตั้งแต่ยังปิดอยู่
+            // คืนไปยังรูปที่เพิ่งเปิดจริง แทน focus ที่จำไว้ตอนโหลดหน้า
+            if (zoomTriggerRef.current?.isConnected) {
+              event.preventDefault();
+              zoomTriggerRef.current.focus({ preventScroll: true });
+            }
+          }}
+        >
           <DialogTitle className="text-sm">{zoom?.label}</DialogTitle>
           {zoom ? (
             // eslint-disable-next-line @next/next/no-img-element

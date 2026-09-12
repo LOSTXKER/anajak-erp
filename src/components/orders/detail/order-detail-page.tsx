@@ -42,6 +42,13 @@ import {
   ShoppingCart,
   CalendarClock,
   UserRound,
+  LayoutGrid,
+  Package,
+  Factory,
+  ReceiptText,
+  Images,
+  History,
+  Workflow,
 } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
 import { MENU_SEPARATOR, OVERLAY_PANEL, TINT } from "@/components/ui/tokens";
@@ -88,6 +95,15 @@ import {
 import { RecordNotFound } from "@/components/ui/record-not-found";
 import { OrderNextStepGuidance } from "@/components/orders/detail/order-next-step-action";
 
+const ORDER_TAB_ICONS = {
+  overview: LayoutGrid,
+  items: Package,
+  production: Factory,
+  delivery: Truck,
+  money: ReceiptText,
+  files: Images,
+  history: History,
+} satisfies Record<TabKey, typeof LayoutGrid>;
 
 // ============================================================
 // Loading skeleton
@@ -610,8 +626,9 @@ function OrderDetailContent({
   const isHighPriority = order.priority === "HIGH";
 
   return (
-    <div className="space-y-6">
-      <div data-order-head="" className="space-y-4">
+    <div className="-mx-4 -mt-5 min-h-full space-y-5 bg-slate-100/70 px-4 pb-6 pt-5 dark:bg-slate-950/40 sm:-mx-6 sm:-mt-7 sm:px-6 sm:pt-7 lg:-mx-8 lg:px-8">
+      <div data-order-head="" className="rounded-2xl border border-slate-200 bg-surface shadow-sm dark:border-slate-700">
+      <div className="p-4 sm:p-5 [&_.page-module-mark]:h-10 [&_.page-module-mark]:w-10 [&_.page-module-mark]:rounded-xl [&_.page-module-mark]:bg-blue-50 [&_.page-module-mark]:ring-1 [&_.page-module-mark]:ring-blue-100 dark:[&_.page-module-mark]:bg-blue-950/50 dark:[&_.page-module-mark]:ring-blue-900">
       <PageHeader
         icon={ShoppingCart}
         breadcrumb={[
@@ -671,17 +688,6 @@ function OrderDetailContent({
                 <span className="hidden sm:inline">ลิงก์ลูกค้า</span>
               </Button>
             )}
-            {/* เมื่อติด readiness ปุ่มแสดงทางแก้ผ่าน guidance และแถบสถานะ */}
-            <OrderNextStepAction
-              nextStep={nextStep}
-              readiness={orderContext.data?.readiness ?? null}
-              isPending={updateStatus.isPending}
-              onStatus={handleStatusChange}
-              // ต้องผ่านทั้ง permission และ status gate เดียวกับปุ่มแก้รายการจุดอื่น
-              onEditItems={canUseEditForm && canEditItems ? openItemsEditPage : undefined}
-              onAnchor={handleAnchor}
-              canSeeMoney={canSeeMoney}
-            />
             {/* ซ่อนเมนูเมื่อไม่มีคำสั่งที่ผู้ใช้นี้ทำได้ */}
             {hasOverflowMenu && (
             <DropdownMenu.Root>
@@ -778,6 +784,27 @@ function OrderDetailContent({
         }
       />
 
+      </div>
+      <div className="rounded-b-2xl border-t border-blue-100 bg-blue-50/45 px-4 py-4 dark:border-slate-700 dark:bg-blue-950/20 sm:px-5">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm" aria-hidden="true"><Workflow className="h-4.5 w-4.5" /></span>
+            <div className="min-w-0">
+              <p className="text-xs text-secondary">สถานะงาน</p>
+              <p className="text-base font-semibold text-strong">{INTERNAL_STATUS_LABELS[order.internalStatus]}</p>
+            </div>
+            {currentStepIndex >= 0 && <span className="rounded-full border border-blue-200 bg-surface px-2.5 py-1 text-xs tabular-nums text-blue-700 dark:border-blue-800 dark:text-blue-300">ขั้น {currentStepIndex + 1}/{flowSteps.length}</span>}
+          </div>
+          <OrderNextStepAction
+            nextStep={nextStep}
+            readiness={orderContext.data?.readiness ?? null}
+            isPending={updateStatus.isPending}
+            onStatus={handleStatusChange}
+            onEditItems={canUseEditForm && canEditItems ? openItemsEditPage : undefined}
+            onAnchor={handleAnchor}
+            canSeeMoney={canSeeMoney}
+          />
+        </div>
       {/* revisions = ชุดเดียวกับที่แท็บประวัติใช้ (ไม่ยิง query เพิ่ม) — แถบสถานะเอาไปหาว่า
           งานพัก/ยกเลิกค้างไว้ที่ขั้นไหนของสายงาน เพราะ 2 สถานะนี้ไม่มีที่ยืนใน flow
           อยู่ใน "หัวใบ" เพราะ "งานอยู่ตรงไหน" คือส่วนหนึ่งของหัวเรื่อง ไม่ใช่ของแยกชิ้น */}
@@ -792,6 +819,7 @@ function OrderDetailContent({
         // ปุ่มขั้นต่อไปหายไปตอนติดด่าน — เหตุผลต้องมาโผล่ตรงนี้แทน ไม่งั้นปุ่มหายเงียบ
         blockers={nextStepBlockers(nextStep, orderContext.data?.readiness ?? null)}
       />
+      {nextStep && <div className="mt-3 border-t border-blue-100 pt-3 dark:border-blue-900/60">
       <OrderNextStepGuidance
         nextStep={nextStep}
         readiness={orderContext.data?.readiness ?? null}
@@ -799,6 +827,8 @@ function OrderDetailContent({
         onAnchor={handleAnchor}
         canSeeMoney={canSeeMoney}
       />
+      </div>}
+      </div>
       </div>
 
       {/* จองสต๊อคมีปัญหา — ต้องเห็นทันทีบนหน้าออเดอร์ (ด่านพร้อมผลิตจะกั้นงานไม่ให้เข้าคิวช่างอยู่แล้ว
@@ -858,18 +888,21 @@ function OrderDetailContent({
       <Tabs value={activeTab} onValueChange={changeTab}>
         {/* sticky — เลื่อนลงไปลึกแค่ไหนก็ยังสลับแท็บได้
             TabsBar = พื้นรองที่ทำให้เนื้อหาไม่วิ่งทะลุขึ้นมาอยู่ข้างแท็บตอนเลื่อน */}
-        <TabsBar>
-          <TabsList aria-label="ส่วนของออเดอร์">
-            {visibleTabs.map((t) => (
-              <TabsTrigger
+        <TabsBar className="mx-0 rounded-2xl border border-slate-200 bg-surface p-1.5 shadow-sm dark:border-slate-700">
+          <TabsList aria-label="ส่วนของออเดอร์" className="gap-1 sm:gap-1">
+            {visibleTabs.map((t) => {
+              const Icon = ORDER_TAB_ICONS[t.key];
+              return <TabsTrigger
                 key={t.key}
                 value={t.key}
                 hasPending={t.key === pendingTab}
+                className="mb-0 gap-2 rounded-xl border-b-0 px-3 text-secondary hover:bg-surface-muted data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:focus-visible:ring-white dark:data-[state=active]:bg-blue-700 dark:data-[state=active]:text-white dark:data-[state=active]:focus-visible:ring-white"
                 aria-label={t.key === pendingTab ? `${t.label} — มีงานค้าง` : undefined}
               >
+                <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
                 {t.label}
-              </TabsTrigger>
-            ))}
+              </TabsTrigger>;
+            })}
           </TabsList>
         </TabsBar>
 
@@ -969,7 +1002,7 @@ function OrderDetailContent({
             ) : (
               /* แท็บอยู่เสมอแม้ยังไม่ถึงเฟส — ถ้าซ่อนตามสถานะ ชุดแท็บจะเปลี่ยนใต้มือ
                  ระหว่างวันเดียวกัน (สถานะเดินหลายรอบต่อวัน) ตำแหน่งที่คนจำไว้จะขยับ */
-              <Section title="จัดส่ง" icon={Truck} tone="production" surface="plain">
+              <Section title="จัดส่ง" icon={Truck} tone="production" surface="card" className="rounded-2xl shadow-sm">
                 <EmptyState
                   icon={Truck}
                   title="ยังไม่ถึงขั้นจัดส่ง"
