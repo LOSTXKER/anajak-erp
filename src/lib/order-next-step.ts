@@ -138,7 +138,7 @@ export function getOrderNextStep(o: NextStepInput): NextStep | null {
     }
     return {
       title: "กำลังผลิต — อัปเดตขั้นตอนตามจริง",
-      description: "พิมพ์เสร็จ/รีดเสร็จ ติ๊กขั้นตอนในส่วนการผลิต แล้วเดินสถานะไปตรวจ QC",
+      description: "อัปเดตขั้นตอนผลิตก่อนส่งตรวจ QC",
       buttonLabel: "ไปส่วนการผลิต",
       action: { type: "ANCHOR", target: "production" },
     };

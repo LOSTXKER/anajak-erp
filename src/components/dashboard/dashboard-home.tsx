@@ -105,7 +105,7 @@ function AttentionRow({ item, emphasized = false }: { item: DashboardAttentionIt
       </div>
       <div className="min-w-0 flex-1">
         <p className={cn("break-words font-semibold text-strong", emphasized ? "text-base" : "text-sm")}>{item.title}</p>
-        {item.detail && (
+        {item.kind === "outsource" && danger && item.detail && (
           <p className="mt-1 text-xs leading-relaxed text-muted group-hover:text-secondary group-active:text-secondary">{item.detail}</p>
         )}
       </div>
@@ -147,14 +147,6 @@ function AttentionPanel({
             {allowed ? "ต้องเช็กก่อน" : "คิวงานของคุณ"}
           </h2>
         </div>
-        {allowed && !loading && !error && (
-          items.length > 0 ? (
-            <div className="shrink-0 border-l border-white/20 pl-4 text-right sm:pl-6">
-              <p className="text-3xl font-semibold tabular-nums leading-none">{items.length}</p>
-              <p className="mt-1 text-xs text-blue-100">เรื่องที่ต้องเช็ก</p>
-            </div>
-          ) : <CheckCircle2 className="h-7 w-7 shrink-0 text-emerald-300" aria-label="เรียบร้อย" />
-        )}
       </header>
       {!allowed ? (
         <div className="p-5">
@@ -223,21 +215,18 @@ function QuickLink({
           : cn("border-slate-200 bg-surface hover:border-blue-300 dark:border-slate-700 dark:hover:border-blue-700", INTERACTIVE_HOVER, INTERACTIVE_PRESSED, "text-secondary"),
       )}
     >
-      <span className="flex w-full items-start justify-between gap-3">
-        <span
-          className={cn(
-            "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
-            primary
-              ? "bg-white/15 text-white"
-              : tone
-                ? VISUAL_TONE_CLASSES[tone].soft
-                : "bg-surface-muted text-secondary",
-          )}
-          aria-hidden="true"
-        >
-          <Icon className="h-5 w-5" />
-        </span>
-        <ArrowRight className={cn("mt-1 h-4 w-4 shrink-0 transition-transform motion-safe:group-hover:translate-x-0.5", primary ? "text-blue-100" : "text-muted")} aria-hidden="true" />
+      <span
+        className={cn(
+          "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
+          primary
+            ? "bg-white/15 text-white"
+            : tone
+              ? VISUAL_TONE_CLASSES[tone].soft
+              : "bg-surface-muted text-secondary",
+        )}
+        aria-hidden="true"
+      >
+        <Icon className="h-5 w-5" />
       </span>
       <span className="min-w-0 text-pretty text-sm font-semibold">
         {label}
@@ -385,7 +374,7 @@ export function DashboardHome() {
           </Section>
         </div>
 
-        <Section title="ภาพรวม" bordered={false} surface="plain" flush>
+        <Section aria-label="ตัวเลขภาพรวม" bordered={false} surface="plain" flush>
           <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
             <Metric label="ออเดอร์กำลังเดิน" value={data?.activeOrders ?? 0} icon={ShoppingCart} tone="brand" />
             <Metric label="ปิดงานเดือนนี้" value={data?.completedThisMonth ?? 0} icon={CheckCircle2} tone="production" />
@@ -444,27 +433,22 @@ export function DashboardHome() {
                     "group grid gap-3 px-4 py-4 transition-colors sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center sm:px-5",
                   )}
                 >
-                  <div className="flex min-w-0 items-start gap-3.5">
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-blue-100 bg-blue-50 text-blue-600 dark:border-blue-900/70 dark:bg-blue-950/40 dark:text-blue-300" aria-hidden="true">
-                      <ShoppingCart className="h-5 w-5" />
-                    </span>
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-sm font-semibold tabular-nums text-strong">{order.orderNumber}</p>
-                        {order.printLabel && (
-                          <Badge variant="default" size="sm">{order.printLabel}</Badge>
-                        )}
-                      </div>
-                      <p className="mt-1 text-sm text-secondary group-hover:text-strong group-active:text-strong">
-                        {order.customerName}
-                      </p>
-                      {order.deadline && (
-                        <p className="mt-1.5 flex items-center gap-1.5 text-xs text-muted group-hover:text-secondary group-active:text-secondary">
-                          <CalendarClock className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                          กำหนด {formatDateShort(order.deadline)}
-                        </p>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-semibold tabular-nums text-strong">{order.orderNumber}</p>
+                      {order.printLabel && (
+                        <Badge variant="default" size="sm">{order.printLabel}</Badge>
                       )}
                     </div>
+                    <p className="mt-1 text-sm text-secondary group-hover:text-strong group-active:text-strong">
+                      {order.customerName}
+                    </p>
+                    {order.deadline && (
+                      <p className="mt-1.5 flex items-center gap-1.5 text-xs text-muted group-hover:text-secondary group-active:text-secondary">
+                        <CalendarClock className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                        กำหนด {formatDateShort(order.deadline)}
+                      </p>
+                    )}
                   </div>
                   <div className="flex flex-wrap items-center justify-between gap-3 border-t border-dashed border-divider pt-3 sm:justify-end sm:border-0 sm:pt-0">
                     <OrderStatusBadge

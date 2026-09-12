@@ -91,7 +91,6 @@ export function OrderArtworkCardView({
   const hasDescription = Boolean(description?.trim());
   const descriptionBlock = hasDescription ? (
     <div className={variant === "current" ? "space-y-2 border-t border-divider pt-4" : "space-y-2 pt-3"}>
-      <p className="text-xs font-semibold text-muted">รายละเอียดงาน</p>
       <p className="max-w-[75ch] text-sm leading-6 text-secondary [overflow-wrap:anywhere]">{description}</p>
     </div>
   ) : null;
