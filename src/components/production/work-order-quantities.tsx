@@ -17,7 +17,7 @@ import { activeOutsource, stepLabel, viewOf } from "./work-order-pieces";
 export const pieceTableAnchor = (stepId: string) => `work-order-pieces-${stepId}`;
 
 const TH = "px-3 py-3 text-xs font-medium";
-const TD = "px-3 py-3 align-middle text-sm";
+const TD = "px-3 py-3.5 align-middle text-sm";
 
 type PieceRow = { key: string; productId: string; variantId: string | null; product: string; productColor: string | null; color: string | null; size: string | null; qty: number; thumb: string | null; prints: string[] };
 type RowQty = { done: number; waste: number };
@@ -113,8 +113,8 @@ export function StepPieceTable({ step, order, c, stepAction, footer, replaceBody
       flush
     >
       {editable ? (
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-divider px-5 py-3">
-          <span className="text-xs text-muted" aria-live="polite">{pending ? "กำลังบันทึกและตรวจยอดล่าสุด…" : dirty ? "ยอดที่แก้ยังไม่บันทึก" : variantRows.length > 0 ? `${variantRows.length.toLocaleString("th-TH")} ไซซ์` : "ยอดรวมของขั้น"}</span>
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-divider bg-surface-muted/40 px-5 py-3">
+          <span className={cn("text-xs", dirty ? "font-medium text-amber-700 dark:text-amber-300" : "text-muted")} aria-live="polite">{pending ? "กำลังบันทึกและตรวจยอดล่าสุด…" : dirty ? "ยอดที่แก้ยังไม่บันทึก" : variantRows.length > 0 ? `${variantRows.length.toLocaleString("th-TH")} ไซซ์` : "ยอดรวมของขั้น"}</span>
           <div className="flex flex-wrap items-center gap-2">
             {variantRows.length > 0 ? (
               <Button size="sm" variant="outline" onClick={fillAll} disabled={pending}>
@@ -143,17 +143,17 @@ export function StepPieceTable({ step, order, c, stepAction, footer, replaceBody
               const product = productRows[0]!;
               return (
                 <div key={productId}>
-                  <div className="flex items-start gap-3 px-5 py-4">
+                  <div className="flex items-center gap-4 px-5 py-5">
                     {product.thumb ? (
                       // eslint-disable-next-line @next/next/no-img-element -- รูปลายจากคลัง/ไฟล์ที่อัปโหลด
-                      <img src={product.thumb} alt="" className={cn("h-14 w-14 shrink-0 border border-border bg-surface-muted object-contain", RADIUS.inner)} />
+                      <img src={product.thumb} alt="" className={cn("h-16 w-16 shrink-0 border border-border bg-surface-muted p-1 object-contain", RADIUS.inner)} />
                     ) : (
-                      <div className={cn("flex h-14 w-14 shrink-0 items-center justify-center border border-border bg-surface-muted", RADIUS.inner)}>
+                      <div className={cn("flex h-16 w-16 shrink-0 items-center justify-center border border-border bg-surface-muted", RADIUS.inner)}>
                         <ImageIcon className="h-5 w-5 text-muted" aria-hidden="true" />
                       </div>
                     )}
                     <div className="min-w-0 space-y-1">
-                      <h3 className="text-sm font-semibold text-strong [overflow-wrap:anywhere]">{product.product}</h3>
+                      <h3 className="text-base font-semibold leading-relaxed text-strong [overflow-wrap:anywhere]">{product.product}</h3>
                       {product.productColor ? <p className="text-sm text-secondary">{product.productColor}</p> : null}
                       {product.prints.length > 0 ? (
                         <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-secondary">
@@ -184,7 +184,7 @@ export function StepPieceTable({ step, order, c, stepAction, footer, replaceBody
                           const value = valueOf(row.key);
                           const rowLabel = [row.product, row.color, row.size].filter(Boolean).join(" ");
                           return (
-                            <tr key={row.key} className="focus-within:bg-surface-muted">
+                            <tr key={row.key} className="transition-colors focus-within:bg-blue-50/60 dark:focus-within:bg-blue-950/20">
                               <td className={cn(TD, "pl-5")}>
                                 <p className="text-base font-semibold text-strong">{row.size ?? "ไม่ระบุ"}</p>
                                 {row.color && row.color !== product.productColor ? <p className="text-xs text-secondary [overflow-wrap:anywhere]">{row.color}</p> : null}
@@ -219,8 +219,8 @@ export function StepPieceTable({ step, order, c, stepAction, footer, replaceBody
             })}
           </div>
           {/* ยอดรวมตรงกับคอลัมน์จำนวน ทำแล้ว และเสียด้านบน */}
-          <div className={cn("grid items-center border-t border-divider py-4", showQty ? "grid-cols-[25%_23%_26%_26%]" : "grid-cols-[65%_35%]")}>
-            <span className="pl-5 text-xs text-muted">รวมทั้งใบ</span>
+          <div className={cn("grid items-center border-t border-divider bg-surface-muted/50 py-4", showQty ? "grid-cols-[25%_23%_26%_26%]" : "grid-cols-[65%_35%]")}>
+            <span className="pl-5 text-xs font-medium text-secondary">รวมทั้งใบ</span>
             <span className={cn("px-3 text-right text-sm font-semibold tabular-nums text-strong", !showQty && "pr-5")}>{total.toLocaleString("th-TH")}</span>
             {showQty ? <span className="px-3 text-right text-sm font-semibold tabular-nums text-strong">{doneSum.toLocaleString("th-TH")}</span> : null}
             {showQty ? (

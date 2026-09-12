@@ -46,15 +46,7 @@ const CELL_PADDING = {
 // หัวธรรมดา หัวเรียงได้ และข้อมูลใช้ระยะเดียวกันเสมอ แม้ padding ของหัวเรียงจะอยู่บนปุ่ม
 const CELL_HORIZONTAL_PADDING = "px-[var(--data-table-cell-px,1.5rem)]";
 
-/* prop `flush` (ตารางวางบนผืนหน้าไม่มีกล่องครอบ) ถูกถอดออก 2026-08-26 — เบสเห็นของจริง
-   บนจอกว้างแล้วบอกว่า "ดูแปลกๆ และไม่ชอบ" · มันพังสองชั้นพร้อมกัน:
-   1) ธีมสว่างไม่เคยมีชั้นความลึกจริง (การ์ดต่างจากผืนหน้า 1.03 เท่า) สิ่งที่ตาเห็นว่า
-      เป็นกล่องคือเส้นขอบล้วน ๆ พอถอดกล่อง เส้นหายไปด้วย เลยไม่เหลือขอบเขตอะไรเลย
-   2) คำสั่ง "ให้เซลล์แรกชิดขอบ" ไปลงที่ <th> แต่ `SortableTh` วาง p-0 ไว้ที่ <th>
-      และ px-5 ไว้ที่ <button> ข้างใน คำสั่งจึงไม่โดน — หัวคอลัมน์แรกเยื้องขวากว่า
-      ข้อมูล 20px ซึ่งตรงกับสิ่งที่ prop ตัวนี้เขียนคอมเมนต์ไว้เองว่าจะป้องกัน
-   ตอนนี้ตารางระดับบนสุดใช้ `bordered` ปริยาย = การ์ดครอบ; ตั้งแต่ 2026-08-27
-   ผืน Light เป็น near-white และการ์ดแยกขอบเขตหลักด้วย edge+shadow กลาง */
+// ตารางหลักมีขอบร่วมหนึ่งชั้น; ตารางที่อยู่ในส่วนอื่นแล้วใช้ bordered={false} ได้
 const Root = React.forwardRef<HTMLDivElement, RootProps>(
   ({ className, bordered = true, cellPadding = "default", children, ...props }, ref) => (
     <div
@@ -96,10 +88,8 @@ const Body = React.forwardRef<
   <tbody
     ref={ref}
     className={cn(
-      // Vercel-like dataset panel ใช้ divider บางช่วยไล่แถว โดยไม่ทำ cell grid
-      // ข้อมูลทุกระดับในเซลล์ใช้ 14px; control ที่จงใจใช้ density แบบ sm/dense
-      // รักษาขนาดจาก primitive ของตัวเอง ไม่ถูกกฎข้อมูลตารางทับ
-      "divide-y divide-divider [&_td]:text-sm [&_td_:not(:is(button,button_*,input,input_*,select,select_*,textarea,textarea_*,[role=combobox],[role=combobox]_*))]:text-sm",
+      // เซลล์กำหนดข้อความหลักเอง เพื่อให้วันที่/คำช่วย/สถานะยังมีลำดับความสำคัญของมัน
+      "divide-y divide-divider",
       className
     )}
     {...props}
@@ -138,7 +128,7 @@ const Row = React.forwardRef<HTMLTableRowElement, RowProps>(
           // ชี้แถวไหนต้องรู้ทันที — ตารางกว้างแล้วกดผิดแถวคือกดผิดออเดอร์
           INTERACTIVE_HOVER,
           "group transition-colors hover:[&_.text-muted]:text-secondary dark:hover:[&_.text-muted]:text-secondary",
-          href && cn("cursor-pointer", INTERACTIVE_PRESSED),
+          href && cn("cursor-pointer focus-within:bg-interactive-hover", INTERACTIVE_PRESSED),
           className
         )}
         {...props}
@@ -244,6 +234,8 @@ const SortableTh = React.forwardRef<HTMLTableCellElement, SortableThProps>(
             aria-hidden="true"
             className={cn(
               "h-3 w-3 shrink-0 transition-colors",
+              // คอลัมน์ตัวเลขให้ท้ายข้อความหัวตรงกับท้ายยอด ไม่เว้นที่ลูกศรไว้ด้านขวา
+              align === "right" && "-order-1",
               active
                 ? "text-blue-600 dark:text-blue-400"
                 : "text-muted group-hover:text-secondary"

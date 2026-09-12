@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { DueTag } from "@/components/ui/due-tag";
 import { Fact, FactList } from "@/components/ui/fact";
 import { Section } from "@/components/ui/section";
+import { TINT } from "@/components/ui/tokens";
 import { latestPlainProductionNote } from "@/lib/production-problem";
 import { INTERNAL_STATUS_LABELS } from "@/lib/order-status";
 import { cn, formatDate, formatDateTime } from "@/lib/utils";
@@ -118,7 +119,7 @@ export function WorkOrderSteps({ c, current, pairedOpen, allDone, qcAction, step
         <Section title="ข้อมูลออเดอร์">
           <FactList columns={1}>
             <Fact label="ลูกค้า" value={order.customer?.name ?? "ไม่ระบุลูกค้า"} />
-            <Fact label="กำหนดส่ง" value={<DueTag dueInDays={daysFromNow(order.deadline, nowMs)} dateLabel={order.deadline ? formatDate(order.deadline) : null} size="sm" />} />
+            <Fact label="กำหนดส่ง" value={order.deadline ? formatDate(order.deadline) : "ยังไม่กำหนดส่ง"} sub={order.deadline ? <DueTag dueInDays={daysFromNow(order.deadline, nowMs)} size="sm" /> : undefined} />
             <Fact label="จำนวนทั้งใบ" value={`${c.totalQty.toLocaleString("th-TH")} ตัว`} />
             <Fact
               label="ม็อกอัพอนุมัติ"
@@ -183,9 +184,9 @@ function WorkOrderWorkspace({ c, current, pairedOpen, allDone, qcAction, stepFoo
   const displayed = [current, ...pairedOpen].filter((step): step is ProductionStep => !!step);
   return (
     <div className="space-y-6" data-work-order-variant={variant}>
-      <FactList columns={4} className="grid-cols-2 border-b border-divider pb-5">
+      <FactList columns={4} className="grid-cols-2 rounded-lg border-y border-divider bg-surface-muted/35 px-4 py-4 sm:px-5">
         <Fact label="ออเดอร์" value={INTERNAL_STATUS_LABELS[order.internalStatus]} />
-        <Fact label="กำหนดส่ง" value={<DueTag dueInDays={daysFromNow(order.deadline, nowMs)} dateLabel={order.deadline ? formatDate(order.deadline) : null} size="sm" />} />
+        <Fact label="กำหนดส่ง" value={order.deadline ? formatDate(order.deadline) : "ยังไม่กำหนดส่ง"} sub={order.deadline ? <DueTag dueInDays={daysFromNow(order.deadline, nowMs)} size="sm" /> : undefined} />
         <Fact label="จำนวนทั้งใบ" value={`${c.totalQty.toLocaleString("th-TH")} ตัว`} />
         <Fact label="ม็อกอัพอนุมัติ" value={order.designs[0] ? `v${order.designs[0].versionNumber}` : "ยังไม่มี"} sub={order.designs[0]?.approvedAt ? formatDate(order.designs[0].approvedAt) : undefined} />
       </FactList>
@@ -210,16 +211,16 @@ function WorkOrderWorkspace({ c, current, pairedOpen, allDone, qcAction, stepFoo
         <div className="min-w-0 space-y-7">
           {allDone || !current ? <WorkOrderSteps c={c} current={current} pairedOpen={pairedOpen} allDone={allDone} qcAction={qcAction} stepFooter={stepFooter} assignAction={assignAction} /> : displayed.map((step) => (
             <section key={step.id} aria-labelledby={`work-order-task-${step.id}`} className={cn(variant === "b" ? "rounded-2xl border border-border bg-surface p-5" : "border-b border-divider pb-7 last:border-b-0")}>
-              <header className="mb-5 flex flex-wrap items-start justify-between gap-4">
+              <header className={cn("mb-5 flex flex-wrap items-start justify-between gap-4 rounded-lg border-l-3 px-4 py-4 sm:px-5", TINT.info, "border-blue-600 dark:border-blue-400")}>
                 <div>
-                  <p className="mb-2 text-xs font-medium text-muted">ขั้นที่ {c.workflowSteps.indexOf(step) + 1} จาก {c.workflowSteps.length}</p>
+                  <p className="mb-2 text-xs font-medium text-blue-700 dark:text-blue-300">ขั้นที่ {c.workflowSteps.indexOf(step) + 1} จาก {c.workflowSteps.length}</p>
                   <div className="flex flex-wrap items-center gap-3">
-                    <h2 id={`work-order-task-${step.id}`} className="text-xl font-semibold text-strong">{stepLabel(step)}</h2>
+                    <h2 id={`work-order-task-${step.id}`} className="scroll-mt-16 text-xl font-semibold text-strong">{stepLabel(step)}</h2>
                     <StateChip view={viewOf(step, c.nowById.get(step.id))} kind={step.outsourceOrders.length ? "outsource" : "inhouse"} />
-                    {step.qtyTotal !== null && step.qtyTotal > 0 ? <span className="text-sm tabular-nums text-secondary">{(step.qtyDone ?? 0).toLocaleString("th-TH")} / {step.qtyTotal.toLocaleString("th-TH")} ตัว</span> : null}
+                    {step.qtyTotal !== null && step.qtyTotal > 0 ? <span className="text-sm tabular-nums text-secondary"><strong className="font-semibold text-strong">{(step.qtyDone ?? 0).toLocaleString("th-TH")}</strong> / {step.qtyTotal.toLocaleString("th-TH")} ตัว</span> : null}
                   </div>
                 </div>
-                <div className="flex max-w-xl flex-wrap items-center gap-2">{step.stepType === "GARMENT_RECEIVE" || step.stepType === "GARMENT_PICK" ? null : stepFooter?.(step)}</div>
+                <div className="flex max-w-xl flex-wrap items-center gap-2 sm:pt-1">{step.stepType === "GARMENT_RECEIVE" || step.stepType === "GARMENT_PICK" ? null : stepFooter?.(step)}</div>
               </header>
               <div className={cn("grid items-start gap-6", variant === "a" ? "lg:grid-cols-[minmax(0,1fr)_310px]" : "xl:grid-cols-[minmax(0,1fr)_290px]")}>
                 <div className="min-w-0">

@@ -23,7 +23,7 @@ import {
   PRIORITY_LABELS,
 } from "@/lib/order-status";
 import { PAYMENT_TERMS_LABELS } from "@/lib/payment-terms";
-import { DISPLAY_AMOUNT, FOCUS_BUTTON, RADIUS } from "@/components/ui/tokens";
+import { DISPLAY_AMOUNT, FOCUS_BUTTON } from "@/components/ui/tokens";
 import { VISUAL_TONE_CLASSES, type VisualTone } from "@/lib/visual-tone";
 
 /** ภาพรวมเรียงข้อมูลตัดสินใจ ลูกค้า และการจัดส่ง พร้อมปุ่มแก้ตรงเรื่อง
@@ -178,12 +178,12 @@ function Field({
   if (!filled && !emptyText) return null;
 
   return (
-    <div className={cn("min-w-0 space-y-0.5", wide && "sm:col-span-2")}>
+    <div className={cn("min-w-0 space-y-1", wide && "sm:col-span-2")}>
       <dt className="text-xs text-muted">{label}</dt>
       {/* ไทยห้าม truncate — ปล่อยตัดบรรทัดได้ทุกตำแหน่ง ดีกว่าจุดไข่ปลาที่ตัดสระทิ้ง */}
       <dd
         className={cn(
-          "text-sm [overflow-wrap:anywhere]",
+          "text-sm leading-relaxed [overflow-wrap:anywhere]",
           filled
             ? "font-medium text-strong"
             : emptyTone === "warn"
@@ -202,15 +202,17 @@ function SummaryFact({
   label,
   children,
   detail,
+  className,
 }: {
   label: React.ReactNode;
   children: React.ReactNode;
   detail?: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <div className="min-w-0 space-y-1">
+    <div className={cn("min-w-0 space-y-1.5", className)}>
       <dt className="text-xs font-medium text-muted">{label}</dt>
-      <dd className="min-w-0 text-lg font-semibold text-strong [overflow-wrap:anywhere]">
+      <dd className="min-w-0 text-lg font-semibold leading-snug tabular-nums text-strong [overflow-wrap:anywhere]">
         <span className="block min-w-0 [overflow-wrap:anywhere]">
           {children}
         </span>
@@ -442,13 +444,14 @@ export function OrderOverviewTab({
   const summarySection = (
     <Section
       data-order-overview-card="summary"
+      className={currentLayout ? "@container" : undefined}
       surface="plain"
       title={<SectionTitle icon={Info} tone="brand">ข้อมูลออเดอร์</SectionTitle>}
       action={editButton("info", "แก้ไขข้อมูลออเดอร์")}
     >
       <div className="space-y-5">
         {/* ข้อมูลที่ใช้ตัดสินใจก่อนเปิดรายละเอียด */}
-        <dl className={cn("grid grid-cols-2 gap-x-4 gap-y-4 sm:gap-x-6 sm:gap-y-5", currentLayout && "lg:grid-cols-3")}>
+        <dl className={cn("grid grid-cols-2 gap-x-4 gap-y-4 sm:gap-x-6 sm:gap-y-5", currentLayout && "@lg:grid-cols-3")}>
           <SummaryFact
             label="กำหนดส่ง"
             detail={
@@ -494,6 +497,7 @@ export function OrderOverviewTab({
           {showMoney && (
             <SummaryFact
               label="ยอดรวม"
+              className={currentLayout ? "col-span-2 @lg:col-span-1" : undefined}
               detail={
                 totalNeedsReview ? (
                   <span className="text-amber-700 dark:text-amber-300">
@@ -770,6 +774,7 @@ export function OrderOverviewTab({
   const customerSection = (
     <Section
       data-order-overview-card="customer"
+      className={currentLayout ? "@container" : undefined}
       surface="plain"
       title={<SectionTitle icon={User} tone="brand">ลูกค้าและผู้ติดต่อ</SectionTitle>}
       action={
@@ -808,21 +813,21 @@ export function OrderOverviewTab({
               ทั้งก้อน ช่างจึงไม่เห็นอะไรเลยแม้แต่หัวข้อ (TabsContent forceMount
               → ต้อง gate ที่ JSX ห้ามซ่อนด้วยคลาส) */}
           {showMoney && hasCustomerHistory && customerHistoryCells.length > 0 && (
-            <dl className={cn("grid grid-cols-2 gap-3", variant !== "b" && "sm:grid-cols-4")}>
+            <dl className={cn("grid grid-cols-2 gap-x-5 gap-y-4", currentLayout ? "@xl:grid-cols-4" : variant !== "b" && "sm:grid-cols-4")}>
               {customerHistoryCells.map((cell) => (
                 <div
                   key={cell.key}
                   className={cn(
                     currentLayout
-                      ? cn("px-3 py-3", RADIUS.inner, VISUAL_TONE_CLASSES[cell.tone].soft)
+                      ? "border-l-2 border-divider py-1 pl-3"
                       : "border-l border-divider pl-3",
                   )}
                 >
-                  <dt className={cn("flex items-center gap-1.5 text-xs", !currentLayout && "text-muted")}>
-                    {currentLayout && <cell.icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />}
+                  <dt className="flex items-center gap-1.5 text-xs text-muted">
+                    {currentLayout && <cell.icon className={cn("h-3.5 w-3.5 shrink-0", VISUAL_TONE_CLASSES[cell.tone].mark)} aria-hidden="true" />}
                     {cell.label}
                   </dt>
-                  <dd className={cn("mt-1 font-semibold tabular-nums [overflow-wrap:anywhere]", currentLayout ? "text-lg" : "text-sm text-secondary")}>
+                  <dd className={cn("mt-1.5 font-semibold tabular-nums text-strong [overflow-wrap:anywhere]", currentLayout ? "text-lg" : "text-sm text-secondary")}>
                     {cell.value}
                   </dd>
                 </div>

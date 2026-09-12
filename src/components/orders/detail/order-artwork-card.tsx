@@ -90,7 +90,7 @@ export function OrderArtworkCardView({
   const revisionRounds = versionCount - 1;
   const hasDescription = Boolean(description?.trim());
   const descriptionBlock = hasDescription ? (
-    <div className={variant === "current" ? "space-y-3 border-t border-divider pt-4" : "space-y-2 pt-3"}>
+    <div className={variant === "current" ? "space-y-2 border-t border-divider pt-4" : "space-y-2 pt-3"}>
       <p className="text-xs font-semibold text-muted">รายละเอียดงาน</p>
       <p className="max-w-[75ch] text-sm leading-6 text-secondary [overflow-wrap:anywhere]">{description}</p>
     </div>
@@ -119,15 +119,15 @@ export function OrderArtworkCardView({
         {isLoading ? (
           <Skeleton className="h-20 rounded-lg" />
         ) : latest ? (
-          <div className={variant === "current" ? "flex flex-wrap items-start gap-x-5 gap-y-3" : "flex flex-col items-start gap-5 sm:flex-row"}>
+          <div className={variant === "current" ? "flex flex-wrap items-start gap-x-5 gap-y-4" : "flex flex-col items-start gap-5 sm:flex-row"}>
             {variant === "current" ? (
-              <MockupThumbRow version={latest} versionNumber={latest.versionNumber} />
+              <MockupThumbRow version={latest} versionNumber={latest.versionNumber} className="max-w-full gap-3 [&_img]:object-contain" />
             ) : (
               <div className="w-full max-w-[220px] shrink-0">
                 <MockupGallery version={latest} versionNumber={latest.versionNumber} className="grid-cols-1 sm:grid-cols-1 lg:grid-cols-1" />
               </div>
             )}
-            <div className="min-w-0 flex-1 space-y-1">
+            <div className="min-w-0 flex-1 space-y-2">
               <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
                 <Badge
                   variant={
@@ -145,7 +145,7 @@ export function OrderArtworkCardView({
                   ม็อกอัพ v{latest.versionNumber}
                 </span>
               </p>
-              <p className="text-xs text-muted">
+              <p className="text-xs leading-relaxed text-muted">
                 {latest.approvedAt
                   ? `ลูกค้าอนุมัติ ${formatDate(latest.approvedAt)}`
                   : `ส่งให้ลูกค้า ${formatDate(latest.createdAt)}`}

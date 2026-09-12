@@ -445,7 +445,7 @@ export function WorkOrderStepNavigation({ c, activeIds, selectedId, currentId, c
   return (
     <nav aria-label="เลือกขั้นเพื่อเปิดดู" className="space-y-2">
       <p className="text-sm text-secondary">เปิดดูแต่ละขั้นได้ การเริ่มงานอยู่ในขั้นที่พร้อมทำ</p>
-      <ol className="flex gap-1 overflow-x-auto border-b border-divider">
+      <ol className="flex gap-1 overflow-x-auto rounded-t-lg border-b border-divider bg-surface-muted/40">
         {c.workflowSteps.map((step, index) => {
           const view = viewOf(step, c.nowById.get(step.id));
           const status = step.status === "PENDING" && !activeIds.includes(step.id) ? "ยังไม่ถึง" : view.label;
@@ -458,9 +458,9 @@ export function WorkOrderStepNavigation({ c, activeIds, selectedId, currentId, c
                 aria-pressed={selected}
                 aria-label={`เปิดดู ${stepLabel(step)} · ${status}`}
                 onClick={() => onSelect(step.id)}
-                className={cn("flex min-h-16 items-center gap-3 border-b-2 px-3 py-3 text-left transition-colors hover:bg-interactive-hover", FOCUS_BUTTON, selected ? "border-blue-600 bg-blue-50/60 dark:border-blue-400 dark:bg-blue-950/20" : "border-transparent")}
+                className={cn("flex min-h-16 items-center gap-3 border-b-2 px-4 py-3 text-left transition-colors hover:bg-interactive-hover", FOCUS_BUTTON, selected ? "border-blue-600 bg-blue-50 dark:border-blue-400 dark:bg-blue-950/25" : "border-transparent")}
               >
-                <span className={cn("text-sm tabular-nums", step.status === "COMPLETED" ? "text-green-700 dark:text-green-400" : "text-muted")}>
+                <span className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-medium tabular-nums", step.status === "COMPLETED" ? "border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950/30 dark:text-green-400" : selected ? "border-blue-600 bg-blue-600 text-white dark:border-blue-400 dark:bg-blue-400 dark:text-slate-950" : "border-border bg-surface text-muted")}>
                   {step.status === "COMPLETED" ? <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> : index + 1}
                 </span>
                 <span className="space-y-1">
@@ -484,7 +484,7 @@ export function WorkOrderStepReadOnly({ step, c, onReturn, allDone }: { step: Pr
   const view = viewOf(step, c.nowById.get(step.id));
   const waiting = routeWaitingOn(step, c.workflowSteps).map(stepLabel);
   return (
-    <section id={`work-order-task-${step.id}`} aria-label={`รายละเอียด ${stepLabel(step)} · อ่านอย่างเดียว`} className="space-y-5">
+    <section id={`work-order-task-${step.id}`} aria-label={`รายละเอียด ${stepLabel(step)} · อ่านอย่างเดียว`} className="scroll-mt-16 space-y-5">
       <header className="flex flex-wrap items-start justify-between gap-3 border-b border-divider pb-4">
         <div className="space-y-2">
           <p className="text-sm text-secondary">กำลังเปิดดู · อ่านอย่างเดียว</p>

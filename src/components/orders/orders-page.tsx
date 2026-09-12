@@ -64,7 +64,14 @@ function OrderMockupMark({
   cover: string | null;
   orderNumber: string;
 }) {
-  return <MockupThumbnail cover={cover} alt={`ม็อกอัพ ${orderNumber}`} size="sm" />;
+  return (
+    <MockupThumbnail
+      cover={cover}
+      alt={`ม็อกอัพ ${orderNumber}`}
+      size="sm"
+      className="h-11 w-11 [&>img]:object-contain lg:h-10 lg:w-10"
+    />
+  );
 }
 
 // ป้ายประเภทงานใช้ label และสีหมวดร่วมกันทั้งตารางและมือถือ
@@ -655,7 +662,7 @@ function OrdersPageContent() {
                       />
                       <Link
                         href={`/orders/${order.id}`}
-                        className="font-medium tabular-nums text-strong hover:underline"
+                        className="font-medium tabular-nums text-secondary underline-offset-4 hover:text-strong hover:underline"
                       >
                         {order.orderNumber}
                       </Link>
@@ -693,7 +700,7 @@ function OrdersPageContent() {
                       align="right"
                       // เงินในคอลัมน์ = ทศนิยม 2 ตำแหน่งเสมอ ให้หลักสตางค์เรียงแนวดิ่ง
                       // ใช้ตัวเลข tabular ให้เทียบยอดระหว่างแถวได้
-                      className="tabular-nums text-strong"
+                      className="font-medium tabular-nums text-strong"
                     >
                       {formatBaht(order.totalAmount ?? 0)}
                     </DataTable.Td>
@@ -730,10 +737,10 @@ function OrdersPageContent() {
                 : null;
               const primaryIdentity = order.customer?.name?.trim() || "—";
               return (
-                <article key={order.id} role="listitem" className="card-surface rounded-2xl">
+                <article key={order.id} role="listitem" className="card-surface rounded-xl">
                 <Link
                   href={`/orders/${order.id}`}
-                  className={cn("block min-h-11 rounded-lg p-3", FOCUS_BUTTON)}
+                  className={cn("block min-h-11 rounded-xl p-4 transition-colors hover:bg-interactive-hover motion-reduce:transition-none", FOCUS_BUTTON)}
                   aria-label={`เปิดออเดอร์ ${order.orderNumber} ${primaryIdentity}`}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -743,10 +750,10 @@ function OrdersPageContent() {
                         orderNumber={order.orderNumber}
                       />
                       <div className="min-w-0">
-                        <p className="font-medium tabular-nums text-secondary">
+                        <p className="text-xs font-medium tabular-nums text-secondary">
                           {order.orderNumber}
                         </p>
-                        <p className="mt-0.5 truncate text-base font-semibold text-strong">
+                        <p className="mt-1 text-base font-semibold leading-snug text-strong [overflow-wrap:anywhere]">
                           {primaryIdentity}
                         </p>
                       </div>
@@ -754,7 +761,7 @@ function OrdersPageContent() {
                     <ChevronRight aria-hidden="true" className="mt-1 h-5 w-5 shrink-0 text-muted" />
                   </div>
 
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
                     <OrderStatusBadge
                       customerStatus={order.customerStatus}
                       internalStatus={order.internalStatus}
@@ -766,7 +773,7 @@ function OrdersPageContent() {
                     )}
                   </div>
 
-                  <div className="mt-2 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3 border-t border-divider pt-2 text-xs">
+                  <div className="mt-3 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-4 border-t border-divider pt-3 text-xs">
                     <div className="min-w-0 space-y-1">
                       <OrderDeadline
                         deadline={order.deadline}
@@ -781,7 +788,7 @@ function OrdersPageContent() {
                     {canSeeMoney && (
                       <div className="text-right">
                         <p className="text-xs text-muted">ยอดรวม</p>
-                        <p className="font-semibold tabular-nums text-strong">
+                        <p className="mt-0.5 text-base font-semibold tabular-nums text-strong">
                           {formatBaht(order.totalAmount ?? 0)}
                         </p>
                         {order.paymentLabel !== "none" && (

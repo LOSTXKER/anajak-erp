@@ -34,7 +34,7 @@ export function ChecklistCard({ step, c, nowMs, showStepName = false, assignActi
       <div className="space-y-4">
         {/* ใครทำขั้นนี้ + ปุ่มเปลี่ยนคนทำ อยู่บรรทัดเดียวกัน (เบสสั่ง 2026-09-10) — เดิมปุ่มมอบหมาย
             ซ่อนอยู่ในเมนู ⋯ บนหัวใบ ทั้งที่ข้อมูล "ผู้ทำ" อยู่ตรงนี้ */}
-        <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-surface-muted/50 px-3 py-3">
           <FactList columns={1} className="min-w-0 flex-1">
             <Fact size="sm" icon={UserRound} label="ผู้ทำ" value={step.assignedTo?.name ?? "ยังไม่มีคนรับ"} tone={step.assignedTo ? "default" : "muted"} />
           </FactList>
@@ -54,13 +54,13 @@ export function ChecklistCard({ step, c, nowMs, showStepName = false, assignActi
           </FactList>
         ) : null}
         {standards.length > 0 ? (
-          <ul className="divide-y divide-divider border-t border-divider">
+          <ul className="space-y-1 border-t border-divider pt-2">
             {standards.map((label) => {
               const on = ticked.has(label);
               const who = ticked.get(label);
               return (
                 <li key={label}>
-                  <label className={cn("flex min-h-11 items-start gap-3 py-3 text-sm", canTick ? "cursor-pointer" : "cursor-default")}>
+                  <label className={cn("flex min-h-11 items-start gap-3 rounded-lg px-3 py-3 text-sm transition-colors", on ? "bg-surface-muted/50" : "", canTick ? "cursor-pointer hover:bg-interactive-hover" : "cursor-default")}>
                     <Checkbox
                       checked={on}
                       disabled={!canTick || c.tickPending}

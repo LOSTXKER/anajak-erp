@@ -1,20 +1,7 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-/* ============================================================
-   แถบเครื่องมือของหน้ารายการ — โครงเดียวของทั้งระบบ (เบสเคาะ 2026-08-01)
-
-   ก่อนหน้านี้แต่ละหน้าประกอบเอง เลยได้ 6 แบบที่ต่างกันหมด:
-     gap-2 / gap-3 / gap-4 · sm: / md: / @2xl: · items-center / start / end
-   คนอ่านหน้าเว็บไล่ดูหลายหน้าติดกันจะรู้สึกว่า "มันไม่เหมือนกัน" โดยชี้ไม่ถูกว่าอะไร
-
-   จุดตัดวัดจาก "ความกว้างพื้นที่เนื้อหา" (@container) ไม่ใช่ความกว้างหน้าต่าง —
-   เพราะสิ่งที่ตัดสินว่าของจะเรียงแถวเดียวได้ไหมคือที่ว่างจริงหลังหักแถบเมนู
-   และคนซูมหน้าเว็บได้ (เบสเจอมาแล้ว: จอกว้าง 1512 แต่พื้นที่จริงเหลือ 750)
-
-   ของที่ยัดเข้ามาต้องเป็น control มาตรฐาน (สูง 36px บนเดสก์ท็อป — ดู control-size.ts)
-   control ทุกชิ้นต้องสูงเท่าช่องค้นหาที่อยู่ข้างกัน
-   ============================================================ */
+// จัดค้นหาและตัวกรองตามพื้นที่งานจริง หลังหักเมนูและการซูมของผู้ใช้
 
 export function Toolbar({
   children,
@@ -24,10 +11,10 @@ export function Toolbar({
   className?: string;
 }) {
   return (
-    <div className="@container">
+    <div className="@container min-w-0">
       <div
         className={cn(
-          "flex flex-col gap-2 @2xl:flex-row @2xl:flex-wrap @2xl:items-center",
+          "flex min-w-0 flex-col gap-3 @2xl:flex-row @2xl:flex-wrap @2xl:items-center",
           className,
         )}
       >
@@ -37,7 +24,7 @@ export function Toolbar({
   );
 }
 
-/** กลุ่มของที่ต้องอยู่ติดกันเสมอ (เช่น ช่วงวันที่ + ตัวกรอง) — ไม่แตกแถวกลางกลุ่ม */
+/** ตัวกรองที่เกี่ยวกันอยู่กลุ่มเดียว และขึ้นแถวใหม่เมื่อพื้นที่ไม่พอ */
 export function ToolbarGroup({
   children,
   className,
@@ -51,7 +38,7 @@ export function ToolbarGroup({
   return (
     <div
       className={cn(
-        "flex items-center gap-2",
+        "flex min-w-0 flex-wrap items-center gap-2",
         align === "end" && "@2xl:ml-auto",
         className,
       )}

@@ -40,6 +40,8 @@ import {
   Share2,
   Truck,
   ShoppingCart,
+  CalendarClock,
+  UserRound,
 } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
 import { MENU_SEPARATOR, OVERLAY_PANEL, TINT } from "@/components/ui/tokens";
@@ -618,9 +620,17 @@ function OrderDetailContent({
         ]}
         title={order.orderNumber}
         meta={
-          <span className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-            <span className="font-medium text-secondary">{order.customer?.name || "ยังไม่ระบุลูกค้า"}</span>
-            {order.deadline && <span>กำหนดส่ง {formatDate(order.deadline)}</span>}
+          <span className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+            <span className="inline-flex min-w-0 items-center gap-2 font-medium text-secondary">
+              <UserRound className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
+              <span className="[overflow-wrap:anywhere]">{order.customer?.name || "ยังไม่ระบุลูกค้า"}</span>
+            </span>
+            {order.deadline && (
+              <span className="inline-flex items-center gap-2 text-secondary">
+                <CalendarClock className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
+                <span>กำหนดส่ง <span className="font-medium tabular-nums text-strong">{formatDate(order.deadline)}</span></span>
+              </span>
+            )}
           </span>
         }
         titleBadge={

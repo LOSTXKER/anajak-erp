@@ -1,10 +1,5 @@
 import { Button } from "./button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { cn } from "@/lib/utils";
-import {
-  INTERACTIVE_PAGE_HOVER,
-  INTERACTIVE_PAGE_PRESSED,
-} from "@/components/ui/tokens";
 
 interface TablePaginationProps {
   page: number;
@@ -28,36 +23,28 @@ export function TablePagination({
   const from = limit ? (page - 1) * limit + 1 : null;
   const to = limit ? Math.min(page * limit, total) : null;
 
-  // ยืนอยู่ "ใต้การ์ด" ไม่ใช่ในตาราง (UI-2026 เฟส 6 · เบสเคาะ "การ์ดครอบ" 2026-08-26)
-  // จึงไม่มีเส้นบนแล้ว — ขอบล่างของการ์ดปิดตารางให้เรียบร้อยอยู่แล้ว
-  // และเส้นบนตรงนี้เคยเป็น "เส้นปิดท้ายตาราง" โดยบังเอิญ ซึ่งหายไปเองเมื่อมีหน้าเดียว
-  // (คอมโพเนนต์นี้ return null) ทำให้รายการสั้นจบกลางอากาศ — ตอนนี้ไม่พึ่งกันแล้ว
-  // ไม่มีระยะขอบซ้าย-ขวา เพื่อให้เสมอขอบการ์ดที่อยู่ข้างบน
   return (
-    <nav aria-label="การแบ่งหน้า" className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 pt-3">
-      <p className="text-xs tabular-nums text-muted">
+    <nav aria-label="การแบ่งหน้า" className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 pt-4">
+      <p className="text-xs tabular-nums text-secondary">
         {from != null ? `แสดง ${from}–${to} จาก ${total} ${label}` : `ทั้งหมด ${total} ${label}`}
       </p>
-      <div className="flex gap-1.5">
-        {/* ยืนบนผืนงานเทา ไม่ใช่ในการ์ด — ต้องใช้คู่ interaction ของผืนงาน
-            ไม่งั้น hover ได้แค่ 1.03 เท่า = ชี้แล้วจอไม่ขยับ */}
+      <div className="ml-auto flex items-center gap-1 rounded-xl border border-border bg-surface p-1">
         <Button
           variant="ghost"
-          size="sm"
-          className={cn(INTERACTIVE_PAGE_HOVER, INTERACTIVE_PAGE_PRESSED)}
+          size="icon"
           disabled={page <= 1}
           onClick={() => onPageChange(page - 1)}
           aria-label="หน้าก่อนหน้า"
         >
           <ChevronLeft />
         </Button>
-        <span className="flex items-center px-2 text-xs text-muted">
-          {page} / {totalPages}
+        <span className="flex min-w-20 items-center justify-center gap-1.5 px-2 text-xs tabular-nums text-secondary">
+          <span className="sr-only">หน้า</span><strong className="font-semibold text-strong">{page}</strong>
+          <span aria-hidden="true">/</span><span className="sr-only">จาก</span>{totalPages}
         </span>
         <Button
           variant="ghost"
-          size="sm"
-          className={cn(INTERACTIVE_PAGE_HOVER, INTERACTIVE_PAGE_PRESSED)}
+          size="icon"
           disabled={page >= totalPages}
           onClick={() => onPageChange(page + 1)}
           aria-label="หน้าถัดไป"

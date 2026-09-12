@@ -43,7 +43,6 @@ import {
   INTERACTIVE_HOVER,
   INTERACTIVE_PRESSED,
   RADIUS,
-  SUNK_PANEL,
 } from "@/components/ui/tokens";
 import { ListPageSkeleton } from "@/components/ui/page-skeleton";
 import { CommandPalette } from "@/components/layout/command-palette";
@@ -491,8 +490,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
               CONTROL_H,
               FOCUS_BUTTON,
               RADIUS.field,
-              SUNK_PANEL,
-              "border border-border",
+              "border border-border bg-surface shadow-xs hover:border-blue-200 dark:hover:border-blue-800",
               INTERACTIVE_HOVER,
               INTERACTIVE_PRESSED,
               // ให้เห็นขอบเขตการค้นหาครบและย่อได้บนมือถือ
@@ -501,7 +499,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
           >
             <Search className="h-4 w-4 shrink-0" strokeWidth={1.75} />
             <span className="min-w-0 flex-1 truncate text-left">ค้นหาเลขงาน ลูกค้า หรือเมนู</span>
-            <kbd className="hidden text-xs sm:inline">⌘K</kbd>
+            <kbd className="hidden min-w-8 rounded border border-divider bg-surface-muted px-1.5 py-0.5 text-center text-xs leading-4 text-muted sm:inline">⌘K</kbd>
           </button>
 
           <div className="ml-auto flex shrink-0 items-center gap-2">

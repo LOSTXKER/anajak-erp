@@ -79,14 +79,14 @@ export function DeskTiles({
             className={cn(
               "inline-flex min-h-11 shrink-0 items-center gap-2.5 border-b-2 px-3 py-2 text-left transition-colors hover:bg-interactive-hover",
               FOCUS_BUTTON,
-              on ? ACTIVE_UNDERLINE : "border-transparent",
+              on ? cn(ACTIVE_UNDERLINE, "bg-blue-50/70 dark:bg-blue-950/25") : "border-transparent",
             )}
           >
             <span className="flex min-w-0 items-center gap-2 text-sm font-medium text-secondary">
               <Icon className={cn("h-4 w-4 shrink-0", value > 0 ? TILE_TEXT[tile.tone] : "text-muted")} aria-hidden="true" />
               {tile.label}
             </span>
-            <span className={cn("text-sm font-semibold tabular-nums", value > 0 ? TILE_TEXT[tile.tone] : "text-muted")}>
+            <span className={cn("min-w-6 rounded-md bg-surface-muted px-1.5 py-0.5 text-center text-sm font-semibold tabular-nums", value > 0 ? TILE_TEXT[tile.tone] : "text-muted")}>
               {value}
             </span>
           </button>
@@ -239,7 +239,7 @@ export function DeskTable<S extends DeskStepLike, O extends BoardOrderLike<S>>({
           <DataTable.Th className={sideDetails ? "hidden" : "hidden sm:table-cell"}>ผู้รับผิดชอบ</DataTable.Th>
         </tr>
       </DataTable.Head>
-      <DataTable.Body className={variant === "a" ? "[&_td]:py-2" : undefined}>
+      <DataTable.Body className={variant === "a" ? "[&_td]:py-2" : "[&_td]:py-4"}>
         {rows.length === 0 ? (
           <tr>
             <DataTable.Td colSpan={6} align="center" className="py-12 text-muted">{emptyLabel}</DataTable.Td>
@@ -272,14 +272,14 @@ export function DeskTable<S extends DeskStepLike, O extends BoardOrderLike<S>>({
                           {order.orderNumber}
                         </Button>
                       ) : (
-                        <Link href={hrefFor(row)} className="rounded-sm font-semibold tabular-nums text-strong underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring">
+                        <Link href={hrefFor(row)} className="rounded-sm font-semibold tabular-nums text-strong underline-offset-4 transition-colors group-hover/row:text-blue-700 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring dark:group-hover/row:text-blue-300">
                           {order.orderNumber}
                         </Link>
                       )}
                       {urgent ? <Badge variant={order.priority === "URGENT" ? "destructive" : "warning"} size="sm">{order.priority === "URGENT" ? "ด่วน" : "สำคัญ"}</Badge> : null}
                       {order.blindShip ? <Badge variant="warning" size="sm">Blind ship</Badge> : null}
                     </div>
-                    <p className="line-clamp-2 text-secondary" title={order.customerName ?? undefined}>{order.customerName ?? "ไม่ระบุลูกค้า"}</p>
+                    <p className="line-clamp-2 text-sm leading-relaxed text-secondary" title={order.customerName ?? undefined}>{order.customerName ?? "ไม่ระบุลูกค้า"}</p>
                   </div>
                 </div>
                 <div className={cn("mt-3 space-y-2", !sideDetails && "sm:hidden")}>
@@ -297,8 +297,8 @@ export function DeskTable<S extends DeskStepLike, O extends BoardOrderLike<S>>({
                 </div>
               </DataTable.Td>
               <DataTable.Td align="right" className={sideDetails ? "hidden" : "hidden whitespace-nowrap sm:table-cell"}>
-                <span className="font-semibold tabular-nums text-strong">{(order.totalQuantity ?? 0).toLocaleString("th-TH")}</span>
-                <span className="ml-1 text-muted">ตัว</span>
+                <span className="text-base font-semibold tabular-nums text-strong">{(order.totalQuantity ?? 0).toLocaleString("th-TH")}</span>
+                <span className="ml-1 text-xs text-muted">ตัว</span>
               </DataTable.Td>
               <DataTable.Td className={sideDetails ? "hidden" : "hidden whitespace-nowrap sm:table-cell"}>
                 <DueTag dueInDays={row.dueInDays} dateLabel={order.deadline ? formatDateShort(order.deadline) : null} size="sm" />

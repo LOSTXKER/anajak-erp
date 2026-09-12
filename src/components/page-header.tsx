@@ -79,8 +79,8 @@ export function PageHeader({
   return (
     <div className="page-header space-y-4" data-page-identity={identityLabel ?? "custom"}>
       <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-        <div className="flex min-w-0 items-start gap-2 sm:min-w-64 sm:flex-1">
-          {/* ปุ่มย้อนกลับยืนบนผืนงานเทา ไม่ใช่ในการ์ด — ใช้คู่ interaction ของผืนงาน */}
+        <div className="flex min-w-0 items-start gap-3 sm:min-w-64 sm:flex-[1_1_24rem]">
+          {/* ปุ่มย้อนกลับใช้ interaction ของผืนหน้าเดียวกับหัวข้อ */}
           {resolvedBack && (
             <Button
               asChild
@@ -96,7 +96,7 @@ export function PageHeader({
 
           <span
             className={cn(
-              "page-module-mark mt-2 flex shrink-0 items-center justify-center",
+              "page-module-mark flex h-9 w-6 shrink-0 items-center justify-center sm:h-10",
               VISUAL_TONE_CLASSES[resolvedTone].mark,
             )}
             role={eyebrow ? "img" : undefined}
@@ -114,7 +114,7 @@ export function PageHeader({
               <PageIdentityIcon label={identityLabel} className="h-5 w-5" strokeWidth={1.8} />
             )}
           </span>
-          <div className="min-w-0 space-y-1 pt-0.5">
+          <div className="min-w-0 space-y-1.5 pt-0.5">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="break-words text-2xl font-semibold text-strong [overflow-wrap:anywhere] sm:text-3xl">
                 {title}
