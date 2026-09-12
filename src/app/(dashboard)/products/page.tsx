@@ -21,6 +21,7 @@ import { permAllows } from "@/lib/permissions";
 import { SyncDialog } from "@/components/sync-dialog";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { FOCUS_BUTTON } from "@/components/ui/tokens";
+import { StatusLabel } from "@/components/ui/status-label";
 
 // ─── Product Group Tabs ─────────────────────────────────────
 const itemTypes = [
@@ -271,14 +272,12 @@ function ProductsPageContent() {
                       />
                     )}
 
-                    <span
-                      className={`absolute right-2 top-2 h-2 w-2 rounded-full ring-2 ring-white dark:ring-slate-900 ${
-                        product.isActive
-                          ? "bg-green-500"
-                          : "bg-slate-300 dark:bg-slate-600"
-                      }`}
-                      title={product.isActive ? "ใช้งาน" : "ไม่ใช้งาน"}
-                    />
+                    <div className="absolute right-2 top-2 rounded-md bg-surface px-2 py-1">
+                      <StatusLabel
+                        label={product.isActive ? "เปิดใช้งาน" : "ปิดใช้งาน"}
+                        tone={product.isActive ? "success" : "neutral"}
+                      />
+                    </div>
                   </div>
 
                   <div className="space-y-1.5 p-3">

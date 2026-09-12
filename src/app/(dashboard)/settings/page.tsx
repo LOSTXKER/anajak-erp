@@ -95,7 +95,7 @@ const SETTING_LINKS: readonly SettingLink[] = [
     group: "การผลิตและบริการ",
     icon: Wrench,
     title: "จัดการบริการ",
-    meta: "Add-ons · สกรีน · ค่าบริการ",
+    meta: "บริการเสริม · สกรีน · ค่าบริการ",
     tone: "product",
     permissionsAny: ["manage_settings"],
   },
@@ -165,11 +165,12 @@ export default function SettingsPage() {
         onRetry: () => void meQuery.refetch(),
       } : null}
       skeleton={SETTING_GROUPS.map((group) => (
-          <div key={group} className="space-y-2">
+          <div key={group} className="grid gap-4 lg:grid-cols-[12rem_minmax(0,1fr)]">
             <Skeleton className="h-4 w-32" />
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              <Skeleton className="h-20 rounded-lg" />
-              <Skeleton className="h-20 rounded-lg" />
+            <div className="space-y-3">
+              {SETTING_LINKS.filter((link) => link.group === group).map((link) => (
+                <Skeleton key={link.href} className="h-14 rounded-lg" />
+              ))}
             </div>
           </div>
         ))}
@@ -178,24 +179,24 @@ export default function SettingsPage() {
         const links = visibleLinks.filter((link) => link.group === group);
         if (links.length === 0) return null;
         return (
-          <Section key={group} title={group} bordered={false} compact>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <Section key={group} title={group} bordered={false} className="grid gap-1 sm:gap-6 lg:grid-cols-[12rem_minmax(0,1fr)]">
+            <div className="divide-y divide-divider border-y border-divider">
               {links.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={cn("group card-surface card-surface-hover flex items-center gap-3 rounded-2xl p-4 transition-colors", FOCUS_BUTTON)}
+                  className={cn("group flex items-center gap-4 px-3 py-4 transition-colors hover:bg-interactive-hover active:bg-interactive-pressed", FOCUS_BUTTON)}
                 >
                   <link.icon
                     className={cn("h-5 w-5 shrink-0", VISUAL_TONE_CLASSES[link.tone].mark)}
                     strokeWidth={1.75}
                     aria-hidden="true"
                   />
-                  <div className="min-w-0 flex-1">
+                  <div className="grid min-w-0 flex-1 gap-1 sm:grid-cols-2 sm:items-center sm:gap-4">
                     <p className="break-words text-sm font-medium text-strong">
                       {link.title}
                     </p>
-                    <p className="mt-1 text-xs leading-relaxed text-secondary">
+                    <p className="text-sm leading-relaxed text-secondary">
                       {link.meta}
                     </p>
                   </div>

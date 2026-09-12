@@ -67,10 +67,7 @@ function OrderMockupMark({
   return <MockupThumbnail cover={cover} alt={`ม็อกอัพ ${orderNumber}`} size="sm" />;
 }
 
-/* ป้ายประเภทงาน = "หมวด" ไม่ใช่ "สถานะ" — จึงเป็นชิปพื้นสีอ่อนได้ (แบบ B · เบสเคาะ 2026-08-31)
-   โดยไม่ไปแย่งกับจุดสีสถานะในแถวเดียวกัน ซึ่งยังเป็นจุด+ข้อความเหมือนเดิม
-   ลำดับที่ตั้งใจให้ต่างกัน: พื้นสีอ่อน = หมวด (เงียบ อ่านผ่าน) · จุดสี = สถานะ (ดัง ต้องเห็น)
-   สั่งทำ = โทนแบรนด์ · สำเร็จรูป = โทนสินค้า ตรงกับสีหมวดในเมนูซ้าย */
+// ป้ายประเภทงานใช้ label และสีหมวดร่วมกันทั้งตารางและมือถือ
 function OrderTypeChip({ orderType }: { orderType: OrderType }) {
   const tone: VisualTone = orderType === "CUSTOM" ? "brand" : "product";
   return (
@@ -115,8 +112,7 @@ function deadlineToneClass(
   return null;
 }
 
-/** นับถอยหลังถึงกำหนดส่ง (เบสเคาะ 2026-08-01 — เดิมเป็นป้าย "เร่งด่วน" ที่บอกแค่หมวด
- *  ตัวเลขวันบอกได้มากกว่าและตัดสินใจได้ทันทีว่าจะจับงานไหนก่อน)
+/** นับถอยหลังตามวันปฏิทินไทย
  *
  *  งานร่าง/ส่งแล้ว/จบ/ยกเลิก ไม่นับถอยหลัง — เกณฑ์เดียวกับตัวกรองความเร่งด่วนฝั่ง server
  *  ใช้เที่ยงคืนเป็นเส้นแบ่งวัน ไม่ใช่ 24 ชม.เป๊ะ ("พรุ่งนี้" ต้องขึ้นว่าเหลือ 1 วันเสมอ
@@ -317,8 +313,6 @@ function OrdersPageContent() {
   const orderType = rawOrderType === "READY_MADE" || rawOrderType === "CUSTOM"
     ? rawOrderType
     : "";
-  // ตัวกรอง "สถานะลูกค้า" ถูกถอดออกทั้งหมด (เบสสั่ง 2026-07-31) — ไม่มีหน้าไหนลิงก์มาด้วย
-  // พารามิเตอร์นี้ ถอดได้สะอาดโดยไม่ทำลายทางเข้าเดิม · สถานะภายในไปอยู่แถบการ์ดด้านบนแทน
   const rawInternalStatus = searchParams.get("status") ?? "";
   const internalStatus = Object.hasOwn(INTERNAL_STATUS_LABELS, rawInternalStatus)
     ? rawInternalStatus
@@ -409,7 +403,6 @@ function OrdersPageContent() {
   };
 
   return (
-    // 24px = จังหวะระดับหน้าค่าเดียวทั้งเว็บ (เบสเคาะ 2026-08-04 — เดิม 3 หน้า 3 ค่า)
     <div className="space-y-4 sm:space-y-6">
       <PageHeader
         title="ออเดอร์ทั้งหมด"
@@ -469,24 +462,8 @@ function OrdersPageContent() {
         }
       />
 
-      {/* Toolbar + attention filter (คำถามหลักของหน้านี้ — โชว์ตลอด ไม่ต้องกางกล่องตัวกรอง)
-          แถวเดียวจบเมื่อจอกว้าง: ค้นหา · เรียง | กรอง · ชิปความเร่งด่วนชิดขวา
-          (เบสสั่ง 2026-07-31 "ส่วนบนดีได้กว่านี้" — เดิมชิปแยกไปอีกแถวทั้งที่ขวายังว่าง
-          และช่องค้นหายืดเต็มจอจนเป็นแถบว่างยาวบนจอใหญ่) */}
-      {/* การ์ดสถานะงานมาก่อนแถบค้นหา/ตัวกรอง (เบสสั่ง 2026-08-01 — เรียงแบบระบบเก่า)
-          เปิดหน้ามาเห็นภาพรวมทั้งกระดานก่อน แล้วค่อยเจาะด้วยค้นหา/ตัวกรอง */}
-      <OrderStatusFilter
-        counts={data?.statusCounts}
-        total={data?.total}
-        selected={internalStatus}
-        onSelect={(status) =>
-          replaceListState({ status: status || null, page: null })
-        }
-        isLoading={isLoading}
-      />
-
-      <div className="space-y-3 lg:space-y-0">
-      <Toolbar className="lg:pb-3">
+      <div className="space-y-4">
+      <Toolbar>
         <SearchInput
           ref={searchInputRef}
           containerClassName="@2xl:max-w-sm @2xl:flex-1"
@@ -499,8 +476,7 @@ function OrdersPageContent() {
         {/* ตัวกรองที่ใช้ประจำต้องเห็นและเปลี่ยนได้ทันที ไม่ซ่อนหลังปุ่มรวม
             จอแคบใช้กริดสองคอลัมน์; จอกว้างคลี่เป็นแถวเดียวโดยไม่เพิ่มความกว้างหน้า */}
         <div className="grid w-full min-w-0 grid-cols-2 items-center gap-2 @2xl:flex @2xl:w-auto @2xl:flex-nowrap">
-          {/* ช่องเรียงเหลือไว้เฉพาะจอแคบ (เบสเคาะ 2026-07-31) — จอกว้างย้ายไปกดที่หัวตารางแทน
-              แต่จอแคบเป็นการ์ด ไม่มีหัวตารางให้กด ถ้าถอดทิ้งด้วยจะเรียงไม่ได้เลย */}
+          {/* มือถือเรียงผ่าน Select; desktop เรียงผ่านหัวตาราง */}
           <Select
             shape="pill"
             surface="raised"
@@ -564,10 +540,7 @@ function OrdersPageContent() {
             ))}
           </Select>
 
-          {/* แถวชิปความเร่งด่วนถูกถอดออกแล้ว (เบสสั่ง 2026-07-31 — ย้ายไปเป็นคอลัมน์
-              "เร่งด่วน" ที่เรียงได้แทน) · แต่แดชบอร์ดยังลิงก์มาด้วย ?attention= 3 ทาง
-              ถ้าไม่มีอะไรบอกเลย คนกดมาจากแดชบอร์ดจะเห็นรายการถูกกรองอยู่โดยไม่รู้ว่ากรองอะไร
-              และล้างไม่ได้ — จึงโชว์ป้ายเดียวเฉพาะตอนกรองค้างอยู่ กดกากบาทเพื่อล้าง */}
+          {/* คงป้ายและทางล้างตัวกรอง attention เมื่อเปิดจากลิงก์แดชบอร์ด */}
           {attention && (
             <span className="col-span-2 inline-flex items-center gap-1.5 border-b-2 border-blue-600 py-1 pl-1 text-xs font-semibold text-blue-700 @2xl:col-span-1 dark:border-blue-400 dark:text-blue-400">
               {ATTENTION_FILTERS.find((f) => f.value === attention)?.label}
@@ -609,6 +582,16 @@ function OrdersPageContent() {
         )}
       </Toolbar>
 
+      <OrderStatusFilter
+        counts={data?.statusCounts}
+        total={data?.total}
+        selected={internalStatus}
+        onSelect={(status) =>
+          replaceListState({ status: status || null, page: null })
+        }
+        isLoading={isLoading}
+      />
+
       <ResponsiveList
         items={data?.orders}
         isLoading={isLoading || isFetching}
@@ -617,9 +600,7 @@ function OrdersPageContent() {
         onRetry={() => refetch()}
         label="ออเดอร์"
         renderDesktop={(orders) => {
-          // คอลัมน์ที่ไม่มีข้อมูลสักแถวในหน้านี้ = กินที่เปล่าๆ (เบสสั่ง 2026-07-31
-          // หลังเห็นจอจริงว่า "การชำระ" กับ "กำหนดส่ง" เป็น — ทั้งคอลัมน์)
-          // ดูเฉพาะหน้าที่กำลังแสดง — พอเปลี่ยนหน้า/ตัวกรองแล้วมีข้อมูล คอลัมน์กลับมาเอง
+          // คงเงื่อนไขคอลัมน์จากข้อมูลของหน้าที่แสดง
           const showPayment = orders.some((o) => o.paymentLabel !== "none");
           const hasDeadline = orders.some((o) => o.deadline);
           // ถ้าผู้ใช้กำลังเรียงด้วยกำหนดส่ง ต้องคงหัว sortable ไว้แม้หน้านี้ไม่มีวันส่ง
@@ -629,8 +610,7 @@ function OrdersPageContent() {
           <DataTable.Root cellPadding="responsive">
             <DataTable.Head>
               <tr>
-                {/* การเรียงย้ายมาอยู่ที่หัวคอลัมน์แล้ว (เบสสั่ง 2026-07-31) — กดซ้ำสลับทิศ
-                    เรียงได้เท่าที่ฐานข้อมูลรองรับ: เลขออเดอร์ · ยอดรวม · วันที่ · กำหนดส่ง */}
+                {/* เรียงด้วยคอลัมน์ที่ query รองรับ */}
                 <DataTable.SortableTh {...sortColumn("orderNumber")}>
                   เลขออเดอร์
                 </DataTable.SortableTh>
@@ -712,7 +692,7 @@ function OrdersPageContent() {
                     <DataTable.Td
                       align="right"
                       // เงินในคอลัมน์ = ทศนิยม 2 ตำแหน่งเสมอ ให้หลักสตางค์เรียงแนวดิ่ง
-                      // น้ำหนักปกติ — คอลัมน์นำของแถวคือเลขออเดอร์ตัวเดียว (benchmark 2026-08-04)
+                      // ใช้ตัวเลข tabular ให้เทียบยอดระหว่างแถวได้
                       className="tabular-nums text-strong"
                     >
                       {formatBaht(order.totalAmount ?? 0)}

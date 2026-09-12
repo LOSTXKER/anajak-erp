@@ -48,13 +48,11 @@ import {
 import { ListPageSkeleton } from "@/components/ui/page-skeleton";
 import { CommandPalette } from "@/components/layout/command-palette";
 import { UserMenu } from "@/components/layout/user-menu";
+import { useWorkspaceScroll } from "@/hooks/use-workspace-scroll";
 
 const MOBILE_NAV_IDS = ["dashboard", "my-tasks", "orders", "production"] as const;
 const MOBILE_EXCLUDED_IDS = new Set<string>(MOBILE_NAV_IDS);
 
-/* เมนูซ้ายจำสถานะหุบ/กางไว้ในเครื่องผู้ใช้ (เบสสั่ง 2026-08-26)
-   ใช้ useSyncExternalStore แทน useState+useEffect เพื่อไม่ให้ SSR กับ client
-   เห็นค่าคนละอย่างตอน hydrate · ค่าเริ่มต้นฝั่งเซิร์ฟเวอร์คือ "กาง" เสมอ */
 const SIDEBAR_COLLAPSED_KEY = "anajak.sidebar.collapsed";
 const SIDEBAR_EVENT = "anajak:sidebar-collapsed";
 
@@ -99,19 +97,12 @@ function sidebarNavItemClass({
     FOCUS_INSET,
     RADIUS.item,
     "group/sidebar-item relative flex scroll-m-4 items-center gap-3 px-3 py-2 text-sm transition-colors",
-    // ตอนหุบเป็น "ปุ่มสี่เหลี่ยมจัตุรัส 40px วางกลางราง" ไม่ใช่แถบเต็มความกว้าง
-    // เดิมปล่อยให้ยืดตามกล่องแม่ แล้วโดนบีบเหลือกว้าง 24px สูง 36px = อ่านเป็นเม็ดยา
-    // (วัดจริง 2026-08-26 หลังเบสทัก "sidebar ตอนหุบ UI ก็ไม่ดี")
+    // รางที่หุบยังต้องเหลือเป้ากดและชื่อที่เครื่องอ่านหน้าจออ่านได้
     collapsed && "mx-auto h-10 w-10 justify-center gap-0 px-0 py-0",
     active
-      ? // แบบ ก (เบสเคาะ 2026-08-26) — เมนูที่กำลังเปิดอยู่เลิกเป็นพิลฟ้า
-        // เหลือพื้นเทากลาง ๆ + ขีดสีแบรนด์บาง ๆ ริมซ้ายของแถบ + ตัวหนังสือเข้มขึ้น
-        // น้ำเงินจึงเหลือหน้าที่เดียวในแถบเมนูคือบอกว่า "อยู่ตรงนี้"
-        // ⚠️ ตอนหุบไม่มีขีด — ขีดที่ริมรางห่างจากไอคอนจนอ่านเป็นคนละชิ้น
-        // พื้นเทาเต็มปุ่มสี่เหลี่ยมบอก "อยู่ตรงนี้" ได้ชัดกว่าบนรางแคบ 64px
-        cn(
-          "font-medium text-strong",
-          onChrome ? "bg-interactive-chrome-pressed" : "bg-interactive-pressed",
+      ? cn(
+          "font-medium",
+          "bg-interactive-selected text-interactive-selected-text",
           !collapsed &&
             "before:absolute before:inset-y-1.5 before:-left-3 before:w-0.5 before:rounded-r-full before:bg-blue-600 before:content-[''] dark:before:bg-blue-400",
         )
@@ -136,12 +127,6 @@ function SidebarGroupLabel({
   );
 }
 
-/* เคยมี NavPendingMark = จุดเล็กกะพริบในเมนูระหว่างที่หน้าใหม่ยังโหลด (เฟส 4)
-   ถอดออก 2026-08-26 — เบสบอก "ไม่ชอบเวลากดเลือกหัวข้อแล้วมีจุด"
-   ไม่ได้เสียสัญญาณ "ระบบรับรู้แล้ว" ไป เพราะ src/app/(dashboard)/loading.tsx
-   ขึ้นโครงร่างหน้าใหม่ให้อยู่แล้ว ซึ่งเป็นทางหลักที่ Next แนะนำ · จุดในเมนู
-   เป็นแค่ตัวเสริมระหว่าง prefetch เท่านั้น */
-
 /* ตราสัญลักษณ์ desktop ใช้ชิ้นเดียวทั้งตอนกางและหุบ
    เพื่อให้สี ขนาด และน้ำหนักไอคอนไม่ drift ตามสถานะ */
 function SidebarBrandMark() {
@@ -162,19 +147,6 @@ function SidebarBrandMark() {
   );
 }
 
-/* ปุ่มหุบ/กางอยู่ในหัวเมนู แถวเดียวกับตรา ชิดขอบขวา (เบสเคาะ 2026-08-28 จาก mockup
-   docs/mockups/sidebar-brandrow-2026-08-28.html หลังลองวางที่อื่นมาเก้ารอบ — ไฟล์ mockup ลบออกจาก repo 2026-09-02 ดูได้ใน git history)
-
-   ตอนหุบ "ตราหายไป เหลือปุ่มยืนกลางราง 64px คนเดียว" — ไม่ใช่การตัดของทิ้งมั่ว
-   แต่เพราะราง 64px วางตรา 28px กับเป้ากดมาตรฐาน 36px คู่กันไม่ได้โดยไม่ทับกัน
-   (วัดจริง = ข้อจำกัดเชิงเรขาคณิต ไม่ใช่รสนิยม) · ทางเลือกอีกสองทางที่เสนอไป
-   (ย้ายตราขึ้นแถบบน / หัวเมนูสองชั้น 104px) เบสไม่เอา ทางหลังยังผิดกฎ
-   "หัวเมนูสูงเท่าแถบบน" ที่ทำให้เส้นล่างต่อกันข้ามจอด้วย
-
-   ⚠️ ไอคอนตัวเดียวทั้งสองสถานะ ห้ามกลับไปสลับไอคอนคู่ตามสถานะอีก —
-   shadcn ทั้ง 16 block ทางการใช้ PanelLeft ตัวเดียวจบ เพราะไอคอนสองตัวทำให้ต้องเดาว่า
-   มันบอก "สถานะตอนนี้" หรือ "ผลลัพธ์เมื่อกด" · สถานะบอกด้วย aria-expanded + ชื่อปุ่มแทน
-   ⚠️ ปุ่มเป็น node เดิมทั้งสองสถานะ โฟกัสจึงไม่หลุดตอนกด (WCAG 2.4.3) */
 function SidebarCollapseButton({
   collapsed,
 }: {
@@ -302,6 +274,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
   const searchTriggerRef = useRef<HTMLButtonElement>(null);
   const moreTriggerRef = useRef<HTMLButtonElement>(null);
   const activeSidebarRef = useRef<HTMLAnchorElement>(null);
+  const mainRef = useWorkspaceScroll(pathname);
   const { data: me } = trpc.user.me.useQuery();
   const { data: unreadCount } = trpc.notification.unreadCount.useQuery(undefined, {
     refetchInterval: 30_000,
@@ -392,19 +365,11 @@ function AppShellContent({ children }: { children: ReactNode }) {
         ข้ามไปเนื้อหาหลัก
       </a>
 
-      {/* เมนูซ้ายอยู่ก่อนแถบบนใน DOM โดยตั้งใจ (แก้ 2026-08-26)
-          บนจอกว้าง aside กินแถวที่ 1 ด้วย ตราจึงนั่งมุมซ้ายบนสุดของจอ
-          ถ้า header มาก่อนใน DOM คนกด Tab จะได้ ค้นหา → กระดิ่ง → บัญชี (มุมขวาบน)
-          แล้วเด้งข้ามจอกลับมาที่ตรา (มุมซ้ายบน) = ลำดับโฟกัสเดินขวาไปซ้าย (WCAG 2.4.3) */}
       <aside className="hidden min-h-0 border-r border-divider bg-chrome lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:flex lg:flex-col">
         {/* ตราย้ายลงมาอยู่หัวเมนูซ้าย เพราะแถบบนไม่พาดทับคอลัมน์นี้แล้ว
             ความสูง 3rem เท่าแถบบน เส้นล่างจึงต่อกันเป็นเส้นเดียวข้ามทั้งจอ
             (เดิมช่องตรากว้าง 240px แต่มีของจริงแค่ ~126px และเส้นแนวตั้งหักกลางคัน) */}
-        {/* ตอนกาง: ตราซ้าย + ปุ่มหุบชิดขอบขวา (pr-1 = ห่างเส้นแบ่ง 4px)
-            ตอนหุบ: ตราหายทั้งก้อน เหลือปุ่มยืนกลางราง 64px — ดูเหตุผลที่ SidebarCollapseButton
-            ⚠️ ตอนหุบจึงไม่มีลิงก์กลับหน้าหลักในเมนูซ้าย (เบสรับข้อนี้แล้ว 2026-08-28)
-            คนที่ใช้คีย์บอร์ดยังไปหน้าแรกได้จากเมนู "แดชบอร์ด" ที่อยู่ถัดลงมา
-            DOM ยังเรียง Link → Button → nav ปุ่มจึงเป็น node เดิมและโฟกัสไม่หลุด */}
+
         <div
           data-sidebar-brand-header
           className={cn(
@@ -492,13 +457,6 @@ function AppShellContent({ children }: { children: ReactNode }) {
 
       </aside>
 
-      {/* แถบบนอยู่เหนือ "เฉพาะฝั่งเนื้อหา" บนจอกว้าง ไม่พาดทับเมนูซ้ายอีกแล้ว
-          (UI-2026 เฟส 6 · เบสเคาะ 2026-08-26 "ไม่มีแถบบนแต่ขอมี navbar")
-          เดิมพาดเต็มจอโดยมีของอยู่ 3 ชิ้น เหลือที่ว่างกลางแถบราว 1,000px บนจอ 1920
-          ความสูง 64 → 48 (เฟส 2) → 56px (เฟส 10 · เบสบอก "ดูต่ำไป" หลังทั้งเว็บโค้งมนขึ้น
-          ของในหน้าสูงขึ้นทั้งชุด แถบ 48px จึงกลายเป็นแถบที่แน่นกว่าเนื้อหาที่มันครอบอยู่)
-          จอแคบไม่มีเมนูซ้าย แถบจึงยังพาดเต็มจอและถือตราไว้เหมือนเดิม
-          ⚠️ อยู่หลัง <aside> ใน DOM โดยตั้งใจ — ดูเหตุผลที่คอมเมนต์เหนือ <aside> */}
       <header className="relative z-30 col-span-full row-start-1 flex h-14 min-w-0 items-center border-b border-divider bg-chrome lg:col-span-1 lg:col-start-2 lg:pr-[var(--app-scrollbar-w)]">
         <Link
           href="/"
@@ -518,10 +476,6 @@ function AppShellContent({ children }: { children: ReactNode }) {
           </div>
         </Link>
 
-        {/* ไม่มีชื่อหมวดบนแถบแล้ว (เบสสั่ง 2026-08-26) — ตำแหน่งที่อยู่บอกด้วยเมนูซ้าย
-            ที่ไฮไลต์อยู่แล้ว เขียนซ้ำบนแถบก็เป็นคำเดียวกันสองที่
-            แถบนี้จึงเหลือหน้าที่เดียว: ของที่ใช้ได้ทุกหน้า (ค้นหา · แจ้งเตือน · บัญชี)
-            จอกว้างจึงดันไปชิดขวาทั้งชุด ไม่ต้องมีอะไรมาถ่วงฝั่งซ้าย */}
         {/* กล่องเดียวกับเนื้อหาในหน้า (mx-auto max-w-screen-2xl + ระยะขอบชุดเดียวกัน)
             ตอนแถบบนพาดเต็มจอมันอ้างอิงขอบจอ ไม่มีใครเห็นว่าเยื้อง · พอย้ายมาวางเหนือ
             คอลัมน์เนื้อหาพอดี ขอบขวาสองอันต้องตรงกัน ไม่งั้นรูปผู้ใช้จะล้ำขอบการ์ด 16px
@@ -537,14 +491,12 @@ function AppShellContent({ children }: { children: ReactNode }) {
               CONTROL_H,
               FOCUS_BUTTON,
               RADIUS.field,
-              // chrome กลับมาเป็นขาวแล้ว (2026-08-26) ช่องค้นหาจึงต้องเป็น "ช่องจม"
-              // ไม่ใช่ขาวบนขาวที่เห็นแค่เส้นขอบ — SUNK_PANEL ให้พื้นเทาอ่อนกว่าแถบหนึ่งขั้น
               SUNK_PANEL,
               "border border-border",
               INTERACTIVE_HOVER,
               INTERACTIVE_PRESSED,
-              // จอแคบยังยืดเต็มที่ · จอกว้างหดเป็นชิปกว้างคงที่แล้วดันไปชิดขวา
-              "group flex min-w-0 flex-1 items-center gap-2 px-3 text-sm text-muted transition-colors sm:max-w-lg sm:px-4 lg:ml-auto lg:w-60 lg:max-w-60 lg:flex-none",
+              // ให้เห็นขอบเขตการค้นหาครบและย่อได้บนมือถือ
+              "group flex min-w-0 flex-1 items-center gap-2 px-3 text-sm text-muted transition-colors sm:max-w-lg sm:px-4 lg:max-w-md",
             )}
           >
             <Search className="h-4 w-4 shrink-0" strokeWidth={1.75} />
@@ -552,7 +504,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
             <kbd className="hidden text-xs sm:inline">⌘K</kbd>
           </button>
 
-          <div className="ml-auto flex shrink-0 items-center gap-2 lg:ml-0">
+          <div className="ml-auto flex shrink-0 items-center gap-2">
             {/* ปุ่มบนแถบบนยืนบน chrome (เทา) ไม่ใช่ surface (ขาว) — hover ชุดปกติ
                 จึงเกือบเท่าพื้นตัวเอง ต้องใช้ชุด chrome ที่เข้มกว่าหนึ่งขั้น */}
             <Button
@@ -579,11 +531,12 @@ function AppShellContent({ children }: { children: ReactNode }) {
       </header>
 
       <main
+        ref={mainRef}
         id="main-content"
         tabIndex={-1}
         className="relative col-start-1 row-start-2 min-h-0 min-w-0 overflow-y-auto outline-none [scrollbar-gutter:stable] lg:col-start-2"
       >
-        <div className="mx-auto w-full max-w-screen-2xl px-4 pb-[calc(var(--app-bottom-nav-offset)+2rem)] pt-4 sm:px-6 sm:pt-8 lg:px-8 lg:pb-10">
+        <div className="mx-auto w-full max-w-screen-2xl px-4 pb-[calc(var(--app-bottom-nav-offset)+2rem)] pt-5 sm:px-6 sm:pt-7 lg:px-8 lg:pb-10">
           {children}
         </div>
       </main>

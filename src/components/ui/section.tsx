@@ -61,7 +61,7 @@ export const Section = React.forwardRef<HTMLDivElement, SectionProps>(
       <section
         ref={ref}
         className={cn(
-          isCard ? "card-surface overflow-hidden rounded-2xl" : bordered && "border-b border-divider pb-6",
+          isCard ? "card-surface overflow-hidden rounded-xl" : bordered && "border-b border-divider pb-6",
           className
         )}
         {...props}
@@ -70,8 +70,6 @@ export const Section = React.forwardRef<HTMLDivElement, SectionProps>(
           <header
             className={cn(
               "flex flex-wrap items-start justify-between gap-3",
-              // ขอบ 28px (เบสเคาะ 2026-08-03 รอบ "ปรับสัดส่วน") — การ์ดกว้าง 1,024px
-              // ขอบ 24px แน่นเกินสัดส่วน · หัวข้อ→เนื้อหา 20px ให้เป็นบันได 8/16/20/28
               isCard
                 ? cn("px-5 pt-4", compact ? "pb-3" : "pb-4", flush && "border-b border-divider")
                 : compact ? "pb-3" : "pb-4"
@@ -130,13 +128,6 @@ export const Section = React.forwardRef<HTMLDivElement, SectionProps>(
 );
 Section.displayName = "Section";
 
-/**
- * หัวข้อการ์ดแบบ compact ที่มีไอคอนนำ — ก่อนหน้านี้ถูกเขียนซ้ำเองในไฟล์ที่ใช้
- * (compact ไม่วาด prop `icon` ของ Section ให้ จึงต้องส่งไอคอนมาทาง title)
- *
- * ส่ง `tone` มา = กล่องไอคอนได้สีประจำหมวด (แบบ B "สีบอกหมวด" · เบสเคาะ 2026-08-31)
- * ไม่ส่ง = เทาเหมือนเดิม — ของเก่าที่ยังไม่ได้ไล่สีจึงไม่ขยับสักจุด
- */
 export function SectionTitle({
   icon,
   tone,

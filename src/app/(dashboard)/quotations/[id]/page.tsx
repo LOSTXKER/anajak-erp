@@ -9,8 +9,7 @@ import { permAllows } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { MoreMenu } from "@/components/ui/more-menu";
 import { useConfirm, usePromptText } from "@/components/ui/confirm-dialog";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ToneMark } from "@/components/ui/section";
+import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { Alert } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -20,7 +19,7 @@ import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
 import { QUOTATION_STATUS_LABELS, QUOTATION_STATUS_VARIANTS } from "@/lib/status-config";
 import type { QuotationStatus } from "@/lib/quotation-status";
 import { PAYMENT_TERMS_LABELS } from "@/lib/payment-terms";
-import { DISPLAY_AMOUNT } from "@/components/ui/tokens";
+import { QuotationAmountSummary } from "@/components/quotations/quotation-amount-summary";
 import { PageHeader } from "@/components/page-header";
 import {
   Share2,
@@ -52,8 +51,8 @@ function QuotationDetailSkeleton() {
           <Skeleton className="h-4 w-36" />
         </div>
       </div>
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_18rem]">
+        <div className="min-w-0 space-y-6">
           <Skeleton className="h-64 rounded-lg" />
           <Skeleton className="h-48 rounded-lg" />
         </div>
@@ -191,18 +190,6 @@ export default function QuotationDetailPage({
     );
 
   // ----------------------------------------------------------
-  // Derived data
-  // ----------------------------------------------------------
-  const subtotal =
-    quotation.items?.reduce(
-      (sum: number, item: { totalPrice: number }) => sum + item.totalPrice,
-      0,
-    ) ?? 0;
-  const discountAmount = quotation.discount ?? 0;
-  const taxAmount = quotation.tax ?? 0;
-  const totalAmount = quotation.totalAmount ?? subtotal - discountAmount + taxAmount;
-
-  // ----------------------------------------------------------
   // Handlers
   // ----------------------------------------------------------
   // ทุกปุ่มส่ง expectedStatus = สถานะที่จอเห็นตอนกด — จอค้าง (เช่น ลูกค้าเพิ่งกดยืนยัน
@@ -267,6 +254,12 @@ export default function QuotationDetailPage({
         icon={FileText}
         back={{ href: "/quotations", label: "กลับไปรายการใบเสนอราคา" }}
         title={quotation.quotationNumber}
+        meta={
+          <span className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+            <span className="font-medium text-secondary">{quotation.customer?.name}</span>
+            {quotation.validUntil && <span>ใช้ได้ถึง {formatDate(quotation.validUntil)}</span>}
+          </span>
+        }
         titleBadge={
           <Badge
             variant={QUOTATION_STATUS_VARIANTS[quotation.status as keyof typeof QUOTATION_STATUS_VARIANTS] ?? "secondary"}
@@ -390,22 +383,20 @@ export default function QuotationDetailPage({
       {/* ====================================================
           MAIN GRID: CONTENT + SIDEBAR
       ==================================================== */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_18rem]">
         {/* ================================================
             LEFT: MAIN CONTENT (2/3)
         ================================================ */}
-        <div className="space-y-6 lg:col-span-2">
+        <div className="min-w-0 space-y-6">
           {/* ------------------------------------------
               ITEMS TABLE
           ------------------------------------------ */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <ToneMark icon={FileText} tone="product" />
-                รายการสินค้า ({quotation.items?.length ?? 0})
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
+          <Section
+            title={`รายการสินค้า (${quotation.items?.length ?? 0})`}
+            icon={FileText}
+            tone="product"
+            surface="plain"
+          >
               <ul aria-label="รายการสินค้าในใบเสนอราคา" className="divide-y divide-divider sm:hidden">
                 {quotation.items?.map((item) => (
                   <li key={item.id} className="space-y-2 py-3 first:pt-0">
@@ -475,51 +466,15 @@ export default function QuotationDetailPage({
                 </DataTable.Body>
               </DataTable.Root>
 
-              {/* Price breakdown */}
-              <div className="mt-4 space-y-2 border-t border-divider pt-4">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted">ยอดรวมสินค้า</span>
-                  <span className="tabular-nums text-strong">
-                    {formatCurrency(subtotal)}
-                  </span>
-                </div>
-                {discountAmount > 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted">ส่วนลด</span>
-                    <span className="tabular-nums text-red-600 dark:text-red-400">
-                      -{formatCurrency(discountAmount)}
-                    </span>
-                  </div>
-                )}
-                {taxAmount > 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted">ภาษี</span>
-                    <span className="tabular-nums text-strong">
-                      +{formatCurrency(taxAmount)}
-                    </span>
-                  </div>
-                )}
-                <div className="flex justify-between border-t border-border pt-3">
-                  <span className="text-base font-semibold text-strong">
-                    ยอดรวมทั้งหมด
-                  </span>
-                  <span className={DISPLAY_AMOUNT}>
-                    {formatCurrency(totalAmount)}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              <QuotationAmountSummary quotation={quotation} />
+          </Section>
 
           {/* ------------------------------------------
               TERMS & NOTES
           ------------------------------------------ */}
           {(quotation.terms || quotation.notes || quotation.description) && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">ข้อมูลเพิ่มเติม</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4 text-sm">
+            <Section title="เงื่อนไขและบันทึก" surface="plain">
+              <div className="space-y-4 text-sm">
                 {quotation.description && (
                   <div>
                     <p className="mb-1 text-xs font-medium text-muted">
@@ -550,26 +505,20 @@ export default function QuotationDetailPage({
                     </p>
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </Section>
           )}
         </div>
 
         {/* ================================================
             RIGHT: SIDEBAR (1/3)
         ================================================ */}
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6 xl:border-l xl:border-divider xl:pl-6">
           {/* ------------------------------------------
               CUSTOMER INFO
           ------------------------------------------ */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <ToneMark icon={User} tone="brand" />
-                ลูกค้า
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
+          <Section title="ลูกค้า" icon={User} tone="brand" surface="plain">
+            <div className="space-y-2">
               {quotation.customer && (
                 <>
                   <Link
@@ -595,28 +544,14 @@ export default function QuotationDetailPage({
                   )}
                 </>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </Section>
 
           {/* ------------------------------------------
               QUOTATION INFO
           ------------------------------------------ */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <ToneMark icon={Calendar} tone="brand" />
-                ข้อมูลใบเสนอราคา
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted">สถานะ</span>
-                <Badge
-                  variant={QUOTATION_STATUS_VARIANTS[quotation.status as keyof typeof QUOTATION_STATUS_VARIANTS] ?? "secondary"}
-                >
-                  {QUOTATION_STATUS_LABELS[quotation.status as keyof typeof QUOTATION_STATUS_LABELS] ?? quotation.status}
-                </Badge>
-              </div>
+          <Section title="ข้อมูลใบเสนอราคา" icon={Calendar} tone="brand" surface="plain">
+            <div className="space-y-3 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted">วันที่สร้าง</span>
                 <span className="text-strong">
@@ -677,8 +612,8 @@ export default function QuotationDetailPage({
                   </span>
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </Section>
         </div>
       </div>
     </div>

@@ -6,6 +6,12 @@ import { useConfirm } from "@/components/ui/confirm-dialog";
 import { APP_NAVIGATION_REQUEST_EVENT, isAppNavigationRequestEvent } from "@/lib/navigation-request";
 
 type GuardOptions = { confirmDiscard: () => Promise<boolean>; replace: (href: string) => void };
+export type UnsavedChangesOptions = {
+  title?: string;
+  description?: string;
+  confirmText?: string;
+  cancelText?: string;
+};
 
 /** วงจรนำทางแยกจาก React เพื่อทดสอบ Back/การยกเลิก/การบันทึกด้วย browser events ได้ */
 export function createUnsavedChangesGuard({ confirmDiscard, replace }: GuardOptions) {
@@ -114,18 +120,20 @@ export function createUnsavedChangesGuard({ confirmDiscard, replace }: GuardOpti
 }
 
 /** กันฟอร์มที่ยังไม่บันทึกจากลิงก์ เมนูแอป ปุ่ม Back และการปิด/รีโหลดแท็บ */
-export function useUnsavedChanges(dirty: boolean) {
+export function useUnsavedChanges(dirty: boolean, options?: UnsavedChangesOptions) {
   const router = useRouter();
   const confirm = useConfirm();
+  const optionsRef = useRef(options);
+  useEffect(() => { optionsRef.current = options; }, [options]);
   const guard = useRef<ReturnType<typeof createUnsavedChangesGuard> | null>(null);
   useEffect(() => {
     guard.current = createUnsavedChangesGuard({
       replace: (href) => router.replace(href),
       confirmDiscard: () => confirm({
-        title: "ทิ้งการแก้ไขที่ยังไม่ได้บันทึก?",
-        description: "ข้อมูลที่แก้ในฟอร์มจะหาย หากออกจากหน้านี้",
-        confirmText: "ทิ้งการแก้ไข",
-        cancelText: "กลับไปแก้ต่อ",
+        title: optionsRef.current?.title ?? "ทิ้งการแก้ไขที่ยังไม่ได้บันทึก?",
+        description: optionsRef.current?.description ?? "ข้อมูลที่แก้ในฟอร์มจะหาย หากออกจากหน้านี้",
+        confirmText: optionsRef.current?.confirmText ?? "ทิ้งการแก้ไข",
+        cancelText: optionsRef.current?.cancelText ?? "กลับไปแก้ต่อ",
         destructive: true,
       }),
     });

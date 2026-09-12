@@ -294,7 +294,11 @@ export function useWorkOrderController(id: string) {
     openOutsourceReturn: (stepId: string, outsourceOrderId: string) => setOutsourceReturn({ stepId, outsourceOrderId }),
     tickStandard: (stepId: string, item: string, checked: boolean) => tickStandardMutation.mutate({ stepId, item, checked }),
     tickPending: tickStandardMutation.isPending,
-    savePieceQty: (stepId: string, rows: { variantId: string; done: number; waste: number }[]) => pieceQty.mutate({ stepId, rows }),
+    savePieceQty: async (stepId: string, rows: { variantId: string; done: number; waste: number }[]) => {
+      await pieceQty.mutateAsync({ stepId, rows });
+      // ให้ช่องวาง draft ได้เมื่ออ่านยอดหลังบันทึกกลับมาแล้ว จึงไม่กะพริบเป็นยอดก่อนบันทึก
+      await utils.production.getById.fetch({ id });
+    },
     piecePending: pieceQty.isPending,
     handleReopen,
     reopenPending: reopen.isPending,

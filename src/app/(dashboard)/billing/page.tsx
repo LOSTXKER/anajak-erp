@@ -33,7 +33,7 @@ import {
 import { FOCUS_BUTTON } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
 
-// ภาษาสีสถานะการชำระใช้ชุดกลางที่เดียว (UX4.2) — ห้ามประกาศ local ซ้ำ
+// ป้ายสถานะการชำระใช้ชุดกลาง
 // ป้าย+สีจะได้ตรงกับแท็บเงินในออเดอร์ที่ทีมเปิดคู่กันทุกวัน
 
 // ตัวเลือกกรองชนิดใบ — เรียงตาม flow เงิน (QUOTATION ไม่ออกเป็น invoice แล้ว ไม่ใส่ตัวกรอง
@@ -80,7 +80,7 @@ export default function BillingPage() {
 }
 
 function BillingPageContent() {
-  const { search, page, searchParams, replaceListState, onSearchChange, searchInputRef } =
+  const { search, page, searchParams, replaceListState, onSearchChange, searchInputRef, clearSearch } =
     useListPageState();
   const rawStatus = searchParams.get("status");
   const statusFilter = rawStatus && rawStatus in PAYMENT_STATUS_LABELS ? rawStatus : ALL;
@@ -88,6 +88,8 @@ function BillingPageContent() {
   const typeFilter = rawType && TYPE_FILTER_OPTIONS.some((type) => type === rawType)
     ? rawType
     : ALL;
+  const hasFilters = Boolean(search || statusFilter !== ALL || typeFilter !== ALL);
+  const clearFilters = () => clearSearch({ status: null, type: null });
 
   const { data: me } = trpc.user.me.useQuery();
   // หน้าการเงินทั้งหน้าเป็นของฝั่งบริหาร-บัญชี (ตรงกับ requireRole ฝั่ง server)
@@ -130,7 +132,6 @@ function BillingPageContent() {
         />
       ) : (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {/* สองใบแรกคือเลขเสี่ยง (UX4.3) — เด่น + กดไปดูรายการได้ · ศูนย์จริงลดเป็นสีจาง */}
           <StatCard loading={stats.isLoading} moduleTone="finance"
             title="ค้างชำระ"
             value={formatCurrency(stats.data?.totalUnpaid ?? 0)}
@@ -197,6 +198,7 @@ function BillingPageContent() {
                 </option>
               ))}
             </Select>
+          {hasFilters && <Button variant="ghost" size="sm" onClick={clearFilters}>ล้างตัวกรอง</Button>}
         </ToolbarGroup>
       </Toolbar>
 
@@ -220,6 +222,7 @@ function BillingPageContent() {
                 ? "ลองปรับคำค้นหรือตัวกรอง"
                 : "สร้างบิลได้จากหน้าออเดอร์ — แท็บ เงิน/บิล"
             }
+            action={hasFilters ? <Button variant="outline" size="sm" onClick={clearFilters}>ล้างตัวกรองและคำค้น</Button> : undefined}
           />
         }
         renderMobile={(invoices) => (

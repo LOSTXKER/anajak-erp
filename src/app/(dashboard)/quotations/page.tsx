@@ -33,8 +33,6 @@ const QUOTATION_STATUSES = [
   { value: "CONVERTED", label: "แปลงแล้ว" },
 ];
 
-// สถานะปลายทางของใบเสนอ — จบเรื่องแล้ว ไม่ขยับต่อ จึงย้อมข้อความให้สะดุดตาตอนไล่สายตา
-// ที่เหลือ (ฉบับร่าง/ส่งแล้ว) เป็นระหว่างทาง ปล่อยให้จุดสีบอกอย่างเดียว
 const QUOTATION_TERMINAL_STATUSES = new Set([
   "ACCEPTED",
   "REJECTED",
@@ -113,19 +111,18 @@ function QuotationsPageContent() {
             'ต้องมีสิทธิ์ "เห็นเงินฝั่งขาย" — เช็คสิทธิ์ที่ ตั้งค่า → ผู้ใช้',
         }
       }
-      headerChildren={
-        <Toolbar>
+    >
+      <Toolbar>
           <SearchInput
             surface="raised"
             ref={searchInputRef}
             containerClassName="@2xl:max-w-sm @2xl:flex-1"
-            placeholder="ค้นหาเลขใบเสนอราคา, ชื่อ, ลูกค้า..."
+            placeholder="ค้นหาเลขใบเสนอราคา หรือลูกค้า..."
             aria-label="ค้นหาใบเสนอราคาหรือลูกค้า"
             defaultValue={search}
             onChange={(e) => onSearchChange(e.target.value)}
           />
           <ToolbarGroup>
-            {/* 7 ตัวเลือก = เกิน 5 → ดรอปดาวน์ (ชิป 7 ตัวล้นแถวบนมือถือ) · กติกาใน tokens.ts */}
             <Select
               shape="pill"
               surface="raised"
@@ -144,9 +141,12 @@ function QuotationsPageContent() {
             </Select>
             {filtered ? <Button variant="ghost" size="sm" onClick={clearFilters}>ล้างตัวกรอง</Button> : null}
           </ToolbarGroup>
-        </Toolbar>
-      }
-    >
+          {data && (
+            <p aria-live="polite" className="text-xs tabular-nums text-muted @2xl:ml-auto">
+              {isFetching ? "กำลังอัปเดต…" : `${data.total.toLocaleString("th-TH")} ใบเสนอราคา`}
+            </p>
+          )}
+      </Toolbar>
       <ResponsiveList
         items={data?.quotations}
         isLoading={isLoading || isFetching}
@@ -174,12 +174,12 @@ function QuotationsPageContent() {
           />
         }
         renderMobile={(quotations) => (
-          <ul aria-label="รายการใบเสนอราคา" className="space-y-3">
+          <ul aria-label="รายการใบเสนอราคา" className="divide-y divide-divider">
             {quotations.map((q) => (
               <li key={q.id}>
                 <Link
                   href={`/quotations/${q.id}`}
-                  className={cn("card-surface card-surface-hover group block rounded-2xl p-4", FOCUS_BUTTON)}
+                  className={cn("group block rounded-lg px-1 py-4 transition-colors hover:bg-interactive-hover active:bg-interactive-pressed", FOCUS_BUTTON)}
                   aria-label={`เปิดใบเสนอ ${q.quotationNumber} ของ ${q.customer.name}`}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -195,7 +195,7 @@ function QuotationsPageContent() {
                       <QuotationStatusLabel status={q.status} />
                     </div>
                   </div>
-                  <div className="mt-3 flex items-end justify-between gap-3 border-t border-divider pt-3">
+                  <div className="mt-2 flex items-end justify-between gap-3">
                     <div className="min-w-0">
                       {q.customer.company && (
                         <p className="truncate text-sm text-secondary">

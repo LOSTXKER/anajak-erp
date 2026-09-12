@@ -1,108 +1,118 @@
 import { readFileSync } from "node:fs";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { OrderStatusBadge } from "../order-status-badge";
+import { OrderStatusFlowBar } from "./order-status-flow-bar";
+import { DataTable } from "../ui/data-table";
+import { CUSTOMER_STATUS_LABELS, INTERNAL_STATUS_LABELS, ORDER_TYPE_UI_LABELS } from "@/lib/order-status";
+import { formatBaht } from "@/lib/utils";
 
 const pageSource = readFileSync(new URL("./orders-page.tsx", import.meta.url), "utf8");
-const statusSource = readFileSync(
-  new URL("./order-status-filter.tsx", import.meta.url),
-  "utf8",
-);
-const tableSource = readFileSync(
-  new URL("../ui/data-table.tsx", import.meta.url),
-  "utf8",
-);
-const badgeSource = readFileSync(
-  new URL("../order-status-badge.tsx", import.meta.url),
-  "utf8",
-);
+const tableSource = readFileSync(new URL("../ui/data-table.tsx", import.meta.url), "utf8");
 
-describe("Orders scan-first registry contract", () => {
-  // เบสกลับ hierarchy หลังดูหน้าจริง 2026-08-27: คนใช้ต้องหา "ลูกค้าคนไหน" ก่อน
-  // 2026-08-30 เบสสั่งเอาระบบชื่องานออกทั้งหมด → บรรทัดรองที่เคยเป็นชื่องานหายไปเลย
-  // เหลือ "เลขที่ออเดอร์ + ลูกค้า" · ห้ามมีชื่องาน/บรรทัดสถานะภายในกลับมา
-  it("ลูกค้าเป็นบรรทัดเดียวของช่องระบุตัว ไม่มีชื่องานและไม่มีบรรทัดสถานะภายใน", () => {
-    expect(pageSource.match(/const primaryIdentity = order\.customer\?\.name\?\.trim\(\) \|\| "—"/g)).toHaveLength(2);
-    expect(pageSource).not.toContain("orderTitle");
-    expect(pageSource).not.toContain("secondaryTitle");
-    expect(pageSource).not.toContain("order.title");
-    expect(pageSource.match(/text-base font-semibold text-strong/g)).toHaveLength(1);
-    expect(pageSource).toContain("max-w-80 truncate text-sm font-semibold text-strong");
+describe("Orders registry information and navigation", () => {
+  it("ระบุใบด้วยเลขออเดอร์และลูกค้า โดยไม่คืน field ชื่องานที่ถอดจากระบบแล้ว", () => {
+    expect(pageSource).toContain("order.customer?.name?.trim()");
+    expect(pageSource).toContain("{order.orderNumber}");
     expect(pageSource).toContain("<DataTable.Th>ลูกค้า</DataTable.Th>");
-    expect(pageSource).toContain("showInternalStatus={false}");
-    expect(pageSource).not.toContain("labelInternalStatus");
+    expect(pageSource).not.toContain("order.title");
+    expect(pageSource).not.toContain("orderTitle");
   });
 
-  it("ใช้ contract หัวตารางและขนาดข้อมูลกลางโดยไม่มี one-off พร้อมคอลัมน์ประเภทงาน", () => {
-    expect(pageSource).toContain('<DataTable.Root cellPadding="responsive">');
-    expect(pageSource).not.toContain("max-xl:[&_td]:px-4");
-    expect(pageSource).not.toContain("max-xl:[&_th");
-    expect(pageSource).toContain("<DataTable.Head>");
-    expect(pageSource).toContain("<DataTable.Body>");
-    expect(pageSource).not.toContain("<DataTable.Head className=");
-    expect(pageSource).not.toContain("<DataTable.Body className=");
-    expect(tableSource).toContain("[&_td]:text-sm");
-    expect(tableSource).toContain(":not(:is(button");
+  it("คงประเภทงาน ช่องทาง และสถานะโดยใช้ป้ายร่วมของระบบ", () => {
     expect(pageSource).toContain("<DataTable.Th>ประเภทงาน</DataTable.Th>");
-    /* ประเภทงานเป็นชิปพื้นสีอ่อนตามหมวดตั้งแต่ 2026-08-31 (แบบ B "สีบอกหมวด")
-       ใจความเดิมที่ยังต้องจริง: คอลัมน์นี้ยังอยู่ และสั่งทำกับสำเร็จรูปต้องแยกออกจากกันด้วยสี
-       — โดยไม่ไปแย่งกับจุดสีสถานะ ซึ่งยังเป็นจุด+ข้อความไม่มีพื้นสี */
-    expect(pageSource).toContain("<OrderTypeChip orderType={order.orderType} />");
-    expect(pageSource).toContain('orderType === "CUSTOM" ? "brand" : "product"');
-    expect(badgeSource).not.toContain("bg-module");
-    expect(pageSource).not.toContain('secondaryTitle || order.orderType === "CUSTOM"');
+    expect(pageSource).toContain("ORDER_TYPE_UI_LABELS[orderType]");
+    expect(pageSource).toContain("CHANNEL_LABELS[order.channel]");
+    expect(pageSource).toContain("<OrderStatusBadge");
+    expect(ORDER_TYPE_UI_LABELS.CUSTOM).toBeTruthy();
+    expect(ORDER_TYPE_UI_LABELS.READY_MADE).toBeTruthy();
+    expect(ORDER_TYPE_UI_LABELS.CUSTOM).not.toBe(ORDER_TYPE_UI_LABELS.READY_MADE);
   });
 
-  it("ยังเปิดบรรทัดสถานะภายในให้หน้าที่ต้องรู้ขั้นจริงได้", () => {
-    expect(badgeSource).toContain("showInternalStatus = true");
-    expect(badgeSource).toContain("sub={showInternalStatus ? internalSubLabel : undefined}");
-    expect(badgeSource).toContain("`ภายใน: ${internalLabel}`");
+  it("สถานะภายในยังอ่านได้ในหน้าที่ต้องใช้และซ่อนได้เฉพาะบริบททะเบียน", () => {
+    const props = { customerStatus: "PREPARING", internalStatus: "DESIGNING" } as const;
+    const detailed = renderToStaticMarkup(createElement(OrderStatusBadge, { ...props, labelInternalStatus: true }));
+    const registry = renderToStaticMarkup(createElement(OrderStatusBadge, { ...props, showInternalStatus: false }));
+    expect(detailed).toContain(CUSTOMER_STATUS_LABELS.PREPARING);
+    expect(detailed).toContain(`ภายใน: ${INTERNAL_STATUS_LABELS.DESIGNING}`);
+    expect(registry).toContain(CUSTOMER_STATUS_LABELS.PREPARING);
+    expect(registry).not.toContain(INTERNAL_STATUS_LABELS.DESIGNING);
+    const internalOnly = renderToStaticMarkup(createElement(OrderStatusBadge, { internalStatus: "DESIGNING" }));
+    expect(internalOnly).toContain(INTERNAL_STATUS_LABELS.DESIGNING);
   });
 
-  it("เลขออเดอร์ไม่ใช่ลิงก์สีแบรนด์แล้ว — สงวนน้ำเงินให้ปุ่มหลัก/สิ่งที่เลือก/โฟกัส", () => {
-    expect(pageSource).toContain("font-medium tabular-nums text-strong hover:underline");
-    expect(pageSource).not.toContain("text-blue-600 hover:underline");
+  it("เลขออเดอร์ยังเป็นลิงก์จริงทั้งสองมุมมอง และแถวไม่แย่งคลิกจาก controls ภายใน", () => {
+    const desktop = pageSource.slice(pageSource.indexOf("renderDesktop="), pageSource.indexOf("renderMobile="));
+    const mobile = pageSource.slice(pageSource.indexOf("renderMobile="));
+    for (const source of [desktop, mobile]) {
+      expect(source).toContain('href={`/orders/${order.id}`}');
+      expect(source).toContain("{order.orderNumber}");
+    }
+    expect(tableSource).toContain('t.closest("a,button,input,select,textarea,label,');
+    expect(tableSource).toContain("window.getSelection()?.toString()");
+    expect(tableSource).toContain("requestAppNavigation(href");
   });
 
-  /* กลับคำตัดสินใจเดิม (2026-08-26 · UI-2026 เฟส 6) — เบสเห็นของจริงบนจอกว้างแล้วบอกว่า
-     "การที่เอาตารางวางบนพื้นเลยดูแปลกๆ และไม่ชอบ" จึงคืนกล่องครอบให้ตาราง
-     สาเหตุที่แบบไม่มีกล่องใช้ไม่ได้จริง มีสองชั้นและวัดได้ทั้งคู่:
-     1) ธีมสว่างไม่เคยมีชั้นความลึกจริง การ์ดต่างจากผืนหน้าเดิม 1.03 เท่า
-        สิ่งที่ตาเห็นว่าเป็นกล่องคือเส้นขอบล้วน ๆ พอถอดกล่อง เส้นหายไปด้วย
-     2) prop flush สั่ง pl-0 ที่ <th> แต่ SortableTh วางระยะขอบไว้ที่ <button> ข้างใน
-        หัวคอลัมน์แรกจึงเยื้องขวากว่าข้อมูล 20px — ตรงกับสิ่งที่ flush อ้างว่าจะกัน
-     ตั้งแต่เฟส 11 ผืนหน้าเป็น near-white แต่ตารางยังใช้ bordered ปริยายและแยกด้วย edge+shadow */
-  it("ทะเบียนกลับมามีกล่องครอบ และ prop flush ถูกถอดออกจากระบบแล้ว", () => {
-    expect(pageSource).toContain("<DataTable.Root");
-    expect(pageSource).not.toContain("bordered={false}");
-    expect(pageSource).not.toContain(" flush");
-    // primitive ต้องไม่เหลือทางกลับไปสู่แบบไม่มีกล่อง
-    expect(tableSource).not.toContain("flush?: boolean");
-    expect(tableSource).not.toContain("[&_th:first-child]:pl-0");
-    expect(tableSource).not.toContain("[&_thead]:bg-transparent");
-    expect(tableSource).toContain('bordered && "card-surface overflow-hidden rounded-2xl"');
+  it.each([true, false])("ตารางคง semantics และข้อมูลเมื่อ bordered=%s", (bordered) => {
+    const html = renderToStaticMarkup(createElement(DataTable.Root, { bordered },
+      createElement(DataTable.Head, null, createElement("tr", null, createElement(DataTable.Th, null, "เลขออเดอร์"))),
+      createElement(DataTable.Body, null, createElement("tr", null,
+        createElement(DataTable.Td, null, createElement("a", { href: "/orders/order-1" }, "ORD-001")),
+      )),
+    ));
+    expect(html).toContain("<table");
+    expect(html).toContain("<thead");
+    expect(html).toContain("<tbody");
+    expect(html).toContain('scope="col"');
+    expect(html).toContain('href="/orders/order-1"');
+    expect(html).toContain("ORD-001");
   });
 
-  it("รวมวันส่งกับ countdown ไว้ใต้หัว sortable เดียว", () => {
-    expect(pageSource.match(/sortColumn\("deadline"\)/g)).toHaveLength(1);
+  it("วันส่งยังเรียงได้และประกาศทิศที่เลือกให้โปรแกรมอ่านหน้าจอ", () => {
+    expect(pageSource).toContain('sortColumn("deadline")');
     expect(pageSource).toContain("<OrderDeadline");
-    expect(pageSource).not.toContain("เหลือเวลา");
+    expect(pageSource).toContain("deadline={order.deadline}");
+    for (const [direction, ariaSort] of [["asc", "ascending"], ["desc", "descending"]] as const) {
+      const html = renderToStaticMarkup(createElement("table", null,
+        createElement("thead", null, createElement("tr", null,
+          createElement(DataTable.SortableTh, { direction, onSort: () => {} }, "กำหนดส่ง"),
+        )),
+      ));
+      expect(html).toContain(`aria-sort="${ariaSort}"`);
+      expect(html).toContain('type="button"');
+      expect(html).toContain("กำหนดส่ง");
+    }
   });
 
-  it("ใช้ยอดเงินสองตำแหน่งและ label เดียวกันบน mobile", () => {
+  it("ยอดเงินคงทศนิยมและอยู่หลังด่านสิทธิ์ทั้งหน้าจอและ CSV", () => {
+    expect(formatBaht(1234.5)).toContain("1,234.50");
+    expect(formatBaht(0)).toContain("0.00");
+    expect(pageSource).toContain('permAllows(me?.permissions, "see_order_money")');
+    expect(pageSource).toContain("{canSeeMoney && (");
     expect(pageSource).toContain("{formatBaht(order.totalAmount ?? 0)}");
-    expect(pageSource).toContain(">ยอดรวม</p>");
-    expect(pageSource).not.toContain("formatCurrency");
+    expect(pageSource).toContain('...(canSeeMoney ? ["ยอดรวม"] : [])');
+    expect(pageSource).toContain("...(canSeeMoney ? [String(o.totalAmount ?? 0)] : [])");
   });
 
-  it("คืน status flow เต็มบน desktop และใช้ quick set แบบเดิมบนจอแคบ", () => {
-    expect(statusSource).toContain('className="hidden xl:block"');
-    expect(statusSource).toContain("<details");
-    expect(statusSource).toContain("ACTIVE_UNDERLINE");
-    expect(statusSource).not.toContain("<PopoverPrimitive.Content");
+  it("ตัวกรองสถานะคงจำนวนและคำสั่งล้างสถานะ รวมงานนอกเส้นทาง", () => {
+    const html = renderToStaticMarkup(createElement(OrderStatusFlowBar, {
+      counts: { PRODUCING: 12, ON_HOLD: 3 }, selected: "PRODUCING", onSelect: () => {},
+    }));
+    expect(html).toContain(`${INTERNAL_STATUS_LABELS.PRODUCING} · 12 งาน · เลือกอยู่ · กดซ้ำเพื่อล้างตัวกรอง`);
+    expect(html).toContain(`${INTERNAL_STATUS_LABELS.ON_HOLD} · 3 งาน · กดเพื่อกรอง`);
+    expect(html).toContain('aria-label="สถานะนอกเส้นทางงาน"');
+    expect(pageSource).toContain("counts={data?.statusCounts}");
+    expect(pageSource).toContain("selected={internalStatus}");
   });
 
-  it("บอกขอบเขต CSV ตรงและย้าย action รองเข้าเมนู mobile", () => {
-    expect(pageSource.match(/ส่งออกหน้านี้/g)?.length).toBeGreaterThanOrEqual(2);
-    expect(pageSource).toContain('aria-label="เพิ่มเติม"');
-    expect(pageSource).toContain('className="hidden sm:inline-flex"');
+  it("ส่งออกตามหน้าที่เห็น และยังค้นหา แบ่งหน้า และล้างตัวกรองผ่าน URL เดิม", () => {
+    expect(pageSource).toContain("ส่งออกหน้านี้");
+    expect(pageSource).toContain("exportOrdersCsv(data.orders, canSeeMoney)");
+    expect(pageSource).toContain("useListPageState()");
+    expect(pageSource).toContain("<TablePagination");
+    expect(pageSource).toContain("total={data.total}");
+    expect(pageSource).toContain("onClick={clearFiltersAndSearch}");
+    expect(pageSource).toContain("onChange={(event) => onSearchChange(event.target.value)}");
   });
 });

@@ -43,10 +43,6 @@ interface PageHeaderProps {
   children?: ReactNode;
 }
 
-/* หัวข้อหน้า = ที่เดียวของทั้งระบบ (เบสสั่ง 2026-08-01 "ตรวจดีๆ ว่ามีอะไรไม่เป็นมาตรฐาน")
-   audit เจอ 3 หน้าเขียนสูตร <h1> เองซ้ำกับที่นี่ทุกตัวอักษร เพราะที่นี่ไม่รองรับ
-   "ปุ่มย้อนกลับ + ป้ายข้างหัวข้อ" ที่หน้ารายละเอียดต้องใช้ — เพิ่ม back/titleBadge
-   ให้รองรับ แทนที่จะปล่อยให้ก๊อปต่อไป (ก๊อปแล้วมันจะเพี้ยนวันที่แก้ที่นี่) */
 export function PageHeader({
   title,
   description,
@@ -69,14 +65,7 @@ export function PageHeader({
     .filter(Boolean)
     .join(" ");
   const resolvedTone = tone ?? visualToneForLabel(descriptionSource);
-  /* แถบ breadcrumb ("บิล/การเงิน › ลูกหนี้") ถูกถอดออกจากทุกหน้า 2026-08-26
-     เบสส่งภาพมาชี้ตรงนั้นแล้วบอกว่า "ทุกหน้าไม่ต้องมีหัวข้อเล็กๆแบบนี้"
 
-     prop `breadcrumb` ยังอยู่และยังมีประโยชน์สองอย่าง ห้ามลบทิ้ง:
-     ① เป็นที่มาของ identity ของหน้า (ดู identityLabel ข้างบน)
-     ② เป็นที่มาของ "ปุ่มย้อนกลับ" เมื่อหน้าไม่ได้ส่ง back มาเอง — 5 หน้าที่เคยมีแต่
-        breadcrumb ไม่มี back จะไม่เหลือทางกลับบนจอเลยถ้าไม่ทำตรงนี้
-        (ลูกค้ารายตัว · ภาษีขาย · แก้ออเดอร์ · เปิดออเดอร์ 2 ไฟล์) */
   const resolvedBack =
     back ??
     (() => {
@@ -89,7 +78,7 @@ export function PageHeader({
 
   return (
     <div className="page-header space-y-4" data-page-identity={identityLabel ?? "custom"}>
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
         <div className="flex min-w-0 items-start gap-2 sm:min-w-64 sm:flex-1">
           {/* ปุ่มย้อนกลับยืนบนผืนงานเทา ไม่ใช่ในการ์ด — ใช้คู่ interaction ของผืนงาน */}
           {resolvedBack && (
@@ -104,17 +93,10 @@ export function PageHeader({
               </Link>
             </Button>
           )}
-          {/* เครื่องหมายประจำหมวดของหน้า — กลับมามีสีอีกครั้ง 2026-08-31 (แบบ B "สีบอกหมวด")
-              สีอนุมานจากชื่อหน้า/breadcrumb ด้วย visualToneForLabel ทุกหน้าจึงได้สีเองโดย
-              ไม่ต้องไล่แก้ทีละหน้า · หน้าไหนอยากกำหนดเองส่ง prop `tone` มาทับได้
 
-              ประวัติกันคนมาแก้ย้อน: 23 ส.ค. เคยเป็นกล่องสีทึบ 48px มีเงา → ถูกลดเหลือ
-              ไอคอนเส้นสีหมวด → แล้วถูกลดอีกเป็นเทาล้วนตอน "white canvas" วันเดียวกัน
-              รอบนี้กลับมาที่ "กล่องสีอ่อน + ไอคอนเส้น" ซึ่งอยู่ระหว่างสองอันนั้น
-              **ห้ามกลับไปเป็นสีทึบ** — ด่าน verify:ui ล็อกไว้แล้ว */}
           <span
             className={cn(
-              "page-module-mark mt-1.5 flex shrink-0 items-center justify-center",
+              "page-module-mark mt-2 flex shrink-0 items-center justify-center",
               VISUAL_TONE_CLASSES[resolvedTone].mark,
             )}
             role={eyebrow ? "img" : undefined}
@@ -125,16 +107,16 @@ export function PageHeader({
               <>{/* component จาก caller เป็น contract คงที่ ไม่ได้สร้างจาก resolver ระหว่าง render */}
                 {(() => {
                   const Icon = icon;
-                  return <Icon className="h-6 w-6" strokeWidth={1.8} />;
+                  return <Icon className="h-5 w-5" strokeWidth={1.8} />;
                 })()}
               </>
             ) : (
-              <PageIdentityIcon label={identityLabel} className="h-6 w-6" strokeWidth={1.8} />
+              <PageIdentityIcon label={identityLabel} className="h-5 w-5" strokeWidth={1.8} />
             )}
           </span>
           <div className="min-w-0 space-y-1 pt-0.5">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="break-words text-2xl font-semibold text-strong [overflow-wrap:anywhere]">
+              <h1 className="break-words text-2xl font-semibold text-strong [overflow-wrap:anywhere] sm:text-3xl">
                 {title}
               </h1>
               {titleBadge}

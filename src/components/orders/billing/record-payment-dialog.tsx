@@ -9,6 +9,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
 import { Field } from "@/components/ui/field";
@@ -126,6 +127,9 @@ export function RecordPaymentDialog({
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
           <DialogTitle>บันทึกการชำระเงิน</DialogTitle>
+          <DialogDescription>
+            {invoice.invoiceNumber} · คงเหลือ {formatCurrency(payingRemaining)}
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <Field label="จำนวนเงิน (บาท)">

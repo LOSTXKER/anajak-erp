@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SectionTitle } from "@/components/ui/section";
 import { QueryError } from "@/components/ui/query-error";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Alert } from "@/components/ui/alert";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
 import { PAYMENT_STATUS_LABELS, PAYMENT_STATUS_VARIANTS } from "@/lib/status-config";
 import { PAYMENT_METHOD_LABELS } from "@/lib/payment-methods";
@@ -120,8 +122,8 @@ export function OrderBillingSection({
           </div>
         </CardHeader>
         <CardContent>
-          {/* Summary */}
-          <div className="mb-4 grid grid-cols-2 gap-3 rounded-lg bg-surface-muted p-3 sm:grid-cols-4">
+          {invoices.data ? (
+          <div className="mb-4 grid grid-cols-2 gap-3 border-b border-divider pb-4 sm:grid-cols-4">
             <div className="text-center">
               <p className="text-xs text-muted">ยอดรวม</p>
               <p className="text-sm font-semibold tabular-nums text-strong">
@@ -140,7 +142,6 @@ export function OrderBillingSection({
                 {formatCurrency(totalPaid)}
               </p>
             </div>
-            {/* เลขที่คนหน้างานถามบ่อยสุด "เหลือเก็บอีกเท่าไร" — แดงเมื่อยังค้าง (UX4) */}
             <div className="text-center">
               <p className="text-xs text-muted">ค้างชำระ</p>
               <p
@@ -154,6 +155,21 @@ export function OrderBillingSection({
               </p>
             </div>
           </div>
+          ) : invoices.isPending ? (
+            <div role="status" aria-label="กำลังโหลดสรุปการชำระเงิน" className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {Array.from({ length: 4 }, (_, index) => <Skeleton key={index} className="h-12 w-full" />)}
+            </div>
+          ) : null}
+
+          {invoices.isError && invoices.data && (
+            <Alert
+              variant="warning"
+              className="mb-4"
+              action={<Button variant="outline" size="sm" onClick={() => void invoices.refetch()}>ลองใหม่</Button>}
+            >
+              อัปเดตข้อมูลบิลไม่สำเร็จ กำลังแสดงข้อมูลที่โหลดไว้
+            </Alert>
+          )}
 
           {/* เตือนเฉพาะคนที่ออกใบได้ (canBill) — role อื่นเห็นแต่ทำอะไรไม่ได้ ชวนงง */}
           {canBill && pendingReceiptCount > 0 && (

@@ -13,8 +13,7 @@ import { MoneyInput, NumberInput } from "@/components/ui/number-input";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert } from "@/components/ui/alert";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ToneMark } from "@/components/ui/section";
+import { Section } from "@/components/ui/section";
 import { ListPageSkeleton } from "@/components/ui/page-skeleton";
 import { formatCurrency } from "@/lib/utils";
 import { CustomerPicker } from "@/components/customers/customer-picker";
@@ -342,15 +341,10 @@ function QuotationFormPage() {
         }
       }
     >
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* ============================================================ */}
-        {/* BASIC INFO                                                   */}
-        {/* ============================================================ */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">ข้อมูลทั่วไป</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+      <form onSubmit={handleSubmit} className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start">
+        <div className="min-w-0 space-y-6">
+          <Section title="ลูกค้าและระยะเวลา" icon={User} tone="brand" surface="plain">
+            <div className="space-y-4">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <fieldset>
                 <legend className={sectionLabelClass}>ลูกค้า *</legend>
@@ -377,48 +371,21 @@ function QuotationFormPage() {
                 />
               </Field>
             </div>
-            <Field label="รายละเอียด" id="quotation-description">
-              <Textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="รายละเอียดเพิ่มเติม..."
-                rows={3}
-              />
-            </Field>
-            <Field label="เงื่อนไข" id="quotation-terms">
-              <Textarea
-                value={terms}
-                onChange={(e) => setTerms(e.target.value)}
-                placeholder="เงื่อนไขการชำระเงิน, การจัดส่ง..."
-                rows={3}
-              />
-            </Field>
-            <Field label="หมายเหตุ" id="quotation-notes">
-              <Textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="หมายเหตุภายใน..."
-                rows={2}
-              />
-            </Field>
-          </CardContent>
-        </Card>
+            </div>
+          </Section>
 
-        {/* ============================================================ */}
-        {/* LINE ITEMS                                                   */}
-        {/* ============================================================ */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <ToneMark icon={FileText} tone="product" />
-              รายการสินค้า
-            </CardTitle>
-            <Button type="button" variant="outline" size="sm" onClick={addItem}>
-              <Plus className="mr-1" />
-              เพิ่มรายการ
-            </Button>
-          </CardHeader>
-          <CardContent className="space-y-4">
+          <Section
+            title="รายการสินค้า"
+            icon={FileText}
+            tone="product"
+            surface="plain"
+            action={
+              <Button type="button" variant="outline" size="sm" onClick={addItem}>
+                <Plus /> เพิ่มรายการ
+              </Button>
+            }
+          >
+            <div className="space-y-4">
             {items.map((item, idx) => {
               const rowTotal = item.quantity * item.unitPrice;
 
@@ -523,17 +490,44 @@ function QuotationFormPage() {
                 </div>
               );
             })}
-          </CardContent>
-        </Card>
 
-        {/* ============================================================ */}
-        {/* PRICE SUMMARY                                                */}
-        {/* ============================================================ */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">สรุปราคา</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
+            </div>
+          </Section>
+
+          <Section title="เงื่อนไขและบันทึก" surface="plain">
+            <div className="space-y-4">
+            <Field label="รายละเอียด" id="quotation-description">
+              <Textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="รายละเอียดเพิ่มเติม..."
+                rows={3}
+              />
+            </Field>
+            <Field label="เงื่อนไข" id="quotation-terms">
+              <Textarea
+                value={terms}
+                onChange={(e) => setTerms(e.target.value)}
+                placeholder="เงื่อนไขการชำระเงิน, การจัดส่ง..."
+                rows={3}
+              />
+            </Field>
+            <Field label="หมายเหตุ" id="quotation-notes">
+              <Textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="หมายเหตุภายใน..."
+                rows={2}
+              />
+            </Field>
+
+            </div>
+          </Section>
+        </div>
+
+        <aside className="min-w-0 space-y-4 xl:sticky xl:top-6" aria-label="สรุปราคาและบันทึกใบเสนอ">
+          <Section title="สรุปราคา" tone="finance">
+            <div className="space-y-3">
             <div className="space-y-2 text-sm">
               {/* Discount */}
               <div className="flex items-center justify-between">
@@ -614,13 +608,15 @@ function QuotationFormPage() {
                 {formatCurrency(pricingSummary.total)}
               </span>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* ============================================================ */}
-        {/* Actions                                                      */}
-        {/* ============================================================ */}
-        <div className="flex justify-end gap-3 pb-8 [&>button]:flex-1 [&>a]:flex-1 sm:[&>button]:flex-none sm:[&>a]:flex-none">
+            </div>
+          </Section>
+        {(createQuotation.isError || editError) && (
+          <Alert variant="error">
+            {editError ?? createQuotation.error?.message}
+          </Alert>
+        )}
+        <div className="flex gap-3 border-t border-divider pt-4 [&>button]:flex-1 [&>a]:flex-1">
           <Button type="button" variant="outline" asChild>
             <Link href="/quotations">
               ยกเลิก
@@ -637,13 +633,7 @@ function QuotationFormPage() {
                 : "สร้างใบเสนอราคา"}
           </Button>
         </div>
-
-        {/* Error display */}
-        {(createQuotation.isError || editError) && (
-          <Alert variant="error">
-            {editError ?? createQuotation.error?.message}
-          </Alert>
-        )}
+        </aside>
       </form>
     </PageShell>
   );

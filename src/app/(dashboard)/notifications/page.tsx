@@ -219,6 +219,7 @@ function NotificationsContent() {
                             !notif.isRead && "bg-surface-muted"
                           )}
                           aria-label={`${notif.isRead ? "" : "ยังไม่อ่าน: "}${notif.title}`}
+                          aria-describedby={notif.message ? `notification-message-${notif.id}` : undefined}
                         >
                           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-muted dark:bg-slate-800">
                             {TYPE_ICONS[notif.type] ?? (
@@ -242,7 +243,7 @@ function NotificationsContent() {
                               )}
                             </div>
                             {notif.message && (
-                              <p className="mt-0.5 line-clamp-2 text-sm text-muted group-hover:text-secondary group-active:text-secondary dark:group-hover:text-secondary dark:group-active:text-secondary">
+                              <p id={`notification-message-${notif.id}`} className="mt-1 whitespace-pre-wrap break-words text-sm leading-relaxed text-secondary">
                                 {notif.message}
                               </p>
                             )}

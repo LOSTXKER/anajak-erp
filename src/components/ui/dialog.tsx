@@ -28,6 +28,10 @@ const DialogTrigger = DialogPrimitive.Trigger;
 const DialogPortal = DialogPrimitive.Portal;
 const DialogClose = DialogPrimitive.Close;
 
+const DialogDescriptionRegistry = React.createContext<
+  ((id: string) => () => void) | null
+>(null);
+
 const DialogOverlay = React.forwardRef<
   React.ComponentRef<typeof DialogPrimitive.Overlay>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
@@ -47,6 +51,12 @@ const DialogContent = React.forwardRef<
   React.ComponentRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
 >(({ className, children, onCloseAutoFocus, ...props }, ref) => {
+  const [descriptionIds, setDescriptionIds] = React.useState<string[]>([]);
+  const registerDescription = React.useCallback((id: string) => {
+    setDescriptionIds((current) => current.includes(id) ? current : [...current, id]);
+    return () => setDescriptionIds((current) => current.filter((item) => item !== id));
+  }, []);
+
   // dialog ส่วนใหญ่ conditional mount จึงไม่มี <DialogTrigger> ให้ Radix คืน focus เอง
   // จับ element ที่เปิด dialog ตอน mount แล้วใช้เป็น fallback ตอนปิด/Escape
   const [returnFocusElement] = React.useState<HTMLElement | null>(() => {
@@ -78,10 +88,8 @@ const DialogContent = React.forwardRef<
       <DialogOverlay />
       <DialogPrimitive.Content
         ref={ref}
-        // dialog ที่ไม่มีคำอธิบาย (ชื่อ dialog บอกครบแล้ว) ต้องประกาศว่า "ตั้งใจไม่มี"
-        // ไม่งั้น Radix ขึ้น warning ใน console ทุกครั้งที่เปิด — ส่งเป็นค่าเริ่มต้น
-        // ที่นี่จุดเดียว · dialog ที่มี DialogDescription จะ override ทับเองผ่าน {...props}
-        aria-describedby={undefined}
+        // อ้างเฉพาะคำอธิบายที่ mount แล้ว; caller ยังส่ง aria-describedby เองได้
+        aria-describedby={descriptionIds.length > 0 ? descriptionIds.join(" ") : undefined}
         className={cn(
           OVERLAY_PANEL,
           "fixed left-1/2 top-1/2 z-50 grid max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto overscroll-contain p-5 pr-14 duration-[var(--duration-base)] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 motion-reduce:animate-none sm:p-6 sm:pr-14",
@@ -96,7 +104,9 @@ const DialogContent = React.forwardRef<
         onCloseAutoFocus={handleCloseAutoFocus}
         {...props}
       >
-        {children}
+        <DialogDescriptionRegistry.Provider value={registerDescription}>
+          {children}
+        </DialogDescriptionRegistry.Provider>
         <DialogPrimitive.Close className={cn(CONTROL_H, "absolute right-2 top-2 inline-flex w-11 touch-manipulation items-center justify-center rounded-full opacity-70 transition-colors hover:bg-interactive-hover hover:opacity-100 active:bg-interactive-pressed", FOCUS_BUTTON, "sm:right-3 sm:top-3 sm:w-9 [@media(pointer:coarse)]:w-11 disabled:pointer-events-none data-[state=open]:bg-interactive-hover")}>
           <X className="h-4 w-4" />
           <span className="sr-only">ปิดหน้าต่าง</span>
@@ -157,13 +167,32 @@ DialogTitle.displayName = DialogPrimitive.Title.displayName;
 const DialogDescription = React.forwardRef<
   React.ComponentRef<typeof DialogPrimitive.Description>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Description>
->(({ className, ...props }, ref) => (
-  <DialogPrimitive.Description
-    ref={ref}
-    className={cn("text-sm text-muted", className)}
-    {...props}
-  />
-));
+>(({ className, ...props }, ref) => {
+  const registerDescription = React.useContext(DialogDescriptionRegistry);
+  const elementRef = React.useRef<React.ComponentRef<typeof DialogPrimitive.Description> | null>(null);
+  const composedRef = React.useCallback((node: React.ComponentRef<typeof DialogPrimitive.Description> | null) => {
+    elementRef.current = node;
+    if (typeof ref === "function") return ref(node);
+    if (ref) ref.current = node;
+  }, [ref]);
+  const childId = props.asChild && React.isValidElement<{ id?: string }>(props.children)
+    ? props.children.props.id
+    : undefined;
+
+  // อ่าน id จาก DOM เพื่อคงทั้ง id ของ Radix, custom id และ asChild
+  React.useEffect(() => {
+    const id = elementRef.current?.id;
+    if (id) return registerDescription?.(id);
+  }, [registerDescription, props.id, childId]);
+
+  return (
+    <DialogPrimitive.Description
+      ref={composedRef}
+      className={cn("text-sm text-muted", className)}
+      {...props}
+    />
+  );
+});
 DialogDescription.displayName = DialogPrimitive.Description.displayName;
 
 export {

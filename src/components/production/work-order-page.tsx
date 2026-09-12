@@ -1,30 +1,18 @@
 "use client";
 
-/**
- * /production/[id] — ใบผลิตแบบฟอร์ม (เบสเคาะ 2026-09-08 จากหน้าลอง /proto/work-order-form รอบ 11 "โอเคทำเลย")
- *
- * โครงเดียวกับหน้าออเดอร์: หัวใบ → ราง 1 2 3 (OrderStatusBar ตัวเดียวกับหน้าออเดอร์) → 2 แท็บ
- *   · ปุ่มหลักบนหัวใบ = ปุ่มของขั้นที่ยืนอยู่ (จาก `work-order-controller.primaryButton` ชุดเดิม — ไม่มีทางลัดสถานะใหม่)
- *   · ขั้นตอน — ซ้าย = ตารางรายตัว (แถวละไซซ์) ของขั้นที่ยืนอยู่ กรอกยอดต่อแถวได้ · ขวา = เช็คลิสต์ติ๊กได้ + ข้อมูลออเดอร์
- *   · สินค้า — ตารางรายการตัวเดียวกับหน้าออเดอร์ (ไม่มีเงิน) + ลาย/ม็อกอัพ + วัตถุดิบ
- *
- * ระยะ 2 (ROADMAP §A9.2–A9.5 เบสอนุมัติ 09-09): ผลติ๊กเก็บใน ProductionStepCheck · server กั้นปิดขั้นจนติ๊กครบ ·
- * ยอดต่อแถวเก็บใน OperationQuantity (ยอดรวมของขั้น = ผลบวก) · ย้อนขั้นผ่าน production.reopenStep (หัวหน้า) ·
- * ช่องคู่ = ขั้นที่ตั้ง pairWithPrevious รวมกับขั้นก่อนเป็นช่องเดียวบนราง (src/lib/work-order-rail.ts)
- * ราง = ขั้นเรียงตาม sortOrder ยืนที่ช่องแรกที่ยังมีขั้นไม่ปิด (แบบ A — ทุกขั้นปิดด้วยปุ่ม รวมขั้นที่เคยจดบนกระดาษ)
- * คำช่วยและเหตุที่ทำต่อไม่ได้อยู่ตรงขั้นที่เกี่ยว ตาม ui-guidance (A16)
- */
+/** ใบผลิตใช้ controller เดียวกับหน้างาน; การเลือกเปิดดูขั้นไม่มีผลต่อสถานะหรือคำสั่งที่ลงมือได้ */
 
-import { Suspense, useState, type MouseEvent, type ReactNode } from "react";
+import { Suspense, useRef, useState, type MouseEvent, type ReactNode, type Ref } from "react";
 import { useSearchParams } from "next/navigation";
-import { ClipboardCheck, Factory, Flag, History, Pause, Printer, RotateCcw, UserRound } from "lucide-react";
+import { CheckCircle2, ClipboardCheck, Factory, Flag, History, Pause, Printer, RotateCcw, UserRound } from "lucide-react";
 
 import { PageShell } from "@/components/page-shell";
-import { OrderStatusBar } from "@/components/orders/detail/order-status-bar";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Fact, FactList } from "@/components/ui/fact";
+import { FOCUS_BUTTON } from "@/components/ui/tokens";
 import { MoreMenu, type MoreMenuItem } from "@/components/ui/more-menu";
 import { RecordNotFound } from "@/components/ui/record-not-found";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -35,36 +23,23 @@ import { ProblemDialog } from "@/components/production/step-command-dialogs";
 import type { ProductionStep } from "@/components/production/types";
 import { PRIORITY_LABELS } from "@/lib/order-status";
 import { permAllows } from "@/lib/permissions";
-import { formatDateTime } from "@/lib/utils";
+import { cn, formatDateTime } from "@/lib/utils";
 import { FLOW_OWNED_STEP_TYPES } from "@/lib/production-steps";
 import { currentRailNode, railNodesOf } from "@/lib/work-order-rail";
 import { routeWaitingOn } from "@/lib/work-order-route";
+import { workOrderStandards } from "@/lib/work-order-standards";
 import { useWorkOrderController, type WorkOrderController } from "./work-order-controller";
-import { activeOutsource, dtfUnavailableReason, outsourceReceiptCandidates, outsourceStepReason, ProblemCard, stepLabel } from "./work-order-pieces";
+import { activeOutsource, dtfUnavailableReason, outsourceReceiptCandidates, outsourceStepReason, ProblemCard, StateChip, stepLabel, viewOf } from "./work-order-pieces";
 import { checklistAnchor, ticksMissing } from "./work-order-checklist";
-import { pieceTableAnchor, pieceRowsOf } from "./work-order-quantities";
+import { pieceTableAnchor, pieceRowsOf, StepPieceTable } from "./work-order-quantities";
 import { WorkOrderRouteOverview, WorkOrderSteps, type WorkOrderVariant } from "./work-order-steps";
 import { WorkOrderItems } from "./work-order-items";
 
-/** พาไปช่องแรกที่ยังต้องทำในโซนนั้น (ติ๊กที่ยังว่าง / ช่องยอดแถวแรก) — ปุ่มบนหัวใบใช้แทนการ disabled */
+/** พาไปช่องแรกที่ยังต้องทำก่อนปิดขั้น */
 function focusFirst(anchor: string, selector: string) {
   const el = document.querySelector<HTMLElement>(`#${anchor} ${selector}`);
   el?.scrollIntoView({ behavior: "smooth", block: "center" });
   el?.focus();
-}
-
-/**
- * ปุ่ม "ถัดไป" บนหัวใบกดแล้วพาไปสิ่งที่ต้องทำก่อน — เรียงเหมือนเหตุผลที่ปุ่มบอกไว้:
- * ติ๊กที่ยังว่าง → ช่องยอดแถวแรก → กล่องของขั้นนั้น (ขั้นที่ไม่มีตาราง เช่น เบิกเสื้อ/ตรวจรับ)
- */
-function focusWhatIsBlocking(stepId: string) {
-  const el =
-    document.querySelector<HTMLElement>(`#${checklistAnchor(stepId)} input[type=checkbox]:not(:checked)`) ??
-    document.querySelector<HTMLElement>(`#${pieceTableAnchor(stepId)} input`) ??
-    document.getElementById(pieceTableAnchor(stepId)) ??
-    document.getElementById(checklistAnchor(stepId));
-  el?.scrollIntoView({ behavior: "smooth", block: "center" });
-  el?.focus?.();
 }
 
 /* ───────────────────────── หน้า ───────────────────────── */
@@ -88,24 +63,24 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab, variant
   const [problemStep, setProblemStep] = useState<ProductionStep | null>(null);
   // แก้ยอดตรวจรับที่นับผิด (A15) — เปิดจากเมนู ⋯ เพราะกล่องของขั้นนั้นไม่แสดงแล้วเมื่อขั้นปิดไป
   const [fixReceiveOpen, setFixReceiveOpen] = useState(false);
+  const [viewedStepId, setViewedStepId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("steps");
+  const currentStepButtonRef = useRef<HTMLButtonElement>(null);
 
-  // ราง: ช่องละขั้น · ขั้นที่ตั้ง "เดินคู่กับขั้นก่อน" รวมอยู่ช่องเดียวกัน · ยืนที่ช่องแรกที่ยังมีขั้นไม่ปิด (แบบ A)
+  // ขั้นที่ลงมือได้ยังมาจากลำดับและคำสั่งเดิม การเลือกเปิดดูด้านล่างไม่เปลี่ยนกลุ่มนี้
   const nodes = railNodesOf(workflowSteps);
   const openNodeIndex = currentRailNode(nodes);
   const allDone = workflowSteps.length > 0 && openNodeIndex < 0;
   const currentNodeIndex = openNodeIndex < 0 ? nodes.length - 1 : openNodeIndex;
   const currentNode = nodes[currentNodeIndex] ?? [];
-  // ปุ่มบนหัวใบเป็นของขั้นแรกในช่องที่ยังไม่ปิดและไม่ติดรอ — ขั้นคู่ที่เหลือมีปุ่มของตัวเองในฟอร์ม
   const openInNode = currentNode.filter((s) => s.status !== "COMPLETED");
   // ลำดับเลือก: ขั้นที่มีปุ่มให้กดจริงและไม่ได้อยู่ร้านนอก → ขั้นที่ไม่ติดรอ → ขั้นแรกที่ยังไม่ปิด
   const actionable = openInNode.filter((s) => nowById.get(s.id)?.action && !activeOutsource(s));
   const notWaiting = openInNode.filter((s) => routeWaitingOn(s, workflowSteps).length === 0);
   const current = actionable[0] ?? notWaiting.find((s) => !activeOutsource(s)) ?? notWaiting[0] ?? openInNode[0] ?? currentNode[currentNode.length - 1] ?? null;
   const pairedOpen = openInNode.filter((s) => s !== current);
-  const railLabels = nodes.map((node, i) => {
-    const label = node.map(stepLabel).join(" + ");
-    return nodes.some((o, j) => j !== i && o.map(stepLabel).join(" + ") === label) ? `${label} ${i + 1}` : label;
-  });
+  const viewedStep = workflowSteps.find((step) => step.id === viewedStepId) ?? null;
+  const readOnlyStep = viewedStep && (allDone || !openInNode.some((step) => step.id === viewedStep.id)) ? viewedStep : null;
 
   // ปุ่มของขั้น: ของอยู่ร้านนอก = รับงานกลับ (ใบตรวจรับเดิม) · ไม่งั้นปุ่มจากกติกาเดิมทั้งชุด
   // ปิดขั้นได้เมื่อติ๊กข้อกำหนดครบ (server กั้นอีกชั้น) — ปุ่มยังอยู่ที่เดิม กดแล้วพาไปเช็คลิสต์
@@ -156,20 +131,19 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab, variant
 
   const canManageStep = c.canSuperviseStep && c.hasProductionPermission;
 
-  // ปุ่มของขั้น อยู่ท้ายกล่องของขั้นนั้นเอง (เบสสั่ง 2026-09-10 "ปุ่มดำเนินการของขั้นตอนนั้น
-  // ก็อยู่ในกล่องขั้นตอนนั้นไปเลย จะได้เข้าใจง่าย") — ทั้งปุ่มลงมือและปุ่มแจ้งปัญหาของขั้นนั้น
+  // คำสั่งและเงื่อนไขอยู่กับข้อมูลของขั้นที่คำสั่งจะเปลี่ยน
   function stepFooter(step: ProductionStep) {
     const action = actionFor(step);
     const canReport = c.canUpdateStep && c.canOwnOrSupervise(step) && step.status !== "COMPLETED" && step.status !== "FAILED";
     const reason = step.status !== "COMPLETED" ? blockReason(step) : null;
     const now = nowById.get(step.id);
-    // หน้าลองให้ปุ่มบอกทางที่พร้อมทำเอง คงคำช่วยเมื่อมีเงื่อนไขจริงที่ต้องแก้ก่อน
+    // คงคำช่วยเมื่อมีเงื่อนไขที่ต้องแก้ก่อนลงมือ
     const readyAction = c.canUpdateStep && c.canOwnOrSupervise(step) && !activeOutsource(step) && !dtfUnavailableReason(step)
       && step.status !== "ON_HOLD" && step.status !== "FAILED"
       && (now?.action === "start" || now?.action === "send-outsource"
         || ((now?.action === "complete" || now?.action === "record-qty" || now?.action === "quick-pass")
           && ticksMissing(step) === 0 && !(hasVariantRows && step.qtyTotal && (step.qtyDone ?? 0) < step.qtyTotal)));
-    const visibleReason = variant === "current" || !readyAction ? reason : null;
+    const visibleReason = !readyAction ? reason : null;
     if (!action && !canReport && !reason) return null;
     return (
       <>
@@ -184,7 +158,6 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab, variant
     );
   }
 
-  // ใครทำขั้นนี้อยู่ในกล่องเช็คลิสต์ ปุ่มเปลี่ยนคนทำจึงอยู่บรรทัดเดียวกัน ไม่ใช่ในเมนู ⋯ (เบสสั่ง 2026-09-10)
   function assignAction(step: ProductionStep) {
     if (!canManageStep || step.status === "COMPLETED") return null;
     return (
@@ -228,11 +201,7 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab, variant
     return `กดปิดขั้น ${stepLabel(step)} ในกล่องด้านล่าง`;
   }
 
-  // ปุ่มบนหัวใบ = **ขั้นถัดไป** ไม่ใช่ปุ่มลงมือ (เบสสั่ง 2026-09-10 "CTA ข้างบนจะเป็นปุ่มขั้นถัดไป
-  // แต่จะกดไม่ได้ และจะบอกด้วยว่าทำไมกดไม่ได้") — ปุ่มลงมือย้ายไปอยู่ในกล่องของขั้นแล้ว
-  // ไม่ใช่ปุ่มตาย: กดแล้วพาไปกล่องขั้นที่ต้องทำ (pattern เดียวกับปุ่ม "ปิดขั้นนี้" ตอนติ๊กไม่ครบ)
   const qcAction = production && c.canUpdateStep && allDone && (c.readyForQcViaPaper || c.legacyPackagingReadyForQc) ? (c.readyForQcViaPaper ? "paper" : "legacy") : null;
-  const nextLabel = railLabels[currentNodeIndex + 1] ?? null;
   const primary = qcAction ? (
     <Button
       onClick={() => (qcAction === "paper" ? c.sendToQc.mutate({ productionId: production!.id }) : c.legacyFinalize.mutate({ productionId: production!.id }))}
@@ -240,17 +209,7 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab, variant
     >
       ส่งเข้า QC
     </Button>
-  ) : variant === "current" && current && !allDone && nextLabel ? (
-    <Button variant="outline" aria-disabled className="max-w-[15rem] text-secondary" onClick={() => focusWhatIsBlocking(current.id)}>
-      <span className="truncate">ถัดไป: {nextLabel}</span>
-    </Button>
   ) : null;
-
-  // ประโยคใต้ราง = เหตุผลว่าทำไมปุ่มขั้นถัดไปยังกดไม่ได้
-  const blockers: string[] = [];
-  if (current && !allDone && !qcAction && !c.writeDataStale) {
-    blockers.push(blockReason(current));
-  }
 
   // ย้อนกลับ = เปิดขั้นที่ปิดล่าสุดก่อนหน้าให้ทำต่อ (หัวหน้า · server ตรวจว่าขั้นถัดไปยังไม่เริ่ม)
   const flatIndex = current ? workflowSteps.indexOf(current) : workflowSteps.length;
@@ -258,19 +217,12 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab, variant
   const reopenBlocked = !!reopenTarget && (FLOW_OWNED_STEP_TYPES.has(reopenTarget.stepType) || reopenTarget.outsourceOrders.length > 0);
   const canManage = canManageStep;
   const receiveStep = workflowSteps.find((step) => step.stepType === "GARMENT_RECEIVE") ?? null;
-  // เมนู "เพิ่มเติม" เรียงตามความถี่ที่หัวหน้าใช้จริง ไม่ใช่ตามลำดับที่เขียนโค้ด (เบสทัก 2026-09-10
-  // "บางอันจำเป็นต้องใช้ แต่ก็ไปซ่อน"): แจ้งปัญหา/มอบหมาย = งานประจำของหัวหน้าอยู่บนสุด ·
-  // พัก/ย้อนกลับ = นาน ๆ ใช้อยู่ล่าง · ขีดคั่นแยก "คำสั่งกับขั้นนี้" ออกจาก "ลิงก์ดูข้อมูลทั้งออเดอร์"
-  // ตำแหน่งคงที่ทุกสถานะ (ของที่กดไม่ได้ disabled + hint ไม่ย้ายที่/ไม่ซ่อน) เพื่อให้คนจำตำแหน่งได้
-  // แดงสงวนให้ย้อนกลับอย่างเดียว — พักขั้นเลิกได้จากเมนูเดิม ไม่ใช่ทางที่ต้องระวัง
-  // เมนู ⋯ = เฉพาะคำสั่งที่นาน ๆ ใช้และไม่ผูกกับ "กล่อง" ไหนโดยตรง (เบสสั่ง 2026-09-10):
-  // แจ้งปัญหา + ปุ่มดำเนินการ ย้ายไปอยู่ในกล่องของขั้น · มอบหมาย/แก้ให้ ไปอยู่ในกล่องเช็คลิสต์
-  // ที่มีบรรทัด "ผู้ทำ" อยู่แล้ว · ที่เหลือ (พัก · ย้อนกลับ · ประวัติ) ยังอยู่ที่นี่พร้อมเหตุผลตอนกดไม่ได้
+  // คำสั่งในเมนูระบุขั้นเป้าหมายจริง แม้ผู้ใช้กำลังเปิดอ่านขั้นอื่น
   const menu: MoreMenuItem[] = current
     ? [
         {
           key: "hold",
-          label: current.status === "ON_HOLD" ? "คืนขั้นนี้กลับคิว" : "พักขั้นนี้ไว้ก่อน",
+          label: current.status === "ON_HOLD" ? `คืน ${stepLabel(current)} กลับคิว` : `พัก ${stepLabel(current)}`,
           icon: Pause,
           hint: canManage ? (current.status === "COMPLETED" ? "ขั้นนี้ปิดแล้ว" : undefined) : "หัวหน้าเท่านั้น",
           disabled: !canManage || current.status === "COMPLETED" || current.status === "FAILED",
@@ -358,15 +310,17 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab, variant
         ) : (
           <div className="space-y-6">
             {workflowSteps.length > 0 && variant === "current" ? (
-              <OrderStatusBar
-                flowSteps={railLabels}
-                currentStepIndex={currentNodeIndex}
-                internalStatus={railLabels[currentNodeIndex]!}
-                customerStatus="PRODUCING"
-                revisions={[]}
-                cancelledAt={null}
-                cancelledReason={null}
-                blockers={blockers}
+              <WorkOrderStepNavigation
+                c={c}
+                activeIds={openInNode.map((step) => step.id)}
+                selectedId={viewedStep?.id ?? current?.id ?? null}
+                currentId={current?.id ?? null}
+                currentButtonRef={currentStepButtonRef}
+                onSelect={(stepId) => {
+                  setViewedStepId(stepId);
+                  setActiveTab("steps");
+                  requestAnimationFrame(() => document.getElementById(`work-order-task-${stepId}`)?.scrollIntoView({ block: "nearest" }));
+                }}
               />
             ) : workflowSteps.length > 0 && variant === "a" ? <WorkOrderRouteOverview c={c} /> : null}
 
@@ -409,7 +363,7 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab, variant
             {workflowSteps.length === 0 ? (
               <EmptyState icon={Factory} title="ใบผลิตนี้ยังไม่มีขั้นตอน" />
             ) : (
-              <Tabs defaultValue="steps">
+              <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsBar>
                   <TabsList aria-label="ส่วนของใบผลิต">
                     <TabsTrigger value="steps" hasPending={c.problemSteps.length > 0}>ขั้นตอน</TabsTrigger>
@@ -417,8 +371,20 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab, variant
                   </TabsList>
                 </TabsBar>
                 <div className="mt-6">
-                  <TabsContent value="steps" keepMounted={variant !== "current"}>
-                    <WorkOrderSteps c={c} current={current} pairedOpen={pairedOpen} allDone={allDone} qcAction={qcAction} stepFooter={stepFooter} assignAction={assignAction} variant={variant} />
+                  <TabsContent value="steps" keepMounted>
+                    {variant === "current" && readOnlyStep ? (
+                      <WorkOrderStepReadOnly step={readOnlyStep} c={c} onReturn={() => {
+                        setViewedStepId(null);
+                        requestAnimationFrame(() => {
+                          const button = currentStepButtonRef.current;
+                          button?.focus({ preventScroll: true });
+                          button?.scrollIntoView({ block: "nearest", inline: "nearest" });
+                        });
+                      }} allDone={allDone} />
+                    ) : null}
+                    <div hidden={variant === "current" && !!readOnlyStep}>
+                      <WorkOrderSteps c={c} current={current} pairedOpen={pairedOpen} allDone={allDone} qcAction={qcAction} stepFooter={stepFooter} assignAction={assignAction} variant={variant === "current" ? "a" : variant} />
+                    </div>
                   </TabsContent>
 
                   <TabsContent value="items" className="space-y-6">
@@ -464,6 +430,94 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab, variant
     onNavigate(link.getAttribute("aria-label") || link.textContent?.trim() || "เปิดลิงก์");
   };
   return <div id="work-order-preview" onClickCapture={interceptNavigation} onAuxClickCapture={interceptNavigation}>{content}</div>;
+}
+
+export function WorkOrderStepNavigation({ c, activeIds, selectedId, currentId, currentButtonRef, onSelect }: {
+  c: WorkOrderController;
+  activeIds: readonly string[];
+  selectedId: string | null;
+  currentId: string | null;
+  currentButtonRef?: Ref<HTMLButtonElement>;
+  onSelect: (stepId: string) => void;
+}) {
+  return (
+    <nav aria-label="เลือกขั้นเพื่อเปิดดู" className="space-y-2">
+      <p className="text-sm text-secondary">เปิดดูแต่ละขั้นได้ การเริ่มงานอยู่ในขั้นที่พร้อมทำ</p>
+      <ol className="flex gap-1 overflow-x-auto border-b border-divider">
+        {c.workflowSteps.map((step, index) => {
+          const view = viewOf(step, c.nowById.get(step.id));
+          const status = step.status === "PENDING" && !activeIds.includes(step.id) ? "ยังไม่ถึง" : view.label;
+          const selected = selectedId === step.id;
+          return (
+            <li key={step.id} className="shrink-0">
+              <button
+                ref={step.id === currentId ? currentButtonRef : undefined}
+                type="button"
+                aria-pressed={selected}
+                aria-label={`เปิดดู ${stepLabel(step)} · ${status}`}
+                onClick={() => onSelect(step.id)}
+                className={cn("flex min-h-16 items-center gap-3 border-b-2 px-3 py-3 text-left transition-colors hover:bg-interactive-hover", FOCUS_BUTTON, selected ? "border-blue-600 bg-blue-50/60 dark:border-blue-400 dark:bg-blue-950/20" : "border-transparent")}
+              >
+                <span className={cn("text-sm tabular-nums", step.status === "COMPLETED" ? "text-green-700 dark:text-green-400" : "text-muted")}>
+                  {step.status === "COMPLETED" ? <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> : index + 1}
+                </span>
+                <span className="space-y-1">
+                  <span className={cn("block text-sm font-medium", selected ? "text-blue-700 dark:text-blue-300" : "text-strong")}>{stepLabel(step)}</span>
+                  <span className="block text-xs text-secondary">{status}{step.pairWithPrevious ? " · ทำคู่ขั้นก่อน" : ""}</span>
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
+  );
+}
+
+export function WorkOrderStepReadOnly({ step, c, onReturn, allDone }: { step: ProductionStep; c: WorkOrderController; onReturn: () => void; allDone: boolean }) {
+  if (!c.order) return null;
+  const readOnly = { ...c, canUpdateStep: false };
+  const checked = new Map(step.checks.map((check) => [check.itemKey, check]));
+  const standards = workOrderStandards(step.stepType);
+  const view = viewOf(step, c.nowById.get(step.id));
+  const waiting = routeWaitingOn(step, c.workflowSteps).map(stepLabel);
+  return (
+    <section id={`work-order-task-${step.id}`} aria-label={`รายละเอียด ${stepLabel(step)} · อ่านอย่างเดียว`} className="space-y-5">
+      <header className="flex flex-wrap items-start justify-between gap-3 border-b border-divider pb-4">
+        <div className="space-y-2">
+          <p className="text-sm text-secondary">กำลังเปิดดู · อ่านอย่างเดียว</p>
+          <div className="flex flex-wrap items-center gap-3">
+            <h2 className="text-xl font-semibold text-strong">{stepLabel(step)}</h2>
+            <StateChip view={step.status === "PENDING" ? { state: "todo", label: "ยังไม่ถึง", chip: "neutral" } : view} kind={step.outsourceOrders.length > 0 ? "outsource" : "inhouse"} />
+          </div>
+          {waiting.length > 0 && step.status !== "COMPLETED" ? <p className="text-sm text-secondary">รอ {waiting.join(" และ ")}</p> : null}
+        </div>
+        <Button variant="outline" onClick={onReturn}>{allDone ? "กลับสรุปใบผลิต" : "กลับขั้นปัจจุบัน"}</Button>
+      </header>
+      <FactList columns={3}>
+        <Fact label="ผู้ทำ" value={step.assignedTo?.name ?? "ยังไม่มอบหมาย"} />
+        <Fact label="เริ่มทำ" value={step.startedAt ? formatDateTime(step.startedAt) : "ยังไม่ได้เริ่ม"} />
+        <Fact label="ปิดขั้น" value={step.completedAt ? formatDateTime(step.completedAt) : "ยังไม่ปิด"} />
+      </FactList>
+      <StepPieceTable key={step.id} step={step} order={c.order} c={readOnly} presentation="embedded" />
+      {step.outsourceOrders.length > 0 ? (
+        <div className="divide-y divide-divider border-y border-divider">
+          {step.outsourceOrders.map((receipt) => <div key={receipt.id} className="flex flex-wrap justify-between gap-2 py-3 text-sm"><span>{receipt.vendor.name} · {receipt.description || stepLabel(step)}</span><span className="tabular-nums">{receipt.quantity.toLocaleString("th-TH")} ตัว</span></div>)}
+        </div>
+      ) : null}
+      {standards.length > 0 ? (
+        <div className="border-t border-divider pt-4">
+          <h3 className="text-sm font-semibold text-strong">ผลตรวจที่บันทึก</h3>
+          <ul className="mt-2 divide-y divide-divider">
+            {standards.map((label) => {
+              const check = checked.get(label);
+              return <li key={label} className="flex items-start justify-between gap-4 py-3 text-sm"><span>{label}</span><span className="shrink-0 text-secondary">{check ? `ติ๊กโดย ${check.checkedBy.name}` : "ยังไม่มีผลตรวจ"}</span></li>;
+            })}
+          </ul>
+        </div>
+      ) : null}
+    </section>
+  );
 }
 
 export function WorkOrderPage({ id }: { id: string }) {

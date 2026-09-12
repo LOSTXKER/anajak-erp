@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
 import { DataTable } from "@/components/ui/data-table";
-import { cn, formatCurrency, formatDateTime } from "@/lib/utils";
+import { formatCurrency, formatDateTime } from "@/lib/utils";
 import { PageHeader } from "@/components/page-header";
 import { Package, Cloud, Database, Trash2 } from "lucide-react";
 import { permAllows } from "@/lib/permissions";
@@ -20,6 +20,8 @@ import { toast } from "sonner";
 import { Alert } from "@/components/ui/alert";
 import { RecordNotFound } from "@/components/ui/record-not-found";
 import { EmptyState } from "@/components/ui/empty-state";
+import { StatusLabel } from "@/components/ui/status-label";
+import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
 
 // ============================================================
 // CONSTANTS
@@ -57,7 +59,13 @@ export default function ProductDetailPage({
   const utils = trpc.useUtils();
   const confirm = useConfirm();
   const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({});
-  const [priceError, setPriceError] = useState<string | null>(null);
+  const [variantFeedback, setVariantFeedback] = useState<Record<string, {
+    kind: "price" | "status";
+    message: string;
+    error?: boolean;
+  }>>({});
+  const variantWritePending = useRef(false);
+  const discardPriceOnBlur = useRef<string | null>(null);
 
   const {
     data: product,
@@ -75,19 +83,56 @@ export default function ProductDetailPage({
   const updateProduct = trpc.product.update.useMutation({
     onSuccess: () => {
       utils.product.getById.invalidate({ id });
+      utils.product.list.invalidate();
     },
   });
 
   const updateVariant = trpc.product.updateVariant.useMutation({
-    onSuccess: (_data, variables) => {
+    onSuccess: (savedVariant, variables) => {
+      utils.product.getById.setData({ id }, (current) => current ? {
+        ...current,
+        variants: current.variants.map((variant) => variant.id === savedVariant.id ? { ...variant, ...savedVariant } : variant),
+      } : current);
       utils.product.getById.invalidate({ id });
-      setPriceDrafts((current) => {
-        const next = { ...current };
-        delete next[variables.id];
-        return next;
-      });
-      setPriceError(null);
+      utils.product.list.invalidate();
+      if (variables.priceAdj !== undefined) {
+        setPriceDrafts((current) => {
+          const draft = current[variables.id];
+          if (draft === undefined || draft.trim() === "" || Number(draft) !== variables.priceAdj) return current;
+          const next = { ...current };
+          delete next[variables.id];
+          return next;
+        });
+      }
+      setVariantFeedback((current) => ({
+        ...current,
+        [variables.id]: {
+          kind: variables.priceAdj !== undefined ? "price" : "status",
+          message: "บันทึกแล้ว",
+        },
+      }));
     },
+    onError: (error, variables) => setVariantFeedback((current) => ({
+      ...current,
+      [variables.id]: {
+        kind: variables.priceAdj !== undefined ? "price" : "status",
+        message: error.message || "บันทึกไม่สำเร็จ ลองอีกครั้ง",
+        error: true,
+      },
+    })),
+    onSettled: () => { variantWritePending.current = false; },
+  });
+  useUnsavedChanges(Object.keys(priceDrafts).length > 0 || updateVariant.isPending, {
+    title: "ออกจากหน้าสินค้า?",
+    description: "ราคาที่ส่งบันทึกแล้วจะดำเนินการต่อ ค่าที่ยังบันทึกไม่สำเร็จจะหายเมื่อออกจากหน้านี้",
+    confirmText: "ออกจากหน้านี้",
+    cancelText: "อยู่หน้านี้",
+  });
+
+  const clearVariantFeedback = (variantId: string) => setVariantFeedback((current) => {
+    const next = { ...current };
+    delete next[variantId];
+    return next;
   });
 
   const deleteProduct = trpc.product.delete.useMutation({
@@ -118,6 +163,9 @@ export default function ProductDetailPage({
   };
 
   const handleToggleVariantActive = (variantId: string, isActive: boolean) => {
+    if (!canManage || variantWritePending.current) return;
+    clearVariantFeedback(variantId);
+    variantWritePending.current = true;
     updateVariant.mutate({ id: variantId, isActive: !isActive });
   };
 
@@ -125,11 +173,26 @@ export default function ProductDetailPage({
     variantId: string,
     currentPriceAdj: number,
   ) => {
+    if (discardPriceOnBlur.current === variantId) {
+      discardPriceOnBlur.current = null;
+      return;
+    }
+    if (!canManage || variantWritePending.current) return;
     const draft = priceDrafts[variantId];
     if (draft === undefined) return;
+    if (draft.trim() === "") {
+      setVariantFeedback((current) => ({
+        ...current,
+        [variantId]: { kind: "price", error: true, message: "กรอกราคาปรับ หรือใส่ 0 หากไม่ปรับราคา" },
+      }));
+      return;
+    }
     const parsed = Number(draft);
     if (!Number.isFinite(parsed)) {
-      setPriceError("ราคาปรับต้องเป็นตัวเลข");
+      setVariantFeedback((current) => ({
+        ...current,
+        [variantId]: { kind: "price", error: true, message: "ราคาปรับต้องเป็นตัวเลข" },
+      }));
       return;
     }
     if (parsed === currentPriceAdj) {
@@ -138,8 +201,11 @@ export default function ProductDetailPage({
         delete next[variantId];
         return next;
       });
+      clearVariantFeedback(variantId);
       return;
     }
+    clearVariantFeedback(variantId);
+    variantWritePending.current = true;
     updateVariant.mutate({ id: variantId, priceAdj: parsed });
   };
 
@@ -195,16 +261,10 @@ export default function ProductDetailPage({
         titleBadge={
           <>
             <Badge variant={typ.variant}>{typ.label}</Badge>
-            <span
-              aria-hidden="true"
-              className={cn(
-                "h-2.5 w-2.5 rounded-full",
-                product.isActive ? "bg-green-400 dot-glow" : "bg-slate-400",
-              )}
+            <StatusLabel
+              label={product.isActive ? "เปิดใช้งาน" : "ปิดใช้งาน"}
+              tone={product.isActive ? "success" : "neutral"}
             />
-            <span className="sr-only">
-              {product.isActive ? "เปิดใช้งานอยู่" : "ปิดใช้งานอยู่"}
-            </span>
           </>
         }
         meta={product.sku}
@@ -217,8 +277,9 @@ export default function ProductDetailPage({
                   size="sm"
                   onClick={handleToggleProductActive}
                   disabled={updateProduct.isPending}
+                  aria-busy={updateProduct.isPending}
                 >
-                  {product.isActive ? "ปิดใช้งาน" : "เปิดใช้งาน"}
+                  {updateProduct.isPending ? "กำลังบันทึก..." : product.isActive ? "ปิดใช้งาน" : "เปิดใช้งาน"}
                 </Button>
               )}
               {canDelete && (
@@ -226,6 +287,7 @@ export default function ProductDetailPage({
                   variant="outline"
                   size="sm"
                   onClick={() => void handleDelete()}
+                  disabled={deleteProduct.isPending}
                   aria-label={`ลบสินค้า ${product.name}`}
                   className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950 dark:hover:text-red-300"
                 >
@@ -236,11 +298,13 @@ export default function ProductDetailPage({
           )
         }
       />
+      {updateProduct.isError && (
+        <Alert variant="error">{updateProduct.error.message}</Alert>
+      )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Left: Product image + info */}
-        <div className="space-y-6">
-          {/* Image */}
+        {/* รูปและข้อมูลสินค้าอ่านต่อกันในกล่องเดียว */}
+        <div>
           <Card className="overflow-hidden">
             <div className="flex h-56 items-center justify-center bg-surface-muted">
               {product.imageUrl ? (
@@ -253,10 +317,6 @@ export default function ProductDetailPage({
                 <Package className="h-16 w-16 text-muted" aria-hidden="true" />
               )}
             </div>
-          </Card>
-
-          {/* Info card — source badge ต้องตรงกับเจ้าของข้อมูล ไม่เหมารวมว่า sync จาก Stock */}
-          <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
                 ข้อมูลสินค้า
@@ -292,7 +352,7 @@ export default function ProductDetailPage({
                     : formatCurrency(product.basePrice);
                   return (
                     <div className="flex items-center justify-between">
-                      <span className="text-muted">ราคาขาย</span>
+                      <span className="text-muted">ราคาก่อนปรับ</span>
                       <span className="font-semibold tabular-nums text-blue-600 dark:text-blue-400">
                         {displayPrice}
                       </span>
@@ -307,10 +367,10 @@ export default function ProductDetailPage({
                     </span>
                   </div>
                 )}
-                <div className="flex items-center justify-between">
-                  <span className="text-muted">สต็อกรวม</span>
-                  <span className="font-semibold tabular-nums">
-                    {product.totalStock || totalStock} ชิ้น
+                <div className="flex items-end justify-between border-y border-divider py-3">
+                  <span className="text-secondary">สต๊อกทั้งหมด</span>
+                  <span className="text-2xl font-semibold tabular-nums text-strong">
+                    {(product.totalStock || totalStock).toLocaleString()} <span className="text-sm font-normal text-secondary">ชิ้น</span>
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
@@ -365,9 +425,17 @@ export default function ProductDetailPage({
         <div className="space-y-6 lg:col-span-2">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">
-                ตัวเลือกสินค้า ({product.variants.length})
+              <CardTitle className="text-lg">
+                สีและไซซ์ <span className="text-sm font-normal text-muted">{product.variants.length} ตัวเลือก</span>
               </CardTitle>
+              {canManage && (
+                <p id="variant-price-help" className="text-sm text-secondary">
+                  ราคาขายรวมยอดปรับแล้ว · ใส่ 0 หากไม่ปรับราคา
+                </p>
+              )}
+              {product.variants.length > 0 && (
+                <p className="text-xs text-muted md:hidden">เลื่อนตารางเพื่อดูราคาและสต๊อก</p>
+              )}
             </CardHeader>
             <CardContent>
               {/* Variants table */}
@@ -381,134 +449,153 @@ export default function ProductDetailPage({
                 <DataTable.Root bordered={false} cellPadding="compact">
                   <DataTable.Head>
                     <tr>
-                      <DataTable.Th>สี</DataTable.Th>
-                      <DataTable.Th>ไซส์</DataTable.Th>
-                      <DataTable.Th>SKU</DataTable.Th>
-                      <DataTable.Th align="right">ราคา</DataTable.Th>
-                      <DataTable.Th align="right">ปรับราคา (ERP)</DataTable.Th>
-                      <DataTable.Th align="right">สต็อก</DataTable.Th>
+                      <DataTable.Th>สี / ไซซ์</DataTable.Th>
+                      <DataTable.Th align="right">ราคาขาย</DataTable.Th>
+                      <DataTable.Th align="right">ปรับเพิ่ม/ลด</DataTable.Th>
+                      <DataTable.Th align="right">สต๊อก</DataTable.Th>
                       <DataTable.Th align="center">สถานะ</DataTable.Th>
                     </tr>
                   </DataTable.Head>
                   <DataTable.Body>
-                    {product.variants.map((variant) => (
-                      <DataTable.Row
-                        key={variant.id}
-                        className={!variant.isActive ? "opacity-50" : undefined}
-                      >
-                        <DataTable.Td className="text-secondary">
-                          {variant.color}
-                        </DataTable.Td>
-                        <DataTable.Td className="font-medium text-strong">
-                          {variant.size}
-                        </DataTable.Td>
-                        <DataTable.Td className="font-mono text-xs text-muted">
-                          {variant.sku}
-                        </DataTable.Td>
-                        <DataTable.Td align="right" className="tabular-nums">
-                          <span className="font-medium text-strong">
-                            {formatCurrency(
-                              (variant.sellingPrice > 0
-                                ? variant.sellingPrice
-                                : product.basePrice) + variant.priceAdj,
-                            )}
-                          </span>
-                        </DataTable.Td>
-                        <DataTable.Td align="right">
-                          {canManage ? (
-                            <div className="ml-auto w-28">
-                              <Input
-                                type="number"
-                                step={0.01}
-                                value={
-                                  priceDrafts[variant.id] ??
-                                  String(variant.priceAdj || 0)
-                                }
-                                onChange={(event) => {
-                                  setPriceError(null);
-                                  setPriceDrafts((current) => ({
-                                    ...current,
-                                    [variant.id]: event.target.value,
-                                  }));
-                                }}
-                                onBlur={() =>
-                                  commitVariantPriceAdj(
-                                    variant.id,
-                                    variant.priceAdj,
-                                  )
-                                }
-                                onKeyDown={(event) => {
-                                  if (event.key === "Enter")
-                                    event.currentTarget.blur();
-                                  if (event.key === "Escape") {
-                                    setPriceDrafts((current) => {
-                                      const next = { ...current };
-                                      delete next[variant.id];
-                                      return next;
-                                    });
-                                    event.currentTarget.blur();
-                                  }
-                                }}
-                                aria-label={`ปรับราคาของ ${variant.color} ${variant.size}`}
-                                className="text-right tabular-nums"
-                              />
-                              {priceDrafts[variant.id] !== undefined && (
-                                <span className="mt-1 block text-xs text-amber-700 dark:text-amber-300">
-                                  ออกจากช่องเพื่อบันทึก
-                                </span>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="text-sm tabular-nums text-secondary">
-                              {formatCurrency(variant.priceAdj)}
-                            </span>
-                          )}
-                        </DataTable.Td>
-                        <DataTable.Td
-                          align="right"
-                          className="tabular-nums text-secondary"
+                    {product.variants.map((variant) => {
+                      const feedback = variantFeedback[variant.id];
+                      const priceFeedback = feedback?.kind === "price" ? feedback : undefined;
+                      const statusFeedback = feedback?.kind === "status" ? feedback : undefined;
+                      const saving = updateVariant.isPending && updateVariant.variables?.id === variant.id;
+                      const savingPrice = saving && updateVariant.variables?.priceAdj !== undefined;
+                      const savingStatus = saving && updateVariant.variables?.isActive !== undefined;
+                      const priceMessage = savingPrice ? "กำลังบันทึก..." : priceFeedback?.message;
+                      return (
+                        <DataTable.Row
+                          key={variant.id}
+                          aria-busy={saving}
                         >
-                          {variant.totalStock || variant.stock}
-                        </DataTable.Td>
-                        <DataTable.Td align="center">
-                          {canManage ? (
-                            <Switch
-                            checked={variant.isActive}
-                            onCheckedChange={() =>
-                              handleToggleVariantActive(
-                                variant.id,
-                                  variant.isActive,
-                              )
-                            }
-                            aria-label={`${variant.isActive ? "ปิด" : "เปิด"}ตัวเลือก ${variant.color} ${variant.size}`}
-                            />
-                          ) : (
-                            <Badge
-                              variant={
-                                variant.isActive ? "success" : "secondary"
-                              }
-                              size="sm"
-                            >
-                              {variant.isActive ? "ใช้งาน" : "ปิด"}
-                            </Badge>
-                          )}
-                        </DataTable.Td>
-                      </DataTable.Row>
-                    ))}
+                          <DataTable.Td>
+                            <p className="font-medium text-strong">{variant.color} / {variant.size}</p>
+                            <p className="font-mono text-xs text-muted">{variant.sku}</p>
+                          </DataTable.Td>
+                          <DataTable.Td align="right" className="tabular-nums">
+                            <span className="font-medium text-strong">
+                              {formatCurrency(
+                                (variant.sellingPrice > 0
+                                  ? variant.sellingPrice
+                                  : product.basePrice) + variant.priceAdj,
+                              )}
+                            </span>
+                          </DataTable.Td>
+                          <DataTable.Td align="right">
+                            {canManage ? (
+                              <div className="ml-auto w-36">
+                                <Input
+                                  type="number"
+                                  inputMode="decimal"
+                                  step={0.01}
+                                  disabled={updateVariant.isPending}
+                                  aria-busy={savingPrice}
+                                  aria-invalid={priceFeedback?.error || undefined}
+                                  aria-describedby={`variant-price-help${priceMessage ? ` variant-price-feedback-${variant.id}` : ""}`}
+                                  value={
+                                    priceDrafts[variant.id] ??
+                                    String(variant.priceAdj || 0)
+                                  }
+                                  onChange={(event) => {
+                                    clearVariantFeedback(variant.id);
+                                    setPriceDrafts((current) => ({
+                                      ...current,
+                                      [variant.id]: event.target.value,
+                                    }));
+                                  }}
+                                  onBlur={() =>
+                                    commitVariantPriceAdj(
+                                      variant.id,
+                                      variant.priceAdj,
+                                    )
+                                  }
+                                  onKeyDown={(event) => {
+                                    if (event.key === "Enter") {
+                                      event.preventDefault();
+                                      event.currentTarget.blur();
+                                    }
+                                    if (event.key === "Escape") {
+                                      event.preventDefault();
+                                      discardPriceOnBlur.current = variant.id;
+                                      setPriceDrafts((current) => {
+                                        const next = { ...current };
+                                        delete next[variant.id];
+                                        return next;
+                                      });
+                                      clearVariantFeedback(variant.id);
+                                      event.currentTarget.blur();
+                                    }
+                                  }}
+                                  aria-label={`ปรับราคาของ ${variant.color} ${variant.size}`}
+                                  className="text-right tabular-nums"
+                                />
+                                {priceMessage ? (
+                                  <p
+                                    id={`variant-price-feedback-${variant.id}`}
+                                    role={priceFeedback?.error ? "alert" : "status"}
+                                    aria-live="polite"
+                                    className={`mt-1 text-sm ${priceFeedback?.error ? "text-red-700 dark:text-red-300" : "text-secondary"}`}
+                                  >
+                                    {priceMessage}
+                                  </p>
+                                ) : priceDrafts[variant.id] !== undefined ? (
+                                  <p className="mt-1 text-xs text-secondary">ออกจากช่องเพื่อบันทึก · Esc ยกเลิก</p>
+                                ) : null}
+                                {priceFeedback?.error && priceDrafts[variant.id]?.trim() && (
+                                  <Button variant="ghost" size="sm" onClick={() => commitVariantPriceAdj(variant.id, variant.priceAdj)}>
+                                    ลองบันทึกอีกครั้ง
+                                  </Button>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-sm tabular-nums text-secondary">
+                                {formatCurrency(variant.priceAdj)}
+                              </span>
+                            )}
+                          </DataTable.Td>
+                          <DataTable.Td
+                            align="right"
+                            className="tabular-nums text-secondary"
+                          >
+                            <span className="font-semibold text-strong">{(variant.totalStock || variant.stock).toLocaleString()}</span>
+                          </DataTable.Td>
+                          <DataTable.Td align="center">
+                            {canManage ? (
+                              <div className="flex flex-col items-center gap-1">
+                                <Switch
+                                  checked={variant.isActive}
+                                  disabled={updateVariant.isPending}
+                                  onCheckedChange={() => handleToggleVariantActive(variant.id, variant.isActive)}
+                                  aria-label={`${variant.isActive ? "ปิด" : "เปิด"}ตัวเลือก ${variant.color} ${variant.size}`}
+                                />
+                                <span className="text-xs text-secondary">{variant.isActive ? "เปิดใช้งาน" : "ปิดใช้งาน"}</span>
+                                {(savingStatus || statusFeedback) && (
+                                  <p role={statusFeedback?.error ? "alert" : "status"} className={`text-sm ${statusFeedback?.error ? "text-red-700 dark:text-red-300" : "text-secondary"}`}>
+                                    {savingStatus ? "กำลังบันทึก..." : statusFeedback?.message}
+                                  </p>
+                                )}
+                              </div>
+                            ) : (
+                              <Badge
+                                variant={
+                                  variant.isActive ? "success" : "secondary"
+                                }
+                                size="sm"
+                              >
+                                {variant.isActive ? "ใช้งาน" : "ปิด"}
+                              </Badge>
+                            )}
+                          </DataTable.Td>
+                        </DataTable.Row>
+                      );
+                    })}
                   </DataTable.Body>
                 </DataTable.Root>
               )}
             </CardContent>
           </Card>
-
-          {/* Error display */}
-          {(updateProduct.isError || updateVariant.isError || priceError) && (
-            <Alert variant="error">
-              {priceError ||
-                updateProduct.error?.message ||
-                updateVariant.error?.message}
-            </Alert>
-          )}
         </div>
       </div>
     </div>

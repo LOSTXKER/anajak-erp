@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { useProtoController } from "@/app/proto/work-order-states/_controller";
 import { makeOrder, stateOf, type Role } from "@/app/proto/work-order-states/_fixtures";
 import { UiResetWorkOrder } from "@/app/proto/ui-reset/_work-order";
-import { WorkOrderView } from "./work-order-page";
+import { WorkOrderStepReadOnly, WorkOrderView } from "./work-order-page";
 import { WorkOrderRouteOverview, type WorkOrderVariant } from "./work-order-steps";
 import type { WorkOrderController } from "./work-order-controller";
 
@@ -37,6 +37,30 @@ describe("หน้าลองใบผลิตคงคำสั่งจร�
 
   it("ไม่ส่ง variant ให้หน้าเดิมเหมือนส่ง current ทุกตัวอักษร", () => {
     expect(render("doing")).toBe(render("doing", "current"));
+  });
+
+  it("ใบจริงให้เลือกเปิดอ่านขั้น และบอกพร้อมทำแยกจากกำลังทำ", () => {
+    const ready = render("start");
+    expect(ready).toContain('aria-label="เลือกขั้นเพื่อเปิดดู"');
+    expect(ready).toContain('aria-label="เปิดดู รีดร้อน · พร้อมทำ"');
+    expect(ready).toContain('aria-label="เปิดดู ตรวจคุณภาพขั้นสุดท้าย · ยังไม่ถึง"');
+    expect(render("doing")).toContain('aria-label="เปิดดู รีดร้อน · กำลังทำ"');
+  });
+
+  it("การเปิดอ่านขั้นไม่มีช่องเขียนหรือคำสั่งปิดขั้น แต่คงสินค้าและผลตรวจจริง", () => {
+    function ReadOnlyFixture() {
+      const c = useProtoController(stateOf("doing"), "boss");
+      return React.createElement(WorkOrderStepReadOnly, { c, step: c.workflowSteps[0]!, onReturn: vi.fn(), allDone: false });
+    }
+    const html = renderToStaticMarkup(React.createElement(ReadOnlyFixture));
+    expect(html).toContain("อ่านอย่างเดียว");
+    expect(html).toContain("ผลตรวจที่บันทึก");
+    expect(html).toContain("ติ๊กโดย");
+    expect(html).toContain("ยังไม่มีผลตรวจ");
+    expect(html).toContain("กลับขั้นปัจจุบัน");
+    expect(html).not.toContain("<input");
+    expect(html).not.toContain("ปิดขั้นนี้");
+    expect(html).not.toContain("เปลี่ยนคนทำ");
   });
 
   it.each(["a", "b"] as const)("แบบ %s ยกคำสั่งขึ้นก่อนตารางโดยรักษาช่องยอดและผลตรวจเดิม", (variant) => {

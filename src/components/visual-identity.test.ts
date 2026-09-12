@@ -12,16 +12,31 @@ import { HelpTip } from "./ui/help-tip";
 import { visualToneForLabel } from "@/lib/visual-tone";
 
 describe("system visual identity", () => {
-  it("วาด module marker แบบเส้นเรียบโดย h1 ยังมีข้อความหัวข้อชุดเดียว", () => {
-    const html = renderToStaticMarkup(createElement(PageHeader, { title: "ควบคุมการผลิต" }));
+  it("หัวหน้ามี h1 เดียวและไม่เติมคำอธิบายที่ caller ไม่ได้ส่ง", () => {
+    const html = renderToStaticMarkup(createElement(PageHeader, {
+      title: "ควบคุมการผลิต",
+      titleBadge: createElement("span", null, "กำลังผลิต"),
+    }));
     expect(html).toContain('data-page-identity="ควบคุมการผลิต"');
-    expect(html).toContain("page-module-mark");
     expect(html.match(/<h1/g)).toHaveLength(1);
-    expect(html).toContain("ควบคุมการผลิต");
-    expect(html).not.toContain("bg-module-production-solid");
-    expect(html).not.toContain("shadow-sm");
+    expect(html).toMatch(/<h1[^>]*>ควบคุมการผลิต<\/h1>/);
+    expect(html).toContain("กำลังผลิต");
     expect(html).not.toContain('data-page-description=""');
     expect(html).not.toContain("ดูคิวผลิต งานที่ติดขัด และขั้นตอนที่ต้องจัดการต่อ");
+  });
+
+  it("หัวรายละเอียดคงทางกลับจาก breadcrumb และยอมรับทางกลับที่ caller ระบุ", () => {
+    const breadcrumb = [{ label: "ออเดอร์", href: "/orders" }, { label: "ORD-001" }];
+    const implicit = renderToStaticMarkup(createElement(PageHeader, { title: "ORD-001", breadcrumb }));
+    expect(implicit).toContain('href="/orders"');
+    expect(implicit).toContain('aria-label="กลับไปออเดอร์"');
+    const explicit = renderToStaticMarkup(createElement(PageHeader, {
+      title: "ORD-001", breadcrumb,
+      back: { href: "/my-tasks", label: "กลับงานของฉัน" },
+    }));
+    expect(explicit).toContain('href="/my-tasks"');
+    expect(explicit).toContain('aria-label="กลับงานของฉัน"');
+    expect(explicit).not.toContain('href="/orders"');
   });
 
   it("แยกคำอธิบายหน้าที่เห็นเสมอออกจาก metadata ของรายการ", () => {
@@ -81,7 +96,8 @@ describe("system visual identity", () => {
     expect(image).toContain('data-entity-mark="image"');
     expect(initials).toContain('data-entity-mark="initials"');
     expect(icon).toContain('data-entity-mark="icon"');
-    expect(icon).toContain("bg-module-finance-surface");
+    expect(image).toContain('src="/demo-mockups/front.svg"');
+    expect(icon).toContain('aria-hidden="true"');
   });
 
   it("Section รองรับ icon และ ContextPanel ไม่ปลอมเป็น alert", () => {
@@ -109,12 +125,11 @@ describe("system visual identity", () => {
     );
     expect(publicHtml).not.toContain("Powered by Anajak Print ERP");
     expect(publicHtml).toContain("แบรนด์ลูกค้า");
-    // blind ship = ไอคอนหัวเป็นเทา ไม่มีตราน้ำเงิน (hideBrandMark ตามหลัง hideFooter เอง)
-    expect(publicHtml).toContain("text-secondary");
-    expect(publicHtml).not.toContain("bg-blue-600");
-    expect(publicHtml).not.toContain("bg-module-");
-    expect(publicHtml).not.toContain("shadow-sm");
-    expect(publicHtml).not.toContain("rounded-[14px]");
+    expect(publicHtml).not.toContain("Anajak");
+    expect(publicHtml).not.toContain("<footer");
+    expect(publicHtml).toContain("สถานะงาน");
+    expect(publicHtml).toContain("ข้อมูลลูกค้า");
+    expect(printHtml).toContain('data-document-stamp="PL"');
     expect(printHtml).toContain("PL");
     expect(printHtml).toContain("Packing document");
   });

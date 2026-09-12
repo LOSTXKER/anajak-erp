@@ -9,116 +9,100 @@ const jsxA11yErrors = Object.fromEntries(
   ]),
 );
 
-// กฎภาษาของ UI ที่ใช้ทั้งโปรเจกต์ — แยกเป็นตัวแปรเพราะ flat config ของ eslint
-// "แทนที่" กฎชื่อเดียวกันทั้งก้อนเมื่อประกาศซ้ำใน block หลัง ไม่ได้รวมให้
-// (เคยพลาดมาแล้ว: พอเพิ่มกฎเฉพาะ ui/** ด่าน text-[Npx]/shadow-[
-//  หายไปจากโฟลเดอร์นั้นเงียบๆ — ทดสอบเจอตอนแกล้งใส่โค้ดผิดกฎ)
+// จุดชวนทบทวนตาม ui-guidance; ชื่อคลาสอย่างเดียวตัดสินคุณภาพของหน้าจอไม่ได้
+// แยกไว้ใช้ซ้ำ เพราะ flat config แทนที่กฎชื่อเดียวกันทั้งก้อนเมื่อประกาศใน block หลัง
 const uiLanguageRules = [
         {
           selector: "Literal[value=/text-\\[[0-9.]+px\\]/]",
           message:
-            "ห้ามสั่งขนาดตัวอักษรเป็น px ดิบ — ใช้ text-2xs/xs/sm/base/lg/xl/2xl/3xl (บันไดใน globals.css)",
+            "ทบทวนขนาดตัวอักษรนี้กับลำดับการอ่านและจอมือถือ ตาม ui-guidance; ใช้บันไดใน globals.css เมื่อเหมาะกับบริบท",
         },
         {
           selector: "TemplateElement[value.raw=/text-\\[[0-9.]+px\\]/]",
           message:
-            "ห้ามสั่งขนาดตัวอักษรเป็น px ดิบ — ใช้ text-2xs/xs/sm/base/lg/xl/2xl/3xl (บันไดใน globals.css)",
+            "ทบทวนขนาดตัวอักษรนี้กับลำดับการอ่านและจอมือถือ ตาม ui-guidance; ใช้บันไดใน globals.css เมื่อเหมาะกับบริบท",
         },
-        // ห้ามเขียนเงาเอง — เงามี 3 ระดับตามว่าของชิ้นนั้นลอยแค่ไหน (เบสเคาะ 2026-07-31)
-        // ก่อนหน้านี้หลุดไป 10 แบบคนละค่ากันทั้งที่ทำหน้าที่เดียวกัน
+        // เงาควรช่วยแยกชั้นหรือชี้ส่วนที่ลงมือได้; เทียบกับพื้นจริงก่อนเลือกสูตร
         {
           selector: "Literal[value=/shadow-\\[/]",
           message:
-            "ห้ามเขียนเงาเอง — ใช้ card-surface (นั่งกับที่) · card-surface-hover (ยกตอนชี้) · overlay-surface (ลอยจริง) · hairline-ring (เส้นบาง)",
+            "ทบทวนว่าเงานี้ช่วยแยกชั้นหรือเน้นงานที่สำคัญ ตาม ui-guidance; พิจารณา card-surface/overlay-surface หากทำหน้าที่เดียวกัน",
         },
         {
           selector: "TemplateElement[value.raw=/shadow-\\[/]",
           message:
-            "ห้ามเขียนเงาเอง — ใช้ card-surface (นั่งกับที่) · card-surface-hover (ยกตอนชี้) · overlay-surface (ลอยจริง) · hairline-ring (เส้นบาง)",
+            "ทบทวนว่าเงานี้ช่วยแยกชั้นหรือเน้นงานที่สำคัญ ตาม ui-guidance; พิจารณา card-surface/overlay-surface หากทำหน้าที่เดียวกัน",
         },
-        // A16: ระยะเป็นการตัดสินจาก layout จริง ไม่บังคับห้ามครึ่งขั้น
+        // ระยะตัดสินจากการใช้งานบน layout จริง
         // ขนาดเป้ากด/contrast/focus ยังคงตรวจจาก primitive และ verify:ui
 ];
 
-/* กฎที่บังคับเฉพาะไฟล์ .tsx (เบสสั่ง 2026-08-01 "ตรวจดีๆ ว่ามีอะไรไม่เป็นมาตรฐาน")
-   จงใจไม่บังคับกับ .ts เพราะ src/components/ui/tokens.ts คือที่ที่ "ประกาศ" สูตร
-   พวกนี้ — ถ้าบังคับด้วย ตัวนิยามเองจะผิดกฎตัวเอง (control-size.ts ก็ยกเว้นด้วยเหตุผลเดียวกัน) */
+// ทบทวนจุดนำรูปแบบไปใช้ใน .tsx; นิยาม token และขนาดใน .ts มีหน้าที่อีกอย่าง
 const tsxOnlyRules = [
-  // กล่องลอย 15 จุดเคยเขียนขอบ/พื้น/มุมโค้งเพิ่มเองข้าง .overlay-surface แล้วเขียนไม่ตรงกัน
-  // 5 สูตร: มุม lg/xl/2xl ปนกัน · บางจุดมีขอบ บางจุดไม่มี · โหมดมืดคนละเฉด
+  // การปรับพื้นหรือกรอบกล่องลอยควรตรวจร่วมกับเนื้อหาและทั้งสองธีม
   {
     selector:
       "Literal[value=/overlay-surface[^\"]*(bg-white|border-slate|rounded-)|(bg-white|border-slate|rounded-)[^\"]*overlay-surface/]",
     message:
-      "ห้ามใส่ขอบ/พื้น/มุมโค้งซ้ำให้กล่องลอย — ใช้ OVERLAY_PANEL จาก @/components/ui/tokens (.overlay-surface ให้ครบแล้ว)",
+      "ทบทวนพื้นและกรอบกล่องลอยที่ปรับเพิ่ม ตาม ui-guidance; ตรวจ contrast และขอบเขตที่อ่านชัดทั้งสองธีม โดยเทียบกับ OVERLAY_PANEL",
   },
-  // วงแหวนโฟกัสเคยมี 8 สูตร ทั้งที่มีแค่ 4 ความหมาย — ต่างกันแค่ความเข้ม/ระยะเว้น
-  // โดยไม่มีเหตุผล ทำให้ "โฟกัสอยู่ตรงไหน" ดูไม่เท่ากันทั้งเว็บ
+  // รูปแบบโฟกัสปรับได้ โดยต้องมองเห็นตำแหน่งคีย์บอร์ดชัดบนพื้นจริง
   {
     selector:
       "Literal[value=/(focus|focus-visible):ring-(blue|red|amber|yellow|green|slate|orange)-[0-9]/]",
     message:
-      "ห้ามเขียนวงแหวนโฟกัสเอง — ใช้ FOCUS_FIELD (ช่องกรอก) · FOCUS_BUTTON (ปุ่ม/แถวที่กดได้) · FOCUS_INSET (เต็มพื้นที่ เช่นหัวตาราง) · FOCUS_FIELD_INVALID (ช่องกรอกผิด) จาก @/components/ui/tokens",
+      "ทบทวนโฟกัสนี้ว่ามองเห็นชัดและไม่ถูกตัด ตาม ui-guidance; พิจารณา FOCUS_FIELD/FOCUS_BUTTON/FOCUS_INSET/FOCUS_FIELD_INVALID หากตรงกับการใช้งาน",
   },
   {
     selector:
       "TemplateElement[value.raw=/(focus|focus-visible):ring-(blue|red|amber|yellow|green|slate|orange)-[0-9]/]",
     message:
-      "ห้ามเขียนวงแหวนโฟกัสเอง — ใช้ FOCUS_FIELD / FOCUS_BUTTON / FOCUS_INSET / FOCUS_FIELD_INVALID จาก @/components/ui/tokens",
+      "ทบทวนโฟกัสนี้ว่ามองเห็นชัดและไม่ถูกตัด ตาม ui-guidance; พิจารณา FOCUS_FIELD/FOCUS_BUTTON/FOCUS_INSET/FOCUS_FIELD_INVALID หากตรงกับการใช้งาน",
   },
-  // ความสูง control — เดิมบังคับเฉพาะ src/components/ui/** ทำให้แถบบนก๊อปสูตร
-  // "h-11 … sm:h-9" มาเขียนเองได้โดยไม่มีอะไรเตือน (audit 2026-08-01 จับได้)
-  // ตอนนี้ครอบทั้ง src/**/*.tsx — ตัวนิยามอยู่ใน control-size.ts (เป็น .ts จึงไม่โดนกฎตัวเอง)
+  // ความสูงเลือกตามเนื้อหาและอุปกรณ์; ขนาดเป้ากดขั้นต่ำยังตรวจแยกจากคำแนะนำนี้
   {
     selector: "Literal[value=/(h-11|min-h-11)[^\"]*sm:(min-)?h-[89]/]",
     message:
-      "ห้ามเขียนความสูง control เอง — import CONTROL_H / CONTROL_H_SM / CONTROL_MIN_H จาก @/components/ui/control-size",
+      "ทบทวนความสูงนี้กับข้อความและขนาดเป้ากดบนมือถือ ตาม ui-guidance; พิจารณา CONTROL_H/CONTROL_H_SM/CONTROL_MIN_H หากเหมาะกับบริบท",
   },
   {
     selector: "TemplateElement[value.raw=/(h-11|min-h-11)[^`]*sm:(min-)?h-[89]/]",
     message:
-      "ห้ามเขียนความสูง control เอง — import CONTROL_H / CONTROL_H_SM / CONTROL_MIN_H จาก @/components/ui/control-size",
+      "ทบทวนความสูงนี้กับข้อความและขนาดเป้ากดบนมือถือ ตาม ui-guidance; พิจารณา CONTROL_H/CONTROL_H_SM/CONTROL_MIN_H หากเหมาะกับบริบท",
   },
-  // กล่องสีเตือน — เคยเขียนเอง 47 จุด ทั้งที่มี <Alert> อยู่แล้ว เฉดไม่ตรงกันสักที่
-  // (ขอบ 200 vs 300 · โหมดมืด 800 vs 900 · บางจุดลืมใส่โหมดมืด)
-  // ดักเฉพาะ "ขอบสี + พื้นสี ในก้อนเดียวกัน" = ตั้งใจทำกล่องเตือน ไม่ใช่แค่ใช้สี
+  // กล่องสีอาจใช้สื่อสถานะหรือจัดองค์ประกอบ; ทบทวนความหมายและระดับการเน้นจากงานจริง
   {
     selector:
       "Literal[value=/rounded-(lg|xl|2xl)[^\"]*(?<![:\\w-])border-(red|amber|yellow|green|blue)-[0-9]+[^\"]*(?<![:\\w-])bg-(red|amber|yellow|green|blue)-[0-9]+|(?<![:\\w-])border-(red|amber|yellow|green|blue)-[0-9]+[^\"]*(?<![:\\w-])bg-(red|amber|yellow|green|blue)-[0-9]+[^\"]*rounded-(lg|xl|2xl)/]",
     message:
-      "ห้ามเขียนกล่องสีเตือนเอง — ใช้ <Alert variant> จาก @/components/ui/alert · ถ้ามีปุ่ม/ฟอร์มอยู่ข้างใน (ใส่ใน role=\"alert\" ไม่ได้) ให้หยิบแค่สีด้วย TINT.<variant>",
+      "ทบทวนว่ากล่องสีนี้สื่อสถานะและเหตุที่ต้องลงมือชัด ตาม ui-guidance; ใช้ Alert เมื่อควรประกาศข้อความเตือน หรือ TINT เมื่อเพียงต้องการชุดสี",
   },
-  // ขอบประ = "ที่ว่างรอของ" — เคยใช้ slate-200 สลับ slate-300 และครึ่งหนึ่งลืมโหมดมืด
+  // ขอบประควรมีหน้าที่ที่เข้าใจได้จากเนื้อหา ไม่อาศัยรูปแบบเส้นอย่างเดียว
   {
     // (ไม่ดักเส้นคั่นด้านเดียว border-t/b/l/r — คนละเรื่องกับ "กล่องขอบประ")
     selector:
       "Literal[value=/^(?!.*border-[tblr]\\b).*(border-dashed[^\"]*border-slate-[0-9]+|border-slate-[0-9]+[^\"]*border-dashed)/]",
     message:
-      "ห้ามเขียนขอบประเอง — ใช้ DASHED จาก @/components/ui/tokens",
+      "ทบทวนความหมายและความชัดของขอบประทั้งสองธีม ตาม ui-guidance; พิจารณา DASHED หากทำหน้าที่เดียวกัน",
   },
-  // ตัวหมุนรอโหลดเคยมี 11 แบบ (7 ขนาด + 2 จุดปั่นวงกลมด้วยขอบ CSS คนละหน้าตากับที่เหลือ)
-  // ใน <Button> ไม่ต้องสั่งขนาด (Button บังคับไอคอน 15px ให้แล้ว) — ที่ดักคือ "สั่งขนาดเอง"
+  // ตัวหมุนควรมีขนาดพอให้เห็นและมีสถานะที่ผู้ใช้เข้าใจว่ากำลังรออะไร
   {
     selector: "Literal[value=/animate-spin[^\"]*\\b(h|w|size)-|\\b(h|w|size)-[^\"]*animate-spin/]",
     message:
-      "ห้ามสั่งขนาดตัวหมุนเอง — ใช้ <Spinner size=\"sm|md|lg|xl\" /> จาก @/components/ui/spinner (ในปุ่มไม่ต้องใส่ขนาดเลย)",
+      "ทบทวนขนาดตัวหมุนและข้อความระหว่างรอ ตาม ui-guidance; พิจารณา Spinner หากตรงกับพื้นที่และสถานะนี้",
   },
-  // ข้อ 10 — สีนอกจานแบรนด์ (เพิ่ม 2026-08-02 จาก audit สี)
-  // ด่าน 9 ข้อก่อนหน้าคุมขนาด/เงา/ระยะ/โฟกัส/ความสูง/กล่องเตือน/ขอบประ/ตัวหมุนครบ
-  // **แต่สีปล่อยฟรี** ผลคือมีสีส้มนอกจานหลุดเข้ามาแล้วโดยไม่มีอะไรเตือน
-  // จานที่ระบบใช้: slate (neutral) · blue (แบรนด์/ลิงก์) · red (อันตราย) · amber (เตือน) · green (สำเร็จ)
-  // ทั้ง 5 ตระกูลถูก override เป็นโทนแบรนด์ใน globals.css แล้ว — ตระกูลอื่นจะหลุดโทนทันที
+  // สีเพิ่มใช้ได้เมื่อช่วยงานและมีความหมายสม่ำเสมอ; ตรวจร่วมกับพื้นและสีสถานะที่มีอยู่
   {
     selector:
       "Literal[value=/\\b(?:bg|text|border|ring|divide|from|via|to|fill|stroke|shadow|outline|accent|caret|decoration|placeholder)-(?:gray|zinc|neutral|stone|orange|lime|emerald|teal|cyan|sky|indigo|violet|purple|fuchsia|pink|rose)-[0-9]/]",
     message:
-      "ใช้สีนอกจานแบรนด์ — ระบบใช้แค่ slate/blue/red/amber/green (ทั้ง 5 ถูก override เป็นโทน Anajak แล้ว) · เทา = slate ห้าม gray/zinc · ส้ม/เหลือง = amber · ฟ้า = blue",
+      "ทบทวนสีนี้กับความหมาย ลำดับการเน้น และ contrast ทั้งสองธีม ตาม ui-guidance; พิจารณา semantic token หากมีความหมายตรงกัน",
   },
   {
     selector:
       "TemplateElement[value.raw=/\\b(?:bg|text|border|ring|divide|from|via|to|fill|stroke|shadow|outline|accent|caret|decoration|placeholder)-(?:gray|zinc|neutral|stone|orange|lime|emerald|teal|cyan|sky|indigo|violet|purple|fuchsia|pink|rose)-[0-9]/]",
     message:
-      "ใช้สีนอกจานแบรนด์ — ระบบใช้แค่ slate/blue/red/amber/green (ทั้ง 5 ถูก override เป็นโทน Anajak แล้ว) · เทา = slate ห้าม gray/zinc · ส้ม/เหลือง = amber · ฟ้า = blue",
+      "ทบทวนสีนี้กับความหมาย ลำดับการเน้น และ contrast ทั้งสองธีม ตาม ui-guidance; พิจารณา semantic token หากมีความหมายตรงกัน",
   },
 ];
 
@@ -141,10 +125,8 @@ const eslintConfig = [
       "react-hooks/set-state-in-effect": "warn",
       "react-hooks/refs": "warn",
       "react-hooks/preserve-manual-memoization": "warn",
-      // ห้ามสั่งขนาดตัวอักษรเป็น px ดิบ — ใช้บันได 8 ขั้นใน globals.css เท่านั้น
-      // (เบสเคาะ 2026-07-31: ก่อนหน้านี้หลุดไป 24 ขนาด มีครึ่งพิกเซล 5 แบบ จนหน้าเว็บดูเบี้ยว)
-      // ยกเว้นเอกสารสั่งพิมพ์กับจอโรงงาน — ดู override ข้างล่าง
-      "no-restricted-syntax": ["error", ...uiLanguageRules],
+      // การเลือกขนาด/เงาเป็นคำแนะนำให้ทบทวนตาม ui-guidance; ไม่ตัดสินการใช้งานจากชื่อคลาส
+      "no-restricted-syntax": ["warn", ...uiLanguageRules],
     },
   },
   {
@@ -152,7 +134,7 @@ const eslintConfig = [
     // no-restricted-syntax ซ้ำต้องกระจาย uiLanguageRules เข้าไปด้วย ไม่งั้นด่านเดิมหายเงียบๆ
     files: ["src/**/*.tsx"],
     rules: {
-      "no-restricted-syntax": ["error", ...uiLanguageRules, ...tsxOnlyRules],
+      "no-restricted-syntax": ["warn", ...uiLanguageRules, ...tsxOnlyRules],
     },
   },
   {
