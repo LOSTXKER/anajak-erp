@@ -36,12 +36,14 @@ export default function BackupSettingsPage() {
   const last = lastExport?.logs?.[0];
 
   const [downloading, setDownloading] = useState(false);
+  const [downloadedFile, setDownloadedFile] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function handleDownload() {
     if (!canExport) return;
     setDownloading(true);
     setError(null);
+    setDownloadedFile(null);
     try {
       const res = await fetch("/api/backup/export");
       if (!res.ok) {
@@ -57,6 +59,7 @@ export default function BackupSettingsPage() {
       a.download = filename;
       a.click();
       URL.revokeObjectURL(url);
+      setDownloadedFile(filename);
       utils.analytics.auditLog.invalidate(); // อัปเดตบรรทัด "สำรองล่าสุด"
     } catch (e) {
       setError(e instanceof Error ? e.message : "ดาวน์โหลดไม่สำเร็จ");
@@ -88,10 +91,13 @@ export default function BackupSettingsPage() {
             ดาวน์โหลดไฟล์สำรองข้อมูล
           </CardTitle>
           <CardDescription>
-            ไฟล์เดียวรวมทุกข้อมูลในระบบ ณ เวลาที่กด · เตรียมไฟล์ราว 10-30 วินาที
+            ดาวน์โหลดข้อมูลจากฐานข้อมูลเป็นไฟล์ JSON ใช้เก็บสำรองสำหรับการกู้คืนโดยผู้ดูแลระบบ
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <p className="text-sm text-secondary">ไฟล์นี้เก็บข้อมูลและลิงก์ไฟล์แนบ รูปและไฟล์จริงในพื้นที่จัดเก็บต้องสำรองแยก</p>
+          {canSeeLog && lastExportQuery.isLoading && <p role="status" className="text-sm text-secondary">กำลังตรวจประวัติการสำรอง…</p>}
+          {canSeeLog && lastExportQuery.data && !last && <p className="text-sm text-secondary">ยังไม่มีประวัติการดาวน์โหลดไฟล์สำรอง</p>}
           {last && (
             <p className="text-sm text-muted">
               สำรองครั้งล่าสุด:{" "}
@@ -122,6 +128,7 @@ export default function BackupSettingsPage() {
               </>
             )}
           </Button>
+          {downloadedFile && <p role="status" className="break-all text-sm text-success">ส่งไฟล์ {downloadedFile} ให้เบราว์เซอร์แล้ว ตรวจไฟล์ในโฟลเดอร์ดาวน์โหลด</p>}
           {error && <p role="alert" className="text-sm text-red-700 dark:text-red-400">{error}</p>}
           <Alert variant="warning" icon={ShieldAlert}>
             <div>

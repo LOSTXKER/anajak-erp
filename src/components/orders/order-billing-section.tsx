@@ -4,8 +4,7 @@ import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { SectionTitle } from "@/components/ui/section";
+import { Section } from "@/components/ui/section";
 import { QueryError } from "@/components/ui/query-error";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert } from "@/components/ui/alert";
@@ -90,6 +89,7 @@ export function OrderBillingSection({
 
   // บิลที่ dialog คืนเงินเปิดอยู่ — ใช้ seed ยอดคืน default (netCash) ให้ RecordRefundDialog
   const refundingInvoice = (invoices.data || []).find((inv) => inv.id === showRefundDialog);
+  const voidingInvoice = (invoices.data || []).find((inv) => inv.id === showVoidDialog);
 
   // ช่าง/กราฟิกไม่เห็นการ์ดบิลทั้งใบ (Gate A2 — server ก็ gate listByOrder ไว้แล้ว
   // การ์ดเปล่าๆ ที่ query โดน FORBIDDEN มีแต่สร้างความงง) · me ยังไม่มา = ยังไม่ render
@@ -100,15 +100,8 @@ export function OrderBillingSection({
 
   return (
     <>
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <SectionTitle icon={Receipt} tone="finance">
-                บิล/การชำระเงิน
-              </SectionTitle>
-            </CardTitle>
-            {canCreateInvoice && canBill && (
+      <Section title="บิล/การชำระเงิน" icon={Receipt} tone="finance" surface="plain"
+        action={canCreateInvoice && canBill ? (
               <Button
                 size="sm"
                 // ยอด/ชนิดบิล/วันครบกำหนด prefill จาก billing.suggest ตามเงื่อนไขชำระของออเดอร์
@@ -118,10 +111,8 @@ export function OrderBillingSection({
                 <Plus />
                 สร้างบิล
               </Button>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent>
+            ) : undefined}
+      >
           {invoices.data ? (
           <div className="mb-4 grid grid-cols-2 gap-3 border-b border-divider pb-4 sm:grid-cols-4">
             <div className="text-center">
@@ -131,7 +122,7 @@ export function OrderBillingSection({
               </p>
             </div>
             <div className="text-center">
-              <p className="text-xs text-muted">วางบิลแล้ว</p>
+              <p className="text-xs text-muted">ออกใบเรียกเก็บแล้ว</p>
               <p className="text-sm font-semibold tabular-nums text-strong">
                 {formatCurrency(totalInvoiced)}
               </p>
@@ -143,7 +134,7 @@ export function OrderBillingSection({
               </p>
             </div>
             <div className="text-center">
-              <p className="text-xs text-muted">ค้างชำระ</p>
+              <p className="text-xs text-muted">ค้างตามใบเรียกเก็บ</p>
               <p
                 className={`text-sm font-semibold tabular-nums ${
                   totalOutstanding > 0
@@ -413,8 +404,7 @@ export function OrderBillingSection({
               })}
             </div>
           )}
-        </CardContent>
-      </Card>
+      </Section>
 
       {/* dialog สร้างบิล — conditional mount (กติกาใน ui/dialog.tsx) · โหมด receipt
           ส่ง payment+invoice ของงวดให้ dialog seed ฐาน+VAT เองจบในไฟล์ */}
@@ -447,15 +437,18 @@ export function OrderBillingSection({
       {refundingInvoice && (
         <RecordRefundDialog
           invoiceId={refundingInvoice.id}
+          invoiceNumber={refundingInvoice.invoiceNumber}
           initialAmount={invoiceBalance(refundingInvoice).netCash.toString()}
           onClose={() => setShowRefundDialog(null)}
         />
       )}
 
       {/* dialog ยกเลิกบิล — conditional mount (กติกาใน ui/dialog.tsx) */}
-      {showVoidDialog && (
+      {voidingInvoice && (
         <VoidInvoiceDialog
-          invoiceId={showVoidDialog}
+          invoiceId={voidingInvoice.id}
+          invoiceNumber={voidingInvoice.invoiceNumber}
+          totalAmount={voidingInvoice.totalAmount}
           onClose={() => setShowVoidDialog(null)}
         />
       )}

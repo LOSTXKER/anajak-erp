@@ -280,6 +280,7 @@ export const billingRouter = router({
           // ใบเสร็จของงวดรับเงิน (Gate B3): งวดต้องมีจริง อยู่ออเดอร์นี้ เป็นเงินเข้า
           // และยังไม่เคยออกใบ — issueDate = วันรับเงินจริง (tax point ม.78/1(1))
           let issueDate: Date | null = input.issueDate ? new Date(input.issueDate) : null;
+          let paidAt: Date | null = null;
           if (input.forPaymentId) {
             // ล็อกแถวงวด — สองจอออกใบให้งวดเดียวกันพร้อมกัน คนหลังต้องเห็นใบของคนแรก
             // (ไม่งั้นหลุดไปชน unique forPaymentId เป็น error ดิบ)
@@ -334,6 +335,8 @@ export const billingRouter = router({
             }
             // วันที่เอกสาร = วันเงินเข้าจริง (แก้ได้เคสบันทึกย้อน) · ไม่ระบุ = วันบันทึกรับเงิน
             issueDate = input.issueDate ? new Date(input.issueDate) : payment.createdAt;
+            // ใบนี้ยืนยันเงินงวดเดิมที่รับแล้ว — คงเวลาบันทึกเงินต้นทาง ไม่ลงรับเงินซ้ำ
+            paidAt = payment.createdAt;
           }
 
           // สำเนาคู่สัญญา ณ วันออกใบ — อ่านในทรานแซกชันเดียวกับการสร้าง (ม.86/4)
@@ -357,13 +360,15 @@ export const billingRouter = router({
               adjustmentReason: isAdjustment ? input.adjustmentReason?.trim() : null,
               forPaymentId: input.forPaymentId ?? null,
               issueDate,
+              paymentStatus: input.forPaymentId ? "PAID" : "UNPAID",
+              paidAt,
             },
           });
 
           // ใบลดหนี้เคลียร์ยอดใบเดิมเหมือนเงินรับ — สถานะใบเดิมต้องขยับตามยอดคงเหลือจริง
           // (ไม่งั้นใบที่ลดจนหมดยังโดนทวง/OVERDUE ปลอม — หนี้ PROGRESS ข้อ 1)
           // เฉพาะใบเรียกเก็บ: CN อ้างใบเสร็จ = ลดหนี้หลังรับเงิน (คู่กับบันทึกคืนเงิน) —
-          // ใบเสร็จค้าง UNPAID โดย design ห้าม flip สถานะ
+          // ใบเสร็จเป็นหลักฐานรับเงินเดิม — ใบลดหนี้ไม่เปลี่ยนสถานะรับเงินของหลักฐานนั้น
           if (
             input.type === "CREDIT_NOTE" &&
             original &&

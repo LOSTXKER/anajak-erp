@@ -10,6 +10,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
 import { Select } from "@/components/ui/select";
@@ -179,6 +180,9 @@ export function CreateDeliveryDialog({
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>สร้างรายการจัดส่ง</DialogTitle>
+          <DialogDescription>
+            {customerName ? `ลูกค้า ${customerName} · ` : ""}ตรวจชื่อผู้รับ ที่อยู่ และจำนวนที่แพ็คก่อนสร้างใบส่ง
+          </DialogDescription>
         </DialogHeader>
         <div className="max-h-[60dvh] space-y-4 overflow-y-auto">
           {/* ปุ่มก๊อป — ใบงานมีที่อยู่จัดส่งก็ดึงชุดนั้น (ครบ 7 ช่อง) ไม่มีค่อยถอยไปที่อยู่ผู้ติดต่อ

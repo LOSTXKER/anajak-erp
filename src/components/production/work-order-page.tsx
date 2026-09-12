@@ -4,6 +4,7 @@
 
 import { Suspense, useRef, useState, type MouseEvent, type ReactNode, type Ref } from "react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { CheckCircle2, ClipboardCheck, Factory, Flag, History, Pause, Printer, RotateCcw, UserRound } from "lucide-react";
 
 import { PageShell } from "@/components/page-shell";
@@ -87,13 +88,14 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab, variant
   const hasVariantRows = order ? pieceRowsOf(order).some((r) => r.variantId) : false;
   function actionFor(step: ProductionStep) {
     // ขั้นตรวจรับเสื้อลูกค้ามีปุ่มบันทึกอยู่ในฟอร์มนับจริงในกล่องแล้ว (ไม่เด้ง dialog อีก)
-    if (step.stepType === "GARMENT_RECEIVE") return null;
+    if (step.stepType === "GARMENT_RECEIVE" && !activeOutsource(step)) return null;
     const outsource = activeOutsource(step);
     if (outsource) {
       const receipts = outsourceReceiptCandidates(step);
-      if (!c.canUpdateStep || !c.canOwnOrSupervise(step) || !permAllows(me?.permissions, "manage_delivery") || receipts.length === 0) return null;
+      if (!c.canUpdateStep || !c.canOwnOrSupervise(step) || !permAllows(me?.permissions, "manage_delivery") || receipts.length === 0) return <Button asChild variant="outline"><Link href={onNavigate ? "#work-order-preview" : `/production/outsource?production=${step.productionId}`}>จัดการส่ง / รับกลับ / ตรวจรับ</Link></Button>;
       return (
         <div className="w-full divide-y divide-divider">
+          <Button asChild variant="outline" className="mb-3"><Link href={onNavigate ? "#work-order-preview" : `/production/outsource?production=${step.productionId}`}>เปิดใบงานร้านนอก</Link></Button>
           {receipts.map((receipt) => (
             <div key={receipt.id} className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
               <div className="min-w-0">
@@ -176,9 +178,9 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab, variant
     if (step.status === "FAILED") return "ขั้นนี้ติดปัญหา รอหัวหน้าจัดการ";
     if (outsource) {
       const receipts = outsourceReceiptCandidates(step);
-      if (receipts.length > 0) return `${receipts.length} ใบรอรับกลับ — ${permAllows(me?.permissions, "manage_delivery") ? "บันทึกได้เฉพาะหลักฐานรับกลับ สถานะร้านนอกยังไม่เปลี่ยน" : "ให้ผู้มีสิทธิ์รับของเข้าเป็นผู้บันทึกหลักฐานรับกลับ"}`;
+      if (receipts.length > 0) return `${receipts.length} ใบรอรับกลับ — ตรวจนับของจริง แล้วยืนยันรับกลับและผลตรวจจากหน้าใบงานร้านนอก`;
       const state = outsourceStepReason(step);
-      return `${state} — หน้าจัดการสถานะร้านนอกยังไม่พร้อมใช้งาน`;
+      return `${state} — เปิดใบงานร้านนอกเพื่อส่ง รับกลับ หรือตรวจรับ`;
     }
     const waiting = routeWaitingOn(step, workflowSteps).map(stepLabel);
     if (waiting.length > 0 && !nowById.get(step.id)?.action) return `รอ ${waiting.length === 1 ? waiting[0] : `${waiting.length} ขั้นก่อนหน้า`}`;

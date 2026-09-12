@@ -9,6 +9,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
 import { Field } from "@/components/ui/field";
@@ -23,6 +24,7 @@ import { PAYMENT_TERMS_LABELS } from "@/lib/payment-terms";
 import { customerProfileGaps } from "@/lib/customer-gaps";
 import { INVOICE_TYPE_LABELS } from "@/lib/invoice-labels";
 import { receiptAmounts } from "@/lib/billing-ui";
+import { toBangkokDateInput } from "@/lib/date-utils";
 import { Receipt } from "lucide-react";
 import type { InvoiceType } from "@prisma/client";
 import type { RouterOutput } from "@/lib/trpc";
@@ -103,7 +105,7 @@ export function CreateInvoiceDialog({
   );
   // วันที่เอกสาร default = วันบันทึกรับเงิน — แก้เป็นวันเงินเข้าจริงได้ (บันทึกข้ามวัน)
   const [receiptIssueDate, setReceiptIssueDate] = useState(
-    seed ? new Date(seed.payment.createdAt).toISOString().slice(0, 10) : ""
+    seed ? toBangkokDateInput(seed.payment.createdAt) : ""
   );
 
   const utils = trpc.useUtils();
@@ -188,7 +190,10 @@ export function CreateInvoiceDialog({
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>สร้างบิลใหม่</DialogTitle>
+          <DialogTitle>{receiptFor ? "ออกใบเสร็จของงวดรับเงิน" : "สร้างบิลใหม่"}</DialogTitle>
+          <DialogDescription>
+            {receiptFor ? `${receiptFor.invoice.invoiceNumber} · งวดรับเงิน ${formatCurrency(seed?.amounts.gross ?? 0)}` : "เลือกชนิดเอกสารและตรวจยอดก่อนสร้างบิล"}
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-2">

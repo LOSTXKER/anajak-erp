@@ -6,7 +6,8 @@ import { makeOrder, stateOf, type Role } from "@/app/proto/work-order-states/_fi
 import { UiResetWorkOrder } from "@/app/proto/ui-reset/_work-order";
 import { WorkOrderStepReadOnly, WorkOrderView } from "./work-order-page";
 import { WorkOrderRouteOverview, type WorkOrderVariant } from "./work-order-steps";
-import type { WorkOrderController } from "./work-order-controller";
+import { WorkOrderPrimaryButton, type WorkOrderController } from "./work-order-controller";
+import { operationsBack, operationsOrigin } from "./operations-navigation";
 
 (globalThis as Record<string, unknown>).React = React;
 
@@ -20,6 +21,28 @@ function render(scenario: string, variant?: WorkOrderVariant, role?: Role) {
 }
 
 describe("หน้าลองใบผลิตคงคำสั่งจริงและแยกการอ่านออกจากการลงมือ", () => {
+  it.each(["dtf-run", "outsource-shop"])("จอช่างเปิด %s แล้วกลับขั้นเดิมได้", (scenario) => {
+    const step = stateOf(scenario).steps.find((item) => item.status === "IN_PROGRESS")!;
+    const noop = vi.fn();
+    const html = renderToStaticMarkup(React.createElement(WorkOrderPrimaryButton, {
+      step, now: undefined, options: { touch: true }, busy: false,
+      canUpdateStep: true, canSuperviseStep: false, hasProductionPermission: true,
+      canOwnOrSupervise: () => true,
+      onStart: noop, onComplete: noop, onQuickPass: noop, onManage: noop,
+      onGoodsReceipt: noop, onOutsource: noop,
+    }));
+    const href = html.match(/href="([^"]+)"/)?.[1]?.replaceAll("&amp;", "&");
+    expect(href).toBeTruthy();
+    const url = new URL(href!, "http://localhost");
+    expect(url.pathname).toBe(scenario === "dtf-run" ? "/production/print-runs" : "/production/outsource");
+    if (scenario === "dtf-run") expect(url.searchParams.get("run")).toBe("PR-2609-0007");
+    const back = new URL(operationsBack(operationsOrigin(Object.fromEntries(url.searchParams))).href, "http://localhost");
+    expect(back.pathname).toBe("/production/floor");
+    expect(back.searchParams.get("job")).toBe(step.productionId);
+    expect(back.searchParams.get("step")).toBe(step.id);
+    expect(noop).not.toHaveBeenCalled();
+  });
+
   it("เวลาตัวอย่างตรงกันแม้ server และ browser เปิดคนละนาที", () => {
     vi.useFakeTimers();
     try {
@@ -114,7 +137,8 @@ describe("หน้าลองใบผลิตคงคำสั่งจร�
     expect(html).toContain('id="work-order-task-s-emb"');
     expect(html.match(/type="number"/g)?.length).toBe(current.match(/type="number"/g)?.length);
     expect(html).toContain("บันทึกหลักฐานรับกลับ");
-    expect(html).toContain("สถานะร้านนอกยังไม่เปลี่ยน");
+    expect(html).toContain("ยืนยันรับกลับและผลตรวจจากหน้าใบงานร้านนอก");
+    expect(html).toContain("/production/outsource?production=");
   });
 
   it("งานติดปัญหาคงเหตุและกั้นการแก้ยอด/ผลตรวจ", () => {

@@ -335,10 +335,10 @@ async function main() {
     ok("6.4 ลบไฟล์แนบได้ (ไฟล์แนบไม่ผูกอายุลิงก์)", true);
   } finally {
     // ---------- ล้างเกลี้ยง ----------
-    const prods = await prisma.production.findMany({
+    const prods = ids.order ? await prisma.production.findMany({
       where: { orderId: ids.order },
       select: { id: true, steps: { select: { id: true } } },
-    });
+    }) : [];
     const stepIds = prods.flatMap((p) => p.steps.map((s) => s.id));
     const osOrders = await prisma.outsourceOrder.findMany({
       where: { productionStepId: { in: stepIds } },
@@ -353,10 +353,10 @@ async function main() {
         entityId: { in: [ids.order, ids.vendor, ...osIds, ...stepIds, ...prods.map((p) => p.id)] },
       },
     });
-    await prisma.notification.deleteMany({ where: { entityId: ids.order } });
+    if (ids.order) await prisma.notification.deleteMany({ where: { entityId: ids.order } });
     await prisma.outsourceOrder.deleteMany({ where: { productionStepId: { in: stepIds } } });
-    await prisma.production.deleteMany({ where: { orderId: ids.order } });
-    await prisma.designVersion.deleteMany({ where: { orderId: ids.order } });
+    if (ids.order) await prisma.production.deleteMany({ where: { orderId: ids.order } });
+    if (ids.order) await prisma.designVersion.deleteMany({ where: { orderId: ids.order } });
     if (ids.order) await prisma.order.deleteMany({ where: { id: ids.order } });
     if (ids.vendor) await prisma.vendor.deleteMany({ where: { id: ids.vendor } });
     if (ids.customer) await prisma.customer.deleteMany({ where: { id: ids.customer } });

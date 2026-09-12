@@ -122,13 +122,13 @@ async function main() {
       signed.path
     );
 
+    uploadedPaths.push(signed.path);
     const up = await anon.storage
       .from(signed.bucket)
       .uploadToSignedUrl(signed.path, signed.uploadToken, PNG, {
         contentType: "image/png",
       });
     check("3.2 อัปไฟล์ผ่าน signed URL สำเร็จ (ไม่ต้อง login)", !up.error, up.error?.message);
-    if (!up.error) uploadedPaths.push(signed.path);
 
     await publicCaller.customerUpload.confirmUpload({
       token,
@@ -217,6 +217,8 @@ async function main() {
     check("5.3 token ไม่มีจริง → ปฏิเสธ", badToken);
   } finally {
     if (order) {
+      await prisma.notification.deleteMany({ where: { entityId: order.id } });
+      await prisma.auditLog.deleteMany({ where: { entityId: order.id } });
       await prisma.attachment.deleteMany({
         where: { entityType: "ORDER", entityId: order.id },
       });
@@ -230,7 +232,8 @@ async function main() {
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.SUPABASE_SERVICE_ROLE_KEY!
       );
-      await admin.storage.from("designs").remove(uploadedPaths);
+      const removed = await admin.storage.from("designs").remove(uploadedPaths);
+      if (removed.error) throw new Error(`ลบไฟล์ทดสอบไม่สำเร็จ: ${removed.error.message}`);
     }
   }
 

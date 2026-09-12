@@ -4,6 +4,7 @@ import { AlertCircle, Mail, Phone, RefreshCw } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { isPublicLinkUnavailable } from "@/lib/public-link-state";
 
 interface PublicLinkErrorProps {
   message?: string;
@@ -27,14 +28,12 @@ export function PublicLinkError({
     staleTime: 5 * 60 * 1000,
   });
 
-  const linkUnavailable = !error || ["NOT_FOUND", "BAD_REQUEST", "UNAUTHORIZED", "FORBIDDEN"].includes(error.data?.code ?? "");
+  const linkUnavailable = isPublicLinkUnavailable(error);
   const explanation = linkUnavailable
     ? message
     : "โหลดข้อมูลไม่สำเร็จ ตรวจการเชื่อมต่ออินเทอร์เน็ตแล้วลองเปิดอีกครั้ง หากยังไม่ได้ ให้ติดต่อผู้ส่งลิงก์";
 
   return (
-    // พื้นหน้าเดียวกับหน้าลูกค้าอื่น (ตัวนี้ตกหล่นตอนเปลี่ยนพื้นเป็นขาว 2026-08-01)
-    // · Card ให้พื้นกับขอบมาครบแล้ว เดิมเขียน bg-white/border ซ้ำ ซึ่งไม่มีผลด้วยซ้ำ
     <div className="flex min-h-screen items-center justify-center bg-bg p-4 text-strong">
       <Card className="w-full max-w-md">
         <CardContent className="p-6 sm:p-8">

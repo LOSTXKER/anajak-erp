@@ -4,6 +4,8 @@ import { getStockClientFromSettings } from "@/lib/stock-api";
 import { hasPermission } from "@/lib/permissions";
 import { byIdInput, fileUrlSchema, fileUrlArraySchema } from "@/server/schemas";
 import { redactCostFields } from "@/server/services/cost-response";
+import { productResponse } from "@/server/services/product-response";
+import { moneyInput } from "@/server/services/money";
 
 const managerUp = requirePermission("manage_settings");
 // ลบสินค้า = OWNER เท่านั้น — จงใจคง requireRole (จุด "คงเช็คเดิม" ตาม catalog PERM)
@@ -24,6 +26,7 @@ export const productRouter = router({
       })
     )
     .query(async ({ ctx, input }) => {
+      const canSeeCosts = hasPermission(ctx.userRole, ctx.permissionOverrides, "see_finance");
       // B11: ซ่อนสินค้าที่ soft-delete แล้วจากทุกหน้า
       const where: Record<string, unknown> = { deletedAt: null };
 
@@ -46,7 +49,7 @@ export const productRouter = router({
           where,
           include: {
             _count: { select: { variants: true } },
-            variants: { where: { isActive: true }, select: { stock: true, sellingPrice: true } },
+            variants: { where: { isActive: true }, select: { stock: true, sellingPrice: true, priceAdj: true } },
           },
           orderBy: { sku: "asc" },
           skip: (input.page - 1) * input.limit,
@@ -57,7 +60,7 @@ export const productRouter = router({
 
       // Add total stock calculation
       const productsWithStock = products.map((p) => ({
-        ...p,
+        ...productResponse(p, canSeeCosts),
         totalStock: p.totalStock || p.variants.reduce((sum, v) => sum + v.stock, 0),
       }));
 
@@ -112,31 +115,20 @@ export const productRouter = router({
         take: input.limit,
       });
 
-      if (canSeeCosts) return products;
-
-      return products.map((product) =>
-        redactCostFields(
-          {
-            ...product,
-            variants: product.variants.map((variant) =>
-              redactCostFields(variant, false),
-            ),
-          },
-          false,
-        ),
-      );
+      return products.map((product) => productResponse(product, canSeeCosts));
     }),
 
   getById: protectedProcedure
     .input(byIdInput)
     .query(async ({ ctx, input }) => {
       // findFirst + deletedAt: null — สินค้าที่ลบแล้วเปิดหน้ารายละเอียดไม่ได้ (404)
-      return ctx.prisma.product.findFirstOrThrow({
+      const product = await ctx.prisma.product.findFirstOrThrow({
         where: { id: input.id, deletedAt: null },
         include: {
           variants: { orderBy: { sku: "asc" } },
         },
       });
+      return productResponse(product, hasPermission(ctx.userRole, ctx.permissionOverrides, "see_finance"));
     }),
 
   // Update limited to ERP-specific overrides only (synced fields come from Stock)
@@ -152,7 +144,8 @@ export const productRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input;
-      return ctx.prisma.product.update({ where: { id }, data });
+      const product = await ctx.prisma.product.update({ where: { id }, data });
+      return productResponse(product, hasPermission(ctx.userRole, ctx.permissionOverrides, "see_finance"));
     }),
 
   // Variant update limited to ERP-level price adjustment and active status
@@ -167,7 +160,11 @@ export const productRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input;
-      return ctx.prisma.productVariant.update({ where: { id }, data });
+      const variant = await ctx.prisma.productVariant.update({
+        where: { id },
+        data: { ...data, ...(data.priceAdj === undefined ? {} : { priceAdj: moneyInput(data.priceAdj) }) },
+      });
+      return redactCostFields(variant, hasPermission(ctx.userRole, ctx.permissionOverrides, "see_finance"));
     }),
 
   // Delete product from ERP + soft-delete from Stock

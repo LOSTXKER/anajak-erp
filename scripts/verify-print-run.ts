@@ -61,6 +61,7 @@ async function makeOrder(opts: { suffix: string; qty: number; customerId: string
 async function main() {
   const owner = await prisma.user.findFirstOrThrow({ where: { role: "OWNER", isActive: true } });
   const caller = appRouter.createCaller({ prisma, userId: owner.id, userRole: owner.role });
+  const createdRunIds: string[] = [];
   const customer = await prisma.customer.create({
     data: { name: `${MARK} ลูกค้าทดสอบ`, customerType: "INDIVIDUAL" },
   });
@@ -83,6 +84,7 @@ async function main() {
         { stepId: B.printStep.id, qty: 8 }, // แบ่งพิมพ์ — เหลือ 12 ไว้รอบหน้า
       ],
     });
+    createdRunIds.push(run1.id);
     check("2.1 เปิดรอบได้ เลข FR-", run1.runNumber.startsWith("FR-"));
     queue = await caller.printRun.queue();
     check(
@@ -143,6 +145,7 @@ async function main() {
     queue = await caller.printRun.queue();
     check("6.1 B กลับเข้าคิว เหลือ 12", queue.find((q) => q.stepId === B.printStep.id)?.remaining === 12);
     const run2 = await caller.printRun.create({ items: [{ stepId: B.printStep.id, qty: 12 }] });
+    createdRunIds.push(run2.id);
     await caller.printRun.markPrinted({ runId: run2.id });
     await caller.printRun.complete({ runId: run2.id });
     const stepB3 = await prisma.productionStep.findUniqueOrThrow({ where: { id: B.printStep.id } });
@@ -151,6 +154,7 @@ async function main() {
     // ── 6. ยกเลิกรอบ → งานคืนคิว ──
     const C = await makeOrder({ suffix: "C", qty: 5, customerId: customer.id, userId: owner.id });
     const run3 = await caller.printRun.create({ items: [{ stepId: C.printStep.id, qty: 5 }] });
+    createdRunIds.push(run3.id);
     await caller.printRun.cancel({ runId: run3.id });
     const stepC = await prisma.productionStep.findUniqueOrThrow({ where: { id: C.printStep.id } });
     check("7.1 ยกเลิกรอบ → ขั้นกลับ PENDING", stepC.status === "PENDING" && stepC.qtyDone === 0);
@@ -163,16 +167,16 @@ async function main() {
   } finally {
     // ── cleanup เกลี้ยง ──
     const orders = await prisma.order.findMany({
-      where: { notes: { contains: MARK } },
+      where: { customerId: customer.id },
       select: { id: true },
     });
     const orderIds = orders.map((o) => o.id);
-    await prisma.filmStock.deleteMany({ where: { OR: [{ orderId: { in: orderIds } }, { label: { contains: MARK } }] } });
+    await prisma.filmStock.deleteMany({ where: { orderId: { in: orderIds } } });
     await prisma.printRunItem.deleteMany({ where: { orderId: { in: orderIds } } });
-    await prisma.printRun.deleteMany({ where: { items: { none: {} }, runNumber: { startsWith: "FR-" } } });
+    await prisma.printRun.deleteMany({ where: { id: { in: createdRunIds }, items: { none: {} } } });
     await prisma.production.deleteMany({ where: { orderId: { in: orderIds } } });
     await prisma.order.deleteMany({ where: { id: { in: orderIds } } });
-    await prisma.customer.deleteMany({ where: { name: { contains: MARK } } });
+    await prisma.customer.deleteMany({ where: { id: customer.id } });
   }
 
   console.log(`\n=== ผล: ผ่าน ${pass} · ตก ${fails.length} ===`);

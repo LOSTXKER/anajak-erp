@@ -10,8 +10,10 @@ import { Field } from "@/components/ui/field";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PublicLinkError } from "@/components/public-link-error";
+import { isPublicLinkUnavailable, retryPublicQuery } from "@/lib/public-link-state";
 import {
   PublicPageShell,
+  PublicRefreshNotice,
   FullScreenLoading,
   InfoRow,
 } from "@/components/public/public-page";
@@ -36,7 +38,7 @@ export default function DesignApprovalPage({
   const [comment, setComment] = useState("");
   const [submitted, setSubmitted] = useState<"approved" | "revision" | null>(null);
 
-  const design = trpc.design.getByToken.useQuery({ token });
+  const design = trpc.design.getByToken.useQuery({ token }, { retry: retryPublicQuery });
   const approve = trpc.design.approveByToken.useMutation({
     onSuccess: (_, variables) => {
       setSubmitted(variables.approved ? "approved" : "revision");
@@ -47,11 +49,8 @@ export default function DesignApprovalPage({
     return <FullScreenLoading />;
   }
 
-  // ต้องเช็ค !data ด้วย ไม่ใช่แค่ error — react-query มีสถานะ "ยังไม่ยิง/หยุดพัก"
-  // ที่ isLoading=false + error=null + data=undefined พร้อมกัน · ของเดิมเขียน
-  // `design.data!` (บอก TS ว่ามีแน่ๆ) แล้วลูกค้าที่กดลิงก์เจอจอ error แดงของ Next
-  // แทนข้อความ "ลิงก์หมดอายุ" — อีก 3 หน้าลูกค้า (quote/status/upload) เช็คถูกอยู่แล้ว
-  if (design.error || !design.data) {
+  // เมื่อ query หยุดพักอาจยังไม่มีทั้ง data และ error; ไม่ถือว่า token หมดอายุเอง
+  if (!design.data || (design.error && isPublicLinkUnavailable(design.error))) {
     return <PublicLinkError error={design.error} message="ไม่พบแบบที่ต้องการ ลิงก์อาจหมดอายุแล้ว" onRetry={() => void design.refetch()} />;
   }
 
@@ -73,7 +72,7 @@ export default function DesignApprovalPage({
                   อนุมัติแบบเรียบร้อย!
                 </h2>
                 <p className="text-sm text-muted">
-                  ขอบคุณที่อนุมัติแบบ ทีมงานจะเริ่มดำเนินการผลิตให้เร็วที่สุด
+                  ขอบคุณที่อนุมัติแบบ ทีมงานได้รับผลอนุมัติแล้ว
                 </p>
               </>
             ) : (
@@ -97,8 +96,10 @@ export default function DesignApprovalPage({
   return (
     <PublicPageShell
       icon={<Palette />}
-      subtitle="ตรวจสอบและอนุมัติแบบ"
+      heading="ตรวจสอบแบบ"
+      subtitle="ดูแบบให้ครบก่อนอนุมัติ หรือระบุจุดที่ต้องการแก้ไข"
     >
+      {design.error && <PublicRefreshNotice onRetry={() => void design.refetch()} refreshing={design.isFetching} />}
 
         {/* Order Info */}
         <Card>
@@ -241,7 +242,7 @@ export default function DesignApprovalPage({
                   onChange={(e) => setComment(e.target.value)}
                   placeholder="พิมพ์ความเห็นหรือสิ่งที่ต้องการแก้ไข (ถ้ามี)..."
                   rows={4}
-                  disabled={approve.isPending}
+                  disabled={approve.isPending || !!design.error}
                 />
               </Field>
               <div className="flex flex-col gap-3 sm:flex-row">
@@ -255,7 +256,7 @@ export default function DesignApprovalPage({
                       comment: comment || undefined,
                     })
                   }
-                  disabled={approve.isPending}
+                  disabled={approve.isPending || !!design.error}
                 >
                   <X />
                   ขอแก้ไข
@@ -269,7 +270,7 @@ export default function DesignApprovalPage({
                       comment: comment || undefined,
                     })
                   }
-                  disabled={approve.isPending}
+                  disabled={approve.isPending || !!design.error}
                 >
                   {approve.isPending ? (
                     <Loader2 className="animate-spin" />
@@ -282,7 +283,7 @@ export default function DesignApprovalPage({
               {/* ลูกค้ากดอนุมัติแล้วไม่สำเร็จ ต้องเห็นชัด — เดิมเป็นบรรทัดแดงจางๆ
                   ที่มองข้ามได้ง่าย แล้วลูกค้าจะนึกว่าอนุมัติไปแล้ว (audit สี 2026-08-02) */}
               {approve.error && (
-                <Alert variant="error">เกิดข้อผิดพลาด กรุณาลองอีกครั้ง</Alert>
+                <Alert variant="error">{["BAD_REQUEST", "CONFLICT", "FORBIDDEN", "NOT_FOUND", "UNAUTHORIZED"].includes(approve.error.data?.code ?? "") ? approve.error.message : "ส่งผลไม่สำเร็จ ความคิดเห็นยังอยู่ กรุณาลองอีกครั้ง"}</Alert>
               )}
             </CardContent>
           </Card>

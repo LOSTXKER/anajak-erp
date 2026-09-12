@@ -44,6 +44,7 @@ export const customerUploadRouter = router({
 
   // OrderFilesCard ใช้โชว์ปุ่มคัดลอกลิงก์ (มี token = โชว์ปุ่ม · null = ปุ่ม "สร้างลิงก์")
   getLink: protectedProcedure
+    .use(salesUp)
     .input(z.object({ orderId: z.string() }))
     .query(async ({ ctx, input }) => {
       const order = await ctx.prisma.order.findUnique({

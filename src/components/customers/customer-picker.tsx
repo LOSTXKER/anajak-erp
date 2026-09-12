@@ -4,6 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import type { RouterOutput } from "@/lib/trpc";
+import { useConfirm } from "@/components/ui/confirm-dialog";
+import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
+import { permAllows } from "@/lib/permissions";
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -21,7 +25,7 @@ import { QueryError } from "@/components/ui/query-error";
 import { Field } from "@/components/ui/field";
 
 import { cn } from "@/lib/utils";
-import { TINT } from "@/components/ui/tokens";
+import { TINT, FOCUS_BUTTON } from "@/components/ui/tokens";
 
 // ตัวเลือกลูกค้ามาตรฐาน: ค้นหาผ่าน server + เพิ่มลูกค้าด่วนจากชื่อแชท + กันสร้างซ้ำ
 // หลักคิด "โปรไฟล์โตตามงาน" — ลูกค้าแชทใหม่เริ่มได้ด้วยชื่ออย่างเดียว ข้อมูลอื่นเติมทีหลัง
@@ -81,6 +85,9 @@ export function CustomerPicker({
   const [isChecking, setIsChecking] = useState(false);
 
   const utils = trpc.useUtils();
+  const confirm = useConfirm();
+  const { data: me } = trpc.user.me.useQuery();
+  const canCreate = permAllows(me?.permissions, "manage_customers");
   const { data, isLoading, isError, refetch } = trpc.customer.list.useQuery(
     {
       search: search || undefined,
@@ -99,6 +106,13 @@ export function CustomerPicker({
     onError: (err) => toast.error(err.message ?? "เพิ่มลูกค้าไม่สำเร็จ"),
   });
 
+  const dirty = showCreate && Boolean(newName || newLineId || newPhone || newType !== "INDIVIDUAL");
+  useUnsavedChanges(dirty || isChecking || createCustomer.isPending, createCustomer.isPending ? { title: "กำลังบันทึก ออกจากหน้านี้หรือไม่?", description: "การออกจากหน้านี้ไม่ยกเลิกคำสั่งที่ส่งแล้ว กลับมาตรวจผลก่อนส่งซ้ำ", confirmText: "ออกจากหน้านี้" } : undefined);
+  async function requestCloseCreate() {
+    if (isChecking || createCustomer.isPending) return;
+    if (dirty && !(await confirm({ title: "ทิ้งข้อมูลลูกค้าที่ยังไม่บันทึก?", confirmText: "ทิ้งข้อมูล", cancelText: "กลับไปกรอกต่อ", destructive: true }))) return;
+    closeCreate();
+  }
   const list = data?.customers ?? [];
   const options =
     selected && !list.some((c) => c.id === selected.id) ? [selected, ...list] : list;
@@ -119,7 +133,7 @@ export function CustomerPicker({
   }
 
   async function handleCreate() {
-    if (isChecking) return;
+    if (isChecking || createCustomer.isPending || !canCreate) return;
     // เบอร์เก็บเป็นตัวเลขล้วน — กันซ้ำพลาดเพราะคนพิมพ์มี/ไม่มีขีด (helper เดียวกับ server)
     const cleanPhone = normalizePhone(newPhone);
 
@@ -207,7 +221,7 @@ export function CustomerPicker({
             </option>
           ))}
         </Select>
-        <Button
+        {canCreate && <Button
           type="button"
           variant="outline"
           onClick={() => setShowCreate(true)}
@@ -217,10 +231,10 @@ export function CustomerPicker({
         >
           <UserPlus />
           ใหม่
-        </Button>
+        </Button>}
       </div>}
 
-      <Dialog open={showCreate} onOpenChange={(open) => !open && closeCreate()}>
+      <Dialog open={showCreate} onOpenChange={(open) => { if (!open) void requestCloseCreate(); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>เพิ่มลูกค้าใหม่</DialogTitle>
@@ -228,7 +242,7 @@ export function CustomerPicker({
               ใส่แค่ชื่อแชทก็เริ่มงานได้ — ที่อยู่/เบอร์/ข้อมูลใบกำกับ เติมทีหลังเมื่อลูกค้าบอก
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3">
+          <fieldset disabled={createCustomer.isPending || isChecking} className="space-y-3">
             <Field label="ชื่อ (ชื่อแชทได้)" required>
               <Input
                 value={newName}
@@ -284,7 +298,7 @@ export function CustomerPicker({
                       pick(c);
                       closeCreate();
                     }}
-                    className="group flex w-full items-center justify-between rounded-lg bg-surface px-2.5 py-1.5 text-left text-sm transition-colors hover:bg-interactive-hover active:bg-interactive-pressed"
+                    className={cn("group flex min-h-11 w-full items-center justify-between gap-3 rounded-lg bg-surface px-2.5 py-2 text-left text-sm transition-colors hover:bg-interactive-hover active:bg-interactive-pressed", FOCUS_BUTTON)}
                   >
                     <span>
                       {c.name}
@@ -301,13 +315,14 @@ export function CustomerPicker({
                 </p>
               </div>
             )}
-          </div>
+          </fieldset>
+          {createCustomer.error && <Alert variant="error">เพิ่มลูกค้าไม่สำเร็จ: {createCustomer.error.message}</Alert>}
           <DialogSubmitFooter
             pending={createCustomer.isPending || isChecking}
             disabled={!newName.trim()}
             submitLabel="เพิ่มลูกค้า"
             submitIcon={<UserPlus />}
-            onCancel={closeCreate}
+            onCancel={() => void requestCloseCreate()}
             onSubmit={handleCreate}
           />
         </DialogContent>

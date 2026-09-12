@@ -82,6 +82,25 @@ export function calculateItemSubtotal(item: PricingItem): number {
 // ORDER-LEVEL CALCULATION
 // ============================================================
 
+/** Preview ใบเสนอใช้ราคาต่อหน่วยที่เก็บได้ 2 ตำแหน่งก่อนคูณจำนวน เหมือน computeQuotationTotals */
+export function calculateQuotationSummary(input: { items: readonly { quantity: number; unitPrice: number }[]; discount: number; tax: number }) {
+  const cents = (amount: number) => {
+    const [coefficient, exponent = "0"] = String(amount).split("e");
+    return Math.round(Number(`${coefficient}e${Number(exponent) + 2}`));
+  };
+  const lineCents = input.items.map((item) => cents(item.unitPrice) * item.quantity);
+  const subtotalCents = lineCents.reduce((sum, amount) => sum + amount, 0);
+  const discountCents = cents(input.discount);
+  const taxCents = cents(input.tax);
+  return {
+    lineTotals: lineCents.map((amount) => amount / 100),
+    subtotal: subtotalCents / 100,
+    discount: discountCents / 100,
+    tax: taxCents / 100,
+    total: Math.max(0, subtotalCents - discountCents + taxCents) / 100,
+  };
+}
+
 /**
  * สรุปยอดออเดอร์สำหรับ preview ฝั่ง client — สูตร A เดียวกับ server
  * (ตัวจริงอยู่ src/server/services/pricing.ts computeOrderTotals — แก้สูตรต้องแก้คู่กันเสมอ)

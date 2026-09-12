@@ -15,7 +15,6 @@ import {
 } from "@/components/ui/card";
 import { ToneMark } from "@/components/ui/section";
 import { RADIUS, TINT } from "@/components/ui/tokens";
-import { Badge } from "@/components/ui/badge";
 import { QueryError } from "@/components/ui/query-error";
 import { cn, formatDateTime } from "@/lib/utils";
 import {
@@ -37,6 +36,8 @@ import { SyncDialog } from "@/components/sync-dialog";
 import { Alert } from "@/components/ui/alert";
 import { DataTable } from "@/components/ui/data-table";
 import { PageShell } from "@/components/page-shell";
+import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
+import { CatalogFeedback } from "@/components/settings/catalog-tools";
 import { ContextPanel } from "@/components/ui/context-panel";
 
 // ─── Setting Keys ──────────────────────────────────────────
@@ -128,16 +129,18 @@ export default function StockSettingsPage() {
   const utils = trpc.useUtils();
 
   const saveSettings = trpc.settings.setMany.useMutation({
-    onSuccess: () => {
+    onSuccess: (_result, submitted) => {
+      const submittedUrl = submitted.settings.find((setting) => setting.key === STOCK_API_URL_KEY)?.value ?? "";
+      const submittedKey = submitted.settings.find((setting) => setting.key === STOCK_API_KEY_KEY)?.value ?? "";
       utils.settings.getMany.setData(
         { keys: STOCK_SETTING_KEYS },
         {
           ...(savedSettings ?? {}),
-          [STOCK_API_URL_KEY]: apiUrl.trim(),
-          [STOCK_API_KEY_KEY]: apiKey.trim(),
+          [STOCK_API_URL_KEY]: submittedUrl,
+          [STOCK_API_KEY_KEY]: submittedKey,
         },
       );
-      setDraft(null);
+      setDraft((current) => current?.apiUrl.trim() === submittedUrl && current.apiKey.trim() === submittedKey ? null : current);
       toast.success("บันทึกการตั้งค่าสำเร็จ");
       // Invalidate so stock-sync router picks up new settings
       utils.settings.getMany.invalidate();
@@ -174,6 +177,8 @@ export default function StockSettingsPage() {
       toast.error("Sync สต็อกล้มเหลว", { description: error.message });
     },
   });
+
+  useUnsavedChanges(!isSaved || saveSettings.isPending, saveSettings.isPending ? { title: "กำลังบันทึก ออกจากหน้านี้หรือไม่?", description: "การออกจากหน้านี้ไม่ยกเลิกคำสั่งที่ส่งแล้ว กลับมาตรวจผลก่อนส่งซ้ำ", confirmText: "ออกจากหน้านี้" } : undefined);
 
   // ─── Handlers ────────────────────────────────────────────
   function handleSave() {
@@ -369,7 +374,8 @@ export default function StockSettingsPage() {
                   </p>
                 )}
 
-                {/* Connection result */}
+                <CatalogFeedback pending={saveSettings.isPending} error={saveSettings.error?.message} />
+            {/* Connection result */}
                 {connectionResult && (
                   <div
                     className={cn(
@@ -408,7 +414,7 @@ export default function StockSettingsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <ToneMark icon={RefreshCw} tone="system" />
-              Sync สินค้า
+              นำเข้าสินค้าและอัปเดตยอด
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -470,16 +476,16 @@ export default function StockSettingsPage() {
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               <Button
                 onClick={() => setSyncDialogOpen(true)}
-                disabled={!hasCredentials}
+                disabled={!hasCredentials || !isSaved}
                 className="w-full"
               >
                 <Cloud />
-                Sync สินค้า
+                นำเข้าสินค้าและอัปเดตยอด
               </Button>
               <Button
                 variant="outline"
                 onClick={() => syncStock.mutate()}
-                disabled={syncStock.isPending || !hasCredentials}
+                disabled={syncStock.isPending || !hasCredentials || !isSaved}
                 className="w-full"
               >
                 {syncStock.isPending ? (
@@ -487,13 +493,15 @@ export default function StockSettingsPage() {
                 ) : (
                   <Database />
                 )}
-                {syncStock.isPending ? "กำลัง Sync..." : "Sync เฉพาะสต็อค"}
+                {syncStock.isPending ? "กำลังอัปเดตยอด…" : "อัปเดตเฉพาะยอดคงเหลือ"}
               </Button>
             </div>
 
+            {!isSaved ? <p className="text-sm text-amber-700 dark:text-amber-300">บันทึกข้อมูลเชื่อมต่อด้านบนก่อนนำเข้าหรืออัปเดตยอด</p> : null}
+            <CatalogFeedback pending={syncStock.isPending} error={syncStock.error?.message} />
             {/* Last stock sync result */}
             {lastStockResult && (
-              <Alert variant="success">
+              <Alert variant={lastStockResult.errors.length > 0 ? "warning" : "success"}>
                 <p className="mb-1 text-sm font-medium text-green-700 dark:text-green-400">
                   ผลลัพธ์ Sync สต็อก
                 </p>
@@ -501,9 +509,7 @@ export default function StockSettingsPage() {
                   อัพเดท: {lastStockResult.updated} รายการ
                 </p>
                 {lastStockResult.errors.length > 0 && (
-                  <p className="mt-1 text-xs text-red-600 dark:text-red-400">
-                    ข้อผิดพลาด: {lastStockResult.errors.length} รายการ
-                  </p>
+                  <details className="mt-2 text-sm text-secondary"><summary className="min-h-11 cursor-pointer py-2">ดูรายการที่อัปเดตไม่สำเร็จ {lastStockResult.errors.length} รายการ</summary><ul className="list-disc space-y-1 pl-5">{lastStockResult.errors.map((message, index) => <li key={index}>{message}</li>)}</ul></details>
                 )}
               </Alert>
             )}
@@ -517,21 +523,21 @@ export default function StockSettingsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <ToneMark icon={ArrowRightLeft} tone="system" />
-              การแมปหมวดหมู่
+              หมวดสินค้าที่จะได้รับ
             </CardTitle>
             <CardDescription>
-              ระบบแมปเข้ากลุ่มสินค้าให้อัตโนมัติ
+              ดูประเภทที่ระบบจะใช้เมื่อนำเข้าสินค้าจากคลัง
             </CardDescription>
           </CardHeader>
           <CardContent>
             <DataTable.Root bordered={false}>
               <DataTable.Head>
                 <tr>
-                  <DataTable.Th>หมวดหมู่ Stock</DataTable.Th>
+                  <DataTable.Th>หมวดในคลัง</DataTable.Th>
                   <DataTable.Th aria-label="แมปไปยัง" align="center">
                     →
                   </DataTable.Th>
-                  <DataTable.Th>ประเภทสินค้า ERP</DataTable.Th>
+                  <DataTable.Th>ประเภทหลังนำเข้า</DataTable.Th>
                 </tr>
               </DataTable.Head>
               <DataTable.Body>
@@ -557,9 +563,7 @@ export default function StockSettingsPage() {
                         <span className="text-strong">
                           {mapping.erpItemType}
                         </span>
-                        <Badge variant="secondary">
-                          {mapping.erpCode}
-                        </Badge>
+
                       </div>
                     </DataTable.Td>
                   </DataTable.Row>
@@ -629,9 +633,7 @@ export default function StockSettingsPage() {
 
             <Alert variant="info" className="mt-4">
               <p className="text-xs text-blue-700 dark:text-blue-400">
-                  <strong>Tip:</strong> ไม่ต้องตั้งค่า ENV แล้ว
-                  เพียงใส่ข้อมูลผ่านหน้าเว็บนี้
-                  ระบบจะเก็บไว้ในฐานข้อมูลอัตโนมัติ
+                  หลังทดสอบเชื่อมต่อสำเร็จ ให้กดบันทึกก่อนเริ่มนำเข้าหรืออัปเดตยอดสินค้า
               </p>
             </Alert>
           </CardContent>

@@ -14,6 +14,8 @@ import { toast } from "sonner";
 import type { CompanyProfile } from "@/lib/company-profile";
 import { EMPTY_COMPANY_PROFILE } from "@/lib/company-profile";
 import { PageShell } from "@/components/page-shell";
+import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
+import { CatalogFeedback } from "@/components/settings/catalog-tools";
 
 // ข้อมูลกิจการ — ขึ้นหัวเอกสารพิมพ์ทุกใบ + เป็นข้อมูลบังคับของใบกำกับภาษีเต็มรูป
 export default function CompanySettingsPage() {
@@ -27,14 +29,17 @@ export default function CompanySettingsPage() {
 
   const utils = trpc.useUtils();
   const save = trpc.settings.setCompanyProfile.useMutation({
-    onSuccess: () => {
-      utils.settings.companyProfile.setData(undefined, form);
+    onSuccess: (_result, submitted) => {
+      utils.settings.companyProfile.setData(undefined, { ...submitted, phone: submitted.phone ?? "", email: submitted.email ?? "" });
       setDraft(null);
       utils.settings.companyProfile.invalidate();
       toast.success("บันทึกข้อมูลกิจการแล้ว");
     },
     onError: (e) => toast.error(e.message),
   });
+
+  const dirty = draft !== null && JSON.stringify(draft) !== JSON.stringify(profileQuery.data ?? EMPTY_COMPANY_PROFILE);
+  useUnsavedChanges(dirty || save.isPending, save.isPending ? { title: "กำลังบันทึก ออกจากหน้านี้หรือไม่?", description: "การออกจากหน้านี้ไม่ยกเลิกคำสั่งที่ส่งแล้ว กลับมาตรวจผลก่อนส่งซ้ำ", confirmText: "ออกจากหน้านี้" } : undefined);
 
   const set = (key: keyof CompanyProfile) => (value: string) =>
     setDraft((prev) => ({
@@ -47,6 +52,7 @@ export default function CompanySettingsPage() {
       width="form"
       back={{ href: "/settings", label: "ย้อนกลับ" }}
       title="ข้อมูลกิจการ"
+      description="ตรวจชื่อ ที่อยู่ และเลขภาษีที่จะใช้บนเอกสารฉบับถัดไป"
       error={
         meQuery.isError
           ? {
@@ -193,17 +199,19 @@ export default function CompanySettingsPage() {
                 </div>
               </div>
 
-              <div className="flex justify-end">
+              <div className="sticky bottom-0 flex flex-wrap items-center justify-between gap-3 border-t border-divider bg-surface py-4">
+                <p role="status" className="text-sm text-secondary">{dirty ? "ข้อมูลที่แก้ยังไม่บันทึก" : "ใช้ข้อมูลที่บันทึกไว้"}</p>
                 <Button type="submit" disabled={save.isPending} className="gap-1.5">
                   {save.isPending ? (
                     <Loader2 className="animate-spin" />
                   ) : (
                     <Save />
                   )}
-                  บันทึก
+                  บันทึกข้อมูลกิจการ
                 </Button>
               </div>
               </fieldset>
+              <CatalogFeedback pending={save.isPending} error={save.error?.message} />
             </form>
           )}
         </CardContent>

@@ -94,9 +94,9 @@ function AttentionRow({ item }: { item: DashboardAttentionItem }) {
         <Icon className="h-[18px] w-[18px]" />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-strong">{item.title}</p>
-        {item.kind === "outsource" && item.detail.startsWith("เลยกำหนด") && (
-          <p className="truncate text-xs text-muted group-hover:text-secondary group-active:text-secondary">{item.detail}</p>
+        <p className="break-words text-sm font-medium text-strong">{item.title}</p>
+        {item.detail && (
+          <p className="text-xs text-muted group-hover:text-secondary group-active:text-secondary">{item.detail}</p>
         )}
       </div>
       <span
@@ -125,8 +125,7 @@ function AttentionPanel({
   onRetry: () => void;
   items: DashboardAttentionItem[];
 }) {
-  const visible = items.slice(0, 5);
-  const hidden = Math.max(items.length - visible.length, 0);
+  const visible = items;
 
   return (
     <Section
@@ -176,13 +175,7 @@ function AttentionPanel({
               <AttentionRow key={item.kind} item={item} />
             ))}
           </div>
-          {hidden > 0 && (
-            <div className="border-t border-divider px-5 py-2">
-              <Button asChild variant="ghost" size="sm" className="w-full">
-                <Link href="/my-tasks">ดูงานอื่นอีก {hidden} เรื่อง</Link>
-              </Button>
-            </div>
-          )}
+
         </>
       )}
     </Section>
@@ -235,8 +228,6 @@ function QuickLink({
   );
 }
 
-/** ช่องตัวเลขสรุปบนหน้าแรก — ได้สีประจำหมวดของตัวเลขนั้น (แบบ B · เบสเคาะ 2026-08-31)
- *  ไม่ส่ง tone มา = เทา/ดำเหมือนเดิม */
 function Metric({
   label,
   value,
@@ -375,13 +366,15 @@ export function DashboardHome() {
           <Metric label="ลูกค้าทั้งหมด" value={data?.totalCustomers ?? 0} icon={Users} tone="brand" note={data?.newCustomersThisMonth ? `+${data.newCustomersThisMonth} เดือนนี้` : undefined} />
           {data?.revenueThisMonth != null ? (
             <Metric label="มูลค่าออเดอร์ที่เปิดเดือนนี้" value={formatBaht(data.revenueThisMonth)} icon={ReceiptText} tone="finance" />
-          ) : (
+          ) : canViewPulse ? (
             <Metric
               label="ขั้นผลิตค้างทั้งหมด"
               value={pulseQuery.data?.todayQueue.open ?? "—"}
               icon={Factory}
               tone="production"
             />
+          ) : (
+            <QuickLink href="/my-tasks" icon={UserRoundCheck} label="เปิดงานที่ต้องทำและติดตาม" tone="brand" />
           )}
         </div>
       </Section>
@@ -431,7 +424,7 @@ export function DashboardHome() {
                       <Badge variant="default" size="sm">{order.printLabel}</Badge>
                     )}
                   </div>
-                  <p className="mt-1 truncate text-xs text-muted group-hover:text-secondary group-active:text-secondary">
+                  <p className="mt-1 text-xs text-muted group-hover:text-secondary group-active:text-secondary">
                     {order.customerName}
                   </p>
                   {order.deadline && (

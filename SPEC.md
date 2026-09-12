@@ -9,9 +9,12 @@ ERP หลังบ้านโรงงานสกรีนเสื้อ Ana
 - **เงินทุก field = `Decimal(12,2)`** · คำนวณผ่าน `Prisma.Decimal` (`services/money.ts` round2 half-up) · แปลงเป็น number ที่ขอบเดียว `lib/prisma.ts` · aggregate `_sum` ต้องเรียก `aggToNumber` เอง
 - **เลขเอกสารรันต่อเนื่อง** `nextDocumentNumber()` (`services/document-number.ts`) ใน `$transaction` เดียวกับการสร้างเอกสาร · ทุกชนิด ORD/INV/REC/CN/DN/QT/BN/FR · import เอกสารเก่าต้อง seed lastNumber ก่อน
 - **สถานะออเดอร์เปลี่ยนผ่าน `transitionOrder()`** (`services/order-status.ts`) จุดเดียว — validate + optimistic lock + `OrderRevision` · direct write มีแค่ค่าเริ่มต้นตอน create
-- **การเงินหลายขั้น = `$transaction` + `SELECT FOR UPDATE`** (`src/server/services/billing-payment.ts` และ `src/server/routers/billing.ts`) · เพดานสองขา `billedFloor` / `assertOrderTotalCoversBilled` · ใบเสร็จผูกงวดรับเงิน 1:1 (`forPaymentId @unique` · ยอดเท่าเงินรับ · `issueDate` = วันรับเงินจริง)
+- **การเงินหลายขั้น = `$transaction` + `SELECT FOR UPDATE`** (`src/server/services/billing-payment.ts` และ `src/server/routers/billing.ts`) · เพดานสองขา `billedFloor` / `assertOrderTotalCoversBilled` · ใบเสร็จผูกงวดรับเงิน 1:1 (`forPaymentId @unique` · ยอดเท่าเงินรับ · `issueDate` ตั้งต้นตามวันรับเงินจริง)
+- ใบเสร็จผูกงวดสร้างสถานะ `PAID` และ `paidAt` จากเวลารับเงินเดิม ไม่สร้าง Payment หรือเพิ่มยอดลูกค้าอีกครั้ง. วันเอกสารตั้งต้นใช้วันรับเงินตาม Asia/Bangkok; `issueDate` ที่เลือกเป็นวันเอกสาร แยกจากเวลา `paidAt`
 - **สูตรยอดออเดอร์**: `total = max(0, items + fees - discount + tax)`; `platformFee` ไม่เข้ายอดหรือฐาน VAT เพราะเป็นเงินที่ marketplace หักจากร้าน. สูตรเขียนอยู่ `src/server/services/pricing.ts`; preview ที่ `src/lib/pricing.ts` ต้องให้ผลตรงกัน
+- **คัดออเดอร์เป็นใบเสนอ**: รวมรายการงานและค่าบริการทุกแถว พร้อมส่วนลด ภาษี และเงื่อนไขเดิม; ไม่รวม `platformFee`. ปัดราคาต่อหน่วยเป็นสองตำแหน่งก่อนคูณจำนวนเต็ม (`1.005 × 3` เก็บ `1.01 × 3 = 3.03`) และ preview ต้องตรง. ยอดงานที่หารต่อชิ้นไม่ลงสตางค์ใช้ราคาเหมาหนึ่งงานพร้อมระบุจำนวนชิ้น เพื่อคงยอดเดิม
 - **ใบกำกับ/ใบวางบิล ยกเลิก-ออกใหม่เท่านั้น** ไม่มี `delete` · soft-void + guard กัน void ซ้ำ · CN/DN ผูกใบเดิม + เหตุผลบังคับ (ม.86/10) และหักยอดค้างจริงทุกทาง
+- สรุป UI “ออกใบเรียกเก็บแล้ว” รวมใบมัดจำ/ใบแจ้งหนี้ส่วนที่เหลือ/ใบเพิ่มหนี้ที่ไม่ยกเลิก ไม่บวกใบเสร็จซ้ำ; “ค้างตามใบเรียกเก็บ” หักเงินรับ/WHT/ใบลดหนี้รายใบ ไม่รวมยอดที่ยังไม่ออกบิล. “ยอดชำระสะสม” ของลูกค้าคือยอดรับรวม WHT หักคืนเงินและบิลยกเลิก ไม่ใช่มูลค่าออเดอร์
 - **การเก็บเอกสารภาษี**: คงเอกสารครบ 5 ปีตามข้อกำหนดโครงการเดิม และต้องกู้คืนข้อมูลพร้อมไฟล์ได้; วิธีสำรองและขอบเขตของ export อยู่ README
 
 ## 🔐 ความปลอดภัย + สิทธิ์
@@ -19,13 +22,15 @@ ERP หลังบ้านโรงงานสกรีนเสื้อ Ana
 - auth fail-closed (ไม่มี dev-OWNER fallback) · `requireRole` ครบทุก mutation · router public token 5 ตัวโดยเจตนา
 - **สิทธิ์รายคน (PERM)** `lib/permissions.ts` — role = ชุดสิทธิ์เริ่มต้น + override รายคน · มีผลทั้ง server/จอ/print/MCP key · OWNER active ≥ 1 เสมอ
 - role หน้างานไม่เห็นทุน/กำไร (`lib/roles.ts`) · Station/Factory DTO ไม่มีเงินโดยโครงสร้าง (explicit select/mapper)
+- สินค้าและตัวเลือกตัดต้นทุนด้วย effective `see_finance` ทั้ง query และ response หลังแก้. `STOCK.basePrice` รุ่นเก่าที่เคยเก็บต้นทุนไม่ใช้เป็นราคาขาย; อ่าน/ซิงก์เป็น 0 และใช้ `sellingPrice + priceAdj` ของตัวเลือก. `LOCAL` ใช้ basePrice ได้; ไม่มีราคาขายต้องแจ้งให้กำหนด ไม่แทนด้วยต้นทุน. ยอดเครดิตลูกค้าต้องมีทั้ง `manage_customers` และ `see_order_money`
+- response ลูกค้าทั้งอ่าน/สร้าง/แก้กรองยอดชำระและวงเงินด้วย effective `see_order_money`. ข้อมูลออเดอร์ทั่วไปและออเดอร์ในหน้าลูกค้าไม่คืน status/upload token หรือวันหมดอายุ; อ่านลิงก์ผ่าน endpoint ที่ตรวจ `create_sales_docs` เท่านั้น
 - security headers ทุก route · CI lint+typecheck+vitest เมื่อ push main และทุก PR · สำรองข้อมูล export JSON ในแอป (ตั้งค่า → สำรองข้อมูล)
 
 ## 📋 Flow หลัก — เกณฑ์เสร็จต่อ flow
 - **เปิดออเดอร์** `/orders/new` → เลข `ORD-YYMM-NNNN` + AuditLog · ประเภท READY_MADE / CUSTOM · เสื้อ 3 แหล่ง (FROM_STOCK / CUSTOM_MADE / CUSTOMER_PROVIDED) → ใบผลิตเสนอขั้นตามแหล่ง + เทคนิค · ฟอร์มเดียวใช้ทั้งสร้างและแก้ · ที่อยู่ผู้ติดต่อแยกจากที่อยู่จัดส่ง
 - **ยืนยันออเดอร์มีสต๊อก** → จอง Anajak Stock อัตโนมัติ + ด่านวงเงินเครดิต (`assertSalesWithinCreditLimit`) · จองพลาด → กระดิ่ง + retry
 - **ใบเสนอราคา** → ลูกค้ากดยอมรับผ่าน `/quote/<token>` → แปลงเป็นออเดอร์ (กันซ้ำ · ด่าน ACCEPTED/ไม่หมดอายุ) · VAT default 7% (marketplace ราคารวม VAT → 0)
-- **portal ลูกค้า (token · ไม่ต้อง login)**: อนุมัติแบบ `/approve/design` · สถานะ `/status` (ไม่รั่วราคา/ต้นทุน/internalStatus) · อัปโหลด `/upload` (signed · server เลือก path) · ใบงานร้านนอก `/job` (LINE-friendly · หมดอายุ 90 วัน · fail-closed)
+- **portal ลูกค้า (token · ไม่ต้อง login)**: อนุมัติแบบ `/approve/design` · สถานะ `/status` (แสดงเอกสาร/ยอดของลูกค้า ไม่ส่งต้นทุนหรือ internalStatus) · อัปโหลด `/upload` (signed · server เลือก path) · ใบงานร้านนอก `/job` (LINE-friendly · หมดอายุ 90 วัน · fail-closed)
 - **ม็อกอัพ**: หนึ่งเวอร์ชันหลายรูป (หน้า/หลัง/แขน + ตำแหน่งพิมพ์ต่อรูป) · ลูกค้าอนุมัติทั้งชุดครั้งเดียว · ไฟล์ที่เบราว์เซอร์แสดงไม่ได้ต้องแนบรูปตัวอย่าง · จัดการที่แท็บ "ม็อกอัพ & ไฟล์" ที่เดียว จอที่เหลืออ่านอย่างเดียวจาก component ชุดเดียว
 - **outsource** ผูกขั้นผลิต → OutsourceOrder (ล็อกแถว) SENT → RECEIVED_BACK → ตรวจรับ (ก่อน QC สุดท้าย) · เจ้าหน้าที่คุยร้านผ่าน LINE ด้วยลิงก์ `/job`
 - **ผลิต → QC → แพ็ก → พร้อมส่ง → ส่ง**: ผลิตครบทุกใบจึงเข้า QC · QC เชิงนับ bypass ไม่ได้ (guard ใน `$transaction` เดียวกับ transition) · ใบส่งครบจึง READY_TO_SHIP · delivery มี state machine + tracking ทุกสถานะ · แบ่งกล่องได้ · RETURNED → กระดิ่ง
@@ -65,6 +70,7 @@ ERP หลังบ้านโรงงานสกรีนเสื้อ Ana
 - การนำทาง Sidebar/Command Palette ใช้ registry `src/lib/navigation.ts` และสิทธิ์เดียวกัน; active route เลือก exact/longest match. เมนูย่อมี accessible name; deep link/Back คงงานเดิม. การออกจากฟอร์มผ่าน `requestAppNavigation` ต้องเคารพข้อมูลที่ยังไม่บันทึก
 - Query แยก initial loading/error/empty จาก background error/stale และ success; error มี retry/การประกาศที่ทำงานจริง. Skeleton ใกล้โครงจริงและสถิติใช้ loading จนมีค่า. `useListPageState`/`usePageClamp` คงค้นหา/ตัวกรอง/เลขหน้าใน URL และกลับหน้า 1 เมื่อผลลดเหลือ pages=0
 - ฟอร์มมี label และ error/help เชื่อม control ด้วย aria; pending กันส่งซ้ำและแสดงกำลังทำ/aria-busy; success อิง server. `NumberInput`/`MoneyInput` แยกว่างจาก 0; วันที่ใช้ Asia/Bangkok. แท็บ lazy และใช้ keepMounted เมื่อจำเป็นรักษาฟอร์ม. ใช้ `useConfirm`/`usePromptText` แทน window.confirm/prompt
+- ฟอร์มลูกค้า/ตั้งค่ารักษา draft จน server ยืนยัน; refetch หรือสลับสถานะรายการอื่นไม่ล้างฟอร์มที่กำลังแก้. การเชื่อม Stock ใช้ค่าที่บันทึกแล้วและแจ้งให้บันทึก draft ก่อนซิงก์
 - Dialog มี title/description ตามงาน, gutter/max-height/body scroll, Escape/focus trap และคืน focus ที่เหมาะ; คำสั่งจำเป็นไม่พึ่ง hover. คำช่วยเสริมเปิดด้วย keyboard/tap ได้; validation/สิทธิ์/ผลสำคัญไม่ซ่อนใน tooltip. Dashboard มี skip link ไป `main-content`
 - ตรวจ 390/1440px และ 1024px เมื่องานทัชเกี่ยว; document ไม่ล้นแนวนอน ตารางเลื่อนภายในได้พร้อมสื่อว่ามีคอลัมน์ต่อ. สีต้องมีข้อความ/สัญลักษณ์ประกอบ; micro 11px ใช้เฉพาะ status/counter มีบริบท ไม่ใช้กับ label/คำช่วย/action. ปุ่ม/การลากที่แสดงต้องทำงานจริง ไม่เติมตัวเลข/owner/เวลา/ความจุที่ไม่มีแหล่งข้อมูล
 
@@ -75,6 +81,9 @@ ERP หลังบ้านโรงงานสกรีนเสื้อ Ana
 
 ### คิวผลิต สถานี และหลักฐานหน้างาน
 - readiness/waitingOn/availableCommands/blockedReason/กำหนดส่ง/จำนวนที่ทำได้อ่าน controller/service เดิม. `src/components/production/work-order-controller.tsx` ใช้ร่วมใบผลิตและ floor; presentation ไม่สร้าง lifecycle หรือกฎคู่ขนาน. กดเลือกดูขั้นไม่ใช่เริ่มงาน. จำนวนภาพรวม `/production` ไม่ขึ้นกับผลกรอง
+- My Tasks ของ legacy ใช้ readiness จาก workflow เดียวกับใบผลิตก่อนจำกัดจำนวนรายการ; งานอนาคตไม่เบียดงานพร้อมทำ ส่วนงานกำลังทำ/มีปัญหายังคงอยู่. V2 ใช้ operation state เดิม
+- `/production/print-runs`, `/production/films`, `/production/outsource` เชื่อมคิว/ใบผลิต/floor โดยคงบริบทใบและขั้น; DTF ใช้รอบพิมพ์แทนปุ่มเริ่ม/จบขั้นทั่วไป. การใช้ฟิล์มตรวจจำนวนเต็มไม่เกินคงเหลือและบันทึก audit ใน transaction เดียวกัน
+- QC ร้านนอกผ่านได้เมื่อผลรวมของดีจากใบรับกลับของงานนั้นครบจำนวนที่ส่ง (จำนวนรับหักเสีย); รับบางส่วนเพิ่มได้แต่กดผ่านซ้ำต้องไม่บวกยอดขั้นซ้ำ. คำสั่งสถานะล็อกสาย order → production → step → outsource และตรวจ owner/สิทธิ์ฝั่ง server
 - `GARMENT_PICK` ผ่าน Stock; `GARMENT_RECEIVE` ผ่าน Goods Receipt evidence; DTF ผ่าน Print Run/batch; `HEAT_PRESS` คง `evaluateHeatPressGate`. QC และ Final Pack ใช้ขั้นตอนเฉพาะและเป็นคนละด่าน; `PACKAGING` เก่าเก็บอ่านเท่านั้น ไม่เสนอขั้นใหม่และ recovery กลับเข้า QC
 - พนักงานทำงานของตน/ยังไม่มอบหมาย; `supervise_operations` ควบคุมข้าม owner. Mutation fail-closed จนรู้สิทธิ์และข้อมูลที่ใช้เขียนไม่ stale. การตัดสิน QC ร้านนอกต้องมี `manage_production` และ `supervise_operations`; ใบตรวจรับของกลับเป็นหลักฐานคนละอย่างกับการผ่าน QC/ปิดขั้น. Mark-ready ต้องมี `manage_production` และ `update_order_status_production`; การสร้างใบส่ง/ยืนยันส่งยึด `ship_orders` ตาม router delivery
 - แจ้งปัญหาให้ server derive work center/source จาก step; คง transaction/lock/audit/notification. การแก้ยอด/ย้อนขั้นใช้คำสั่งที่ระบุใน SPEC และหลักฐานจริง ไม่ set status เพื่อทำให้จอดูง่าย
@@ -84,6 +93,8 @@ ERP หลังบ้านโรงงานสกรีนเสื้อ Ana
 
 ### Public และเอกสารพิมพ์
 - Public/print ใช้ light-only. Public token ใช้ `src/components/public/public-page.tsx` และข้อมูลตามสิทธิ์ token; blind-ship ไม่เปิดแบรนด์/ตัวตนร้าน. `PublicLinkError` แยก network failure จาก token เสีย/หมดอายุ มี retry/ช่องทางติดต่อที่ใช้ได้จริงโดยไม่เปิดข้อมูลภายใน
+- เมื่อโหลดซ้ำพลาดจากเครือข่าย คงข้อมูลเดิมพร้อมบอกว่ายังไม่สดและปิดคำสั่งส่งจนโหลดสำเร็จ; token ถูกยกเลิก/หมดสิทธิ์ต้องซ่อนข้อมูลเดิมทันที. การอ่านและสร้างลิงก์สถานะ/อัปโหลดใช้ `create_sales_docs` ชุดเดียวกันรวม override รายคน
+- ใบผลิตต้องคงข้อความเวอร์ชัน/วันพิมพ์กับส่วนบันทึก ไม่ปล่อยท้ายใบหลุดเป็นหน้าเดี่ยว; รูปตัวอย่างทุกด้านยังอ่านได้และเปิดแบบเต็มจาก QR ได้
 - Print ใช้ `src/components/print/print-document.tsx` และ `DocHeader` ร่วมกัน: A4, อ่านขาวดำได้, คงข้อความกฎหมาย/ยอด/ต้นฉบับ-สำเนา/ลายน้ำยกเลิก/ลำดับหน้า/สิทธิ์/blind-ship. ตรวจ quotation, invoice, billing-note, job-ticket, packing-list จริงก่อนรับการเปลี่ยน primitive พิมพ์; ไม่กวาดค่าหน้าจอมาทับ surface กระดาษ
 
 ## 🚦 เกณฑ์ก่อนเปิดใช้งานจริง

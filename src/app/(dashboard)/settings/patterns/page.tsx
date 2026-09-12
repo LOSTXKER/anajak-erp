@@ -32,6 +32,8 @@ import { Alert } from "@/components/ui/alert";
 import { DataTable } from "@/components/ui/data-table";
 import { DASHED_INTERACTIVE } from "@/components/ui/tokens";
 import { PageShell } from "@/components/page-shell";
+import { CatalogTools, CatalogFeedback } from "@/components/settings/catalog-tools";
+import { useSettingsDraftGuard } from "@/components/settings/use-settings-draft-guard";
 
 const labelClass = "mb-1 block text-xs font-medium text-muted";
 
@@ -56,6 +58,7 @@ const emptyForm: NewPatternForm = {
 };
 
 export default function PatternsPage() {
+  const [search, setSearch] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
   const [formData, setFormData] = useState<NewPatternForm>({ ...emptyForm });
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -70,7 +73,7 @@ export default function PatternsPage() {
   const canCreate = permAllows(meQuery.data?.permissions, "create_design_assets");
   const canEdit = permAllows(meQuery.data?.permissions, "manage_design_files");
   const canDelete = permAllows(meQuery.data?.permissions, "manage_settings");
-  const { data, isLoading, isError, refetch } = trpc.pattern.list.useQuery({ isActive: true });
+  const { data, isLoading, isError, refetch } = trpc.pattern.list.useQuery({});
   const patterns = data?.patterns;
 
   const createPattern = trpc.pattern.create.useMutation({
@@ -156,6 +159,10 @@ export default function PatternsPage() {
     }
   };
 
+  const dirty = (showAddForm && JSON.stringify(formData) !== JSON.stringify(emptyForm)) || (editingId !== null && Object.keys(editData).length > 0);
+  const mayDiscard = useSettingsDraftGuard(dirty, uploading || createPattern.isPending || updatePattern.isPending);
+  const visiblePatterns = (patterns ?? []).filter((item) => [item.name].filter(Boolean).join(" ").toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()));
+
   return (
     <PageShell
       // เข้าหน้านี้จาก sidebar กลุ่ม "สินค้า" — ปุ่มย้อนต้องพากลับที่ที่เคยผ่าน ไม่ใช่ตั้งค่า
@@ -174,7 +181,7 @@ export default function PatternsPage() {
       }
     >
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
           <CardTitle className="flex items-center gap-2 text-base">
             <ToneMark icon={Scissors} tone="product" />
             แพทเทิร์นทั้งหมด
@@ -184,7 +191,9 @@ export default function PatternsPage() {
               variant="outline"
               size="sm"
               disabled={createPattern.isPending || uploading}
-              onClick={() => {
+              onClick={async () => {
+                if (!(await mayDiscard())) return;
+                createPattern.reset();
                 setShowAddForm(!showAddForm);
                 setFormData({ ...emptyForm });
                 setUploadError(null);
@@ -196,11 +205,13 @@ export default function PatternsPage() {
           )}
         </CardHeader>
         <CardContent>
+          <CatalogTools tableScrollHint loading={isLoading} search={search} onSearch={setSearch} count={visiblePatterns.length} total={patterns?.length ?? 0} label="แพทเทิร์น" />
           {showAddForm && canCreate && (
             <form
               onSubmit={handleCreate}
-              className="card-surface mb-4 space-y-3 rounded-2xl p-4"
+              className="mb-5 space-y-4 border-b border-divider pb-5"
             >
+              <fieldset disabled={createPattern.isPending || uploading} className="contents">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <div>
                   <label htmlFor="pattern-name" className={labelClass}>ชื่อแพทเทิร์น *</label>
@@ -303,9 +314,13 @@ export default function PatternsPage() {
                   </Button>
                 </div>
               </div>
+              <CatalogFeedback pending={createPattern.isPending} error={createPattern.error?.message} />
+
+              </fieldset>
             </form>
           )}
 
+          {search && visiblePatterns.length === 0 && !isLoading ? <p role="status" className="py-8 text-center text-sm text-secondary">ไม่พบแพทเทิร์นที่ตรงคำค้น</p> : null}
           {isLoading ? (
             <div className="space-y-3">
               {[...Array(4)].map((_, i) => (
@@ -330,12 +345,12 @@ export default function PatternsPage() {
                 </tr>
               </DataTable.Head>
               <DataTable.Body>
-                {patterns.map((p) => {
+                {visiblePatterns.map((p) => {
                   const isEditing = canEdit && editingId === p.id;
                   return (
                     <DataTable.Row
                       key={p.id}
-                      className={!p.isActive ? "opacity-50" : undefined}
+                      className={isEditing ? "bg-surface-muted" : undefined}
                     >
                       <DataTable.Td>
                         {isEditing ? (
@@ -362,6 +377,7 @@ export default function PatternsPage() {
                             )}
                           </div>
                         )}
+                        <CatalogFeedback pending={(updatePattern.isPending && updatePattern.variables?.id === p.id) || (toggleActive.isPending && toggleActive.variables?.id === p.id) || (deletePattern.isPending && deletePattern.variables?.id === p.id)} error={(updatePattern.variables?.id === p.id ? updatePattern.error?.message : null) || (toggleActive.variables?.id === p.id ? toggleActive.error?.message : null) || (deletePattern.variables?.id === p.id ? deletePattern.error?.message : null)} />
                       </DataTable.Td>
                       <DataTable.Td className="text-muted">
                         {p.productType ? (PRODUCT_TYPES[p.productType] ?? p.productType) : "-"}
@@ -425,11 +441,15 @@ export default function PatternsPage() {
                       </DataTable.Td>
                       <DataTable.Td align="center">
                         {canEdit ? (
+                          <div className="space-y-2">
+                          <p className="whitespace-nowrap text-xs text-secondary">{p.isActive ? "ใช้งาน" : "ปิดใช้งาน"}</p>
                           <Switch
+                            disabled={toggleActive.isPending || (editingId === p.id && dirty)}
                             checked={p.isActive}
                             aria-label={`${p.isActive ? "ปิด" : "เปิด"}ใช้งานแพทเทิร์น ${p.name}`}
                             onCheckedChange={() => toggleActive.mutate({ id: p.id, isActive: !p.isActive })}
                           />
+                          </div>
                         ) : (
                           <Badge variant={p.isActive ? "success" : "default"} size="sm">
                             {p.isActive ? "ใช้งาน" : "ปิด"}
@@ -466,7 +486,7 @@ export default function PatternsPage() {
                               <Button
                                 variant="ghost"
                                 size="icon-sm"
-                                onClick={() => { setEditingId(p.id); setEditData({}); }}
+                                onClick={async () => { if (!(await mayDiscard())) return; updatePattern.reset(); setEditingId(p.id); setEditData({}); }}
                                 className="text-muted hover:text-strong dark:hover:text-strong"
                                 disabled={updatePattern.isPending}
                                 aria-label={`แก้ไขแพทเทิร์น ${p.name}`}
@@ -497,11 +517,6 @@ export default function PatternsPage() {
             </DataTable.Root>
           )}
 
-          {(createPattern.isError || updatePattern.isError || deletePattern.isError) && (
-            <Alert variant="error" className="mt-3">
-              {createPattern.error?.message || updatePattern.error?.message || deletePattern.error?.message}
-            </Alert>
-          )}
         </CardContent>
       </Card>
     </PageShell>

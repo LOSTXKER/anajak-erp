@@ -256,7 +256,7 @@ export const designRouter = router({
     .input(z.object({ token: z.string() }))
     .query(async ({ ctx, input }) => {
       // select แคบ — payload นี้ถึงมือลูกค้านอกระบบ ห้ามคืนทั้ง row
-      const design = await ctx.prisma.designVersion.findUniqueOrThrow({
+      const design = await ctx.prisma.designVersion.findUnique({
         where: { approvalToken: input.token },
         select: {
           versionNumber: true,
@@ -283,6 +283,7 @@ export const designRouter = router({
           },
         },
       });
+      if (!design) throw new TRPCError({ code: "NOT_FOUND", message: "ไม่พบลิงก์แบบนี้ กรุณาขอลิงก์ใหม่จากทีมงาน" });
       assertTokenNotExpired(design);
       // ไฟล์เป็น proxy URL (bucket private) — ลูกค้าไม่มี session ต้องพก token
       // ไปกับ URL ให้ /api/files เช็คว่าเป็นไฟล์ของแบบใบนี้จริง · ต้องติด token ให้
@@ -384,7 +385,7 @@ export const designRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const existing = await ctx.prisma.designVersion.findUniqueOrThrow({
+      const existing = await ctx.prisma.designVersion.findUnique({
         where: { approvalToken: input.token },
         select: {
           id: true,
@@ -393,6 +394,7 @@ export const designRouter = router({
           order: { select: { internalStatus: true } },
         },
       });
+      if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "ไม่พบลิงก์แบบนี้ กรุณาขอลิงก์ใหม่จากทีมงาน" });
       assertTokenNotExpired(existing);
       // กันตัดสินซ้ำ/กลับคำที่ server — ตัดสินแล้วต้องให้ทีมงานเปิด version ใหม่เท่านั้น
       if (existing.approvalStatus !== "PENDING") {

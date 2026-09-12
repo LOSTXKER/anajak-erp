@@ -1695,6 +1695,10 @@ export async function listPrintRuns(
       ),
     );
     let blockedReason: string | null = orderBlock;
+    if (active && !isV2) {
+      if (access.canOperate === false) blockedReason = "บัญชีนี้ดูรอบพิมพ์ได้อย่างเดียว";
+      else if (!canManage) blockedReason = "รอบนี้เป็นงานของผู้สร้างหรือผู้รับผิดชอบคนอื่น";
+    }
     if (active && isV2) {
       if (!pureV2 || !hasCorrectCenter) {
         blockedReason = "รอบนี้มีข้อมูล Operation Job ไม่ตรงกับสถานี DTF";
@@ -1714,6 +1718,10 @@ export async function listPrintRuns(
     }
 
     const availableCommands: PrintRunAvailableCommand[] = [];
+    if (active && !isV2 && canManage) {
+      if (run.status === "PRINTING") availableCommands.push("cancel");
+      if (!orderBlock) availableCommands.push(run.status === "PRINTING" ? "markPrinted" : "complete");
+    }
     if (
       active &&
       pureV2 &&

@@ -1151,6 +1151,17 @@ describe("DTF queue/list DTO", () => {
     const findMany = vi.fn().mockImplementation(async () => [run]);
     const prisma = { printRun: { findMany } } as never;
 
+    operation.executionEnabled = false;
+    const legacy = await listPrintRuns(prisma, { userId: "worker-1", canOperate: true, canSupervise: false });
+    expect(legacy[0]).toMatchObject({ availableCommands: ["cancel", "markPrinted"], blockedReason: null });
+    const otherWorker = await listPrintRuns(prisma, { userId: "worker-2", canOperate: true, canSupervise: false });
+    expect(otherWorker[0]?.availableCommands).toEqual([]);
+    expect(otherWorker[0]?.blockedReason).toContain("คนอื่น");
+    run.status = "PRINTED";
+    expect((await listPrintRuns(prisma, { userId: "worker-1", canOperate: true, canSupervise: false }))[0]?.availableCommands).toEqual(["complete"]);
+    run.status = "PRINTING";
+    operation.executionEnabled = true;
+
     const worker = await listPrintRuns(prisma, {
       userId: "worker-1",
       canOperate: true,

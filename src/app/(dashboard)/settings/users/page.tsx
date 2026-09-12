@@ -24,6 +24,8 @@ import { Switch } from "@/components/ui/switch";
 import { QueryError } from "@/components/ui/query-error";
 import { DataTable } from "@/components/ui/data-table";
 import { PageShell } from "@/components/page-shell";
+import { CatalogTools, CatalogFeedback } from "@/components/settings/catalog-tools";
+import { useSettingsDraftGuard } from "@/components/settings/use-settings-draft-guard";
 import {
   Dialog,
   DialogContent,
@@ -38,6 +40,7 @@ import { CONTROL_MIN_H } from "@/components/ui/control-size";
 import { Alert } from "@/components/ui/alert";
 
 export default function UsersSettingsPage() {
+  const [search, setSearch] = useState("");
   const utils = trpc.useUtils();
 
   const meQuery = trpc.user.me.useQuery();
@@ -121,15 +124,18 @@ export default function UsersSettingsPage() {
     resetPasswordMutation.mutate({ id: resetTarget.id, password: resetPassword });
   };
 
-  const mutationError =
-    createMutation.error?.message ||
-    updateMutation.error?.message ||
-    setActiveMutation.error?.message;
+  const originalPermissions = users?.find((user) => user.id === permTarget?.id);
+  const originalEffective = originalPermissions ? effectivePermissions(originalPermissions.role, parsePermissionOverrides(originalPermissions.permissionOverrides)) : [];
+  const dirty = (showAddForm && Boolean(newUser.name || newUser.email || newUser.password || newUser.role !== "SALES")) || Boolean(resetTarget && resetPassword) || Boolean(permTarget && PERMISSIONS.some((permission) => Boolean(permDraft[permission]) !== originalEffective.includes(permission)));
+  const mayDiscard = useSettingsDraftGuard(dirty, createMutation.isPending || resetPasswordMutation.isPending || setPermissionsMutation.isPending);
+
+  const visibleUsers = (users ?? []).filter((item) => [item.name, item.email].filter(Boolean).join(" ").toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()));
 
   return (
     <PageShell
       back={{ href: "/settings", label: "ย้อนกลับ" }}
-      title="จัดการผู้ใช้"
+      title="ผู้ใช้และสิทธิ์"
+      description="กำหนดบทบาทและสิทธิ์รายคน การปิดบัญชีจะหยุดการเข้าใช้งานโดยเก็บประวัติงานไว้"
       loading={meQuery.isLoading}
       error={
         meQuery.isError
@@ -146,7 +152,7 @@ export default function UsersSettingsPage() {
       }
     >
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
           <CardTitle className="flex items-center gap-2 text-base">
             <ToneMark icon={Users} tone="system" />
             ผู้ใช้ทั้งหมด
@@ -154,18 +160,20 @@ export default function UsersSettingsPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setShowAddForm(!showAddForm)}
+            onClick={async () => { if (!(await mayDiscard())) return; createMutation.reset(); setShowAddForm(!showAddForm); }}
           >
             <Plus className="mr-1" />
             เพิ่มผู้ใช้
           </Button>
         </CardHeader>
         <CardContent>
+          <CatalogTools tableScrollHint loading={isLoading} search={search} onSearch={setSearch} count={visibleUsers.length} total={users?.length ?? 0} label="ชื่อหรืออีเมล" />
           {showAddForm && (
             <form
               onSubmit={handleCreate}
-              className="card-surface mb-4 grid grid-cols-1 items-end gap-3 rounded-2xl p-4 sm:grid-cols-2 lg:grid-cols-5"
+              className="mb-5 grid grid-cols-1 items-end gap-3 border-b border-divider pb-5 sm:grid-cols-2 lg:grid-cols-5"
             >
+              <fieldset disabled={createMutation.isPending} className="contents">
               <div>
                 <label htmlFor="new-user-name" className="mb-1 block text-xs font-medium text-muted">
                   ชื่อ *
@@ -241,9 +249,13 @@ export default function UsersSettingsPage() {
                   ยกเลิก
                 </Button>
               </div>
+              <CatalogFeedback pending={createMutation.isPending} error={createMutation.error?.message} />
+
+              </fieldset>
             </form>
           )}
 
+          {search && visibleUsers.length === 0 && !isLoading ? <p role="status" className="py-8 text-center text-sm text-secondary">ไม่พบชื่อหรืออีเมลที่ตรงคำค้น</p> : null}
           {isLoading ? (
             <div className="space-y-3">
               {[...Array(4)].map((_, i) => (
@@ -272,12 +284,12 @@ export default function UsersSettingsPage() {
                 </tr>
               </DataTable.Head>
               <DataTable.Body>
-                  {users.map((user) => {
+                  {visibleUsers.map((user) => {
                     const isSelf = user.id === me?.id;
                     return (
                       <DataTable.Row
                         key={user.id}
-                        className={!user.isActive ? "opacity-50" : undefined}
+                        className={undefined}
                       >
                         <DataTable.Td>
                           <div>
@@ -290,6 +302,7 @@ export default function UsersSettingsPage() {
                               </span>
                             )}
                           </div>
+                          <CatalogFeedback pending={(updateMutation.isPending && updateMutation.variables?.id === user.id) || (setActiveMutation.isPending && setActiveMutation.variables?.id === user.id)} error={(updateMutation.variables?.id === user.id ? updateMutation.error?.message : null) || (setActiveMutation.variables?.id === user.id ? setActiveMutation.error?.message : null)} />
                         </DataTable.Td>
                         <DataTable.Td className="text-muted">
                           {user.email}
@@ -321,6 +334,7 @@ export default function UsersSettingsPage() {
                           )}
                         </DataTable.Td>
                         <DataTable.Td align="center">
+                          <p className="mb-2 whitespace-nowrap text-xs text-secondary">{user.isActive ? "ใช้งาน" : "ปิดบัญชี"}</p>
                           <Switch
                             checked={user.isActive}
                             disabled={isSelf || setActiveMutation.isPending}
@@ -356,9 +370,7 @@ export default function UsersSettingsPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() =>
-                              setResetTarget({ id: user.id, name: user.name })
-                            }
+                            onClick={() => { setResetPassword(""); resetPasswordMutation.reset(); setResetTarget({ id: user.id, name: user.name }); }}
                             className="px-2 text-muted hover:text-strong dark:hover:text-strong"
                           >
                             <KeyRound className="mr-1" />
@@ -372,18 +384,13 @@ export default function UsersSettingsPage() {
             </DataTable.Root>
           )}
 
-          {mutationError && (
-            <Alert variant="error" className="mt-3">
-              {mutationError}
-            </Alert>
-          )}
         </CardContent>
       </Card>
 
       <Dialog
         open={resetTarget !== null}
-        onOpenChange={(open) => {
-          if (!open) {
+        onOpenChange={async (open) => {
+          if (!open && await mayDiscard()) {
             setResetTarget(null);
             setResetPassword("");
             resetPasswordMutation.reset();
@@ -404,7 +411,8 @@ export default function UsersSettingsPage() {
               </label>
               <Input
                 id="reset-user-password"
-                type="text"
+                type="password"
+                disabled={resetPasswordMutation.isPending}
                 value={resetPassword}
                 onChange={(e) => setResetPassword(e.target.value)}
                 minLength={8}
@@ -422,7 +430,8 @@ export default function UsersSettingsPage() {
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => setResetTarget(null)}
+                disabled={resetPasswordMutation.isPending}
+                onClick={() => { setResetTarget(null); setResetPassword(""); }}
               >
                 ยกเลิก
               </Button>
@@ -441,8 +450,8 @@ export default function UsersSettingsPage() {
       {/* PERM2: ติ๊กสิทธิ์รายคน — ค่าเริ่มต้นตาม role · ติ๊กต่าง = override เฉพาะคนนี้ */}
       <Dialog
         open={permTarget !== null}
-        onOpenChange={(open) => {
-          if (!open) {
+        onOpenChange={async (open) => {
+          if (!open && await mayDiscard()) {
             setPermTarget(null);
             setPermissionsMutation.reset();
           }
@@ -474,14 +483,14 @@ export default function UsersSettingsPage() {
                           key={def.key}
                           className={`${CONTROL_MIN_H} flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-sm ${
                             locked
-                              ? "cursor-not-allowed opacity-50"
+                              ? "cursor-not-allowed text-secondary"
                               : "cursor-pointer hover:bg-interactive-hover"
                           }`}
                         >
                           <span className="flex items-center gap-2">
                             <Checkbox
                               checked={checked}
-                              disabled={locked}
+                              disabled={locked || setPermissionsMutation.isPending}
                               onChange={() =>
                                 setPermDraft((d) => ({ ...d, [def.key]: !checked }))
                               }
@@ -517,6 +526,7 @@ export default function UsersSettingsPage() {
                   type="button"
                   variant="ghost"
                   size="sm"
+                  disabled={setPermissionsMutation.isPending}
                   onClick={() =>
                     setPermDraft(
                       Object.fromEntries(
@@ -535,6 +545,7 @@ export default function UsersSettingsPage() {
                     type="button"
                     variant="outline"
                     size="sm"
+                    disabled={setPermissionsMutation.isPending}
                     onClick={() => setPermTarget(null)}
                   >
                     ยกเลิก

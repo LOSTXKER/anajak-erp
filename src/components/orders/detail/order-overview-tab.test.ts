@@ -33,7 +33,7 @@ describe("ทางเลือกภาพรวมออเดอร์ A16", 
 
   it.each(variants)("%s ไม่ render เงินหรือปุ่มแก้เมื่อไม่ได้รับสิทธิ์", (variant) => {
     const html = render({ variant, showMoney: false, onOpenMoney: undefined, onEditInfo: undefined });
-    for (const money of ["ยอดรวม", "ซื้อสะสม", "วงเงินเครดิต", "87,342.50", "5,992"]) expect(html).not.toContain(money);
+    for (const money of ["ยอดรวม", "ชำระสะสม", "วงเงินเครดิต", "87,342.50", "5,992"]) expect(html).not.toContain(money);
     expect(html).not.toContain("แก้ไขข้อมูลออเดอร์");
     expect(html).not.toContain("แก้ไขที่อยู่จัดส่ง");
     expect(html).toContain(PREVIEW_ORDER.customer!.taxId);
@@ -57,5 +57,24 @@ describe("ทางเลือกภาพรวมออเดอร์ A16", 
     expect(empty).toContain("ยังไม่มีม็อกอัพของใบนี้");
     expect(empty).toContain("มีไฟล์จากลูกค้า");
     expect(empty).toContain("ม็อกอัพ &amp; ไฟล์");
+  });
+
+  it("โหลดไฟล์ไม่สำเร็จบอกข้อผิดพลาดและทางลองใหม่ โดยไม่อ้างว่าไม่มีไฟล์", () => {
+    const artworkProps = {
+      latest: null, versionCount: 0, rawCount: 0, printCount: 0, description: null,
+      loadError: "โหลดม็อกอัพหรือไฟล์ไม่สำเร็จ", onRetry: () => {},
+    };
+    const html = renderToStaticMarkup(createElement(OrderArtworkCardView, artworkProps));
+    expect(html).toContain(artworkProps.loadError);
+    expect(html).toContain("ลองใหม่");
+    expect(html).not.toContain("ยังไม่มีม็อกอัพของใบนี้");
+    expect(html).not.toContain("ยังไม่มีไฟล์อะไรเลย");
+
+    const cached = renderToStaticMarkup(createElement(OrderArtworkCardView, {
+      ...artworkProps, latest: PREVIEW_ARTWORK, versionCount: 2,
+    }));
+    expect(cached).toContain(artworkProps.loadError);
+    expect(cached).toContain(PREVIEW_ARTWORK.fileUrl);
+    expect(cached).toContain("ม็อกอัพ v");
   });
 });

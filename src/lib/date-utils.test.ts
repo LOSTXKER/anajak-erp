@@ -1,5 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { differenceInBangkokDays } from "./date-utils";
+import { differenceInBangkokDays, toBangkokDateInput } from "./date-utils";
+
+describe("วันเอกสารตามเวลาประเทศไทย", () => {
+  it("รับเงินหลังเที่ยงคืนไทยไม่ถูกย้อนเป็นวันก่อนหน้าของ UTC", () => {
+    expect(toBangkokDateInput("2026-09-12T18:15:00Z")).toBe("2026-09-13");
+    expect(toBangkokDateInput("2026-09-12T16:59:59Z")).toBe("2026-09-12");
+  });
+  it("รับเงินหลังเที่ยงคืนวันปีใหม่ใช้ปีและเดือนใหม่", () => {
+    expect(toBangkokDateInput("2026-12-31T17:00:00Z")).toBe("2027-01-01");
+  });
+  it("วันที่ไม่ถูกต้องไม่กลายเป็นค่าที่ส่งออกเอกสารได้", () => {
+    expect(toBangkokDateInput("invalid")).toBe("");
+  });
+});
 
 describe("differenceInBangkokDays", () => {
   it("วันที่ UTC ต่างกัน แต่ยังเป็นวันเดียวกันที่ไทย", () => {

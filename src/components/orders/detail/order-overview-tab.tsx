@@ -26,35 +26,9 @@ import { PAYMENT_TERMS_LABELS } from "@/lib/payment-terms";
 import { DISPLAY_AMOUNT, FOCUS_BUTTON, RADIUS } from "@/components/ui/tokens";
 import { VISUAL_TONE_CLASSES, type VisualTone } from "@/lib/visual-tone";
 
-/* ============================================================
-   แท็บ "ภาพรวม" — ที่รวมของที่ "ไม่ใช่รายการสินค้า" ทั้งหมด
-   (เบสสั่ง 2026-08-11: "tab แรกเป็นแบบภาพรวมดีกว่า จะเป็นพวกผู้ติดต่อ
-    และอื่นๆ แต่รายการ แยกไปอีก tab นึง")
-
-   หลังย้ายการแก้ไขไปหน้าเต็ม หน้านี้เป็น read surface: สรุปข้อมูลตัดสินใจก่อน
-   แล้วค่อยแยกลูกค้า/การจัดส่งตามเจ้าของข้อมูล · optional ที่ไม่มีค่าหายทั้งแถว
-   แทนการจำลองฟอร์มอ่านอย่างเดียวด้วยช่อง "-" จำนวนมาก
-
-   ── หน้าตารอบ 2026-08-30 (เบสเคาะจากหน้าลอง /proto/order-detail แบบ B) ──
-   เดิมเป็นการ์ดใหญ่ "สรุปออเดอร์" เต็มความกว้างบนสุด แล้วค่อยการ์ดลูกค้า/จัดส่ง
-   ทุกการ์ดหัวข้อตัวหนาเท่ากันหมด อ่านแล้วไม่รู้ว่าอะไรสำคัญกว่าอะไร
-
-   ตอนนี้: **หัวใบ** (ใน order-detail-page.tsx) เป็นจุดเดียวที่เสียงดัง — เลขที่
-   สถานะ ปุ่มขั้นต่อไป · แท็บนี้จึง "เงียบ" ทั้งหมด หัวข้อการ์ดเป็น
-   `compact` (ตัวเล็กสีจาง) ไม่แข่งกับหัวใบ
-
-   สิ่งที่ต้องรู้ก่อนแก้ต่อ:
-   - เบสสั่งเอง 2026-08-30 ว่าหัวใบ "มีแค่สถานะกับ CTA ก็พอ" → กำหนดส่ง/จำนวน/ยอด
-     ที่เคยอยู่บนหัวย้ายมาอยู่บนสุดของการ์ด "ข้อมูลออเดอร์" **ห้ามลบทิ้ง**
-     สามค่านี้ไม่มีที่อยู่อื่นในทั้งหน้า (ลูกค้าไม่ต้องย้ายมา — การ์ดลูกค้าบอกอยู่แล้ว)
-   - คอลัมน์สรุปถูกวางไว้ **ก่อน** ในลำดับ DOM แล้วค่อยดันไปอยู่ขวาด้วย grid
-     บนจอกว้าง — เพื่อให้มือถือ (ที่ซ้อนตามลำดับ DOM) เห็นกำหนดส่ง/ยอด
-     ก่อนต้องเลื่อนผ่านรายละเอียดงานกับการ์ดลูกค้าที่ยาว
-
-   ⚠️ TabsContent ของหน้านี้ forceMount เสมอ (ซ่อนด้วย CSS ไม่ถอด DOM)
-   → ข้อมูลเงินต้อง gate ด้วย {showMoney && ...} ระดับ JSX เท่านั้น
-   ห้ามซ่อนด้วยคลาส และห้าม fallback เป็น ฿0/— เพราะช่างจะเปิด DOM เห็นตัวเลขจริง
-   ============================================================ */
+/** ภาพรวมเรียงข้อมูลตัดสินใจ ลูกค้า และการจัดส่ง พร้อมปุ่มแก้ตรงเรื่อง
+ * TabsContent คง DOM หลังเปิดแท็บ: ข้อมูลเงินต้อง gate ด้วย showMoney ใน JSX
+ */
 
 /** ช่องหนึ่งช่องของ "ประวัติลูกค้า" ในการ์ดลูกค้า (แบบ B · สีบอกหมวด) */
 type CustomerHistoryCell = {
@@ -400,21 +374,13 @@ export function OrderOverviewTab({
       customer.totalOrders > 0 ||
       customer.lastOrderAt),
   );
-  /* ประวัติลูกค้า = สี่ค่าที่คนถามจริงตอนเปิดใบงาน เรียงจากตัวที่ใช้ตัดสินใจบ่อยสุด
-     แต่ละช่องได้ "สีประจำหมวด" ของมันเอง (เงิน = การเงิน · จำนวนครั้ง = แบรนด์ ฯลฯ)
-     — แบบ B "สีบอกหมวด" เบสเคาะ 2026-08-31 จากหน้าลอง /proto/look
-
-     ก่อนหน้านี้เป็นบรรทัดตัวหนังสือเทาใต้ชื่อ ซึ่งเบสทักเองว่า "ของที่มันพิเศษ
-     ดันเขียนแค่ text โง่ ๆ" — ค่าเท่าเดิมทุกตัว เปลี่ยนแค่ที่ยืนของมัน
-
-     ช่องไหนไม่มีค่าก็หายไปทั้งช่อง (กติกาเดิมของแท็บนี้: optional ว่างต้องหาย
-     ไม่ใช่โชว์ "—" ให้เต็มกริด) · gate เงินยังครอบทั้งก้อนเหมือนเดิม */
+  // ยอดชำระและวงเงินใช้ค่าที่ผ่านการกรองสิทธิ์จาก server แล้ว
   const customerHistoryCells: CustomerHistoryCell[] = customer
     ? ([
         customer.totalSpent != null
           ? {
               key: "spent",
-              label: "ซื้อสะสม",
+              label: "ชำระสะสม",
               value: formatCurrency(customer.totalSpent),
               icon: Wallet,
               tone: "finance",
@@ -476,14 +442,12 @@ export function OrderOverviewTab({
   const summarySection = (
     <Section
       data-order-overview-card="summary"
-      compact={currentLayout}
-      surface={currentLayout ? undefined : "plain"}
+      surface="plain"
       title={<SectionTitle icon={Info} tone="brand">ข้อมูลออเดอร์</SectionTitle>}
       action={editButton("info", "แก้ไขข้อมูลออเดอร์")}
     >
       <div className="space-y-5">
-        {/* สามค่าที่คนเปิดใบงานมาหาบ่อยที่สุด — เคยอยู่บนหัวหน้า
-            ย้ายลงมาที่นี่ตอนเบสสั่งให้หัวใบเหลือแค่สถานะกับปุ่ม (2026-08-30) */}
+        {/* ข้อมูลที่ใช้ตัดสินใจก่อนเปิดรายละเอียด */}
         <dl className={cn("grid grid-cols-2 gap-x-4 gap-y-4 sm:gap-x-6 sm:gap-y-5", currentLayout && "lg:grid-cols-3")}>
           <SummaryFact
             label="กำหนดส่ง"
@@ -641,8 +605,7 @@ export function OrderOverviewTab({
   const shippingSection = (
     <Section
       data-order-overview-card="shipping"
-      compact={currentLayout}
-      surface={currentLayout ? undefined : "plain"}
+      surface="plain"
       title={<SectionTitle icon={Truck} tone="production">การจัดส่ง</SectionTitle>}
       action={editButton(
         "shipping",
@@ -718,8 +681,7 @@ export function OrderOverviewTab({
     order.brandProfile && (
       <Section
         data-order-overview-card="brand"
-        compact={currentLayout}
-        surface={currentLayout ? undefined : "plain"}
+        surface="plain"
         title={<SectionTitle icon={Palette} tone="product">แบรนด์ลูกค้า</SectionTitle>}
       >
         <FieldGrid>
@@ -808,8 +770,7 @@ export function OrderOverviewTab({
   const customerSection = (
     <Section
       data-order-overview-card="customer"
-      compact={currentLayout}
-      surface={currentLayout ? undefined : "plain"}
+      surface="plain"
       title={<SectionTitle icon={User} tone="brand">ลูกค้าและผู้ติดต่อ</SectionTitle>}
       action={
         customer ? onOpenCustomer ? (

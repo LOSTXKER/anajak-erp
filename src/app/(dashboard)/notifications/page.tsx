@@ -1,7 +1,8 @@
 "use client";
 
 import { Suspense } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Alert } from "@/components/ui/alert";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { useListPageState, usePageClamp } from "@/hooks/use-list-page-state";
@@ -77,7 +78,7 @@ function dayBucket(date: Date | string, now: number): "today" | "week" | "earlie
 
 const BUCKET_LABELS: Record<"today" | "week" | "earlier", string> = {
   today: "วันนี้",
-  week: "สัปดาห์นี้",
+  week: "7 วันที่ผ่านมา",
   earlier: "ก่อนหน้านี้",
 };
 
@@ -86,7 +87,6 @@ export default function NotificationsPage() {
 }
 
 function NotificationsContent() {
-  const router = useRouter();
   const { page, searchParams, replaceListState } = useListPageState();
   const filter: FilterValue = searchParams.get("view") === "unread" ? "unread" : "all";
   const limit = 20;
@@ -139,7 +139,7 @@ function NotificationsContent() {
             disabled={markAllRead.isPending}
           >
             <CheckCheck />
-            อ่านทั้งหมด
+            {markAllRead.isPending ? "กำลังทำเครื่องหมาย…" : "ทำเครื่องหมายอ่านแล้วทั้งหมด"}
           </Button>
         ) : undefined
       }
@@ -164,6 +164,7 @@ function NotificationsContent() {
         ))}
       </div>
 
+      {markAllRead.error && <Alert variant="error">ทำเครื่องหมายไม่สำเร็จ: {markAllRead.error.message}</Alert>}
       {/* List */}
       <div>
         {isLoading && (
@@ -205,22 +206,7 @@ function NotificationsContent() {
                   <ul className="divide-y divide-divider">
                     {items.map((notif) => (
                       <li key={notif.id}>
-                        <button
-                          onClick={() => {
-                            if (!notif.isRead) {
-                              markRead.mutate({ id: notif.id });
-                            }
-                            // มี link = พาไปหน้างานจริง (เช่น ออเดอร์/บิลที่เกี่ยว)
-                            if (notif.link) router.push(notif.link);
-                          }}
-                          className={cn(
-                            FOCUS_INSET,
-                            "group flex w-full gap-3 px-5 py-3.5 text-left transition-colors hover:bg-interactive-hover active:bg-interactive-pressed dark:hover:bg-interactive-hover dark:active:bg-interactive-pressed",
-                            !notif.isRead && "bg-surface-muted"
-                          )}
-                          aria-label={`${notif.isRead ? "" : "ยังไม่อ่าน: "}${notif.title}`}
-                          aria-describedby={notif.message ? `notification-message-${notif.id}` : undefined}
-                        >
+                        <NotificationAction notification={notif} onRead={() => markRead.mutate({ id: notif.id })} pending={markRead.isPending && markRead.variables?.id === notif.id}>
                           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-muted dark:bg-slate-800">
                             {TYPE_ICONS[notif.type] ?? (
                               <Bell className="h-4 w-4" strokeWidth={1.75} />
@@ -250,8 +236,10 @@ function NotificationsContent() {
                             <time dateTime={new Date(notif.createdAt).toISOString()} title={formatDateTime(notif.createdAt)} className="mt-1 block text-xs text-muted group-hover:text-secondary group-active:text-secondary dark:group-hover:text-secondary dark:group-active:text-secondary">
                               {timeAgo(notif.createdAt, dataUpdatedAt)}
                             </time>
+                            <p className="mt-1 text-xs text-secondary">{notif.link ? "เปิดงานที่เกี่ยวข้อง →" : notif.isRead ? "อ่านแล้ว" : "แตะเพื่อทำเครื่องหมายว่าอ่านแล้ว"}</p>
                           </div>
-                        </button>
+                        </NotificationAction>
+                        {markRead.error && markRead.variables?.id === notif.id && <p role="alert" className="px-5 pb-3 text-sm text-red-700 dark:text-red-300">ทำเครื่องหมายไม่สำเร็จ: {markRead.error.message}</p>}
                       </li>
                     ))}
                   </ul>
@@ -272,4 +260,15 @@ function NotificationsContent() {
       </div>
     </PageShell>
   );
+}
+
+function NotificationAction({ notification, onRead, pending, children }: {
+  notification: NotifItem; onRead: () => void; pending: boolean; children: React.ReactNode;
+}) {
+  const className = cn(FOCUS_INSET, "group flex w-full gap-3 px-5 py-4 text-left transition-colors", !notification.isRead && "bg-surface-muted", (notification.link || !notification.isRead) && "hover:bg-interactive-hover active:bg-interactive-pressed");
+  const description = notification.message ? `notification-message-${notification.id}` : undefined;
+  const label = `${notification.isRead ? "" : "ยังไม่อ่าน: "}${notification.title}`;
+  if (notification.link) return <Link href={notification.link} className={className} onClick={() => { if (!notification.isRead && !pending) onRead(); }} aria-label={`เปิดงาน: ${label}`} aria-describedby={description}>{children}</Link>;
+  if (!notification.isRead) return <button type="button" className={className} onClick={onRead} disabled={pending} aria-busy={pending} aria-label={`ทำเครื่องหมายว่าอ่านแล้ว: ${label}`} aria-describedby={description}>{children}</button>;
+  return <div className={className}>{children}</div>;
 }

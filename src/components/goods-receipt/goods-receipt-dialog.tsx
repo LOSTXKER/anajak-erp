@@ -57,6 +57,7 @@ interface GoodsReceiptDialogProps {
   // V2 ผูกหลักฐานกับ Operation Job และ revision เดียวกับที่ผู้ใช้กำลังเห็น
   operationJobId?: string;
   expectedRevision?: number;
+  description?: string;
   onClose: () => void;
   onCreated?: () => void;
 }
@@ -127,6 +128,7 @@ function ReceiptForm({
   productionStepId,
   operationJobId,
   expectedRevision,
+  description,
   onClose,
   onCreated,
   initialLines,
@@ -250,18 +252,18 @@ function ReceiptForm({
   }
 
   return (
-    <Dialog open onOpenChange={(open) => !open && onClose()}>
+    <Dialog open onOpenChange={(open) => !open && !create.isPending && !confirmExistingEvidence.isPending && onClose()}>
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{RECEIPT_TYPE_LABELS[receiptType]}</DialogTitle>
           <DialogDescription>
-            {isReturn
+            {description ?? (isReturn
               ? "ยอดคืนจะหักออกจากยอดรับของออเดอร์นี้"
               : receiptType === "OUTSOURCE_RETURN"
                 ? "นับเฉพาะของที่รับกลับรอบนี้ ไม่นับซ้ำใบก่อน การบันทึกนี้เก็บหลักฐานและยังไม่เปลี่ยนสถานะงานร้านนอก"
               : canConfirmExistingEvidence
                 ? "รายการนี้มีหลักฐานรับครบแล้ว — ยืนยันเพื่อปิดเฉพาะขั้นของสถานีนี้"
-              : "นับจริงต่อไซส์ — ขาด/เกิน/มีตำหนิ ระบบแจ้งแอดมินให้ทันที"}
+              : "นับจริงต่อไซส์ — ขาด/เกิน/มีตำหนิ ระบบแจ้งแอดมินให้ทันที")}
           </DialogDescription>
         </DialogHeader>
 

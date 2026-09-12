@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { ChecklistCard } from "./work-order-checklist";
 import { WorkOrderSteps } from "./work-order-steps";
-import { OutsourceReturnReceipt, type WorkOrderController } from "./work-order-controller";
+import { OutsourceReturnReceipt, WorkOrderPrimaryButton, type WorkOrderController } from "./work-order-controller";
 import { dtfUnavailableReason, outsourceReceiptCandidates, outsourceStepReason } from "./work-order-pieces";
 import { workOrderStandards } from "@/lib/work-order-standards";
 import type { ProductionStep } from "./types";
@@ -56,9 +56,23 @@ describe("ใบผลิตบอกสถานะและหลักฐา�
     expect(html).toContain("ติ๊กโดย ผู้ตรวจ");
   });
 
-  it("DTF ที่ยังไม่เสร็จบอกตรง ๆ ว่าหน้าจัดรอบยังไม่พร้อม", () => {
-    const step = { stepType: "DTF_PRINT", status: "PENDING", printRunItems: [], outsourceOrders: [] } as unknown as ProductionStep;
-    expect(dtfUnavailableReason(step)).toContain("ยังไม่พร้อมใช้งาน");
+  it.each([false, true])("DTF เปิดคิวหรือรอบจริง โดยไม่มีปุ่มเริ่มและปิดขั้นทั่วไป (มีรอบ=%s)", (hasRun) => {
+    const step = {
+      id: "dtf-step", productionId: "production-1", stepType: "DTF_PRINT",
+      status: hasRun ? "IN_PROGRESS" : "PENDING", outsourceOrders: [],
+      printRunItems: hasRun ? [{ printRun: { runNumber: "FR-2609-0001", status: "PRINTING" } }] : [],
+    } as unknown as ProductionStep;
+    const noop = vi.fn();
+    const html = renderToStaticMarkup(React.createElement(WorkOrderPrimaryButton, {
+      step, now: undefined, busy: false, canUpdateStep: true, canSuperviseStep: true,
+      hasProductionPermission: true, canOwnOrSupervise: () => true,
+      onStart: noop, onComplete: noop, onQuickPass: noop, onManage: noop,
+      onGoodsReceipt: noop, onOutsource: noop,
+    }));
+    expect(html).toContain(hasRun ? 'href="/production/print-runs?run=FR-2609-0001"' : 'href="/production/print-runs"');
+    expect(html).toContain(hasRun ? "เปิดรอบ FR-2609-0001" : "เปิดคิวรอบพิมพ์ DTF");
+    expect(html).not.toContain("<button");
+    expect(dtfUnavailableReason(step)).toContain(hasRun ? "เปิดรอบเพื่อยืนยันพิมพ์จบ" : "เลือกงานและจำนวนรวมเข้าม้วน");
     expect(dtfUnavailableReason({ ...step, status: "COMPLETED" })).toBeNull();
   });
 });

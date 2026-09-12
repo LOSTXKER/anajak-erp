@@ -45,7 +45,8 @@ export default function AnalyticsPage() {
 
   return (
     <PageShell
-      title="รายงาน"
+      title="รายงานยอดสั่งซื้อ"
+      description="ดูมูลค่าออเดอร์ตามเดือนที่เปิดงาน และลูกค้าที่ชำระบิลสะสมสูงสุด"
       loading={isLoading || meQuery.isLoading}
       skeleton={
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
@@ -66,7 +67,8 @@ export default function AnalyticsPage() {
     >
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <Section
-          title="รายได้ 6 เดือนย้อนหลัง"
+          title="มูลค่าออเดอร์ 6 เดือน"
+          description="รวมเดือนปัจจุบัน ไม่นับออเดอร์ยกเลิก ยอดนี้เป็นมูลค่างานที่เปิด ยังไม่ใช่เงินที่รับแล้ว"
           icon={TrendingUp}
           tone="finance"
           bordered
@@ -76,12 +78,12 @@ export default function AnalyticsPage() {
               ต้องมีสิทธิ์ &quot;เห็นทุน/กำไร/รายงานการเงิน&quot; — เช็คสิทธิ์ที่ ตั้งค่า → ผู้ใช้
             </p>
           ) : revenueLoading ? (
-            <div role="status" aria-label="กำลังโหลดรายได้รายเดือน" className="space-y-4">
+            <div role="status" aria-label="กำลังโหลดมูลค่าออเดอร์รายเดือน" className="space-y-4">
               {Array.from({ length: 6 }, (_, index) => <Skeleton key={index} className="h-8 w-full" />)}
             </div>
           ) : revenueError ? (
             <QueryError
-              message="โหลดข้อมูลรายได้ไม่สำเร็จ"
+              message="โหลดมูลค่าออเดอร์ไม่สำเร็จ"
               onRetry={() => refetchRevenue()}
             />
           ) : !revenueData || revenueData.length === 0 ? (
@@ -93,7 +95,7 @@ export default function AnalyticsPage() {
                   maxRevenue > 0 ? (item.revenue / maxRevenue) * 100 : 0;
                 return (
                   <div key={item.month} className="space-y-1">
-                    <div className="flex items-baseline justify-between text-sm">
+                    <div className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
                       <span className="text-xs text-muted">
                         {item.month}
                       </span>
@@ -104,7 +106,7 @@ export default function AnalyticsPage() {
                         </span>
                       </span>
                     </div>
-                    <div className="h-1.5 overflow-hidden rounded-full bg-surface-muted">
+                    <div aria-hidden="true" className="h-2 overflow-hidden rounded-full bg-surface-muted">
                       <div
                         className="h-full rounded-full bg-blue-600 transition-[width] duration-[var(--duration-base)] ease-out"
                         style={{ width: `${width}%` }}
@@ -117,7 +119,7 @@ export default function AnalyticsPage() {
           )}
         </Section>
 
-        <Section title="ลูกค้ายอดสูงสุด" icon={Users} tone="brand" bordered>
+        <Section title="ลูกค้ายอดชำระสะสมสูงสุด" description="ยอดชำระบิลทุกช่วงเวลา รวมภาษีหัก ณ ที่จ่าย หักเงินคืนและยอดบิลที่ยกเลิกแล้ว" icon={Users} tone="brand" bordered>
           <div className="space-y-3">
             {dashboard?.topCustomers?.map((c, i) => (
               <Link key={c.id} href={`/customers/${c.id}`} className={cn("flex min-h-11 items-center justify-between gap-4 rounded-lg hover:bg-interactive-hover", FOCUS_BUTTON)}>

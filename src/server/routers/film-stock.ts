@@ -56,20 +56,22 @@ export const filmStockRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const res = await ctx.prisma.filmStock.updateMany({
-        where: { id: input.id, qty: { gte: input.qty } },
-        data: { qty: { decrement: input.qty } },
+      return ctx.prisma.$transaction(async (tx) => {
+        const res = await tx.filmStock.updateMany({
+          where: { id: input.id, qty: { gte: input.qty } },
+          data: { qty: { decrement: input.qty } },
+        });
+        if (res.count === 0) {
+          badRequest("จำนวนคงเหลือไม่พอ — รีเฟรชดูยอดล่าสุดก่อน");
+        }
+        await createAuditLog(tx, {
+          userId: ctx.userId,
+          action: "UPDATE",
+          entityType: "FILM_STOCK",
+          entityId: input.id,
+          newValue: { consumed: input.qty, note: input.note ?? null },
+        });
+        return { ok: true };
       });
-      if (res.count === 0) {
-        badRequest("จำนวนคงเหลือไม่พอ — รีเฟรชดูยอดล่าสุดก่อน");
-      }
-      await createAuditLog(ctx.prisma, {
-        userId: ctx.userId,
-        action: "UPDATE",
-        entityType: "FILM_STOCK",
-        entityId: input.id,
-        newValue: { consumed: input.qty, note: input.note ?? null },
-      });
-      return { ok: true };
     }),
 });

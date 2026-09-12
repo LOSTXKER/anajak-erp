@@ -19,16 +19,19 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { PAYMENT_METHODS, DEFAULT_PAYMENT_METHOD } from "@/lib/payment-methods";
 import { Undo2 } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
 
 // dialog คืนเงินให้ลูกค้า — แตกจาก order-billing-section · conditional mount ตามกติกา
 // ใน ui/dialog.tsx: state ฟอร์ม seed จาก props ตอน mount ปิดแล้ว React ล้างให้เอง
 // (คืนเงิน — server เก็บเป็น payment ยอดติดลบ · ลด totalSpent · คู่กับใบลดหนี้)
 export function RecordRefundDialog({
   invoiceId,
+  invoiceNumber,
   initialAmount,
   onClose,
 }: {
   invoiceId: string;
+  invoiceNumber: string;
   /** ยอดคืน default = เงินสดสุทธิที่รับไว้ของบิล (netCash — คืนได้ไม่เกินนี้) */
   initialAmount: string;
   onClose: () => void;
@@ -63,7 +66,7 @@ export function RecordRefundDialog({
         <DialogHeader>
           <DialogTitle>คืนเงินให้ลูกค้า</DialogTitle>
           <DialogDescription>
-            คู่กับใบลดหนี้ที่ออกให้ลูกค้า · คืนได้ไม่เกินเงินที่รับไว้
+            {invoiceNumber} · เงินที่คืนได้ {formatCurrency(Number(initialAmount))} · ใช้คู่กับใบลดหนี้ที่ออกให้ลูกค้า
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">

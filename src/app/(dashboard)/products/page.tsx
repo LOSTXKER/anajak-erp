@@ -22,6 +22,7 @@ import { SyncDialog } from "@/components/sync-dialog";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { FOCUS_BUTTON } from "@/components/ui/tokens";
 import { StatusLabel } from "@/components/ui/status-label";
+import { productSellingPrice } from "@/lib/product-price";
 
 // ─── Product Group Tabs ─────────────────────────────────────
 const itemTypes = [
@@ -296,8 +297,8 @@ function ProductsPageContent() {
                       <span className="text-sm font-semibold tabular-nums text-strong">
                         {(() => {
                           const prices = product.variants
-                            ?.map((v) => v.sellingPrice)
-                            .filter((p) => p > 0);
+                            ?.map((v) => productSellingPrice(product, v))
+                            .filter((p): p is number => p !== null);
                           if (prices && prices.length > 0) {
                             const min = Math.min(...prices);
                             const max = Math.max(...prices);
@@ -305,7 +306,8 @@ function ProductsPageContent() {
                               ? formatCurrency(min)
                               : `${formatCurrency(min)} - ${formatCurrency(max)}`;
                           }
-                          return formatCurrency(product.basePrice);
+                          const price = productSellingPrice(product);
+                          return price === null ? "ยังไม่ตั้งราคาขาย" : formatCurrency(price);
                         })()}
                       </span>
                       <span className="text-xs text-muted">

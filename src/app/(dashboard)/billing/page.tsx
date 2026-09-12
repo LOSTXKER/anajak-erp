@@ -18,6 +18,7 @@ import { ResponsiveList } from "@/components/ui/responsive-list";
 import { Select } from "@/components/ui/select";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { PageShell } from "@/components/page-shell";
+import { BillingNavigation } from "@/components/billing/billing-navigation";
 import { permAllows } from "@/lib/permissions";
 import { INVOICE_TYPE_LABELS } from "@/lib/invoice-labels";
 import { PAYMENT_STATUS_LABELS, PAYMENT_STATUS_VARIANTS } from "@/lib/status-config";
@@ -124,6 +125,7 @@ function BillingPageContent() {
           : undefined
       }
     >
+      <BillingNavigation active="/billing" />
       {/* stats พังต้องบอก — เลขเงินโชว์ ฿0 เงียบๆ อ่านเป็น "ไม่มียอดค้าง" ได้ (ขัด DESIGN.md) */}
       {stats.isError ? (
         <QueryError
@@ -226,12 +228,12 @@ function BillingPageContent() {
           />
         }
         renderMobile={(invoices) => (
-          <div role="list" aria-label="รายการบิล" className="space-y-3">
+          <div role="list" aria-label="รายการบิล">
             {invoices.map((inv) => {
               const status = paymentStatusProps(inv.paymentStatus);
               const moneyHref = `/orders/${inv.orderId}?tab=money`;
               return (
-                <article key={inv.id} role="listitem" className="card-surface rounded-2xl p-4">
+                <article key={inv.id} role="listitem" className="border-b border-divider py-4 last:border-b-0">
                   <Link
                     href={moneyHref}
                     className={cn("block rounded-lg", FOCUS_BUTTON)}

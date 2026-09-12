@@ -18,11 +18,13 @@ import {
   Check,
   Package,
 } from "lucide-react";
-import { Alert } from "@/components/ui/alert";
 import { DataTable } from "@/components/ui/data-table";
 import { PageShell } from "@/components/page-shell";
+import { CatalogTools, CatalogFeedback } from "@/components/settings/catalog-tools";
+import { useSettingsDraftGuard } from "@/components/settings/use-settings-draft-guard";
 
 export default function PackagingSettingsPage() {
+  const [search, setSearch] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
   const [newName, setNewName] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -47,10 +49,12 @@ export default function PackagingSettingsPage() {
   });
 
   const updateMutation = trpc.packaging.update.useMutation({
-    onSuccess: () => {
+    onSuccess: (_result, variables) => {
       utils.packaging.list.invalidate();
-      setEditingId(null);
-      setEditName("");
+      if (variables.id === editingId && variables.name === editName.trim()) {
+        setEditingId(null);
+        setEditName("");
+      }
     },
   });
 
@@ -85,10 +89,15 @@ export default function PackagingSettingsPage() {
     if (ok) deleteMutation.mutate({ id });
   };
 
+  const dirty = (showAddForm && !!newName.trim()) || !!(editingId && editName !== options?.find((item) => item.id === editingId)?.name);
+  const mayDiscard = useSettingsDraftGuard(dirty, createMutation.isPending || updateMutation.isPending);
+  const visibleOptions = (options ?? []).filter((item) => [item.name].filter(Boolean).join(" ").toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()));
+
   return (
     <PageShell
       back={{ href: "/settings", label: "ย้อนกลับ" }}
-      title="จัดการแพ็คเกจจัดส่ง"
+      title="แพ็คเกจจัดส่ง"
+      description="ตัวเลือกที่ใช้ในออเดอร์ ปิดรายการที่เลิกใช้ได้โดยยังเก็บประวัติเดิม"
       loading={meQuery.isLoading}
       error={
         meQuery.isError
@@ -109,7 +118,7 @@ export default function PackagingSettingsPage() {
       }
     >
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
           <CardTitle className="flex items-center gap-2 text-base">
             <ToneMark icon={Package} tone="product" />
             แพ็คเกจทั้งหมด
@@ -117,7 +126,9 @@ export default function PackagingSettingsPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => {
+            onClick={async () => {
+              if (!(await mayDiscard())) return;
+              createMutation.reset();
               setShowAddForm(!showAddForm);
               setNewName("");
             }}
@@ -127,6 +138,7 @@ export default function PackagingSettingsPage() {
           </Button>
         </CardHeader>
         <CardContent>
+          <CatalogTools tableScrollHint loading={isLoading} search={search} onSearch={setSearch} count={visibleOptions.length} total={options?.length ?? 0} label="แพ็คเกจ" />
           {showAddForm && (
             <form
               onSubmit={handleCreate}
@@ -138,11 +150,13 @@ export default function PackagingSettingsPage() {
                 </label>
                 <Input
                   id="new-packaging-name"
+                  disabled={createMutation.isPending}
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   placeholder="เช่น ถุง OPP, กล่อง, ซองไปรษณีย์"
                   required
                 />
+                <CatalogFeedback pending={createMutation.isPending} error={createMutation.error?.message} />
               </div>
               <Button
                 type="submit"
@@ -155,13 +169,15 @@ export default function PackagingSettingsPage() {
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => setShowAddForm(false)}
+                disabled={createMutation.isPending}
+                onClick={() => { setShowAddForm(false); setNewName(""); }}
               >
                 ยกเลิก
               </Button>
             </form>
           )}
 
+          {search && visibleOptions.length === 0 && !isLoading ? <p role="status" className="py-8 text-center text-sm text-secondary">ไม่พบแพ็คเกจที่ตรงคำค้น</p> : null}
           {isLoading ? (
             <div className="space-y-3">
               {[...Array(5)].map((_, i) => (
@@ -187,12 +203,12 @@ export default function PackagingSettingsPage() {
                 </tr>
               </DataTable.Head>
               <DataTable.Body>
-                {options.map((opt) => {
+                {visibleOptions.map((opt) => {
                   const isEditing = editingId === opt.id;
                   return (
                     <DataTable.Row
                       key={opt.id}
-                      className={!opt.isActive ? "opacity-50" : undefined}
+                      className={isEditing ? "bg-surface-muted" : undefined}
                     >
                       <DataTable.Td>
                         {isEditing ? (
@@ -211,11 +227,13 @@ export default function PackagingSettingsPage() {
                             {opt.name}
                           </span>
                         )}
+                        <CatalogFeedback pending={(updateMutation.isPending && updateMutation.variables?.id === opt.id) || (deleteMutation.isPending && deleteMutation.variables?.id === opt.id)} error={(updateMutation.variables?.id === opt.id ? updateMutation.error?.message : null) || (deleteMutation.variables?.id === opt.id ? deleteMutation.error?.message : null)} />
                       </DataTable.Td>
                       <DataTable.Td align="center" className="text-xs text-muted">
                         {opt.sortOrder}
                       </DataTable.Td>
                       <DataTable.Td align="center">
+                        <p className="mb-2 whitespace-nowrap text-xs text-secondary">{opt.isActive ? "ใช้งาน" : "ปิดใช้งาน"}</p>
                         <Switch
                           aria-label={`${opt.isActive ? "ปิด" : "เปิด"}การใช้งาน ${opt.name}`}
                           checked={opt.isActive}
@@ -252,7 +270,7 @@ export default function PackagingSettingsPage() {
                               variant="ghost"
                               size="icon-sm"
                               aria-label={`แก้ไข ${opt.name}`}
-                              onClick={() => { setEditingId(opt.id); setEditName(opt.name); }}
+                              onClick={async () => { if (!(await mayDiscard())) return; updateMutation.reset(); setEditingId(opt.id); setEditName(opt.name); }}
                               disabled={updateMutation.isPending}
                               className="text-muted hover:text-strong dark:hover:text-strong"
                             >
@@ -278,11 +296,6 @@ export default function PackagingSettingsPage() {
             </DataTable.Root>
           )}
 
-          {(createMutation.isError || updateMutation.isError || deleteMutation.isError) && (
-            <Alert variant="error" className="mt-3" aria-live="polite">
-              {createMutation.error?.message || updateMutation.error?.message || deleteMutation.error?.message}
-            </Alert>
-          )}
         </CardContent>
       </Card>
     </PageShell>

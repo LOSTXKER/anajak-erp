@@ -30,14 +30,20 @@ function buildLocalDemoDatabaseUrl() {
 
 async function main() {
   const mode = process.argv[2];
-  if (mode !== "dev" && mode !== "reset") {
-    throw new Error("ใช้คำสั่งนี้ผ่าน npm run dev:demo หรือ npm run db:seed:demo เท่านั้น");
+  if (mode !== "dev" && mode !== "reset" && mode !== "check") {
+    throw new Error("ใช้ dev, reset หรือ check scripts/verify-*.ts");
   }
 
   const root = process.cwd();
+  const checkFile = process.argv[3];
+  if (mode === "check" && (!checkFile || !/^scripts\/verify-[a-z0-9-]+\.tsx?$/.test(checkFile))) {
+    throw new Error("ระบุสคริปต์ตรวจใน scripts/verify-*.ts หรือ .tsx เท่านั้น");
+  }
   const databaseUrl = buildLocalDemoDatabaseUrl();
   const command = path.join(root, "node_modules", ".bin", mode === "dev" ? "next" : "tsx");
-  const args = mode === "dev" ? ["dev"] : ["prisma/seed-demo.ts", "--reset"];
+  const args = mode === "dev" ? ["dev"]
+    : mode === "reset" ? ["prisma/seed-demo.ts", "--reset"]
+    : ["--env-file=.env", checkFile!, ...process.argv.slice(4)];
   const child = spawn(command, args, {
     cwd: root,
     env: {

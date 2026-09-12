@@ -49,6 +49,12 @@ function makePrisma(overrides: Record<string, unknown> = {}) {
 }
 
 describe("updateQuotationDraft", () => {
+  it("ราคาต่อหน่วยที่บันทึกและยอดบรรทัดใช้การปัด Decimal เดียวกัน", async () => {
+    const { prisma, tx } = makePrisma();
+    await updateQuotationDraft(prisma, { id: "quote-1", userId: "user-1", validUntil: new Date("2027-01-31"), discount: 0, tax: 0, items: [{ name: "เสื้อ", quantity: 3, unit: "ชิ้น", unitPrice: 1.005 }] });
+    expect(tx.quotation.update.mock.calls[0][0].data).toMatchObject({ subtotal: 3.03, totalAmount: 3.03, items: { create: [{ unitPrice: 1.01, totalPrice: 3.03 }] } });
+  });
+
   it("ล็อกก่อน แล้วบันทึกหัวใบ+รายการ+ยอด+audit ใน transaction เดียว", async () => {
     const { prisma, tx } = makePrisma();
 

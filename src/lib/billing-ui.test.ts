@@ -26,6 +26,19 @@ const invoice = (overrides: Partial<BillingUiInvoice> = {}): BillingUiInvoice =>
 });
 
 describe("billing UI policy", () => {
+  it("ใบเสร็จและใบลดหนี้ไม่ทำให้ยอดออกใบเรียกเก็บถูกนับซ้ำ", () => {
+    const overview = billingOverview([
+      invoice({ totalAmount: 7907.3, payments: [{ amount: 7907.3, whtAmount: 0 }] }),
+      invoice({ type: "RECEIPT", totalAmount: 7907.3, forPaymentId: "paid-deposit" }),
+      invoice({ type: "CREDIT_NOTE", totalAmount: 100 }),
+      invoice({ type: "DEBIT_NOTE", totalAmount: 200 }),
+      invoice({ type: "FINAL_INVOICE", totalAmount: 999, isVoided: true }),
+    ]);
+    expect(overview.totalInvoiced).toBe(8107.3);
+    expect(overview.totalPaid).toBe(7907.3);
+    expect(overview.totalOutstanding).toBe(200);
+  });
+
   it("สรุปยอดเฉพาะบิล active และนับ WHT เป็นยอดเคลียร์", () => {
     const overview = billingOverview([
       invoice({

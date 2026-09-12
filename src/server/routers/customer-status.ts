@@ -42,6 +42,7 @@ export const customerStatusRouter = router({
 
   // หน้าออเดอร์ใช้เช็คว่ามีลิงก์อยู่แล้วไหม (ก่อนคัดลอก/สร้างใหม่)
   getLink: protectedProcedure
+    .use(salesUp)
     .input(z.object({ orderId: z.string() }))
     .query(async ({ ctx, input }) => {
       const order = await ctx.prisma.order.findUnique({

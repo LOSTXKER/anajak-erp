@@ -28,6 +28,7 @@ import {
 import { formatCurrency } from "@/lib/utils";
 import { permAllows } from "@/lib/permissions";
 import { PageShell } from "@/components/page-shell";
+import { BillingNavigation } from "@/components/billing/billing-navigation";
 import { Users, DollarSign, AlertCircle, Hourglass, MessageSquare, Copy } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 
@@ -194,6 +195,7 @@ function AgingPageContent() {
           : null
       }
     >
+      <BillingNavigation active="/billing/aging" />
       {(!isError || data) && <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard loading={isLoading} moduleTone="finance"
           title="ลูกหนี้รวม"
@@ -365,9 +367,9 @@ function AgingPageContent() {
           </DataTable.Root>
         )}
         renderMobile={(rows) => (
-          <div role="list" aria-label="รายการลูกหนี้" className="space-y-3">
+          <div role="list" aria-label="รายการลูกหนี้">
             {rows.map((row) => (
-              <article key={row.customerId} role="listitem" className="card-surface rounded-2xl p-4">
+              <article key={row.customerId} role="listitem" className="border-b border-divider py-4 last:border-b-0">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <Link

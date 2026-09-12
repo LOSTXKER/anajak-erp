@@ -22,6 +22,7 @@ import { RecordNotFound } from "@/components/ui/record-not-found";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusLabel } from "@/components/ui/status-label";
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
+import { productSellingPrice } from "@/lib/product-price";
 
 // ============================================================
 // CONSTANTS
@@ -338,8 +339,8 @@ export default function ProductDetailPage({
               <div className="space-y-3 text-sm">
                 {(() => {
                   const variantPrices = product.variants
-                    .map((v) => v.sellingPrice)
-                    .filter((p) => p > 0);
+                    .map((v) => productSellingPrice(product, v, false))
+                    .filter((p): p is number => p !== null);
                   const minPrice =
                     variantPrices.length > 0 ? Math.min(...variantPrices) : 0;
                   const maxPrice =
@@ -349,7 +350,7 @@ export default function ProductDetailPage({
                     ? minPrice === maxPrice
                       ? formatCurrency(minPrice)
                       : `${formatCurrency(minPrice)} - ${formatCurrency(maxPrice)}`
-                    : formatCurrency(product.basePrice);
+                    : productSellingPrice(product) === null ? "ยังไม่ตั้งราคาขาย" : formatCurrency(product.basePrice);
                   return (
                     <div className="flex items-center justify-between">
                       <span className="text-muted">ราคาก่อนปรับ</span>
@@ -465,6 +466,7 @@ export default function ProductDetailPage({
                       const savingPrice = saving && updateVariant.variables?.priceAdj !== undefined;
                       const savingStatus = saving && updateVariant.variables?.isActive !== undefined;
                       const priceMessage = savingPrice ? "กำลังบันทึก..." : priceFeedback?.message;
+                      const sellingPrice = productSellingPrice(product, variant);
                       return (
                         <DataTable.Row
                           key={variant.id}
@@ -476,11 +478,7 @@ export default function ProductDetailPage({
                           </DataTable.Td>
                           <DataTable.Td align="right" className="tabular-nums">
                             <span className="font-medium text-strong">
-                              {formatCurrency(
-                                (variant.sellingPrice > 0
-                                  ? variant.sellingPrice
-                                  : product.basePrice) + variant.priceAdj,
-                              )}
+                              {sellingPrice === null ? "ยังไม่ตั้งราคาขาย" : formatCurrency(sellingPrice)}
                             </span>
                           </DataTable.Td>
                           <DataTable.Td align="right">

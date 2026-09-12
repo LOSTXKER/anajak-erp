@@ -20,6 +20,7 @@ import { CustomerPicker } from "@/components/customers/customer-picker";
 import { permAllows } from "@/lib/permissions";
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
 import { Plus, Trash2, FileText, User } from "lucide-react";
+import { calculateQuotationSummary } from "@/lib/pricing";
 
 // ============================================================
 // TYPES
@@ -105,7 +106,7 @@ function QuotationFormPage() {
     isLoading: linkedOrderLoading,
     isError: linkedOrderIsError,
     refetch: refetchLinkedOrder,
-  } = trpc.order.getById.useQuery(
+  } = trpc.quotation.previewFromOrder.useQuery(
     { id: fromOrderId! },
     { enabled: !!fromOrderId }
   );
@@ -145,32 +146,15 @@ function QuotationFormPage() {
     let values: QuotationFormValues;
     if (fromOrderId && linkedOrder) {
       setCustomerLabel(linkedOrder.customer?.name ?? "");
-      const orderItems = (linkedOrder.items ?? []) as Array<{
-        description: string | null;
-        totalQuantity: number;
-        subtotal: number;
-        products: Array<{ description: string }>;
-      }>;
       values = {
         customerId: linkedOrder.customerId,
         description: "",
         validUntil: new Date(Date.now() + 7 * 86400_000).toISOString().slice(0, 10),
-        terms: "",
+        terms: linkedOrder.terms,
         notes: "",
-        items: orderItems.length > 0
-          ? orderItems.map((it) => ({
-            name: it.description || it.products[0]?.description || "รายการ",
-            description: it.products.map((p) => p.description).join(", "),
-            quantity: it.totalQuantity || 1,
-            unit: "ชิ้น",
-            unitPrice:
-              it.totalQuantity > 0
-                ? Math.round((it.subtotal / it.totalQuantity) * 100) / 100
-                : 0,
-          }))
-          : [{ ...emptyItem }],
-        discount: 0,
-        tax: 0,
+        items: linkedOrder.items.length > 0 ? linkedOrder.items : [{ ...emptyItem }],
+        discount: linkedOrder.discount,
+        tax: linkedOrder.tax,
       };
     } else if (editId && editing) {
       setCustomerLabel(editing.customer?.name ?? "");
@@ -215,12 +199,7 @@ function QuotationFormPage() {
 
   // ---- pricing calculations ----
   const pricingSummary = useMemo(() => {
-    const subtotal = items.reduce(
-      (sum, item) => sum + item.quantity * item.unitPrice,
-      0,
-    );
-    const total = Math.max(0, subtotal - discount + tax);
-    return { subtotal, discount, tax, total };
+    return calculateQuotationSummary({ items, discount, tax });
   }, [items, discount, tax]);
 
   // ---- item helpers ----
@@ -387,7 +366,7 @@ function QuotationFormPage() {
           >
             <div className="space-y-4">
             {items.map((item, idx) => {
-              const rowTotal = item.quantity * item.unitPrice;
+              const rowTotal = pricingSummary.lineTotals[idx];
 
               return (
                 <div

@@ -21,6 +21,8 @@ type HarnessOptions = {
   siblings?: Array<{ id: string; stepType: string; status: string; sortOrder: number }>;
   remainingOrders?: number;
   executionEnabled?: boolean;
+  receivedGood?: number;
+  assignedToId?: string;
 };
 
 function makeHarness(options: HarnessOptions = {}) {
@@ -54,6 +56,7 @@ function makeHarness(options: HarnessOptions = {}) {
       stepType: step.stepType,
       status: step.status,
       qtyDone: step.qtyDone,
+      assignedToId: options.assignedToId ?? null,
       executionEnabled: step.executionEnabled,
       production: { orderId: "order-1" },
     },
@@ -153,6 +156,7 @@ function makeHarness(options: HarnessOptions = {}) {
       })),
     },
     goodsReceipt: { count: vi.fn(async () => 1) },
+    goodsReceiptLine: { aggregate: vi.fn(async () => ({ _sum: { qtyCounted: options.receivedGood ?? 10, defectQty: 0 } })) },
     auditLog: {
       create: vi.fn(async () => {
         log.push("write:audit");
@@ -207,6 +211,23 @@ afterEach(() => {
 });
 
 describe("outsource production boundary + lock order", () => {
+  it("ส่งหรือรับกลับไม่ข้ามออเดอร์พักและเจ้าของงานคนอื่น", async () => {
+    const held = makeHarness({ orderStatus: "ON_HOLD", outsourceStatus: "DRAFT" });
+    await expect(outsourceRouter.createCaller(held.ctx).updateOrderStatus({ id: "outsource-1", status: "SENT" })).rejects.toThrow("ยังไม่พร้อมส่งหรือรับกลับ");
+    expect(held.tx.outsourceOrder.updateMany).not.toHaveBeenCalled();
+    const other = makeHarness({ outsourceStatus: "DRAFT", assignedToId: "other-worker" });
+    other.ctx.userRole = "PRODUCTION_STAFF";
+    await expect(outsourceRouter.createCaller(other.ctx).updateOrderStatus({ id: "outsource-1", status: "SENT" })).rejects.toThrow("ผู้รับผิดชอบคนอื่น");
+    expect(other.tx.outsourceOrder.updateMany).not.toHaveBeenCalled();
+  });
+  it("QC ผ่านไม่บวกยอดเต็มใบเมื่อหลักฐานรับกลับมีของดีไม่ครบ", async () => {
+    const harness = makeHarness({ receivedGood: 7 });
+    const caller = outsourceRouter.createCaller(harness.ctx);
+    await expect(caller.updateOrderStatus({ id: "outsource-1", status: "QC_PASSED" })).rejects.toThrow("ของดี 7 จาก 10");
+    expect(harness.tx.outsourceOrder.updateMany).not.toHaveBeenCalled();
+    expect(harness.tx.productionStep.update).not.toHaveBeenCalled();
+    expect(harness.outsourceStatus).toBe("RECEIVED_BACK");
+  });
   it("ปิด V2 lifecycle API เมื่อ rollout flag ปิด โดย legacy path ไม่ถูกแตะ", async () => {
     vi.stubEnv("PRODUCTION_V2_ENABLED", "0");
     const harness = makeHarness({

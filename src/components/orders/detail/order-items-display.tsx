@@ -566,7 +566,7 @@ function OrderPriceSummaryPanel({ items, fees, totals }: { items: OrderItem[]; f
   const hasBreakdown = items.length > 1 || fees.length > 0 || discount > 0 || taxRate > 0;
 
   return (
-    <Section title={<SectionTitle icon={Calculator} tone="finance">สรุปราคา</SectionTitle>}>
+    <Section surface="plain" title={<SectionTitle icon={Calculator} tone="finance">สรุปราคา</SectionTitle>}>
       <div className="space-y-4">
         {/* รายการละบรรทัดเดียว — ราคา × จำนวนของแต่ละชิ้นอยู่ในตารางซ้ายแล้ว
             (เคยใส่บรรทัดย่อยไว้ เบสบอก "อ่านยาก" 2026-09-06 · คอลัมน์ 20rem แคบเกินกว่าจะวาง 3 ช่องตัวเลข) */}
@@ -737,28 +737,19 @@ export function OrderItemsDisplay({
   // role ที่เห็นเงินอ่านค่าธรรมเนียมจากบรรทัดใน "สรุปราคา" ก้อนเดียวแทน ไม่โชว์สองที่
   const feesCard =
     !showMoney && fees && fees.length > 0 ? (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <SectionTitle icon={Receipt} tone="finance">
-              ค่าธรรมเนียม / ค่าใช้จ่ายเพิ่มเติม
-            </SectionTitle>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+      <Section title="ค่าธรรมเนียม / ค่าใช้จ่ายเพิ่มเติม" icon={Receipt} tone="finance" surface="plain">
           <div className="space-y-2">
             {fees.map((fee, i) => (
               <div
                 key={fee.id ?? i}
-                className="flex items-center gap-2 rounded-lg border border-border px-4 py-2.5"
+                className="flex items-center gap-2 border-b border-divider py-2.5 last:border-b-0"
               >
                 {fee.feeType && <Badge variant="secondary">{fee.feeType}</Badge>}
                 <span className="text-sm text-secondary">{fee.name || fee.feeType || "ค่าธรรมเนียม"}</span>
               </div>
             ))}
           </div>
-        </CardContent>
-      </Card>
+      </Section>
     ) : null;
 
   return (

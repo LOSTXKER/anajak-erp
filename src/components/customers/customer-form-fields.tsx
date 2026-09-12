@@ -86,12 +86,13 @@ export function CustomerFormFields({
             </Select>
           </Field>
         )}
+        <h3 className="border-t border-divider pt-4 text-base font-semibold text-strong sm:col-span-2">ผู้ติดต่อและช่องทางติดต่อ</h3>
         <Field
           label={`ชื่อ${isCorporate ? "ผู้ติดต่อ" : "ลูกค้า"}`}
           required
           error={errors.name}
         >
-          <Input value={form.name} onChange={(e) => set({ name: e.target.value })} required />
+          <Input autoComplete="name" value={form.name} onChange={(e) => set({ name: e.target.value })} required />
         </Field>
         <Field
           label="บริษัท"
@@ -105,7 +106,7 @@ export function CustomerFormFields({
           />
         </Field>
         <Field label="โทรศัพท์">
-          <Input value={form.phone} onChange={(e) => set({ phone: e.target.value })} />
+          <Input type="tel" autoComplete="tel" value={form.phone} onChange={(e) => set({ phone: e.target.value })} />
         </Field>
         <Field label="LINE ID">
           <Input value={form.lineId} onChange={(e) => set({ lineId: e.target.value })} />
@@ -129,6 +130,7 @@ export function CustomerFormFields({
         <Field label="อีเมล">
           <Input
             type="email"
+            autoComplete="email"
             value={form.email}
             onChange={(e) => set({ email: e.target.value })}
           />
@@ -148,10 +150,8 @@ export function CustomerFormFields({
       </div>
 
       {(isCorporate || hasCorporateLeftover) && (
-        <div className="rounded-lg border border-border bg-surface-muted p-4">
-          <h4 className="mb-3 text-sm font-semibold text-secondary">
-            ข้อมูลนิติบุคคล
-          </h4>
+        <fieldset className="space-y-4 border-t border-divider pt-5">
+          <legend className="text-base font-semibold text-strong">ออกเอกสารและเครดิต</legend>
           {hasCorporateLeftover && (
             <Alert variant="warning" className="mb-3 text-xs" role="status">
               ลูกค้าเป็นบุคคลธรรมดาแต่ยังมีข้อมูลภาษี/วงเงินค้างอยู่ — ค่าพวกนี้ยังถูกใช้ออกใบกำกับ/กันวงเงินจริง
@@ -181,7 +181,7 @@ export function CustomerFormFields({
             </Field>
             <Field
               label="วงเงินเครดิต (บาท)"
-              description={!canEditCredit ? "ผู้จัดการ/บัญชีเป็นคนกำหนด" : undefined}
+              description={!canEditCredit ? "ผู้จัดการ/บัญชีเป็นคนกำหนด" : "เว้นว่างหากไม่ตั้งวงเงิน; กรอก 0 หมายถึงไม่มีวงเงินให้ใช้"}
               error={errors.creditLimit}
             >
               <Input
@@ -252,10 +252,10 @@ export function CustomerFormFields({
               />
             </Field>
           </div>
-        </div>
+        </fieldset>
       )}
 
-      <Field label="หมายเหตุ">
+      <Field label="หมายเหตุ" description="ข้อมูลที่ทีมควรรู้ก่อนรับงานจากลูกค้ารายนี้">
         <Textarea
           value={form.notes}
           onChange={(e) => set({ notes: e.target.value })}

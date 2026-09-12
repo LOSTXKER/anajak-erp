@@ -61,6 +61,7 @@ function taskRow(input: {
       : null,
     production: {
       id: `production-${input.id}`,
+      steps: [{ id: input.id, stepType: input.executionEnabled ? "CUSTOM" : "CUTTING", status: "PENDING", sortOrder: 10, pairWithPrevious: false }],
       workOrderState: input.workOrderState ?? (input.executionEnabled ? "IN_PROGRESS" : "DRAFT"),
       order: {
         id: `order-${input.id}`,
@@ -135,6 +136,49 @@ function matchesTaskWhere(row: TaskRow, where: Record<string, unknown>): boolean
 }
 
 describe("task.myToday production topology", () => {
+  it("งาน legacy รอทำแสดงเฉพาะช่องปัจจุบันรวมขั้นคู่ ไม่ยกขั้นอนาคตมาเป็นงานวันนี้", async () => {
+    const first = taskRow({ id: "current", executionEnabled: false });
+    const paired = taskRow({ id: "paired", executionEnabled: false });
+    const future = taskRow({ id: "future", executionEnabled: false });
+    const steps = [first, paired, future].map((row, index) => ({ id: row.id, stepType: row.stepType, status: row.status, sortOrder: index * 10, pairWithPrevious: row.id === "paired" }));
+    for (const row of [first, paired, future]) row.production.steps = steps;
+    const ctx: Context = {
+      prisma: { productionStep: { findMany: vi.fn().mockResolvedValue([first, paired, future]) } } as unknown as Context["prisma"],
+      userId: "worker-1", userRole: "PRODUCTION_STAFF", permissionOverrides: null,
+    };
+    expect((await taskRouter.createCaller(ctx).myToday()).production.map((item) => item.stepId)).toEqual(["current", "paired"]);
+    steps[0]!.status = "COMPLETED";
+    steps[1]!.status = "COMPLETED";
+    expect((await taskRouter.createCaller(ctx).myToday()).production.map((item) => item.stepId)).toEqual(["future"]);
+  });
+
+  it("งานอนาคตจำนวนมากไม่ใช้โควตาจนงานที่ถึงคิวหายจากผลลัพธ์", async () => {
+    const future = Array.from({ length: 110 }, (_, index) => {
+      const row = taskRow({ id: `future-${index}`, executionEnabled: false });
+      row.production.steps = [{ ...row.production.steps[0]!, id: `predecessor-${index}` }, { ...row.production.steps[0]!, sortOrder: 20 }];
+      return row;
+    });
+    const ready = taskRow({ id: "ready-after-future", executionEnabled: false });
+    const findMany = vi.fn(async ({ take }: { take?: number }) => [...future, ready].slice(0, take));
+    const ctx: Context = {
+      prisma: { productionStep: { findMany } } as unknown as Context["prisma"],
+      userId: "worker-1", userRole: "PRODUCTION_STAFF", permissionOverrides: null,
+    };
+    expect((await taskRouter.createCaller(ctx).myToday()).production.map((item) => item.stepId)).toEqual(["ready-after-future"]);
+  });
+
+  it("งานที่เริ่มหรือมีปัญหาแล้วไม่หายไปเพราะอยู่ข้ามช่องของข้อมูลเดิม", async () => {
+    const current = taskRow({ id: "current", executionEnabled: false });
+    const blocked = taskRow({ id: "blocked", executionEnabled: false });
+    blocked.status = "FAILED";
+    blocked.production.steps = [current.production.steps[0]!, { ...blocked.production.steps[0]!, status: "FAILED", sortOrder: 20 }];
+    const ctx: Context = {
+      prisma: { productionStep: { findMany: vi.fn().mockResolvedValue([current, blocked]) } } as unknown as Context["prisma"],
+      userId: "worker-1", userRole: "PRODUCTION_STAFF", permissionOverrides: null,
+    };
+    expect((await taskRouter.createCaller(ctx).myToday()).production.map((item) => item.stepId)).toEqual(["blocked", "current"]);
+  });
+
   it("ใช้ topology และ assignment ร่วมกัน และไม่คืนลิงก์ Station ของงาน V2 ที่เปิดไม่ได้", async () => {
     const rows = [
       taskRow({ id: "v2-ready", executionEnabled: true }),

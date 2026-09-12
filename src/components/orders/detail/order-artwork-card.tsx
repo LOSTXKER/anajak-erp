@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Section, SectionTitle } from "@/components/ui/section";
 import { Skeleton } from "@/components/ui/skeleton";
+import { QueryError } from "@/components/ui/query-error";
 import { MockupThumbRow } from "@/components/mockup/mockup-thumb-row";
 import { MockupGallery } from "@/components/mockup/mockup-gallery";
 import { trpc } from "@/lib/trpc";
@@ -23,21 +24,7 @@ export type ArtworkVersion = MockupVersionLike & {
   createdAt: Date | string;
 };
 
-/**
- * การ์ด "งานนี้พิมพ์อะไร" — บนสุดของแท็บภาพรวม (เบสเคาะแบบ B จาก /proto/order-overview
- * 2026-08-31: "ชอบแบบ B" · รูปเล็ก "ให้เห็นเล็ก ๆ ผ่านก็ได้ ถ้าอยากรู้ค่อยกดไปดู")
- *
- * ปัญหาเดิม: เปิดใบงานมาแล้วไม่รู้ว่างานนี้พิมพ์ลายอะไร ต้องกดข้ามไปแท็บ "ม็อกอัพ & ไฟล์"
- * ทุกครั้ง ทั้งที่เป็นคำถามแรกที่คนเปิดใบงานถาม
- *
- * ที่นี่เป็น **ที่ดู ไม่ใช่ที่จัดการ** — ไม่มีอัป/อนุมัติ/ลิงก์ลูกค้า/ลบไฟล์ ม็อกอัพยังมีบ้านเดียว
- * คือแท็บ "ม็อกอัพ & ไฟล์" (กติกาเดิมตั้งแต่ 2026-08-22) · ปุ่มมุมขวาพาไปที่นั่น
- *
- * รายละเอียดงาน (`order.description`) ย้ายมาอยู่ในการ์ดนี้ด้วย — มันคือคำอธิบายของ
- * "งานนี้พิมพ์อะไร" เหมือนกัน เดิมลอยเป็นการ์ดตัวหนังสือล้วนที่ไม่มีภาพประกอบ
- *
- * query ทั้งสองตัวใช้ key เดียวกับแท็บม็อกอัพ/ไฟล์ — react-query cache ให้ ไม่ได้ยิงซ้ำ
- */
+/** สรุปแบบล่าสุดบนภาพรวม และใช้ query key ร่วมกับแท็บม็อกอัพและไฟล์ */
 export function OrderArtworkCard({
   orderId,
   description,
@@ -69,6 +56,8 @@ export function OrderArtworkCard({
       // โหลดยังไม่เสร็จ = ยังไม่รู้ว่ามีม็อกอัพไหม · โครงร่างเตี้ย ๆ ดีกว่ากระพริบ
       // "ยังไม่มีม็อกอัพ" แล้วค่อยเด้งเป็นรูป (คนอ่านทันแล้วเข้าใจผิดว่าใบนี้ยังไม่มีแบบ)
       isLoading={designs.isLoading || attachments.isLoading}
+      loadError={designs.isError || attachments.isError ? "โหลดม็อกอัพหรือไฟล์ไม่สำเร็จ" : undefined}
+      onRetry={() => { void designs.refetch(); void attachments.refetch(); }}
     />
   );
 }
@@ -84,6 +73,8 @@ export function OrderArtworkCardView({
   description,
   onOpenFiles,
   isLoading = false,
+  loadError,
+  onRetry,
 }: {
   variant?: OrderOverviewVariant;
   latest: ArtworkVersion | null;
@@ -93,6 +84,8 @@ export function OrderArtworkCardView({
   description: string | null;
   onOpenFiles?: () => void;
   isLoading?: boolean;
+  loadError?: string;
+  onRetry?: () => void;
 }) {
   const revisionRounds = versionCount - 1;
   const hasDescription = Boolean(description?.trim());
@@ -106,8 +99,7 @@ export function OrderArtworkCardView({
   return (
     <Section
       data-order-overview-card="artwork"
-      compact={variant === "current"}
-      surface={variant === "current" ? undefined : "plain"}
+      surface="plain"
       title={
         <SectionTitle icon={Shirt} tone="production">
           งานนี้พิมพ์อะไร
@@ -123,6 +115,7 @@ export function OrderArtworkCardView({
       }
     >
       <div className="space-y-4">
+        {loadError && <QueryError message={loadError} onRetry={onRetry} />}
         {isLoading ? (
           <Skeleton className="h-20 rounded-lg" />
         ) : latest ? (
@@ -161,7 +154,7 @@ export function OrderArtworkCardView({
               {variant !== "current" && descriptionBlock}
             </div>
           </div>
-        ) : (
+        ) : loadError ? null : (
           // ยังไม่มีแบบ = บอกว่าขั้นต่อไปคืออะไร ไม่ใช่กล่องว่างเปล่า
           <div className="space-y-0.5">
             <p className="text-sm font-medium text-strong">ยังไม่มีม็อกอัพของใบนี้</p>

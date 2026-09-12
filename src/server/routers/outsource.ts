@@ -55,6 +55,7 @@ type OutsourceListAccess = {
 };
 
 type OutsourceListOperation = {
+  status: string;
   executionEnabled: boolean;
   operationState: OperationState;
   assignedToId: string | null;
@@ -169,6 +170,15 @@ function outsourceOrderCommands(
   }
 
   if (!order.productionStep.executionEnabled) {
+    const operation = order.productionStep;
+    const stateBlocked = !OUTSOURCE_DONE_STATUSES.has(order.status) && (
+      operation.production.order.internalStatus !== "PRODUCING" || !["PENDING", "IN_PROGRESS"].includes(operation.status)
+    );
+    const ownerBlocked = !access.canSupervise && operation.assignedToId && operation.assignedToId !== access.actorId;
+    if (stateBlocked || ownerBlocked) {
+      if (access.canSupervise && order.status === "DRAFT") availableCommands.push("cancelDraft");
+      return { availableCommands, blockedReason: ownerBlocked ? "ขั้นนี้เป็นงานของผู้รับผิดชอบคนอื่น" : "ออเดอร์หรือขั้นนี้ยังไม่พร้อมส่ง รับกลับ หรือตรวจรับ ให้หัวหน้าตรวจใบผลิตก่อน" };
+    }
     if (access.canHandleGoods && order.status === "DRAFT") {
       availableCommands.push("markSent");
     }
@@ -277,6 +287,7 @@ const outsourceProductionReferenceSelect = {
       stepType: true,
       status: true,
       qtyDone: true,
+      assignedToId: true,
       executionEnabled: true,
       production: { select: { orderId: true } },
     },
@@ -332,6 +343,7 @@ async function lockOutsourceProductionChain(tx: PrismaTx, id: string) {
     where: { id },
     select: {
       status: true,
+      quantity: true,
       ...outsourceProductionReferenceSelect,
     },
   });
@@ -1036,20 +1048,8 @@ export const outsourceRouter = router({
         // QC ทั้งสองผลแตะ production step; QC_PASSED ยังเรียก finalizer.
         // จึงต้องถือ chain lock ก่อน CAS ใบ outsource เพื่อไม่ให้เกิดวงจร
         // outsource row → step สวนทางกับ writer อื่นที่ถือ step → outsource row.
-        const lockedScope =
-          data.status === "QC_PASSED" || data.status === "QC_FAILED"
-            ? await lockOutsourceProductionChain(tx, id)
-            : null;
-        const current = lockedScope
-          ? lockedScope.current
-            : await tx.outsourceOrder.findUniqueOrThrow({
-              where: { id },
-              select: {
-                status: true,
-                productionStepId: true,
-                productionStep: { select: { executionEnabled: true } },
-              },
-            });
+        const lockedScope = await lockOutsourceProductionChain(tx, id);
+        const current = lockedScope.current;
         assertLegacyOutsourceStep(
           current.productionStep?.executionEnabled === true,
         );
@@ -1060,8 +1060,25 @@ export const outsourceRouter = router({
             message: `ใบนี้สถานะ "${OUTSOURCE_STATUS_TH[current.status] ?? current.status}" แล้ว — เปลี่ยนเป็น "${OUTSOURCE_STATUS_TH[data.status] ?? data.status}" ไม่ได้ (อาจมีคนอัปเดตไปก่อน ลองรีเฟรช)`,
           });
         }
-        if (lockedScope) {
+        if (data.status === "QC_PASSED" || data.status === "QC_FAILED") {
           assertOutsourceQcActionable(lockedScope);
+        } else if (lockedScope.order.internalStatus !== "PRODUCING" || !["PENDING", "IN_PROGRESS"].includes(current.productionStep.status)) {
+          badRequest("ออเดอร์หรือขั้นนี้ยังไม่พร้อมส่งหรือรับกลับ ให้หัวหน้าตรวจใบผลิตก่อน");
+        }
+        if (!hasPermission(ctx.userRole, ctx.permissionOverrides, "supervise_operations") && current.productionStep.assignedToId && current.productionStep.assignedToId !== ctx.userId) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "ขั้นนี้เป็นงานของผู้รับผิดชอบคนอื่น" });
+        }
+        if (data.status === "QC_PASSED" && lockedScope) {
+          // Receipts are immutable and command-idempotent. Sum actual good pieces
+          // across partial returns while holding the same order/step locks as receipt creation.
+          const receiptTotals = await tx.goodsReceiptLine.aggregate({
+            where: { receipt: { orderId: lockedScope.orderId, outsourceOrderId: id, receiptType: "OUTSOURCE_RETURN" } },
+            _sum: { qtyCounted: true, defectQty: true },
+          });
+          const receivedGood = (receiptTotals._sum.qtyCounted ?? 0) - (receiptTotals._sum.defectQty ?? 0);
+          if (receivedGood < lockedScope.current.quantity) {
+            badRequest(`ยังตรวจรับผ่านไม่ได้ — ใบตรวจนับมีของดี ${receivedGood} จาก ${lockedScope.current.quantity} ชิ้น ตรวจนับของที่รับเพิ่มหรือบันทึกผลไม่ผ่านตามจริง`);
+          }
         }
 
         // รับของกลับต้องผ่านใบตรวจนับก่อน (Gate B4) — UI ทั้งสองหน้า (/outsource + บอร์ดเลน)

@@ -116,7 +116,7 @@ export function computeQuotationTotals(input: {
   discount: number;
   tax: number;
 }) {
-  const lineTotals = input.items.map((i) => round2(D(i.unitPrice).times(i.quantity)));
+  const lineTotals = input.items.map((i) => round2(round2(D(i.unitPrice)).times(i.quantity)));
   const subtotal = round2(lineTotals.reduce((s, v) => s.plus(v), D(0)));
   const totalAmount = Prisma.Decimal.max(
     0,

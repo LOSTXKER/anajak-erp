@@ -59,7 +59,7 @@ function TaskRow({ item, urgent }: { item: TaskListItem; urgent?: boolean }) {
       >
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="min-w-0 truncate text-sm font-medium text-strong">
+            <p className="min-w-0 break-words text-sm font-medium text-strong">
               {item.title}
             </p>
             {attention && (
@@ -71,7 +71,7 @@ function TaskRow({ item, urgent }: { item: TaskListItem; urgent?: boolean }) {
             )}
           </div>
           {item.description && (
-            <p className="truncate text-xs text-secondary">
+            <p className="break-words text-xs leading-relaxed text-secondary">
               {item.description}
             </p>
           )}
@@ -172,7 +172,7 @@ function TaskGroupCard({ group }: { group: TaskGroup }) {
 }
 
 export default function MyTasksPage() {
-  const { data, isLoading, isError, refetch } = trpc.task.myToday.useQuery();
+  const { data, isLoading, isError, refetch } = trpc.task.myToday.useQuery(undefined, { refetchOnWindowFocus: true, refetchInterval: 30_000 });
 
   const groups = data
     ? groupTaskItems(buildTaskItems(data)).filter((group) => group.items.length > 0)
@@ -182,13 +182,14 @@ export default function MyTasksPage() {
   return (
     <PageShell
       title="งานของฉัน"
+      description="รวมงานที่ถึงขั้นลงมือและเรื่องที่ต้องติดตาม ตามหน้าที่ของคุณ"
       // ระหว่างโหลด/พังยังไม่รู้จำนวนงาน — ใช้ข้อความกลางเดิม (header อยู่ครบทุก state)
       meta={
         !data
           ? "เรียงสิ่งที่ต้องทำก่อนให้แล้ว"
           : total > 0
             ? `${total} งาน · เรียงงานติดปัญหาและใกล้กำหนดไว้ก่อนแล้ว`
-            : "เคลียร์หมดแล้ว — ไม่มีงานค้าง"
+            : "ไม่มีงานที่ต้องลงมือหรือติดตามตอนนี้"
       }
       loading={isLoading}
       skeleton={<ListSkeleton rows={5} />}
@@ -202,8 +203,8 @@ export default function MyTasksPage() {
         <div className="card-surface rounded-2xl">
           <EmptyState
             icon={CheckCircle2}
-            title="ไม่มีงานค้างบนโต๊ะคุณ"
-            description="งานใหม่ที่ตรงกับสิทธิ์ของคุณจะมาอยู่ที่นี่"
+            title="ยังไม่มีงานที่ถึงคิวคุณ"
+            description="เมื่อขั้นก่อนหน้าเสร็จ งานที่ถึงคิวและตรงกับหน้าที่ของคุณจะมาอยู่ที่นี่"
           />
         </div>
       ) : (

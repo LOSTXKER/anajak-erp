@@ -11,6 +11,8 @@ import { Select } from "@/components/ui/select";
 import { DataTable } from "@/components/ui/data-table";
 import { ResponsiveList } from "@/components/ui/responsive-list";
 import { PageShell } from "@/components/page-shell";
+import { BillingNavigation } from "@/components/billing/billing-navigation";
+import { QueryError } from "@/components/ui/query-error";
 import { cn, formatCurrency } from "@/lib/utils";
 import {
   salesTaxReportCsv,
@@ -99,6 +101,7 @@ export default function SalesTaxReportPage() {
       action={
         <div className="flex flex-wrap items-center gap-2">
           <Select
+            aria-label="เลือกงวดภาษีขาย"
             value={selected}
             onChange={(e) => setSelected(e.target.value)}
             shape="pill"
@@ -134,7 +137,7 @@ export default function SalesTaxReportPage() {
         </div>
       }
       error={
-        isError
+        isError && !data
           ? { message: "เกิดข้อผิดพลาดในการโหลดข้อมูล", onRetry: () => refetch() }
           : null
       }
@@ -147,6 +150,8 @@ export default function SalesTaxReportPage() {
           : undefined
       }
     >
+      <BillingNavigation active="/billing/tax" />
+      {isError && data && <QueryError message="อัปเดตรายงานไม่สำเร็จ กำลังแสดงข้อมูลที่โหลดไว้" onRetry={() => refetch()} />}
       {/* ── สรุปงวด ── */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard loading={isLoading} moduleTone="finance" title="เอกสารในงวด" value={summary?.docCount ?? 0} icon={ReceiptText} />
@@ -289,9 +294,9 @@ export default function SalesTaxReportPage() {
           </DataTable.Root>
         )}
         renderMobile={(items) => (
-          <div role="list" aria-label="รายการภาษีขาย" className="space-y-3">
+          <div role="list" aria-label="รายการภาษีขาย">
             {items.map((r) => (
-              <div key={r.invoiceNumber} role="listitem" className="card-surface rounded-2xl p-4">
+              <div key={r.invoiceNumber} role="listitem" className="border-b border-divider py-4 last:border-b-0">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-xs tabular-nums text-muted">#{r.seq}</span>

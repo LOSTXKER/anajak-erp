@@ -158,6 +158,11 @@ function ProductionDesk() {
               : null
         }
       >
+        <nav aria-label="งานเฉพาะทางผลิต" className="flex flex-wrap gap-2">
+          <Button asChild variant="outline" size="sm"><Link href="/production/print-runs">รอบพิมพ์ DTF</Link></Button>
+          <Button asChild variant="outline" size="sm"><Link href="/production/films">คลังฟิล์ม</Link></Button>
+          <Button asChild variant="outline" size="sm"><Link href="/production/outsource">งานร้านนอก</Link></Button>
+        </nav>
         {hasStaleData ? (
           <Alert
             variant="warning"

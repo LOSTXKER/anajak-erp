@@ -119,6 +119,8 @@ build สร้าง Prisma client และ Next.js production build ต้อ
 
 คำสั่ง `verify:*` แต่ละตัวมีขอบเขตต่างกัน อ่าน [scripts](scripts) และ [package.json](package.json) ก่อนเลือก: หลายตัวสร้างหรือแก้ข้อมูล เชื่อม DB, Supabase หรือ Stock จริง ต้องใช้ฐานทดสอบที่อนุมัติแล้ว ไม่รันทั้งชุดกับฐาน Production ตัว `verify:supabase` อ่าน bucket และลอง list แบบ anon จึงตรวจได้เพียง bucket มีอยู่/เป็น private และ anon list ไม่เห็นรายการ; ผลผ่านไม่ยืนยันว่าปิด signup หรือมี Storage policy ถูกต้องครบ
 
+ใช้ `npx tsx scripts/run-local-demo.ts check scripts/verify-ชื่อชุด.ts` เพื่อล็อก DB ของชุดตรวจไป `127.0.0.1:5433/anajak_erp_demo` และปิด Stock ภายนอก. ตัวเรียกยังอ่านค่า Auth/Storage จาก `.env`; ชุดอัปโหลดไฟล์จึงใช้ Storage เดิมและลบเฉพาะไฟล์ทดสอบเมื่อจบ. ชุด `verify-ui-public.ts prepare` สร้างข้อมูลสำหรับเปิดลิงก์/พิมพ์ใน browser, `expire` ทดสอบหมดอายุ, `cleanup` ล้างเฉพาะ fixture ตาม manifest ใน `.tmp-test` โดยไม่ reset ฐาน
+
 ## ตรวจสภาพแวดล้อมก่อนขึ้นใช้จริง
 
 หัวข้อนี้เป็นขั้นตอนที่ต้องตรวจในแต่ละสภาพแวดล้อม ผลผ่าน วันที่ และงานที่ยังค้างเก็บที่ ROADMAP ไม่ถือว่าไฟล์ config หรือผลตรวจเก่าเป็นหลักฐานว่า Production ตั้งค่าครบแล้ว

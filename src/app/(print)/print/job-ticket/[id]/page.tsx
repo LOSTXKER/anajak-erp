@@ -313,7 +313,7 @@ export default async function PrintJobTicketPage({
                     <img
                       src={image.previewUrl!}
                       alt={`ม็อกอัพ v${approvedDesign.versionNumber}${image.positionLabel ? ` ด้าน${image.positionLabel}` : ""}`}
-                      className="max-h-44 rounded border border-slate-200 object-contain"
+                      className="max-h-28 rounded border border-slate-200 object-contain"
                     />
                     {image.positionLabel ? (
                       <figcaption className="mt-0.5 text-center text-[10.5px] font-semibold text-slate-600">
@@ -510,16 +510,18 @@ export default async function PrintJobTicketPage({
 
         {order.notes && <NotesBlock title="หมายเหตุออเดอร์">{order.notes}</NotesBlock>}
 
-        <div className="mt-4 rounded border border-dashed border-slate-400 px-3 py-2 text-[11px] text-slate-400">
-          บันทึกหน้างาน
-          <div className="h-14" />
-        </div>
+        <div className="break-inside-avoid">
+          <div className="mt-2 rounded border border-dashed border-slate-400 px-3 py-2 text-[11px] text-slate-400">
+            บันทึกหน้างาน
+            <div className="h-12" />
+          </div>
 
-        {/* ท้ายใบ: วันพิมพ์ + ม็อกอัพเวอร์ชัน — กระดาษเก่าตอนแบบเปลี่ยนจับได้ · QR พกเวอร์ชันนี้ไปด้วย */}
-        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-slate-300 pt-2 text-[10.5px] text-slate-500">
-          <span className="font-semibold text-slate-700">พิมพ์ {printedAt}</span>
-          <span>{approvedDesign ? `ม็อกอัพ v${approvedDesign.versionNumber}` : "ยังไม่มีม็อกอัพอนุมัติ"}</span>
-          {targetProduction ? <span>QR ผูกเวอร์ชันนี้ — สแกนใบเก่าระบบจะเตือน</span> : null}
+          {/* ท้ายใบ: วันพิมพ์ + ม็อกอัพเวอร์ชัน — กระดาษเก่าตอนแบบเปลี่ยนจับได้ · QR พกเวอร์ชันนี้ไปด้วย */}
+          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-slate-300 pt-2 text-[10.5px] text-slate-500">
+            <span className="font-semibold text-slate-700">พิมพ์ {printedAt}</span>
+            <span>{approvedDesign ? `ม็อกอัพ v${approvedDesign.versionNumber}` : "ยังไม่มีม็อกอัพอนุมัติ"}</span>
+            {targetProduction ? <span>QR ผูกเวอร์ชันนี้ — สแกนใบเก่าระบบจะเตือน</span> : null}
+          </div>
         </div>
       </PrintPage>
     </div>

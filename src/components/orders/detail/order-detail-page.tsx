@@ -121,10 +121,12 @@ function OrderFilesPanel({
   orderId,
   userId,
   userRole,
+  canManageLink,
 }: {
   orderId: string;
   userId: string;
   userRole: string;
+  canManageLink: boolean;
 }) {
   const attachmentsQuery = trpc.attachment.listByEntity.useQuery({
     entityType: "ORDER",
@@ -157,6 +159,7 @@ function OrderFilesPanel({
       attachments={attachmentsQuery.data ?? []}
       userId={userId}
       userRole={userRole}
+      canManageLink={canManageLink}
     />
   );
 }
@@ -298,8 +301,10 @@ function OrderDetailContent({
   });
 
   // ลิงก์สถานะลูกค้า (ก้อน 4 — portal) — คัดลอกลิงก์: ใช้ token เดิมถ้ายังไม่หมดอายุ
-  // ไม่งั้นสร้างใหม่ (getLink protected · generate gate salesUp ฝั่ง server)
-  const statusLink = trpc.customerStatus.getLink.useQuery({ orderId: id });
+  // ไม่งั้นสร้างใหม่ โดยใช้สิทธิ์ create_sales_docs เดียวกับ server ทั้งอ่านและสร้าง
+  const statusLink = trpc.customerStatus.getLink.useQuery({ orderId: id }, {
+    enabled: permAllows(me?.permissions, "create_sales_docs"),
+  });
   const generateStatusLink = trpc.customerStatus.generateLink.useMutation();
   async function copyStatusLink() {
     try {
@@ -954,11 +959,12 @@ function OrderDetailContent({
             ) : (
               /* แท็บอยู่เสมอแม้ยังไม่ถึงเฟส — ถ้าซ่อนตามสถานะ ชุดแท็บจะเปลี่ยนใต้มือ
                  ระหว่างวันเดียวกัน (สถานะเดินหลายรอบต่อวัน) ตำแหน่งที่คนจำไว้จะขยับ */
-              <Section title="จัดส่ง" icon={Truck} tone="production">
+              <Section title="จัดส่ง" icon={Truck} tone="production" surface="plain">
                 <EmptyState
                   icon={Truck}
                   title="ยังไม่ถึงขั้นจัดส่ง"
                   description="ส่วนนี้จะเปิดเมื่อผลิตและตรวจนับเสร็จ"
+                  action={<Button variant="outline" onClick={() => changeTab("production")}>ดูงานผลิตและตรวจนับ</Button>}
                 />
               </Section>
             )}
@@ -992,6 +998,7 @@ function OrderDetailContent({
               orderId={id}
               userId={me.id}
               userRole={me.role}
+              canManageLink={permAllows(me.permissions, "create_sales_docs")}
             />
           </TabsContent>}
 

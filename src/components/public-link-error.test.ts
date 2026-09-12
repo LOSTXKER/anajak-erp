@@ -24,10 +24,14 @@ describe("PublicLinkError recovery", () => {
     expect(html).not.toContain("<button");
   });
 
-  it("preserves the caller explanation for forbidden or no-data results", () => {
-    for (const error of [null, { data: { code: "FORBIDDEN" } }]) {
-      const html = renderToStaticMarkup(createElement(PublicLinkError, { error, message: "ขอใบเสนอราคาฉบับใหม่" }));
-      expect(html).toContain("ขอใบเสนอราคาฉบับใหม่");
-    }
+  it("preserves the caller explanation for forbidden results", () => {
+    const html = renderToStaticMarkup(createElement(PublicLinkError, { error: { data: { code: "FORBIDDEN" } }, message: "ขอใบเสนอราคาฉบับใหม่" }));
+    expect(html).toContain("ขอใบเสนอราคาฉบับใหม่");
+  });
+
+  it("does not label an initial offline/paused query as an expired link", () => {
+    const html = renderToStaticMarkup(createElement(PublicLinkError, { error: null, message: "ลิงก์หมดอายุแล้ว" }));
+    expect(html).toContain("ตรวจการเชื่อมต่ออินเทอร์เน็ต");
+    expect(html).not.toContain("ลิงก์หมดอายุแล้ว");
   });
 });

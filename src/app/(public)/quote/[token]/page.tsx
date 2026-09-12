@@ -3,14 +3,17 @@
 import { use, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { formatDate, formatBaht } from "@/lib/utils";
+import { getPaymentTerms } from "@/lib/payment-terms";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
 import { Textarea } from "@/components/ui/textarea";
 import { Field } from "@/components/ui/field";
 import { PublicLinkError } from "@/components/public-link-error";
+import { isPublicLinkUnavailable, retryPublicQuery } from "@/lib/public-link-state";
 import {
   PublicPageShell,
+  PublicRefreshNotice,
   FullScreenLoading,
   InfoRow,
 } from "@/components/public/public-page";
@@ -33,11 +36,11 @@ export default function QuoteConfirmPage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = use(params);
-  const quote = trpc.quotationConfirm.getQuote.useQuery({ token });
+  const quote = trpc.quotationConfirm.getQuote.useQuery({ token }, { retry: retryPublicQuery });
 
   const [showReject, setShowReject] = useState(false);
   const [reason, setReason] = useState("");
-  // ผลที่ลูกค้าเพิ่งกด (optimistic ในหน้านี้) — กันกดซ้ำ + โชว์ thank-you ทันที
+  // ผลที่ server ยืนยันแล้ว — กันกดซ้ำระหว่างโหลดข้อมูลล่าสุด
   const [done, setDone] = useState<"ACCEPTED" | "REJECTED" | null>(null);
 
   const accept = trpc.quotationConfirm.accept.useMutation({
@@ -57,12 +60,12 @@ export default function QuoteConfirmPage({
     return <FullScreenLoading />;
   }
 
-  if (quote.error || !quote.data) {
+  if (!quote.data || (quote.error && isPublicLinkUnavailable(quote.error))) {
     return <PublicLinkError error={quote.error} message="ใบเสนออาจหมดอายุหรือกำลังปรับปรุง กรุณาขอลิงก์ฉบับใหม่" onRetry={() => void quote.refetch()} />;
   }
 
   const q = quote.data;
-  const isPending = accept.isPending || reject.isPending;
+  const isPending = accept.isPending || reject.isPending || !!quote.error;
   // สถานะที่กดได้: ส่งแล้ว (SENT) + ยังไม่หมดอายุ + ยังไม่เพิ่งกดในหน้านี้
   const actionable = q.status === "SENT" && !q.isExpired && done === null;
   const decided = done ?? (q.status === "ACCEPTED" || q.status === "CONVERTED" ? "ACCEPTED" : q.status === "REJECTED" ? "REJECTED" : null);
@@ -70,8 +73,10 @@ export default function QuoteConfirmPage({
   return (
     <PublicPageShell
       icon={<FileText />}
-      subtitle={`ใบเสนอราคา ${q.quotationNumber}`}
+      heading="ใบเสนอราคา"
+      subtitle={q.quotationNumber}
     >
+      {quote.error && <PublicRefreshNotice onRetry={() => void quote.refetch()} refreshing={quote.isFetching} />}
       {/* Quote header card */}
       <Card>
         <CardContent className="space-y-4 p-5">
@@ -107,7 +112,7 @@ export default function QuoteConfirmPage({
 
           <div className="mt-4 space-y-1.5 border-t border-divider pt-4 text-sm">
             <div className="flex justify-between">
-              <span className="text-muted">ยอดรวมสินค้า</span>
+              <span className="text-muted">ยอดรวมรายการ</span>
               <span className="tabular-nums text-secondary">{baht(q.subtotal)}</span>
             </div>
             {q.discount > 0 && (
@@ -135,7 +140,7 @@ export default function QuoteConfirmPage({
         <Card>
           <CardContent className="p-5">
             <p className="mb-1 text-xs font-medium text-muted">เงื่อนไข</p>
-            <p className="whitespace-pre-wrap text-sm text-secondary">{q.terms}</p>
+            <p className="whitespace-pre-wrap text-sm text-secondary">{getPaymentTerms(q.terms)?.label ?? q.terms}</p>
           </CardContent>
         </Card>
       )}
@@ -182,7 +187,7 @@ export default function QuoteConfirmPage({
             {!showReject ? (
               <>
                 <p className="text-center text-sm text-secondary">
-                  กรุณาตรวจสอบรายการและราคา หากถูกต้องกด “ยืนยันใบเสนอ” เพื่อให้เราเริ่มงานได้เลยค่ะ
+                  ตรวจสอบรายการและราคา แล้วกด “ยืนยันใบเสนอ” เพื่อแจ้งทีมงานว่าตกลงตามใบนี้
                 </p>
                 <Button
                   size="lg"

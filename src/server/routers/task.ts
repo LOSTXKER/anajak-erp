@@ -4,6 +4,8 @@ import { getPrintQueue } from "@/server/services/print-run";
 import { hasPermission, type Permission } from "@/lib/permissions";
 // คิวรีด/แพ็กสุดท้ายใช้ร่วมกับทีวี /factory (UX4) — จุดเดียว กัน drift
 import { buildPressQueue, buildPackQueue } from "@/server/services/factory-board";
+import { productionWorkflowSteps } from "@/lib/production-steps";
+import { currentRailNode, railNodesOf } from "@/lib/work-order-rail";
 
 // "งานของฉันวันนี้" — รวมสิ่งที่ค้างอยู่บนโต๊ะของผู้ใช้ จุดเดียว · ทุก role เรียกได้
 // แต่ section โผล่ตามสิทธิ์จริงของคน (PERM3: default ตรงชุด role เดิมเป๊ะ — คนถูกติ๊ก
@@ -127,14 +129,24 @@ export const taskRouter = router({
                 select: {
                   id: true,
                   order: { select: orderSelect },
+                  steps: {
+                    select: { id: true, stepType: true, status: true, sortOrder: true, pairWithPrevious: true },
+                    orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+                  },
                 },
               },
             },
             orderBy: [{ production: { order: { deadline: "asc" } } }, { sortOrder: "asc" }],
-            take: 100,
           })
           .then((steps) =>
             steps
+              .filter((s) => {
+                // งาน V2 ใช้ operationState จาก query; legacy ใช้ช่องปัจจุบันเดียวกับใบผลิต
+                // งานที่เริ่มหรือมีปัญหาแล้วต้องติดตามต่อ แม้ข้อมูลเดิมจะอยู่ข้ามช่อง
+                if (s.executionEnabled || s.status !== "PENDING") return true;
+                const nodes = railNodesOf(productionWorkflowSteps(s.production.steps));
+                return (nodes[currentRailNode(nodes)] ?? []).some((step) => step.id === s.id);
+              })
               .map((s) => ({
                 stepId: s.id,
                 stepType: s.stepType,
@@ -155,6 +167,7 @@ export const taskRouter = router({
               .sort(
                 (a, b) => (PROBLEM_FIRST[a.status] ?? 9) - (PROBLEM_FIRST[b.status] ?? 9)
               )
+              .slice(0, 100)
           )
       : [];
 

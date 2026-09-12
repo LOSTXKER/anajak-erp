@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { Input } from "@/components/ui/input";
@@ -54,6 +56,15 @@ export function CustomerCommLogDialog({
       toast.error("บันทึกไม่สำเร็จ", { description: err.message });
     },
   });
+  const confirm = useConfirm();
+  const dirty = Boolean(form.subject || form.content);
+  useUnsavedChanges(dirty || add.isPending, add.isPending ? { title: "กำลังบันทึก ออกจากหน้านี้หรือไม่?", description: "การออกจากหน้านี้ไม่ยกเลิกคำสั่งที่ส่งแล้ว กลับมาตรวจผลก่อนส่งซ้ำ", confirmText: "ออกจากหน้านี้" } : undefined);
+  const closeForm = async () => {
+    if (add.isPending) return;
+    if (dirty && !(await confirm({ title: "ทิ้งข้อมูลที่ยังไม่บันทึก?", confirmText: "ทิ้งการแก้ไข", cancelText: "กลับไปแก้ต่อ", destructive: true }))) return;
+    onClose();
+  };
+
   const validationErrors = validateCustomerCommunicationForm(form);
   const isFormValid = Object.keys(validationErrors).length === 0;
 
@@ -68,7 +79,7 @@ export function CustomerCommLogDialog({
   }
 
   return (
-    <Dialog open onOpenChange={(open) => !open && onClose()}>
+    <Dialog open onOpenChange={(open) => { if (!open) void closeForm(); }}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>บันทึกการคุย</DialogTitle>
@@ -78,7 +89,7 @@ export function CustomerCommLogDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <fieldset disabled={add.isPending} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field label="ช่องทาง" id="communication-channel">
               <Select
                 className="w-full"
@@ -99,13 +110,14 @@ export function CustomerCommLogDialog({
                 placeholder="เช่น ตามงาน / ทวงมัดจำ"
               />
             </Field>
-          </div>
+          </fieldset>
           <Field
             label="คุยอะไร"
             required
             error={form.content.length > 0 ? validationErrors.content : undefined}
           >
             <Textarea
+              disabled={add.isPending}
               value={form.content}
               onChange={(e) => set({ content: e.target.value })}
               rows={4}
@@ -125,7 +137,7 @@ export function CustomerCommLogDialog({
             disabled={!isFormValid}
             submitLabel="บันทึก"
             submitIcon={<MessageSquarePlus />}
-            onCancel={onClose}
+            onCancel={() => void closeForm()}
           />
         </form>
       </DialogContent>

@@ -28,6 +28,7 @@ import {
   validateDemoSeedInvocation,
 } from "../src/lib/demo-seed-plan";
 import { FORM_ROUTES, seedWorkOrderFormStates } from "./seed-demo-form-states";
+import { quotationFromOrder } from "../src/server/services/quotation-from-order";
 
 const prisma = new PrismaClient();
 const DAY_MS = 24 * 60 * 60 * 1_000;
@@ -1297,6 +1298,13 @@ async function main() {
           const quotationSentAt = fromNow(-Math.max(1, scenario.ageDays - 1));
           const quotationAcceptedAt =
             scenario.internalStatus === "INQUIRY" ? null : fromNow(-2);
+          const quote = quotationFromOrder({
+            items: [{ description: scenario.title, totalQuantity: scenario.quantity, subtotal: price.subtotalItems.toNumber(), products: [] }],
+            fees: [{ name: "ค่าเตรียมไฟล์และวางแบบ", amount: price.subtotalFees.toNumber() }],
+            discount: 0,
+            taxAmount: price.taxAmount.toNumber(),
+            paymentTerms: customer.defaultPaymentTerms,
+          });
           await tx.quotation.create({
             data: {
               id: `demo-quotation-${scenario.key}`,
@@ -1308,9 +1316,10 @@ async function main() {
                 scenario.internalStatus === "INQUIRY" ? "SENT" : "ACCEPTED",
               validUntil: fromNow(10),
               terms: customer.defaultPaymentTerms,
-              subtotal: price.subtotalItems.plus(price.subtotalFees),
-              tax: price.taxAmount,
-              totalAmount: price.totalAmount,
+              subtotal: quote.subtotal,
+              discount: quote.discount,
+              tax: quote.tax,
+              totalAmount: quote.totalAmount,
               sentAt: quotationSentAt,
               acceptedAt: quotationAcceptedAt,
               buyerName: customer.name,
@@ -1320,12 +1329,7 @@ async function main() {
               createdAt: orderCreatedAt,
               updatedAt: quotationAcceptedAt ?? quotationSentAt,
               items: {
-                create: {
-                  name: scenario.title,
-                  quantity: scenario.quantity,
-                  unitPrice: price.subtotalItems.div(scenario.quantity),
-                  totalPrice: price.subtotalItems,
-                },
+                create: quote.items.map((item, index) => ({ ...item, sortOrder: index, totalPrice: quote.lineTotals[index] })),
               },
             },
           });

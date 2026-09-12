@@ -126,7 +126,7 @@ export function OrderDeliverySection({
     Boolean(packContext.data) &&
     !packContext.isError;
   const hasDeliveries = Boolean(deliveries.data?.length);
-  const packContextUnavailable = packContext.isError && !packContext.data;
+  const packContextUnavailable = packContext.isError;
 
   if (
     !deliveries.isError &&
@@ -138,7 +138,7 @@ export function OrderDeliverySection({
   return (
     <>
       {/* anchor id "order-section-delivery" อยู่ที่ wrapper ใน orders/[id]/page.tsx (กัน id ซ้ำ) */}
-      <Card className="scroll-mt-20">
+      <Card className="scroll-mt-20 border-0 bg-transparent shadow-none">
         <CardHeader>
           <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle className="flex items-center gap-2 text-base">
@@ -197,6 +197,12 @@ export function OrderDeliverySection({
             </div>
           ) : (
             <>
+              {deliveries.isError && hasDeliveries && (
+                <QueryError
+                  message="อัปเดตรายการจัดส่งไม่สำเร็จ กำลังแสดงข้อมูลที่โหลดไว้"
+                  onRetry={() => void deliveries.refetch()}
+                />
+              )}
               {packContextUnavailable && (
                 <QueryError
                   message="โหลดข้อมูลสำหรับแพ็คสินค้าไม่สำเร็จ จึงยังสร้างใบส่งไม่ได้"
@@ -206,11 +212,11 @@ export function OrderDeliverySection({
               {!hasDeliveries ? (
                 !packContextUnavailable && (
                   <p className="text-sm text-muted">
-                    ยังไม่มีข้อมูลจัดส่ง
+                    ยังไม่มีใบส่งของ
                   </p>
                 )
               ) : (
-                <div className="space-y-3">
+                <div>
                   {deliveries.data!.map((delivery) => {
                     const actions = deliveryActionAvailability({
                       status: delivery.status as DeliveryStatus,
@@ -221,7 +227,7 @@ export function OrderDeliverySection({
                     return (
                       <div
                         key={delivery.id}
-                        className="rounded-lg border border-border p-4"
+                        className="border-b border-divider py-4 first:pt-0 last:border-b-0"
                       >
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                           <div className="min-w-0 space-y-2">

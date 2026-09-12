@@ -6,10 +6,13 @@ import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { useListPageState, usePageClamp } from "@/hooks/use-list-page-state";
 import { Button } from "@/components/ui/button";
-import { Section } from "@/components/ui/section";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
+import { useConfirm } from "@/components/ui/confirm-dialog";
+import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
+import { Skeleton } from "@/components/ui/skeleton";
 import { SearchInput } from "@/components/ui/search-input";
 import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
-import { StatCard } from "@/components/ui/stat-card";
 import { Badge } from "@/components/ui/badge";
 import { ListPageSkeleton } from "@/components/ui/page-skeleton";
 import { QueryError } from "@/components/ui/query-error";
@@ -30,14 +33,11 @@ import {
   type CustomerEditForm,
 } from "@/lib/customer-form";
 import { PageShell } from "@/components/page-shell";
-import { Plus, Users, UserPlus, Crown, UserX, ChevronRight } from "lucide-react";
+import { Plus, Users, ChevronRight } from "lucide-react";
 import { FOCUS_BUTTON } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
 
-/* กลุ่มลูกค้าไม่ใช่ "สถานะ" — ไม่มีอันไหนดีหรือร้าย (UI-2026 เฟส 3)
-   ของเดิมยืมจานสีสถานะมาย้อมจนคอลัมน์เดียวมี 4 สี (VIP=เขียว ขาประจำ=น้ำเงิน
-   ไม่เคลื่อนไหว=เหลือง) ทำให้สีที่ควรแปลว่า "ต้องทำอะไรสักอย่าง" หมดความหมาย
-   ตอนนี้เป็น neutral ทั้งชุด — ความต่างอ่านจากคำ ไม่ใช่จากสี */
+// กลุ่มลูกค้าใช้ชื่อชุดเดียวกับฟอร์มแก้ไขและตัวกรอง
 const segmentConfig: Record<string, { label: string; variant: "default" | "accent" | "success" | "warning" | "destructive" }> = {
   VIP: { label: "VIP", variant: "default" },
   REGULAR: { label: "ขาประจำ", variant: "default" },
@@ -79,10 +79,11 @@ function CustomersPageContent() {
   const [showErrors, setShowErrors] = useState(false);
 
   const utils = trpc.useUtils();
+  const confirm = useConfirm();
   const { data: me } = trpc.user.me.useQuery();
   const canManageCustomers = permAllows(me?.permissions, "manage_customers");
   // วงเงินเครดิต = การตัดสินใจความเสี่ยง — SALES ตั้งเองไม่ได้ (ตรง server guard ฝั่ง create)
-  const canSetCredit = !me || me.role !== "SALES";
+  const canSetCredit = !!me && me.role !== "SALES";
   // Policy ⑦: ฝ่ายผลิต/กราฟิกไม่เห็นเงินฝั่งขาย — ซ่อนคอลัมน์ยอดรวมทั้งแถบ (server ส่ง null มาอยู่แล้ว)
   const canSeeMoney = permAllows(me?.permissions, "see_order_money");
   const statsQuery = trpc.customer.stats.useQuery();
@@ -112,13 +113,22 @@ function CustomersPageContent() {
   // ฟอร์มแก้ไข) — onError noop กัน hook ยิง toast ซ้ำเป็นสองทาง
   const createCustomer = useMutationWithInvalidation(trpc.customer.create, {
     invalidate: [utils.customer.list, utils.customer.stats],
-    onSuccess: () => {
+    onSuccess: (customer) => {
       setShowForm(false);
       setForm(emptyCustomerForm());
       setShowErrors(false);
+      navigateAfterSave(`/customers/${customer.id}`);
     },
     onError: () => {},
   });
+
+  const dirty = showForm && JSON.stringify(form) !== JSON.stringify(emptyCustomerForm());
+  const { navigateAfterSave } = useUnsavedChanges(dirty || createCustomer.isPending, createCustomer.isPending ? { title: "กำลังบันทึก ออกจากหน้านี้หรือไม่?", description: "การออกจากหน้านี้ไม่ยกเลิกคำสั่งที่ส่งแล้ว กลับมาตรวจผลก่อนส่งซ้ำ", confirmText: "ออกจากหน้านี้" } : undefined);
+  const closeForm = async () => {
+    if (createCustomer.isPending) return;
+    if (dirty && !(await confirm({ title: "ทิ้งข้อมูลลูกค้าที่ยังไม่บันทึก?", confirmText: "ทิ้งข้อมูล", cancelText: "กลับไปกรอกต่อ", destructive: true }))) return;
+    setShowForm(false); setForm(emptyCustomerForm()); setShowErrors(false); createCustomer.reset();
+  };
 
   // validate ชุดเดียวกับฟอร์มแก้ไข — เลขภาษีนิติบุคคล/วงเงินถูกตรวจตอนสร้างด้วย
   const validationErrors = validateCustomerEditForm(form);
@@ -138,9 +148,11 @@ function CustomersPageContent() {
   return (
     <PageShell
       title="ลูกค้า"
+      icon={Users}
+      description="เปิดข้อมูลลูกค้าเพื่อดูงานที่ผ่านมา ติดต่อ และเริ่มออเดอร์ถัดไป"
       action={
         canManageCustomers ? (
-          <Button size="sm" onClick={() => setShowForm(!showForm)}>
+          <Button size="sm" onClick={() => { createCustomer.reset(); setShowForm(true); }}>
             <Plus />
             เพิ่มลูกค้า
           </Button>
@@ -151,17 +163,22 @@ function CustomersPageContent() {
       {statsQuery.isError ? (
         <QueryError message="โหลดสถิติไม่สำเร็จ" onRetry={() => statsQuery.refetch()} />
       ) : (
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard loading={statsQuery.isLoading} moduleTone="brand" title="ลูกค้าทั้งหมด" value={statsQuery.data?.total ?? 0} icon={Users} />
-          <StatCard loading={statsQuery.isLoading} moduleTone="brand" title="ใหม่เดือนนี้" value={statsQuery.data?.newThisMonth ?? 0} icon={UserPlus} />
-          <StatCard loading={statsQuery.isLoading} moduleTone="brand" title="VIP" value={statsQuery.data?.vip ?? 0} icon={Crown} />
-          <StatCard loading={statsQuery.isLoading} moduleTone="brand" title="ไม่เคลื่อนไหว" value={statsQuery.data?.inactive ?? 0} icon={UserX} />
-        </div>
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-4 border-b border-divider pb-5 lg:grid-cols-4">
+          {[
+            { label: "ลูกค้าทั้งหมด", value: statsQuery.data?.total },
+            { label: "ใหม่เดือนนี้", value: statsQuery.data?.newThisMonth },
+            { label: "VIP", value: statsQuery.data?.vip },
+            { label: "ไม่เคลื่อนไหว", value: statsQuery.data?.inactive },
+          ].map((item) => <div key={item.label}><dt className="text-sm text-secondary">{item.label}</dt><dd className="mt-1 text-xl font-semibold tabular-nums text-strong">{item.value === undefined ? <Skeleton className="h-7 w-16" /> : item.value.toLocaleString("th-TH")}</dd></div>)}
+        </dl>
       )}
 
       {showForm && canManageCustomers && (
-        <Section title="เพิ่มลูกค้าใหม่" icon={UserPlus} tone="brand">
-          <form onSubmit={handleSubmit} className="space-y-4">
+        <Dialog open onOpenChange={(open) => { if (!open) void closeForm(); }}>
+          <DialogContent className="sm:max-w-2xl">
+            <DialogHeader><DialogTitle>เพิ่มลูกค้า</DialogTitle><DialogDescription>บันทึกแล้วเปิดข้อมูลลูกค้า เพื่อดูรายละเอียดหรือเริ่มงานใหม่</DialogDescription></DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <fieldset disabled={createCustomer.isPending} className="space-y-5">
               <CustomerFormFields
                 form={form}
                 set={setFormPatch}
@@ -174,19 +191,16 @@ function CustomersPageContent() {
                   บันทึกไม่สำเร็จ: {createCustomer.error.message}
                 </Alert>
               )}
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => setShowForm(false)}>ยกเลิก</Button>
-                <Button type="submit" disabled={createCustomer.isPending}>
-                  {createCustomer.isPending ? "กำลังบันทึก..." : "บันทึก"}
-                </Button>
-              </div>
+            </fieldset>
+            <DialogSubmitFooter pending={createCustomer.isPending} submitLabel="บันทึกและเปิดข้อมูลลูกค้า" onCancel={() => void closeForm()} />
           </form>
-        </Section>
+          </DialogContent>
+        </Dialog>
       )}
 
       <Toolbar>
         <SearchInput
-          surface="raised"
+          surface="field"
           ref={searchInputRef}
           containerClassName="@2xl:max-w-sm @2xl:flex-1"
           placeholder="ค้นหาชื่อ, บริษัท, โทร, อีเมล..."
@@ -198,7 +212,7 @@ function CustomersPageContent() {
         <ToolbarGroup>
           <Select
             shape="pill"
-            surface="raised"
+            surface="field"
             aria-label="กรองกลุ่มลูกค้า"
             value={segment}
             onChange={(event) =>
@@ -232,7 +246,7 @@ function CustomersPageContent() {
                 <DataTable.Th>ติดต่อ</DataTable.Th>
                 <DataTable.Th>กลุ่ม</DataTable.Th>
                 <DataTable.Th align="right">ออเดอร์</DataTable.Th>
-                {canSeeMoney && <DataTable.Th align="right">ยอดรวม</DataTable.Th>}
+                {canSeeMoney && <DataTable.Th align="right">ยอดชำระสะสม</DataTable.Th>}
               </tr>
             </DataTable.Head>
             <DataTable.Body>
@@ -325,12 +339,13 @@ function CustomersPageContent() {
                       <ListCardMeta label="ติดต่อ">
                         {customer.phone || customer.email || "ยังไม่มีข้อมูล"}
                       </ListCardMeta>
-                      <ListCardMeta label={`${customer._count.orders} ออเดอร์`} align="right">
+                      <ListCardMeta label={canSeeMoney ? "ยอดชำระสะสม" : "ออเดอร์"} align="right">
                         {canSeeMoney && (
                           <span className="font-semibold tabular-nums text-strong">
                             {formatCurrency(customer.totalSpent ?? 0)}
                           </span>
                         )}
+                        <span className="block text-xs font-normal text-secondary">{customer._count.orders} ออเดอร์</span>
                       </ListCardMeta>
                     </ListCardMetaGrid>
                   </Link>
@@ -346,7 +361,7 @@ function CustomersPageContent() {
             description={
               filtered
                 ? "ลองเปลี่ยนคำค้นหาหรือกลุ่มลูกค้า"
-                : "เพิ่มลูกค้าใหม่เพื่อเริ่มต้นการจัดการ CRM"
+                : "เพิ่มข้อมูลลูกค้าที่ติดต่อมา เพื่อใช้ในออเดอร์และเอกสาร"
             }
             action={
               filtered ? (

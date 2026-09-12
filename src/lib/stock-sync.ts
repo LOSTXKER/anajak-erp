@@ -236,7 +236,7 @@ export async function syncProductPage(
         description: sp.description,
         productType: mapProductType(sp.category),
         category: sp.category,
-        basePrice: sp.lastCost || sp.standardCost || 0,
+        basePrice: 0,
         costPrice: sp.lastCost || sp.standardCost || 0,
         stockProductId: sp.id,
         source: "STOCK",

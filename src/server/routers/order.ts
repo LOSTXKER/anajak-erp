@@ -79,6 +79,7 @@ import { D } from "@/server/services/money";
 import { lockProductionTopology } from "@/server/services/production-topology-lock";
 import { productionWorkflowSteps } from "@/lib/production-steps";
 import { productionV2Enabled } from "@/lib/production-v2-flag";
+import { withoutOrderLinkTokens } from "@/server/services/order-link-response";
 
 // สร้าง/แก้ออเดอร์+เงินในใบ (PERM3: default = OWNER/MANAGER/SALES เดิมเป๊ะ + override รายคน)
 const salesUp = requirePermission("create_sales_docs");
@@ -641,7 +642,7 @@ export const orderRouter = router({
       // (เดิม list ส่ง totalCost/profitMargin ดิบถึง SALES ด้วย — ปิดพร้อมกันรอบนี้)
       const seesCost = hasPermission(ctx.userRole, ctx.permissionOverrides, "see_finance");
       const sanitizedOrders = ordersWithPayment.map((o) => ({
-        ...o,
+        ...withoutOrderLinkTokens(o),
         totalCost: seesCost ? o.totalCost : 0,
         profitMargin: seesCost ? o.profitMargin : null,
         ...(seesMoney
@@ -782,7 +783,7 @@ export const orderRouter = router({
             fees: order.fees.map((f) => ({ ...f, amount: null })),
           };
       return {
-        ...moneyBase,
+        ...withoutOrderLinkTokens(moneyBase),
         costEntries: seesCost ? order.costEntries : [],
         totalCost: seesCost ? order.totalCost : 0,
         profitMargin: seesCost ? order.profitMargin : null,

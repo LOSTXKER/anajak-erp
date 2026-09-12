@@ -259,8 +259,8 @@ async function main() {
     ok("Job Ticket: ไม่มีราคา/เงินบนใบ", !jHtml.includes("฿") && !jHtml.includes("ราคา") && !jHtml.includes("จำนวนเงิน") && !jHtml.includes("บาท"));
   } finally {
     // ลบข้อมูลทดสอบเกลี้ยง + คืนค่า company profile เดิม
-    await prisma.payment.deleteMany({ where: { invoice: { invoiceNumber: { startsWith: "TEST-" } } } });
-    await prisma.invoice.deleteMany({ where: { invoiceNumber: { startsWith: "TEST-" } } });
+    await prisma.payment.deleteMany({ where: { invoiceId: { in: ids.invoices } } });
+    await prisma.invoice.deleteMany({ where: { id: { in: ids.invoices } } });
     if (ids.quotation) await prisma.quotation.delete({ where: { id: ids.quotation } }).catch(() => {});
     if (ids.order) await prisma.order.delete({ where: { id: ids.order } }).catch(() => {});
     if (ids.customer) await prisma.customer.delete({ where: { id: ids.customer } }).catch(() => {});

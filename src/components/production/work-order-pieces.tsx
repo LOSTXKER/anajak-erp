@@ -29,13 +29,13 @@ export function stepLabel(step: Pick<ProductionStep, "customStepName" | "stepTyp
   return step.customStepName || STEP_TYPE_LABELS[step.stepType] || step.stepType;
 }
 
-/** รอบพิมพ์ยังไม่มีหน้าจัดการใน ERP รุ่นนี้ — ไม่ชี้คนใช้ไปหน้าที่ไม่มีแล้ว */
+/** DTF มีคำสั่งเฉพาะในรอบพิมพ์ ไม่ปิดขั้นจากปุ่มจำนวนทั่วไป */
 export function dtfUnavailableReason(step: ProductionStep): string | null {
   if (step.stepType !== "DTF_PRINT" || ["COMPLETED", "FAILED", "ON_HOLD"].includes(step.status) || activeOutsource(step)) return null;
   const run = step.printRunItems[0]?.printRun.runNumber;
   return run
-    ? `อยู่ในรอบพิมพ์ ${run} แต่หน้าจัดรอบพิมพ์ยังไม่พร้อมใช้งาน จึงปิดรอบจากหน้านี้ไม่ได้`
-    : "หน้าจัดรอบพิมพ์ DTF ยังไม่พร้อมใช้งาน จึงเริ่มหรือปิดขั้นนี้จากระบบไม่ได้";
+    ? `อยู่ในรอบพิมพ์ ${run} — เปิดรอบเพื่อยืนยันพิมพ์จบและตัดแยกติดป้าย`
+    : "เปิดคิวรอบพิมพ์ DTF เพื่อเลือกงานและจำนวนรวมเข้าม้วน";
 }
 
 export type StepView = {

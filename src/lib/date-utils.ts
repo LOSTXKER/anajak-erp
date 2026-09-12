@@ -10,6 +10,14 @@ const bangkokCalendar = new Intl.DateTimeFormat("en-CA", {
 
 type DateInput = Date | string | number;
 
+/** ค่า YYYY-MM-DD สำหรับฟอร์มวันเอกสาร โดยยึดวันที่รับเงินจริงในประเทศไทย */
+export function toBangkokDateInput(value: DateInput): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const parts = bangkokCalendar.formatToParts(date);
+  return ["year", "month", "day"].map((type) => parts.find((part) => part.type === type)!.value).join("-");
+}
+
 function bangkokDayNumber(value: DateInput): number | null {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return null;

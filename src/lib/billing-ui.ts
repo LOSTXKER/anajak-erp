@@ -67,9 +67,10 @@ export function billingOverview(invoices: readonly BillingUiInvoice[]): BillingO
   for (const invoice of invoices) {
     if (invoice.isVoided) continue;
 
-    totalInvoiced += invoice.totalAmount;
     hasLiveReceivable ||= isLiveReceivable(invoice);
     if (isLiveReceivable(invoice)) {
+      // ใบเสร็จเป็นหลักฐานของงวดเดิม ไม่ใช่การเรียกเก็บเพิ่มอีกครั้ง
+      totalInvoiced += invoice.totalAmount;
       totalOutstanding += invoiceBalance(invoice).remaining;
     }
 
