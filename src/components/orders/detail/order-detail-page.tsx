@@ -42,12 +42,6 @@ import {
   ShoppingCart,
   CalendarClock,
   UserRound,
-  LayoutGrid,
-  Package,
-  Factory,
-  ReceiptText,
-  Images,
-  History,
 } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
 import { MENU_SEPARATOR, OVERLAY_PANEL, TINT } from "@/components/ui/tokens";
@@ -93,16 +87,6 @@ import {
 } from "@/components/orders/detail";
 import { RecordNotFound } from "@/components/ui/record-not-found";
 import { OrderNextStepGuidance } from "@/components/orders/detail/order-next-step-action";
-
-const ORDER_TAB_ICONS = {
-  overview: LayoutGrid,
-  items: Package,
-  production: Factory,
-  delivery: Truck,
-  money: ReceiptText,
-  files: Images,
-  history: History,
-} satisfies Record<TabKey, typeof LayoutGrid>;
 
 // ============================================================
 // Loading skeleton
@@ -626,6 +610,60 @@ function OrderDetailContent({
 
   return (
     <div className="-mx-4 -mt-5 min-h-full space-y-5 bg-slate-100/70 px-4 pb-6 pt-5 dark:bg-slate-950/40 sm:-mx-6 sm:-mt-7 sm:px-6 sm:pt-7 lg:-mx-8 lg:px-8">
+      {/* จองสต๊อคมีปัญหา — ต้องเห็นทันทีบนหน้าออเดอร์ (ด่านพร้อมผลิตจะกั้นงานไม่ให้เข้าคิวช่างอยู่แล้ว
+          แต่คนแก้ต้นเหตุคือคนที่เปิดหน้านี้) · จองสำเร็จดูได้จากประวัติออเดอร์ */}
+      {order.stockReservationError && (
+        <div className={cn(TINT.error, "flex flex-wrap items-center gap-3 rounded-lg border px-4 py-3 text-sm")}>
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          <span className="min-w-0 flex-1">
+            <span className="font-medium">จองสต๊อคไม่สำเร็จ:</span> {order.stockReservationError}
+          </span>
+          {isSalesUp &&
+            ["CONFIRMED", "DESIGNING", "DESIGN_APPROVED", "PRODUCTION_QUEUE"].includes(
+              order.internalStatus
+            ) && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => retryReserve.mutate({ id })}
+                disabled={retryReserve.isPending}
+              >
+                {retryReserve.isPending ? "กำลังจอง..." : "จองใหม่"}
+              </Button>
+            )}
+        </div>
+      )}
+
+      {/* หมายเหตุใบนี้อยู่ "นอกแท็บ" โดยตั้งใจ — คนแพ็ค (แท็บจัดส่ง) กับช่าง (แท็บงานผลิต)
+          ต้องเห็น "ห้ามพับ / ส่งก่อนบ่าย 3" โดยไม่ต้องสลับกลับมาแท็บภาพรวม พลาดแล้วงานเสีย
+          โผล่เฉพาะใบที่มีหมายเหตุ — ใบปกติไม่กินที่เลย */}
+      {/* blind ship = ห้ามมีชื่อ/เอกสาร Anajak ในกล่อง · พลาดครั้งเดียวเสียลูกค้าขายซ้ำทั้งราย
+          อยู่นอกแท็บเพราะคนแพ็คทำงานอยู่แท็บ "จัดส่ง" — เดิมอยู่ในการ์ดแท็บภาพรวมที่ไม่มีใครกลับไปเปิด
+          เขียนเป็นประโยคเต็ม ไม่ใช้ไอคอน/สีล้วน (สีบอกว่า "มีอะไรบางอย่าง" แต่ไม่บอกว่าต้องทำอะไร) */}
+      {order.blindShip && (
+        <div className={cn(TINT.warning, "flex flex-wrap gap-x-2 gap-y-1 rounded-lg border px-4 py-3 text-sm")}>
+          <span className="font-medium">ส่งแบบไม่ระบุผู้ส่ง</span>
+          <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
+            ชื่อผู้ส่งบนกล่อง:{" "}
+            {order.blindShipSenderName || "ยังไม่ระบุ — ต้องกรอกก่อนแพ็ค"}
+          </span>
+        </div>
+      )}
+
+      {order.notes?.trim() && (
+        <div className={cn(TINT.warning, "flex flex-wrap gap-x-2 gap-y-1 rounded-lg border px-4 py-3 text-sm")}>
+          <span className="font-medium">หมายเหตุใบนี้</span>
+          <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">{order.notes}</span>
+        </div>
+      )}
+
+
+      {deniedTab === "money" && (
+        <Alert variant="warning" icon={AlertTriangle} title="เปิดส่วนเงินและบิลไม่ได้">
+          บัญชีนี้ไม่มีสิทธิ์ดูข้อมูลการเงิน ระบบจึงพากลับมาที่ภาพรวม
+        </Alert>
+      )}
+
       <div data-order-head="" className="space-y-5">
       <PageHeader
         icon={ShoppingCart}
@@ -816,78 +854,21 @@ function OrderDetailContent({
       </div>
       </div>
 
-      {/* จองสต๊อคมีปัญหา — ต้องเห็นทันทีบนหน้าออเดอร์ (ด่านพร้อมผลิตจะกั้นงานไม่ให้เข้าคิวช่างอยู่แล้ว
-          แต่คนแก้ต้นเหตุคือคนที่เปิดหน้านี้) · จองสำเร็จดูได้จากประวัติออเดอร์ */}
-      {order.stockReservationError && (
-        <div className={cn(TINT.error, "flex flex-wrap items-center gap-3 rounded-lg border px-4 py-3 text-sm")}>
-          <AlertTriangle className="h-4 w-4 shrink-0" />
-          <span className="min-w-0 flex-1">
-            <span className="font-medium">จองสต๊อคไม่สำเร็จ:</span> {order.stockReservationError}
-          </span>
-          {isSalesUp &&
-            ["CONFIRMED", "DESIGNING", "DESIGN_APPROVED", "PRODUCTION_QUEUE"].includes(
-              order.internalStatus
-            ) && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => retryReserve.mutate({ id })}
-                disabled={retryReserve.isPending}
-              >
-                {retryReserve.isPending ? "กำลังจอง..." : "จองใหม่"}
-              </Button>
-            )}
-        </div>
-      )}
-
-      {/* หมายเหตุใบนี้อยู่ "นอกแท็บ" โดยตั้งใจ — คนแพ็ค (แท็บจัดส่ง) กับช่าง (แท็บงานผลิต)
-          ต้องเห็น "ห้ามพับ / ส่งก่อนบ่าย 3" โดยไม่ต้องสลับกลับมาแท็บภาพรวม พลาดแล้วงานเสีย
-          โผล่เฉพาะใบที่มีหมายเหตุ — ใบปกติไม่กินที่เลย */}
-      {/* blind ship = ห้ามมีชื่อ/เอกสาร Anajak ในกล่อง · พลาดครั้งเดียวเสียลูกค้าขายซ้ำทั้งราย
-          อยู่นอกแท็บเพราะคนแพ็คทำงานอยู่แท็บ "จัดส่ง" — เดิมอยู่ในการ์ดแท็บภาพรวมที่ไม่มีใครกลับไปเปิด
-          เขียนเป็นประโยคเต็ม ไม่ใช้ไอคอน/สีล้วน (สีบอกว่า "มีอะไรบางอย่าง" แต่ไม่บอกว่าต้องทำอะไร) */}
-      {order.blindShip && (
-        <div className={cn(TINT.warning, "flex flex-wrap gap-x-2 gap-y-1 rounded-lg border px-4 py-3 text-sm")}>
-          <span className="font-medium">ส่งแบบไม่ระบุผู้ส่ง</span>
-          <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
-            ชื่อผู้ส่งบนกล่อง:{" "}
-            {order.blindShipSenderName || "ยังไม่ระบุ — ต้องกรอกก่อนแพ็ค"}
-          </span>
-        </div>
-      )}
-
-      {order.notes?.trim() && (
-        <div className={cn(TINT.warning, "flex flex-wrap gap-x-2 gap-y-1 rounded-lg border px-4 py-3 text-sm")}>
-          <span className="font-medium">หมายเหตุใบนี้</span>
-          <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">{order.notes}</span>
-        </div>
-      )}
-
-
-      {deniedTab === "money" && (
-        <Alert variant="warning" icon={AlertTriangle} title="เปิดส่วนเงินและบิลไม่ได้">
-          บัญชีนี้ไม่มีสิทธิ์ดูข้อมูลการเงิน ระบบจึงพากลับมาที่ภาพรวม
-        </Alert>
-      )}
-
       <Tabs value={activeTab} onValueChange={changeTab}>
         {/* sticky — เลื่อนลงไปลึกแค่ไหนก็ยังสลับแท็บได้
             TabsBar = พื้นรองที่ทำให้เนื้อหาไม่วิ่งทะลุขึ้นมาอยู่ข้างแท็บตอนเลื่อน */}
-        <TabsBar className="mx-0 rounded-2xl border border-slate-200 bg-surface p-1.5 shadow-sm dark:border-slate-700">
-          <TabsList aria-label="ส่วนของออเดอร์" className="gap-1 sm:gap-1">
-            {visibleTabs.map((t) => {
-              const Icon = ORDER_TAB_ICONS[t.key];
-              return <TabsTrigger
+        <TabsBar className="mx-0 border-0">
+          <TabsList aria-label="ส่วนของออเดอร์">
+            {visibleTabs.map((t) => (
+              <TabsTrigger
                 key={t.key}
                 value={t.key}
                 hasPending={t.key === pendingTab}
-                className="mb-0 gap-2 rounded-xl border-b-0 px-3 text-secondary hover:bg-surface-muted data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:focus-visible:ring-white dark:data-[state=active]:bg-blue-700 dark:data-[state=active]:text-white dark:data-[state=active]:focus-visible:ring-white"
                 aria-label={t.key === pendingTab ? `${t.label} — มีงานค้าง` : undefined}
               >
-                <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
                 {t.label}
-              </TabsTrigger>;
-            })}
+              </TabsTrigger>
+            ))}
           </TabsList>
         </TabsBar>
 
