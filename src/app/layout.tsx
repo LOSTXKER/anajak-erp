@@ -1,12 +1,20 @@
 import type { Metadata, Viewport } from "next";
-import { Prompt, JetBrains_Mono } from "next/font/google";
+import localFont from "next/font/local";
+import { JetBrains_Mono } from "next/font/google";
 import { Providers } from "@/components/providers";
 import "./globals.css";
 
-const prompt = Prompt({
-  subsets: ["latin", "thai"],
-  weight: ["400", "500", "600", "700"],
+// Prompt เดิมจาก google/fonts@f7879ff04d7e2b3f3d4ad93ddffb20a35dff4271/ofl/prompt
+// เก็บทุก glyph ใน WOFF2 พร้อม OFL.txt เพื่อไม่ให้การโหลด Google Fonts ล้มแล้วเปลี่ยนหน้าตา
+const prompt = localFont({
+  src: [
+    { path: "./fonts/prompt/Prompt-Regular.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/prompt/Prompt-Medium.woff2", weight: "500", style: "normal" },
+    { path: "./fonts/prompt/Prompt-SemiBold.woff2", weight: "600", style: "normal" },
+    { path: "./fonts/prompt/Prompt-Bold.woff2", weight: "700", style: "normal" },
+  ],
   variable: "--font-sans",
+  display: "swap",
 });
 
 const jetbrainsMono = JetBrains_Mono({

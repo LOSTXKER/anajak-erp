@@ -36,24 +36,11 @@ describe("getOrderNextStep — จุดโฟกัสเดียวต่อ�
     ).toEqual({ type: "STATUS", to: "CONFIRMED" });
   });
 
-  it("สอบถาม+มีรายการ → ยืนยันออเดอร์ (role เงินเห็นยอดรวมในคำอธิบาย)", () => {
-    const step = getOrderNextStep(base);
+  it.each([1000, 0, null])("สอบถาม+มีรายการ → คงปุ่มยืนยัน ไม่แสดงยอดหรือคำสั่งซ้ำ (ยอด %s)", (totalAmount) => {
+    const step = getOrderNextStep({ ...base, totalAmount });
     expect(step?.action).toEqual({ type: "STATUS", to: "CONFIRMED" });
-    expect(step?.description).toContain("ยอดรวม");
-    expect(step?.description).toContain("บาท");
-  });
-
-  // ⑦: ช่าง/กราฟิกได้ totalAmount = null จาก server — แถบต้องละส่วนยอดเงิน ไม่ใช่โชว์ "ยอดรวม 0 บาท"
-  it("สอบถาม+ช่าง (totalAmount=null) → ไม่โชว์ยอดเงินปลอม แต่ปุ่ม/ข้อความหลักยังครบ", () => {
-    const step = getOrderNextStep({ ...base, totalAmount: null });
-    expect(step?.action).toEqual({ type: "STATUS", to: "CONFIRMED" });
-    expect(step?.description).not.toContain("ยอดรวม");
-    expect(step?.description).toContain("ลูกค้าตกลงแล้วกดยืนยันเพื่อเริ่มงาน");
-  });
-
-  it("สอบถาม+ราคา 0 จริง (role เงิน) → ยังโชว์ยอดรวม 0 ตามจริง (ไม่ใช่เคสซ่อน)", () => {
-    const step = getOrderNextStep({ ...base, totalAmount: 0 });
-    expect(step?.description).toContain("ยอดรวม 0 บาท");
+    expect(step?.buttonLabel).toBe("ยืนยันออเดอร์");
+    expect(step?.description).toBeUndefined();
   });
 
   it("ยืนยันแล้ว+เทอมมัดจำ+ยังไม่มีบิล → ชี้ไปเรียกมัดจำ", () => {

@@ -67,7 +67,7 @@ export function OrderNextStepAction({
     <Button
       onClick={() => dispatch(action)}
       disabled={isPending}
-      aria-describedby="order-next-step-guidance"
+      aria-describedby={nextStep.description ? "order-next-step-guidance" : undefined}
       className="shrink-0"
     >
       {nextStep.buttonLabel}
@@ -112,6 +112,7 @@ export function OrderNextStepGuidance({
       ? "รอฝ่ายขายหรือการเงินจัดการบิลและการรับชำระของออเดอร์นี้"
       : nextStep.description;
 
+  if (!description) return null;
   return <p id="order-next-step-guidance" className="text-sm leading-relaxed text-secondary">{description}</p>;
 }
 

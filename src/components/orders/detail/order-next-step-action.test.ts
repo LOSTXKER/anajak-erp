@@ -22,6 +22,14 @@ const readiness = {
 const callbacks = { onStatus: () => {}, onAnchor: () => {} };
 
 describe("คำแนะนำขั้นต่อไปของออเดอร์", () => {
+  it("ขั้นที่ชัดจากปุ่มแล้วไม่มีบรรทัดว่างหรือการอ้างคำช่วยที่ถูกถอด", () => {
+    const props = { nextStep: { ...nextStep, description: undefined }, readiness: null, ...callbacks };
+    expect(renderToStaticMarkup(createElement(OrderNextStepGuidance, props))).toBe("");
+    const action = renderToStaticMarkup(createElement(OrderNextStepAction, { ...props, isPending: false }));
+    expect(action).toContain("เข้าคิวผลิต");
+    expect(action).not.toContain("aria-describedby");
+  });
+
   it("แสดงคำช่วยบนหน้าและผูกกับปุ่มโดยไม่ต้องใช้ hover", () => {
     const props = { nextStep, readiness: { ready: true, checks: [] }, ...callbacks };
     const guidance = renderToStaticMarkup(createElement(OrderNextStepGuidance, props));

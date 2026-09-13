@@ -28,7 +28,7 @@ export type NextStepAction =
 
 export interface NextStep {
   title: string;
-  description: string;
+  description?: string;
   buttonLabel?: string;
   action: NextStepAction;
 }
@@ -63,12 +63,8 @@ export function getOrderNextStep(o: NextStepInput): NextStep | null {
   }
 
   if (o.internalStatus === "INQUIRY") {
-    // ช่าง/กราฟิกได้ totalAmount = null (⑦) → ละส่วนยอดเงินทิ้ง · 0 จริง (ตีราคา 0) ยังโชว์ตามจริง
-    const amountPart =
-      o.totalAmount != null ? `ยอดรวม ${o.totalAmount.toLocaleString("th-TH")} บาท — ` : "";
     return {
       title: "รอลูกค้าตกลง → ยืนยันออเดอร์",
-      description: `${amountPart}ลูกค้าตกลงแล้วกดยืนยันเพื่อเริ่มงาน`,
       buttonLabel: "ยืนยันออเดอร์",
       action: { type: "STATUS", to: "CONFIRMED" },
     };
