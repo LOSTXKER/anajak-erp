@@ -106,15 +106,15 @@ export function OrderArtworkCardView({
       surface={variant === "current" ? "card" : "plain"}
       title={
         variant === "current" ? (
-          <span className="flex items-center gap-3">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-module-production-surface text-module-production-text" aria-hidden="true">
-              <Shirt className="h-5 w-5" />
+          <span className="flex items-center gap-2.5">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-module-production-surface text-module-production-text" aria-hidden="true">
+              <Shirt className="h-4 w-4" />
             </span>
-            งานนี้พิมพ์อะไร
+            ม็อกอัพและไฟล์
           </span>
         ) : (
           <SectionTitle icon={Shirt} tone="production">
-            งานนี้พิมพ์อะไร
+            ม็อกอัพและไฟล์
           </SectionTitle>
         )
       }

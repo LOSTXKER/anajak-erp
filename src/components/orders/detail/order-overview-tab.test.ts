@@ -33,7 +33,7 @@ describe("ทางเลือกภาพรวมออเดอร์ A16", 
 
   it.each(variants)("%s ไม่ render เงินหรือปุ่มแก้เมื่อไม่ได้รับสิทธิ์", (variant) => {
     const html = render({ variant, showMoney: false, onOpenMoney: undefined, onEditInfo: undefined });
-    for (const money of ["ยอดรวม", "ชำระสะสม", "วงเงินเครดิต", "87,342.50", "5,992"]) expect(html).not.toContain(money);
+    for (const money of ["ยอดรวม", "ชำระสะสม", "วงเงินเครดิต", "87,342.5", "5,992"]) expect(html).not.toContain(money);
     expect(html).not.toContain("แก้ไขข้อมูลออเดอร์");
     expect(html).not.toContain("แก้ไขที่อยู่จัดส่ง");
     expect(html).toContain(PREVIEW_ORDER.customer!.taxId);
@@ -45,6 +45,25 @@ describe("ทางเลือกภาพรวมออเดอร์ A16", 
     expect(html).toContain("tel:0800001280");
     expect(html).toContain(PREVIEW_ORDER.brandProfile!.logoUrl);
     expect(html).toContain(PREVIEW_ORDER.shippingAddress);
+  });
+
+  it("พับประวัติและที่อยู่ออกบิล แต่คงช่องทางติดต่อและหมายเหตุลูกค้าให้เห็นทันที", () => {
+    const html = render();
+    const details = html.match(/<details\b[\s\S]*?<\/details>/)?.[0];
+    expect(details).toBeDefined();
+    expect(details).not.toMatch(/^<details[^>]*\bopen(?:=|\s|>)/);
+    expect(details).toContain("ประวัติและที่อยู่ออกบิล");
+    expect(details).toContain("87,342.5");
+    expect(details).toContain(PREVIEW_ORDER.customer!.address);
+    expect(details).not.toContain(PREVIEW_ORDER.customer!.notes);
+    expect(details).not.toContain("tel:0800001280");
+    expect(html.replace(details!, "")).toContain(PREVIEW_ORDER.customer!.notes);
+  });
+
+  it("คำเตือนเลขภาษีที่ขาดต้องอยู่นอกส่วนที่พับ", () => {
+    const html = render({ order: { ...PREVIEW_ORDER, customer: { ...PREVIEW_ORDER.customer!, taxId: null } } });
+    const visible = html.replace(/<details\b[\s\S]*?<\/details>/g, "");
+    expect(visible).toContain("ยังไม่มีเลขภาษี — ออกใบกำกับไม่ได้");
   });
 
   it.each(variants)("%s คงข้อมูลแบบและทางไปไฟล์ทั้งมีแบบและยังไม่มี", (variant) => {

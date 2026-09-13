@@ -7,9 +7,14 @@
 
 .card > header {
   align-items: center;
-  margin-bottom: 1.25rem;
+  margin-bottom: 1rem;
   border-bottom: 1px solid var(--color-divider);
-  padding-block: 1rem;
+  padding-block: 0.75rem;
+}
+
+.summaryFacts {
+  align-items: start;
+  gap: 0.875rem;
 }
 
 .summaryFacts > div:not(.orderTotal) {
@@ -20,7 +25,7 @@
   border: 1px solid rgb(255 255 255 / 12%);
   border-radius: 0.875rem;
   background: var(--color-blue-800);
-  padding: 1rem 1.25rem;
+  padding: 0.625rem 0.875rem;
 }
 
 .orderTotal > dt,
@@ -35,7 +40,7 @@
 .orderTotal > dd > span > button,
 .orderTotal > dd > span > span {
   color: white;
-  font-size: 1.875rem;
+  font-size: 1.375rem;
   line-height: 1.35;
   font-weight: 600;
 }
@@ -66,12 +71,44 @@
   border: 1px solid var(--color-divider);
   border-radius: 0.875rem;
   background: var(--color-surface-muted);
-  padding: 1.25rem;
+  padding: 1rem;
 }
 
 .artworkStage > ul:has(> li:only-child) {
-  max-width: 12rem;
+  max-width: 16rem;
   grid-template-columns: minmax(0, 1fr);
+}
+
+.customerDetails > summary {
+  display: flex;
+  min-height: 2.75rem;
+  cursor: pointer;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  list-style: none;
+}
+
+.customerDetails > summary::-webkit-details-marker {
+  display: none;
+}
+
+.customerDetails[open] > summary > svg {
+  transform: rotate(180deg);
+}
+
+@container (min-width: 31rem) {
+  .summaryFacts:has(> .orderTotal) {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.75fr) minmax(0, 1fr);
+  }
+
+  .summaryFacts > .orderTotal {
+    grid-column: auto;
+  }
+
+  .summaryDetails {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 639px) {
@@ -81,9 +118,5 @@
 
   .card > div {
     padding-inline: 1rem;
-  }
-
-  .orderTotal {
-    padding: 1rem;
   }
 }

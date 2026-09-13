@@ -10,6 +10,7 @@ import {
   CalendarClock,
   CreditCard,
   Package,
+  ChevronDown,
 } from "lucide-react";
 import { Section, SectionTitle } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
@@ -132,7 +133,7 @@ interface OrderOverviewTabProps {
   // เปิดฟอร์มแก้เต็มหน้าโดยโฟกัสการ์ดที่กด — ไม่ส่งมา = ไม่มีสิทธิ์แก้ ปุ่มไม่ต้องขึ้น
   onEditInfo?: (section: "info" | "shipping") => void;
   onOpenCustomer?: () => void;
-  /* การ์ด "งานนี้พิมพ์อะไร" (ม็อกอัพ + รายละเอียดงาน + สรุปไฟล์) — ส่งเข้ามาเป็นชิ้นสำเร็จ
+  /* การ์ด "ม็อกอัพและไฟล์" (ม็อกอัพ + รายละเอียดงาน + สรุปไฟล์) — ส่งเข้ามาเป็นชิ้นสำเร็จ
      เพราะแท็บนี้เป็น read surface ที่รับ props ล้วน ไม่ยิง query เอง ส่วนการ์ดนั้นต้องยิง
      (ม็อกอัพ/ไฟล์อยู่คนละตาราง) · หน้าแม่จึงประกอบมาให้ แล้วที่นี่แค่วางตำแหน่ง */
   artwork?: React.ReactNode;
@@ -158,9 +159,9 @@ function OverviewTitle({
   if (!framed) return <SectionTitle icon={Icon} tone={tone}>{children}</SectionTitle>;
 
   return (
-    <span className="flex items-center gap-3">
-      <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl", VISUAL_TONE_CLASSES[tone].soft)} aria-hidden="true">
-        <Icon className="h-5 w-5" />
+    <span className="flex items-center gap-2.5">
+      <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg", VISUAL_TONE_CLASSES[tone].soft)} aria-hidden="true">
+        <Icon className="h-4 w-4" />
       </span>
       {children}
     </span>
@@ -170,7 +171,7 @@ function OverviewTitle({
 /** กริดของช่องข้อมูลรอง — การ์ดล่างค่อยแยก 2 คอลัมน์เมื่อพื้นที่พอ */
 function FieldGrid({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <dl className={cn("grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2", className)}>
+    <dl className={cn("grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2", className)}>
       {children}
     </dl>
   );
@@ -473,14 +474,14 @@ export function OrderOverviewTab({
       title={<OverviewTitle icon={Info} tone="brand" framed={currentLayout}>ข้อมูลออเดอร์</OverviewTitle>}
       action={editButton("info", "แก้ไขข้อมูลออเดอร์")}
     >
-      <div className="space-y-5">
+      <div className="space-y-4">
         {/* ข้อมูลที่ใช้ตัดสินใจก่อนเปิดรายละเอียด */}
         <dl className={cn("grid grid-cols-2 gap-x-4 gap-y-4 sm:gap-x-6 sm:gap-y-5", currentLayout && styles.summaryFacts)}>
           <SummaryFact
             label={<span className="inline-flex items-center gap-1.5">{currentLayout && <CalendarClock className="h-4 w-4" aria-hidden="true" />}กำหนดส่ง</span>}
             detail={
               <span className="inline-flex flex-wrap items-center gap-1.5">
-                <span>ความเร่งด่วน</span>
+                <span className={currentLayout ? "sr-only" : undefined}>ความเร่งด่วน</span>
                 <Badge
                   variant={
                     order.priority === "URGENT"
@@ -566,7 +567,7 @@ export function OrderOverviewTab({
         </dl>
 
         <Group divided>
-          <FieldGrid className={currentLayout ? "grid-cols-2 gap-x-4" : undefined}>
+          <FieldGrid className={currentLayout ? cn("grid-cols-2 gap-x-4", styles.summaryDetails) : undefined}>
             <Field label="ประเภทงาน">
               <Badge
                 variant={order.orderType === "CUSTOM" ? "accent" : "default"}
@@ -644,7 +645,7 @@ export function OrderOverviewTab({
         hasShipping ? "แก้ไข" : "เพิ่มที่อยู่",
       )}
     >
-      <div className="space-y-5">
+      <div className="space-y-4">
         {hasShipping ? (
           <FieldGrid>
             <Field label="ผู้รับ">{order.shippingRecipientName}</Field>
@@ -675,11 +676,6 @@ export function OrderOverviewTab({
           <div className="space-y-1">
             <p className="text-sm font-medium text-strong">
               ยังไม่มีที่อยู่จัดส่ง
-            </p>
-            <p className="text-sm text-muted">
-              {customer?.address && onEditInfo
-                ? "หน้าแก้ไขสามารถเลือกใช้ที่อยู่ลูกค้าได้ทันที"
-                : "เพิ่มผู้รับและที่อยู่ก่อนสร้างใบส่งของ"}
             </p>
           </div>
         )}
@@ -818,10 +814,10 @@ export function OrderOverviewTab({
       }
     >
       {customer ? (
-        <div className="space-y-5">
-          <div className={cn("flex flex-wrap items-start justify-between gap-3", currentLayout && "rounded-xl bg-module-brand-surface p-4")}>
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className={cn("font-semibold text-strong [overflow-wrap:anywhere]", currentLayout ? "text-xl" : "text-base")}>
+              <p className="text-base font-semibold text-strong [overflow-wrap:anywhere]">
                 {customer.name}
               </p>
               {customer.company && (
@@ -837,31 +833,29 @@ export function OrderOverviewTab({
             </Badge>
           </div>
 
-          {/* gate เงินเหมือนเดิมทุกประการ: showMoney && hasCustomerHistory ครอบ
-              ทั้งก้อน ช่างจึงไม่เห็นอะไรเลยแม้แต่หัวข้อ (TabsContent forceMount
-              → ต้อง gate ที่ JSX ห้ามซ่อนด้วยคลาส) */}
-          {showMoney && hasCustomerHistory && customerHistoryCells.length > 0 && (
-            <dl className={cn("grid grid-cols-2 gap-x-5 gap-y-4", currentLayout ? "rounded-xl border border-divider bg-surface-muted/50 p-4 @xl:grid-cols-4" : variant !== "b" && "sm:grid-cols-4")}>
-              {customerHistoryCells.map((cell) => (
-                <div
-                  key={cell.key}
-                  className={cn(
-                    currentLayout
-                      ? "min-w-0 py-1"
-                      : "border-l border-divider pl-3",
+          <Group>
+            {hasCustomerContact ? (
+              <FieldGrid className={currentLayout ? "grid-cols-2 gap-x-4" : undefined}>
+                <Field label="โทรศัพท์">
+                  {customer.phone && <PhoneLink phone={customer.phone} />}
+                </Field>
+                <Field label="ห้องแชท">
+                  {(customer.chatName || customer.chatUrl) && (
+                    <ChatLink
+                      name={customer.chatName}
+                      url={customer.chatUrl}
+                      wrap
+                      className="min-h-11 min-w-11 text-sm"
+                    />
                   )}
-                >
-                  <dt className="flex items-center gap-1.5 text-xs text-muted">
-                    {currentLayout && <cell.icon className={cn("h-3.5 w-3.5 shrink-0", VISUAL_TONE_CLASSES[cell.tone].mark)} aria-hidden="true" />}
-                    {cell.label}
-                  </dt>
-                  <dd className={cn("mt-1.5 font-semibold tabular-nums text-strong [overflow-wrap:anywhere]", currentLayout ? "text-lg" : "text-sm text-secondary")}>
-                    {cell.value}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          )}
+                </Field>
+                <Field label="LINE ID">{customer.lineId}</Field>
+                <Field label="อีเมล">{customer.email}</Field>
+              </FieldGrid>
+            ) : (
+              <p className="text-sm text-muted">ยังไม่มีช่องทางติดต่อ</p>
+            )}
+          </Group>
 
           <FieldGrid>
             <Field
@@ -886,57 +880,8 @@ export function OrderOverviewTab({
             </Field>
           </FieldGrid>
 
-          <Group label="ช่องทางติดต่อ" divided>
-            {hasCustomerContact ? (
-              <FieldGrid>
-                <Field label="โทรศัพท์">
-                  {customer.phone && <PhoneLink phone={customer.phone} />}
-                </Field>
-                <Field label="ห้องแชท">
-                  {(customer.chatName || customer.chatUrl) && (
-                    <ChatLink
-                      name={customer.chatName}
-                      url={customer.chatUrl}
-                      wrap
-                      className="min-h-11 min-w-11 text-sm"
-                    />
-                  )}
-                </Field>
-                <Field label="LINE ID">{customer.lineId}</Field>
-                <Field label="อีเมล">{customer.email}</Field>
-              </FieldGrid>
-            ) : (
-              <p className="text-sm text-muted">ยังไม่มีช่องทางติดต่อ</p>
-            )}
-          </Group>
-
-          <Group label="ที่อยู่ลูกค้าและออกบิล" divided>
+          {(customer.tags.length > 0 || customer.notes) && (
             <FieldGrid>
-              <Field
-                label="ที่อยู่ลูกค้า"
-                wide
-                emptyText="ยังไม่มีที่อยู่ลูกค้า"
-              >
-                {customer.address}
-              </Field>
-              {hasBilling ? (
-                <Field label="ที่อยู่ออกบิล" wide>
-                  <span className="block space-y-0.5">
-                    {customer.billingAddress && (
-                      <span className="block">
-                        {customer.billingAddress}
-                      </span>
-                    )}
-                    {billingArea && (
-                      <span className="block">{billingArea}</span>
-                    )}
-                  </span>
-                </Field>
-              ) : customer.address ? (
-                <Field label="ที่อยู่ออกบิล" wide>
-                  ใช้ที่อยู่ลูกค้า
-                </Field>
-              ) : null}
               {customer.tags.length > 0 && (
                 <Field label="ป้ายลูกค้า" wide>
                   <span className="flex flex-wrap gap-1.5">
@@ -964,8 +909,71 @@ export function OrderOverviewTab({
                 </Field>
               )}
             </FieldGrid>
-          </Group>
+          )}
 
+          <details className={cn("border-t border-divider", styles.customerDetails)} open={currentLayout ? undefined : true}>
+            <summary className={cn("rounded-lg text-sm font-medium text-secondary", FOCUS_BUTTON)}>
+              ประวัติและที่อยู่ออกบิล
+              <ChevronDown className="h-4 w-4 shrink-0" aria-hidden="true" />
+            </summary>
+            <div className="space-y-4 pb-1 pt-3">
+              {/* gate เงินเหมือนเดิมทุกประการ: showMoney && hasCustomerHistory ครอบ
+                  ทั้งก้อน ช่างจึงไม่เห็นอะไรเลยแม้แต่หัวข้อ (TabsContent forceMount
+                  → ต้อง gate ที่ JSX ห้ามซ่อนด้วยคลาส) */}
+              {showMoney && hasCustomerHistory && customerHistoryCells.length > 0 && (
+                <dl className={cn("grid grid-cols-2 gap-x-5 gap-y-4", variant !== "b" && "@xl:grid-cols-4")}>
+                  {customerHistoryCells.map((cell) => (
+                    <div
+                      key={cell.key}
+                      className={cn(
+                        currentLayout
+                          ? "min-w-0 py-1"
+                          : "border-l border-divider pl-3",
+                      )}
+                    >
+                      <dt className="flex items-center gap-1.5 text-xs text-muted">
+                        {currentLayout && <cell.icon className={cn("h-3.5 w-3.5 shrink-0", VISUAL_TONE_CLASSES[cell.tone].mark)} aria-hidden="true" />}
+                        {cell.label}
+                      </dt>
+                      <dd className="mt-1.5 text-sm font-semibold tabular-nums text-secondary [overflow-wrap:anywhere]">
+                        {cell.value}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              )}
+
+              <Group>
+                <FieldGrid>
+                  <Field
+                    label="ที่อยู่ลูกค้า"
+                    wide
+                    emptyText="ยังไม่มีที่อยู่ลูกค้า"
+                  >
+                    {customer.address}
+                  </Field>
+                  {hasBilling ? (
+                    <Field label="ที่อยู่ออกบิล" wide>
+                      <span className="block space-y-0.5">
+                        {customer.billingAddress && (
+                          <span className="block">
+                            {customer.billingAddress}
+                          </span>
+                        )}
+                        {billingArea && (
+                          <span className="block">{billingArea}</span>
+                        )}
+                      </span>
+                    </Field>
+                  ) : customer.address ? (
+                    <Field label="ที่อยู่ออกบิล" wide>
+                      ใช้ที่อยู่ลูกค้า
+                    </Field>
+                  ) : null}
+                </FieldGrid>
+              </Group>
+            </div>
+          </details>
         </div>
       ) : (
         <p className="text-sm text-muted">ใบนี้ยังไม่ผูกกับลูกค้า</p>
@@ -1008,19 +1016,19 @@ export function OrderOverviewTab({
   }
 
   return (
-    <div className="space-y-5">
-      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-        <div className="min-w-0 space-y-5 xl:col-start-2 xl:row-start-1">
+    <div className="space-y-4">
+      <div className="grid items-start gap-4 xl:grid-cols-2">
+        <div className="min-w-0 space-y-4">
           {summarySection}
           {shippingSection}
-          {brandSection}
-          {referenceSection}
         </div>
-        <div className="min-w-0 space-y-5 xl:col-start-1 xl:row-start-1">
+        <div className="min-w-0 space-y-4">
           {artwork}
+          {brandSection}
           {customerSection}
         </div>
       </div>
+      {referenceSection}
     </div>
   );
 }
