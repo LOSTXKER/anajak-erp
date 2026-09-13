@@ -855,9 +855,8 @@ function OrderDetailContent({
       </div>
 
       <Tabs value={activeTab} onValueChange={changeTab}>
-        {/* sticky — เลื่อนลงไปลึกแค่ไหนก็ยังสลับแท็บได้
-            TabsBar = พื้นรองที่ทำให้เนื้อหาไม่วิ่งทะลุขึ้นมาอยู่ข้างแท็บตอนเลื่อน */}
-        <TabsBar className="mx-0 border-0">
+        {/* แถบโปร่งใสเลื่อนตามหน้า เพื่อไม่ให้เนื้อหาซ้อนหลังข้อความแท็บ */}
+        <TabsBar className="static mx-0 border-0 bg-transparent">
           <TabsList aria-label="ส่วนของออเดอร์">
             {visibleTabs.map((t) => (
               <TabsTrigger
