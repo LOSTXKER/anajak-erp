@@ -17,6 +17,13 @@ export type ProtoEntry = {
  */
 export const PROTOS: ProtoEntry[] = [
   {
+    slug: "home-modern",
+    title: "หน้าแรก — Modern workspace",
+    question: "ทิศ minimal modern พื้นโปร่ง มุมโค้ง และ accent น้ำเงิน พร้อมลองค้นหา กรอง และเปิดรายละเอียด",
+    date: "2026-09-14",
+    status: "รอเคาะ",
+  },
+  {
     slug: "ui-reset",
     title: "รื้อ UI — คิวผลิต ออเดอร์ และใบผลิต",
     question: "โครงแบบไหนช่วยให้เห็นงานและลงมือได้ง่ายกว่า: เอกสารโปร่ง หรือพื้นที่ทำงาน",
