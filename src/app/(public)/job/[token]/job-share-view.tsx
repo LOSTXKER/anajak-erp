@@ -6,10 +6,8 @@ import { ARTWORK_POSITION_LABELS } from "@/lib/artwork";
 import { PRINT_TYPES } from "@/types/order-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PublicLinkError } from "@/components/public-link-error";
-import { isPublicLinkUnavailable, retryPublicQuery } from "@/lib/public-link-state";
 import {
   PublicPageShell,
-  PublicRefreshNotice,
   FullScreenLoading,
   InfoRow,
 } from "@/components/public/public-page";
@@ -26,13 +24,13 @@ import { cn } from "@/lib/utils";
 // (sanitize ที่ server แล้ว: ไม่มีค่าจ้าง/ราคาขาย/ชื่อลูกค้า/สถานะภายใน)
 
 export function JobShareView({ token }: { token: string }) {
-  const job = trpc.outsourceShare.getByToken.useQuery({ token }, { retry: retryPublicQuery });
+  const job = trpc.outsourceShare.getByToken.useQuery({ token });
 
   if (job.isLoading) {
     return <FullScreenLoading />;
   }
 
-  if (!job.data || (job.error && isPublicLinkUnavailable(job.error))) {
+  if (job.error || !job.data) {
     return <PublicLinkError error={job.error} message="ลิงก์ใบงานอาจไม่ถูกต้องหรือหมดอายุแล้ว" contactLabel="ติดต่อผู้ส่งงาน" onRetry={() => void job.refetch()} />;
   }
 
@@ -53,7 +51,6 @@ export function JobShareView({ token }: { token: string }) {
       subtitle={<><span className="block">สำหรับ {d.vendorName}</span><span className="block tabular-nums">อ้างอิง {d.orderNumber}</span></>}
       footer="เปิดจากลิงก์ที่ได้รับเท่านั้น — หากข้อมูลไม่ตรงกับที่คุยไว้ กรุณาติดต่อผู้ส่งงาน"
     >
-      {job.error && <PublicRefreshNotice onRetry={() => void job.refetch()} refreshing={job.isFetching} />}
 
         {/* งาน + จำนวน + กำหนดส่งคืน */}
         <Card>

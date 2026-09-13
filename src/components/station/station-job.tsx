@@ -180,7 +180,7 @@ export function StationStepZone({
       : now && now.waitingOn.length > 0
         ? `รอ: ${now.waitingOn.join(" และ ")}`
         : outsource
-          ? `${outsourceStepReason(step)} — เปิดใบงานร้านนอกเพื่อส่งของ รับกลับ และให้หัวหน้าตรวจรับ`
+          ? `${outsourceStepReason(step)} — การรับกลับให้หัวหน้าตรวจจากใบผลิต`
           : dtfReason
             ? dtfReason
             : now?.note

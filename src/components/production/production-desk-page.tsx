@@ -129,6 +129,7 @@ function ProductionDesk() {
         }
         action={
           <>
+            {/* โหมดหน้างาน (หนึ่งโมดูล สองสายตา · 2026-09-03) — จอทัชหน้าเครื่อง: ช่างเห็นคิวของตน · หัวหน้าเห็นแผงสถานี */}
             <Button variant="outline" asChild>
               <Link href={FLOOR_HREF}>
                 <MonitorSmartphone /> โหมดหน้างาน
@@ -137,7 +138,7 @@ function ProductionDesk() {
             {canCreateProduction ? (
               // กรองไปกอง "รอเปิดใบผลิต" — แถวในกองนั้นกดแล้วเปิด dialog สร้างใบ (ทางเดิม ?create=)
               <Button onClick={() => list.replaceListState({ view: null, station: STATION_QUEUE, page: null })}>
-                <Plus /> เลือกงานเปิดใบผลิต{awaiting > 0 ? ` (${awaiting.toLocaleString("th-TH")})` : ""}
+                <Plus /> เปิดใบผลิต{awaiting > 0 ? ` (${awaiting.toLocaleString("th-TH")})` : ""}
               </Button>
             ) : null}
           </>
@@ -145,8 +146,12 @@ function ProductionDesk() {
         loading={isLoading || meQuery.isLoading}
         skeleton={
           <>
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+              {Array.from({ length: 4 }, (_, index) => (
+              <Skeleton key={index} className="h-16 rounded-2xl" />
+              ))}
+            </div>
             <Skeleton className="h-11 rounded-lg" />
-            <Skeleton className="h-11 max-w-2xl rounded-lg" />
             <ListPageSkeleton />
           </>
         }
@@ -158,11 +163,6 @@ function ProductionDesk() {
               : null
         }
       >
-        <nav aria-label="งานเฉพาะทางผลิต" className="flex flex-wrap gap-2">
-          <Button asChild variant="outline" size="sm"><Link href="/production/print-runs">รอบพิมพ์ DTF</Link></Button>
-          <Button asChild variant="outline" size="sm"><Link href="/production/films">คลังฟิล์ม</Link></Button>
-          <Button asChild variant="outline" size="sm"><Link href="/production/outsource">งานร้านนอก</Link></Button>
-        </nav>
         {hasStaleData ? (
           <Alert
             variant="warning"
@@ -185,7 +185,12 @@ function ProductionDesk() {
           </Alert>
         ) : null}
 
-        <div className="space-y-3">
+        <div className="space-y-3 sm:space-y-5">
+          <DeskTiles
+            summary={summary}
+            lens={lens}
+            onSelectLens={(value) => list.replaceListState({ view: value === "all" ? null : value, page: null })}
+          />
           <DeskToolbar
             searchDefault={list.search}
             searchInputRef={list.searchInputRef}
@@ -204,11 +209,6 @@ function ProductionDesk() {
                 className="hidden text-xs sm:inline-grid"
               />
             }
-          />
-          <DeskTiles
-            summary={summary}
-            lens={lens}
-            onSelectLens={(value) => list.replaceListState({ view: value === "all" ? null : value, page: null })}
           />
           <div className="flex min-h-9 flex-wrap items-center justify-between gap-2">
             <p className="text-sm text-secondary" aria-live="polite" aria-atomic="true">

@@ -5,6 +5,7 @@ import { trpc } from "@/lib/trpc";
 import { permAllows } from "@/lib/permissions";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,10 +16,8 @@ import { Plus, Trash2, Pencil, X, Check, Settings } from "lucide-react";
 import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { SegmentedControl } from "@/components/ui/segmented";
-import { ADDON_TYPES, PRINT_TYPES, PRICING_TYPE_LABELS } from "@/types/order-form";
+import { ADDON_TYPES, PRICING_TYPE_LABELS } from "@/types/order-form";
 import { PageShell } from "@/components/page-shell";
-import { CatalogTools, CatalogFeedback } from "@/components/settings/catalog-tools";
-import { useSettingsDraftGuard } from "@/components/settings/use-settings-draft-guard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DataTable } from "@/components/ui/data-table";
@@ -30,7 +29,7 @@ import { DataTable } from "@/components/ui/data-table";
 type TabKey = "ADDON" | "PRINT" | "FEE";
 
 const tabs: { key: TabKey; label: string }[] = [
-  { key: "ADDON", label: "งานเสริม" },
+  { key: "ADDON", label: "Add-ons" },
   { key: "PRINT", label: "การสกรีน" },
   { key: "FEE", label: "ค่าบริการ" },
 ];
@@ -68,7 +67,6 @@ const emptyForm: NewItemForm = {
 // ============================================================
 
 export default function ServicesPage() {
-  const [search, setSearch] = useState("");
   const formId = useId();
   const [activeTab, setActiveTab] = useState<TabKey>("ADDON");
   const [showAddForm, setShowAddForm] = useState(false);
@@ -146,9 +144,7 @@ export default function ServicesPage() {
     toggleActive.mutate({ id, isActive: !isActive });
   };
 
-  const startEdit = async (item: { id: string; name: string; defaultPrice: number; pricingType: string }) => {
-    if (!(await mayDiscard())) return;
-    updateItem.reset();
+  const startEdit = (item: { id: string; name: string; defaultPrice: number; pricingType: string }) => {
     setEditingItem({
       id: item.id,
       name: item.name,
@@ -161,16 +157,10 @@ export default function ServicesPage() {
   // RENDER
   // ============================================================
 
-  const original = items?.find((item) => item.id === editingItem?.id);
-  const dirty = (showAddForm && JSON.stringify(formData) !== JSON.stringify(emptyForm)) || !!(editingItem && original && (editingItem.name !== original.name || editingItem.defaultPrice !== original.defaultPrice || editingItem.pricingType !== original.pricingType));
-  const mayDiscard = useSettingsDraftGuard(dirty, createItem.isPending || updateItem.isPending);
-  const visibleItems = (items ?? []).filter((item) => [item.name].filter(Boolean).join(" ").toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()));
-
   return (
     <PageShell
       back={{ href: "/settings", label: "ย้อนกลับ" }}
-      title="บริการและราคาเริ่มต้น"
-      description="ตั้งรายการให้ฝ่ายขายเลือกใช้ในออเดอร์ การเปลี่ยนราคาไม่แก้ยอดในออเดอร์เดิม"
+      title="จัดการบริการ"
       loading={meQuery.isLoading}
       error={
         meQuery.isError
@@ -193,8 +183,7 @@ export default function ServicesPage() {
       {/* Tabs */}
       <SegmentedControl
         value={activeTab}
-        onChange={async (value) => {
-          if (value === activeTab || !(await mayDiscard())) return;
+        onChange={(value) => {
           setActiveTab(value);
           setShowAddForm(false);
           setEditingItem(null);
@@ -204,7 +193,7 @@ export default function ServicesPage() {
 
       {/* Content */}
       <Card>
-        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-base">
             <ToneMark icon={Settings} tone="system" />
             {tabs.find((t) => t.key === activeTab)?.label}
@@ -212,9 +201,7 @@ export default function ServicesPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={async () => {
-              if (!(await mayDiscard())) return;
-              createItem.reset();
+            onClick={() => {
               setShowAddForm(!showAddForm);
               setFormData({ ...emptyForm });
             }}
@@ -224,14 +211,12 @@ export default function ServicesPage() {
           </Button>
         </CardHeader>
         <CardContent>
-          <CatalogTools tableScrollHint loading={isLoading} search={search} onSearch={setSearch} count={visibleItems.length} total={items?.length ?? 0} label="บริการ" />
           {/* Add form */}
           {showAddForm && (
             <form
               onSubmit={handleCreate}
-              className="mb-5 space-y-4 border-b border-divider pb-5"
+              className="card-surface mb-4 space-y-3 rounded-2xl p-4"
             >
-              <fieldset disabled={createItem.isPending} className="contents">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
                 <div>
                   <label htmlFor={`${formId}-type`} className="mb-1 block text-xs font-medium text-muted">
@@ -335,13 +320,9 @@ export default function ServicesPage() {
                   </Button>
                 </div>
               </div>
-              <CatalogFeedback pending={createItem.isPending} error={createItem.error?.message} />
-
-              </fieldset>
             </form>
           )}
 
-          {search && visibleItems.length === 0 && !isLoading ? <p role="status" className="py-8 text-center text-sm text-secondary">ไม่พบบริการที่ตรงคำค้น</p> : null}
           {/* Table */}
           {isLoading ? (
             <div className="space-y-3">
@@ -356,7 +337,7 @@ export default function ServicesPage() {
               <DataTable.Head>
                 <tr>
                   <DataTable.Th>ชื่อ</DataTable.Th>
-                  {activeTab !== "FEE" && <DataTable.Th>ประเภท</DataTable.Th>}
+                  <DataTable.Th>ประเภท</DataTable.Th>
                   <DataTable.Th align="right">ราคา</DataTable.Th>
                   <DataTable.Th align="center">คิดราคา</DataTable.Th>
                   <DataTable.Th align="center">สถานะ</DataTable.Th>
@@ -364,7 +345,7 @@ export default function ServicesPage() {
                 </tr>
               </DataTable.Head>
               <DataTable.Body>
-                  {visibleItems.map((item) => {
+                  {items.map((item) => {
                     const isEditing = editingItem?.id === item.id;
                     const ptConfig = pricingTypeConfig[item.pricingType] ?? {
                       label: item.pricingType,
@@ -374,7 +355,7 @@ export default function ServicesPage() {
                     return (
                       <DataTable.Row
                         key={item.id}
-                        className={isEditing ? "bg-surface-muted" : undefined}
+                        className={!item.isActive ? "opacity-50" : undefined}
                       >
                         <DataTable.Td>
                           {isEditing ? (
@@ -394,11 +375,10 @@ export default function ServicesPage() {
                               {item.name}
                             </span>
                           )}
-                          <CatalogFeedback pending={(updateItem.isPending && updateItem.variables?.id === item.id) || (deleteItem.isPending && deleteItem.variables?.id === item.id) || (toggleActive.isPending && toggleActive.variables?.id === item.id)} error={(updateItem.variables?.id === item.id ? updateItem.error?.message : null) || (deleteItem.variables?.id === item.id ? deleteItem.error?.message : null) || (toggleActive.variables?.id === item.id ? toggleActive.error?.message : null)} />
                         </DataTable.Td>
-                        {activeTab !== "FEE" && <DataTable.Td className="text-muted">
-                          {(activeTab === "PRINT" ? PRINT_TYPES : ADDON_TYPES)[item.type] ?? item.type}
-                        </DataTable.Td>}
+                        <DataTable.Td className="text-muted">
+                          {ADDON_TYPES[item.type] ?? item.type}
+                        </DataTable.Td>
                         <DataTable.Td align="right">
                           {isEditing ? (
                             <Input
@@ -448,7 +428,6 @@ export default function ServicesPage() {
                           )}
                         </DataTable.Td>
                         <DataTable.Td align="center">
-                          <p className="mb-2 whitespace-nowrap text-xs text-secondary">{item.isActive ? "ใช้งาน" : "ปิดใช้งาน"}</p>
                           <Switch
                             aria-label={`${item.isActive ? "ปิด" : "เปิด"}การใช้งาน ${item.name}`}
                             checked={item.isActive}
@@ -513,6 +492,15 @@ export default function ServicesPage() {
             </DataTable.Root>
           )}
 
+          {/* Error display */}
+          {(createItem.isError || updateItem.isError || deleteItem.isError || toggleActive.isError) && (
+            <Alert variant="error" className="mt-3">
+              {createItem.error?.message ||
+                updateItem.error?.message ||
+                deleteItem.error?.message ||
+                toggleActive.error?.message}
+            </Alert>
+          )}
         </CardContent>
       </Card>
     </PageShell>

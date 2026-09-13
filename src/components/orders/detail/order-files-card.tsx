@@ -9,7 +9,8 @@ import {
   layerForCategory,
   type AttachmentCategory,
 } from "@/lib/file-layers";
-import { Section } from "@/components/ui/section";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SectionTitle } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FileUpload } from "@/components/ui/file-upload";
@@ -32,7 +33,13 @@ import {
 import { Alert } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 
-// Attachment แบ่งไฟล์ลูกค้า/ไฟล์พิมพ์; แบบ DesignVersion อยู่ใน MockupPanel
+// ไฟล์ 3 ชั้นบนหน้าออเดอร์ (FLOW-REDESIGN ก้อน 4 — ดู src/lib/file-layers.ts)
+// ชั้น 1 = Attachment ทั่วไป (รวม REFERENCE_IMAGE เดิม) + ปุ่มแอดมินแนบแทนลูกค้า
+// ชั้น 3 = Attachment category PRINT_FILE — ภายในเท่านั้น
+//
+// ชั้น 2 (ม็อกอัพ = DesignVersion) **ไม่อยู่ในไฟล์นี้** — MockupPanel กางเต็มตัวอยู่เหนือ
+// การ์ดนี้ในแท็บเดียวกัน (2026-08-22) · เดิมไฟล์นี้มีแถบสรุปชั้น 2 ที่ยิง design.listByOrder
+// ซ้ำกับการ์ดงานออกแบบอีกแท็บ แล้วมีปุ่มพาข้ามแท็บไปมา — ม็อกอัพต้องมีบ้านเดียว
 
 interface OrderFilesCardProps {
   orderId: string;
@@ -40,7 +47,6 @@ interface OrderFilesCardProps {
   attachments: any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
   userId?: string;
   userRole?: string;
-  canManageLink?: boolean;
 }
 
 const POSITION_LABELS: Record<string, string> = {
@@ -92,14 +98,13 @@ function FileThumb({
       {isImg ? (
         <button
           type="button"
-          aria-label={`ดูภาพ ${att.fileName}`}
           onClick={() => onPreview?.(att)}
           className="group block w-full cursor-zoom-in text-left"
         >
           {thumbInner}
         </button>
       ) : (
-        <a href={att.fileUrl} target="_blank" rel="noopener noreferrer" aria-label={`เปิดไฟล์ ${att.fileName} (แท็บใหม่)`} className="group block">
+        <a href={att.fileUrl} target="_blank" rel="noopener noreferrer" className="group block">
           {thumbInner}
         </a>
       )}
@@ -108,7 +113,7 @@ function FileThumb({
   );
 }
 
-export function OrderFilesCard({ orderId, attachments, userId, userRole, canManageLink = false }: OrderFilesCardProps) {
+export function OrderFilesCard({ orderId, attachments, userId, userRole }: OrderFilesCardProps) {
   const utils = trpc.useUtils();
   const confirm = useConfirm();
   const [uploadingLayer, setUploadingLayer] = React.useState<"RAW" | "PRINT" | null>(null);
@@ -118,6 +123,8 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, canMana
   const [preview, setPreview] = React.useState<{ fileUrl: string; fileName: string; uploadedById?: string | null } | null>(null);
 
   // ลิงก์อัปโหลดลูกค้า (ก้อน 4 ชิ้น 3) — เฉพาะคนถือความสัมพันธ์ลูกค้า (server gate ด้วย)
+  const canManageLink =
+    !userRole || ["OWNER", "MANAGER", "SALES"].includes(userRole);
   const uploadLink = trpc.customerUpload.getLink.useQuery(
     { orderId },
     { enabled: canManageLink }
@@ -218,8 +225,15 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, canMana
 
   return (
     <>
-    <Section title="ไฟล์อื่นของออเดอร์" icon={FolderOpen} tone="system" surface="plain">
-      <div className="space-y-5">
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <SectionTitle icon={FolderOpen} tone="system">
+            ไฟล์อื่นของออเดอร์
+          </SectionTitle>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-5">
         {/* ===== ชั้น 1 — ไฟล์ดิบลูกค้า ===== */}
         <section>
           <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -407,8 +421,8 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, canMana
             </div>
           )}
         </section>
-      </div>
-    </Section>
+      </CardContent>
+    </Card>
 
     {/* Lightbox — คลิกรูปดูในหน้า ไม่เด้งหน้าใหม่ (ก้อน 4) */}
     <Dialog open={!!preview} onOpenChange={(o) => !o && setPreview(null)}>

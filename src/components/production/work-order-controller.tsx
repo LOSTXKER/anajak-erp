@@ -9,7 +9,6 @@
  */
 
 import { useState, type ReactNode } from "react";
-import Link from "next/link";
 import { Truck } from "lucide-react";
 import { toast } from "sonner";
 
@@ -27,9 +26,8 @@ import { selectNowSteps, type NowStep } from "@/lib/production-step-actions";
 import { evaluateHeatPressGate, productionWorkflowSteps } from "@/lib/production-steps";
 import { canSendToQc, paperStepsToClose } from "@/lib/work-order-record-mode";
 import { cn } from "@/lib/utils";
-import { activeOutsource, stepLabel } from "./work-order-pieces";
+import { stepLabel } from "./work-order-pieces";
 import { outsourceQueueForStatus } from "@/lib/outsource-ui";
-import { operationsHref } from "./operations-navigation";
 
 export type WorkOrderButtonOptions = {
   /** จอทัช: ปุ่มสูง 64px ตัวหนังสือใหญ่ */
@@ -296,11 +294,7 @@ export function useWorkOrderController(id: string) {
     openOutsourceReturn: (stepId: string, outsourceOrderId: string) => setOutsourceReturn({ stepId, outsourceOrderId }),
     tickStandard: (stepId: string, item: string, checked: boolean) => tickStandardMutation.mutate({ stepId, item, checked }),
     tickPending: tickStandardMutation.isPending,
-    savePieceQty: async (stepId: string, rows: { variantId: string; done: number; waste: number }[]) => {
-      await pieceQty.mutateAsync({ stepId, rows });
-      // ให้ช่องวาง draft ได้เมื่ออ่านยอดหลังบันทึกกลับมาแล้ว จึงไม่กะพริบเป็นยอดก่อนบันทึก
-      await utils.production.getById.fetch({ id });
-    },
+    savePieceQty: (stepId: string, rows: { variantId: string; done: number; waste: number }[]) => pieceQty.mutate({ stepId, rows }),
     piecePending: pieceQty.isPending,
     handleReopen,
     reopenPending: reopen.isPending,
@@ -353,7 +347,6 @@ export type WorkOrderPrimaryButtonProps = {
 
 export function WorkOrderPrimaryButton({ step, now, options = {}, busy, canUpdateStep, canSuperviseStep, hasProductionPermission, canOwnOrSupervise, onStart, onComplete, onQuickPass, onManage, onGoodsReceipt, onOutsource }: WorkOrderPrimaryButtonProps) {
   const size = cn(options.touch && "h-16 text-lg");
-  const origin = options.touch ? { productionId: step.productionId, stepId: step.id } : undefined;
   if (step.status === "COMPLETED") {
     return (
       <Button variant="outline" className={size} disabled>
@@ -372,10 +365,6 @@ export function WorkOrderPrimaryButton({ step, now, options = {}, busy, canUpdat
       </Button>
     );
   }
-  if (activeOutsource(step)) {
-    const href = origin ? operationsHref("/production/outsource", origin) : `/production/outsource?production=${step.productionId}`;
-    return <Button asChild variant="outline" className={size}><Link href={href}>จัดการส่ง / รับกลับ / ตรวจรับ</Link></Button>;
-  }
   if (step.stepType === "GARMENT_RECEIVE" && canUpdateStep && canOwnOrSupervise(step)) {
     return (
       <Button className={size} onClick={() => onGoodsReceipt(step.id)} disabled={busy}>
@@ -386,10 +375,10 @@ export function WorkOrderPrimaryButton({ step, now, options = {}, busy, canUpdat
   if (step.stepType === "GARMENT_PICK") {
     return null; // การ์ดเบิกเสื้อ (GarmentPickCard) มีปุ่มเบิกของตัวเองใต้โซนนี้
   }
-  if (step.stepType === "DTF_PRINT") {
+  if (step.stepType === "DTF_PRINT" && canUpdateStep && step.printRunItems.length > 0) {
     return (
-      <Button variant="outline" className={size} asChild>
-        <Link href={operationsHref("/production/print-runs", origin, step.printRunItems[0]?.printRun.runNumber)}>{step.printRunItems.length ? `เปิดรอบ ${step.printRunItems[0]!.printRun.runNumber}` : "เปิดคิวรอบพิมพ์ DTF"}</Link>
+      <Button variant="outline" className={size} disabled>
+        อยู่ในรอบพิมพ์ {step.printRunItems[0]!.printRun.runNumber}
       </Button>
     );
   }

@@ -24,8 +24,6 @@ import { QueryError } from "@/components/ui/query-error";
 import { Section } from "@/components/ui/section";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageShell } from "@/components/page-shell";
-import { CatalogTools, CatalogFeedback } from "@/components/settings/catalog-tools";
-import { useSettingsDraftGuard } from "@/components/settings/use-settings-draft-guard";
 
 interface VendorFormState {
   name: string;
@@ -51,8 +49,6 @@ function capabilityList(value: string): string[] {
 }
 
 export default function VendorsSettingsPage() {
-  const [search, setSearch] = useState("");
-  const [initialForm, setInitialForm] = useState<VendorFormState>(EMPTY_FORM);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<VendorFormState>(EMPTY_FORM);
@@ -91,14 +87,10 @@ export default function VendorsSettingsPage() {
   });
 
   const busy = createVendor.isPending || updateVendor.isPending;
-  const mayDiscard = useSettingsDraftGuard(dialogOpen && JSON.stringify(form) !== JSON.stringify(initialForm), busy);
-  const visibleVendors = (vendorsQuery.data ?? []).filter((vendor) => [vendor.name, vendor.phone, ...vendor.capabilities].filter(Boolean).join(" ").toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()));
 
   function openCreate() {
     setEditingId(null);
     setForm(EMPTY_FORM);
-    setInitialForm(EMPTY_FORM);
-    createVendor.reset(); updateVendor.reset();
     setDialogOpen(true);
   }
 
@@ -109,8 +101,6 @@ export default function VendorsSettingsPage() {
     capabilities: string[];
   }) {
     setEditingId(vendor.id);
-    createVendor.reset(); updateVendor.reset();
-    setInitialForm({ name: vendor.name, phone: vendor.phone ?? "", capabilities: vendor.capabilities.join(", ") });
     setForm({
       name: vendor.name,
       phone: vendor.phone ?? "",
@@ -168,8 +158,7 @@ export default function VendorsSettingsPage() {
       }
     >
       <Section
-        title="ทะเบียนร้านที่ใช้งาน"
-        description="เลือกดูตามชื่อร้านหรือประเภทงาน แล้วแก้ข้อมูลติดต่อก่อนนำไปใช้ในใบส่งร้าน"
+        title={`ร้านที่ใช้งานอยู่ (${vendorsQuery.data?.length ?? 0})`}
         action={
           <Button size="sm" onClick={openCreate} disabled={!canManage}>
             <Plus />
@@ -177,8 +166,6 @@ export default function VendorsSettingsPage() {
           </Button>
         }
       >
-        <CatalogTools loading={meQuery.isLoading || vendorsQuery.isLoading} search={search} onSearch={setSearch} count={visibleVendors.length} total={vendorsQuery.data?.length ?? 0} label="ร้านหรือประเภทงาน" />
-        {search && visibleVendors.length === 0 ? <p role="status" className="py-6 text-sm text-secondary">ไม่พบร้านที่ตรงคำค้น</p> : null}
         {meQuery.isLoading || vendorsQuery.isLoading ? (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {[...Array(4)].map((_, index) => (
@@ -203,11 +190,11 @@ export default function VendorsSettingsPage() {
             }
           />
         ) : (
-          <ul className="divide-y divide-divider">
-            {visibleVendors.map((vendor) => (
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {vendorsQuery.data.map((vendor) => (
               <li
                 key={vendor.id}
-                className="py-4"
+                className="rounded-lg border border-border p-4"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
@@ -255,8 +242,8 @@ export default function VendorsSettingsPage() {
 
       <Dialog
         open={dialogOpen}
-        onOpenChange={async (open) => {
-          if (!open && await mayDiscard()) closeDialog();
+        onOpenChange={(open) => {
+          if (!open) closeDialog();
         }}
       >
         <DialogContent className="sm:max-w-md">
@@ -267,7 +254,6 @@ export default function VendorsSettingsPage() {
             </DialogDescription>
           </DialogHeader>
           <form className="space-y-4" onSubmit={handleSubmit}>
-            <fieldset disabled={busy} className="space-y-4">
             <Field label="ชื่อร้าน" required>
               <Input
                 value={form.name}
@@ -305,8 +291,6 @@ export default function VendorsSettingsPage() {
                 placeholder="สกรีน, ปัก, เย็บ"
               />
             </Field>
-            </fieldset>
-            <CatalogFeedback pending={busy} error={createVendor.error?.message || updateVendor.error?.message} />
             <DialogSubmitFooter
               pending={busy}
               disabled={!form.name.trim()}

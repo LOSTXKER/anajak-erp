@@ -3,7 +3,9 @@ import { Section, SectionTitle } from "@/components/ui/section";
 import { formatCurrency } from "@/lib/utils";
 import { OrderBillingSection } from "@/components/orders/order-billing-section";
 
-// แท็บนี้ render เฉพาะผู้มีสิทธิ์ดูเงิน; ต้นทุนที่ส่งมาผ่านการกรองสิทธิ์จาก server
+// UX6: แท็บ "เงิน/บิล" — ยกการ์ดสรุปราคา+กำไร (เดิมอยู่ sidebar) มาไว้หัวแท็บ + การ์ดบิลเต็มคอลัมน์
+// เดิมการ์ดบิล 1,336 บรรทัดถูกยัดใน sidebar 1/3 → บนมือถือตกไปท้ายสุด · ย้าย layout ล้วน ไม่แตะ logic บิล
+// หน้านี้ render เฉพาะ role ที่เห็นเงิน (gate canSeeMoney ที่หน้า) — ไม่มี ฿ หลุดถึง role อื่น
 
 interface OrderMoneyTabProps {
   order: {
@@ -25,7 +27,7 @@ interface OrderMoneyTabProps {
 function Row({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="flex items-start justify-between gap-3 text-sm">
-      <span className="text-sm text-muted">{label}</span>
+      <span className="text-xs text-muted">{label}</span>
       <div className="text-right text-sm font-medium text-strong">{children}</div>
     </div>
   );
@@ -45,12 +47,10 @@ export function OrderMoneyTab({
     totalAmount > 0 || subtotalItems > 0 || subtotalFees > 0 || hasCostEntries;
 
   return (
-    <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_18rem]">
+    <div className="space-y-5">
       {/* สรุปราคา + กำไร — ยอดเดียวจุดเดียว (เดิมซ้ำ sidebar↔หัวการ์ดบิล) */}
       {showSummary && (
         <Section
-          surface="plain"
-          className="xl:col-start-2 xl:row-start-1"
           title={
             <SectionTitle icon={Calculator} tone="finance">
               สรุปราคา
@@ -118,14 +118,12 @@ export function OrderMoneyTab({
       )}
 
       {/* การ์ดบิล — เต็มคอลัมน์ (เดิมยัดใน sidebar 1/3) · logic ภายในไม่แตะ */}
-      <div className="min-w-0 xl:col-start-1 xl:row-start-1">
       <OrderBillingSection
         orderId={order.id}
         customerId={order.customerId}
         totalAmount={totalAmount}
         internalStatus={order.internalStatus}
       />
-      </div>
     </div>
   );
 }

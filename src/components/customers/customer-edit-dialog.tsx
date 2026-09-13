@@ -1,8 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
-import { useConfirm } from "@/components/ui/confirm-dialog";
 import { trpc, type RouterOutput } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import {
@@ -60,15 +58,6 @@ export function CustomerEditDialog({
     onError: () => {},
   });
 
-  const confirm = useConfirm();
-  const dirty = JSON.stringify(form) !== JSON.stringify(customerEditFormFromRecord(customer));
-  useUnsavedChanges(dirty || update.isPending, update.isPending ? { title: "กำลังบันทึก ออกจากหน้านี้หรือไม่?", description: "การออกจากหน้านี้ไม่ยกเลิกคำสั่งที่ส่งแล้ว กลับมาตรวจผลก่อนส่งซ้ำ", confirmText: "ออกจากหน้านี้" } : undefined);
-  const closeForm = async () => {
-    if (update.isPending) return;
-    if (dirty && !(await confirm({ title: "ทิ้งข้อมูลที่ยังไม่บันทึก?", confirmText: "ทิ้งการแก้ไข", cancelText: "กลับไปแก้ต่อ", destructive: true }))) return;
-    onClose();
-  };
-
   const validationErrors = validateCustomerEditForm(form);
   const isFormValid = Object.keys(validationErrors).length === 0;
   const set = (patch: Partial<CustomerEditForm>) => setForm((f) => ({ ...f, ...patch }));
@@ -80,7 +69,7 @@ export function CustomerEditDialog({
   }
 
   return (
-    <Dialog open onOpenChange={(open) => { if (!open) void closeForm(); }}>
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="grid-rows-[auto_minmax(0,1fr)] gap-0 overflow-clip p-0 pr-0 sm:max-w-2xl sm:p-0 sm:pr-0">
         {/* ปุ่ม X กินพื้นที่เฉพาะหัว — body/footer จึงกลับมามีขอบซ้ายขวาเท่ากัน */}
         <DialogHeader className="px-5 pb-4 pr-14 pt-5 sm:px-6 sm:pr-12 sm:pt-6">
@@ -95,7 +84,7 @@ export function CustomerEditDialog({
             data-dialog-body=""
             className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
           >
-            <fieldset disabled={update.isPending} data-dialog-fields="" className="space-y-5 px-5 sm:px-6">
+            <div data-dialog-fields="" className="space-y-4 px-5 sm:px-6">
               <CustomerFormFields
                 form={form}
                 set={set}
@@ -109,7 +98,7 @@ export function CustomerEditDialog({
                   บันทึกไม่สำเร็จ: {update.error.message}
                 </Alert>
               )}
-            </fieldset>
+            </div>
           </div>
 
           <DialogSubmitFooter
@@ -118,7 +107,7 @@ export function CustomerEditDialog({
             disabled={!isFormValid}
             submitLabel="บันทึก"
             submitIcon={<Save />}
-            onCancel={() => void closeForm()}
+            onCancel={onClose}
           />
         </form>
       </DialogContent>

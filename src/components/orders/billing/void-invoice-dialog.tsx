@@ -15,7 +15,6 @@ import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
 import { Field } from "@/components/ui/field";
 import { Textarea } from "@/components/ui/textarea";
 import { Ban } from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
 
 // dialog ยกเลิกบิล — แตกจาก order-billing-section (เดิม 1,212 บรรทัดถือ 4 dialog
 // + reset มือ) · conditional mount ตามกติกาใน ui/dialog.tsx: ปิดแล้ว React ล้าง
@@ -23,13 +22,9 @@ import { formatCurrency } from "@/lib/utils";
 // ใบกำกับภาษี: ยกเลิก-ออกใหม่เท่านั้น ห้ามลบ — เหตุผลบังคับกรอก (ตรง server)
 export function VoidInvoiceDialog({
   invoiceId,
-  invoiceNumber,
-  totalAmount,
   onClose,
 }: {
   invoiceId: string;
-  invoiceNumber: string;
-  totalAmount: number;
   onClose: () => void;
 }) {
   const [reason, setReason] = useState("");
@@ -49,7 +44,7 @@ export function VoidInvoiceDialog({
         <DialogHeader>
           <DialogTitle>ยกเลิกบิล</DialogTitle>
           <DialogDescription>
-            {invoiceNumber} · ยอด {formatCurrency(totalAmount)} · ยกเลิกแล้วใช้เอกสารนี้ไม่ได้ ต้องออกใบใหม่
+            การยกเลิกบิลจะทำให้ไม่สามารถใช้งานบิลนี้ได้อีก
           </DialogDescription>
         </DialogHeader>
         <Field label="เหตุผลที่ยกเลิก">

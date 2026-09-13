@@ -14,17 +14,9 @@ import {
 } from "@/lib/address-schema";
 import { creditExposureForCustomer } from "@/server/services/receivables";
 import { hasPermission } from "@/lib/permissions";
-import { withoutOrderLinkTokens } from "@/server/services/order-link-response";
 
 // PERM3: default = OWNER/MANAGER/ACCOUNTANT/SALES เดิมเป๊ะ + override รายคน
 const customerEditors = requirePermission("manage_customers");
-
-function customerMoneyResponse<T extends { totalSpent: number; creditLimit: number | null }>(
-  customer: T,
-  canSeeMoney: boolean,
-): Omit<T, "totalSpent" | "creditLimit"> & { totalSpent: number | null; creditLimit: number | null } {
-  return canSeeMoney ? customer : { ...customer, totalSpent: null, creditLimit: null };
-}
 
 /** ลิงก์ห้องแชทที่พนักงานพิมพ์เอง — ต้องเป็นเว็บลิงก์จริงเท่านั้น
  *  ปล่อยให้พิมพ์อะไรก็ได้แล้วเอาไปใส่ href = เปิดช่องยิงสคริปต์ใส่คนที่กด (javascript:)
@@ -45,7 +37,6 @@ export const customerRouter = router({
   // (⑦ เบสเคาะ 2026-07-06: เดิมเปิดทุก role — ช่างเห็นวงเงิน/ภาระหนี้ลูกค้าได้)
   creditStatus: protectedProcedure
     .use(customerEditors)
-    .use(requirePermission("see_order_money"))
     .input(z.object({ customerId: z.string() }))
     .query(async ({ ctx, input }) => {
       const [customer, exposure, openOrders] = await Promise.all([
@@ -113,7 +104,7 @@ export const customerRouter = router({
       const seesMoney = hasPermission(ctx.userRole, ctx.permissionOverrides, "see_order_money");
       const sanitized = seesMoney
         ? customers
-        : customers.map((c) => customerMoneyResponse(c, false));
+        : customers.map((c) => ({ ...c, totalSpent: null, creditLimit: null }));
 
       return { customers: sanitized, total, pages: Math.ceil(total / input.limit) };
     }),
@@ -141,14 +132,16 @@ export const customerRouter = router({
       const costGated = {
         ...customer,
         orders: customer.orders.map((o) => ({
-          ...withoutOrderLinkTokens(o),
+          ...o,
           totalCost: seesCost ? o.totalCost : 0,
           profitMargin: seesCost ? o.profitMargin : null,
         })),
       };
       if (hasPermission(ctx.userRole, ctx.permissionOverrides, "see_order_money")) return costGated;
       return {
-        ...customerMoneyResponse(costGated, false),
+        ...costGated,
+        totalSpent: null,
+        creditLimit: null,
         orders: costGated.orders.map((o) => ({
           ...o,
           subtotalItems: null,
@@ -220,7 +213,7 @@ export const customerRouter = router({
         newValue: JSON.parse(JSON.stringify(input)),
       });
 
-      return customerMoneyResponse(customer, hasPermission(ctx.userRole, ctx.permissionOverrides, "see_order_money"));
+      return customer;
     }),
 
   update: protectedProcedure
@@ -292,7 +285,7 @@ export const customerRouter = router({
         newValue: JSON.parse(JSON.stringify(data)),
       });
 
-      return customerMoneyResponse(customer, hasPermission(ctx.userRole, ctx.permissionOverrides, "see_order_money"));
+      return customer;
     }),
 
   addCommunicationLog: protectedProcedure

@@ -1,6 +1,4 @@
 import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
-import { Alert } from "@/components/ui/alert";
 
 
 /* โครงหน้า public (ลิงก์ลูกค้า/ร้านนอก) — แหล่งเดียวของ กล่องครอบ + header + footer
@@ -11,7 +9,6 @@ import { Alert } from "@/components/ui/alert";
 export function PublicPageShell({
   icon,
   title = "Anajak Print",
-  heading,
   subtitle,
   footer,
   hideFooter = false,
@@ -24,8 +21,6 @@ export function PublicPageShell({
   icon: React.ReactNode;
   /** ชื่อบนหัว — หน้า status ส่ง brandName (blind ship) · หน้า job ส่ง "ใบงานผลิต" */
   title?: string;
-  /** ภารกิจเป็นหัวข้อหลัก โดยยังคงชื่อกิจการที่เจ้าของลิงก์กำหนด */
-  heading?: string;
   subtitle: React.ReactNode;
   /** แทน footer มาตรฐาน "Powered by ..." ด้วยข้อความอื่น */
   footer?: React.ReactNode;
@@ -53,8 +48,7 @@ export function PublicPageShell({
               {icon}
             </span>
             <div className="min-w-0">
-              {heading && <p className="mb-1 text-sm font-medium text-secondary">{title}</p>}
-              <h1 className="break-words text-2xl font-semibold text-strong [overflow-wrap:anywhere]">{heading ?? title}</h1>
+              <h1 className="break-words text-2xl font-semibold text-strong [overflow-wrap:anywhere]">{title}</h1>
               <div className="mt-1 break-words text-sm leading-relaxed text-muted [overflow-wrap:anywhere]">{subtitle}</div>
             </div>
           </div>
@@ -67,17 +61,6 @@ export function PublicPageShell({
         )}
       </div>
     </main>
-  );
-}
-
-export function PublicRefreshNotice({ onRetry, refreshing = false }: { onRetry: () => void; refreshing?: boolean }) {
-  return (
-    <Alert variant="warning">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="min-w-0 flex-1 text-sm">อัปเดตข้อมูลไม่สำเร็จ กำลังแสดงข้อมูลที่โหลดไว้ ลองโหลดอีกครั้งเพื่อใช้งานต่อ</p>
-        <Button variant="outline" size="sm" onClick={onRetry} disabled={refreshing}>{refreshing ? "กำลังลองใหม่…" : "ลองโหลดอีกครั้ง"}</Button>
-      </div>
-    </Alert>
   );
 }
 

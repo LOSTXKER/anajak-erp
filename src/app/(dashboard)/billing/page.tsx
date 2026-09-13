@@ -18,7 +18,6 @@ import { ResponsiveList } from "@/components/ui/responsive-list";
 import { Select } from "@/components/ui/select";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { PageShell } from "@/components/page-shell";
-import { BillingNavigation } from "@/components/billing/billing-navigation";
 import { permAllows } from "@/lib/permissions";
 import { INVOICE_TYPE_LABELS } from "@/lib/invoice-labels";
 import { PAYMENT_STATUS_LABELS, PAYMENT_STATUS_VARIANTS } from "@/lib/status-config";
@@ -34,7 +33,7 @@ import {
 import { FOCUS_BUTTON } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
 
-// ป้ายสถานะการชำระใช้ชุดกลาง
+// ภาษาสีสถานะการชำระใช้ชุดกลางที่เดียว (UX4.2) — ห้ามประกาศ local ซ้ำ
 // ป้าย+สีจะได้ตรงกับแท็บเงินในออเดอร์ที่ทีมเปิดคู่กันทุกวัน
 
 // ตัวเลือกกรองชนิดใบ — เรียงตาม flow เงิน (QUOTATION ไม่ออกเป็น invoice แล้ว ไม่ใส่ตัวกรอง
@@ -81,7 +80,7 @@ export default function BillingPage() {
 }
 
 function BillingPageContent() {
-  const { search, page, searchParams, replaceListState, onSearchChange, searchInputRef, clearSearch } =
+  const { search, page, searchParams, replaceListState, onSearchChange, searchInputRef } =
     useListPageState();
   const rawStatus = searchParams.get("status");
   const statusFilter = rawStatus && rawStatus in PAYMENT_STATUS_LABELS ? rawStatus : ALL;
@@ -89,8 +88,6 @@ function BillingPageContent() {
   const typeFilter = rawType && TYPE_FILTER_OPTIONS.some((type) => type === rawType)
     ? rawType
     : ALL;
-  const hasFilters = Boolean(search || statusFilter !== ALL || typeFilter !== ALL);
-  const clearFilters = () => clearSearch({ status: null, type: null });
 
   const { data: me } = trpc.user.me.useQuery();
   // หน้าการเงินทั้งหน้าเป็นของฝั่งบริหาร-บัญชี (ตรงกับ requireRole ฝั่ง server)
@@ -125,7 +122,6 @@ function BillingPageContent() {
           : undefined
       }
     >
-      <BillingNavigation active="/billing" />
       {/* stats พังต้องบอก — เลขเงินโชว์ ฿0 เงียบๆ อ่านเป็น "ไม่มียอดค้าง" ได้ (ขัด DESIGN.md) */}
       {stats.isError ? (
         <QueryError
@@ -134,6 +130,7 @@ function BillingPageContent() {
         />
       ) : (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {/* สองใบแรกคือเลขเสี่ยง (UX4.3) — เด่น + กดไปดูรายการได้ · ศูนย์จริงลดเป็นสีจาง */}
           <StatCard loading={stats.isLoading} moduleTone="finance"
             title="ค้างชำระ"
             value={formatCurrency(stats.data?.totalUnpaid ?? 0)}
@@ -200,7 +197,6 @@ function BillingPageContent() {
                 </option>
               ))}
             </Select>
-          {hasFilters && <Button variant="ghost" size="sm" onClick={clearFilters}>ล้างตัวกรอง</Button>}
         </ToolbarGroup>
       </Toolbar>
 
@@ -224,16 +220,15 @@ function BillingPageContent() {
                 ? "ลองปรับคำค้นหรือตัวกรอง"
                 : "สร้างบิลได้จากหน้าออเดอร์ — แท็บ เงิน/บิล"
             }
-            action={hasFilters ? <Button variant="outline" size="sm" onClick={clearFilters}>ล้างตัวกรองและคำค้น</Button> : undefined}
           />
         }
         renderMobile={(invoices) => (
-          <div role="list" aria-label="รายการบิล">
+          <div role="list" aria-label="รายการบิล" className="space-y-3">
             {invoices.map((inv) => {
               const status = paymentStatusProps(inv.paymentStatus);
               const moneyHref = `/orders/${inv.orderId}?tab=money`;
               return (
-                <article key={inv.id} role="listitem" className="border-b border-divider py-4 last:border-b-0">
+                <article key={inv.id} role="listitem" className="card-surface rounded-2xl p-4">
                   <Link
                     href={moneyHref}
                     className={cn("block rounded-lg", FOCUS_BUTTON)}

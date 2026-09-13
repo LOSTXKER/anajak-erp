@@ -6,7 +6,6 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { HelpTip } from "@/components/ui/help-tip";
 import { Fact, FactList } from "@/components/ui/fact";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
@@ -20,9 +19,6 @@ import { CustomerArtworksCard } from "@/components/customers/customer-artworks-c
 import { CustomerEditDialog } from "@/components/customers/customer-edit-dialog";
 import { CustomerCommLogDialog } from "@/components/customers/customer-comm-log-dialog";
 import { commChannelLabel } from "@/lib/comm-channels";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { ChatLink } from "@/components/customers/chat-link";
-import { FOCUS_BUTTON } from "@/components/ui/tokens";
 import { PageHeader } from "@/components/page-header";
 import { Phone, Mail, MessageCircle, MapPin, ShoppingCart, DollarSign, Building2, User, CreditCard, FileText, Pencil, MessageSquarePlus, Plus } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -31,6 +27,8 @@ import { RecordNotFound } from "@/components/ui/record-not-found";
 import { cn } from "@/lib/utils";
 import { VISUAL_TONE_CLASSES, type VisualTone } from "@/lib/visual-tone";
 
+/** ไอคอนนำหน้าแถวในการ์ด "สรุป" — ไอคอนสีตามหมวด ไม่มีพื้นกล่อง
+ *  (พื้นกล่องถูกถอดออกทั้งเว็บ 2026-08-31 เบสเคาะแบบ B จากหน้าลอง /proto/quiet) */
 function SummaryIcon({ icon: Icon, tone }: { icon: LucideIcon; tone: VisualTone }) {
   return (
     <Icon
@@ -52,21 +50,21 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
   const { data: me } = trpc.user.me.useQuery();
   const canEdit = !!me && permAllows(me.permissions, "manage_customers");
   const canCreateOrder = canCreateOrderWithPricing(me?.permissions);
-  // Policy ⑦: ฝ่ายผลิต/กราฟิกไม่เห็นเงินฝั่งขาย — ซ่อนยอดชำระสะสม/ยอดออเดอร์ (server ส่ง null มาอยู่แล้ว)
+  // Policy ⑦: ฝ่ายผลิต/กราฟิกไม่เห็นเงินฝั่งขาย — ซ่อนยอดสั่งรวม/ยอดออเดอร์ (server ส่ง null มาอยู่แล้ว)
   const canSeeMoney = permAllows(me?.permissions, "see_order_money");
   const { data: customer, isLoading, isError, refetch } = trpc.customer.getById.useQuery({ id });
   // ภาระหนี้ + ยอดค้างชำระ — เปิดเสมอเมื่อเห็นเงิน (ลูกค้าไม่ตั้งวงเงินก็ต้องเห็นยอดค้าง
   // ในการ์ดสรุป — ธุรกิจเครดิตเทอมถามก่อนว่า "ค้างเท่าไร") · non-money role ยิงไปก็โดน FORBIDDEN
   const creditQuery = trpc.customer.creditStatus.useQuery(
     { customerId: id },
-    { enabled: canSeeMoney && canEdit }
+    { enabled: canSeeMoney }
   );
   const credit = creditQuery.data;
   const creditLoading =
-    canSeeMoney && canEdit &&
+    canSeeMoney &&
     !credit &&
     (creditQuery.isLoading || creditQuery.isFetching);
-  const creditError = canSeeMoney && canEdit && !credit && creditQuery.isError;
+  const creditError = canSeeMoney && !credit && creditQuery.isError;
 
   if (isLoading) {
     return (
@@ -95,15 +93,13 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
         ]}
         title={customer.name}
         meta={customer.company || undefined}
-        titleBadge={
-          customer.customerType === "CORPORATE" ? (
+        action={
+          <>
+            {customer.customerType === "CORPORATE" ? (
               <Badge variant="default" className="gap-1.5"><Building2 className="h-3 w-3" /> นิติบุคคล</Badge>
             ) : (
               <Badge variant="secondary" className="gap-1.5"><User className="h-3 w-3" /> บุคคลธรรมดา</Badge>
-            )
-        }
-        action={
-          <>
+            )}
             {canEdit && (
               <Button
                 variant="outline"
@@ -138,12 +134,12 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
             <CardHeader><CardTitle className="text-base">ข้อมูลติดต่อ</CardTitle></CardHeader>
             <CardContent className="space-y-3 text-sm">
               {customer.phone && (
-                <a href={`tel:${customer.phone}`} className={cn("flex min-h-11 items-center gap-2 rounded-lg break-all text-secondary hover:text-strong", FOCUS_BUTTON)}>
+                <a href={`tel:${customer.phone}`} className="flex min-h-11 items-center gap-2 rounded-lg text-secondary hover:text-strong dark:hover:text-strong">
                   <Phone className="h-4 w-4" /> {customer.phone}
                 </a>
               )}
               {customer.email && (
-                <a href={`mailto:${customer.email}`} className={cn("flex min-h-11 items-center gap-2 rounded-lg break-all text-secondary hover:text-strong", FOCUS_BUTTON)}>
+                <a href={`mailto:${customer.email}`} className="flex min-h-11 items-center gap-2 rounded-lg text-secondary hover:text-strong dark:hover:text-strong">
                   <Mail className="h-4 w-4" /> {customer.email}
                 </a>
               )}
@@ -152,12 +148,11 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                   href={`https://line.me/R/ti/p/~${encodeURIComponent(customer.lineId)}`}
                   target="_blank"
                   rel="noreferrer"
-                  className={cn("flex min-h-11 items-center gap-2 rounded-lg break-all text-secondary hover:text-strong", FOCUS_BUTTON)}
+                  className="flex min-h-11 items-center gap-2 rounded-lg text-secondary hover:text-strong dark:hover:text-strong"
                 >
                   <MessageCircle className="h-4 w-4" /> {customer.lineId}
                 </a>
               )}
-              {(customer.chatName || customer.chatUrl) && <ChatLink name={customer.chatName} url={customer.chatUrl} wrap className={cn("min-h-11 text-sm", FOCUS_BUTTON)} />}
               {/* เดิมมีแต่ไอคอนหมุด ไม่มีป้าย — คนอ่านเดาไม่ออกว่านี่ที่อยู่อะไร (ส่งของ? ออกบิล?)
                   ต้องเรียกชื่อเดียวกับฟอร์มที่กรอกค่านี้ = "ที่อยู่ผู้ติดต่อ" (เบสสั่ง 2026-08-12) */}
               {customer.address && (
@@ -171,7 +166,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
               )}
               {/* ลูกค้าที่ยังไม่กรอกช่องทางติดต่อเลย — เดิมการ์ดนี้เหลือแต่หัวข้อ ข้างในโล่ง
                   คนอ่านแยกไม่ออกว่า "ยังไม่ได้กรอก" กับ "หน้าโหลดไม่ครบ" */}
-              {!customer.phone && !customer.email && !customer.lineId && !customer.address && !customer.chatName && !customer.chatUrl && (
+              {!customer.phone && !customer.email && !customer.lineId && !customer.address && (
                 <p className="text-muted">
                   ยังไม่ได้กรอกช่องทางติดต่อ
                 </p>
@@ -179,10 +174,8 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
             </CardContent>
           </Card>
 
-          {customer.notes && <div className="border-l-2 border-brand/40 pl-4"><h2 className="text-sm font-medium text-strong">โน้ตสำหรับทีม</h2><p className="mt-1 whitespace-pre-wrap break-words text-sm text-secondary">{customer.notes}</p></div>}
-
           <Card>
-            <CardHeader><CardTitle className="text-base">ยอดชำระและงานค้าง</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base">สรุป</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className="flex items-center gap-2 text-sm text-muted"><SummaryIcon icon={ShoppingCart} tone="brand" /> ออเดอร์ทั้งหมด</span>
@@ -190,7 +183,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
               </div>
               {canSeeMoney && (
                 <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-2 text-sm text-muted"><SummaryIcon icon={DollarSign} tone="finance" /> ยอดชำระสะสม <HelpTip label="ยอดชำระสะสม">ยอดที่ชำระบิลแล้ว รวมภาษีหัก ณ ที่จ่าย หักเงินคืนและยอดบิลที่ยกเลิกแล้ว</HelpTip></span>
+                  <span className="flex items-center gap-2 text-sm text-muted"><SummaryIcon icon={DollarSign} tone="finance" /> ยอดสั่งรวม</span>
                   <span className="font-semibold tabular-nums text-module-finance-text">{formatCurrency(customer.totalSpent ?? 0)}</span>
                 </div>
               )}
@@ -265,7 +258,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
             customer.defaultPaymentTerms ||
             customer.billingAddress) && (
             <Card>
-              <CardHeader><CardTitle className="text-base">เอกสารและเครดิต</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-base">ข้อมูลนิติบุคคล</CardTitle></CardHeader>
               <CardContent className="space-y-3 text-sm">
                 {customer.customerType !== "CORPORATE" && (
                   <Alert variant="warning" className="text-xs">
@@ -321,7 +314,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                   </div>
                 )}
                 {customer.billingAddress && (
-                  <div className="mt-3 border-t border-divider pt-3">
+                  <div className="mt-3 rounded-lg border border-border bg-surface-muted p-3">
                     <p className="mb-1 text-xs font-semibold text-muted">ที่อยู่ออกใบกำกับภาษี</p>
                     <p className="text-sm text-secondary">
                       {customer.billingAddress}
@@ -338,25 +331,22 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
         </div>
 
         {/* Orders & Communication */}
-        <Tabs defaultValue="orders" className="min-w-0 space-y-5 lg:col-span-2">
-          <TabsList aria-label="ข้อมูลลูกค้า">
-            <TabsTrigger value="orders">ออเดอร์ล่าสุด</TabsTrigger>
-            <TabsTrigger value="artworks">คลังลายและสั่งซ้ำ</TabsTrigger>
-            <TabsTrigger value="contact">บันทึกการคุย</TabsTrigger>
-          </TabsList>
-          <TabsContent value="orders">
+        <div className="space-y-6 lg:col-span-2">
+          {/* คลังลายต่อลูกค้า (ก้อน 4 ชิ้น 2) — ลาย+สเปกรีด+สั่งซ้ำ 1 คลิก+ฟิล์มค้าง */}
+          <CustomerArtworksCard customerId={id} />
+
           <Card>
             <CardHeader><CardTitle className="text-base">ออเดอร์ล่าสุด</CardTitle></CardHeader>
             <CardContent>
               {customer.orders.length === 0 ? (
                 <p className="text-sm text-muted">ยังไม่มีออเดอร์</p>
               ) : (
-                <div className="divide-y divide-divider">
+                <div className="space-y-2">
                   {customer.orders.map((order) => (
                     <Link
                       key={order.id}
                       href={`/orders/${order.id}`}
-                      className={cn("group flex flex-wrap items-center justify-between gap-3 rounded-lg py-4 transition-colors hover:bg-interactive-hover active:bg-interactive-pressed", FOCUS_BUTTON)}
+                      className="group flex items-center justify-between rounded-lg border border-border p-3 transition-colors hover:bg-interactive-hover active:bg-interactive-pressed"
                     >
                       <div>
                         <p className="text-sm font-medium text-blue-600 dark:text-blue-400">{order.orderNumber}</p>
@@ -366,7 +356,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                           เปิด {formatDate(order.createdAt)}
                         </p>
                       </div>
-                      <div className="flex flex-wrap items-center gap-3">
+                      <div className="flex items-center gap-3">
                         <OrderStatusBadge customerStatus={order.customerStatus} internalStatus={order.internalStatus} />
                         {canSeeMoney && (
                           <span className="text-sm tabular-nums font-medium">{formatCurrency(order.totalAmount ?? 0)}</span>
@@ -379,12 +369,9 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
             </CardContent>
           </Card>
 
-          </TabsContent>
-          <TabsContent value="artworks" keepMounted><CustomerArtworksCard customerId={id} /></TabsContent>
-          <TabsContent value="contact">
           <Card>
             <CardHeader>
-              <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center justify-between gap-2">
                 <CardTitle className="text-base">บันทึกการสื่อสาร</CardTitle>
                 {canEdit && (
                   <Button
@@ -406,21 +393,20 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                 <div className="space-y-3">
                   {customer.communicationLogs.map((log) => (
                     <div key={log.id} className="border-l-2 border-border pl-4">
-                      <div className="flex flex-wrap items-center gap-2">
+                      <div className="flex items-center gap-2">
                         <Badge variant="secondary">{commChannelLabel(log.channel)}</Badge>
                         <span className="text-xs text-muted">{formatDateTime(log.createdAt)}</span>
                         <span className="text-xs text-muted">- {log.user.name}</span>
                       </div>
                       {log.subject && <p className="text-sm font-medium mt-1">{log.subject}</p>}
-                      <p className="mt-0.5 whitespace-pre-wrap break-words text-sm text-secondary">{log.content}</p>
+                      <p className="text-sm text-secondary mt-0.5">{log.content}</p>
                     </div>
                   ))}
                 </div>
               )}
             </CardContent>
           </Card>
-          </TabsContent>
-        </Tabs>
+        </div>
       </div>
 
       {editing && (

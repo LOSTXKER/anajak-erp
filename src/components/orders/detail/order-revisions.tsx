@@ -1,4 +1,5 @@
-import { Section } from "@/components/ui/section";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ToneMark } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { formatDateTime } from "@/lib/utils";
 import { INTERNAL_STATUS_LABELS } from "@/lib/order-status";
@@ -38,13 +39,20 @@ const statusLabel = (v: string | null | undefined) =>
 
 export function OrderRevisions({ revisions }: OrderRevisionsProps) {
   return (
-    <Section title="ประวัติการเปลี่ยนแปลง" icon={Clock} surface="plain">
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <ToneMark icon={Clock} tone="system" />
+          ประวัติการเปลี่ยนแปลง
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
         {!revisions || revisions.length === 0 ? (
           <p className="text-sm text-muted">
             ยังไม่มีประวัติการเปลี่ยนแปลง
           </p>
         ) : (
-        <ol className="space-y-4">
+        <div className="space-y-3">
           {revisions.map((rev) => {
             // แถวเปลี่ยนสถานะ: แปลจาก oldValue/newValue (enum) เป็นชื่อไทย —
             // description ใน DB เก่าเก็บข้อความอังกฤษดิบ ใช้เป็น fallback เท่านั้น
@@ -52,7 +60,7 @@ export function OrderRevisions({ revisions }: OrderRevisionsProps) {
               rev.changeType === "STATUS" && rev.oldValue && rev.newValue;
 
             return (
-              <li
+              <div
                 key={rev.id}
                 className="flex gap-3 border-l-2 border-border pl-4"
               >
@@ -80,11 +88,12 @@ export function OrderRevisions({ revisions }: OrderRevisionsProps) {
                     {CHANGE_TYPE_LABELS[rev.changeType] ?? rev.changeType}
                   </Badge>
                 )}
-              </li>
+              </div>
             );
           })}
-        </ol>
+        </div>
         )}
-    </Section>
+      </CardContent>
+    </Card>
   );
 }
