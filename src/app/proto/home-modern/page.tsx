@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import {
-  ArrowDownRight, ArrowLeft, ArrowRight, ArrowUpRight, Bell, CalendarDays,
+  ArrowLeft, ArrowRight, ArrowUpRight, Bell, CalendarDays,
   CheckCheck, ChevronRight, CircleHelp, Clock3, Command,
   Factory, FileText, Home, Layers3, Menu, Moon, Package, PanelLeftClose,
-  Plus, Search, Settings2, Shirt, ShoppingBag, Star, Sun, Truck, Users, Wallet,
+  Plus, Search, Settings2, Shirt, ShoppingBag, Star, Sun, Users, Wallet,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { TABLE_HEAD_SURFACE } from "@/components/ui/tokens";
@@ -46,6 +46,7 @@ export default function HomeModernPrototype() {
   const [theme, setTheme] = useProtoVariant("theme", themes, "light");
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [focusIndex, setFocusIndex] = useState(0);
   const [filter, setFilter] = useState<Filter>("ทั้งหมด");
   const [stars, setStars] = useState<string[]>([ORDERS[0].id]);
   const [day, setDay] = useState(14);
@@ -77,6 +78,7 @@ export default function HomeModernPrototype() {
     }
   };
   const attention = ORDERS.filter(order => order.attention);
+  const focusOrder = attention[focusIndex];
   const due = ORDERS.filter(order => order.day === day);
   const filtered = ORDERS.filter(order => filter === "ทั้งหมด" || (filter === "ติดดาว" ? stars.includes(order.id) : order.status === filter));
   const searchResults = ORDERS.filter(order => `${order.id} ${order.customer} ${order.project}`.toLowerCase().includes(search.trim().toLowerCase()));
@@ -127,61 +129,64 @@ export default function HomeModernPrototype() {
           <button type="button" className={`${s.iconButton} ${s.mobileMenu}`} aria-label={mobileOpen ? "ปิดเมนู" : "เปิดเมนู"} aria-expanded={mobileOpen} aria-controls="preview-sidebar" onClick={() => setMobileOpen(!mobileOpen)}><Menu /></button>
           <div className={s.breadcrumb}><span>Workspace</span><ChevronRight /><strong>ภาพรวม</strong></div>
           <div className={s.topActions}>
-            <button ref={searchButton} type="button" className={s.searchButton} onClick={() => { setSearch(""); openPopup("search"); }} aria-label="ค้นหาออเดอร์ตัวอย่าง"><Search /><span>ค้นหาอะไรก็ได้</span><kbd className={s.shortcut}>⌘ K</kbd></button>
+            <button ref={searchButton} type="button" className={s.searchButton} onClick={() => { setSearch(""); openPopup("search"); }} aria-label="ค้นหาออเดอร์ตัวอย่าง"><Search /><span>ค้นหาออเดอร์</span><kbd className={s.shortcut}>⌘ K</kbd></button>
             <button type="button" className={s.iconButton} aria-label={theme === "light" ? "เปลี่ยนเป็นโหมดมืด" : "เปลี่ยนเป็นโหมดสว่าง"} onClick={() => setTheme(theme === "light" ? "dark" : "light")}>{theme === "light" ? <Moon /> : <Sun />}</button>
             <button type="button" className={s.iconButton} aria-label={`แจ้งเตือนตัวอย่าง${read ? "" : " 3 รายการใหม่"}`} onClick={() => openPopup("notifications")}><Bell />{!read && <span className={s.notificationDot} />}</button>
           </div>
         </header>
         <main className={s.content} id="preview-main">
           <div className={s.intro}>
-            <div><div className={s.eyebrow}><span className={s.activityDot} data-color="blue" />จันทร์ 14 กันยายน 2569</div><h1 className={s.title}>ภาพรวมวันนี้<span>.</span></h1></div>
+            <div><div className={s.eyebrow}><span className={s.activityDot} data-color="blue" />จันทร์ 14 กันยายน 2569</div><h1 className={s.title}>สวัสดี เบส<span className={s.greetingDot}>.</span></h1></div>
             <div className={s.introActions}><span className={s.prototypeBadge}>ต้นแบบ · ข้อมูลตัวอย่าง</span><button type="button" className={s.primaryButton} onClick={() => openPopup("create")}><Plus />เปิดงานใหม่</button></div>
           </div>
 
           <section className={s.metrics} aria-label="ภาพรวมออเดอร์ตัวอย่าง">
-            {[
-              { label: "ออเดอร์กำลังเดิน", value: ORDERS.length, hint: "ออเดอร์", icon: ShoppingBag },
-              { label: "กำหนดส่งวันนี้", value: ORDERS.filter(order => order.day === 14).length, hint: "ออเดอร์", icon: CalendarDays },
-              { label: "พร้อมส่งแล้ว", value: ORDERS.filter(order => order.status === "พร้อมส่ง").length, hint: "ออเดอร์", icon: Package },
-              { label: "มูลค่าออเดอร์ตัวอย่าง", value: `฿${money(ORDERS.reduce((sum, order) => sum + order.amount, 0))}`, hint: `รวม ${ORDERS.length} ออเดอร์`, icon: Wallet },
-            ].map(metric => <div key={metric.label} className={s.metric}><div className={s.metricLabel}><metric.icon />{metric.label}</div><div className={s.metricValue}>{metric.value}<span className={s.metricHint}>{metric.hint}</span></div></div>)}
+            <div className={s.metric}><span className={s.metricLabel}>ออเดอร์ที่กำลังเดิน</span><div className={s.metricValue}>{ORDERS.length}<span>ออเดอร์</span><span className={s.metricDetail}>{money(ORDERS.reduce((sum, order) => sum + order.quantity, 0))} ตัว</span></div></div>
+            <div className={s.metric}><span className={s.metricLabel}>กำหนดส่งวันนี้</span><div className={s.metricValue}>{ORDERS.filter(order => order.day === 14).length}<span>ออเดอร์</span><span className={s.metricDetail}><span className={s.activityDot} data-color="green" />พร้อมส่ง {ORDERS.filter(order => order.day === 14 && order.status === "พร้อมส่ง").length}</span></div></div>
+            <div className={s.metric}><span className={s.metricLabel}>มูลค่าออเดอร์ตัวอย่าง</span><div className={s.metricValue}><span className={s.currency}>฿</span>{money(ORDERS.reduce((sum, order) => sum + order.amount, 0))}</div></div>
           </section>
 
-          <div className={s.mainGrid}>
-            <section className={`${s.panel} ${s.focusPanel}`} aria-labelledby="focus-title">
-              <div className={s.panelHeading}><h2 id="focus-title"><span className={s.headingIcon}><Layers3 /></span>โฟกัสวันนี้ <span className={s.countBadge}>{attention.length}</span></h2><span className={s.eyebrow}>ต้องติดตาม</span></div>
-              <div className={s.focusList}>{attention.map((order, index) => <button type="button" key={order.id} className={s.focusRow} onClick={() => openOrder(order)}>
-                <span className={s.focusIcon} data-kind={index}>{index === 0 ? <Clock3 /> : index === 1 ? <FileText /> : <Truck />}</span>
-                <span className={s.focusText}><strong>{order.customer}</strong><span>{order.attention}</span></span>
-                <span className={s.focusMeta}>{order.quantity} ตัว<small>#{order.id.slice(-4)}</small></span><span className={s.focusArrow}><ArrowUpRight /></span>
-              </button>)}</div>
-              <div className={s.panelFooter}><span><span className={s.activityDot} data-color="blue" />เลือกงานเพื่อดูรายละเอียด</span><ArrowDownRight /></div>
+          <div className={s.workGrid}>
+            <div className={s.workColumn}>
+            <section aria-labelledby="focus-title">
+              <div className={s.sectionHeading}><h2 id="focus-title">เริ่มจากงานที่ต้องตาม <span className={s.countBadge}>{attention.length}</span></h2><span className={s.sectionNote}><span className={s.activityDot} data-color="blue" />วันนี้</span></div>
+              <div className={s.focusFeature}>
+                <div key={focusOrder.id} className={s.focusContent} aria-live="polite">
+                  <span className={s.focusBadge}><Clock3 />{focusOrder.attention}</span>
+                  <h3>{focusOrder.customer}</h3>
+                  <p>{focusOrder.project} <span>·</span> {focusOrder.quantity} ตัว</p>
+                  <div className={s.focusActions}><button type="button" className={s.focusButton} onClick={() => openOrder(focusOrder)}>ดูรายละเอียดงาน <ArrowUpRight /></button><span className={s.focusOwner}><span className={s.avatar}>{focusOrder.owner.slice(0, 1)}</span>{focusOrder.owner} ดูแล</span></div>
+                </div>
+                <div key={`${focusOrder.id}-art`} className={s.focusArtwork} aria-hidden="true"><span className={s.artLabel}>ANAJAK / {focusOrder.technique}</span><ShirtPreview order={focusOrder} /><span className={s.artNumber}>#{focusOrder.id.slice(-4)} <span>{focusOrder.quantity} PCS</span></span></div>
+              </div>
+              <div className={s.focusChoices} aria-label="เลือกงานที่ต้องติดตาม">{attention.map((order, index) => <button key={order.id} type="button" aria-pressed={focusIndex === index} className={`${s.focusChoice} ${focusIndex === index ? s.focusChoiceActive : ""}`} onClick={() => setFocusIndex(index)}><span className={s.choiceNumber}>0{index + 1}</span><span>{order.customer}<small>{index === 0 ? "ส่งวันนี้" : index === 1 ? "รออนุมัติแบบ" : "ร้านนอกเกินกำหนด"}</small></span><ArrowUpRight /></button>)}</div>
             </section>
-            <section className={`${s.panel} ${s.weekPanel}`} aria-labelledby="week-title">
-              <div className={s.panelHeading}><h2 id="week-title">กำหนดส่งสัปดาห์นี้</h2><span className={s.weekHeading}>14–20 ก.ย. <CalendarDays /></span></div>
-              <div className={s.days} aria-label="เลือกวันส่งงาน">{["จ", "อ", "พ", "พฤ", "ศ", "ส", "อา"].map((label, index) => <button type="button" key={index} className={`${s.day} ${day === index + 14 ? s.dayActive : ""}`} aria-label={`${index + 14} กันยายน`} aria-pressed={day === index + 14} onClick={() => setDay(index + 14)}><span>{label}</span><strong>{index + 14}</strong><span className={s.dayDot} data-has-work={ORDERS.some(order => order.day === index + 14)} /></button>)}</div>
-              <div className={s.deliveries} aria-live="polite">{due.length ? due.map(order => <button key={order.id} type="button" className={s.delivery} onClick={() => openOrder(order)}><span className={s.deliveryTime}><span className={s.activityDot} data-color={order.status === "พร้อมส่ง" ? "green" : "blue"} /></span><span className={s.deliveryText}><strong>{order.customer}</strong><small>{order.quantity} ตัว · {order.status}</small></span><ArrowUpRight /></button>) : <div className={s.empty}><CalendarDays /><span>ไม่มีงานกำหนดส่งวันนี้</span><button className={s.textButton} type="button" onClick={() => setDay(14)}>กลับมาวันนี้</button></div>}</div>
-            </section>
-          </div>
-
-          <div className={s.lowerGrid}>
             <section className={`${s.panel} ${s.ordersPanel}`} aria-labelledby="orders-title">
-              <div className={s.panelHeading}><h2 id="orders-title">ออเดอร์ที่กำลังเดิน <span className={s.countBadge}>{ORDERS.length}</span></h2><Link prefetch={false} href="/orders" className={s.textButton}>หน้าออเดอร์เดิม <ArrowUpRight /></Link></div>
-              <div className={s.orderTools}><div className={s.tabs} aria-label="กรองออเดอร์ตัวอย่าง">{filters.map(value => <button key={value} type="button" className={`${s.tab} ${filter === value ? s.tabActive : ""}`} aria-pressed={filter === value} onClick={() => setFilter(value)}>{value === "ติดดาว" && <Star />}{value}</button>)}</div><button type="button" className={s.iconButton} aria-label="ค้นหาในออเดอร์ตัวอย่าง" onClick={() => { setSearch(""); openPopup("search"); }}><Search /></button></div>
+              <div className={s.panelHeading}><h2 id="orders-title">ออเดอร์ที่กำลังเดิน <span className={s.countBadge}>{ORDERS.length}</span></h2><Link prefetch={false} href="/orders" className={s.textButton}>ดูทั้งหมด <ArrowUpRight /></Link></div>
+              <div className={s.orderTools}><div className={s.tabs} style={{ "--active-tab": filters.indexOf(filter) } as CSSProperties} aria-label="กรองออเดอร์ตัวอย่าง"><span className={s.tabIndicator} aria-hidden="true" />{filters.map(value => <button key={value} type="button" className={`${s.tab} ${filter === value ? s.tabActive : ""}`} aria-pressed={filter === value} onClick={() => setFilter(value)}>{value === "ติดดาว" && <Star />}{value}</button>)}</div><button type="button" className={s.iconButton} aria-label="ค้นหาในออเดอร์ตัวอย่าง" onClick={() => { setSearch(""); openPopup("search"); }}><Search /></button></div>
               <div className={s.tableScrollHint}><span>ดูคอลัมน์ต่อ</span><button type="button" aria-label="เลื่อนตารางไปซ้าย" onClick={() => orderTable.current?.scrollBy({ left: -230 })}><ArrowLeft /></button><button type="button" aria-label="เลื่อนตารางไปขวา" onClick={() => orderTable.current?.scrollBy({ left: 230 })}><ArrowRight /></button></div>
               <div ref={orderTable} className={s.tableWrap} role="region" aria-label="ตารางออเดอร์ตัวอย่าง เลื่อนได้ในแนวนอน">
-                <table className={s.orderTable}><thead className={TABLE_HEAD_SURFACE}><tr><th scope="col">ออเดอร์ / ลูกค้า</th><th scope="col">สถานะ</th><th scope="col">กำหนดส่ง</th><th scope="col"><span className={s.srOnly}>รายการโปรด</span><Star aria-hidden="true" /></th></tr></thead><tbody>{filtered.map(order => <tr key={order.id}>
+                <table className={s.orderTable}><thead className={TABLE_HEAD_SURFACE}><tr><th scope="col">ออเดอร์ / ลูกค้า</th><th scope="col">สถานะ</th><th scope="col">กำหนดส่ง</th><th scope="col" className={s.ownerColumn}>ผู้ดูแล</th><th scope="col"><span className={s.srOnly}>รายการโปรด</span><Star aria-hidden="true" /></th></tr></thead><tbody>{filtered.map(order => <tr key={order.id}>
                   <td><button type="button" className={s.orderCell} onClick={() => openOrder(order)}><ShirtPreview order={order} /><span><strong className={s.orderTitle}>{order.customer}</strong><span className={s.orderNumber}>#{order.id.slice(-4)}<span>·</span>{order.technique}<span>·</span>{order.quantity} ตัว</span></span></button></td>
                   <td><span className={`${s.status} ${statusClass(order.status)}`}><span />{order.status}</span></td>
                   <td><span className={s.dueDate} data-today={order.day === 14}>{order.day === 14 ? "วันนี้" : `${order.day} ก.ย.`}</span></td>
+                  <td className={s.ownerColumn}><span className={s.tableOwner}><span className={s.avatar}>{order.owner.slice(0, 1)}</span>{order.owner}</span></td>
                   <td><button type="button" className={`${s.starButton} ${stars.includes(order.id) ? s.starred : ""}`} aria-label={`${stars.includes(order.id) ? "เลิกติดดาว" : "ติดดาว"} ${order.customer}`} aria-pressed={stars.includes(order.id)} onClick={() => toggleStar(order.id)}><Star /></button></td>
                 </tr>)}</tbody></table>
                 {!filtered.length && <div className={s.empty}><Star /><span>ยังไม่มีออเดอร์ที่ติดดาว</span><button type="button" className={s.textButton} onClick={() => setFilter("ทั้งหมด")}>ดูออเดอร์ทั้งหมด <ArrowRight /></button></div>}
               </div><div className={s.tableFooter}><span aria-live="polite">{filtered.length} จาก {ORDERS.length} ออเดอร์ตัวอย่าง</span><span>เลือกออเดอร์เพื่อดูรายละเอียด <ArrowUpRight /></span></div>
             </section>
+            </div>
+            <div className={s.rightColumn}>
+            <section className={`${s.panel} ${s.weekPanel}`} aria-labelledby="week-title">
+              <div className={s.panelHeading}><h2 id="week-title">กำหนดส่งสัปดาห์นี้</h2><span className={s.weekHeading}>14–20 ก.ย. <CalendarDays /></span></div>
+              <div className={s.days} aria-label="เลือกวันส่งงาน">{["จ", "อ", "พ", "พฤ", "ศ", "ส", "อา"].map((label, index) => <button type="button" key={index} className={`${s.day} ${day === index + 14 ? s.dayActive : ""}`} aria-label={`${index + 14} กันยายน`} aria-pressed={day === index + 14} onClick={() => setDay(index + 14)}><span>{label}</span><strong>{index + 14}</strong><span className={s.dayDot} data-has-work={ORDERS.some(order => order.day === index + 14)} /></button>)}</div>
+              <div className={s.deliveries} aria-live="polite">{due.length ? due.map(order => <button key={order.id} type="button" className={s.delivery} onClick={() => openOrder(order)}><span className={s.deliveryTime}><span className={s.activityDot} data-color={order.status === "พร้อมส่ง" ? "green" : "blue"} /></span><span className={s.deliveryText}><strong>{order.customer}</strong><small>{order.quantity} ตัว · {order.status}</small></span><ArrowUpRight /></button>) : <div className={s.empty}><CalendarDays /><span>ไม่มีงานกำหนดส่งวันนี้</span><button className={s.textButton} type="button" onClick={() => setDay(14)}>กลับมาวันนี้</button></div>}</div>
+            </section>
             <aside className={`${s.panel} ${s.activityPanel}`} aria-labelledby="activity-title"><div className={s.panelHeading}><h2 id="activity-title">ความเคลื่อนไหว</h2><span className={s.countBadge}>วันนี้</span></div><div className={s.activityList}>{ACTIVITIES.map(activity => <div key={activity.time} className={s.activity}><span className={s.activityDot} data-color={activity.color} /><div className={s.activityText}><span className={s.activityTime}>{activity.time}</span><p><strong>{activity.person}</strong> {activity.action}</p><button type="button" className={s.textButton} onClick={() => openOrder(ORDERS.find(order => order.id === activity.orderId) ?? null)}>#{activity.orderId.slice(-4)} <ArrowUpRight /></button></div></div>)}</div><div className={s.quickActions}><div className={s.eyebrow}>ไปทำงานต่อ</div><Link prefetch={false} href="/production"><Factory /><span>คิวการผลิต</span><ArrowUpRight /></Link><Link prefetch={false} href="/my-tasks"><CheckCheck /><span>งานของฉัน</span><ArrowUpRight /></Link></div></aside>
           </div>
-          <footer className={s.footer}><span>ANAJAK WORKSPACE <span> / </span> HOME EXPLORATION 01</span><span><Command /> K เพื่อค้นหา</span></footer>
+          </div>
+          <footer className={s.footer}><span>ANAJAK WORKSPACE <span> / </span> HOME EXPLORATION 02</span><span><Command /> K เพื่อค้นหา</span></footer>
         </main>
       </div>
 
