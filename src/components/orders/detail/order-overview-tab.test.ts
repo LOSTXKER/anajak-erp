@@ -54,9 +54,12 @@ describe("ทางเลือกภาพรวมออเดอร์ A16", 
     expect(ready).toContain(PREVIEW_ARTWORK.fileUrl);
     expect(ready).toContain("ม็อกอัพ v");
     const empty = renderToStaticMarkup(createElement(OrderArtworkCardView, { ...artworkProps, latest: null }));
-    expect(empty).toContain("ยังไม่มีม็อกอัพของใบนี้");
-    expect(empty).toContain("มีไฟล์จากลูกค้า");
+    expect(empty).toContain('data-mockup-thumbnail="empty"');
+    expect(empty).toContain("ยังไม่มีม็อกอัพ");
+    expect(empty).toContain("ไฟล์จากลูกค้า 2 ไฟล์");
     expect(empty).toContain("ม็อกอัพ &amp; ไฟล์");
+    expect(empty.match(/<button\b/g)).toHaveLength(1);
+    expect(empty).toContain(PREVIEW_ORDER.description);
   });
 
   it("โหลดไฟล์ไม่สำเร็จบอกข้อผิดพลาดและทางลองใหม่ โดยไม่อ้างว่าไม่มีไฟล์", () => {
@@ -67,7 +70,7 @@ describe("ทางเลือกภาพรวมออเดอร์ A16", 
     const html = renderToStaticMarkup(createElement(OrderArtworkCardView, artworkProps));
     expect(html).toContain(artworkProps.loadError);
     expect(html).toContain("ลองใหม่");
-    expect(html).not.toContain("ยังไม่มีม็อกอัพของใบนี้");
+    expect(html).not.toContain('data-mockup-thumbnail="empty"');
     expect(html).not.toContain("ยังไม่มีไฟล์อะไรเลย");
 
     const cached = renderToStaticMarkup(createElement(OrderArtworkCardView, {
@@ -76,5 +79,24 @@ describe("ทางเลือกภาพรวมออเดอร์ A16", 
     expect(cached).toContain(artworkProps.loadError);
     expect(cached).toContain(PREVIEW_ARTWORK.fileUrl);
     expect(cached).toContain("ม็อกอัพ v");
+  });
+
+  it("คงไฟล์พิมพ์ที่มีอยู่ และไม่มีปุ่มเมื่อไม่มีทางเปิดไฟล์", () => {
+    const html = renderToStaticMarkup(createElement(OrderArtworkCardView, {
+      latest: null, versionCount: 0, rawCount: 0, printCount: 3, description: null,
+    }));
+    expect(html).toContain("ไฟล์พิมพ์ 3 ไฟล์");
+    expect(html).not.toContain("ไฟล์จากลูกค้า");
+    expect(html).not.toContain("<button");
+    expect(html).not.toContain("ยังไม่มีไฟล์อะไรเลย");
+  });
+
+  it("ระหว่างโหลดไม่แสดงม็อกอัพว่างหรือจำนวนไฟล์", () => {
+    const html = renderToStaticMarkup(createElement(OrderArtworkCardView, {
+      latest: null, versionCount: 0, rawCount: 0, printCount: 0, description: null, isLoading: true,
+    }));
+    expect(html).not.toContain('data-mockup-thumbnail="empty"');
+    expect(html).not.toContain("ยังไม่มีม็อกอัพ");
+    expect(html).not.toContain("0 ไฟล์");
   });
 });

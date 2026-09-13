@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Lock, Paperclip, Shirt } from "lucide-react";
+import { ArrowRight, Lock, MessageSquareText, Paperclip, Shirt } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Section, SectionTitle } from "@/components/ui/section";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
 import { MockupGallery } from "@/components/mockup/mockup-gallery";
+import { MockupThumbnail } from "@/components/mockup/mockup-thumbnail";
 import { trpc } from "@/lib/trpc";
 import { APPROVAL_STATUS_LABELS, APPROVAL_STATUS_VARIANTS } from "@/lib/status-config";
 import { layerForCategory } from "@/lib/file-layers";
@@ -90,8 +91,11 @@ export function OrderArtworkCardView({
   const revisionRounds = versionCount - 1;
   const hasDescription = Boolean(description?.trim());
   const descriptionBlock = hasDescription ? (
-    <div className={variant === "current" ? "space-y-2 border-t border-divider pt-4" : "space-y-2 pt-3"}>
-      <p className="max-w-[75ch] text-sm leading-6 text-secondary [overflow-wrap:anywhere]">{description}</p>
+    <div className={`flex items-start gap-2.5 ${variant === "current" ? "border-t border-divider pt-4" : "pt-3"}`}>
+      <MessageSquareText className="mt-1 h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
+      <p className="min-w-0 max-w-[75ch] text-sm leading-6 text-secondary [overflow-wrap:anywhere]">
+        <span className="sr-only">ข้อความจากลูกค้า: </span>{description}
+      </p>
     </div>
   ) : null;
 
@@ -115,7 +119,7 @@ export function OrderArtworkCardView({
         )
       }
       action={
-        onOpenFiles ? (
+        onOpenFiles && (latest || isLoading || loadError) ? (
           <Button type="button" variant="ghost" size="sm" onClick={onOpenFiles}>
             ม็อกอัพ &amp; ไฟล์
             <ArrowRight className="h-4 w-4" aria-hidden="true" />
@@ -166,14 +170,17 @@ export function OrderArtworkCardView({
             </div>
           </div>
         ) : loadError ? null : (
-          // ยังไม่มีแบบ = บอกว่าขั้นต่อไปคืออะไร ไม่ใช่กล่องว่างเปล่า
-          <div className={variant === "current" ? "space-y-1.5 rounded-xl border border-dashed border-border bg-surface-muted p-5" : "space-y-0.5"}>
-            <p className="text-sm font-medium text-strong">ยังไม่มีม็อกอัพของใบนี้</p>
-            <p className="text-xs text-muted">
-              {rawCount > 0
-                ? `มีไฟล์จากลูกค้า ${rawCount} ไฟล์รออยู่ — ทำแบบแล้วอัปในแท็บ “ม็อกอัพ & ไฟล์”`
-                : "ยังไม่มีไฟล์อะไรเลย — ขอไฟล์ลายจากลูกค้าก่อน"}
-            </p>
+          <div className="flex flex-wrap items-center gap-4">
+            <MockupThumbnail cover={null} size="lg" className="bg-surface-muted [&_svg]:h-6 [&_svg]:w-6" />
+            <div className="min-w-0 flex-1 space-y-2">
+              <p className="text-sm text-muted">ยังไม่มีม็อกอัพ</p>
+              {onOpenFiles && (
+                <Button type="button" variant="outline" size="sm" onClick={onOpenFiles}>
+                  ม็อกอัพ &amp; ไฟล์
+                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                </Button>
+              )}
+            </div>
           </div>
         )}
 
