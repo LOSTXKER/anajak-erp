@@ -27,5 +27,3 @@
 .breakdown > div { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; font-size: 0.8125rem; }
 .breakdown dt { color: var(--color-secondary); line-height: 1.6; }
 .breakdown dd { flex-shrink: 0; color: var(--color-strong); font-weight: 500; font-variant-numeric: tabular-nums; }
-.summary footer { border-top: 1px solid var(--color-divider); padding: 0.375rem; }
-.openMoney { width: 100%; justify-content: space-between; padding-inline: 0.875rem; color: var(--color-module-brand-text); }

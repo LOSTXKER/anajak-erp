@@ -32,11 +32,11 @@ const date = (value: string) => formatDate(`${value}T12:00:00+07:00`);
 const paidFor = (invoiceId: string, payments: Payment[]) => payments.reduce((sum, payment) => sum + (payment.invoiceId === invoiceId ? payment.amountCents : 0), 0);
 
 export const WORKSPACE_INITIAL_MONEY_EVENTS: WorkspaceActivity[] = [
-  ...INVOICES.map(invoice => ({ id: `history-${invoice.id}`, title: `ออกใบเรียกเก็บ ${invoice.number}`, category: "money" as const, at: invoice.issuedAt, actor: "ฝ่ายขาย", target: { tab: "money" as const, label: "ดูเงินและบิล" } })),
-  ...INITIAL_PAYMENTS.map(payment => ({ id: `history-${payment.id}`, title: `รับเงินมัดจำ ${money(payment.amountCents)}`, category: "money" as const, at: payment.paidAt, actor: "ฝ่ายขาย", target: { tab: "money" as const, label: "ดูเงินและบิล" } })),
+  ...INVOICES.map(invoice => ({ id: `history-${invoice.id}`, title: `ออกใบเรียกเก็บ ${invoice.number}`, category: "money" as const, at: invoice.issuedAt, actor: "ฝ่ายขาย" })),
+  ...INITIAL_PAYMENTS.map(payment => ({ id: `history-${payment.id}`, title: `รับเงินมัดจำ ${money(payment.amountCents)}`, category: "money" as const, at: payment.paidAt, actor: "ฝ่ายขาย" })),
 ];
 
-export function WorkspaceMoney({ onOpenItems, poNumber, onRecordedPayment }: { onOpenItems: () => void; poNumber: string; onRecordedPayment: (amountCents: number) => void }) {
+export function WorkspaceMoney({ poNumber, onRecordedPayment }: { poNumber: string; onRecordedPayment: (amountCents: number) => void }) {
   const [payments, setPayments] = useState<Payment[]>(INITIAL_PAYMENTS);
   const [receiving, setReceiving] = useState<Invoice | null>(null);
   const [document, setDocument] = useState<DocumentTarget | null>(null);
@@ -65,7 +65,7 @@ export function WorkspaceMoney({ onOpenItems, poNumber, onRecordedPayment }: { o
     <section className={styles.workspace} aria-label="เงินและบิลตัวอย่าง">
       <header className={styles.heading}>
         <div><CircleDollarSign size={19} /><h2>เงิน &amp; บิล</h2><Badge size="sm">มัดจำ 50%</Badge></div>
-        <button className={styles.orderValue} onClick={onOpenItems}>มูลค่าออเดอร์ <strong>{money(ORDER_CENTS)}</strong><ArrowRight size={15} /><span className="sr-only">ดูสรุปราคา</span></button>
+        <p className={styles.orderValue}>มูลค่าออเดอร์ <strong>{money(ORDER_CENTS)}</strong></p>
       </header>
 
       <div className={styles.summary}>

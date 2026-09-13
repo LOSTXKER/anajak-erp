@@ -25,13 +25,10 @@ function SizeAllocation({ label }: { label: string }) {
   </table>;
 }
 
-export function WorkspaceProduction({ hasMockup, printFileCount, deadline, onOpenMockup, onOpenPrintFiles, onOpenItems }: {
+export function WorkspaceProduction({ hasMockup, printFileCount, deadline }: {
   hasMockup: boolean;
   printFileCount: number;
   deadline: string;
-  onOpenMockup: () => void;
-  onOpenPrintFiles: () => void;
-  onOpenItems: () => void;
 }) {
   return <section className={styles.workspace} aria-label="งานผลิตตัวอย่าง">
     <header className={styles.heading}>
@@ -50,30 +47,25 @@ export function WorkspaceProduction({ hasMockup, printFileCount, deadline, onOpe
         <div className={styles.printSpec}>
           <span className={styles.technique}>{samplePrint.printType}</span>
           <div><h4>{samplePrint.designNote}</h4><p>{String(samplePrint.width)} × {String(samplePrint.height)} ซม.</p></div>
-          <Button variant="link" size="sm" onClick={onOpenItems}>ดูรายการ<ArrowRight /></Button>
         </div>
         <p className={styles.workNote}>{sampleItem.notes}</p>
       </section>
 
       <section className={styles.preparation} aria-labelledby="workspace-production-files">
         <h3 id="workspace-production-files">แบบและไฟล์</h3>
-        <Button variant="ghost" className={styles.fileLink} aria-label="ดูม็อกอัพ" onClick={onOpenMockup}>
-          <FileImage /><span><strong>ดูม็อกอัพ{hasMockup && " v2"}<ArrowRight size={14} /></strong><small>{hasMockup ? "รอลูกค้าตรวจ" : "ยังไม่มีม็อกอัพ"}</small></span>
-        </Button>
-        <Button variant="ghost" className={styles.fileLink} aria-label="เปิดไฟล์พิมพ์" onClick={onOpenPrintFiles}>
-          <FileImage /><span><strong>เปิดไฟล์พิมพ์<ArrowRight size={14} /></strong><small>{printFileCount > 0 ? `${printFileCount} ไฟล์ตัวอย่าง` : "ยังไม่มีไฟล์พิมพ์"}</small></span>
-        </Button>
+        <dl className={styles.fileStatus}>
+          <div><dt><FileImage size={18} />ม็อกอัพ{hasMockup && " v2"}</dt><dd>{hasMockup ? "รอลูกค้าตรวจ" : "ยังไม่มีม็อกอัพ"}</dd></div>
+          <div><dt><FileImage size={18} />ไฟล์พิมพ์</dt><dd>{printFileCount > 0 ? `${printFileCount} ไฟล์ตัวอย่าง` : "ยังไม่มีไฟล์พิมพ์"}</dd></div>
+        </dl>
       </section>
     </div>
   </section>;
 }
 
-export function WorkspaceDelivery({ deadline, shippingAddress, onEditShipping, onOpenProduction, onOpenItems }: {
+export function WorkspaceDelivery({ deadline, shippingAddress, onEditShipping }: {
   deadline: string;
   shippingAddress: string;
   onEditShipping: () => void;
-  onOpenProduction: () => void;
-  onOpenItems: () => void;
 }) {
   const [showAddressPreview, setShowAddressPreview] = useState(false);
 
@@ -96,7 +88,7 @@ export function WorkspaceDelivery({ deadline, shippingAddress, onEditShipping, o
         </section>
 
         <section className={styles.manifest} aria-labelledby="workspace-delivery-items">
-          <div className={styles.sectionHeading}><h3 id="workspace-delivery-items">รายการจัดส่ง</h3><Button variant="link" size="sm" onClick={onOpenItems}>ดูรายการ<ArrowRight /></Button></div>
+          <div className={styles.sectionHeading}><h3 id="workspace-delivery-items">รายการจัดส่ง</h3></div>
           <div className={styles.manifestProduct}><div><h4>{sampleItem.description}</h4><span>{sampleProduct.description}</span></div><span className={styles.quantity}>{totalQuantity}<small>ตัว</small></span></div>
           <SizeAllocation label="จำนวนเสื้อที่จะจัดส่งตามออเดอร์แยกไซซ์" />
           <p className={styles.packingNote}>{PREVIEW_ORDER.notes}</p>
@@ -105,7 +97,6 @@ export function WorkspaceDelivery({ deadline, shippingAddress, onEditShipping, o
 
       <section className={styles.shipmentState} aria-label="รอบจัดส่ง">
         <p>ยังไม่มีรอบจัดส่ง · รอเตรียมแบบ</p>
-        <Button variant="link" size="sm" onClick={onOpenProduction}>ดูงานผลิต<ArrowRight /></Button>
       </section>
     </section>
 

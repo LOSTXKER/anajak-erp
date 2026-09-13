@@ -4,7 +4,6 @@ import { useState } from "react";
 import { ArrowRight, CircleDollarSign, FileImage, History, Info, ListFilter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/utils";
-import type { TabKey } from "@/lib/order-tabs";
 import styles from "./_history.module.css";
 
 type Category = "info" | "files" | "money";
@@ -15,7 +14,6 @@ export type WorkspaceActivity = {
   at: string;
   actor: string;
   changes?: { label: string; before: string; after: string }[];
-  target?: { tab: TabKey; label: string; fileGroup?: "mockup" | "print" };
 };
 const CATEGORIES = [
   { key: "all", label: "ทั้งหมด" },
@@ -25,7 +23,7 @@ const CATEGORIES = [
 ] as const;
 const ICONS = { info: Info, files: FileImage, money: CircleDollarSign };
 
-export function WorkspaceHistory({ events, onNavigate }: { events: WorkspaceActivity[]; onNavigate: (target: NonNullable<WorkspaceActivity["target"]>) => void }) {
+export function WorkspaceHistory({ events }: { events: WorkspaceActivity[] }) {
   const [filter, setFilter] = useState<"all" | Category>("all");
   const visible = events.filter(event => filter === "all" || event.category === filter).sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
   const days = new Map<string, WorkspaceActivity[]>();
@@ -48,7 +46,7 @@ export function WorkspaceHistory({ events, onNavigate }: { events: WorkspaceActi
             return <li key={event.id}>
               <span className={`${styles.eventIcon} ${styles[event.category]}`}><Icon size={17} /></span>
               <div className={styles.event}>
-                <h4 className={styles.eventHeading}>{event.target ? <button className={styles.open} aria-label={`${event.title} — ${event.target.label}`} onClick={() => onNavigate(event.target!)}>{event.title}<ArrowRight size={14} aria-hidden="true" /></button> : event.title}</h4>
+                <h4 className={styles.eventHeading}>{event.title}</h4>
                 <div className={styles.eventMeta}><span>{event.actor}</span>{event.at.includes("T") && <time dateTime={event.at}>{new Date(event.at).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Bangkok" })}</time>}</div>
                 {event.changes?.length ? <dl className={styles.changes}>{event.changes.map(change => <div key={change.label}><dt>{change.label}</dt><dd><span>{change.before || "—"}</span><ArrowRight size={14} aria-hidden="true" /><span className="sr-only">เปลี่ยนเป็น</span><strong>{change.after || "—"}</strong></dd></div>)}</dl> : null}
               </div>

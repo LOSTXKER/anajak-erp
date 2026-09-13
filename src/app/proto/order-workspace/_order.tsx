@@ -49,8 +49,8 @@ export function WorkspaceOrder({ variant, scenario, onGoHome, onNotice }: {
   const [detail, setDetail] = useState<Detail | null>(null);
   const [draft, setDraft] = useState<Draft>({ deadline: "2026-09-25", poNumber: PREVIEW_ORDER.poNumber ?? "", shippingAddress: PREVIEW_ORDER.shippingAddress ?? "" });
   const [activities, setActivities] = useState<WorkspaceActivity[]>(() => [
-    { id: "sample-order-created", title: "เปิดออเดอร์ 30 ตัว", category: "info", at: String(PREVIEW_ORDER.createdAt), actor: "ฝ่ายขาย", target: { tab: "items", label: "ดูรายการสินค้า" } },
-    ...(scenario === "empty" ? [] : [{ id: "sample-mockup-added", title: "เพิ่มม็อกอัพ v2", category: "files" as const, at: String(PREVIEW_ARTWORK.createdAt), actor: "ดีไซเนอร์", target: { tab: "files" as const, label: "ดูม็อกอัพ", fileGroup: "mockup" as const } }]),
+    { id: "sample-order-created", title: "เปิดออเดอร์ 30 ตัว", category: "info", at: String(PREVIEW_ORDER.createdAt), actor: "ฝ่ายขาย" },
+    ...(scenario === "empty" ? [] : [{ id: "sample-mockup-added", title: "เพิ่มม็อกอัพ v2", category: "files" as const, at: String(PREVIEW_ARTWORK.createdAt), actor: "ดีไซเนอร์" }]),
     ...WORKSPACE_INITIAL_MONEY_EVENTS,
   ]);
   const order = { ...PREVIEW_ORDER, ...draft, deadline: draft.deadline + "T08:00:00+07:00" };
@@ -62,15 +62,15 @@ export function WorkspaceOrder({ variant, scenario, onGoHome, onNotice }: {
     const activity = { ...event, id: crypto.randomUUID(), at: new Date().toISOString(), actor: "ผู้ทดลอง" };
     setActivities(current => [...current, activity]);
   };
-  const addMockupExample = () => { setAddedMockup(true); addActivity({ title: "เพิ่มม็อกอัพตัวอย่าง v2", category: "files", target: { tab: "files", label: "ดูม็อกอัพ", fileGroup: "mockup" } }); onNotice("เพิ่มม็อกอัพตัวอย่างแล้ว"); };
-  const addPrintExample = () => { setPrintFiles([{ name: "studio-coffee-print.svg", kind: "image", path: "/proto/ui-reset/studio-coffee-logo.svg" }]); addActivity({ title: "เพิ่มไฟล์พิมพ์ studio-coffee-print.svg", category: "files", target: { tab: "files", label: "ดูไฟล์พิมพ์", fileGroup: "print" } }); onNotice("เพิ่มไฟล์พิมพ์ตัวอย่างแล้ว"); };
+  const addMockupExample = () => { setAddedMockup(true); addActivity({ title: "เพิ่มม็อกอัพตัวอย่าง v2", category: "files" }); onNotice("เพิ่มม็อกอัพตัวอย่างแล้ว"); };
+  const addPrintExample = () => { setPrintFiles([{ name: "studio-coffee-print.svg", kind: "image", path: "/proto/ui-reset/studio-coffee-logo.svg" }]); addActivity({ title: "เพิ่มไฟล์พิมพ์ studio-coffee-print.svg", category: "files" }); onNotice("เพิ่มไฟล์พิมพ์ตัวอย่างแล้ว"); };
   const saveDraft = (next: Draft) => {
     const changes = [
       ...(draft.deadline !== next.deadline ? [{ label: "กำหนดส่ง", before: formatDate(order.deadline), after: formatDate(`${next.deadline}T08:00:00+07:00`) }] : []),
       ...(draft.poNumber !== next.poNumber ? [{ label: "เลขที่ PO", before: draft.poNumber, after: next.poNumber }] : []),
       ...(draft.shippingAddress !== next.shippingAddress ? [{ label: "ที่อยู่จัดส่ง", before: draft.shippingAddress, after: next.shippingAddress }] : []),
     ];
-    if (changes.length) addActivity({ title: edit === "shipping" ? "แก้ไขที่อยู่จัดส่ง" : "แก้ไขข้อมูลออเดอร์", category: "info", changes, target: { tab: edit === "shipping" ? "delivery" : "overview", label: edit === "shipping" ? "ดูการจัดส่ง" : "ดูข้อมูลออเดอร์" } });
+    if (changes.length) addActivity({ title: edit === "shipping" ? "แก้ไขที่อยู่จัดส่ง" : "แก้ไขข้อมูลออเดอร์", category: "info", changes });
     setDraft(next);
     setEdit(null);
     onNotice(changes.length ? "บันทึกข้อมูลตัวอย่างแล้ว" : "ข้อมูลตรงกับที่บันทึกไว้แล้ว");
@@ -147,8 +147,8 @@ export function WorkspaceOrder({ variant, scenario, onGoHome, onNotice }: {
       <div className={styles.sectionHeading}><h2><Info size={18} />ข้อมูลออเดอร์</h2><Button variant="ghost" size="sm" onClick={() => setEdit("info")}><Pencil />แก้ไข</Button></div>
       <dl className={styles.keyFacts}>
         <div><dt><CalendarDays size={15} />กำหนดส่ง</dt><dd className={styles.dateValue}>{formatDate(order.deadline)}</dd><Badge variant="warning" size="sm">สูง</Badge></div>
-        <div><dt><Package size={15} />จำนวน</dt><dd>30 <small>ตัว</small></dd><Button variant="outline" size="sm" className={styles.factAction} onClick={() => setTab("items")}>ดูรายการ<ArrowRight /></Button></div>
-        <div><dt>ยอดรวม</dt><dd className={styles.totalValue}>{formatCurrency(PREVIEW_PRICING.grandTotal)}</dd><Button variant="outline" size="sm" className={styles.factAction} onClick={() => setTab("money")}>เงิน & บิล<ArrowRight /></Button></div>
+        <div><dt><Package size={15} />จำนวน</dt><dd>30 <small>ตัว</small></dd></div>
+        <div><dt>ยอดรวม</dt><dd className={styles.totalValue}>{formatCurrency(PREVIEW_PRICING.grandTotal)}</dd></div>
       </dl>
       <dl className={styles.orderMeta}>
         <div><dt>ประเภทงาน</dt><dd>สั่งทำ</dd></div>
@@ -164,7 +164,6 @@ export function WorkspaceOrder({ variant, scenario, onGoHome, onNotice }: {
         <p className="font-medium">{order.shippingRecipientName}</p>
         <p>{draft.shippingAddress}<br />บางจาก พระโขนง กรุงเทพมหานคร 10260</p>
         <span className={styles.shippingPhone}>{order.shippingPhone}</span>
-        <Button variant="outline" size="sm" className={styles.inlineAction} onClick={() => setTab("delivery")}>ดูการจัดส่ง<ArrowRight /></Button>
       </div>
     </section>
     {artwork}
@@ -177,22 +176,22 @@ export function WorkspaceOrder({ variant, scenario, onGoHome, onNotice }: {
 
   return (
     <div className={styles.orderPage}>
-      {scenario === "blocked" && printFiles.length === 0 && <div className={styles.problemBanner}><FileImage size={18} /><span>ยังไม่มีไฟล์พิมพ์พร้อมผลิต</span><Button variant="ghost" size="sm" onClick={() => { setTab("files"); setFileTab("print"); }}>เปิดไฟล์พิมพ์<ArrowRight /></Button></div>}
+      {scenario === "blocked" && printFiles.length === 0 && <div className={styles.problemBanner}><FileImage size={18} /><span>ยังไม่มีไฟล์พิมพ์พร้อมผลิต</span></div>}
       <div className={styles.orderNote}><ClipboardList size={16} /><span>{order.notes}</span></div>
       <header className={styles.orderHeader}>
         <div className={styles.orderIdentity}><Button variant="ghost" size="icon" aria-label="กลับหน้าแรกของต้นแบบ" onClick={onGoHome}><ArrowLeft /></Button><div><div className={styles.orderNumber}><h1>{PREVIEW_ORDER_NUMBER}</h1><Badge variant="accent" size="sm">กำลังเตรียมงาน</Badge></div><p>Studio Coffee <span>·</span> {customer.name}</p></div></div>
-        <div className={styles.orderActions}><Button variant="outline" size="sm" onClick={openWorkOrder}><ClipboardList />ใบสั่งงาน</Button><Button size="sm" onClick={openFiles}>ม็อกอัพ & ไฟล์<ArrowRight /></Button></div>
+        <div className={styles.orderActions}><Button variant="outline" size="sm" onClick={openWorkOrder}><ClipboardList />ใบสั่งงาน</Button></div>
       </header>
       <div className={styles.rail}><OrderStatusBar flowSteps={getFlowSteps("CUSTOM")} currentStepIndex={2} internalStatus="DESIGNING" customerStatus="PREPARING" /></div>
       <Tabs value={tab} onValueChange={value => setTab(value as TabKey)}>
         <TabsBar className="static mx-0 border-0 bg-transparent"><TabsList aria-label="ส่วนของออเดอร์ต้นแบบ" className={styles.orderTabs}>{ORDER_TAB_DEFS.map(item => <TabsTrigger key={item.key} value={item.key}>{item.label}</TabsTrigger>)}</TabsList></TabsBar>
         <TabsContent value="overview" className="pt-5">{variant === "current" ? currentOverview : overview}</TabsContent>
         <TabsContent value="files" className="pt-5"><WorkspaceFiles activeGroup={fileTab} onGroupChange={setFileTab} hasMockup={hasMockup} rawFiles={RAW_FILES} printFiles={printFiles} onAddMockup={addMockupExample} onAddPrintFile={addPrintExample} onPreviewFile={openFile} /></TabsContent>
-        <TabsContent value="items" className="pt-5"><OrderItemsDisplay orderId={order.id} items={PREVIEW_ITEMS} fees={PREVIEW_FEES} showMoney canEditReceiveTracking={false} totals={{ discount: 0, taxRate: 7, taxAmount: PREVIEW_PRICING.taxAmount, totalAmount: PREVIEW_PRICING.grandTotal }} priceSummary={variant === "new" ? <WorkspacePriceSummary onOpenMoney={() => setTab("money")} /> : undefined} /></TabsContent>
-        <TabsContent value="money" keepMounted className="pt-5"><WorkspaceMoney onOpenItems={() => setTab("items")} poNumber={draft.poNumber} onRecordedPayment={amount => addActivity({ title: `บันทึกรับเงินตัวอย่าง ${formatCurrency(amount / 100)}`, category: "money", target: { tab: "money", label: "ดูเงินและบิล" } })} /></TabsContent>
-        <TabsContent value="production" className="pt-5"><WorkspaceProduction hasMockup={hasMockup} printFileCount={printFiles.length} deadline={order.deadline} onOpenMockup={openFiles} onOpenPrintFiles={() => { setTab("files"); setFileTab("print"); }} onOpenItems={() => setTab("items")} /></TabsContent>
-        <TabsContent value="delivery" className="pt-5"><WorkspaceDelivery deadline={order.deadline} shippingAddress={draft.shippingAddress} onEditShipping={() => setEdit("shipping")} onOpenProduction={() => setTab("production")} onOpenItems={() => setTab("items")} /></TabsContent>
-        <TabsContent value="history" keepMounted className="pt-5"><WorkspaceHistory events={activities} onNavigate={target => { setTab(target.tab); if (target.fileGroup) setFileTab(target.fileGroup); }} /></TabsContent>
+        <TabsContent value="items" className="pt-5"><OrderItemsDisplay orderId={order.id} items={PREVIEW_ITEMS} fees={PREVIEW_FEES} showMoney canEditReceiveTracking={false} totals={{ discount: 0, taxRate: 7, taxAmount: PREVIEW_PRICING.taxAmount, totalAmount: PREVIEW_PRICING.grandTotal }} priceSummary={variant === "new" ? <WorkspacePriceSummary /> : undefined} /></TabsContent>
+        <TabsContent value="money" keepMounted className="pt-5"><WorkspaceMoney poNumber={draft.poNumber} onRecordedPayment={amount => addActivity({ title: `บันทึกรับเงินตัวอย่าง ${formatCurrency(amount / 100)}`, category: "money" })} /></TabsContent>
+        <TabsContent value="production" className="pt-5"><WorkspaceProduction hasMockup={hasMockup} printFileCount={printFiles.length} deadline={order.deadline} /></TabsContent>
+        <TabsContent value="delivery" className="pt-5"><WorkspaceDelivery deadline={order.deadline} shippingAddress={draft.shippingAddress} onEditShipping={() => setEdit("shipping")} /></TabsContent>
+        <TabsContent value="history" keepMounted className="pt-5"><WorkspaceHistory events={activities} /></TabsContent>
       </Tabs>
       <footer className={styles.orderFooter}><span>เปิดโดย ฝ่ายขาย</span><span>10 ก.ย. 2569</span><span>{PREVIEW_ORDER_NUMBER}</span></footer>
       {edit && <EditDialog section={edit} initial={draft} onClose={() => setEdit(null)} onSave={saveDraft} />}

@@ -1,12 +1,11 @@
 "use client";
 
-import { ArrowRight, ReceiptText } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ReceiptText } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { PREVIEW_FEES, PREVIEW_ORDER, PREVIEW_PRICING } from "../ui-reset/_order-data";
 import styles from "./_price-summary.module.css";
 
-export function WorkspacePriceSummary({ onOpenMoney }: { onOpenMoney: () => void }) {
+export function WorkspacePriceSummary() {
   return (
     <section className={styles.summary} aria-labelledby="workspace-price-title">
       <header className={styles.heading}>
@@ -25,10 +24,6 @@ export function WorkspacePriceSummary({ onOpenMoney }: { onOpenMoney: () => void
         {PREVIEW_FEES.map(fee => <div key={fee.id}><dt>{fee.name}</dt><dd>{formatCurrency(fee.amount ?? 0)}</dd></div>)}
         <div><dt>VAT 7%</dt><dd>{formatCurrency(PREVIEW_PRICING.taxAmount)}</dd></div>
       </dl>
-
-      <footer>
-        <Button variant="ghost" className={styles.openMoney} onClick={onOpenMoney}>เงิน & บิล<ArrowRight /></Button>
-      </footer>
     </section>
   );
 }
