@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { useProtoVariant } from "../_kit/use-proto-variant";
-import { WorkspaceOrder, type WorkspaceScenario } from "./_order";
+import { WORKSPACE_ORDER_TABS, WorkspaceOrder, type WorkspaceScenario } from "./_order";
 import { WorkspaceHome } from "./_home";
 import styles from "./workspace.module.css";
 
@@ -20,9 +20,10 @@ export default function OrderWorkspacePrototype() {
   const [surface, setSurface] = useProtoVariant("page", SURFACES, "order");
   const [view, setView] = useProtoVariant("view", VIEWS, "new");
   const [scenario, setScenario] = useProtoVariant("case", SCENARIOS, "ready");
+  const [, setOrderTab] = useProtoVariant("tab", WORKSPACE_ORDER_TABS, "overview");
   const { resolvedTheme, setTheme } = useTheme();
   const [notice, setNotice] = useState("");
-  const openOrder = () => { setSurface("order"); setView("new"); setScenario("ready"); setNotice(""); };
+  const openOrder = () => { setSurface("order"); setView("new"); setScenario("ready"); setOrderTab("overview"); setNotice(""); };
   const openHome = () => { setSurface("home"); setNotice(""); };
 
   return (

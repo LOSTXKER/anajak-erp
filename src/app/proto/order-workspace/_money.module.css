@@ -1,0 +1,123 @@
+.workspace { min-width: 0; overflow: hidden; border: 1px solid var(--color-border); border-radius: 0.875rem; background: var(--color-surface); }
+.heading { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem 1.5rem; padding: 1.125rem 1.5rem; border-bottom: 1px solid var(--color-divider); }
+.heading > div { display: flex; flex-wrap: wrap; align-items: center; gap: 0.625rem; }
+.heading > div > svg { color: var(--color-module-finance-text); }
+.heading h2 { font-size: 0.9375rem; font-weight: 600; }
+.orderValue { display: flex; min-height: 2.75rem; align-items: center; gap: 0.5rem; color: var(--color-muted); font-size: 0.75rem; }
+.orderValue strong { color: var(--color-strong); font-size: 0.9375rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.orderValue svg { color: var(--color-module-brand-text); }
+.orderValue:hover { color: var(--color-module-brand-text); }
+.summary { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); align-items: center; gap: 1.5rem 2rem; padding: 1.75rem 1.5rem 1.5rem; }
+.balance { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 0.375rem 1rem; }
+.label { grid-column: 1 / -1; color: var(--color-secondary); font-size: 0.8125rem; }
+.balance > strong { color: var(--color-module-finance-text); font-size: clamp(1.875rem, 2.65vw, 2.375rem); line-height: 1.3; font-weight: 600; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; }
+.balance > strong.settled { color: var(--color-module-production-text); }
+.balance > button { min-height: 2.75rem; margin-bottom: 0.125rem; }
+.summaryDetails { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1.5rem; border-left: 1px solid var(--color-divider); padding-left: 2rem; }
+.summaryDetails dt { margin-bottom: 0.375rem; color: var(--color-muted); font-size: 0.8125rem; }
+.summaryDetails dd { font-size: 1.5rem; font-weight: 600; line-height: 1.4; font-variant-numeric: tabular-nums; }
+.summaryDetails .collected { color: var(--color-module-production-text); }
+.summaryDetails span { display: block; margin-top: 0.25rem; color: var(--color-muted); font-size: 0.75rem; }
+.paymentProgress { grid-column: 1 / -1; overflow: hidden; height: 0.375rem; border-radius: 0.25rem; background: var(--color-module-finance-surface); }
+.paymentProgress > span { display: block; height: 100%; background: var(--color-module-production-solid); }
+.feedback { display: flex; align-items: center; gap: 0.625rem; margin-inline: 1.5rem; border-top: 1px solid var(--color-divider); padding: 0.5rem 0; color: var(--color-module-production-text); font-size: 0.8125rem; }
+.feedback > svg { flex-shrink: 0; }
+.feedback > span { flex: 1; }
+.feedback > button { display: flex; min-height: 2.75rem; align-items: center; gap: 0.375rem; font-weight: 500; }
+.ledger { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); border-top: 1px solid var(--color-divider); }
+.installments { min-width: 0; padding: 1.25rem 1.5rem; }
+.documents { min-width: 0; border-left: 1px solid var(--color-divider); padding: 1.25rem 1.5rem; }
+.sectionHeading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.sectionHeading h3 { font-size: 0.875rem; font-weight: 600; }
+.sectionHeading > span { color: var(--color-muted); font-size: 0.75rem; }
+.schedule { margin-top: 0.5rem; }
+.schedule > li + li { border-top: 1px solid var(--color-divider); }
+.installment { display: flex; width: 100%; align-items: center; gap: 0.875rem; border-radius: 0.375rem; padding: 1.25rem 0.125rem; text-align: left; }
+.installment:hover { background: var(--color-interactive-hover); }
+.step { display: grid; width: 1.875rem; height: 1.875rem; flex-shrink: 0; place-items: center; border: 1px solid var(--color-border); border-radius: 50%; font-size: 0.75rem; font-weight: 500; }
+.stepPaid { border-color: var(--color-module-production-border); background: var(--color-module-production-surface); color: var(--color-module-production-text); }
+.stepPending { border-color: var(--color-module-finance-border); background: var(--color-module-finance-surface); color: var(--color-module-finance-text); }
+.installmentInfo { display: flex; min-width: 0; flex: 1; flex-direction: column; align-items: flex-start; gap: 0.25rem; }
+.installmentInfo > strong { font-size: 0.875rem; font-weight: 500; }
+.installmentInfo > span { color: var(--color-secondary); font-size: 0.75rem; font-variant-numeric: tabular-nums; }
+.installmentInfo > small { color: var(--color-muted); font-size: 0.75rem; }
+.installmentAmount { display: flex; flex-shrink: 0; flex-direction: column; align-items: flex-end; gap: 0.375rem; }
+.installmentAmount > strong { font-size: 1.0625rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.installmentAmount > small { color: var(--color-muted); font-size: 0.75rem; }
+.rowArrow { flex-shrink: 0; color: var(--color-muted); }
+.billingIdentity { display: grid; gap: 0.875rem; border-top: 1px solid var(--color-divider); padding-top: 1.25rem; }
+.billingIdentity > div { display: grid; grid-template-columns: 7rem minmax(0, 1fr); gap: 0.5rem; font-size: 0.8125rem; }
+.billingIdentity dt { color: var(--color-muted); }
+.billingIdentity dd { overflow-wrap: anywhere; color: var(--color-secondary); }
+.billingIdentity dd > span { display: block; margin-top: 0.125rem; color: var(--color-muted); font-size: 0.75rem; }
+.documents h4 { display: flex; align-items: center; gap: 0.5rem; margin-top: 1.375rem; color: var(--color-muted); font-size: 0.75rem; }
+.documents h4 > span { font-variant-numeric: tabular-nums; }
+.documentList { margin-top: 0.375rem; }
+.documentList > li + li { border-top: 1px solid var(--color-divider); }
+.documentList button { display: flex; width: 100%; align-items: center; gap: 0.75rem; border-radius: 0.375rem; padding: 0.875rem 0; text-align: left; }
+.documentList button:hover { background: var(--color-interactive-hover); }
+.documentList button > svg { flex-shrink: 0; color: var(--color-module-finance-text); }
+.documentList button > svg:last-child { color: var(--color-muted); }
+.documentList button > span { flex: 1; min-width: 0; }
+.documentList strong { display: block; overflow-wrap: anywhere; font-size: 0.8125rem; font-weight: 500; }
+.documentList small { display: block; margin-top: 0.25rem; color: var(--color-muted); font-size: 0.75rem; }
+.dialogContext { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; color: var(--color-muted); font-size: 0.8125rem; }
+.receiveForm { display: grid; gap: 1.125rem; }
+.field { display: grid; min-width: 0; gap: 0.5rem; color: var(--color-secondary); font-size: 0.875rem; }
+.field > span:first-child { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.375rem; }
+.field small { color: var(--color-muted); font-size: 0.75rem; }
+.field > select { width: 100%; min-height: 2.75rem; border: 1px solid var(--color-border); border-radius: 0.5rem; background: var(--color-surface); padding-inline: 0.75rem; color: var(--color-strong); }
+.field > select:focus-visible { outline: 2px solid var(--color-module-brand-solid); outline-offset: 2px; }
+.field .error { color: var(--color-red-600); font-size: 0.75rem; line-height: 1.7; }
+:global(.dark) .field .error { color: var(--color-red-300); }
+.formColumns { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem; }
+.documentDialog { gap: 1rem; }
+.documentTitle { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; }
+.documentNumber { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; font-size: 0.875rem; font-weight: 500; }
+.documentCustomer { border-bottom: 1px solid var(--color-divider); padding-bottom: 1rem; color: var(--color-secondary); font-size: 0.875rem; line-height: 1.7; }
+.documentCustomer > span { display: block; margin-top: 0.25rem; color: var(--color-muted); font-size: 0.75rem; }
+.documentDetails > div { display: flex; justify-content: space-between; gap: 1rem; padding-block: 0.375rem; font-size: 0.875rem; }
+.documentDetails dt { color: var(--color-muted); }
+.documentDetails dd { text-align: right; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.documentDetails .documentTotal { align-items: center; margin-top: 0.75rem; border-top: 1px solid var(--color-divider); padding-top: 1rem; }
+.documentTotal dt { color: var(--color-strong); }
+.documentTotal dd { color: var(--color-module-finance-text); font-size: 1.5rem; font-weight: 600; }
+.linkedPayments { border-top: 1px solid var(--color-divider); padding-top: 1rem; }
+.linkedPayments h3 { margin-bottom: 0.5rem; font-size: 0.8125rem; font-weight: 500; }
+.linkedPayments > div { display: flex; align-items: center; gap: 0.5rem; padding-block: 0.375rem; color: var(--color-module-production-text); font-size: 0.8125rem; }
+.linkedPayments > div > svg { flex-shrink: 0; }
+.linkedPayments > div > span { flex: 1; color: var(--color-secondary); }
+.linkedPayments small { display: block; margin-top: 0.25rem; color: var(--color-muted); font-size: 0.75rem; }
+.linkedPayments strong { font-weight: 500; font-variant-numeric: tabular-nums; }
+.documentFootnote { color: var(--color-muted); font-size: 0.75rem; }
+
+@media (max-width: 1199px) {
+  .summary { grid-template-columns: minmax(0, 1fr); gap: 1.25rem; }
+  .balance { max-width: 28rem; }
+  .summaryDetails { border-left: 0; border-top: 1px solid var(--color-divider); padding: 1rem 0 0; }
+  .ledger { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); }
+  .installment { gap: 0.625rem; }
+  .rowArrow { display: none; }
+}
+
+@media (max-width: 767px) {
+  .heading { align-items: flex-start; flex-direction: column; gap: 0.375rem; padding: 1rem; }
+  .orderValue { justify-content: space-between; width: 100%; }
+  .orderValue strong { margin-left: auto; }
+  .summary { padding: 1.25rem 1rem; }
+  .balance { max-width: none; column-gap: 0.5rem; }
+  .summaryDetails { gap: 1rem; }
+  .summaryDetails dd { font-size: 1.375rem; }
+  .ledger { display: block; }
+  .installments, .documents { padding: 1.125rem 1rem; }
+  .documents { border-left: 0; border-top: 1px solid var(--color-divider); }
+  .installment { gap: 0.5rem; }
+  .step { width: 1.5rem; height: 1.5rem; font-size: 0.6875rem; }
+  .installmentInfo > strong { font-size: 0.8125rem; }
+  .installmentAmount > strong { font-size: 1rem; }
+  .billingIdentity > div { grid-template-columns: 6rem minmax(0, 1fr); }
+  .feedback { flex-wrap: wrap; margin-inline: 1rem; }
+  .feedback > span { min-width: 12rem; }
+  .feedback > button { margin-left: auto; }
+  .formColumns { grid-template-columns: minmax(0, 1fr); }
+}

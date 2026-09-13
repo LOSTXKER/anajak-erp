@@ -18,13 +18,17 @@ import { getFlowSteps } from "@/lib/order-status";
 import { ORDER_TAB_DEFS, type TabKey } from "@/lib/order-tabs";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { PREVIEW_ARTWORK, PREVIEW_FEES, PREVIEW_ITEMS, PREVIEW_ORDER, PREVIEW_ORDER_NUMBER, PREVIEW_PRICING } from "../ui-reset/_order-data";
+import { useProtoVariant } from "../_kit/use-proto-variant";
+import { WorkspacePriceSummary } from "./_price-summary";
+import { WorkspaceMoney } from "./_money";
+import { WorkspaceFiles, type WorkspaceSampleFile } from "./_files";
 import styles from "./workspace.module.css";
 
 export type WorkspaceScenario = "ready" | "empty" | "blocked";
 type Draft = { deadline: string; poNumber: string; shippingAddress: string };
 type Detail = { title: string; content: ReactNode };
-type SampleFile = { name: string; kind: "image" | "text"; path?: string };
-const RAW_FILES: SampleFile[] = [
+export const WORKSPACE_ORDER_TABS = ORDER_TAB_DEFS.map(tab => tab.key);
+const RAW_FILES: WorkspaceSampleFile[] = [
   { name: "studio-coffee-logo.svg", kind: "image", path: "/proto/ui-reset/studio-coffee-logo.svg" },
   { name: "รายละเอียดงาน.txt", kind: "text" },
 ];
@@ -35,10 +39,10 @@ export function WorkspaceOrder({ variant, scenario, onGoHome, onNotice }: {
   onGoHome: () => void;
   onNotice: (message: string) => void;
 }) {
-  const [tab, setTab] = useState<TabKey>("overview");
+  const [tab, setTab] = useProtoVariant("tab", WORKSPACE_ORDER_TABS, "overview");
   const [fileTab, setFileTab] = useState("mockup");
   const [addedMockup, setAddedMockup] = useState(false);
-  const [printFiles, setPrintFiles] = useState<SampleFile[]>([]);
+  const [printFiles, setPrintFiles] = useState<WorkspaceSampleFile[]>([]);
   const [edit, setEdit] = useState<"info" | "shipping" | null>(null);
   const [detail, setDetail] = useState<Detail | null>(null);
   const [draft, setDraft] = useState<Draft>({ deadline: "2026-09-25", poNumber: PREVIEW_ORDER.poNumber ?? "", shippingAddress: PREVIEW_ORDER.shippingAddress ?? "" });
@@ -47,6 +51,8 @@ export function WorkspaceOrder({ variant, scenario, onGoHome, onNotice }: {
   const hasMockup = scenario !== "empty" || addedMockup;
   const openDetail = (title: string, content: ReactNode) => setDetail({ title, content });
   const openFiles = () => { setTab("files"); setFileTab("mockup"); };
+  const addMockupExample = () => { setAddedMockup(true); onNotice("เพิ่มม็อกอัพตัวอย่างแล้ว"); };
+  const addPrintExample = () => { setPrintFiles([{ name: "studio-coffee-print.svg", kind: "image", path: "/proto/ui-reset/studio-coffee-logo.svg" }]); onNotice("เพิ่มไฟล์พิมพ์ตัวอย่างแล้ว"); };
   const openContact = () => openDetail("ข้อมูลติดต่อ", <dl className={styles.detailRows}>
     <div><dt>ผู้ติดต่อ</dt><dd>{customer.name}</dd></div>
     <div><dt>โทรศัพท์</dt><dd>{customer.phone}</dd></div>
@@ -64,7 +70,7 @@ export function WorkspaceOrder({ variant, scenario, onGoHome, onNotice }: {
     </dl>
     <p className="text-sm text-secondary">{customer.notes}</p>
   </div>);
-  const openFile = (file: SampleFile) => openDetail(file.name, file.path
+  const openFile = (file: WorkspaceSampleFile) => openDetail(file.name, file.path
     ? <Image src={file.path} width={500} height={500} alt={file.name} className="max-h-[60vh] w-full rounded-lg bg-surface object-contain" />
     : <p className="text-sm leading-7">{order.description}</p>);
   const interceptSampleLinks = (event: MouseEvent<HTMLDivElement>) => {
@@ -94,7 +100,7 @@ export function WorkspaceOrder({ variant, scenario, onGoHome, onNotice }: {
         </> : <div className={styles.emptyCanvas}>
           <ImageOff size={36} strokeWidth={1.3} />
           <p>ยังไม่มีม็อกอัพ</p>
-          <Button variant="outline" size="sm" onClick={() => { setAddedMockup(true); onNotice("เพิ่มม็อกอัพตัวอย่างแล้ว"); }}><Plus />ลองเพิ่มม็อกอัพ</Button>
+          <Button variant="outline" size="sm" onClick={addMockupExample}><Plus />ลองเพิ่มม็อกอัพ</Button>
         </div>}
       </TabsContent>
       <TabsContent value="raw" className="mt-4">
@@ -102,7 +108,7 @@ export function WorkspaceOrder({ variant, scenario, onGoHome, onNotice }: {
       </TabsContent>
       <TabsContent value="print" className="mt-4">
         {printFiles.length ? <div className={styles.fileList}>{printFiles.map(file => <button key={file.name} onClick={() => openFile(file)}><FileImage size={22} /><span>{file.name}<small>ไฟล์ตัวอย่าง</small></span><ArrowRight size={16} /></button>)}</div>
-          : <div className={styles.emptyCanvas}><FileImage size={34} strokeWidth={1.3} /><p>ยังไม่มีไฟล์พิมพ์</p><Button variant="outline" size="sm" onClick={() => { setPrintFiles([{ name: "studio-coffee-print.svg", kind: "image", path: "/proto/ui-reset/studio-coffee-logo.svg" }]); onNotice("เพิ่มไฟล์พิมพ์ตัวอย่างแล้ว"); }}><Plus />เพิ่มไฟล์ตัวอย่าง</Button></div>}
+          : <div className={styles.emptyCanvas}><FileImage size={34} strokeWidth={1.3} /><p>ยังไม่มีไฟล์พิมพ์</p><Button variant="outline" size="sm" onClick={addPrintExample}><Plus />เพิ่มไฟล์ตัวอย่าง</Button></div>}
       </TabsContent>
     </Tabs>
     <div className={styles.brief}>
@@ -161,9 +167,9 @@ export function WorkspaceOrder({ variant, scenario, onGoHome, onNotice }: {
       <Tabs value={tab} onValueChange={value => setTab(value as TabKey)}>
         <TabsBar className="static mx-0 border-0 bg-transparent"><TabsList aria-label="ส่วนของออเดอร์ต้นแบบ">{ORDER_TAB_DEFS.map(item => <TabsTrigger key={item.key} value={item.key}>{item.label}</TabsTrigger>)}</TabsList></TabsBar>
         <TabsContent value="overview" className="pt-5">{variant === "current" ? currentOverview : overview}</TabsContent>
-        <TabsContent value="files" className="pt-5"><div className={styles.filesOnly}>{artwork}</div></TabsContent>
-        <TabsContent value="items" className="pt-5"><OrderItemsDisplay orderId={order.id} items={PREVIEW_ITEMS} fees={PREVIEW_FEES} showMoney canEditReceiveTracking={false} totals={{ discount: 0, taxRate: 7, taxAmount: 392, totalAmount: 5992 }} /></TabsContent>
-        <TabsContent value="money" className="pt-5"><section className={styles.moneyPanel}><h2>เงินและบิล</h2><dl className={styles.detailRows}><div><dt>รายการสินค้า</dt><dd>{formatCurrency(PREVIEW_PRICING.subtotalItems)}</dd></div><div><dt>ค่าปรับไฟล์</dt><dd>{formatCurrency(PREVIEW_PRICING.subtotalFees)}</dd></div><div><dt>ภาษีมูลค่าเพิ่ม 7%</dt><dd>{formatCurrency(PREVIEW_PRICING.taxAmount)}</dd></div><div className={styles.moneyTotal}><dt>ยอดรวม</dt><dd>{formatCurrency(PREVIEW_PRICING.grandTotal)}</dd></div></dl></section></TabsContent>
+        <TabsContent value="files" className="pt-5"><WorkspaceFiles activeGroup={fileTab} onGroupChange={setFileTab} hasMockup={hasMockup} rawFiles={RAW_FILES} printFiles={printFiles} onAddMockup={addMockupExample} onAddPrintFile={addPrintExample} onPreviewFile={openFile} /></TabsContent>
+        <TabsContent value="items" className="pt-5"><OrderItemsDisplay orderId={order.id} items={PREVIEW_ITEMS} fees={PREVIEW_FEES} showMoney canEditReceiveTracking={false} totals={{ discount: 0, taxRate: 7, taxAmount: PREVIEW_PRICING.taxAmount, totalAmount: PREVIEW_PRICING.grandTotal }} priceSummary={variant === "new" ? <WorkspacePriceSummary onOpenMoney={() => setTab("money")} /> : undefined} /></TabsContent>
+        <TabsContent value="money" keepMounted className="pt-5"><WorkspaceMoney onOpenItems={() => setTab("items")} poNumber={draft.poNumber} /></TabsContent>
         <TabsContent value="production" className="pt-5"><div className={styles.flowEmpty}><Package size={32} /><h2>รอลูกค้าอนุมัติแบบ</h2><Button variant="outline" onClick={openFiles}>ดูม็อกอัพ<ArrowRight /></Button></div></TabsContent>
         <TabsContent value="delivery" className="pt-5"><div className={styles.flowEmpty}><Truck size={32} /><h2>ยังไม่ถึงขั้นจัดส่ง</h2><Button variant="outline" onClick={() => setTab("production")}>ดูงานผลิต<ArrowRight /></Button></div></TabsContent>
         <TabsContent value="history" className="pt-5"><OrderRevisions revisions={[...(hasMockup ? [{ id: "prototype-revision-2", description: "ส่งม็อกอัพ v2 ให้ลูกค้าตรวจ", changedBy: "ดีไซเนอร์", changeType: "DESIGN", createdAt: PREVIEW_ARTWORK.createdAt }] : []), { id: "prototype-revision-1", description: "เปิดออเดอร์ 30 ตัว", changedBy: "ฝ่ายขาย", changeType: "INFO", createdAt: order.createdAt }]} /></TabsContent>

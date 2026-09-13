@@ -142,6 +142,8 @@ interface OrderItemsDisplayProps {
   canEditReceiveTracking?: boolean;
   // ยอดท้ายบิลจาก order (ส่วนลด/VAT/ยอดรวม) — ไม่ส่ง = คิดจากรายการ+ค่าธรรมเนียมตรงๆ (หน้าลอง)
   totals?: OrderTotals;
+  // เปลี่ยนส่วนสรุปสำหรับหน้าลองได้ โดยใช้รายการและด่านสิทธิ์ชุดเดิม
+  priceSummary?: React.ReactNode;
 }
 
 interface OrderTotals {
@@ -698,6 +700,7 @@ export function OrderItemsDisplay({
   showMoney = true,
   canEditReceiveTracking = false,
   totals,
+  priceSummary,
 }: OrderItemsDisplayProps) {
   const isEmpty = !items || items.length === 0;
   const isSingleItem = (items?.length ?? 0) === 1;
@@ -793,7 +796,7 @@ export function OrderItemsDisplay({
             </div>
             {showMoney && (
               <div className="xl:sticky xl:top-14">
-                <OrderPriceSummaryPanel items={items} fees={fees ?? []} totals={totals} />
+                {priceSummary ?? <OrderPriceSummaryPanel items={items} fees={fees ?? []} totals={totals} />}
               </div>
             )}
           </div>

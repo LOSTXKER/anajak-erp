@@ -117,15 +117,9 @@
 .fileList > button:hover { background: var(--color-interactive-hover); }
 .fileList > button > span { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: 0.875rem; color: var(--color-strong); }
 .fileList small { display: block; margin-top: 0.25rem; color: var(--color-muted); font-size: 0.75rem; }
-.filesOnly { max-width: 50rem; margin-inline: auto; border: 1px solid var(--color-border); border-radius: 0.875rem; overflow: hidden; }
-.filesOnly > .artworkPane { border: 0; }
-.moneyPanel { max-width: 40rem; border: 1px solid var(--color-border); border-radius: 0.75rem; padding: 1.5rem; }
-.moneyPanel h2 { margin-bottom: 1.5rem; font-weight: 600; }
 .detailRows > div { display: flex; align-items: flex-start; justify-content: space-between; gap: 1.5rem; padding-block: 0.625rem; font-size: 0.875rem; }
 .detailRows dt { flex-shrink: 0; color: var(--color-muted); }
 .detailRows dd { text-align: right; overflow-wrap: anywhere; }
-.detailRows .moneyTotal { margin-top: 0.75rem; border-top: 1px solid var(--color-border); padding-top: 1rem; font-weight: 600; }
-.moneyTotal dd { font-size: 1.5rem; color: var(--color-module-brand-text); }
 .orderFooter { display: flex; flex-wrap: wrap; gap: 0.375rem 1rem; margin-top: 1rem; font-size: 0.75rem; color: var(--color-muted); }
 .orderFooter > span:last-child { margin-left: auto; }
 .formField { display: grid; gap: 0.5rem; font-size: 0.875rem; color: var(--color-secondary); }
