@@ -17,7 +17,6 @@ import {
   formatDocDate,
 } from "@/components/print/print-document";
 import { PrintActions } from "@/components/print/print-actions";
-import { PAYMENT_TERMS_LABELS } from "@/lib/payment-terms";
 
 export default async function PrintQuotationPage({
   params,
@@ -86,7 +85,7 @@ export default async function PrintQuotationPage({
         />
         <BahtTextBox amount={quotation.totalAmount} />
 
-        {quotation.terms && <NotesBlock title="เงื่อนไข">{PAYMENT_TERMS_LABELS[quotation.terms] ?? quotation.terms}</NotesBlock>}
+        {quotation.terms && <NotesBlock title="เงื่อนไข">{quotation.terms}</NotesBlock>}
         {quotation.notes && <NotesBlock title="หมายเหตุ">{quotation.notes}</NotesBlock>}
 
         <SignatureRow labels={["ผู้เสนอราคา", "ผู้อนุมัติสั่งซื้อ"]} />

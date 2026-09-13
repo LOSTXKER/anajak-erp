@@ -1,10 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
-import { QueryError } from "@/components/ui/query-error";
-import { Alert } from "@/components/ui/alert";
-import { FOCUS_BUTTON } from "@/components/ui/tokens";
 import { useRouter } from "next/navigation";
 import { trpc } from "@/lib/trpc";
 import { permAllows } from "@/lib/permissions";
@@ -26,7 +22,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog";
 import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
 import { toast } from "sonner";
@@ -111,13 +106,10 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
   const [adding, setAdding] = React.useState(false);
   const [addName, setAddName] = React.useState("");
   const [addImageUrl, setAddImageUrl] = React.useState("");
-  const [initialEdit, setInitialEdit] = React.useState<EditForm>(EMPTY_EDIT);
-  const [uploading, setUploading] = React.useState(false);
-  const [uploadError, setUploadError] = React.useState<string | null>(null);
   const [showAll, setShowAll] = React.useState(false);
 
-  const canEdit = !!me && permAllows(me.permissions, "manage_design_files");
-  const canCreate = !!me && permAllows(me.permissions, "create_design_assets");
+  const canEdit = !me || permAllows(me.permissions, "manage_design_files");
+  const canCreate = !me || permAllows(me.permissions, "create_design_assets");
   const canReorder = canCreateOrderWithPricing(me?.permissions);
 
   const updateArtwork = useMutationWithInvalidation(trpc.artwork.update, {
@@ -156,9 +148,8 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
   });
 
   function openEdit(a: ArtworkRow) {
-    updateArtwork.reset(); toggleActive.reset();
     setEditing(a);
-    const next = {
+    setEditForm({
       name: a.name,
       widthCm: a.widthCm?.toString() ?? "",
       heightCm: a.heightCm?.toString() ?? "",
@@ -166,17 +157,7 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
       heatPressSec: a.heatPressSec?.toString() ?? "",
       heatPressure: a.heatPressure ?? "",
       specNotes: a.specNotes ?? "",
-    };
-    setEditForm(next); setInitialEdit(next);
-  }
-
-  const dirty = (!!editing && JSON.stringify(editForm) !== JSON.stringify(initialEdit)) || (adding && Boolean(addName || addImageUrl || uploading));
-  const pending = updateArtwork.isPending || toggleActive.isPending || createArtwork.isPending || uploading;
-  useUnsavedChanges(dirty || pending, pending ? { title: "กำลังบันทึก ออกจากหน้านี้หรือไม่?", description: "การออกจากหน้านี้ไม่ยกเลิกคำสั่งที่ส่งแล้ว กลับมาตรวจผลก่อนส่งซ้ำ", confirmText: "ออกจากหน้านี้" } : undefined);
-  async function closeForm() {
-    if (pending) return;
-    if (dirty && !(await confirm({ title: "ทิ้งข้อมูลลายที่ยังไม่บันทึก?", confirmText: "ทิ้งการแก้ไข", cancelText: "กลับไปแก้ต่อ", destructive: true }))) return;
-    setEditing(null); setAdding(false); setAddName(""); setAddImageUrl(""); setUploadError(null);
+    });
   }
 
   function submitEdit() {
@@ -218,7 +199,7 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
         <div className="flex flex-wrap items-center justify-between gap-2">
           <CardTitle className="flex items-center gap-2 text-base">
             <ToneMark icon={Palette} tone="production" />
-            คลังลาย{artworks.data ? ` (${rows.length})` : ""}
+            คลังลาย ({rows.length})
           </CardTitle>
           <div className="flex items-center gap-2">
             {totalFilm > 0 && (
@@ -228,7 +209,7 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
               </Badge>
             )}
             {canCreate && (
-              <Button variant="outline" size="sm" className="gap-1.5" onClick={() => { createArtwork.reset(); setUploadError(null); setAdding(true); }}
+              <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setAdding(true)}
               >
                 <Plus />
                 เพิ่มลาย
@@ -240,21 +221,23 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
       <CardContent>
         {artworks.isLoading ? (
           <p className="text-sm text-muted">กำลังโหลด...</p>
-        ) : artworks.isError ? <QueryError message="โหลดคลังลายไม่สำเร็จ" onRetry={() => artworks.refetch()} /> : rows.length === 0 ? (
+        ) : rows.length === 0 ? (
           <p className="text-sm text-muted">
             ยังไม่มีลายในคลัง — ลายจะเข้าคลังเองเมื่องานพิมพ์ผ่าน QC หรือกด &quot;เพิ่มลาย&quot;
           </p>
         ) : (
-          <div className="divide-y divide-divider">
+          <div className="space-y-3">
             {visibleRows.map((a) => {
               const gaps = artworkSpecGaps(a);
               return (
                 <div
                   key={a.id}
-                  className="grid grid-cols-[64px_minmax(0,1fr)] gap-3 py-4 sm:grid-cols-[64px_minmax(0,1fr)_auto]"
+                  className={`flex gap-3 rounded-lg border border-border p-3 ${
+                    a.isActive ? "" : "opacity-50"
+                  }`}
                 >
                   {a.imageUrl && isImageUrl(a.imageUrl) ? (
-                    <a href={a.imageUrl} target="_blank" rel="noopener noreferrer" className={FOCUS_BUTTON}>
+                    <a href={a.imageUrl} target="_blank" rel="noopener noreferrer">
                       <img
                         src={a.imageUrl}
                         alt={a.name}
@@ -268,7 +251,7 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
                   )}
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <p className="break-words text-sm font-medium text-strong">
+                      <p className="truncate text-sm font-medium text-strong">
                         {a.name}
                       </p>
                       {!a.isActive && (
@@ -300,7 +283,7 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
                       </p>
                     )}
                   </div>
-                  <div className="col-start-2 flex flex-wrap gap-2 sm:col-start-auto sm:flex-col">
+                  <div className="flex shrink-0 flex-col gap-1.5">
                     {canReorder && a.latestOrder && a.isActive && (
                       <Button size="sm" className="gap-1.5" onClick={() => reorder(a)}
                         disabled={duplicateOrder.isPending}
@@ -329,7 +312,6 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
                 variant="ghost"
                 size="sm"
                 className="h-8 w-full text-muted"
-                aria-expanded={showAll}
                 onClick={() => setShowAll((v) => !v)}
               >
                 {showAll ? "ย่อ" : `ดูทั้งหมด (${rows.length})`}
@@ -340,16 +322,14 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
       </CardContent>
 
       {/* dialog แก้สเปกลาย */}
-      <Dialog open={!!editing} onOpenChange={(open) => { if (!open) void closeForm(); }}>
+      <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>แก้ไขลาย</DialogTitle>
-            <DialogDescription>เว้นว่างหรือใส่ 0 ในช่องตัวเลขเพื่อล้างสเปกที่ยังไม่ทราบ</DialogDescription>
           </DialogHeader>
-          <form onSubmit={(event) => { event.preventDefault(); submitEdit(); }} className="space-y-4">
-          <fieldset disabled={updateArtwork.isPending || toggleActive.isPending} className="space-y-3">
+          <div className="space-y-3">
             <Field label="ชื่อลาย" required>
-              <Input required
+              <Input
                 value={editForm.name}
                 onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
               />
@@ -408,7 +388,7 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
               />
             </Field>
             {editing && (
-              <Button type="button" variant="ghost" size="sm" className="text-muted" onClick={() =>
+              <Button variant="ghost" size="sm" className="text-muted" onClick={() =>
                   toggleActive.mutate({ id: editing.id, isActive: !editing.isActive })
                 }
                 disabled={toggleActive.isPending}
@@ -422,26 +402,24 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
                 )}
               </Button>
             )}
-          </fieldset>
-          {(updateArtwork.error || toggleActive.error) && <Alert variant="error">{updateArtwork.error?.message || toggleActive.error?.message}</Alert>}
+          </div>
           <DialogSubmitFooter
-            pending={updateArtwork.isPending || toggleActive.isPending}
+            pending={updateArtwork.isPending}
             disabled={!editForm.name.trim()}
             submitLabel="บันทึก"
-            onCancel={() => void closeForm()}
+            onCancel={() => setEditing(null)}
+            onSubmit={submitEdit}
           />
-          </form>
         </DialogContent>
       </Dialog>
 
       {/* dialog เพิ่มลายมือ — ลายเก่าก่อนมีระบบ */}
-      <Dialog open={adding} onOpenChange={(open) => { if (!open) void closeForm(); }}>
+      <Dialog open={adding} onOpenChange={setAdding}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>เพิ่มลายเข้าคลัง</DialogTitle>
-            <DialogDescription>บันทึกชื่อลายและรูปไว้เลือกใช้อีกครั้ง</DialogDescription>
           </DialogHeader>
-          <fieldset disabled={createArtwork.isPending} className="space-y-3" onChangeCapture={(event) => { const target = event.target; if (target instanceof HTMLInputElement && target.type === "file" && target.files?.length) { setUploading(true); setUploadError(null); } }}>
+          <div className="space-y-3">
             <Field label="ชื่อลาย" required>
               <Input
                 value={addName}
@@ -468,19 +446,17 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
                   bucket="designs"
                   pathPrefix={`artworks/${customerId}`}
                   accept="image/*"
-                  disabled={createArtwork.isPending}
-                  onUploaded={(url) => { setAddImageUrl(url); setUploading(false); }}
-                  onError={(msg) => { setUploadError(msg); setUploading(false); }}
+                  onUploaded={(url) => setAddImageUrl(url)}
+                  onError={(msg) => toast.error(msg)}
                 />
               )}
             </div>
-          </fieldset>
-          {(createArtwork.error || uploadError) && <Alert variant="error">{createArtwork.error?.message || uploadError}</Alert>}
+          </div>
           <DialogSubmitFooter
-            pending={createArtwork.isPending || uploading}
+            pending={createArtwork.isPending}
             disabled={!addName.trim()}
             submitLabel="เพิ่มลาย"
-            onCancel={() => void closeForm()}
+            onCancel={() => setAdding(false)}
             onSubmit={() =>
               createArtwork.mutate({
                 customerId,

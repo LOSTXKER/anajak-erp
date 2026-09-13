@@ -79,7 +79,6 @@ import { D } from "@/server/services/money";
 import { lockProductionTopology } from "@/server/services/production-topology-lock";
 import { productionWorkflowSteps } from "@/lib/production-steps";
 import { productionV2Enabled } from "@/lib/production-v2-flag";
-import { withoutOrderLinkTokens } from "@/server/services/order-link-response";
 
 // สร้าง/แก้ออเดอร์+เงินในใบ (PERM3: default = OWNER/MANAGER/SALES เดิมเป๊ะ + override รายคน)
 const salesUp = requirePermission("create_sales_docs");
@@ -505,9 +504,6 @@ export const orderRouter = router({
         createdAfter: z.string().optional(),
         createdBefore: z.string().optional(),
         attention: z.enum(ORDER_ATTENTIONS).optional(),
-        // หน้าแรก (คิวออเดอร์ 2026-09-14) ขอเฉพาะงานที่ยังเดินอยู่ — ตัดปิดงาน/ยกเลิกที่ฝั่ง DB
-        // ไม่ทับ internalStatus ที่ผู้ใช้เลือกเอง
-        excludeClosed: z.boolean().optional(),
         sortBy: z.enum(["createdAt", "totalAmount", "orderNumber", "deadline"]).optional(),
         sortOrder: z.enum(["asc", "desc"]).optional(),
         page: z.number().default(1),
@@ -537,7 +533,6 @@ export const orderRouter = router({
       if (input.channel) where.channel = input.channel;
       if (input.customerStatus) where.customerStatus = input.customerStatus;
       if (input.internalStatus) where.internalStatus = input.internalStatus;
-      else if (input.excludeClosed) where.internalStatus = { notIn: ["COMPLETED", "CANCELLED"] };
       if (input.customerId) where.customerId = input.customerId;
 
       // Dashboard drill-down ต้องคืนรายการเดียวกับตัวเลขบนการ์ด และต้อง AND กับ
@@ -594,8 +589,6 @@ export const orderRouter = router({
               select: {
                 fileUrl: true,
                 thumbnailUrl: true,
-                // หน้าแรกใช้บอกว่าแบบล่าสุดรอลูกค้าตัดสินอยู่ไหม (อ่านอย่างเดียว ไม่มี token)
-                approvalStatus: true,
                 files: {
                   orderBy: { sortOrder: "asc" },
                   select: { fileUrl: true, thumbnailUrl: true, position: true },
@@ -648,7 +641,7 @@ export const orderRouter = router({
       // (เดิม list ส่ง totalCost/profitMargin ดิบถึง SALES ด้วย — ปิดพร้อมกันรอบนี้)
       const seesCost = hasPermission(ctx.userRole, ctx.permissionOverrides, "see_finance");
       const sanitizedOrders = ordersWithPayment.map((o) => ({
-        ...withoutOrderLinkTokens(o),
+        ...o,
         totalCost: seesCost ? o.totalCost : 0,
         profitMargin: seesCost ? o.profitMargin : null,
         ...(seesMoney
@@ -789,7 +782,7 @@ export const orderRouter = router({
             fees: order.fees.map((f) => ({ ...f, amount: null })),
           };
       return {
-        ...withoutOrderLinkTokens(moneyBase),
+        ...moneyBase,
         costEntries: seesCost ? order.costEntries : [],
         totalCost: seesCost ? order.totalCost : 0,
         profitMargin: seesCost ? order.profitMargin : null,

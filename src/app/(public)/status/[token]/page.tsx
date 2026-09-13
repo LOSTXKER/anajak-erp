@@ -20,10 +20,8 @@ import { StatusLabel } from "@/components/ui/status-label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PublicLinkError } from "@/components/public-link-error";
-import { isPublicLinkUnavailable, retryPublicQuery } from "@/lib/public-link-state";
 import {
   PublicPageShell,
-  PublicRefreshNotice,
   FullScreenLoading,
   InfoRow,
 } from "@/components/public/public-page";
@@ -43,13 +41,13 @@ export default function OrderStatusPage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = use(params);
-  const status = trpc.customerStatus.getStatus.useQuery({ token }, { retry: retryPublicQuery });
+  const status = trpc.customerStatus.getStatus.useQuery({ token });
 
   if (status.isLoading) {
     return <FullScreenLoading />;
   }
 
-  if (!status.data || (status.error && isPublicLinkUnavailable(status.error))) {
+  if (status.error || !status.data) {
     return <PublicLinkError error={status.error} message="ลิงก์ติดตามงานอาจไม่ถูกต้องหรือหมดอายุแล้ว" onRetry={() => void status.refetch()} />;
   }
 
@@ -61,11 +59,9 @@ export default function OrderStatusPage({
     <PublicPageShell
       icon={<Package />}
       title={d.brandName}
-      heading="ติดตามงาน"
-      subtitle="สถานะล่าสุดและข้อมูลการจัดส่ง"
+      subtitle="ติดตามสถานะงานของคุณ"
       hideFooter={d.isBlindShip}
     >
-      {status.error && <PublicRefreshNotice onRetry={() => void status.refetch()} refreshing={status.isFetching} />}
         {/* Order info + current status */}
         <Card>
           <CardContent className="space-y-4 p-5">

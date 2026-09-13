@@ -32,7 +32,6 @@ import {
 import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { PageShell } from "@/components/page-shell";
-import { BillingNavigation } from "@/components/billing/billing-navigation";
 import { permAllows } from "@/lib/permissions";
 import {
   ReceiptText,
@@ -127,7 +126,7 @@ export default function WhtRegisterPage() {
 }
 
 function WhtRegisterPageContent() {
-  const { search, searchParams, replaceListState, onSearchChange, searchInputRef, clearSearch } =
+  const { search, searchParams, replaceListState, onSearchChange, searchInputRef } =
     useListPageState();
   // แท็บสถานะอยู่ใน URL (?status=received|all) — ไม่มี param/ค่าเพี้ยน = "pending" (default)
   const rawTab = searchParams.get("status");
@@ -205,7 +204,7 @@ function WhtRegisterPageContent() {
         </Button>
       }
       error={
-        isError && !rows
+        isError
           ? { message: "เกิดข้อผิดพลาดในการโหลดข้อมูล", onRetry: () => refetch() }
           : null
       }
@@ -218,8 +217,6 @@ function WhtRegisterPageContent() {
           : undefined
       }
     >
-      <BillingNavigation active="/billing/wht" />
-      {isError && rows && <QueryError message="อัปเดตทะเบียนไม่สำเร็จ กำลังแสดงข้อมูลที่โหลดไว้" onRetry={() => refetch()} />}
       {/* ── สถิติ 3 ใบ ── */}
       {/* stats พังต้องบอก — เลขภาษีโชว์ 0/฿0 เงียบๆ อ่านเป็น "ไม่มียอดรอใบ" ได้ (ขัด DESIGN.md) */}
       {stats.isError ? (
@@ -257,7 +254,6 @@ function WhtRegisterPageContent() {
         <SearchInput
           surface="raised"
           ref={searchInputRef}
-          aria-label="ค้นหาลูกค้า เลขบิล หรือเลขใบรับรอง"
           placeholder="ค้นหาลูกค้า / เลขบิล / เลขใบรับรอง..."
           defaultValue={search}
           onChange={(e) => onSearchChange(e.target.value)}
@@ -289,8 +285,7 @@ function WhtRegisterPageContent() {
             <EmptyState
               icon={ReceiptText}
               title="ไม่พบรายการที่ค้นหา"
-              description="ค้นได้ด้วยชื่อลูกค้า เลขบิล หรือเลขที่หนังสือรับรอง"
-              action={<Button variant="outline" onClick={() => clearSearch()}>ล้างคำค้น</Button>}
+              description="ลองคำค้นอื่น — ค้นได้ด้วยชื่อลูกค้า เลขบิล หรือเลขที่หนังสือรับรอง"
             />
           ) : tab === "pending" ? (
             <EmptyState
@@ -416,12 +411,12 @@ function WhtRegisterPageContent() {
           </DataTable.Root>
         )}
         renderMobile={(items) => (
-          <div role="list" aria-label="รายการหนังสือรับรองหัก ณ ที่จ่าย">
+          <div role="list" aria-label="รายการหนังสือรับรองหัก ณ ที่จ่าย" className="space-y-3">
             {items.map((row) => (
               <div
                 key={row.id}
                 role="listitem"
-                className="border-b border-divider py-4 last:border-b-0"
+                className="card-surface rounded-2xl p-4"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">

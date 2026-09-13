@@ -21,8 +21,6 @@ import { permAllows } from "@/lib/permissions";
 import { SyncDialog } from "@/components/sync-dialog";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { FOCUS_BUTTON } from "@/components/ui/tokens";
-import { StatusLabel } from "@/components/ui/status-label";
-import { productSellingPrice } from "@/lib/product-price";
 
 // ─── Product Group Tabs ─────────────────────────────────────
 const itemTypes = [
@@ -273,12 +271,14 @@ function ProductsPageContent() {
                       />
                     )}
 
-                    <div className="absolute right-2 top-2 rounded-md bg-surface px-2 py-1">
-                      <StatusLabel
-                        label={product.isActive ? "เปิดใช้งาน" : "ปิดใช้งาน"}
-                        tone={product.isActive ? "success" : "neutral"}
-                      />
-                    </div>
+                    <span
+                      className={`absolute right-2 top-2 h-2 w-2 rounded-full ring-2 ring-white dark:ring-slate-900 ${
+                        product.isActive
+                          ? "bg-green-500"
+                          : "bg-slate-300 dark:bg-slate-600"
+                      }`}
+                      title={product.isActive ? "ใช้งาน" : "ไม่ใช้งาน"}
+                    />
                   </div>
 
                   <div className="space-y-1.5 p-3">
@@ -297,8 +297,8 @@ function ProductsPageContent() {
                       <span className="text-sm font-semibold tabular-nums text-strong">
                         {(() => {
                           const prices = product.variants
-                            ?.map((v) => productSellingPrice(product, v))
-                            .filter((p): p is number => p !== null);
+                            ?.map((v) => v.sellingPrice)
+                            .filter((p) => p > 0);
                           if (prices && prices.length > 0) {
                             const min = Math.min(...prices);
                             const max = Math.max(...prices);
@@ -306,8 +306,7 @@ function ProductsPageContent() {
                               ? formatCurrency(min)
                               : `${formatCurrency(min)} - ${formatCurrency(max)}`;
                           }
-                          const price = productSellingPrice(product);
-                          return price === null ? "ยังไม่ตั้งราคาขาย" : formatCurrency(price);
+                          return formatCurrency(product.basePrice);
                         })()}
                       </span>
                       <span className="text-xs text-muted">

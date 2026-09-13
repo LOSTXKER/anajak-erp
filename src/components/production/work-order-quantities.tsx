@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -16,8 +16,10 @@ import { activeOutsource, stepLabel, viewOf } from "./work-order-pieces";
 
 export const pieceTableAnchor = (stepId: string) => `work-order-pieces-${stepId}`;
 
+/* ───────────────────────── ซ้าย: ตารางรายตัวของขั้นที่ยืนอยู่ ───────────────────────── */
+
 const TH = "px-3 py-3 text-xs font-medium";
-const TD = "px-3 py-3.5 align-middle text-sm";
+const TD = "px-3 py-3 align-middle text-sm";
 
 type PieceRow = { key: string; productId: string; variantId: string | null; product: string; productColor: string | null; color: string | null; size: string | null; qty: number; thumb: string | null; prints: string[] };
 type RowQty = { done: number; waste: number };
@@ -56,10 +58,6 @@ export function StepPieceTable({ step, order, c, stepAction, footer, replaceBody
     return map;
   }, [step.quantities]);
   const [draft, setDraft] = useState<Record<string, RowQty>>({});
-  const [saving, setSaving] = useState(false);
-  const savingRef = useRef(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const pending = c.piecePending || saving;
   const valueOf = (key: string): RowQty => draft[key] ?? saved[key] ?? { done: 0, waste: 0 };
   const variantRows = rows.filter((r) => r.variantId);
   const showQty = editable || step.quantities.length > 0;
@@ -71,32 +69,9 @@ export function StepPieceTable({ step, order, c, stepAction, footer, replaceBody
   });
   const doneSum = variantRows.reduce((n, r) => n + valueOf(r.key).done, 0);
   const wasteSum = variantRows.reduce((n, r) => n + valueOf(r.key).waste, 0);
-  const setRow = (key: string, patch: Partial<RowQty>) => setDraft((d) => ({ ...d, [key]: { ...(d[key] ?? saved[key] ?? { done: 0, waste: 0 }), ...patch } }));
+  const setRow = (key: string, patch: Partial<RowQty>) => setDraft((d) => ({ ...d, [key]: { ...valueOf(key), ...patch } }));
   const fillAll = () => setDraft(Object.fromEntries(variantRows.map((r) => [r.key, { done: r.qty, waste: 0 }])));
-  const save = async () => {
-    if (savingRef.current || c.piecePending) return;
-    const submitted = variantRows.map((r) => ({ variantId: r.variantId!, ...valueOf(r.key) }));
-    savingRef.current = true;
-    setSaving(true);
-    setSaveError(null);
-    try {
-      await c.savePieceQty(step.id, submitted);
-      // ล้างเฉพาะค่าที่ request นี้ยืนยันแล้ว; การแก้ใหม่ระหว่างรอยังเป็น draft ของผู้ใช้
-      setDraft((current) => {
-        const remaining = { ...current };
-        for (const row of submitted) {
-          const value = remaining[row.variantId];
-          if (value?.done === row.done && value.waste === row.waste) delete remaining[row.variantId];
-        }
-        return remaining;
-      });
-    } catch (error) {
-      setSaveError(error instanceof Error ? error.message : "ยืนยันยอดล่าสุดไม่สำเร็จ ลองบันทึกอีกครั้ง");
-    } finally {
-      savingRef.current = false;
-      setSaving(false);
-    }
-  };
+  const save = () => c.savePieceQty(step.id, variantRows.map((r) => ({ variantId: r.variantId!, ...valueOf(r.key) })));
 
   return (
     <Section
@@ -113,11 +88,11 @@ export function StepPieceTable({ step, order, c, stepAction, footer, replaceBody
       flush
     >
       {editable ? (
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-divider bg-surface-muted/40 px-5 py-3">
-          <span className={cn("text-xs", dirty ? "font-medium text-amber-700 dark:text-amber-300" : "text-muted")} aria-live="polite">{pending ? "กำลังบันทึกและตรวจยอดล่าสุด…" : dirty ? "ยอดที่แก้ยังไม่บันทึก" : variantRows.length > 0 ? `${variantRows.length.toLocaleString("th-TH")} ไซซ์` : "ยอดรวมของขั้น"}</span>
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-divider px-5 py-3">
+          <span className="text-xs text-muted" aria-live="polite">{dirty ? "ยอดที่แก้ยังไม่บันทึก" : variantRows.length > 0 ? `${variantRows.length.toLocaleString("th-TH")} ไซซ์` : "ยอดรวมของขั้น"}</span>
           <div className="flex flex-wrap items-center gap-2">
             {variantRows.length > 0 ? (
-              <Button size="sm" variant="outline" onClick={fillAll} disabled={pending}>
+              <Button size="sm" variant="outline" onClick={fillAll} disabled={c.piecePending}>
                 ใส่ครบทุกไซซ์
               </Button>
             ) : (
@@ -126,14 +101,13 @@ export function StepPieceTable({ step, order, c, stepAction, footer, replaceBody
               </Button>
             )}
             {dirty ? (
-              <Button size="sm" onClick={save} disabled={pending}>
+              <Button size="sm" onClick={save} disabled={c.piecePending}>
                 บันทึกยอด
               </Button>
             ) : null}
           </div>
         </div>
       ) : null}
-      {saveError ? <p role="alert" className="px-5 py-3 text-sm text-red-700 dark:text-red-300">{saveError}</p> : null}
       {replaceBody ?? (rows.length === 0 ? (
         <EmptyState icon={ImageIcon} title="ออเดอร์นี้ยังไม่มีรายการเสื้อ" />
       ) : (
@@ -143,17 +117,17 @@ export function StepPieceTable({ step, order, c, stepAction, footer, replaceBody
               const product = productRows[0]!;
               return (
                 <div key={productId}>
-                  <div className="flex items-center gap-4 px-5 py-5">
+                  <div className="flex items-start gap-3 px-5 py-4">
                     {product.thumb ? (
                       // eslint-disable-next-line @next/next/no-img-element -- รูปลายจากคลัง/ไฟล์ที่อัปโหลด
-                      <img src={product.thumb} alt="" className={cn("h-16 w-16 shrink-0 border border-border bg-surface-muted p-1 object-contain", RADIUS.inner)} />
+                      <img src={product.thumb} alt="" className={cn("h-14 w-14 shrink-0 border border-border bg-surface-muted object-contain", RADIUS.inner)} />
                     ) : (
-                      <div className={cn("flex h-16 w-16 shrink-0 items-center justify-center border border-border bg-surface-muted", RADIUS.inner)}>
+                      <div className={cn("flex h-14 w-14 shrink-0 items-center justify-center border border-border bg-surface-muted", RADIUS.inner)}>
                         <ImageIcon className="h-5 w-5 text-muted" aria-hidden="true" />
                       </div>
                     )}
                     <div className="min-w-0 space-y-1">
-                      <h3 className="text-base font-semibold leading-relaxed text-strong [overflow-wrap:anywhere]">{product.product}</h3>
+                      <h3 className="text-sm font-semibold text-strong [overflow-wrap:anywhere]">{product.product}</h3>
                       {product.productColor ? <p className="text-sm text-secondary">{product.productColor}</p> : null}
                       {product.prints.length > 0 ? (
                         <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-secondary">
@@ -184,7 +158,7 @@ export function StepPieceTable({ step, order, c, stepAction, footer, replaceBody
                           const value = valueOf(row.key);
                           const rowLabel = [row.product, row.color, row.size].filter(Boolean).join(" ");
                           return (
-                            <tr key={row.key} className="transition-colors focus-within:bg-blue-50/60 dark:focus-within:bg-blue-950/20">
+                            <tr key={row.key} className="focus-within:bg-surface-muted">
                               <td className={cn(TD, "pl-5")}>
                                 <p className="text-base font-semibold text-strong">{row.size ?? "ไม่ระบุ"}</p>
                                 {row.color && row.color !== product.productColor ? <p className="text-xs text-secondary [overflow-wrap:anywhere]">{row.color}</p> : null}
@@ -193,7 +167,7 @@ export function StepPieceTable({ step, order, c, stepAction, footer, replaceBody
                               {showQty ? (
                                 <td className={cn(TD, "text-right")}>
                                   {editable && row.variantId ? (
-                                    <NumberInput integer min={0} max={row.qty} value={value.done} onValueChange={(n) => setRow(row.key, { done: n })} disabled={pending} placeholder="0" aria-label={`ทำแล้ว ${rowLabel}`} className={cn(CONTROL_H, "w-full text-right")} />
+                                    <NumberInput integer min={0} max={row.qty} value={value.done} onValueChange={(n) => setRow(row.key, { done: n })} disabled={c.piecePending} placeholder="0" aria-label={`ทำแล้ว ${rowLabel}`} className={cn(CONTROL_H, "w-full text-right")} />
                                   ) : (
                                     <span className={cn("tabular-nums", value.done > 0 ? "font-semibold text-strong" : "text-muted")}>{row.variantId ? value.done.toLocaleString("th-TH") : "—"}</span>
                                   )}
@@ -202,7 +176,7 @@ export function StepPieceTable({ step, order, c, stepAction, footer, replaceBody
                               {showQty ? (
                                 <td className={cn(TD, "pr-5 text-right")}>
                                   {editable && row.variantId ? (
-                                    <NumberInput integer min={0} max={row.qty} value={value.waste} onValueChange={(n) => setRow(row.key, { waste: n })} disabled={pending} placeholder="0" aria-label={`เสีย ${rowLabel}`} className={cn(CONTROL_H, "w-full text-right")} />
+                                    <NumberInput integer min={0} max={row.qty} value={value.waste} onValueChange={(n) => setRow(row.key, { waste: n })} disabled={c.piecePending} placeholder="0" aria-label={`เสีย ${rowLabel}`} className={cn(CONTROL_H, "w-full text-right")} />
                                   ) : (
                                     <span className={cn("tabular-nums", value.waste > 0 ? "font-semibold text-strong" : "text-muted")}>{row.variantId ? value.waste.toLocaleString("th-TH") : "—"}</span>
                                   )}
@@ -218,9 +192,10 @@ export function StepPieceTable({ step, order, c, stepAction, footer, replaceBody
               );
             })}
           </div>
-          {/* ยอดรวมตรงกับคอลัมน์จำนวน ทำแล้ว และเสียด้านบน */}
-          <div className={cn("grid items-center border-t border-divider bg-surface-muted/50 py-4", showQty ? "grid-cols-[25%_23%_26%_26%]" : "grid-cols-[65%_35%]")}>
-            <span className="pl-5 text-xs font-medium text-secondary">รวมทั้งใบ</span>
+          {/* แถวรวม: ไม่มีพื้นเทา และตัวเลขเป็นข้อความล้วนไม่มีหน่วยต่อท้าย เพื่อให้ตรงคอลัมน์
+              กับตัวเลขในตารางเป๊ะ (เบสทัก 2026-09-10 "รวมทั้งใบพื้นหลังไม่ต้องสีเทา ส่วนคอลัมจำนวนให้เลขมันตรงกัน") */}
+          <div className={cn("grid items-center border-t border-divider py-4", showQty ? "grid-cols-[25%_23%_26%_26%]" : "grid-cols-[65%_35%]")}>
+            <span className="pl-5 text-xs text-muted">รวมทั้งใบ</span>
             <span className={cn("px-3 text-right text-sm font-semibold tabular-nums text-strong", !showQty && "pr-5")}>{total.toLocaleString("th-TH")}</span>
             {showQty ? <span className="px-3 text-right text-sm font-semibold tabular-nums text-strong">{doneSum.toLocaleString("th-TH")}</span> : null}
             {showQty ? (

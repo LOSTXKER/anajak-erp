@@ -4,10 +4,9 @@ import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Section } from "@/components/ui/section";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SectionTitle } from "@/components/ui/section";
 import { QueryError } from "@/components/ui/query-error";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Alert } from "@/components/ui/alert";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
 import { PAYMENT_STATUS_LABELS, PAYMENT_STATUS_VARIANTS } from "@/lib/status-config";
 import { PAYMENT_METHOD_LABELS } from "@/lib/payment-methods";
@@ -89,7 +88,6 @@ export function OrderBillingSection({
 
   // บิลที่ dialog คืนเงินเปิดอยู่ — ใช้ seed ยอดคืน default (netCash) ให้ RecordRefundDialog
   const refundingInvoice = (invoices.data || []).find((inv) => inv.id === showRefundDialog);
-  const voidingInvoice = (invoices.data || []).find((inv) => inv.id === showVoidDialog);
 
   // ช่าง/กราฟิกไม่เห็นการ์ดบิลทั้งใบ (Gate A2 — server ก็ gate listByOrder ไว้แล้ว
   // การ์ดเปล่าๆ ที่ query โดน FORBIDDEN มีแต่สร้างความงง) · me ยังไม่มา = ยังไม่ render
@@ -100,8 +98,15 @@ export function OrderBillingSection({
 
   return (
     <>
-      <Section title="บิล/การชำระเงิน" icon={Receipt} tone="finance" surface="plain"
-        action={canCreateInvoice && canBill ? (
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <SectionTitle icon={Receipt} tone="finance">
+                บิล/การชำระเงิน
+              </SectionTitle>
+            </CardTitle>
+            {canCreateInvoice && canBill && (
               <Button
                 size="sm"
                 // ยอด/ชนิดบิล/วันครบกำหนด prefill จาก billing.suggest ตามเงื่อนไขชำระของออเดอร์
@@ -111,10 +116,12 @@ export function OrderBillingSection({
                 <Plus />
                 สร้างบิล
               </Button>
-            ) : undefined}
-      >
-          {invoices.data ? (
-          <div className="mb-4 grid grid-cols-2 gap-3 border-b border-divider pb-4 sm:grid-cols-4">
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {/* Summary */}
+          <div className="mb-4 grid grid-cols-2 gap-3 rounded-lg bg-surface-muted p-3 sm:grid-cols-4">
             <div className="text-center">
               <p className="text-xs text-muted">ยอดรวม</p>
               <p className="text-sm font-semibold tabular-nums text-strong">
@@ -122,7 +129,7 @@ export function OrderBillingSection({
               </p>
             </div>
             <div className="text-center">
-              <p className="text-xs text-muted">ออกใบเรียกเก็บแล้ว</p>
+              <p className="text-xs text-muted">วางบิลแล้ว</p>
               <p className="text-sm font-semibold tabular-nums text-strong">
                 {formatCurrency(totalInvoiced)}
               </p>
@@ -133,8 +140,9 @@ export function OrderBillingSection({
                 {formatCurrency(totalPaid)}
               </p>
             </div>
+            {/* เลขที่คนหน้างานถามบ่อยสุด "เหลือเก็บอีกเท่าไร" — แดงเมื่อยังค้าง (UX4) */}
             <div className="text-center">
-              <p className="text-xs text-muted">ค้างตามใบเรียกเก็บ</p>
+              <p className="text-xs text-muted">ค้างชำระ</p>
               <p
                 className={`text-sm font-semibold tabular-nums ${
                   totalOutstanding > 0
@@ -146,21 +154,6 @@ export function OrderBillingSection({
               </p>
             </div>
           </div>
-          ) : invoices.isPending ? (
-            <div role="status" aria-label="กำลังโหลดสรุปการชำระเงิน" className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {Array.from({ length: 4 }, (_, index) => <Skeleton key={index} className="h-12 w-full" />)}
-            </div>
-          ) : null}
-
-          {invoices.isError && invoices.data && (
-            <Alert
-              variant="warning"
-              className="mb-4"
-              action={<Button variant="outline" size="sm" onClick={() => void invoices.refetch()}>ลองใหม่</Button>}
-            >
-              อัปเดตข้อมูลบิลไม่สำเร็จ กำลังแสดงข้อมูลที่โหลดไว้
-            </Alert>
-          )}
 
           {/* เตือนเฉพาะคนที่ออกใบได้ (canBill) — role อื่นเห็นแต่ทำอะไรไม่ได้ ชวนงง */}
           {canBill && pendingReceiptCount > 0 && (
@@ -404,7 +397,8 @@ export function OrderBillingSection({
               })}
             </div>
           )}
-      </Section>
+        </CardContent>
+      </Card>
 
       {/* dialog สร้างบิล — conditional mount (กติกาใน ui/dialog.tsx) · โหมด receipt
           ส่ง payment+invoice ของงวดให้ dialog seed ฐาน+VAT เองจบในไฟล์ */}
@@ -437,18 +431,15 @@ export function OrderBillingSection({
       {refundingInvoice && (
         <RecordRefundDialog
           invoiceId={refundingInvoice.id}
-          invoiceNumber={refundingInvoice.invoiceNumber}
           initialAmount={invoiceBalance(refundingInvoice).netCash.toString()}
           onClose={() => setShowRefundDialog(null)}
         />
       )}
 
       {/* dialog ยกเลิกบิล — conditional mount (กติกาใน ui/dialog.tsx) */}
-      {voidingInvoice && (
+      {showVoidDialog && (
         <VoidInvoiceDialog
-          invoiceId={voidingInvoice.id}
-          invoiceNumber={voidingInvoice.invoiceNumber}
-          totalAmount={voidingInvoice.totalAmount}
+          invoiceId={showVoidDialog}
           onClose={() => setShowVoidDialog(null)}
         />
       )}

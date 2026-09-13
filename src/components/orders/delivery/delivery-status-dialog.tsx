@@ -10,7 +10,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog";
 import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
 import { Select } from "@/components/ui/select";
@@ -67,10 +66,6 @@ export function DeliveryStatusDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>อัปเดตสถานะจัดส่ง</DialogTitle>
-          <DialogDescription>
-            ผู้รับ {delivery.recipientName} · ปัจจุบัน {DELIVERY_STATUS_LABELS[statusFrom]}
-            {delivery.trackingNumber && ` · เลขพัสดุ ${delivery.trackingNumber}`}
-          </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-2">

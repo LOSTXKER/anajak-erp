@@ -2,7 +2,6 @@
 
 import { Suspense, use, useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
@@ -17,6 +16,7 @@ import { PageHeader } from "@/components/page-header";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
   INTERNAL_STATUS_LABELS,
+  CUSTOMER_STATUS_LABELS,
   PRIORITY_LABELS,
   CHANNEL_COLORS,
   getFlowSteps,
@@ -39,9 +39,10 @@ import {
   AlertTriangle,
   Share2,
   Truck,
+  ShoppingCart,
 } from "lucide-react";
-import { cn, formatDate } from "@/lib/utils";
-import { FOCUS_INSET, MENU_SEPARATOR, OVERLAY_PANEL, TINT } from "@/components/ui/tokens";
+import { cn } from "@/lib/utils";
+import { MENU_SEPARATOR, OVERLAY_PANEL, TINT } from "@/components/ui/tokens";
 import { canEditOrderWithPricing } from "@/lib/order-access";
 import { buildOrderEditHref, type OrderEditFocus } from "@/lib/order-edit-navigation";
 
@@ -84,7 +85,7 @@ import {
 } from "@/components/orders/detail";
 import { RecordNotFound } from "@/components/ui/record-not-found";
 import { OrderNextStepGuidance } from "@/components/orders/detail/order-next-step-action";
-import styles from "./order-overview-cards.module.css";
+
 
 // ============================================================
 // Loading skeleton
@@ -120,12 +121,10 @@ function OrderFilesPanel({
   orderId,
   userId,
   userRole,
-  canManageLink,
 }: {
   orderId: string;
   userId: string;
   userRole: string;
-  canManageLink: boolean;
 }) {
   const attachmentsQuery = trpc.attachment.listByEntity.useQuery({
     entityType: "ORDER",
@@ -158,7 +157,6 @@ function OrderFilesPanel({
       attachments={attachmentsQuery.data ?? []}
       userId={userId}
       userRole={userRole}
-      canManageLink={canManageLink}
     />
   );
 }
@@ -175,14 +173,12 @@ export default function OrderDetailPage({
   productionV2Enabled: boolean;
 }) {
   return (
-    <div className={cn(styles.page, "-mx-4 -mt-5 min-h-full bg-surface px-4 pb-6 pt-5 sm:-mx-6 sm:-mt-7 sm:px-6 sm:pt-7 lg:-mx-8 lg:px-8")}>
-      <Suspense fallback={<OrderDetailSkeleton />}>
-        <OrderDetailContent
-          params={params}
-          productionV2Enabled={productionV2Enabled}
-        />
-      </Suspense>
-    </div>
+    <Suspense fallback={<OrderDetailSkeleton />}>
+      <OrderDetailContent
+        params={params}
+        productionV2Enabled={productionV2Enabled}
+      />
+    </Suspense>
   );
 }
 
@@ -198,7 +194,8 @@ function OrderDetailContent({
   const searchParams = useSearchParams();
   const promptText = usePromptText();
   const confirm = useConfirm();
-  /* URL เป็นแหล่งความจริงร่วม แต่ตัว state เก็บใน React — เขียน URL ด้วย
+  /* ── แท็บ (เบสเคาะกลับมาใช้ 2026-08-05) ────────────────────────────────
+     URL เป็นแหล่งความจริงร่วม แต่ตัว state เก็บใน React — เขียน URL ด้วย
      history API ตรงๆ ไม่ผ่าน router.replace เพราะ router จะรีเฟรช RSC ทั้งหน้า
      ทำให้สลับแท็บกระตุก · ผลคือ refresh/back/ส่งลิงก์ให้กันได้แท็บเดิม */
   const initialTab = normalizeOrderTab(searchParams.get("tab")) ?? ORDER_DEFAULT_TAB;
@@ -302,10 +299,8 @@ function OrderDetailContent({
   });
 
   // ลิงก์สถานะลูกค้า (ก้อน 4 — portal) — คัดลอกลิงก์: ใช้ token เดิมถ้ายังไม่หมดอายุ
-  // ไม่งั้นสร้างใหม่ โดยใช้สิทธิ์ create_sales_docs เดียวกับ server ทั้งอ่านและสร้าง
-  const statusLink = trpc.customerStatus.getLink.useQuery({ orderId: id }, {
-    enabled: permAllows(me?.permissions, "create_sales_docs"),
-  });
+  // ไม่งั้นสร้างใหม่ (getLink protected · generate gate salesUp ฝั่ง server)
+  const statusLink = trpc.customerStatus.getLink.useQuery({ orderId: id });
   const generateStatusLink = trpc.customerStatus.generateLink.useMutation();
   async function copyStatusLink() {
     try {
@@ -594,7 +589,9 @@ function OrderDetailContent({
     text: "text-secondary",
   };
 
-  // สถานะทางเลือกยังใช้ command เดิม; ปุ่มขั้นต่อไปตรวจ readiness ก่อน
+  // COMPLETED: ไม่มีปุ่มหลัก — ทางถอย (เปิดงานกลับ) ทั้งหมดอยู่ใน dropdown
+  // UX5: ตัดปุ่มสถานะหลักบน header (ไม่เช็ค readiness = ปุ่มที่ server รู้อยู่แล้วว่าจะพัง ขัด B8) —
+  // เหลือแถบขั้นต่อไปเป็น CTA เดียว (เช็ค readiness จริง) · ทางเดินสถานะทั้งหมดยังครบใน dropdown ⋯
   const otherNext = forwardStatuses;
   // เมนู ⋯ มีของให้เลือกจริงไหม — ไม่มีก็ไม่ต้องมีปุ่ม (ช่าง/กราฟิกบางสถานะจะได้เมนูว่าง)
   const hasOverflowMenu = isSalesUp || otherNext.length > 0 || canCancel;
@@ -609,108 +606,52 @@ function OrderDetailContent({
   const isHighPriority = order.priority === "HIGH";
 
   return (
-    <div className="space-y-5">
-      {/* จองสต๊อคมีปัญหา — ต้องเห็นทันทีบนหน้าออเดอร์ (ด่านพร้อมผลิตจะกั้นงานไม่ให้เข้าคิวช่างอยู่แล้ว
-          แต่คนแก้ต้นเหตุคือคนที่เปิดหน้านี้) · จองสำเร็จดูได้จากประวัติออเดอร์ */}
-      {order.stockReservationError && (
-        <div className={cn(TINT.error, "flex flex-wrap items-center gap-3 rounded-lg border px-4 py-3 text-sm")}>
-          <AlertTriangle className="h-4 w-4 shrink-0" />
-          <span className="min-w-0 flex-1">
-            <span className="font-medium">จองสต๊อคไม่สำเร็จ:</span> {order.stockReservationError}
-          </span>
-          {isSalesUp &&
-            ["CONFIRMED", "DESIGNING", "DESIGN_APPROVED", "PRODUCTION_QUEUE"].includes(
-              order.internalStatus
-            ) && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => retryReserve.mutate({ id })}
-                disabled={retryReserve.isPending}
-              >
-                {retryReserve.isPending ? "กำลังจอง..." : "จองใหม่"}
-              </Button>
-            )}
-        </div>
-      )}
+    <div className="space-y-6">
+      {/* ── หัวใบ (เบสเคาะจากหน้าลอง /proto/order-detail แบบ B · 2026-08-30) ──
+          บอกแค่ "ใบไหน · อยู่ขั้นไหน · ต้องกดอะไรต่อ" แล้วให้ทุกอย่างใต้แถบแท็บ
+          เงียบลง (หัวข้อการ์ดในแท็บภาพรวมเป็น compact) — เปิดหน้ามาตาจึงตกที่นี่ก่อน
 
-      {/* หมายเหตุใบนี้อยู่ "นอกแท็บ" โดยตั้งใจ — คนแพ็ค (แท็บจัดส่ง) กับช่าง (แท็บงานผลิต)
-          ต้องเห็น "ห้ามพับ / ส่งก่อนบ่าย 3" โดยไม่ต้องสลับกลับมาแท็บภาพรวม พลาดแล้วงานเสีย
-          โผล่เฉพาะใบที่มีหมายเหตุ — ใบปกติไม่กินที่เลย */}
-      {/* blind ship = ห้ามมีชื่อ/เอกสาร Anajak ในกล่อง · พลาดครั้งเดียวเสียลูกค้าขายซ้ำทั้งราย
-          อยู่นอกแท็บเพราะคนแพ็คทำงานอยู่แท็บ "จัดส่ง" — เดิมอยู่ในการ์ดแท็บภาพรวมที่ไม่มีใครกลับไปเปิด
-          เขียนเป็นประโยคเต็ม ไม่ใช้ไอคอน/สีล้วน (สีบอกว่า "มีอะไรบางอย่าง" แต่ไม่บอกว่าต้องทำอะไร) */}
-      {order.blindShip && (
-        <div className={cn(TINT.warning, "flex flex-wrap gap-x-2 gap-y-1 rounded-lg border px-4 py-3 text-sm")}>
-          <span className="font-medium">ส่งแบบไม่ระบุผู้ส่ง</span>
-          <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
-            ชื่อผู้ส่งบนกล่อง:{" "}
-            {order.blindShipSenderName || "ยังไม่ระบุ — ต้องกรอกก่อนแพ็ค"}
-          </span>
-        </div>
-      )}
+          เบสสั่ง 2 รอบ อย่าย้อนกลับ:
+          ① "ข้างบนไม่ต้องมีอะไรเยอะ มีแค่สถานะและ CTA ก็พอ"
+             → ห้ามเอา กำหนดส่ง/จำนวน/ยอด กลับขึ้นมา (อยู่การ์ด "ข้อมูลออเดอร์" แล้ว)
+          ② "ส่วนบนขอแบบไม่ต้องมีพื้นกรอบ แบบ minimal"
+             → ห้ามห่อด้วยการ์ด/พื้น/เงา · หัวใบยืนบนผืนหน้าตรง ๆ เส้นเดียวที่มีคือ
+               เส้นบางเหนือแถบสถานะ ซึ่งทำหน้าที่แยก "ใบนี้คืออะไร" ออกจาก "ไปถึงไหนแล้ว"
+               (ความเร่งด่วนบอกด้วยป้ายข้างเลขที่ ไม่ต้องมีแถบสีซ้ายที่ต้องอาศัยกรอบ)
 
-      {order.notes?.trim() && (
-        <div className={cn(TINT.warning, "flex flex-wrap gap-x-2 gap-y-1 rounded-lg border px-4 py-3 text-sm")}>
-          <span className="font-medium">หมายเหตุใบนี้</span>
-          <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">{order.notes}</span>
-        </div>
-      )}
-
-
-      {deniedTab === "money" && (
-        <Alert variant="warning" icon={AlertTriangle} title="เปิดส่วนเงินและบิลไม่ได้">
-          บัญชีนี้ไม่มีสิทธิ์ดูข้อมูลการเงิน ระบบจึงพากลับมาที่ภาพรวม
-        </Alert>
-      )}
-
+          ③ "เอาระบบชื่องานออกให้หมด" (2026-08-30)
+             → หัวใบไม่มีบรรทัดรองแล้ว เหลือ เลขที่ + ป้ายสถานะ/ความเร่งด่วน + ปุ่ม
+               ตรงตามข้อ ① ที่เบสสั่งไว้แต่แรก · ลูกค้า/รายละเอียดงานอยู่ในแท็บภาพรวม */}
       <div data-order-head="" className="space-y-5">
-      {/* หัวออเดอร์ตามต้นแบบที่เบสเคาะ 2026-09-14: เลขใบใหญ่ + สถานะภายใน + ลูกค้า/กำหนดส่ง · ปุ่มขั้นต่อไปอยู่ขวา
-          ไม่ใช้ PageHeader กลางเพราะไม่ต้องการไอคอนหมวดและปุ่มย้อนกลับ (breadcrumb กับเมนูซ้ายพากลับได้อยู่แล้ว) */}
-      <header className="page-header space-y-3" data-page-identity="ออเดอร์">
-        <nav aria-label="ตำแหน่งหน้า" className="flex items-center gap-1.5 text-xs text-muted">
-          <Link href="/orders" className={cn("rounded", FOCUS_INSET)}>ออเดอร์</Link>
-          <ChevronRight className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-          <span className="tabular-nums text-secondary">{order.orderNumber}</span>
-        </nav>
-        <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
-          <div className="min-w-0 space-y-1.5">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <h1 className="break-words text-2xl font-semibold tabular-nums text-strong [overflow-wrap:anywhere] sm:text-3xl">
-                {order.orderNumber}
-              </h1>
-              <Badge variant="accent">
-                {INTERNAL_STATUS_LABELS[order.internalStatus] ?? order.internalStatus}
+      <PageHeader
+        icon={ShoppingCart}
+        breadcrumb={[
+          { label: "ออเดอร์", href: "/orders" },
+          { label: order.orderNumber },
+        ]}
+        title={order.orderNumber}
+        description={null}
+        titleBadge={
+          <span className="flex flex-wrap items-center gap-1.5">
+            <Badge variant="accent" size="sm">
+              {CUSTOMER_STATUS_LABELS[order.customerStatus] ?? order.customerStatus}
+            </Badge>
+            {(isUrgent || isHighPriority) && (
+              <Badge variant={isUrgent ? "destructive" : "warning"} size="sm">
+                {PRIORITY_LABELS[order.priority] ?? order.priority}
               </Badge>
-              {(isUrgent || isHighPriority) && (
-                <Badge variant={isUrgent ? "destructive" : "warning"} size="sm">
-                  {PRIORITY_LABELS[order.priority] ?? order.priority}
-                </Badge>
-              )}
-            </div>
-            <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-secondary">
-              <span className="font-medium [overflow-wrap:anywhere]">{order.customer?.name || "ยังไม่ระบุลูกค้า"}</span>
-              {order.deadline && (
-                <>
-                  <span className="text-muted" aria-hidden="true">·</span>
-                  <span>
-                    กำหนดส่ง <span className="font-medium tabular-nums text-strong">{formatDate(order.deadline)}</span>
-                  </span>
-                </>
-              )}
-            </p>
-          </div>
-          <div className="flex max-w-full flex-wrap items-center gap-2 sm:ml-auto">
-            <OrderNextStepAction
-              nextStep={nextStep}
-              readiness={orderContext.data?.readiness ?? null}
-              isPending={updateStatus.isPending}
-              onStatus={handleStatusChange}
-              onEditItems={canUseEditForm && canEditItems ? openItemsEditPage : undefined}
-              onAnchor={handleAnchor}
-              canSeeMoney={canSeeMoney}
-            />
-            {/* ใบสั่งงานเปิดให้ทุกบทบาท; ลิงก์ลูกค้าใช้สิทธิ์ฝ่ายขายเดิม */}
+            )}
+          </span>
+        }
+        action={
+          <>
+            {/* ── ของที่ใช้บ่อยต้องเห็นเป็นปุ่ม ไม่ใช่ซ่อนในเมนู ⋯ (เบสสั่ง 2026-08-30
+                "CTA ที่ซ่อน อันไหนที่สำคัญใช้บ่อย ไม่ต้องเอาไปอยู่ 3 จุด") ──
+                พิมพ์ใบสั่งงาน = ทุก role ทุกสถานะ (ใบที่ส่งลงหน้างานจริง ใช้ทุกวัน)
+                ลิงก์สถานะลูกค้า = ฝ่ายขายส่งให้ลูกค้าเช็คเองแทนการตอบแชท
+                เหลือในเมนู ⋯ เฉพาะของที่นาน ๆ ใช้ หรือของอันตราย (สำเนา · ออกใบเสนอ ·
+                เดินสถานะเอง · ยกเลิก) และ "แก้ไข" ที่แต่ละการ์ดมีปุ่มของตัวเองอยู่แล้ว
+                จอแคบเหลือไอคอนล้วน — ชื่อยังอยู่ใน aria-label ให้เครื่องอ่านหน้าจอ */}
             <Button asChild variant="outline" size="sm">
               <a
                 href={`/print/job-ticket/${id}`}
@@ -734,7 +675,23 @@ function OrderDetailContent({
                 <span className="hidden sm:inline">ลิงก์ลูกค้า</span>
               </Button>
             )}
-            {/* ซ่อนเมนูเมื่อไม่มีคำสั่งที่ผู้ใช้นี้ทำได้ */}
+            {/* ปุ่มขั้นต่อไป (เบสสั่งถอดแถบฟ้าออก 2026-08-11 → ย้ายปุ่มมาไว้ตรงนี้)
+                ยังเป็นทางเดียวที่เช็คด่านพร้อมผลิตให้ก่อนกด · ติดด่านเมื่อไหร่ปุ่มจะหายไป
+                แล้วแถบสถานะจะบอกแทนว่าติดอะไร (กันปุ่มที่กดแล้ว server ปฏิเสธ — B8) */}
+            <OrderNextStepAction
+              nextStep={nextStep}
+              readiness={orderContext.data?.readiness ?? null}
+              isPending={updateStatus.isPending}
+              onStatus={handleStatusChange}
+              // ต้องผ่านทั้ง permission และ status gate เดียวกับปุ่มแก้รายการจุดอื่น
+              onEditItems={canUseEditForm && canEditItems ? openItemsEditPage : undefined}
+              onAnchor={handleAnchor}
+              canSeeMoney={canSeeMoney}
+            />
+            {/* เมนู ⋯ เหลือของที่นาน ๆ ใช้ · "ใบสั่งงาน" ย้ายออกไปเป็นปุ่มจริงแล้ว
+                (ยังไม่ gate ตาม role เหมือนเดิม — review เคยจับว่าช่าง/กราฟิกต้องพิมพ์ได้)
+                ไม่มีรายการให้เลือกเลย = ไม่ต้องมีปุ่ม ⋯ ที่กดแล้วเจอเมนูว่าง
+                UX5: ปุ่มสถานะหลักบน header ถูกตัด — เลื่อนสถานะผ่านปุ่มขั้นต่อไป (เช็ค readiness) + รายการในเมนูนี้ */}
             {hasOverflowMenu && (
             <DropdownMenu.Root>
                 <DropdownMenu.Trigger asChild>
@@ -826,11 +783,14 @@ function OrderDetailContent({
                 </DropdownMenu.Portal>
               </DropdownMenu.Root>
             )}
-          </div>
-        </div>
-      </header>
+          </>
+        }
+      />
 
-      <div className="space-y-3">
+      {/* แถบสรุป 3 ช่องบนมือถือ (ลูกค้า/กำหนดส่ง/ความเร่งด่วน) ถูกถอดออก — เบสสั่ง 2026-08-11
+          หลังเห็นจอจริง · ทั้งสามอย่างย้ายไปอยู่บนสุดของการ์ด "ข้อมูลออเดอร์" ในแท็บภาพรวม
+          (แท็บแรกที่เปิดมาเจอ) จึงไม่ได้หายไปจากหน้า แค่ไม่ต้องมีแถบซ้ำอีกชั้น */}
+
       {/* revisions = ชุดเดียวกับที่แท็บประวัติใช้ (ไม่ยิง query เพิ่ม) — แถบสถานะเอาไปหาว่า
           งานพัก/ยกเลิกค้างไว้ที่ขั้นไหนของสายงาน เพราะ 2 สถานะนี้ไม่มีที่ยืนใน flow
           อยู่ใน "หัวใบ" เพราะ "งานอยู่ตรงไหน" คือส่วนหนึ่งของหัวเรื่อง ไม่ใช่ของแยกชิ้น */}
@@ -845,23 +805,78 @@ function OrderDetailContent({
         // ปุ่มขั้นต่อไปหายไปตอนติดด่าน — เหตุผลต้องมาโผล่ตรงนี้แทน ไม่งั้นปุ่มหายเงียบ
         blockers={nextStepBlockers(nextStep, orderContext.data?.readiness ?? null)}
       />
-      {/* คำอธิบายขั้นต่อไปใต้รางถอดออก (เบสเคาะ 2026-09-14 "ไม่ต้องมี ขั้นต่อไป") — ปุ่มบนหัวหน้าพอ
-          เหลือเฉพาะตอนติดด่านพร้อมผลิต ซึ่งเป็น "เหตุที่ปุ่มหาย + ทางแก้" ไม่ใช่คำอธิบาย */}
-      {nextStepBlockers(nextStep, orderContext.data?.readiness ?? null).length > 0 && (
-        <OrderNextStepGuidance
-          nextStep={nextStep}
-          readiness={orderContext.data?.readiness ?? null}
-          onEditItems={canUseEditForm && canEditItems ? openItemsEditPage : undefined}
-          onAnchor={handleAnchor}
-          canSeeMoney={canSeeMoney}
-        />
-      )}
-      </div>
+      <OrderNextStepGuidance
+        nextStep={nextStep}
+        readiness={orderContext.data?.readiness ?? null}
+        onEditItems={canUseEditForm && canEditItems ? openItemsEditPage : undefined}
+        onAnchor={handleAnchor}
+        canSeeMoney={canSeeMoney}
+      />
       </div>
 
+      {/* จองสต๊อคมีปัญหา — ต้องเห็นทันทีบนหน้าออเดอร์ (ด่านพร้อมผลิตจะกั้นงานไม่ให้เข้าคิวช่างอยู่แล้ว
+          แต่คนแก้ต้นเหตุคือคนที่เปิดหน้านี้) · จองสำเร็จดูได้จากประวัติออเดอร์ */}
+      {order.stockReservationError && (
+        <div className={cn(TINT.error, "flex flex-wrap items-center gap-3 rounded-lg border px-4 py-3 text-sm")}>
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          <span className="min-w-0 flex-1">
+            <span className="font-medium">จองสต๊อคไม่สำเร็จ:</span> {order.stockReservationError}
+          </span>
+          {isSalesUp &&
+            ["CONFIRMED", "DESIGNING", "DESIGN_APPROVED", "PRODUCTION_QUEUE"].includes(
+              order.internalStatus
+            ) && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => retryReserve.mutate({ id })}
+                disabled={retryReserve.isPending}
+              >
+                {retryReserve.isPending ? "กำลังจอง..." : "จองใหม่"}
+              </Button>
+            )}
+        </div>
+      )}
+
+      {/* หมายเหตุใบนี้อยู่ "นอกแท็บ" โดยตั้งใจ — คนแพ็ค (แท็บจัดส่ง) กับช่าง (แท็บงานผลิต)
+          ต้องเห็น "ห้ามพับ / ส่งก่อนบ่าย 3" โดยไม่ต้องสลับกลับมาแท็บภาพรวม พลาดแล้วงานเสีย
+          โผล่เฉพาะใบที่มีหมายเหตุ — ใบปกติไม่กินที่เลย */}
+      {/* blind ship = ห้ามมีชื่อ/เอกสาร Anajak ในกล่อง · พลาดครั้งเดียวเสียลูกค้าขายซ้ำทั้งราย
+          อยู่นอกแท็บเพราะคนแพ็คทำงานอยู่แท็บ "จัดส่ง" — เดิมอยู่ในการ์ดแท็บภาพรวมที่ไม่มีใครกลับไปเปิด
+          เขียนเป็นประโยคเต็ม ไม่ใช้ไอคอน/สีล้วน (สีบอกว่า "มีอะไรบางอย่าง" แต่ไม่บอกว่าต้องทำอะไร) */}
+      {order.blindShip && (
+        <div className={cn(TINT.warning, "flex flex-wrap gap-x-2 gap-y-1 rounded-lg border px-4 py-3 text-sm")}>
+          <span className="font-medium">ส่งแบบไม่ระบุผู้ส่ง</span>
+          <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
+            ชื่อผู้ส่งบนกล่อง:{" "}
+            {order.blindShipSenderName || "ยังไม่ระบุ — ต้องกรอกก่อนแพ็ค"}
+          </span>
+        </div>
+      )}
+
+      {order.notes?.trim() && (
+        <div className={cn(TINT.warning, "flex flex-wrap gap-x-2 gap-y-1 rounded-lg border px-4 py-3 text-sm")}>
+          <span className="font-medium">หมายเหตุใบนี้</span>
+          <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">{order.notes}</span>
+        </div>
+      )}
+
+      {/* ====================================================
+          แท็บ + เนื้อหา — เต็มความกว้าง ไม่มีคอลัมน์ขวาแล้ว
+          คอลัมน์ขวาเดิม (ลูกค้า/ข้อมูลออเดอร์/ที่อยู่) คือของชิ้นเดียวกับแท็บ "ภาพรวม" เป๊ะ
+          เก็บไว้ทั้งคู่ = พูดเรื่องเดียวกัน 2 ที่ แล้ววันหลังแก้ที่เดียวอีกที่ค้าง
+          ผลพลอยได้: แถบแท็บไม่พาดคลุมของที่กดแล้วไม่เปลี่ยนอีกต่อไป (เบสบ่นเรื่องนี้ตรงๆ)
+      ==================================================== */}
+      {deniedTab === "money" && (
+        <Alert variant="warning" icon={AlertTriangle} title="เปิดส่วนเงินและบิลไม่ได้">
+          บัญชีนี้ไม่มีสิทธิ์ดูข้อมูลการเงิน ระบบจึงพากลับมาที่ภาพรวม
+        </Alert>
+      )}
+
       <Tabs value={activeTab} onValueChange={changeTab}>
-        {/* แถบโปร่งใสเลื่อนตามหน้า เพื่อไม่ให้เนื้อหาซ้อนหลังข้อความแท็บ */}
-        <TabsBar className="static mx-0 border-0 bg-transparent">
+        {/* sticky — เลื่อนลงไปลึกแค่ไหนก็ยังสลับแท็บได้
+            TabsBar = พื้นรองที่ทำให้เนื้อหาไม่วิ่งทะลุขึ้นมาอยู่ข้างแท็บตอนเลื่อน */}
+        <TabsBar>
           <TabsList aria-label="ส่วนของออเดอร์">
             {visibleTabs.map((t) => (
               <TabsTrigger
@@ -878,7 +893,8 @@ function OrderDetailContent({
 
       <div className="mt-6">
         <div>
-          {/* ภาพรวมใช้ข้อมูลและทางแก้เดียวกับฟอร์มออเดอร์ */}
+          {/* แท็บแรก: ภาพรวม — ผู้ติดต่อ/ข้อมูลงาน/ที่อยู่/แบรนด์ (เบสสั่ง 2026-08-11)
+              นี่คือบ้านของสิ่งที่เคยอยู่คอลัมน์ขวา บวกของที่มีในฐานแต่หน้าไม่เคยโชว์ */}
           {visitedTabs.has("overview") && <TabsContent value="overview" keepMounted className="space-y-6">
             <OrderOverviewTab
               order={order}
@@ -896,6 +912,7 @@ function OrderDetailContent({
                 <OrderArtworkCard
                   orderId={id}
                   description={order.description}
+                  onOpenFiles={() => changeTab("files")}
                 />
               }
               channelColor={channelColor}
@@ -947,7 +964,7 @@ function OrderDetailContent({
               </>
             ) : null}
 
-            {/* การ์ดสรุปอ่านอย่างเดียว — ตัวจัดการผลิตจริงอยู่ /production/[id] */}
+            {/* การ์ดสรุปอ่านอย่างเดียว — ตัวจัดการผลิตจริงอยู่ /production/[id] (เบสเคาะแยกโมดูล) */}
             <ProductionSummaryCard
               orderId={id}
               internalStatus={order.internalStatus}
@@ -971,12 +988,11 @@ function OrderDetailContent({
             ) : (
               /* แท็บอยู่เสมอแม้ยังไม่ถึงเฟส — ถ้าซ่อนตามสถานะ ชุดแท็บจะเปลี่ยนใต้มือ
                  ระหว่างวันเดียวกัน (สถานะเดินหลายรอบต่อวัน) ตำแหน่งที่คนจำไว้จะขยับ */
-              <Section title="จัดส่ง" icon={Truck} tone="production" surface="card" className="rounded-xl">
+              <Section title="จัดส่ง" icon={Truck} tone="production">
                 <EmptyState
                   icon={Truck}
                   title="ยังไม่ถึงขั้นจัดส่ง"
                   description="ส่วนนี้จะเปิดเมื่อผลิตและตรวจนับเสร็จ"
-                  action={<Button variant="outline" onClick={() => changeTab("production")}>ดูงานผลิตและตรวจนับ</Button>}
                 />
               </Section>
             )}
@@ -1010,7 +1026,6 @@ function OrderDetailContent({
               orderId={id}
               userId={me.id}
               userRole={me.role}
-              canManageLink={permAllows(me.permissions, "create_sales_docs")}
             />
           </TabsContent>}
 

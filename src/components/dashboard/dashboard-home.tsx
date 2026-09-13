@@ -1,516 +1,461 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import type { ComponentType, ReactNode } from "react";
 import Link from "next/link";
 import {
+  AlertTriangle,
+  ArrowRight,
   CalendarClock,
-  CircleAlert,
-  Eye,
-  LayoutGrid,
+  CheckCircle2,
+  ClipboardList,
+  Factory,
+  FileClock,
+  Hourglass,
   Plus,
-  Search,
+  ReceiptText,
   ShoppingCart,
   Truck,
+  UserRoundCheck,
+  Users,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { canCreateOrderWithPricing } from "@/lib/order-access";
 import { permAllows } from "@/lib/permissions";
-import { cn, formatBaht } from "@/lib/utils";
-import { differenceInBangkokDays, toBangkokDateInput } from "@/lib/date-utils";
-import { orderMockupCover } from "@/lib/mockup";
-import { buildDashboardAttentionItems } from "@/lib/dashboard";
+import { cn, formatBaht, formatDateShort } from "@/lib/utils";
+import {
+  buildDashboardAttentionItems,
+  type DashboardAttentionItem,
+  type DashboardAttentionKind,
+} from "@/lib/dashboard";
 import { PageShell } from "@/components/page-shell";
+import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { QueryError } from "@/components/ui/query-error";
 import { EmptyState } from "@/components/ui/empty-state";
-import { FilterChip } from "@/components/ui/filter-chip";
-import { DataTable } from "@/components/ui/data-table";
-import { DueTag } from "@/components/ui/due-tag";
-import { ToneMark } from "@/components/ui/section";
 import { OrderStatusBadge } from "@/components/order-status-badge";
-import { MockupThumbnail } from "@/components/mockup/mockup-thumbnail";
 import { CONTROL_MIN_H } from "@/components/ui/control-size";
-import { FOCUS_INSET } from "@/components/ui/tokens";
-import styles from "./dashboard-home.module.css";
+import {
+  FOCUS_BUTTON,
+  FOCUS_INSET,
+  INTERACTIVE_HOVER,
+  INTERACTIVE_PRESSED,
+  RADIUS,
+} from "@/components/ui/tokens";
+import { VISUAL_TONE_CLASSES, type VisualTone } from "@/lib/visual-tone";
 
-/* ============================================================
-   หน้าแรกของหัวหน้า/เจ้าของ — โครงตามต้นแบบที่เบสเคาะ 2026-09-13/14
-   (ต้นแบบอยู่ในสมอง records/projects/anajak-erp/mockup-order-home-notion-2026-09-13.html)
-
-   คิวออเดอร์ที่ยังเดินอยู่เป็นของหลัก เรียงตามกำหนดส่ง กรอง ส่งวันนี้/ต้องเช็ก ค้นหาได้
-   ฝั่งขวา = แบบที่รอลูกค้าตัดสิน กับกำหนดส่งรายวัน · ตัวเลขทุกตัวบนหน้านับจากคิวชุดเดียวกัน
-   ไม่มีปุ่มทางลัด/CTA ซ้ำ (เมนูซ้ายพาไปได้อยู่แล้ว) · ปุ่มเดียวคือเปิดงานใหม่
-   ============================================================ */
-
-type Filter = "all" | "today" | "attention";
-
-const FILTERS: { key: Filter; label: string }[] = [
-  { key: "all", label: "ทั้งหมด" },
-  { key: "today", label: "ส่งวันนี้" },
-  { key: "attention", label: "ต้องเช็ก" },
-];
-
-/** งานที่ต้องหยิบมาดูก่อน — นิยามเดียวกับป้ายในแถว จึงนับตรงกันเสมอ */
-function issueOf(row: {
-  dueInDays: number | null;
-  internalStatus: string;
-  stockReservationError: string | null;
-  designPending: boolean;
-}): { text: string; tone: "danger" | "warning" } | null {
-  if (row.stockReservationError) return { text: "จองสต๊อกไม่ครบ", tone: "danger" };
-  // เลยกำหนด: ป้ายกำหนดส่งในแถวเดียวกันบอกเป็นสีแดงอยู่แล้ว ไม่พิมพ์ซ้ำ แต่ยังนับเป็น "ต้องเช็ก"
-  if (
-    row.dueInDays !== null &&
-    row.dueInDays < 0 &&
-    !["SHIPPED", "DRAFT"].includes(row.internalStatus)
-  ) {
-    return { text: "", tone: "danger" };
-  }
-  if (row.designPending) return { text: "รอลูกค้าตัดสินแบบ", tone: "warning" };
-  return null;
-}
-
-const THAI_LONG_DATE = new Intl.DateTimeFormat("th-TH", {
-  weekday: "long",
-  day: "numeric",
-  month: "short",
-  year: "numeric",
-  timeZone: "Asia/Bangkok",
-});
-const THAI_SHORT_DATE = new Intl.DateTimeFormat("th-TH", {
-  day: "numeric",
-  month: "short",
-  timeZone: "Asia/Bangkok",
-});
-const THAI_WEEKDAY = new Intl.DateTimeFormat("th-TH", { weekday: "short", timeZone: "Asia/Bangkok" });
+const ATTENTION_ICONS: Record<DashboardAttentionKind, ComponentType<{ className?: string }>> = {
+  "overdue-order": CalendarClock,
+  "due-soon": Hourglass,
+  outsource: Truck,
+  stuck: AlertTriangle,
+  "overdue-invoice": ReceiptText,
+  quotation: ClipboardList,
+};
 
 function DashboardSkeleton() {
   return (
     <div className="space-y-6">
-      <Skeleton className="h-24 rounded-2xl" />
-      <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_20rem]">
-        <Skeleton className="h-96 rounded-2xl" />
-        <Skeleton className="h-96 rounded-2xl" />
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Skeleton className="h-72 rounded-lg lg:col-span-2" />
+        <Skeleton className="h-72 rounded-lg" />
       </div>
+      <Skeleton className="h-32 rounded-lg" />
+      <Skeleton className="h-80 rounded-lg" />
+    </div>
+  );
+}
+
+function AttentionRow({ item }: { item: DashboardAttentionItem }) {
+  const Icon = ATTENTION_ICONS[item.kind];
+  const danger = item.tone === "danger";
+
+  return (
+    <Link
+      href={item.href}
+      className={cn(
+        CONTROL_MIN_H,
+        FOCUS_INSET,
+        INTERACTIVE_HOVER,
+        INTERACTIVE_PRESSED,
+        "group flex items-center gap-3 px-5 py-3 transition-colors",
+      )}
+    >
+      <div
+        className={cn(
+          RADIUS.inner,
+          "flex h-10 w-10 shrink-0 items-center justify-center",
+          danger
+            ? "bg-red-50 text-red-700 dark:bg-red-950/50 dark:text-red-300"
+            : "bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300",
+        )}
+      >
+        <Icon className="h-[18px] w-[18px]" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium text-strong">{item.title}</p>
+        {item.kind === "outsource" && item.detail.startsWith("เลยกำหนด") && (
+          <p className="truncate text-xs text-muted group-hover:text-secondary group-active:text-secondary">{item.detail}</p>
+        )}
+      </div>
+      <span
+        className={cn(
+          "text-xl font-semibold tabular-nums",
+          danger ? "text-red-600 dark:text-red-400" : "text-amber-700 dark:text-amber-400",
+        )}
+      >
+        {item.count}
+      </span>
+      <ArrowRight className="h-4 w-4 shrink-0 text-muted transition-transform group-hover:translate-x-0.5" />
+    </Link>
+  );
+}
+
+function AttentionPanel({
+  allowed,
+  loading,
+  error,
+  onRetry,
+  items,
+}: {
+  allowed: boolean;
+  loading: boolean;
+  error: boolean;
+  onRetry: () => void;
+  items: DashboardAttentionItem[];
+}) {
+  const visible = items.slice(0, 5);
+  const hidden = Math.max(items.length - visible.length, 0);
+
+  return (
+    <Section
+      title={allowed ? "ต้องเช็กก่อน" : "คิวงานของคุณ"}
+      flush
+      surface="card"
+      className="overflow-hidden lg:col-span-2"
+      action={
+        allowed && !loading && !error ? (
+          <Badge variant={items.length > 0 ? "warning" : "success"} size="sm">
+            {items.length > 0 ? `${items.length} เรื่อง` : "เรียบร้อย"}
+          </Badge>
+        ) : undefined
+      }
+    >
+      {!allowed ? (
+        <div className="p-5">
+          <Button asChild className="w-full sm:w-auto">
+            <Link href="/my-tasks">
+              เปิดคิวงาน
+              <ArrowRight />
+            </Link>
+          </Button>
+        </div>
+      ) : loading ? (
+        <div className="space-y-1 p-5">
+          {[0, 1, 2].map((index) => (
+            <Skeleton key={index} className="h-16 rounded-lg" />
+          ))}
+        </div>
+      ) : error ? (
+        <QueryError message="โหลดรายการที่ต้องเช็กไม่สำเร็จ" onRetry={onRetry} />
+      ) : visible.length === 0 ? (
+        <div className="flex flex-col items-center px-5 py-10 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-50 text-green-700 dark:bg-green-950/50 dark:text-green-300">
+            <CheckCircle2 className="h-5 w-5" />
+          </div>
+          <p className="mt-4 text-sm font-semibold text-strong">ยังไม่มีเรื่องเสี่ยงที่ต้องรีบแก้</p>
+          <Button asChild variant="outline" size="sm" className="mt-4">
+            <Link href="/my-tasks">ดูคิวงาน</Link>
+          </Button>
+        </div>
+      ) : (
+        <>
+          <div className="divide-y divide-divider">
+            {visible.map((item) => (
+              <AttentionRow key={item.kind} item={item} />
+            ))}
+          </div>
+          {hidden > 0 && (
+            <div className="border-t border-divider px-5 py-2">
+              <Button asChild variant="ghost" size="sm" className="w-full">
+                <Link href="/my-tasks">ดูงานอื่นอีก {hidden} เรื่อง</Link>
+              </Button>
+            </div>
+          )}
+        </>
+      )}
+    </Section>
+  );
+}
+
+function QuickLink({
+  href,
+  icon: Icon,
+  label,
+  primary,
+  tone,
+}: {
+  href: string;
+  icon: ComponentType<{ className?: string }>;
+  label: string;
+  primary?: boolean;
+  /** สีของหมวดที่ทางลัดนี้พาไป — ตรงกับสีในเมนูซ้ายและหัวหน้าปลายทาง */
+  tone?: VisualTone;
+}) {
+  return (
+    <Link
+      href={href}
+      className={cn(
+        CONTROL_MIN_H,
+        FOCUS_BUTTON,
+        "group flex min-h-16 items-center gap-3 p-3 transition-colors",
+        primary
+          ? "bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800"
+          : cn("bg-surface", INTERACTIVE_HOVER, INTERACTIVE_PRESSED, "text-secondary"),
+      )}
+    >
+      <span
+        className={cn(
+          "flex shrink-0 items-center justify-center",
+          primary
+            ? "text-white"
+            : tone
+              ? VISUAL_TONE_CLASSES[tone].mark
+              : "text-secondary",
+        )}
+        aria-hidden="true"
+      >
+        <Icon className="h-5 w-5" />
+      </span>
+      <p className="min-w-0 flex-1 text-pretty text-sm font-semibold">
+        {label}
+      </p>
+    </Link>
+  );
+}
+
+/** ช่องตัวเลขสรุปบนหน้าแรก — ได้สีประจำหมวดของตัวเลขนั้น (แบบ B · เบสเคาะ 2026-08-31)
+ *  ไม่ส่ง tone มา = เทา/ดำเหมือนเดิม */
+function Metric({
+  label,
+  value,
+  note,
+  icon: Icon,
+  tone,
+}: {
+  label: string;
+  value: ReactNode;
+  note?: string;
+  icon?: ComponentType<{ className?: string }>;
+  tone?: VisualTone;
+}) {
+  return (
+    <div className="min-w-0 bg-surface p-4 sm:p-5">
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-xs font-medium text-muted">{label}</p>
+        {Icon && tone && (
+          <Icon
+            className={cn("h-4 w-4 shrink-0", VISUAL_TONE_CLASSES[tone].mark)}
+            aria-hidden="true"
+          />
+        )}
+      </div>
+      <p
+        className={cn(
+          "mt-2 text-2xl font-semibold tabular-nums",
+          tone ? VISUAL_TONE_CLASSES[tone].text : "text-strong",
+        )}
+      >
+        {value}
+      </p>
+      {note && <p className="mt-1 truncate text-xs text-muted">{note}</p>}
     </div>
   );
 }
 
 export function DashboardHome() {
+  const dashboardQuery = trpc.analytics.dashboard.useQuery();
   const meQuery = trpc.user.me.useQuery();
   const me = meQuery.data;
+  const data = dashboardQuery.data;
+
   const canViewPulse = permAllows(me?.permissions, "view_admin_reports");
   const canCreateOrder = canCreateOrderWithPricing(me?.permissions);
   const canViewBilling = permAllows(me?.permissions, "manage_billing_docs");
   const canViewQuotations = permAllows(me?.permissions, "see_order_money");
-  const showMoney = permAllows(me?.permissions, "see_order_money");
-
-  // งานที่ยังเดินอยู่ทั้งหมด เรียงตามกำหนดส่ง (ไม่ระบุกำหนดอยู่ท้าย) — ชุดเดียวใช้ทั้งตาราง ตัวเลข และฝั่งขวา
-  const queue = trpc.order.list.useQuery({
-    excludeClosed: true,
-    sortBy: "deadline",
-    sortOrder: "asc",
-    limit: 100,
-  });
   const pulseQuery = trpc.analytics.ownerPulse.useQuery(undefined, {
     enabled: canViewPulse,
     retry: false,
   });
 
-  const [filter, setFilter] = useState<Filter>("all");
-  const [search, setSearch] = useState("");
-
-  const now = useMemo(() => new Date(), []);
-  const todayKey = toBangkokDateInput(now);
-
-  const rows = useMemo(
-    () =>
-      (queue.data?.orders ?? []).map((order) => {
-        const dueInDays = differenceInBangkokDays(order.deadline, now);
-        const designPending = order.designs?.[0]?.approvalStatus === "PENDING";
-        const row = {
-          id: order.id,
-          orderNumber: order.orderNumber,
-          customerName: order.customer?.company || order.customer?.name || "ยังไม่ระบุลูกค้า",
-          deadline: order.deadline,
-          dueInDays,
-          dueKey: order.deadline ? toBangkokDateInput(order.deadline) : null,
-          internalStatus: order.internalStatus,
-          totalAmount: order.totalAmount,
-          stockReservationError: order.stockReservationError,
-          designPending,
-          cover: orderMockupCover(order),
-        };
-        return { ...row, issue: issueOf(row) };
-      }),
-    [queue.data, now],
-  );
-
-  const todayRows = rows.filter((row) => row.dueKey === todayKey);
-  const attentionRows = rows.filter((row) => row.issue);
-  const pendingDesignRows = rows.filter((row) => row.designPending);
-
-  const q = search.trim().toLowerCase();
-  const visibleRows = rows.filter((row) => {
-    if (filter === "today" && row.dueKey !== todayKey) return false;
-    if (filter === "attention" && !row.issue) return false;
-    if (!q) return true;
-    return `${row.orderNumber} ${row.customerName}`.toLowerCase().includes(q);
-  });
-  const filterCount: Record<Filter, number> = {
-    all: rows.length,
-    today: todayRows.length,
-    attention: attentionRows.length,
-  };
-
-  // กำหนดส่งรายวัน: เลยกำหนดรวมเป็นแถวเดียว แล้วไล่วันข้างหน้าที่มีงานจริง (ไม่สร้างวันว่าง)
-  const dayGroups = useMemo(() => {
-    const late = rows.filter((row) => row.dueInDays !== null && row.dueInDays < 0);
-    const upcoming = new Map<string, typeof rows>();
-    for (const row of rows) {
-      if (row.dueKey === null || row.dueInDays === null || row.dueInDays < 0) continue;
-      upcoming.set(row.dueKey, [...(upcoming.get(row.dueKey) ?? []), row]);
-    }
-    const days = [...upcoming.entries()]
-      .sort(([a], [b]) => (a < b ? -1 : 1))
-      .slice(0, 7)
-      .map(([key, list]) => ({ key, late: false, list, date: list[0].deadline! }));
-    return late.length ? [{ key: "late", late: true, list: late, date: null }, ...days] : days;
-  }, [rows]);
-  const maxPerDay = Math.max(1, ...dayGroups.map((group) => group.list.length));
-
-  // เรื่องเงิน/ใบเสนอ/ร้านนอกจาก Owner Pulse — คิวมองไม่เห็นเพราะไม่ใช่ออเดอร์ที่เดินอยู่
-  const pulseLinks = pulseQuery.data
-    ? buildDashboardAttentionItems(pulseQuery.data, { canViewBilling, canViewQuotations }).filter((item) =>
-        ["overdue-invoice", "quotation", "outsource"].includes(item.kind),
-      )
+  const attentionItems = pulseQuery.data
+    ? buildDashboardAttentionItems(pulseQuery.data, {
+        canViewBilling,
+        canViewQuotations,
+      })
     : [];
 
-  const loading = meQuery.isLoading || (!queue.data && (queue.isLoading || queue.isFetching));
-  const error = meQuery.isError || queue.isError || (!loading && (!me || !queue.data));
+  const loading = dashboardQuery.isLoading || meQuery.isLoading;
+  const primaryError = dashboardQuery.isError || meQuery.isError || (!loading && (!data || !me));
+
+  const retryPrimary = () => {
+    void dashboardQuery.refetch();
+    void meQuery.refetch();
+  };
 
   return (
-    <div className={cn(styles.page, "-mx-4 -mt-5 min-h-full bg-surface px-4 pb-6 pt-5 sm:-mx-6 sm:-mt-7 sm:px-6 sm:pt-7 lg:-mx-8 lg:px-8")}>
-      <PageShell
-        className="mx-auto max-w-6xl"
-        title="วันนี้"
-        meta={THAI_LONG_DATE.format(now)}
-        icon={LayoutGrid}
-        tone="brand"
+    <PageShell
+      className="mx-auto max-w-6xl"
+      title="ภาพรวมวันนี้"
+      action={
+        canCreateOrder ? (
+          <Button asChild className="hidden sm:inline-flex">
+            <Link href="/orders/new">
+              <Plus />
+              เปิดงานใหม่
+            </Link>
+          </Button>
+        ) : undefined
+      }
+      loading={loading}
+      skeleton={<DashboardSkeleton />}
+      error={
+        primaryError
+          ? { message: "โหลดพื้นที่ทำงานไม่สำเร็จ", onRetry: retryPrimary }
+          : null
+      }
+    >
+      <div className="grid gap-6 lg:grid-cols-3">
+        <AttentionPanel
+          allowed={canViewPulse}
+          loading={!pulseQuery.data && (pulseQuery.isLoading || pulseQuery.isFetching)}
+          error={pulseQuery.isError}
+          onRetry={() => void pulseQuery.refetch()}
+          items={attentionItems}
+        />
+
+        <Section title="ทางลัด" compact surface="card" flush>
+          <div className="grid grid-cols-2 gap-px bg-divider">
+            {canCreateOrder && (
+              <QuickLink
+                href="/orders/new"
+                icon={Plus}
+                label="เปิดงาน"
+                primary
+              />
+            )}
+            <QuickLink
+              href="/my-tasks"
+              icon={UserRoundCheck}
+              label="งานของฉัน"
+              primary={!canCreateOrder}
+              tone="brand"
+            />
+            <QuickLink
+              href="/production"
+              icon={Factory}
+              label="การผลิต"
+              tone="production"
+            />
+            <QuickLink
+              href={canViewBilling ? "/billing" : "/customers"}
+              icon={canViewBilling ? FileClock : Users}
+              label={canViewBilling ? "บิล" : "ลูกค้า"}
+              tone={canViewBilling ? "finance" : "brand"}
+            />
+          </div>
+        </Section>
+      </div>
+
+      <Section title="ภาพรวม" compact flush>
+        <div className="grid grid-cols-2 gap-px overflow-hidden bg-divider lg:grid-cols-4">
+          <Metric label="ออเดอร์กำลังเดิน" value={data?.activeOrders ?? 0} icon={ShoppingCart} tone="brand" />
+          <Metric label="ปิดงานเดือนนี้" value={data?.completedThisMonth ?? 0} icon={CheckCircle2} tone="production" />
+          <Metric label="ลูกค้าทั้งหมด" value={data?.totalCustomers ?? 0} icon={Users} tone="brand" note={data?.newCustomersThisMonth ? `+${data.newCustomersThisMonth} เดือนนี้` : undefined} />
+          {data?.revenueThisMonth != null ? (
+            <Metric label="มูลค่าออเดอร์ที่เปิดเดือนนี้" value={formatBaht(data.revenueThisMonth)} icon={ReceiptText} tone="finance" />
+          ) : (
+            <Metric
+              label="ขั้นผลิตค้างทั้งหมด"
+              value={pulseQuery.data?.todayQueue.open ?? "—"}
+              icon={Factory}
+              tone="production"
+            />
+          )}
+        </div>
+      </Section>
+
+      <Section
+        title="ออเดอร์ล่าสุด"
+        flush
         action={
-          canCreateOrder ? (
-            <Button asChild>
-              <Link href="/orders/new">
-                <Plus />
-                เปิดงานใหม่
-              </Link>
-            </Button>
-          ) : undefined
-        }
-        loading={loading}
-        skeleton={<DashboardSkeleton />}
-        error={
-          error
-            ? {
-                message: "โหลดคิวออเดอร์ไม่สำเร็จ",
-                onRetry: () => {
-                  void meQuery.refetch();
-                  void queue.refetch();
-                },
-              }
-            : null
+          <Button asChild variant="ghost" size="sm">
+            <Link href="/orders">
+              ดูทั้งหมด
+              <ArrowRight />
+            </Link>
+          </Button>
         }
       >
-        {/* ตัวเลขที่ต้องเห็นก่อน — นับจากคิวชุดเดียวกับตารางข้างล่าง */}
-        <dl className={styles.strip} aria-label="สรุปวันนี้">
-          <div>
-            <dt className="flex items-center gap-1.5 text-xs font-medium text-secondary">
-              <ShoppingCart className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
-              ออเดอร์ที่เปิดอยู่
-            </dt>
-            <dd className="mt-1 text-2xl font-semibold tabular-nums text-module-brand-text sm:text-3xl">
-              {queue.data?.total ?? rows.length}
-              <span className="ml-1.5 text-sm font-normal text-muted">ออเดอร์</span>
-            </dd>
-          </div>
-          <div>
-            <dt className="flex items-center gap-1.5 text-xs font-medium text-secondary">
-              <Truck className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
-              กำหนดส่งวันนี้
-            </dt>
-            <dd className="mt-1 text-2xl font-semibold tabular-nums text-strong sm:text-3xl">
-              {todayRows.length}
-              <span className="ml-1.5 text-sm font-normal text-muted">ออเดอร์</span>
-            </dd>
-          </div>
-          <div>
-            <dt className="flex items-center gap-1.5 text-xs font-medium text-secondary">
-              <CircleAlert className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
-              ต้องเช็ก
-            </dt>
-            <dd
-              className={cn(
-                "mt-1 text-2xl font-semibold tabular-nums sm:text-3xl",
-                attentionRows.length > 0 ? "text-red-600 dark:text-red-400" : "text-strong",
-              )}
-            >
-              {attentionRows.length}
-              <span className="ml-1.5 text-sm font-normal text-muted">รายการ</span>
-            </dd>
-          </div>
-        </dl>
-
-        {pulseLinks.length > 0 && (
-          <ul className="flex flex-wrap gap-2" aria-label="เรื่องเงินและงานนอกคิวที่ต้องตาม">
-            {pulseLinks.map((item) => (
-              <li key={item.kind}>
-                <Link
-                  href={item.href}
-                  className={cn(
-                    CONTROL_MIN_H,
-                    FOCUS_INSET,
-                    "inline-flex items-center gap-2 rounded-full border border-border px-3 text-sm text-secondary",
-                    item.tone === "danger" && "border-red-200 text-red-700 dark:border-red-900 dark:text-red-300",
-                  )}
-                >
-                  {item.title}
-                  <span className="font-semibold tabular-nums">{item.count}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        <div className="grid items-start gap-8 xl:grid-cols-[minmax(0,1fr)_20rem]">
-          <section aria-labelledby="dashboard-queue-title" className="min-w-0 space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 id="dashboard-queue-title" className="text-base font-semibold text-strong">
-                คิวออเดอร์
-              </h2>
-              <div className="relative w-full sm:w-64">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden="true" />
-                <Input
-                  type="search"
-                  name="queue-search"
-                  aria-label="ค้นหาเลขออเดอร์หรือลูกค้าในคิว"
-                  placeholder="ค้นหาเลขออเดอร์หรือลูกค้า"
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  className="pl-9"
-                />
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-4 border-b border-divider" role="group" aria-label="กรองคิวออเดอร์">
-              {FILTERS.map((item) => (
-                <FilterChip
-                  key={item.key}
-                  selected={filter === item.key}
-                  onClick={() => setFilter(item.key)}
-                  aria-label={`${item.label} ${filterCount[item.key]} ออเดอร์`}
-                >
-                  {item.label}
-                  <span className="tabular-nums text-muted">{filterCount[item.key]}</span>
-                </FilterChip>
-              ))}
-            </div>
-
-            {rows.length === 0 ? (
-              <EmptyState
-                icon={ShoppingCart}
-                title="ยังไม่มีออเดอร์ที่เดินอยู่"
-                action={
-                  canCreateOrder ? (
-                    <Button asChild>
-                      <Link href="/orders/new">เปิดงานแรก</Link>
-                    </Button>
-                  ) : undefined
-                }
-              />
-            ) : visibleRows.length === 0 ? (
-              <EmptyState
-                icon={Search}
-                title="ไม่พบออเดอร์ตามที่กรอง"
-                density="compact"
-                action={
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setSearch("");
-                      setFilter("all");
-                    }}
-                  >
-                    ล้างตัวกรอง
-                  </Button>
-                }
-              />
-            ) : (
-              <DataTable.Root cellPadding="compact" bordered={false} className="border-t border-divider">
-                <DataTable.Head>
-                  <tr>
-                    <DataTable.Th>ออเดอร์</DataTable.Th>
-                    <DataTable.Th>กำหนดส่ง</DataTable.Th>
-                    <DataTable.Th>สถานะ</DataTable.Th>
-                    {showMoney && <DataTable.Th align="right">ยอดรวม</DataTable.Th>}
-                  </tr>
-                </DataTable.Head>
-                <DataTable.Body>
-                  {visibleRows.map((row) => (
-                    <DataTable.Row key={row.id} href={`/orders/${row.id}`} className={styles.queueRow}>
-                      <DataTable.Td>
-                        <div className="min-w-0">
-                          <p className="font-mono text-xs text-muted">{row.orderNumber}</p>
-                          <p className="mt-0.5 text-sm font-semibold text-strong [overflow-wrap:anywhere]">
-                            <Link href={`/orders/${row.id}`} className={cn("rounded", FOCUS_INSET)}>
-                              {row.customerName}
-                            </Link>
-                          </p>
-                          {row.issue?.text && (
-                            <p
-                              className={cn(
-                                "mt-1 flex items-center gap-1 text-xs font-medium",
-                                row.issue.tone === "danger"
-                                  ? "text-red-700 dark:text-red-300"
-                                  : "text-amber-700 dark:text-amber-300",
-                              )}
-                            >
-                              <CircleAlert className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                              {row.issue.text}
-                            </p>
-                          )}
-                        </div>
-                      </DataTable.Td>
-                      <DataTable.Td>
-                        <DueTag
-                          dueInDays={row.dueInDays}
-                          dateLabel={row.deadline ? THAI_SHORT_DATE.format(new Date(row.deadline)) : null}
-                          size="sm"
-                        />
-                      </DataTable.Td>
-                      <DataTable.Td>
-                        <OrderStatusBadge internalStatus={row.internalStatus} compact />
-                      </DataTable.Td>
-                      {showMoney && (
-                        <DataTable.Td align="right">
-                          {row.totalAmount != null ? (
-                            <span className="font-semibold tabular-nums text-strong">{formatBaht(row.totalAmount)}</span>
-                          ) : (
-                            <span className="text-muted">—</span>
-                          )}
-                        </DataTable.Td>
-                      )}
-                    </DataTable.Row>
-                  ))}
-                </DataTable.Body>
-              </DataTable.Root>
-            )}
-            {visibleRows.length > 0 && (
-              <p className="px-1 text-xs text-secondary">
-                {visibleRows.length} ออเดอร์
-                {showMoney && (
-                  <span className="float-right tabular-nums">
-                    {formatBaht(visibleRows.reduce((sum, row) => sum + (row.totalAmount ?? 0), 0))}
-                  </span>
+        {!data?.recentOrders || data.recentOrders.length === 0 ? (
+          <EmptyState
+            icon={ShoppingCart}
+            title="ยังไม่มีออเดอร์"
+            action={
+              canCreateOrder ? (
+                <Button asChild>
+                  <Link href="/orders/new">เปิดงานแรก</Link>
+                </Button>
+              ) : undefined
+            }
+          />
+        ) : (
+          <div className="divide-y divide-divider">
+            {data.recentOrders.map((order) => (
+              <Link
+                key={order.id}
+                href={`/orders/${order.id}`}
+                className={cn(
+                  CONTROL_MIN_H,
+                  FOCUS_INSET,
+                  INTERACTIVE_HOVER,
+                  INTERACTIVE_PRESSED,
+                  "group grid gap-3 px-5 py-4 transition-colors sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center",
                 )}
-              </p>
-            )}
-          </section>
-
-          <aside className="min-w-0 space-y-8">
-            <section aria-labelledby="dashboard-pending-design-title">
-              <h2
-                id="dashboard-pending-design-title"
-                className="flex items-center gap-2 border-b border-divider pb-2 text-sm font-semibold text-strong"
               >
-                <ToneMark icon={Eye} tone="product" />
-                รอตัดสินแบบ
-                <span className="ml-auto text-xs font-normal tabular-nums text-muted">{pendingDesignRows.length}</span>
-              </h2>
-              {pendingDesignRows.length === 0 ? (
-                <p className="py-4 text-sm text-secondary">ไม่มีแบบค้างตัดสิน</p>
-              ) : (
-                <ul className="mt-2 space-y-1">
-                  {pendingDesignRows.slice(0, 5).map((row) => (
-                    <li key={row.id}>
-                      <Link
-                        href={`/orders/${row.id}?tab=files`}
-                        className={cn(CONTROL_MIN_H, FOCUS_INSET, "flex items-center gap-3 rounded-xl py-2 pr-1")}
-                      >
-                        <MockupThumbnail cover={row.cover} size="sm" className="rounded-lg" />
-                        <span className="min-w-0 flex-1">
-                          <span className="block font-mono text-xs text-muted">{row.orderNumber}</span>
-                          <span className="block truncate text-sm font-medium text-strong">{row.customerName}</span>
-                        </span>
-                        <DueTag dueInDays={row.dueInDays} size="sm" />
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-
-            <section aria-labelledby="dashboard-days-title">
-              <h2
-                id="dashboard-days-title"
-                className="flex items-center gap-2 border-b border-divider pb-2 text-sm font-semibold text-strong"
-              >
-                <ToneMark icon={CalendarClock} tone="production" />
-                กำหนดส่ง
-              </h2>
-              {dayGroups.length === 0 ? (
-                <p className="py-4 text-sm text-secondary">ยังไม่มีงานที่ระบุกำหนดส่ง</p>
-              ) : (
-                <ol className="mt-2 space-y-1">
-                  {dayGroups.map((group) => (
-                    <li
-                      key={group.key}
-                      className={cn("grid grid-cols-[3rem_minmax(0,1fr)] items-center gap-3 py-2", group.late && styles.dayLate)}
-                    >
-                      <span className="text-center leading-tight">
-                        {group.late ? (
-                          <span className="block text-xs font-semibold text-red-700 dark:text-red-300">เลย<br />กำหนด</span>
-                        ) : (
-                          <>
-                            <span
-                              className={cn(
-                                "block text-lg font-semibold tabular-nums",
-                                group.key === todayKey ? "text-module-brand-text" : "text-strong",
-                              )}
-                            >
-                              {new Date(group.date!).getDate()}
-                            </span>
-                            <span className="block text-xs text-muted">
-                              {group.key === todayKey ? "วันนี้" : THAI_WEEKDAY.format(new Date(group.date!))}
-                            </span>
-                          </>
-                        )}
-                      </span>
-                      <span className="min-w-0">
-                        <span className="flex items-center justify-between text-sm">
-                          <span className="font-medium text-strong">{group.list.length} ออเดอร์</span>
-                          {!group.late && (
-                            <span className="text-xs text-secondary">{THAI_SHORT_DATE.format(new Date(group.date!))}</span>
-                          )}
-                        </span>
-                        <span className={cn("mt-1.5", styles.dayTrack)}>
-                          <span style={{ width: `${Math.round((group.list.length / maxPerDay) * 100)}%` }} />
-                        </span>
-                      </span>
-                    </li>
-                  ))}
-                </ol>
-              )}
-            </section>
-          </aside>
-        </div>
-        {queue.data && queue.data.total > rows.length && (
-          <p className="text-xs text-secondary">
-            แสดง {rows.length} จาก {queue.data.total} ออเดอร์ — ที่เหลือดูได้ที่{" "}
-            <Link href="/orders" className="font-medium text-module-brand-text underline">รายการออเดอร์</Link>
-          </p>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-sm font-semibold tabular-nums text-strong">{order.orderNumber}</p>
+                    {order.printLabel && (
+                      <Badge variant="default" size="sm">{order.printLabel}</Badge>
+                    )}
+                  </div>
+                  <p className="mt-1 truncate text-xs text-muted group-hover:text-secondary group-active:text-secondary">
+                    {order.customerName}
+                  </p>
+                  {order.deadline && (
+                    <p className="mt-1 text-xs text-muted group-hover:text-secondary group-active:text-secondary">กำหนด {formatDateShort(order.deadline)}</p>
+                  )}
+                </div>
+                <div className="flex items-center justify-between gap-3 sm:justify-end">
+                  <OrderStatusBadge
+                    customerStatus={order.customerStatus}
+                    internalStatus={order.internalStatus}
+                    compact
+                    subClassName="group-hover:text-secondary group-active:text-secondary dark:group-hover:text-secondary dark:group-active:text-secondary"
+                  />
+                  {order.totalAmount != null && (
+                    <p className="text-sm font-medium tabular-nums text-strong">{formatBaht(order.totalAmount)}</p>
+                  )}
+                </div>
+                <ArrowRight className="hidden h-4 w-4 text-muted transition-transform group-hover:translate-x-0.5 sm:block" />
+              </Link>
+            ))}
+          </div>
         )}
-      </PageShell>
-    </div>
+      </Section>
+
+    </PageShell>
   );
 }

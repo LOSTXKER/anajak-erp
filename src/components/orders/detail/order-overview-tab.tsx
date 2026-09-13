@@ -9,8 +9,6 @@ import {
   Repeat2,
   CalendarClock,
   CreditCard,
-  Package,
-  ChevronDown,
 } from "lucide-react";
 import { Section, SectionTitle } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
@@ -25,13 +23,38 @@ import {
   PRIORITY_LABELS,
 } from "@/lib/order-status";
 import { PAYMENT_TERMS_LABELS } from "@/lib/payment-terms";
-import { DISPLAY_AMOUNT, FOCUS_BUTTON } from "@/components/ui/tokens";
+import { DISPLAY_AMOUNT, FOCUS_BUTTON, RADIUS } from "@/components/ui/tokens";
 import { VISUAL_TONE_CLASSES, type VisualTone } from "@/lib/visual-tone";
-import styles from "./order-overview-cards.module.css";
 
-/** ภาพรวมเรียงข้อมูลตัดสินใจ ลูกค้า และการจัดส่ง พร้อมปุ่มแก้ตรงเรื่อง
- * TabsContent คง DOM หลังเปิดแท็บ: ข้อมูลเงินต้อง gate ด้วย showMoney ใน JSX
- */
+/* ============================================================
+   แท็บ "ภาพรวม" — ที่รวมของที่ "ไม่ใช่รายการสินค้า" ทั้งหมด
+   (เบสสั่ง 2026-08-11: "tab แรกเป็นแบบภาพรวมดีกว่า จะเป็นพวกผู้ติดต่อ
+    และอื่นๆ แต่รายการ แยกไปอีก tab นึง")
+
+   หลังย้ายการแก้ไขไปหน้าเต็ม หน้านี้เป็น read surface: สรุปข้อมูลตัดสินใจก่อน
+   แล้วค่อยแยกลูกค้า/การจัดส่งตามเจ้าของข้อมูล · optional ที่ไม่มีค่าหายทั้งแถว
+   แทนการจำลองฟอร์มอ่านอย่างเดียวด้วยช่อง "-" จำนวนมาก
+
+   ── หน้าตารอบ 2026-08-30 (เบสเคาะจากหน้าลอง /proto/order-detail แบบ B) ──
+   เดิมเป็นการ์ดใหญ่ "สรุปออเดอร์" เต็มความกว้างบนสุด แล้วค่อยการ์ดลูกค้า/จัดส่ง
+   ทุกการ์ดหัวข้อตัวหนาเท่ากันหมด อ่านแล้วไม่รู้ว่าอะไรสำคัญกว่าอะไร
+
+   ตอนนี้: **หัวใบ** (ใน order-detail-page.tsx) เป็นจุดเดียวที่เสียงดัง — เลขที่
+   สถานะ ปุ่มขั้นต่อไป · แท็บนี้จึง "เงียบ" ทั้งหมด หัวข้อการ์ดเป็น
+   `compact` (ตัวเล็กสีจาง) ไม่แข่งกับหัวใบ
+
+   สิ่งที่ต้องรู้ก่อนแก้ต่อ:
+   - เบสสั่งเอง 2026-08-30 ว่าหัวใบ "มีแค่สถานะกับ CTA ก็พอ" → กำหนดส่ง/จำนวน/ยอด
+     ที่เคยอยู่บนหัวย้ายมาอยู่บนสุดของการ์ด "ข้อมูลออเดอร์" **ห้ามลบทิ้ง**
+     สามค่านี้ไม่มีที่อยู่อื่นในทั้งหน้า (ลูกค้าไม่ต้องย้ายมา — การ์ดลูกค้าบอกอยู่แล้ว)
+   - คอลัมน์สรุปถูกวางไว้ **ก่อน** ในลำดับ DOM แล้วค่อยดันไปอยู่ขวาด้วย grid
+     บนจอกว้าง — เพื่อให้มือถือ (ที่ซ้อนตามลำดับ DOM) เห็นกำหนดส่ง/ยอด
+     ก่อนต้องเลื่อนผ่านรายละเอียดงานกับการ์ดลูกค้าที่ยาว
+
+   ⚠️ TabsContent ของหน้านี้ forceMount เสมอ (ซ่อนด้วย CSS ไม่ถอด DOM)
+   → ข้อมูลเงินต้อง gate ด้วย {showMoney && ...} ระดับ JSX เท่านั้น
+   ห้ามซ่อนด้วยคลาส และห้าม fallback เป็น ฿0/— เพราะช่างจะเปิด DOM เห็นตัวเลขจริง
+   ============================================================ */
 
 /** ช่องหนึ่งช่องของ "ประวัติลูกค้า" ในการ์ดลูกค้า (แบบ B · สีบอกหมวด) */
 type CustomerHistoryCell = {
@@ -133,7 +156,7 @@ interface OrderOverviewTabProps {
   // เปิดฟอร์มแก้เต็มหน้าโดยโฟกัสการ์ดที่กด — ไม่ส่งมา = ไม่มีสิทธิ์แก้ ปุ่มไม่ต้องขึ้น
   onEditInfo?: (section: "info" | "shipping") => void;
   onOpenCustomer?: () => void;
-  /* การ์ด "ม็อกอัพและไฟล์" (ม็อกอัพ + รายละเอียดงาน + สรุปไฟล์) — ส่งเข้ามาเป็นชิ้นสำเร็จ
+  /* การ์ด "งานนี้พิมพ์อะไร" (ม็อกอัพ + รายละเอียดงาน + สรุปไฟล์) — ส่งเข้ามาเป็นชิ้นสำเร็จ
      เพราะแท็บนี้เป็น read surface ที่รับ props ล้วน ไม่ยิง query เอง ส่วนการ์ดนั้นต้องยิง
      (ม็อกอัพ/ไฟล์อยู่คนละตาราง) · หน้าแม่จึงประกอบมาให้ แล้วที่นี่แค่วางตำแหน่ง */
   artwork?: React.ReactNode;
@@ -145,33 +168,10 @@ interface OrderOverviewTabProps {
 // ชิ้นส่วนหน้าตา
 // ============================================================
 
-function OverviewTitle({
-  icon: Icon,
-  tone,
-  framed,
-  children,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  tone: VisualTone;
-  framed: boolean;
-  children: React.ReactNode;
-}) {
-  if (!framed) return <SectionTitle icon={Icon} tone={tone}>{children}</SectionTitle>;
-
-  return (
-    <span className="flex items-center gap-2.5">
-      <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg", VISUAL_TONE_CLASSES[tone].soft)} aria-hidden="true">
-        <Icon className="h-4 w-4" />
-      </span>
-      {children}
-    </span>
-  );
-}
-
 /** กริดของช่องข้อมูลรอง — การ์ดล่างค่อยแยก 2 คอลัมน์เมื่อพื้นที่พอ */
-function FieldGrid({ children, className }: { children: React.ReactNode; className?: string }) {
+function FieldGrid({ children }: { children: React.ReactNode }) {
   return (
-    <dl className={cn("grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2", className)}>
+    <dl className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
       {children}
     </dl>
   );
@@ -204,12 +204,12 @@ function Field({
   if (!filled && !emptyText) return null;
 
   return (
-    <div className={cn("min-w-0 space-y-1", wide && "sm:col-span-2")}>
+    <div className={cn("min-w-0 space-y-0.5", wide && "sm:col-span-2")}>
       <dt className="text-xs text-muted">{label}</dt>
       {/* ไทยห้าม truncate — ปล่อยตัดบรรทัดได้ทุกตำแหน่ง ดีกว่าจุดไข่ปลาที่ตัดสระทิ้ง */}
       <dd
         className={cn(
-          "text-sm leading-relaxed [overflow-wrap:anywhere]",
+          "text-sm [overflow-wrap:anywhere]",
           filled
             ? "font-medium text-strong"
             : emptyTone === "warn"
@@ -228,17 +228,15 @@ function SummaryFact({
   label,
   children,
   detail,
-  className,
 }: {
   label: React.ReactNode;
   children: React.ReactNode;
   detail?: React.ReactNode;
-  className?: string;
 }) {
   return (
-    <div className={cn("min-w-0 space-y-1.5", className)}>
+    <div className="min-w-0 space-y-1">
       <dt className="text-xs font-medium text-muted">{label}</dt>
-      <dd className="min-w-0 text-lg font-semibold leading-snug tabular-nums text-strong [overflow-wrap:anywhere]">
+      <dd className="min-w-0 text-lg font-semibold text-strong [overflow-wrap:anywhere]">
         <span className="block min-w-0 [overflow-wrap:anywhere]">
           {children}
         </span>
@@ -270,7 +268,8 @@ function ReferenceItem({
   );
 }
 
-/** กลุ่มย่อยในการ์ด — เส้นแบ่งคั่นเรื่องที่คนค้นหาแยกกัน */
+/** กลุ่มย่อยในการ์ด — หัวกลุ่มเป็นคำถามที่คนถามจริง ไม่ใช่ชื่อตารางในฐานข้อมูล
+ *  divided = ขึ้นกลุ่มใหม่ คั่นด้วยเส้นบาง (การ์ดไม่มีขอบ เส้นในนี้คือตัวแบ่งจังหวะอ่าน) */
 function Group({
   label,
   divided,
@@ -401,13 +400,21 @@ export function OrderOverviewTab({
       customer.totalOrders > 0 ||
       customer.lastOrderAt),
   );
-  // ยอดชำระและวงเงินใช้ค่าที่ผ่านการกรองสิทธิ์จาก server แล้ว
+  /* ประวัติลูกค้า = สี่ค่าที่คนถามจริงตอนเปิดใบงาน เรียงจากตัวที่ใช้ตัดสินใจบ่อยสุด
+     แต่ละช่องได้ "สีประจำหมวด" ของมันเอง (เงิน = การเงิน · จำนวนครั้ง = แบรนด์ ฯลฯ)
+     — แบบ B "สีบอกหมวด" เบสเคาะ 2026-08-31 จากหน้าลอง /proto/look
+
+     ก่อนหน้านี้เป็นบรรทัดตัวหนังสือเทาใต้ชื่อ ซึ่งเบสทักเองว่า "ของที่มันพิเศษ
+     ดันเขียนแค่ text โง่ ๆ" — ค่าเท่าเดิมทุกตัว เปลี่ยนแค่ที่ยืนของมัน
+
+     ช่องไหนไม่มีค่าก็หายไปทั้งช่อง (กติกาเดิมของแท็บนี้: optional ว่างต้องหาย
+     ไม่ใช่โชว์ "—" ให้เต็มกริด) · gate เงินยังครอบทั้งก้อนเหมือนเดิม */
   const customerHistoryCells: CustomerHistoryCell[] = customer
     ? ([
         customer.totalSpent != null
           ? {
               key: "spent",
-              label: "ชำระสะสม",
+              label: "ซื้อสะสม",
               value: formatCurrency(customer.totalSpent),
               icon: Wallet,
               tone: "finance",
@@ -469,19 +476,20 @@ export function OrderOverviewTab({
   const summarySection = (
     <Section
       data-order-overview-card="summary"
-      className={currentLayout ? cn("@container", styles.card) : undefined}
-      surface={currentLayout ? "card" : "plain"}
-      title={<OverviewTitle icon={Info} tone="brand" framed={currentLayout}>ข้อมูลออเดอร์</OverviewTitle>}
+      compact={currentLayout}
+      surface={currentLayout ? undefined : "plain"}
+      title={<SectionTitle icon={Info} tone="brand">ข้อมูลออเดอร์</SectionTitle>}
       action={editButton("info", "แก้ไขข้อมูลออเดอร์")}
     >
-      <div className="space-y-4">
-        {/* ข้อมูลที่ใช้ตัดสินใจก่อนเปิดรายละเอียด */}
-        <dl className={cn("grid grid-cols-2 gap-x-4 gap-y-4 sm:gap-x-6 sm:gap-y-5", currentLayout && styles.summaryFacts)}>
+      <div className="space-y-5">
+        {/* สามค่าที่คนเปิดใบงานมาหาบ่อยที่สุด — เคยอยู่บนหัวหน้า
+            ย้ายลงมาที่นี่ตอนเบสสั่งให้หัวใบเหลือแค่สถานะกับปุ่ม (2026-08-30) */}
+        <dl className={cn("grid grid-cols-2 gap-x-4 gap-y-4 sm:gap-x-6 sm:gap-y-5", currentLayout && "lg:grid-cols-3")}>
           <SummaryFact
-            label={<span className="inline-flex items-center gap-1.5">{currentLayout && <CalendarClock className="h-4 w-4" aria-hidden="true" />}กำหนดส่ง</span>}
+            label="กำหนดส่ง"
             detail={
               <span className="inline-flex flex-wrap items-center gap-1.5">
-                <span className={currentLayout ? "sr-only" : undefined}>ความเร่งด่วน</span>
+                <span>ความเร่งด่วน</span>
                 <Badge
                   variant={
                     order.priority === "URGENT"
@@ -506,7 +514,7 @@ export function OrderOverviewTab({
             )}
           </SummaryFact>
 
-          <SummaryFact label={<span className="inline-flex items-center gap-1.5">{currentLayout && <Package className="h-4 w-4" aria-hidden="true" />}จำนวนรวม</span>}>
+          <SummaryFact label="จำนวนรวม">
             {totalQuantity > 0 ? (
               `${totalQuantity.toLocaleString()} ชิ้น`
             ) : order.estimatedQuantity ? (
@@ -522,7 +530,6 @@ export function OrderOverviewTab({
           {showMoney && (
             <SummaryFact
               label="ยอดรวม"
-              className={currentLayout ? cn("col-span-2", styles.orderTotal, !hasPricedWork && styles.unpricedTotal) : undefined}
               detail={
                 totalNeedsReview ? (
                   <span className="text-amber-700 dark:text-amber-300">
@@ -535,7 +542,6 @@ export function OrderOverviewTab({
                 <button
                   type="button"
                   onClick={onOpenMoney}
-                  aria-label={currentLayout ? `ดูเงินและบิล ยอดรวม ${hasPricedWork ? formatCurrency(totalAmount) : "ยังไม่ตีราคา"}` : undefined}
                   className={cn(
                     "inline-flex min-h-11 min-w-11 items-center rounded-lg text-left hover:underline",
                     hasPricedWork
@@ -547,7 +553,6 @@ export function OrderOverviewTab({
                   {hasPricedWork
                     ? formatCurrency(totalAmount)
                     : "ยังไม่ตีราคา"}
-                  {currentLayout && <ArrowRight className="ml-3 h-5 w-5 shrink-0" aria-hidden="true" />}
                 </button>
               ) : (
                 <span
@@ -567,7 +572,7 @@ export function OrderOverviewTab({
         </dl>
 
         <Group divided>
-          <FieldGrid className={currentLayout ? cn("grid-cols-2 gap-x-4", styles.summaryDetails) : undefined}>
+          <FieldGrid>
             <Field label="ประเภทงาน">
               <Badge
                 variant={order.orderType === "CUSTOM" ? "accent" : "default"}
@@ -636,18 +641,18 @@ export function OrderOverviewTab({
   const shippingSection = (
     <Section
       data-order-overview-card="shipping"
-      className={currentLayout ? styles.card : undefined}
-      surface={currentLayout ? "card" : "plain"}
-      title={<OverviewTitle icon={Truck} tone="production" framed={currentLayout}>การจัดส่ง</OverviewTitle>}
+      compact={currentLayout}
+      surface={currentLayout ? undefined : "plain"}
+      title={<SectionTitle icon={Truck} tone="production">การจัดส่ง</SectionTitle>}
       action={editButton(
         "shipping",
         hasShipping ? "แก้ไขที่อยู่จัดส่ง" : "เพิ่มที่อยู่จัดส่ง",
         hasShipping ? "แก้ไข" : "เพิ่มที่อยู่",
       )}
     >
-      <div className="space-y-4">
+      <div className="space-y-5">
         {hasShipping ? (
-          <FieldGrid className={currentLayout ? styles.fieldRows : undefined}>
+          <FieldGrid>
             <Field label="ผู้รับ">{order.shippingRecipientName}</Field>
             <Field label="เบอร์ผู้รับ">
               {order.shippingPhone && (
@@ -676,6 +681,11 @@ export function OrderOverviewTab({
           <div className="space-y-1">
             <p className="text-sm font-medium text-strong">
               ยังไม่มีที่อยู่จัดส่ง
+            </p>
+            <p className="text-sm text-muted">
+              {customer?.address && onEditInfo
+                ? "หน้าแก้ไขสามารถเลือกใช้ที่อยู่ลูกค้าได้ทันที"
+                : "เพิ่มผู้รับและที่อยู่ก่อนสร้างใบส่งของ"}
             </p>
           </div>
         )}
@@ -708,11 +718,11 @@ export function OrderOverviewTab({
     order.brandProfile && (
       <Section
         data-order-overview-card="brand"
-        className={currentLayout ? styles.card : undefined}
-        surface={currentLayout ? "card" : "plain"}
-        title={<OverviewTitle icon={Palette} tone="product" framed={currentLayout}>แบรนด์ลูกค้า</OverviewTitle>}
+        compact={currentLayout}
+        surface={currentLayout ? undefined : "plain"}
+        title={<SectionTitle icon={Palette} tone="product">แบรนด์ลูกค้า</SectionTitle>}
       >
-        <FieldGrid className={currentLayout ? styles.fieldRows : undefined}>
+        <FieldGrid>
           <Field label="ชื่อแบรนด์">{order.brandProfile.brandName}</Field>
           {order.brandProfile.logoUrl && (
             <Field label="โลโก้">
@@ -798,9 +808,9 @@ export function OrderOverviewTab({
   const customerSection = (
     <Section
       data-order-overview-card="customer"
-      className={currentLayout ? cn("@container", styles.card) : undefined}
-      surface={currentLayout ? "card" : "plain"}
-      title={<OverviewTitle icon={User} tone="brand" framed={currentLayout}>ลูกค้าและผู้ติดต่อ</OverviewTitle>}
+      compact={currentLayout}
+      surface={currentLayout ? undefined : "plain"}
+      title={<SectionTitle icon={User} tone="brand">ลูกค้าและผู้ติดต่อ</SectionTitle>}
       action={
         customer ? onOpenCustomer ? (
           <Button type="button" variant="ghost" size="sm" onClick={onOpenCustomer}>
@@ -814,7 +824,7 @@ export function OrderOverviewTab({
       }
     >
       {customer ? (
-        <div className="space-y-4">
+        <div className="space-y-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="text-base font-semibold text-strong [overflow-wrap:anywhere]">
@@ -833,9 +843,58 @@ export function OrderOverviewTab({
             </Badge>
           </div>
 
-          <Group>
+          {/* gate เงินเหมือนเดิมทุกประการ: showMoney && hasCustomerHistory ครอบ
+              ทั้งก้อน ช่างจึงไม่เห็นอะไรเลยแม้แต่หัวข้อ (TabsContent forceMount
+              → ต้อง gate ที่ JSX ห้ามซ่อนด้วยคลาส) */}
+          {showMoney && hasCustomerHistory && customerHistoryCells.length > 0 && (
+            <dl className={cn("grid grid-cols-2 gap-3", variant !== "b" && "sm:grid-cols-4")}>
+              {customerHistoryCells.map((cell) => (
+                <div
+                  key={cell.key}
+                  className={cn(
+                    currentLayout
+                      ? cn("px-3 py-3", RADIUS.inner, VISUAL_TONE_CLASSES[cell.tone].soft)
+                      : "border-l border-divider pl-3",
+                  )}
+                >
+                  <dt className={cn("flex items-center gap-1.5 text-xs", !currentLayout && "text-muted")}>
+                    {currentLayout && <cell.icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />}
+                    {cell.label}
+                  </dt>
+                  <dd className={cn("mt-1 font-semibold tabular-nums [overflow-wrap:anywhere]", currentLayout ? "text-lg" : "text-sm text-secondary")}>
+                    {cell.value}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          )}
+
+          <FieldGrid>
+            <Field
+              label="เลขผู้เสียภาษี"
+              emptyTone="warn"
+              emptyText="ยังไม่มีเลขภาษี — ออกใบกำกับไม่ได้"
+            >
+              {customer.taxId && (
+                <span className="font-mono">
+                  {customer.taxId}
+                  {customer.branchNumber && (
+                    <span className="ml-1.5 font-sans text-xs font-normal text-muted">
+                      (สาขา{" "}
+                      {customer.branchNumber === "00000"
+                        ? "สำนักงานใหญ่"
+                        : customer.branchNumber}
+                      )
+                    </span>
+                  )}
+                </span>
+              )}
+            </Field>
+          </FieldGrid>
+
+          <Group label="ช่องทางติดต่อ" divided>
             {hasCustomerContact ? (
-              <FieldGrid className={currentLayout ? cn("gap-x-4", styles.customerContacts) : undefined}>
+              <FieldGrid>
                 <Field label="โทรศัพท์">
                   {customer.phone && <PhoneLink phone={customer.phone} />}
                 </Field>
@@ -857,118 +916,62 @@ export function OrderOverviewTab({
             )}
           </Group>
 
-          <FieldGrid className={currentLayout ? styles.fieldRows : undefined}>
-            <Field
-              label="เลขผู้เสียภาษี"
-              emptyTone="warn"
-              emptyText="ยังไม่มีเลขภาษี — ออกใบกำกับไม่ได้"
-            >
-              {customer.taxId && (
-                <span className="font-mono">
-                  {customer.taxId}
-                  {customer.branchNumber && (
-                    <span className="ml-1.5 font-sans text-xs font-normal text-muted">
-                      (สาขา{" "}
-                      {customer.branchNumber === "00000"
-                        ? "สำนักงานใหญ่"
-                        : customer.branchNumber}
-                      )
-                    </span>
-                  )}
-                </span>
-              )}
-            </Field>
-            {customer.tags.length > 0 && (
-              <Field label="ป้ายลูกค้า" wide={!currentLayout}>
-                <span className="flex flex-wrap gap-1.5">
-                  {/* ป้ายลูกค้าเป็นคำที่ทีมตั้งเอง ไม่มีความหมายเชิงสถานะ →
-                      ได้โทน "ระบบ" (เทาอมฟ้า) ไม่ใช่สีเตือน (แบบ B · 2026-08-31) */}
-                  {customer.tags.map((tag) => (
-                    <Badge
-                      key={tag}
-                      variant="secondary"
-                      size="sm"
-                      className={cn(
-                        "max-w-full whitespace-normal [overflow-wrap:anywhere]",
-                        VISUAL_TONE_CLASSES.system.soft,
-                      )}
-                    >
-                      {tag}
-                    </Badge>
-                  ))}
-                </span>
+          <Group label="ที่อยู่ลูกค้าและออกบิล" divided>
+            <FieldGrid>
+              <Field
+                label="ที่อยู่ลูกค้า"
+                wide
+                emptyText="ยังไม่มีที่อยู่ลูกค้า"
+              >
+                {customer.address}
               </Field>
-            )}
-            {customer.notes && (
-              <Field label="หมายเหตุลูกค้า (ทุกใบ)" wide>
-                {customer.notes}
-              </Field>
-            )}
-          </FieldGrid>
-
-          <details className={cn("border-t border-divider", styles.customerDetails)} open={currentLayout ? undefined : true}>
-            <summary className={cn("rounded-lg text-sm font-medium text-secondary", FOCUS_BUTTON)}>
-              ประวัติและที่อยู่ออกบิล
-              <ChevronDown className="h-4 w-4 shrink-0" aria-hidden="true" />
-            </summary>
-            <div className="space-y-4 pb-1 pt-3">
-              {/* gate เงินเหมือนเดิมทุกประการ: showMoney && hasCustomerHistory ครอบ
-                  ทั้งก้อน ช่างจึงไม่เห็นอะไรเลยแม้แต่หัวข้อ (TabsContent forceMount
-                  → ต้อง gate ที่ JSX ห้ามซ่อนด้วยคลาส) */}
-              {showMoney && hasCustomerHistory && customerHistoryCells.length > 0 && (
-                <dl className={cn("grid grid-cols-2 gap-x-5 gap-y-4", variant !== "b" && "@xl:grid-cols-4")}>
-                  {customerHistoryCells.map((cell) => (
-                    <div
-                      key={cell.key}
-                      className={cn(
-                        currentLayout
-                          ? "min-w-0 py-1"
-                          : "border-l border-divider pl-3",
-                      )}
-                    >
-                      <dt className="flex items-center gap-1.5 text-xs text-muted">
-                        {currentLayout && <cell.icon className={cn("h-3.5 w-3.5 shrink-0", VISUAL_TONE_CLASSES[cell.tone].mark)} aria-hidden="true" />}
-                        {cell.label}
-                      </dt>
-                      <dd className="mt-1.5 text-sm font-semibold tabular-nums text-secondary [overflow-wrap:anywhere]">
-                        {cell.value}
-                      </dd>
-                    </div>
-                  ))}
-                </dl>
-              )}
-
-              <Group>
-                <FieldGrid className={currentLayout ? styles.fieldRows : undefined}>
-                  <Field
-                    label="ที่อยู่ลูกค้า"
-                    wide
-                    emptyText="ยังไม่มีที่อยู่ลูกค้า"
-                  >
-                    {customer.address}
-                  </Field>
-                  {hasBilling ? (
-                    <Field label="ที่อยู่ออกบิล" wide>
-                      <span className="block space-y-0.5">
-                        {customer.billingAddress && (
-                          <span className="block">
-                            {customer.billingAddress}
-                          </span>
-                        )}
-                        {billingArea && (
-                          <span className="block">{billingArea}</span>
-                        )}
+              {hasBilling ? (
+                <Field label="ที่อยู่ออกบิล" wide>
+                  <span className="block space-y-0.5">
+                    {customer.billingAddress && (
+                      <span className="block">
+                        {customer.billingAddress}
                       </span>
-                    </Field>
-                  ) : customer.address ? (
-                    <Field label="ที่อยู่ออกบิล" wide>
-                      ใช้ที่อยู่ลูกค้า
-                    </Field>
-                  ) : null}
-                </FieldGrid>
-              </Group>
-            </div>
-          </details>
+                    )}
+                    {billingArea && (
+                      <span className="block">{billingArea}</span>
+                    )}
+                  </span>
+                </Field>
+              ) : customer.address ? (
+                <Field label="ที่อยู่ออกบิล" wide>
+                  ใช้ที่อยู่ลูกค้า
+                </Field>
+              ) : null}
+              {customer.tags.length > 0 && (
+                <Field label="ป้ายลูกค้า" wide>
+                  <span className="flex flex-wrap gap-1.5">
+                    {/* ป้ายลูกค้าเป็นคำที่ทีมตั้งเอง ไม่มีความหมายเชิงสถานะ →
+                        ได้โทน "ระบบ" (เทาอมฟ้า) ไม่ใช่สีเตือน (แบบ B · 2026-08-31) */}
+                    {customer.tags.map((tag) => (
+                      <Badge
+                        key={tag}
+                        variant="secondary"
+                        size="sm"
+                        className={cn(
+                          "max-w-full whitespace-normal [overflow-wrap:anywhere]",
+                          VISUAL_TONE_CLASSES.system.soft,
+                        )}
+                      >
+                        {tag}
+                      </Badge>
+                    ))}
+                  </span>
+                </Field>
+              )}
+              {customer.notes && (
+                <Field label="หมายเหตุลูกค้า (ทุกใบ)" wide>
+                  {customer.notes}
+                </Field>
+              )}
+            </FieldGrid>
+          </Group>
+
         </div>
       ) : (
         <p className="text-sm text-muted">ใบนี้ยังไม่ผูกกับลูกค้า</p>
@@ -1010,22 +1013,20 @@ export function OrderOverviewTab({
     );
   }
 
-  /* ข้อมูลซ้าย–ม็อกอัพขวา (เบสเคาะจากต้นแบบ 2026-09-13/14): ซ้ายไล่ ข้อมูลออเดอร์ → ลูกค้า → จัดส่ง
-     ขวา ม็อกอัพและไฟล์ → แบรนด์ · จอแคบเรียงต่อกันตามลำดับเดียวกัน */
   return (
-    <div className="space-y-4">
-      <div className="grid items-start gap-4 xl:grid-cols-2">
-        <div className="min-w-0 space-y-4">
+    <div className="space-y-5">
+      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+        <div className="space-y-5 xl:col-start-2 xl:row-start-1">
           {summarySection}
-          {customerSection}
           {shippingSection}
-        </div>
-        <div className="min-w-0 space-y-4">
-          {artwork}
           {brandSection}
+          {referenceSection}
+        </div>
+        <div className="space-y-5 xl:col-start-1 xl:row-start-1">
+          {artwork}
+          {customerSection}
         </div>
       </div>
-      {referenceSection}
     </div>
   );
 }

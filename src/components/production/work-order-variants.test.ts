@@ -4,10 +4,9 @@ import { describe, expect, it, vi } from "vitest";
 import { useProtoController } from "@/app/proto/work-order-states/_controller";
 import { makeOrder, stateOf, type Role } from "@/app/proto/work-order-states/_fixtures";
 import { UiResetWorkOrder } from "@/app/proto/ui-reset/_work-order";
-import { WorkOrderStepReadOnly, WorkOrderView } from "./work-order-page";
+import { WorkOrderView } from "./work-order-page";
 import { WorkOrderRouteOverview, type WorkOrderVariant } from "./work-order-steps";
-import { WorkOrderPrimaryButton, type WorkOrderController } from "./work-order-controller";
-import { operationsBack, operationsOrigin } from "./operations-navigation";
+import type { WorkOrderController } from "./work-order-controller";
 
 (globalThis as Record<string, unknown>).React = React;
 
@@ -21,28 +20,6 @@ function render(scenario: string, variant?: WorkOrderVariant, role?: Role) {
 }
 
 describe("หน้าลองใบผลิตคงคำสั่งจริงและแยกการอ่านออกจากการลงมือ", () => {
-  it.each(["dtf-run", "outsource-shop"])("จอช่างเปิด %s แล้วกลับขั้นเดิมได้", (scenario) => {
-    const step = stateOf(scenario).steps.find((item) => item.status === "IN_PROGRESS")!;
-    const noop = vi.fn();
-    const html = renderToStaticMarkup(React.createElement(WorkOrderPrimaryButton, {
-      step, now: undefined, options: { touch: true }, busy: false,
-      canUpdateStep: true, canSuperviseStep: false, hasProductionPermission: true,
-      canOwnOrSupervise: () => true,
-      onStart: noop, onComplete: noop, onQuickPass: noop, onManage: noop,
-      onGoodsReceipt: noop, onOutsource: noop,
-    }));
-    const href = html.match(/href="([^"]+)"/)?.[1]?.replaceAll("&amp;", "&");
-    expect(href).toBeTruthy();
-    const url = new URL(href!, "http://localhost");
-    expect(url.pathname).toBe(scenario === "dtf-run" ? "/production/print-runs" : "/production/outsource");
-    if (scenario === "dtf-run") expect(url.searchParams.get("run")).toBe("PR-2609-0007");
-    const back = new URL(operationsBack(operationsOrigin(Object.fromEntries(url.searchParams))).href, "http://localhost");
-    expect(back.pathname).toBe("/production/floor");
-    expect(back.searchParams.get("job")).toBe(step.productionId);
-    expect(back.searchParams.get("step")).toBe(step.id);
-    expect(noop).not.toHaveBeenCalled();
-  });
-
   it("เวลาตัวอย่างตรงกันแม้ server และ browser เปิดคนละนาที", () => {
     vi.useFakeTimers();
     try {
@@ -60,30 +37,6 @@ describe("หน้าลองใบผลิตคงคำสั่งจร�
 
   it("ไม่ส่ง variant ให้หน้าเดิมเหมือนส่ง current ทุกตัวอักษร", () => {
     expect(render("doing")).toBe(render("doing", "current"));
-  });
-
-  it("ใบจริงให้เลือกเปิดอ่านขั้น และบอกพร้อมทำแยกจากกำลังทำ", () => {
-    const ready = render("start");
-    expect(ready).toContain('aria-label="เลือกขั้นเพื่อเปิดดู"');
-    expect(ready).toContain('aria-label="เปิดดู รีดร้อน · พร้อมทำ"');
-    expect(ready).toContain('aria-label="เปิดดู ตรวจคุณภาพขั้นสุดท้าย · ยังไม่ถึง"');
-    expect(render("doing")).toContain('aria-label="เปิดดู รีดร้อน · กำลังทำ"');
-  });
-
-  it("การเปิดอ่านขั้นไม่มีช่องเขียนหรือคำสั่งปิดขั้น แต่คงสินค้าและผลตรวจจริง", () => {
-    function ReadOnlyFixture() {
-      const c = useProtoController(stateOf("doing"), "boss");
-      return React.createElement(WorkOrderStepReadOnly, { c, step: c.workflowSteps[0]!, onReturn: vi.fn(), allDone: false });
-    }
-    const html = renderToStaticMarkup(React.createElement(ReadOnlyFixture));
-    expect(html).toContain("อ่านอย่างเดียว");
-    expect(html).toContain("ผลตรวจที่บันทึก");
-    expect(html).toContain("ติ๊กโดย");
-    expect(html).toContain("ยังไม่มีผลตรวจ");
-    expect(html).toContain("กลับขั้นปัจจุบัน");
-    expect(html).not.toContain("<input");
-    expect(html).not.toContain("ปิดขั้นนี้");
-    expect(html).not.toContain("เปลี่ยนคนทำ");
   });
 
   it.each(["a", "b"] as const)("แบบ %s ยกคำสั่งขึ้นก่อนตารางโดยรักษาช่องยอดและผลตรวจเดิม", (variant) => {
@@ -137,8 +90,7 @@ describe("หน้าลองใบผลิตคงคำสั่งจร�
     expect(html).toContain('id="work-order-task-s-emb"');
     expect(html.match(/type="number"/g)?.length).toBe(current.match(/type="number"/g)?.length);
     expect(html).toContain("บันทึกหลักฐานรับกลับ");
-    expect(html).toContain("ยืนยันรับกลับและผลตรวจจากหน้าใบงานร้านนอก");
-    expect(html).toContain("/production/outsource?production=");
+    expect(html).toContain("สถานะร้านนอกยังไม่เปลี่ยน");
   });
 
   it("งานติดปัญหาคงเหตุและกั้นการแก้ยอด/ผลตรวจ", () => {

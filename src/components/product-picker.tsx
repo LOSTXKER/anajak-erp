@@ -14,7 +14,6 @@ import { QueryError } from "@/components/ui/query-error";
 import { SearchInput } from "@/components/ui/search-input";
 import { Package, X, ChevronDown, ChevronRight, Minus, Plus } from "lucide-react";
 import { CONTROL_H_SM } from "@/components/ui/control-size";
-import { productSellingPrice } from "@/lib/product-price";
 
 export interface SelectedVariantItem {
   productId: string;
@@ -154,7 +153,7 @@ export function ProductPickerDialog({
           productSku: product.sku,
           name: product.name,
           productType: product.productType,
-          basePrice: productSellingPrice(product, v) ?? 0,
+          basePrice: v.sellingPrice > 0 ? v.sellingPrice : product.basePrice,
           costPrice: product.costPrice ?? 0,
           size: v.size,
           color: v.color,
@@ -311,7 +310,7 @@ export function ProductPickerDialog({
                             <span>
                               ราคา{" "}
                               <span className="font-medium text-secondary">
-                                {productSellingPrice(product) === null ? "ดูตามสีและไซซ์" : formatCurrency(product.basePrice)}
+                                {formatCurrency(product.basePrice)}
                               </span>
                             </span>
                             <span className="text-divider">|</span>
@@ -355,7 +354,6 @@ export function ProductPickerDialog({
                             <tbody className="block sm:table-row-group">
                               {product.variants.map((v) => {
                                 const vStock = v.totalStock ?? v.stock;
-                                const sellingPrice = productSellingPrice(product, v);
                                 const qty = selections[v.id] ?? 0;
                                 const isChecked = qty > 0;
                                 const exceedsStock = isChecked && qty > vStock;
@@ -414,7 +412,9 @@ export function ProductPickerDialog({
                                         ราคา
                                       </span>
                                       <span className="block break-words">
-                                        {sellingPrice === null ? "กำหนดราคาในออเดอร์" : formatCurrency(sellingPrice)}
+                                        {v.sellingPrice > 0
+                                          ? formatCurrency(v.sellingPrice)
+                                          : formatCurrency(product.basePrice)}
                                       </span>
                                     </td>
                                     <td className="col-span-3 col-start-1 p-0 sm:table-cell sm:w-28 sm:px-3 sm:py-1.5">

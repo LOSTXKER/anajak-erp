@@ -65,7 +65,7 @@ export function DeskTiles({
   variant?: ProductionDeskVariant;
 }) {
   return (
-    <div className="flex min-w-0 gap-1 overflow-x-auto border-b border-divider" data-production-desk-tiles="" data-variant={variant} aria-label="กรองงานที่ต้องติดตาม">
+    <div className={variant === "current" ? "flex gap-3 overflow-x-auto pb-1 lg:grid lg:grid-cols-4" : "flex min-w-0 flex-wrap gap-2"} data-production-desk-tiles="">
       {TILES.map((tile) => {
         const on = lens === tile.key;
         const value = summary[tile.key];
@@ -77,18 +77,19 @@ export function DeskTiles({
             aria-pressed={on}
             onClick={() => onSelectLens(on ? "all" : tile.key)}
             className={cn(
-              "inline-flex min-h-11 shrink-0 items-center gap-2.5 border-b-2 px-3 py-2 text-left transition-colors hover:bg-interactive-hover",
-              FOCUS_BUTTON,
-              on ? cn(ACTIVE_UNDERLINE, "bg-blue-50/70 dark:bg-blue-950/25") : "border-transparent",
+              variant === "current"
+                ? "card-surface card-surface-hover rounded-2xl flex min-h-12 min-w-40 shrink-0 items-center justify-between gap-3 px-4 py-3 text-left transition-colors sm:min-h-20 lg:min-w-0"
+                : cn("inline-flex min-h-11 items-center gap-3 border-b-2 bg-transparent px-1 py-2 text-left hover:text-strong", FOCUS_BUTTON, on ? ACTIVE_UNDERLINE : "border-transparent"),
+              variant === "current" && on && "ring-2 ring-inset ring-blue-600 dark:ring-blue-400",
             )}
           >
             <span className="flex min-w-0 items-center gap-2 text-sm font-medium text-secondary">
               <Icon className={cn("h-4 w-4 shrink-0", value > 0 ? TILE_TEXT[tile.tone] : "text-muted")} aria-hidden="true" />
               {tile.label}
             </span>
-            <span className={cn("min-w-6 rounded-md bg-surface-muted px-1.5 py-0.5 text-center text-sm font-semibold tabular-nums", value > 0 ? TILE_TEXT[tile.tone] : "text-muted")}>
+            <p className={cn(variant === "current" ? "text-2xl" : "text-base", "font-semibold tabular-nums", value > 0 ? TILE_TEXT[tile.tone] : "text-muted")}>
               {value}
-            </span>
+            </p>
           </button>
         );
       })}
@@ -139,20 +140,20 @@ export function DeskToolbar({
   const outsourceActive = station === STATION_OUTSOURCE_ALL || outsource.some((chip) => chip.key === station);
 
   return (
-    <div className="min-w-0 space-y-3" data-variant={variant}>
+    <div className={variant === "current" ? "space-y-3" : "grid min-w-0 items-start gap-2 lg:grid-cols-[15rem_minmax(0,1fr)]"}>
       <div className="flex flex-wrap items-center gap-3">
         <SearchInput
           ref={searchInputRef}
-          surface="field"
+          surface="raised"
           placeholder="ค้นเลขออเดอร์หรือลูกค้า"
           defaultValue={searchDefault}
           onChange={(event) => onSearchChange(event.target.value)}
-          containerClassName="w-full min-w-0 sm:max-w-md"
+          containerClassName={variant === "current" ? "w-full sm:w-72 max-w-full shrink-0" : "w-full max-w-full"}
           aria-label="ค้นหางานผลิต"
         />
         {freshness ? <div className="ml-auto">{freshness}</div> : null}
       </div>
-      <div className="flex min-w-0 gap-x-4 overflow-x-auto [&>button]:shrink-0">
+      <div className={cn("flex gap-x-5 overflow-x-auto border-b border-divider pb-px [&>button]:shrink-0", variant !== "current" && "min-w-0")}>
         <FilterChip selected={station === ""} onClick={() => onSelectStation("")}>
           ทุกขั้น <ChipCount count={total} overdue={0} />
         </FilterChip>
@@ -235,11 +236,11 @@ export function DeskTable<S extends DeskStepLike, O extends BoardOrderLike<S>>({
           <DataTable.SortableTh className={sideDetails ? "hidden" : "hidden sm:table-cell"} align="right" direction={directionFor("quantity")} onSort={(dir) => onSort("quantity", dir)}>จำนวน</DataTable.SortableTh>
           <DataTable.SortableTh className={sideDetails ? "hidden" : "hidden sm:table-cell"} direction={directionFor("deadline")} onSort={(dir) => onSort("deadline", dir)}>กำหนดส่ง</DataTable.SortableTh>
           <DataTable.Th className="hidden sm:table-cell">ตอนนี้</DataTable.Th>
-          <DataTable.Th className={sideDetails ? "hidden" : "hidden sm:table-cell"}>ร้านนอก</DataTable.Th>
-          <DataTable.Th className={sideDetails ? "hidden" : "hidden sm:table-cell"}>ผู้รับผิดชอบ</DataTable.Th>
+          <DataTable.Th className={sideDetails ? "hidden" : undefined}>ร้านนอก</DataTable.Th>
+          <DataTable.Th className={sideDetails ? "hidden" : undefined}>ผู้รับผิดชอบ</DataTable.Th>
         </tr>
       </DataTable.Head>
-      <DataTable.Body className={variant === "a" ? "[&_td]:py-2" : "[&_td]:py-4"}>
+      <DataTable.Body className={variant === "a" ? "[&_td]:py-2" : undefined}>
         {rows.length === 0 ? (
           <tr>
             <DataTable.Td colSpan={6} align="center" className="py-12 text-muted">{emptyLabel}</DataTable.Td>
@@ -260,7 +261,7 @@ export function DeskTable<S extends DeskStepLike, O extends BoardOrderLike<S>>({
               } : undefined}
               className={cn("group/row", onSelectRow && "cursor-pointer", selectedRowKey === row.job.key && "bg-surface-muted")}
             >
-              <DataTable.Td className="min-w-0 sm:min-w-56 sm:max-w-80">
+              <DataTable.Td className={sideDetails ? "min-w-0 sm:min-w-56" : "min-w-72 max-w-80 sm:min-w-56"}>
                 <div className="flex items-center gap-3">
                   <div className="hidden sm:block">
                     <MockupThumbnail cover={orderMockupCover(order)} alt={`ม็อกอัพ ${order.orderNumber}`} size="sm" />
@@ -272,14 +273,14 @@ export function DeskTable<S extends DeskStepLike, O extends BoardOrderLike<S>>({
                           {order.orderNumber}
                         </Button>
                       ) : (
-                        <Link href={hrefFor(row)} className="rounded-sm font-semibold tabular-nums text-strong underline-offset-4 transition-colors group-hover/row:text-blue-700 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring dark:group-hover/row:text-blue-300">
+                        <Link href={hrefFor(row)} className="rounded-sm font-semibold tabular-nums text-strong underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring">
                           {order.orderNumber}
                         </Link>
                       )}
                       {urgent ? <Badge variant={order.priority === "URGENT" ? "destructive" : "warning"} size="sm">{order.priority === "URGENT" ? "ด่วน" : "สำคัญ"}</Badge> : null}
                       {order.blindShip ? <Badge variant="warning" size="sm">Blind ship</Badge> : null}
                     </div>
-                    <p className="line-clamp-2 text-sm leading-relaxed text-secondary" title={order.customerName ?? undefined}>{order.customerName ?? "ไม่ระบุลูกค้า"}</p>
+                    <p className="line-clamp-2 text-secondary" title={order.customerName ?? undefined}>{order.customerName ?? "ไม่ระบุลูกค้า"}</p>
                   </div>
                 </div>
                 <div className={cn("mt-3 space-y-2", !sideDetails && "sm:hidden")}>
@@ -288,17 +289,11 @@ export function DeskTable<S extends DeskStepLike, O extends BoardOrderLike<S>>({
                     <span className="text-secondary tabular-nums">{(order.totalQuantity ?? 0).toLocaleString("th-TH")} ตัว</span>
                   </div>
                   {sideDetails ? <div className="sm:hidden"><CurrentCell row={row} mode="summary" /></div> : <CurrentCell row={row} mode={variant === "a" ? "disclosure" : "full"} />}
-                  {!sideDetails ? (
-                    <div className="space-y-2 border-t border-divider pt-2 text-sm">
-                      <ResponsibleCell names={row.responsible} />
-                      {row.outsource ? <OutsourceCell row={row} expanded /> : null}
-                    </div>
-                  ) : null}
                 </div>
               </DataTable.Td>
               <DataTable.Td align="right" className={sideDetails ? "hidden" : "hidden whitespace-nowrap sm:table-cell"}>
-                <span className="text-base font-semibold tabular-nums text-strong">{(order.totalQuantity ?? 0).toLocaleString("th-TH")}</span>
-                <span className="ml-1 text-xs text-muted">ตัว</span>
+                <span className="font-semibold tabular-nums text-strong">{(order.totalQuantity ?? 0).toLocaleString("th-TH")}</span>
+                <span className="ml-1 text-muted">ตัว</span>
               </DataTable.Td>
               <DataTable.Td className={sideDetails ? "hidden" : "hidden whitespace-nowrap sm:table-cell"}>
                 <DueTag dueInDays={row.dueInDays} dateLabel={order.deadline ? formatDateShort(order.deadline) : null} size="sm" />
@@ -309,8 +304,8 @@ export function DeskTable<S extends DeskStepLike, O extends BoardOrderLike<S>>({
                   {variant === "current" && <RouteRail rail={row.job.rail} />}
                 </div>
               </DataTable.Td>
-              <DataTable.Td className={sideDetails ? "hidden" : "hidden min-w-40 max-w-56 sm:table-cell"}><OutsourceCell row={row} /></DataTable.Td>
-              <DataTable.Td className={sideDetails ? "hidden" : "hidden min-w-36 max-w-48 sm:table-cell"}>
+              <DataTable.Td className={sideDetails ? "hidden" : "min-w-40 max-w-56"}><OutsourceCell row={row} /></DataTable.Td>
+              <DataTable.Td className={sideDetails ? "hidden" : "min-w-36 max-w-48"}>
                 <ResponsibleCell names={row.responsible} />
               </DataTable.Td>
             </DataTable.Row>

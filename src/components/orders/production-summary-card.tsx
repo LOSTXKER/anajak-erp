@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Section } from "@/components/ui/section";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ToneMark } from "@/components/ui/section";
 import {
   STEP_TYPE_LABELS,
   OUTSOURCE_ACTIVE_STATUSES,
@@ -56,7 +57,14 @@ export function ProductionSummaryCard({
     ["PRODUCTION_QUEUE", "DESIGN_APPROVED", "CONFIRMED"].includes(internalStatus);
 
   return (
-    <Section title="การผลิต" icon={Factory} tone="production" surface="plain">
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <ToneMark icon={Factory} tone="production" />
+          การผลิต
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
         {!hasProduction ? (
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-muted">
@@ -94,9 +102,6 @@ export function ProductionSummaryCard({
 
               return (
                 <div key={prod.id} className="space-y-2.5">
-                  <Link href={`/production/${prod.id}`} className="inline-block text-sm font-semibold text-link hover:underline">
-                    {prod.workOrderNumber || "ใบผลิต"}
-                  </Link>
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted">
@@ -106,7 +111,7 @@ export function ProductionSummaryCard({
                         {completed}/{total} ขั้นตอน ({pct}%)
                       </span>
                     </div>
-                    <div role="progressbar" aria-label={`ความคืบหน้า ${prod.workOrderNumber || "ใบผลิต"}`} aria-valuenow={completed} aria-valuemin={0} aria-valuemax={Math.max(total, 1)} aria-valuetext={`${completed} จาก ${total} ขั้นตอน`} className="h-2 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-white/10">
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-white/10">
                       <div
                         className="h-full rounded-full bg-blue-500 transition-[width] duration-[var(--duration-base)] ease-out"
                         style={{ width: `${pct}%` }}
@@ -158,6 +163,7 @@ export function ProductionSummaryCard({
             })}
           </div>
         )}
-    </Section>
+      </CardContent>
+    </Card>
   );
 }

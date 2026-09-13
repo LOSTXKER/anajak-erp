@@ -1,21 +1,19 @@
 "use client";
 
-import { ArrowRight, Lock, MessageSquareText, Paperclip, Shirt } from "lucide-react";
+import { ArrowRight, Lock, Paperclip, Shirt } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Section, SectionTitle } from "@/components/ui/section";
 import { Skeleton } from "@/components/ui/skeleton";
-import { QueryError } from "@/components/ui/query-error";
+import { MockupThumbRow } from "@/components/mockup/mockup-thumb-row";
 import { MockupGallery } from "@/components/mockup/mockup-gallery";
-import { MockupThumbnail } from "@/components/mockup/mockup-thumbnail";
 import { trpc } from "@/lib/trpc";
 import { APPROVAL_STATUS_LABELS, APPROVAL_STATUS_VARIANTS } from "@/lib/status-config";
 import { layerForCategory } from "@/lib/file-layers";
 import { formatDate } from "@/lib/utils";
 import type { MockupVersionLike } from "@/lib/mockup";
 import type { OrderOverviewVariant } from "./order-overview-tab";
-import styles from "./order-overview-cards.module.css";
 
 /** เท่าที่การ์ดนี้ใช้จริงจาก DesignVersion — รูปทั้งชุดอ่านผ่านสูตรกลางใน lib/mockup */
 export type ArtworkVersion = MockupVersionLike & {
@@ -25,7 +23,21 @@ export type ArtworkVersion = MockupVersionLike & {
   createdAt: Date | string;
 };
 
-/** สรุปแบบล่าสุดบนภาพรวม และใช้ query key ร่วมกับแท็บม็อกอัพและไฟล์ */
+/**
+ * การ์ด "งานนี้พิมพ์อะไร" — บนสุดของแท็บภาพรวม (เบสเคาะแบบ B จาก /proto/order-overview
+ * 2026-08-31: "ชอบแบบ B" · รูปเล็ก "ให้เห็นเล็ก ๆ ผ่านก็ได้ ถ้าอยากรู้ค่อยกดไปดู")
+ *
+ * ปัญหาเดิม: เปิดใบงานมาแล้วไม่รู้ว่างานนี้พิมพ์ลายอะไร ต้องกดข้ามไปแท็บ "ม็อกอัพ & ไฟล์"
+ * ทุกครั้ง ทั้งที่เป็นคำถามแรกที่คนเปิดใบงานถาม
+ *
+ * ที่นี่เป็น **ที่ดู ไม่ใช่ที่จัดการ** — ไม่มีอัป/อนุมัติ/ลิงก์ลูกค้า/ลบไฟล์ ม็อกอัพยังมีบ้านเดียว
+ * คือแท็บ "ม็อกอัพ & ไฟล์" (กติกาเดิมตั้งแต่ 2026-08-22) · ปุ่มมุมขวาพาไปที่นั่น
+ *
+ * รายละเอียดงาน (`order.description`) ย้ายมาอยู่ในการ์ดนี้ด้วย — มันคือคำอธิบายของ
+ * "งานนี้พิมพ์อะไร" เหมือนกัน เดิมลอยเป็นการ์ดตัวหนังสือล้วนที่ไม่มีภาพประกอบ
+ *
+ * query ทั้งสองตัวใช้ key เดียวกับแท็บม็อกอัพ/ไฟล์ — react-query cache ให้ ไม่ได้ยิงซ้ำ
+ */
 export function OrderArtworkCard({
   orderId,
   description,
@@ -57,8 +69,6 @@ export function OrderArtworkCard({
       // โหลดยังไม่เสร็จ = ยังไม่รู้ว่ามีม็อกอัพไหม · โครงร่างเตี้ย ๆ ดีกว่ากระพริบ
       // "ยังไม่มีม็อกอัพ" แล้วค่อยเด้งเป็นรูป (คนอ่านทันแล้วเข้าใจผิดว่าใบนี้ยังไม่มีแบบ)
       isLoading={designs.isLoading || attachments.isLoading}
-      loadError={designs.isError || attachments.isError ? "โหลดม็อกอัพหรือไฟล์ไม่สำเร็จ" : undefined}
-      onRetry={() => { void designs.refetch(); void attachments.refetch(); }}
     />
   );
 }
@@ -74,8 +84,6 @@ export function OrderArtworkCardView({
   description,
   onOpenFiles,
   isLoading = false,
-  loadError,
-  onRetry,
 }: {
   variant?: OrderOverviewVariant;
   latest: ArtworkVersion | null;
@@ -85,41 +93,28 @@ export function OrderArtworkCardView({
   description: string | null;
   onOpenFiles?: () => void;
   isLoading?: boolean;
-  loadError?: string;
-  onRetry?: () => void;
 }) {
   const revisionRounds = versionCount - 1;
   const hasDescription = Boolean(description?.trim());
   const descriptionBlock = hasDescription ? (
-    <div className={`flex items-start gap-2.5 ${variant === "current" ? "border-t border-divider pt-4" : "pt-3"}`}>
-      <MessageSquareText className="mt-1 h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
-      <p className="min-w-0 max-w-[75ch] text-sm leading-6 text-secondary [overflow-wrap:anywhere]">
-        <span className="sr-only">ข้อความจากลูกค้า: </span>{description}
-      </p>
+    <div className={variant === "current" ? "space-y-3 border-t border-divider pt-4" : "space-y-2 pt-3"}>
+      <p className="text-xs font-semibold text-muted">รายละเอียดงาน</p>
+      <p className="max-w-[75ch] text-sm leading-6 text-secondary [overflow-wrap:anywhere]">{description}</p>
     </div>
   ) : null;
 
   return (
     <Section
       data-order-overview-card="artwork"
-      className={variant === "current" ? styles.card : undefined}
-      surface={variant === "current" ? "card" : "plain"}
+      compact={variant === "current"}
+      surface={variant === "current" ? undefined : "plain"}
       title={
-        variant === "current" ? (
-          <span className="flex items-center gap-2.5">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-module-production-surface text-module-production-text" aria-hidden="true">
-              <Shirt className="h-4 w-4" />
-            </span>
-            ม็อกอัพและไฟล์
-          </span>
-        ) : (
-          <SectionTitle icon={Shirt} tone="production">
-            ม็อกอัพและไฟล์
-          </SectionTitle>
-        )
+        <SectionTitle icon={Shirt} tone="production">
+          งานนี้พิมพ์อะไร
+        </SectionTitle>
       }
       action={
-        onOpenFiles && (latest || isLoading || loadError) ? (
+        onOpenFiles ? (
           <Button type="button" variant="ghost" size="sm" onClick={onOpenFiles}>
             ม็อกอัพ &amp; ไฟล์
             <ArrowRight className="h-4 w-4" aria-hidden="true" />
@@ -127,22 +122,19 @@ export function OrderArtworkCardView({
         ) : undefined
       }
     >
-      <div className={variant === "current" ? styles.artworkBody : "space-y-4"}>
-        {loadError && <QueryError message={loadError} onRetry={onRetry} />}
+      <div className="space-y-4">
         {isLoading ? (
-          <Skeleton className={variant === "current" ? "h-48 rounded-xl" : "h-20 rounded-lg"} />
+          <Skeleton className="h-20 rounded-lg" />
         ) : latest ? (
-          <div className={variant === "current" ? styles.artworkPreview : "flex flex-col items-start gap-5 sm:flex-row"}>
+          <div className={variant === "current" ? "flex flex-wrap items-start gap-x-5 gap-y-3" : "flex flex-col items-start gap-5 sm:flex-row"}>
             {variant === "current" ? (
-              <div className={styles.artworkStage}>
-                <MockupGallery version={latest} versionNumber={latest.versionNumber} className="mx-auto max-w-[26rem] grid-cols-2 sm:grid-cols-2 lg:grid-cols-2 [&_button]:bg-surface" />
-              </div>
+              <MockupThumbRow version={latest} versionNumber={latest.versionNumber} />
             ) : (
               <div className="w-full max-w-[220px] shrink-0">
                 <MockupGallery version={latest} versionNumber={latest.versionNumber} className="grid-cols-1 sm:grid-cols-1 lg:grid-cols-1" />
               </div>
             )}
-            <div className={variant === "current" ? styles.artworkMeta : "min-w-0 flex-1 space-y-2"}>
+            <div className="min-w-0 flex-1 space-y-1">
               <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
                 <Badge
                   variant={
@@ -160,7 +152,7 @@ export function OrderArtworkCardView({
                   ม็อกอัพ v{latest.versionNumber}
                 </span>
               </p>
-              <p className="text-xs leading-relaxed text-muted">
+              <p className="text-xs text-muted">
                 {latest.approvedAt
                   ? `ลูกค้าอนุมัติ ${formatDate(latest.approvedAt)}`
                   : `ส่งให้ลูกค้า ${formatDate(latest.createdAt)}`}
@@ -169,18 +161,15 @@ export function OrderArtworkCardView({
               {variant !== "current" && descriptionBlock}
             </div>
           </div>
-        ) : loadError ? null : (
-          <div className={variant === "current" ? styles.artworkEmpty : "flex flex-wrap items-center gap-4"}>
-            <MockupThumbnail cover={null} size="lg" className="bg-surface-muted [&_svg]:h-6 [&_svg]:w-6" />
-            <div className="min-w-0 flex-1 space-y-2">
-              <p className="text-sm text-muted">ยังไม่มีม็อกอัพ</p>
-              {onOpenFiles && (
-                <Button type="button" variant="outline" size="sm" onClick={onOpenFiles}>
-                  ม็อกอัพ &amp; ไฟล์
-                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
-                </Button>
-              )}
-            </div>
+        ) : (
+          // ยังไม่มีแบบ = บอกว่าขั้นต่อไปคืออะไร ไม่ใช่กล่องว่างเปล่า
+          <div className="space-y-0.5">
+            <p className="text-sm font-medium text-strong">ยังไม่มีม็อกอัพของใบนี้</p>
+            <p className="text-xs text-muted">
+              {rawCount > 0
+                ? `มีไฟล์จากลูกค้า ${rawCount} ไฟล์รออยู่ — ทำแบบแล้วอัปในแท็บ “ม็อกอัพ & ไฟล์”`
+                : "ยังไม่มีไฟล์อะไรเลย — ขอไฟล์ลายจากลูกค้าก่อน"}
+            </p>
           </div>
         )}
 

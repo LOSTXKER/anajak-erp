@@ -6,10 +6,8 @@ import { uploadToCustomerSignedUrl } from "@/lib/supabase";
 import { formatDate } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PublicLinkError } from "@/components/public-link-error";
-import { isPublicLinkUnavailable, retryPublicQuery } from "@/lib/public-link-state";
 import {
   PublicPageShell,
-  PublicRefreshNotice,
   FullScreenLoading,
   InfoRow,
 } from "@/components/public/public-page";
@@ -43,7 +41,7 @@ export default function CustomerUploadPage({
   const [items, setItems] = useState<UploadItem[]>([]);
   const [busy, setBusy] = useState(false);
 
-  const info = trpc.customerUpload.getInfo.useQuery({ token }, { retry: retryPublicQuery });
+  const info = trpc.customerUpload.getInfo.useQuery({ token });
   const createUrl = trpc.customerUpload.createUploadUrl.useMutation();
   const confirm = trpc.customerUpload.confirmUpload.useMutation();
 
@@ -54,7 +52,7 @@ export default function CustomerUploadPage({
   }
 
   async function handleFiles(fileList: FileList | null) {
-    if (!fileList || fileList.length === 0 || info.error || uploadInFlight.current) return;
+    if (!fileList || fileList.length === 0 || uploadInFlight.current) return;
     const files = Array.from(fileList, (file) => ({ file, id: ++uploadSequence.current }));
     uploadInFlight.current = true;
     setBusy(true);
@@ -110,7 +108,7 @@ export default function CustomerUploadPage({
     return <FullScreenLoading />;
   }
 
-  if (!info.data || (info.error && isPublicLinkUnavailable(info.error))) {
+  if (info.error || !info.data) {
     return <PublicLinkError error={info.error} message="ลิงก์ส่งไฟล์อาจไม่ถูกต้องหรือหมดอายุแล้ว" onRetry={() => void info.refetch()} />;
   }
 
@@ -120,10 +118,8 @@ export default function CustomerUploadPage({
   return (
     <PublicPageShell
       icon={<Paperclip />}
-      heading="ส่งไฟล์งาน"
-      subtitle="ไฟล์ที่ส่งสำเร็จจะปรากฏในออเดอร์นี้"
+      subtitle="ส่งไฟล์งานให้ทีมงาน"
     >
-      {info.error && <PublicRefreshNotice onRetry={() => void info.refetch()} refreshing={info.isFetching} />}
         {/* Order Info */}
         <Card>
           <CardHeader>
@@ -152,13 +148,13 @@ export default function CustomerUploadPage({
               accept={CUSTOMER_UPLOAD_ACCEPT}
               multiple
               onChange={(e) => handleFiles(e.target.files)}
-              disabled={busy || !!info.error}
+              disabled={busy}
               className="hidden"
             />
             <button
               type="button"
               onClick={() => inputRef.current?.click()}
-              disabled={busy || !!info.error}
+              disabled={busy}
               className={cn(DASHED_INTERACTIVE, FOCUS_BUTTON, "flex w-full touch-manipulation flex-col items-center justify-center gap-2 rounded-lg px-4 py-8 text-sm text-muted transition-colors hover:text-strong disabled:pointer-events-none disabled:border-border disabled:bg-surface-muted disabled:text-muted")}
             >
               {busy ? (

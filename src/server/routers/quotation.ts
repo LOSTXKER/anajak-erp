@@ -7,7 +7,6 @@ import { byIdInput } from "@/server/schemas";
 import { badRequest } from "@/server/errors";
 import { nextDocumentNumber, withDocNumberRetry } from "@/server/services/document-number";
 import { computeQuotationTotals } from "@/server/services/pricing";
-import { quotationFromOrder } from "@/server/services/quotation-from-order";
 import { D, moneyInput } from "@/server/services/money";
 import {
   assertSalesWithinCreditLimit,
@@ -44,36 +43,13 @@ const orderMoney = requirePermission("see_order_money");
 const quotationItemSchema = z.object({
   name: z.string(),
   description: z.string().optional(),
-  quantity: z.number().int().min(1),
+  quantity: z.number().min(1),
   unit: z.string().default("ชิ้น"),
   unitPrice: z.number().min(0),
   notes: z.string().optional(),
 });
 
 export const quotationRouter = router({
-  previewFromOrder: protectedProcedure
-    .use(orderMoney)
-    .input(byIdInput)
-    .query(async ({ ctx, input }) => {
-      const order = await ctx.prisma.order.findUniqueOrThrow({
-        where: { id: input.id },
-        select: {
-          id: true, orderNumber: true, customerId: true, internalStatus: true,
-          customer: { select: { name: true } },
-          paymentTerms: true, discount: true, taxAmount: true,
-          items: { orderBy: { sortOrder: "asc" }, select: {
-            description: true, totalQuantity: true, subtotal: true,
-            products: { orderBy: { sortOrder: "asc" }, select: { description: true } },
-          } },
-          fees: { orderBy: { createdAt: "asc" }, select: { name: true, amount: true } },
-        },
-      });
-      if (!["DRAFT", "INQUIRY"].includes(order.internalStatus)) {
-        badRequest("ออกใบเสนอผูกออเดอร์ได้เฉพาะออเดอร์ที่ยังเป็นร่าง/สอบถาม");
-      }
-      return { id: order.id, orderNumber: order.orderNumber, customerId: order.customerId, customer: order.customer, ...quotationFromOrder(order) };
-    }),
-
   list: protectedProcedure
     .use(orderMoney)
     .input(
@@ -210,7 +186,7 @@ export const quotationRouter = router({
                   description: item.description,
                   quantity: item.quantity,
                   unit: item.unit,
-                  unitPrice: moneyInput(item.unitPrice).toNumber(),
+                  unitPrice: item.unitPrice,
                   totalPrice: totals.lineTotals[index],
                   notes: item.notes,
                 })),
@@ -336,7 +312,7 @@ export const quotationRouter = router({
                 description: item.description,
                 quantity: item.quantity,
                 unit: item.unit,
-                unitPrice: moneyInput(item.unitPrice).toNumber(),
+                unitPrice: item.unitPrice,
                 totalPrice: totals.lineTotals[index],
                 notes: item.notes,
               })),

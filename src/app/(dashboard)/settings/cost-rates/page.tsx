@@ -19,8 +19,6 @@ import {
   estimateLaborOverhead,
 } from "@/lib/cost-rates";
 import { PageShell } from "@/components/page-shell";
-import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
-import { CatalogFeedback } from "@/components/settings/catalog-tools";
 
 // เรตต้นทุนกลาง (FLOW-REDESIGN ก้อน 2) — เข็มทิศกำไรขั้นต้นตอนตีราคา ไม่ใช่บัญชีจริง
 // PERM: อ่าน = see_finance · แก้ = manage_settings (ตรง settings.costRates/setCostRates)
@@ -68,7 +66,6 @@ export default function CostRatesSettingsPage() {
   const canEdit = permAllows(meQuery.data?.permissions, "manage_settings");
   const ratesQuery = trpc.settings.costRates.useQuery(undefined, { enabled: canView });
   // null = ยังไม่แก้เอง ให้สะท้อนค่าล่าสุดจาก query โดยไม่ต้อง setState ใน effect
-  const [validationError, setValidationError] = useState<string | null>(null);
   const [formDraft, setFormDraft] = useState<FormState | null>(null);
   const form = formDraft ?? toForm(ratesQuery.data ?? EMPTY_COST_RATES);
 
@@ -81,9 +78,6 @@ export default function CostRatesSettingsPage() {
     },
     onError: (e) => toast.error(e.message),
   });
-
-  const dirty = formDraft !== null && JSON.stringify(formDraft) !== JSON.stringify(toForm(ratesQuery.data ?? EMPTY_COST_RATES));
-  useUnsavedChanges(dirty || save.isPending, save.isPending ? { title: "กำลังบันทึก ออกจากหน้านี้หรือไม่?", description: "การออกจากหน้านี้ไม่ยกเลิกคำสั่งที่ส่งแล้ว กลับมาตรวจผลก่อนส่งซ้ำ", confirmText: "ออกจากหน้านี้" } : undefined);
 
   const set = (key: keyof CostRates) => (value: string) =>
     setFormDraft((prev) => ({ ...(prev ?? form), [key]: value }));
@@ -118,7 +112,7 @@ export default function CostRatesSettingsPage() {
     >
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">ฟิล์ม ค่าแรง และค่าใช้จ่ายต่อชิ้น</CardTitle>
+          <CardTitle className="text-base">เรตต้นทุน 4 ก้อน</CardTitle>
           <CardDescription>
             ทุนตัวเสื้อกับค่าจ้างร้านนอกไม่อยู่ในเรตนี้ — ระบบดึงจากแอป Stock และบิลร้านให้เอง
           </CardDescription>
@@ -130,7 +124,7 @@ export default function CostRatesSettingsPage() {
               <Skeleton className="h-9 w-full" />
               <Skeleton className="h-9 w-full" />
             </div>
-          ) : ratesQuery.isError && !ratesQuery.data ? (
+          ) : ratesQuery.isError ? (
             <QueryError
               message="โหลดเรตต้นทุนไม่สำเร็จ"
               onRetry={() => ratesQuery.refetch()}
@@ -141,14 +135,9 @@ export default function CostRatesSettingsPage() {
               onSubmit={(e) => {
                 e.preventDefault();
                 if (!canEdit) return;
-                setValidationError(null);
-                if (Object.values(form).some((value) => value.trim() === "" || !Number.isFinite(Number(value)) || Number(value) < 0)) {
-                  setValidationError("กรอกเรตให้ครบทุกช่อง ใช้ 0 เมื่อไม่มีต้นทุนส่วนนี้");
-                  return;
-                }
                 const rates = toRates(form);
                 if (rates.filmRollWidthCm <= 0) {
-                  setValidationError("หน้ากว้างม้วนฟิล์มต้องมากกว่า 0");
+                  toast.error("หน้ากว้างม้วนฟิล์มต้องมากกว่า 0");
                   return;
                 }
                 save.mutate(rates);
@@ -277,8 +266,7 @@ export default function CostRatesSettingsPage() {
                 )}
               </div>
 
-              <div className="sticky bottom-0 flex flex-wrap items-center justify-between gap-3 border-t border-divider bg-surface py-4">
-                <p role="status" className="text-sm text-secondary">{dirty ? "เรตที่แก้ยังไม่บันทึก" : "ค่าที่บันทึกไว้"}</p>
+              <div className="flex items-center justify-end gap-3">
                 {canEdit ? (
                   <Button type="submit" disabled={save.isPending} className="gap-1.5">
                     {save.isPending ? (
@@ -295,7 +283,6 @@ export default function CostRatesSettingsPage() {
                 )}
               </div>
               </fieldset>
-              <CatalogFeedback pending={save.isPending} error={validationError || save.error?.message} />
             </form>
           )}
         </CardContent>

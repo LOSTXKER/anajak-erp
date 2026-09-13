@@ -18,7 +18,6 @@ import { trpc } from "@/lib/trpc";
 import { permAllows } from "@/lib/permissions";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { PageShell } from "@/components/page-shell";
-import { useSettingsDraftGuard } from "@/components/settings/use-settings-draft-guard";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -53,7 +52,6 @@ type DraftOperation = {
   phase: Phase;
   executionMode: "IN_HOUSE" | "OUTSOURCE";
   workCenterId: string | null;
-  standardMinutes: number | null;
   waitsFor: string[];
   /** ช่องคู่: เดินคู่กับขั้นก่อนหน้า — ใบผลิตรวมสองขั้นเป็นช่องเดียวบนราง */
   pairWithPrevious: boolean;
@@ -212,7 +210,7 @@ function DraftRow({
                 <label
                   key={other.code}
                   className={cn(
-                    "inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-full border px-3 py-2 text-sm transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-blue-600",
+                    "inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors",
                     checked
                       ? "border-blue-600 text-strong dark:border-blue-400"
                       : "border-border text-secondary hover:text-strong",
@@ -321,7 +319,6 @@ export default function RoutingSettingsPage() {
       phase: operation.phase as Phase,
       executionMode: operation.executionMode as DraftOperation["executionMode"],
       workCenterId: operation.workCenterId,
-      standardMinutes: operation.standardMinutes,
       waitsFor: operation.waitsFor,
       pairWithPrevious: operation.pairWithPrevious,
     })) ??
@@ -371,17 +368,15 @@ export default function RoutingSettingsPage() {
         phase: "MANUFACTURING",
         executionMode: "IN_HOUSE",
         workCenterId: null,
-        standardMinutes: null,
         waitsFor: [],
         pairWithPrevious: false,
       },
     ]);
   };
 
-  const submitDraft = async () => {
-    if (!version) return false;
-    try {
-    await saveDraft.mutateAsync({
+  const submitDraft = () => {
+    if (!version) return;
+    saveDraft.mutate({
       versionId: version.id,
       operations: rows.map((row, index) => ({
         code: row.code.trim(),
@@ -390,22 +385,14 @@ export default function RoutingSettingsPage() {
         phase: row.phase,
         executionMode: row.executionMode,
         workCenterId: row.workCenterId,
-        standardMinutes: row.standardMinutes,
+        standardMinutes: null,
         pairWithPrevious: index > 0 && row.pairWithPrevious,
       })),
       dependencies: rows.flatMap((row) =>
         row.waitsFor.map((before) => [before, row.code.trim()] as [string, string]),
       ),
     });
-    return true;
-    } catch {
-      // mutation onError วางเหตุที่บันทึกไม่ได้ไว้บนฟอร์ม และคง draft
-      return false;
-    }
   };
-
-  const busy = createDraft.isPending || saveDraft.isPending || release.isPending || discard.isPending;
-  const mayDiscard = useSettingsDraftGuard(draft !== null, busy);
 
   const header = (
     <>
@@ -425,7 +412,6 @@ export default function RoutingSettingsPage() {
   return (
     <PageShell
       title="สูตรขั้นงาน"
-      back={{ href: "/settings", label: "กลับการตั้งค่า" }}
       loading={listQuery.isLoading || meQuery.isLoading}
       skeleton={
         <>
@@ -460,7 +446,7 @@ export default function RoutingSettingsPage() {
           description="ยังไม่มีสูตรให้เลือก กรุณาติดต่อผู้ดูแลเพื่อตรวจข้อมูลตั้งต้น"
         />
       ) : (
-        <div className="grid items-start gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
+        <div className="grid gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
           {/* รายการสูตรและเวอร์ชัน */}
           <div className="space-y-3">
             {listQuery.data?.map((routing) => (
@@ -479,8 +465,7 @@ export default function RoutingSettingsPage() {
                         key={item.id}
                         type="button"
                         aria-pressed={selected}
-                        onClick={async () => {
-                          if (item.id === activeVersionId || !(await mayDiscard())) return;
+                        onClick={() => {
                           setSelectedVersionId(item.id);
                           setDraft(null);
                           setError(null);
@@ -544,14 +529,14 @@ export default function RoutingSettingsPage() {
                     ) : null}
                     {canManage && isDraft ? (
                       <>
-                        <Button variant="outline" onClick={addRow} disabled={busy}>
+                        <Button variant="outline" onClick={addRow}>
                           <Plus />
                           เพิ่มขั้น
                         </Button>
                         <Button
                           variant="outline"
                           onClick={submitDraft}
-                          disabled={busy || draft === null}
+                          disabled={saveDraft.isPending || draft === null}
                         >
                           บันทึกร่าง
                         </Button>
@@ -564,10 +549,10 @@ export default function RoutingSettingsPage() {
                               confirmText: "เริ่มใช้",
                             });
                             if (!ok) return;
-                            if (draft !== null && !(await submitDraft())) return;
+                            if (draft !== null) submitDraft();
                             release.mutate({ id: version.id });
                           }}
-                          disabled={busy}
+                          disabled={release.isPending}
                         >
                           เริ่มใช้สูตรนี้
                         </Button>
@@ -582,7 +567,7 @@ export default function RoutingSettingsPage() {
                             });
                             if (ok) discard.mutate({ id: version.id });
                           }}
-                          disabled={busy}
+                          disabled={discard.isPending}
                         >
                           ทิ้งร่าง
                         </Button>
@@ -592,11 +577,10 @@ export default function RoutingSettingsPage() {
                 </div>
 
                 {isDraft ? (
-                  <fieldset disabled={busy || !canManage} className="space-y-3">
-                    {draft !== null ? <p role="status" className="text-sm text-amber-700 dark:text-amber-300">มีขั้นที่แก้ยังไม่บันทึก</p> : null}
+                  <div className="space-y-3">
                     {rows.map((operation, index) => (
                       <DraftRow
-                        key={index}
+                        key={`${operation.code}-${index}`}
                         operation={operation}
                         index={index}
                         total={rows.length}
@@ -607,7 +591,7 @@ export default function RoutingSettingsPage() {
                         onRemove={() => removeRow(index)}
                       />
                     ))}
-                  </fieldset>
+                  </div>
                 ) : (
                   /* เวอร์ชันที่ใช้งานอยู่ = อ่านอย่างเดียว */
                   <div className="card-surface overflow-hidden rounded-2xl">

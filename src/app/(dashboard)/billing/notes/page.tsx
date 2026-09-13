@@ -32,7 +32,6 @@ import {
 import { Select } from "@/components/ui/select";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { PageShell } from "@/components/page-shell";
-import { BillingNavigation } from "@/components/billing/billing-navigation";
 import { FileStack, Plus, Printer, Ban, Loader2 } from "lucide-react";
 import { permAllows } from "@/lib/permissions";
 import { INVOICE_TYPE_LABELS } from "@/lib/invoice-labels";
@@ -48,7 +47,10 @@ export default function BillingNotesPage() {
   );
 }
 
-/** สถานะและยอดคงเหลือใช้ป้ายเดียวกันในตารางและมือถือ */
+/* สถานะใบวางบิล = จุดสี + ข้อความ ภาษาเดียวกับทั้งเว็บ (เดิมเป็นแคปซูล <Badge>)
+   ยกเลิก/รับครบแล้ว เป็นสถานะปลายทาง จึงย้อมข้อความให้สะดุดตาตอนสแกนตาราง
+   ส่วน "ใช้งาน" เป็นระหว่างทาง คงข้อความเทาเข้ม ปล่อยให้จุดสีเป็นตัวบอก
+   เขียนเป็นตัวช่วยตัวเดียวเพราะตาราง (เดสก์ท็อป) กับการ์ด (มือถือ) ต้องพูดตรงกันเสมอ */
 function NoteStatus({
   isVoided,
   outstanding,
@@ -68,7 +70,7 @@ function NoteStatus({
 }
 
 function BillingNotesPageContent() {
-  const { search, page, replaceListState, onSearchChange, searchInputRef, clearSearch } =
+  const { search, page, replaceListState, onSearchChange, searchInputRef } =
     useListPageState();
   const [showCreate, setShowCreate] = useState(false);
   const [voidTarget, setVoidTarget] = useState<string | null>(null);
@@ -126,7 +128,6 @@ function BillingNotesPageContent() {
   });
 
   function resetCreateForm() {
-    setCustomerSearch("");
     setCustomerId("");
     setSelectedIds(new Set());
     setDueDate("");
@@ -168,7 +169,6 @@ function BillingNotesPageContent() {
           : null
       }
     >
-      <BillingNavigation active="/billing/notes" />
       {createdNote && (
         <Alert
           variant="success"
@@ -191,11 +191,9 @@ function BillingNotesPageContent() {
           ref={searchInputRef}
           containerClassName="@2xl:max-w-sm @2xl:flex-1"
           placeholder="ค้นหาเลขใบวางบิล, ชื่อลูกค้า..."
-          aria-label="ค้นหาใบวางบิลหรือลูกค้า"
           defaultValue={search}
           onChange={(event) => onSearchChange(event.target.value)}
         />
-        {search && <Button variant="ghost" size="sm" onClick={() => clearSearch()}>ล้างคำค้น</Button>}
       </Toolbar>
 
       <ResponsiveList
@@ -286,9 +284,9 @@ function BillingNotesPageContent() {
           </DataTable.Root>
         )}
         renderMobile={(notesList) => (
-          <div role="list" aria-label="รายการใบวางบิล">
+          <div role="list" aria-label="รายการใบวางบิล" className="space-y-3">
             {notesList.map((note) => (
-              <article key={note.id} role="listitem" className="border-b border-divider py-4 last:border-b-0">
+              <article key={note.id} role="listitem" className="card-surface rounded-2xl p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="font-semibold text-strong">
@@ -363,13 +361,12 @@ function BillingNotesPageContent() {
         emptyState={
           <EmptyState
             icon={FileStack}
-            title={search ? "ไม่พบใบวางบิลตามคำค้น" : "ยังไม่มีใบวางบิล"}
+            title="ยังไม่มีใบวางบิล"
             description={
               search
                 ? "ลองเปลี่ยนคำค้นหา"
                 : "กดสร้างใบวางบิล แล้วเลือกใบแจ้งหนี้ค้างชำระของลูกค้าที่จะเรียกเก็บ"
             }
-            action={search ? <Button variant="outline" size="sm" onClick={() => clearSearch()}>ล้างคำค้น</Button> : undefined}
           />
         }
         pagination={
@@ -392,7 +389,6 @@ function BillingNotesPageContent() {
         <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>สร้างใบวางบิล</DialogTitle>
-            <DialogDescription>เลือกลูกค้าและใบแจ้งหนี้ค้างชำระที่จะเรียกเก็บรวมกัน</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
