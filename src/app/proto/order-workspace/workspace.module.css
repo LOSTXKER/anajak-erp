@@ -75,28 +75,17 @@
 .keyFacts dd { margin-bottom: 0.375rem; font-size: 1.625rem; font-weight: 600; font-variant-numeric: tabular-nums; }
 .keyFacts dd.dateValue { padding-top: 0.375rem; font-size: 1rem; white-space: nowrap; }
 .keyFacts dd small { font-size: 0.875rem; font-weight: 400; }
-.keyFacts dd button { display: flex; min-height: 2.75rem; align-items: center; gap: 0.5rem; color: var(--color-module-brand-text); }
+.keyFacts dd.totalValue { color: var(--color-module-brand-text); }
+.factAction { color: var(--color-module-brand-text); padding-inline: 0.625rem; }
 .orderMeta { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem 1.5rem; padding-block: 1.25rem; }
 .orderMeta dt { margin-bottom: 0.25rem; font-size: 0.75rem; color: var(--color-muted); }
 .orderMeta dd { font-size: 0.875rem; font-weight: 500; overflow-wrap: anywhere; }
 .orderMeta dd small { display: block; margin-top: 0.25rem; font-size: 0.75rem; font-weight: 400; color: var(--color-muted); }
 .lineMark { display: inline-block; width: 0.375rem; height: 0.375rem; margin-right: 0.375rem; border-radius: 50%; background: var(--color-green-600); }
-.customerBlock { border-top: 1px solid var(--color-divider); padding-block: 1.25rem; }
-.customerHeading { display: flex; align-items: center; gap: 0.75rem; }
-.customerHeading > div { flex: 1; min-width: 0; }
-.customerHeading h3 { font-size: 0.9375rem; font-weight: 600; }
-.customerHeading p { margin-top: 0.125rem; font-size: 0.8125rem; color: var(--color-secondary); }
-.customerAvatar { display: grid; width: 2.5rem; height: 2.5rem; flex-shrink: 0; place-items: center; border-radius: 50%; background: var(--color-module-brand-surface); color: var(--color-module-brand-text); font-size: 1.125rem; }
-.contactStrip { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 1rem; margin-top: 0.625rem; }
-.contactStrip button { display: flex; min-height: 2.75rem; align-items: center; gap: 0.375rem; font-size: 0.8125rem; color: var(--color-module-brand-text); }
-.contactStrip button:last-child { min-width: 2.75rem; justify-content: center; }
-.customerMeta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; font-size: 0.75rem; color: var(--color-muted); }
-.customerMeta b { margin-left: 0.375rem; font-weight: 400; font-variant-numeric: tabular-nums; color: var(--color-secondary); }
-.customerMeta > span:last-child { display: flex; flex-wrap: wrap; gap: 0.25rem; }
-.customerNote { margin-top: 0.625rem; font-size: 0.8125rem; line-height: 1.7; color: var(--color-secondary); }
 .shippingBlock { border-top: 1px solid var(--color-divider); padding-top: 0.75rem; font-size: 0.875rem; }
 .shippingBlock > p { margin-top: 0.375rem; line-height: 1.7; color: var(--color-secondary); }
 .shippingPhone { display: block; margin-top: 0.375rem; font-size: 0.8125rem; color: var(--color-muted); }
+.inlineAction { display: flex; margin-top: 0.75rem; color: var(--color-module-brand-text); }
 .fileCount { margin-left: 0.25rem; font-size: 0.75rem; color: var(--color-muted); }
 .mockupCanvas { position: relative; display: grid; min-height: 22rem; place-items: center; overflow: hidden; border: 1px solid var(--color-divider); border-radius: 0.625rem; background: #f4f0e9; padding: 1rem; }
 .mockupGallery { width: 100%; max-width: 22rem; grid-template-columns: minmax(0, 1fr) !important; }
@@ -110,8 +99,7 @@
 .brandLine { display: flex; flex-wrap: wrap; align-items: center; gap: 0.375rem; margin-top: 0.75rem; font-size: 0.75rem; color: var(--color-secondary); }
 .brandLine > button { margin-left: auto; }
 .colorDot { width: 0.875rem; height: 0.875rem; border: 1px solid var(--color-border-strong); border-radius: 50%; }
-.emptyCanvas, .flowEmpty { display: flex; min-height: 22rem; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; border: 1px dashed var(--color-border); border-radius: 0.625rem; color: var(--color-muted); font-size: 0.875rem; }
-.flowEmpty { min-height: 18rem; }
+.emptyCanvas { display: flex; min-height: 22rem; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; border: 1px dashed var(--color-border); border-radius: 0.625rem; color: var(--color-muted); font-size: 0.875rem; }
 .fileList { min-height: 22rem; }
 .fileList > button { display: flex; min-height: 4.5rem; width: 100%; align-items: center; gap: 0.875rem; border-bottom: 1px solid var(--color-divider); padding: 0.75rem 0.375rem; text-align: left; color: var(--color-module-brand-text); }
 .fileList > button:hover { background: var(--color-interactive-hover); }
@@ -133,6 +121,8 @@
 }
 
 @media (max-width: 767px) {
+  .orderTabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.25rem 0.5rem; overflow: visible; }
+  .orderTabs > button:nth-child(6) { grid-column: span 2; }
   .previewBar { position: static; flex-wrap: wrap; gap: 0.625rem; padding: 0.75rem 1rem; }
   .previewControls { flex-wrap: wrap; gap: 0.375rem; }
   .previewControls:has(.viewSwitch) { width: 100%; }
@@ -156,8 +146,6 @@
   .keyFacts > div:last-child { display: flex; grid-column: 1 / -1; align-items: center; justify-content: space-between; border-top: 1px solid var(--color-divider); padding-top: 0.5rem; }
   .keyFacts > div:last-child dd { margin-bottom: 0; }
   .keyFacts dd.dateValue { white-space: normal; }
-  .customerHeading p { line-height: 1.6; }
-  .customerMeta { align-items: flex-start; flex-direction: column; }
   .mockupCanvas { min-height: 17rem; padding: 0.5rem; }
   .emptyCanvas { min-height: 17rem; }
   .detailRows > div { gap: 0.75rem; font-size: 0.875rem; }

@@ -1,0 +1,28 @@
+.contact { border-top: 1px solid var(--color-divider); padding-block: 1.25rem; }
+.heading { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
+.heading h3 { display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; font-weight: 600; }
+.heading h3 svg { color: var(--color-module-brand-text); }
+.heading button { color: var(--color-module-brand-text); }
+.identity { display: flex; align-items: center; gap: 0.75rem; margin-block: 1rem 0.75rem; }
+.avatar { display: grid; flex-shrink: 0; width: 2.5rem; height: 2.5rem; place-items: center; border-radius: 50%; background: var(--color-module-brand-surface); color: var(--color-module-brand-text); }
+.identity strong { font-size: 0.9375rem; font-weight: 600; }
+.identity p { margin-top: 0.25rem; color: var(--color-secondary); font-size: 0.8125rem; line-height: 1.6; }
+.channels { display: grid; }
+.channels > div { display: grid; grid-template-columns: 5.5rem minmax(0, 1fr); align-items: center; gap: 0.5rem; padding-block: 0.5rem; }
+.channels > div + div { border-top: 1px solid var(--color-divider); }
+.channels dt { display: flex; align-items: center; gap: 0.5rem; color: var(--color-secondary); font-size: 0.75rem; }
+.channels dt > svg { flex-shrink: 0; color: var(--color-module-brand-text); }
+.channels dd { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; min-width: 0; font-size: 0.8125rem; }
+.channels dd > span { min-width: 0; overflow-wrap: anywhere; user-select: text; }
+.copy { flex-shrink: 0; min-width: 5.75rem; color: var(--color-module-brand-text); font-size: 0.75rem; }
+.meta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; margin-top: 0.75rem; font-size: 0.75rem; color: var(--color-muted); }
+.meta b { font-weight: 400; color: var(--color-secondary); }
+.meta > span:last-child { display: flex; flex-wrap: wrap; gap: 0.375rem; }
+.note { margin-top: 0.75rem; color: var(--color-secondary); font-size: 0.8125rem; line-height: 1.8; }
+.error { margin-block: 0.5rem; color: var(--color-red-600); font-size: 0.8125rem; }
+:global(.dark) .error { color: var(--color-red-300); }
+@media (max-width: 767px) {
+  .channels > div { grid-template-columns: minmax(0, 1fr); gap: 0.375rem; padding-block: 0.75rem; }
+  .channels dd { gap: 0.5rem; }
+  .copy { min-width: 5.75rem; }
+}

@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { DEFAULT_PAYMENT_METHOD, PAYMENT_METHOD_LABELS, type PaymentMethod } from "@/lib/payment-methods";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { PREVIEW_ORDER, PREVIEW_ORDER_NUMBER, PREVIEW_PRICING } from "../ui-reset/_order-data";
+import type { WorkspaceActivity } from "./_history";
 import styles from "./_money.module.css";
 
 type Invoice = { id: string; number: string; title: string; issuedAt: string; dueAt: string; amountCents: number };
@@ -30,7 +31,12 @@ const money = (cents: number) => formatCurrency(cents / 100);
 const date = (value: string) => formatDate(`${value}T12:00:00+07:00`);
 const paidFor = (invoiceId: string, payments: Payment[]) => payments.reduce((sum, payment) => sum + (payment.invoiceId === invoiceId ? payment.amountCents : 0), 0);
 
-export function WorkspaceMoney({ onOpenItems, poNumber }: { onOpenItems: () => void; poNumber: string }) {
+export const WORKSPACE_INITIAL_MONEY_EVENTS: WorkspaceActivity[] = [
+  ...INVOICES.map(invoice => ({ id: `history-${invoice.id}`, title: `ออกใบเรียกเก็บ ${invoice.number}`, category: "money" as const, at: invoice.issuedAt, actor: "ฝ่ายขาย", target: { tab: "money" as const, label: "ดูเงินและบิล" } })),
+  ...INITIAL_PAYMENTS.map(payment => ({ id: `history-${payment.id}`, title: `รับเงินมัดจำ ${money(payment.amountCents)}`, category: "money" as const, at: payment.paidAt, actor: "ฝ่ายขาย", target: { tab: "money" as const, label: "ดูเงินและบิล" } })),
+];
+
+export function WorkspaceMoney({ onOpenItems, poNumber, onRecordedPayment }: { onOpenItems: () => void; poNumber: string; onRecordedPayment: (amountCents: number) => void }) {
   const [payments, setPayments] = useState<Payment[]>(INITIAL_PAYMENTS);
   const [receiving, setReceiving] = useState<Invoice | null>(null);
   const [document, setDocument] = useState<DocumentTarget | null>(null);
@@ -52,6 +58,7 @@ export function WorkspaceMoney({ onOpenItems, poNumber }: { onOpenItems: () => v
     setPayments(current => [...current, payment]);
     setReceiving(null);
     setNotice(`บันทึกรับเงินตัวอย่าง ${money(payment.amountCents)} แล้ว`);
+    onRecordedPayment(payment.amountCents);
   };
 
   return (
