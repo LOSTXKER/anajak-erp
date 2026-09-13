@@ -2,6 +2,7 @@
 
 import { Suspense, use, useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
@@ -16,7 +17,6 @@ import { PageHeader } from "@/components/page-header";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
   INTERNAL_STATUS_LABELS,
-  CUSTOMER_STATUS_LABELS,
   PRIORITY_LABELS,
   CHANNEL_COLORS,
   getFlowSteps,
@@ -39,12 +39,9 @@ import {
   AlertTriangle,
   Share2,
   Truck,
-  ShoppingCart,
-  CalendarClock,
-  UserRound,
 } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
-import { MENU_SEPARATOR, OVERLAY_PANEL, TINT } from "@/components/ui/tokens";
+import { FOCUS_INSET, MENU_SEPARATOR, OVERLAY_PANEL, TINT } from "@/components/ui/tokens";
 import { canEditOrderWithPricing } from "@/lib/order-access";
 import { buildOrderEditHref, type OrderEditFocus } from "@/lib/order-edit-navigation";
 
@@ -668,41 +665,42 @@ function OrderDetailContent({
       )}
 
       <div data-order-head="" className="space-y-5">
-      <PageHeader
-        icon={ShoppingCart}
-        breadcrumb={[
-          { label: "ออเดอร์", href: "/orders" },
-          { label: order.orderNumber },
-        ]}
-        title={order.orderNumber}
-        meta={
-          <span className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
-            <span className="inline-flex min-w-0 items-center gap-2 font-medium text-secondary">
-              <UserRound className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
-              <span className="[overflow-wrap:anywhere]">{order.customer?.name || "ยังไม่ระบุลูกค้า"}</span>
-            </span>
-            {order.deadline && (
-              <span className="inline-flex items-center gap-2 text-secondary">
-                <CalendarClock className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
-                <span>กำหนดส่ง <span className="font-medium tabular-nums text-strong">{formatDate(order.deadline)}</span></span>
-              </span>
-            )}
-          </span>
-        }
-        titleBadge={
-          <span className="flex flex-wrap items-center gap-1.5">
-            <Badge variant="accent" size="sm">
-              {CUSTOMER_STATUS_LABELS[order.customerStatus] ?? order.customerStatus}
-            </Badge>
-            {(isUrgent || isHighPriority) && (
-              <Badge variant={isUrgent ? "destructive" : "warning"} size="sm">
-                {PRIORITY_LABELS[order.priority] ?? order.priority}
+      {/* หัวออเดอร์ตามต้นแบบที่เบสเคาะ 2026-09-14: เลขใบใหญ่ + สถานะภายใน + ลูกค้า/กำหนดส่ง · ปุ่มขั้นต่อไปอยู่ขวา
+          ไม่ใช้ PageHeader กลางเพราะไม่ต้องการไอคอนหมวดและปุ่มย้อนกลับ (breadcrumb กับเมนูซ้ายพากลับได้อยู่แล้ว) */}
+      <header className="page-header space-y-3" data-page-identity="ออเดอร์">
+        <nav aria-label="ตำแหน่งหน้า" className="flex items-center gap-1.5 text-xs text-muted">
+          <Link href="/orders" className={cn("rounded", FOCUS_INSET)}>ออเดอร์</Link>
+          <ChevronRight className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          <span className="tabular-nums text-secondary">{order.orderNumber}</span>
+        </nav>
+        <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
+          <div className="min-w-0 space-y-1.5">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <h1 className="break-words text-2xl font-semibold tabular-nums text-strong [overflow-wrap:anywhere] sm:text-3xl">
+                {order.orderNumber}
+              </h1>
+              <Badge variant="accent">
+                {INTERNAL_STATUS_LABELS[order.internalStatus] ?? order.internalStatus}
               </Badge>
-            )}
-          </span>
-        }
-        action={
-          <>
+              {(isUrgent || isHighPriority) && (
+                <Badge variant={isUrgent ? "destructive" : "warning"} size="sm">
+                  {PRIORITY_LABELS[order.priority] ?? order.priority}
+                </Badge>
+              )}
+            </div>
+            <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-secondary">
+              <span className="font-medium [overflow-wrap:anywhere]">{order.customer?.name || "ยังไม่ระบุลูกค้า"}</span>
+              {order.deadline && (
+                <>
+                  <span className="text-muted" aria-hidden="true">·</span>
+                  <span>
+                    กำหนดส่ง <span className="font-medium tabular-nums text-strong">{formatDate(order.deadline)}</span>
+                  </span>
+                </>
+              )}
+            </p>
+          </div>
+          <div className="flex max-w-full flex-wrap items-center gap-2 sm:ml-auto">
             <OrderNextStepAction
               nextStep={nextStep}
               readiness={orderContext.data?.readiness ?? null}
@@ -828,9 +826,9 @@ function OrderDetailContent({
                 </DropdownMenu.Portal>
               </DropdownMenu.Root>
             )}
-          </>
-        }
-      />
+          </div>
+        </div>
+      </header>
 
       <div className="space-y-3">
       {/* revisions = ชุดเดียวกับที่แท็บประวัติใช้ (ไม่ยิง query เพิ่ม) — แถบสถานะเอาไปหาว่า

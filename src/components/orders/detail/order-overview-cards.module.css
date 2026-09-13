@@ -18,12 +18,38 @@
   box-shadow: none;
 }
 
+/* หัวการ์ดไม่มีเส้นคั่น (ต้นแบบ 2026-09-14) — แยกจากเนื้อหาด้วยระยะห่างพอ */
 .card > header {
-  min-height: 3.75rem;
+  min-height: 3.25rem;
   align-items: center;
-  margin-bottom: 1rem;
-  border-bottom: 1px solid var(--color-divider);
-  padding-block: 0.625rem;
+  margin-bottom: 0.25rem;
+  padding-block: 0.75rem 0.25rem;
+}
+
+/* ช่องข้อมูลเป็นแถว ป้ายซ้าย–ค่าขวา แบบหน้า Notion (ต้นแบบ 2026-09-14) */
+.fieldRows > div,
+.summaryDetails > div,
+.customerContacts > div {
+  display: grid;
+  grid-template-columns: 7.5rem minmax(0, 1fr);
+  align-items: baseline;
+  column-gap: 0.75rem;
+  row-gap: 0;
+  padding-block: 0.125rem;
+}
+
+.fieldRows > div > dt,
+.summaryDetails > div > dt,
+.customerContacts > div > dt {
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.fieldRows > div > dd,
+.summaryDetails > div > dd,
+.customerContacts > div > dd {
+  font-size: 0.9375rem;
+  line-height: 1.55;
 }
 
 .card > div {
@@ -142,11 +168,12 @@
   }
 
   .summaryDetails {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  /* ช่องติดต่อคงคอลัมน์เดียว — อีเมล/ชื่อห้องแชทยาวต้องไม่ถูกบีบจนขึ้น 3 บรรทัด */
   .customerContacts {
-    grid-template-columns: minmax(0, 0.75fr) minmax(0, 1.25fr);
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .artworkPreview {

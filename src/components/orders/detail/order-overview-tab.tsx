@@ -647,7 +647,7 @@ export function OrderOverviewTab({
     >
       <div className="space-y-4">
         {hasShipping ? (
-          <FieldGrid>
+          <FieldGrid className={currentLayout ? styles.fieldRows : undefined}>
             <Field label="ผู้รับ">{order.shippingRecipientName}</Field>
             <Field label="เบอร์ผู้รับ">
               {order.shippingPhone && (
@@ -712,7 +712,7 @@ export function OrderOverviewTab({
         surface={currentLayout ? "card" : "plain"}
         title={<OverviewTitle icon={Palette} tone="product" framed={currentLayout}>แบรนด์ลูกค้า</OverviewTitle>}
       >
-        <FieldGrid>
+        <FieldGrid className={currentLayout ? styles.fieldRows : undefined}>
           <Field label="ชื่อแบรนด์">{order.brandProfile.brandName}</Field>
           {order.brandProfile.logoUrl && (
             <Field label="โลโก้">
@@ -857,7 +857,7 @@ export function OrderOverviewTab({
             )}
           </Group>
 
-          <FieldGrid>
+          <FieldGrid className={currentLayout ? styles.fieldRows : undefined}>
             <Field
               label="เลขผู้เสียภาษี"
               emptyTone="warn"
@@ -939,7 +939,7 @@ export function OrderOverviewTab({
               )}
 
               <Group>
-                <FieldGrid>
+                <FieldGrid className={currentLayout ? styles.fieldRows : undefined}>
                   <Field
                     label="ที่อยู่ลูกค้า"
                     wide

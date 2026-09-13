@@ -346,7 +346,7 @@ export function DashboardHome() {
                 }
               />
             ) : (
-              <DataTable.Root cellPadding="responsive">
+              <DataTable.Root cellPadding="compact" bordered={false} className="border-t border-divider">
                 <DataTable.Head>
                   <tr>
                     <DataTable.Th>ออเดอร์</DataTable.Th>
