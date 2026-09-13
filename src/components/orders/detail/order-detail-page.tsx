@@ -87,6 +87,7 @@ import {
 } from "@/components/orders/detail";
 import { RecordNotFound } from "@/components/ui/record-not-found";
 import { OrderNextStepGuidance } from "@/components/orders/detail/order-next-step-action";
+import styles from "./order-overview-cards.module.css";
 
 // ============================================================
 // Loading skeleton
@@ -177,12 +178,14 @@ export default function OrderDetailPage({
   productionV2Enabled: boolean;
 }) {
   return (
-    <Suspense fallback={<OrderDetailSkeleton />}>
-      <OrderDetailContent
-        params={params}
-        productionV2Enabled={productionV2Enabled}
-      />
-    </Suspense>
+    <div className={cn(styles.page, "-mx-4 -mt-5 min-h-full bg-surface px-4 pb-6 pt-5 sm:-mx-6 sm:-mt-7 sm:px-6 sm:pt-7 lg:-mx-8 lg:px-8")}>
+      <Suspense fallback={<OrderDetailSkeleton />}>
+        <OrderDetailContent
+          params={params}
+          productionV2Enabled={productionV2Enabled}
+        />
+      </Suspense>
+    </div>
   );
 }
 
@@ -609,7 +612,7 @@ function OrderDetailContent({
   const isHighPriority = order.priority === "HIGH";
 
   return (
-    <div className="-mx-4 -mt-5 min-h-full space-y-5 bg-slate-100/70 px-4 pb-6 pt-5 dark:bg-slate-950/40 sm:-mx-6 sm:-mt-7 sm:px-6 sm:pt-7 lg:-mx-8 lg:px-8">
+    <div className="space-y-5">
       {/* จองสต๊อคมีปัญหา — ต้องเห็นทันทีบนหน้าออเดอร์ (ด่านพร้อมผลิตจะกั้นงานไม่ให้เข้าคิวช่างอยู่แล้ว
           แต่คนแก้ต้นเหตุคือคนที่เปิดหน้านี้) · จองสำเร็จดูได้จากประวัติออเดอร์ */}
       {order.stockReservationError && (
@@ -967,7 +970,7 @@ function OrderDetailContent({
             ) : (
               /* แท็บอยู่เสมอแม้ยังไม่ถึงเฟส — ถ้าซ่อนตามสถานะ ชุดแท็บจะเปลี่ยนใต้มือ
                  ระหว่างวันเดียวกัน (สถานะเดินหลายรอบต่อวัน) ตำแหน่งที่คนจำไว้จะขยับ */
-              <Section title="จัดส่ง" icon={Truck} tone="production" surface="card" className="rounded-2xl shadow-sm">
+              <Section title="จัดส่ง" icon={Truck} tone="production" surface="card" className="rounded-xl">
                 <EmptyState
                   icon={Truck}
                   title="ยังไม่ถึงขั้นจัดส่ง"

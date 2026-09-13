@@ -127,22 +127,22 @@ export function OrderArtworkCardView({
         ) : undefined
       }
     >
-      <div className="space-y-4">
+      <div className={variant === "current" ? styles.artworkBody : "space-y-4"}>
         {loadError && <QueryError message={loadError} onRetry={onRetry} />}
         {isLoading ? (
           <Skeleton className={variant === "current" ? "h-48 rounded-xl" : "h-20 rounded-lg"} />
         ) : latest ? (
-          <div className={variant === "current" ? "space-y-4" : "flex flex-col items-start gap-5 sm:flex-row"}>
+          <div className={variant === "current" ? styles.artworkPreview : "flex flex-col items-start gap-5 sm:flex-row"}>
             {variant === "current" ? (
               <div className={styles.artworkStage}>
-                <MockupGallery version={latest} versionNumber={latest.versionNumber} className="mx-auto max-w-[26rem] grid-cols-2 sm:grid-cols-2 lg:grid-cols-2 [&_button]:bg-surface [&_button]:shadow-sm" />
+                <MockupGallery version={latest} versionNumber={latest.versionNumber} className="mx-auto max-w-[26rem] grid-cols-2 sm:grid-cols-2 lg:grid-cols-2 [&_button]:bg-surface" />
               </div>
             ) : (
               <div className="w-full max-w-[220px] shrink-0">
                 <MockupGallery version={latest} versionNumber={latest.versionNumber} className="grid-cols-1 sm:grid-cols-1 lg:grid-cols-1" />
               </div>
             )}
-            <div className={variant === "current" ? "flex min-w-0 flex-wrap items-center justify-between gap-x-4 gap-y-2" : "min-w-0 flex-1 space-y-2"}>
+            <div className={variant === "current" ? styles.artworkMeta : "min-w-0 flex-1 space-y-2"}>
               <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
                 <Badge
                   variant={
@@ -170,7 +170,7 @@ export function OrderArtworkCardView({
             </div>
           </div>
         ) : loadError ? null : (
-          <div className="flex flex-wrap items-center gap-4">
+          <div className={variant === "current" ? styles.artworkEmpty : "flex flex-wrap items-center gap-4"}>
             <MockupThumbnail cover={null} size="lg" className="bg-surface-muted [&_svg]:h-6 [&_svg]:w-6" />
             <div className="min-w-0 flex-1 space-y-2">
               <p className="text-sm text-muted">ยังไม่มีม็อกอัพ</p>

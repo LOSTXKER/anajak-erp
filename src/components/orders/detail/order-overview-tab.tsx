@@ -708,7 +708,7 @@ export function OrderOverviewTab({
     order.brandProfile && (
       <Section
         data-order-overview-card="brand"
-        className={currentLayout ? styles.card : undefined}
+        className={currentLayout ? cn(styles.card, "xl:col-span-2") : undefined}
         surface={currentLayout ? "card" : "plain"}
         title={<OverviewTitle icon={Palette} tone="product" framed={currentLayout}>แบรนด์ลูกค้า</OverviewTitle>}
       >
@@ -835,7 +835,7 @@ export function OrderOverviewTab({
 
           <Group>
             {hasCustomerContact ? (
-              <FieldGrid className={currentLayout ? "grid-cols-2 gap-x-4" : undefined}>
+              <FieldGrid className={currentLayout ? cn("gap-x-4", styles.customerContacts) : undefined}>
                 <Field label="โทรศัพท์">
                   {customer.phone && <PhoneLink phone={customer.phone} />}
                 </Field>
@@ -878,38 +878,33 @@ export function OrderOverviewTab({
                 </span>
               )}
             </Field>
+            {customer.tags.length > 0 && (
+              <Field label="ป้ายลูกค้า" wide={!currentLayout}>
+                <span className="flex flex-wrap gap-1.5">
+                  {/* ป้ายลูกค้าเป็นคำที่ทีมตั้งเอง ไม่มีความหมายเชิงสถานะ →
+                      ได้โทน "ระบบ" (เทาอมฟ้า) ไม่ใช่สีเตือน (แบบ B · 2026-08-31) */}
+                  {customer.tags.map((tag) => (
+                    <Badge
+                      key={tag}
+                      variant="secondary"
+                      size="sm"
+                      className={cn(
+                        "max-w-full whitespace-normal [overflow-wrap:anywhere]",
+                        VISUAL_TONE_CLASSES.system.soft,
+                      )}
+                    >
+                      {tag}
+                    </Badge>
+                  ))}
+                </span>
+              </Field>
+            )}
+            {customer.notes && (
+              <Field label="หมายเหตุลูกค้า (ทุกใบ)" wide>
+                {customer.notes}
+              </Field>
+            )}
           </FieldGrid>
-
-          {(customer.tags.length > 0 || customer.notes) && (
-            <FieldGrid>
-              {customer.tags.length > 0 && (
-                <Field label="ป้ายลูกค้า" wide>
-                  <span className="flex flex-wrap gap-1.5">
-                    {/* ป้ายลูกค้าเป็นคำที่ทีมตั้งเอง ไม่มีความหมายเชิงสถานะ →
-                        ได้โทน "ระบบ" (เทาอมฟ้า) ไม่ใช่สีเตือน (แบบ B · 2026-08-31) */}
-                    {customer.tags.map((tag) => (
-                      <Badge
-                        key={tag}
-                        variant="secondary"
-                        size="sm"
-                        className={cn(
-                          "max-w-full whitespace-normal [overflow-wrap:anywhere]",
-                          VISUAL_TONE_CLASSES.system.soft,
-                        )}
-                      >
-                        {tag}
-                      </Badge>
-                    ))}
-                  </span>
-                </Field>
-              )}
-              {customer.notes && (
-                <Field label="หมายเหตุลูกค้า (ทุกใบ)" wide>
-                  {customer.notes}
-                </Field>
-              )}
-            </FieldGrid>
-          )}
 
           <details className={cn("border-t border-divider", styles.customerDetails)} open={currentLayout ? undefined : true}>
             <summary className={cn("rounded-lg text-sm font-medium text-secondary", FOCUS_BUTTON)}>
@@ -1017,16 +1012,12 @@ export function OrderOverviewTab({
 
   return (
     <div className="space-y-4">
-      <div className="grid items-start gap-4 xl:grid-cols-2">
-        <div className="min-w-0 space-y-4">
-          {summarySection}
-          {shippingSection}
-        </div>
-        <div className="min-w-0 space-y-4">
-          {artwork}
-          {brandSection}
-          {customerSection}
-        </div>
+      <div className="grid items-stretch gap-4 xl:grid-cols-2">
+        {summarySection}
+        {artwork}
+        {customerSection}
+        {shippingSection}
+        {brandSection}
       </div>
       {referenceSection}
     </div>

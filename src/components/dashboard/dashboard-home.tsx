@@ -44,6 +44,7 @@ import {
   INTERACTIVE_PRESSED,
 } from "@/components/ui/tokens";
 import { VISUAL_TONE_CLASSES, type VisualTone } from "@/lib/visual-tone";
+import styles from "./dashboard-home.module.css";
 
 const ATTENTION_ICONS: Record<DashboardAttentionKind, ComponentType<{ className?: string }>> = {
   "overdue-order": CalendarClock,
@@ -54,18 +55,17 @@ const ATTENTION_ICONS: Record<DashboardAttentionKind, ComponentType<{ className?
   quotation: ClipboardList,
 };
 
-const PANEL =
-  "rounded-2xl border border-slate-200 bg-surface shadow-[0_3px_14px_-8px_rgba(15,23,42,0.18)] dark:border-slate-700/70";
+const PANEL = cn("rounded-xl border border-border bg-surface shadow-none", styles.panel);
 
 function DashboardSkeleton() {
   return (
     <div className="space-y-6">
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Skeleton className="h-72 rounded-2xl lg:col-span-2" />
-        <Skeleton className="h-72 rounded-2xl" />
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Skeleton className="h-72 rounded-xl" />
+        <Skeleton className="h-72 rounded-xl" />
       </div>
-      <Skeleton className="h-32 rounded-2xl" />
-      <Skeleton className="h-80 rounded-2xl" />
+      <Skeleton className="h-32 rounded-xl" />
+      <Skeleton className="h-80 rounded-xl" />
     </div>
   );
 }
@@ -82,26 +82,19 @@ function AttentionRow({ item, emphasized = false }: { item: DashboardAttentionIt
         FOCUS_INSET,
         INTERACTIVE_HOVER,
         INTERACTIVE_PRESSED,
-        "group flex items-center gap-3 rounded-xl border transition-colors",
-        emphasized ? "col-span-full p-4 sm:gap-4 sm:p-5" : "bg-surface p-3",
+        "group flex items-center gap-3 rounded-lg p-3 transition-colors",
         emphasized && (danger ? "bg-red-50/70 dark:bg-red-950/30" : "bg-amber-50/70 dark:bg-amber-950/30"),
-        danger
-          ? emphasized
-            ? "border-red-300 hover:border-red-400 dark:border-red-800 dark:hover:border-red-700"
-            : "border-red-200/80 hover:border-red-300 dark:border-red-900/70 dark:hover:border-red-700"
-          : "border-amber-200/80 hover:border-amber-300 dark:border-amber-900/60 dark:hover:border-amber-700",
       )}
     >
       <div
         className={cn(
-          "flex shrink-0 items-center justify-center rounded-xl border",
-          emphasized ? "h-12 w-12" : "h-9 w-9",
+          "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
           danger
-            ? "border-red-100 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/50 dark:text-red-300"
-            : "border-amber-100 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/50 dark:text-amber-300",
+            ? "text-red-700 dark:text-red-300"
+            : "text-amber-700 dark:text-amber-300",
         )}
       >
-        <Icon className={emphasized ? "h-6 w-6" : "h-[18px] w-[18px]"} />
+        <Icon className="h-5 w-5" aria-hidden="true" />
       </div>
       <div className="min-w-0 flex-1">
         <p className={cn("break-words font-semibold text-strong", emphasized ? "text-base" : "text-sm")}>{item.title}</p>
@@ -112,7 +105,7 @@ function AttentionRow({ item, emphasized = false }: { item: DashboardAttentionIt
       <span
         className={cn(
           "min-w-8 text-right font-semibold tabular-nums",
-          emphasized ? "text-4xl" : "text-2xl",
+          emphasized ? "text-3xl" : "text-2xl",
           danger ? "text-red-600 dark:text-red-400" : "text-amber-700 dark:text-amber-400",
         )}
       >
@@ -137,13 +130,13 @@ function AttentionPanel({
   items: DashboardAttentionItem[];
 }) {
   return (
-    <section className={cn(PANEL, "@container overflow-hidden lg:col-span-2")} aria-labelledby="dashboard-attention-title">
-      <header className="flex items-center justify-between gap-4 bg-blue-950 px-5 py-5 text-white sm:px-6 sm:py-6 dark:bg-blue-950/70">
-        <div className="flex min-w-0 items-center gap-3.5">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/10 sm:h-12 sm:w-12" aria-hidden="true">
-            {allowed ? <CalendarClock className="h-6 w-6" /> : <UserRoundCheck className="h-6 w-6" />}
+    <section className={cn(PANEL, "@container overflow-hidden")} aria-labelledby="dashboard-attention-title">
+      <header className="flex items-center justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-module-brand-surface text-module-brand-text" aria-hidden="true">
+            {allowed ? <CalendarClock className="h-4 w-4" /> : <UserRoundCheck className="h-4 w-4" />}
           </span>
-          <h2 id="dashboard-attention-title" className="text-xl font-semibold sm:text-2xl">
+          <h2 id="dashboard-attention-title" className="text-base font-semibold text-strong">
             {allowed ? "ต้องเช็กก่อน" : "คิวงานของคุณ"}
           </h2>
         </div>
@@ -176,7 +169,7 @@ function AttentionPanel({
           </Button>
         </div>
       ) : (
-        <div className="grid gap-2.5 bg-slate-50/70 p-3 @[35rem]:grid-cols-2 sm:p-4 dark:bg-slate-950/20">
+        <div className="grid gap-1 p-3 @[28rem]:grid-cols-2 [&>a:only-child]:col-span-full">
           {items.map((item, index) => (
             <AttentionRow key={item.kind} item={item} emphasized={index === 0} />
           ))}
@@ -208,21 +201,21 @@ function QuickLink({
       className={cn(
         CONTROL_MIN_H,
         FOCUS_BUTTON,
-        "group flex min-h-28 flex-col items-start justify-between gap-4 rounded-xl border p-4 transition-colors",
+        "group flex min-h-24 flex-col items-start justify-between gap-3 rounded-lg border p-4 transition-colors",
         wide && "col-span-2",
         primary
-          ? "border-blue-600 bg-blue-600 text-white shadow-sm hover:border-blue-700 hover:bg-blue-700 active:bg-blue-800"
-          : cn("border-slate-200 bg-surface hover:border-blue-300 dark:border-slate-700 dark:hover:border-blue-700", INTERACTIVE_HOVER, INTERACTIVE_PRESSED, "text-secondary"),
+          ? "border-module-brand-border bg-module-brand-surface text-module-brand-text hover:border-module-brand-solid active:border-module-brand-solid"
+          : cn("border-divider bg-surface hover:border-module-brand-border", INTERACTIVE_HOVER, INTERACTIVE_PRESSED, "text-secondary"),
       )}
     >
       <span
         className={cn(
-          "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
+          "flex h-7 w-7 shrink-0 items-center justify-center",
           primary
-            ? "bg-white/15 text-white"
+            ? "text-module-brand-text"
             : tone
-              ? VISUAL_TONE_CLASSES[tone].soft
-              : "bg-surface-muted text-secondary",
+              ? VISUAL_TONE_CLASSES[tone].text
+              : "text-secondary",
         )}
         aria-hidden="true"
       >
@@ -251,11 +244,11 @@ function Metric({
   amount?: boolean;
 }) {
   return (
-    <div className={cn(PANEL, "@container relative min-w-0 p-4 sm:p-5")}>
+    <div className="@container relative min-w-0 p-4 sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <p className="pt-1 text-xs font-medium leading-relaxed text-secondary">{label}</p>
         {Icon && tone && (
-          <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl", VISUAL_TONE_CLASSES[tone].soft)} aria-hidden="true">
+          <span className={cn("flex h-7 w-7 shrink-0 items-center justify-center", VISUAL_TONE_CLASSES[tone].text)} aria-hidden="true">
             <Icon className="h-4.5 w-4.5" />
           </span>
         )}
@@ -307,7 +300,7 @@ export function DashboardHome() {
   };
 
   return (
-    <div className="-mx-4 -mt-5 bg-slate-100/70 px-4 pb-6 pt-5 dark:bg-slate-950/40 sm:-mx-6 sm:-mt-7 sm:px-6 sm:pt-7 lg:-mx-8 lg:px-8">
+    <div className={cn(styles.page, "-mx-4 -mt-5 min-h-full bg-surface px-4 pb-6 pt-5 sm:-mx-6 sm:-mt-7 sm:px-6 sm:pt-7 lg:-mx-8 lg:px-8")}>
       <PageShell
         className="mx-auto max-w-6xl"
         title="ภาพรวมวันนี้"
@@ -331,7 +324,7 @@ export function DashboardHome() {
             : null
         }
       >
-        <div className="grid items-start gap-5 lg:grid-cols-3">
+        <div className="grid items-stretch gap-4 lg:grid-cols-2">
           <AttentionPanel
             allowed={canViewPulse}
             loading={!pulseQuery.data && (pulseQuery.isLoading || pulseQuery.isFetching)}
@@ -341,7 +334,7 @@ export function DashboardHome() {
           />
 
           <Section title="ทางลัด" surface="card" flush className={PANEL}>
-            <div className="grid grid-cols-2 gap-3 p-4">
+            <div className="grid h-full grid-cols-2 auto-rows-fr gap-3 p-4">
               {canCreateOrder && (
                 <QuickLink
                   href="/orders/new"
@@ -374,8 +367,8 @@ export function DashboardHome() {
           </Section>
         </div>
 
-        <Section aria-label="ตัวเลขภาพรวม" bordered={false} surface="plain" flush>
-          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        <Section aria-label="ตัวเลขภาพรวม" className={PANEL} surface="card" flush>
+          <div className={cn(styles.metrics, "grid grid-cols-2 lg:grid-cols-4")}>
             <Metric label="ออเดอร์กำลังเดิน" value={data?.activeOrders ?? 0} icon={ShoppingCart} tone="brand" />
             <Metric label="ปิดงานเดือนนี้" value={data?.completedThisMonth ?? 0} icon={CheckCircle2} tone="production" />
             <Metric label="ลูกค้าทั้งหมด" value={data?.totalCustomers ?? 0} icon={Users} tone="brand" note={data?.newCustomersThisMonth ? `+${data.newCustomersThisMonth} เดือนนี้` : undefined} />
