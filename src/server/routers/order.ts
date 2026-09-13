@@ -505,6 +505,9 @@ export const orderRouter = router({
         createdAfter: z.string().optional(),
         createdBefore: z.string().optional(),
         attention: z.enum(ORDER_ATTENTIONS).optional(),
+        // หน้าแรก (คิวออเดอร์ 2026-09-14) ขอเฉพาะงานที่ยังเดินอยู่ — ตัดปิดงาน/ยกเลิกที่ฝั่ง DB
+        // ไม่ทับ internalStatus ที่ผู้ใช้เลือกเอง
+        excludeClosed: z.boolean().optional(),
         sortBy: z.enum(["createdAt", "totalAmount", "orderNumber", "deadline"]).optional(),
         sortOrder: z.enum(["asc", "desc"]).optional(),
         page: z.number().default(1),
@@ -534,6 +537,7 @@ export const orderRouter = router({
       if (input.channel) where.channel = input.channel;
       if (input.customerStatus) where.customerStatus = input.customerStatus;
       if (input.internalStatus) where.internalStatus = input.internalStatus;
+      else if (input.excludeClosed) where.internalStatus = { notIn: ["COMPLETED", "CANCELLED"] };
       if (input.customerId) where.customerId = input.customerId;
 
       // Dashboard drill-down ต้องคืนรายการเดียวกับตัวเลขบนการ์ด และต้อง AND กับ
@@ -590,6 +594,8 @@ export const orderRouter = router({
               select: {
                 fileUrl: true,
                 thumbnailUrl: true,
+                // หน้าแรกใช้บอกว่าแบบล่าสุดรอลูกค้าตัดสินอยู่ไหม (อ่านอย่างเดียว ไม่มี token)
+                approvalStatus: true,
                 files: {
                   orderBy: { sortOrder: "asc" },
                   select: { fileUrl: true, thumbnailUrl: true, position: true },

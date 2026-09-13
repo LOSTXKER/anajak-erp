@@ -6,8 +6,9 @@
 
 @theme {
 
-  --radius-md: 0.625rem;
-  --radius-lg: 0.75rem;
+  /* ขยับขึ้นหนึ่งขั้น 2026-09-14 (เบส: "อยากให้มุมโค้งมากกว่านี้") */
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
 
   --font-sans: "Prompt", -apple-system, BlinkMacSystemFont, "SF Pro Text",
     "Segoe UI", "Roboto", "Helvetica Neue", ui-sans-serif, system-ui, sans-serif;

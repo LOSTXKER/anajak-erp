@@ -708,7 +708,7 @@ export function OrderOverviewTab({
     order.brandProfile && (
       <Section
         data-order-overview-card="brand"
-        className={currentLayout ? cn(styles.card, "xl:col-span-2") : undefined}
+        className={currentLayout ? styles.card : undefined}
         surface={currentLayout ? "card" : "plain"}
         title={<OverviewTitle icon={Palette} tone="product" framed={currentLayout}>แบรนด์ลูกค้า</OverviewTitle>}
       >
@@ -1010,14 +1010,20 @@ export function OrderOverviewTab({
     );
   }
 
+  /* ข้อมูลซ้าย–ม็อกอัพขวา (เบสเคาะจากต้นแบบ 2026-09-13/14): ซ้ายไล่ ข้อมูลออเดอร์ → ลูกค้า → จัดส่ง
+     ขวา ม็อกอัพและไฟล์ → แบรนด์ · จอแคบเรียงต่อกันตามลำดับเดียวกัน */
   return (
     <div className="space-y-4">
-      <div className="grid items-stretch gap-4 xl:grid-cols-2">
-        {summarySection}
-        {artwork}
-        {customerSection}
-        {shippingSection}
-        {brandSection}
+      <div className="grid items-start gap-4 xl:grid-cols-2">
+        <div className="min-w-0 space-y-4">
+          {summarySection}
+          {customerSection}
+          {shippingSection}
+        </div>
+        <div className="min-w-0 space-y-4">
+          {artwork}
+          {brandSection}
+        </div>
       </div>
       {referenceSection}
     </div>

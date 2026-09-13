@@ -13,7 +13,7 @@
   min-width: 0;
   flex-direction: column;
   border: 1px solid var(--color-border);
-  border-radius: 0.75rem;
+  border-radius: 1rem;
   background: var(--color-surface);
   box-shadow: none;
 }
@@ -32,18 +32,25 @@
   flex-direction: column;
 }
 
+/* ตัวเลขหลัก 3 ช่องเป็นแถบมีกรอบ (ตามต้นแบบที่เบสเคาะ 2026-09-14) — คั่นช่องด้วยเส้นบาง ไม่ใช่ช่องว่าง */
 .summaryFacts {
-  align-items: start;
-  gap: 0.875rem;
+  align-items: stretch;
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: 0.875rem;
 }
 
-.summaryFacts > div:not(.orderTotal) {
-  padding-block: 0.25rem;
+.summaryFacts > div {
+  padding: 0.75rem 1rem;
+}
+
+.summaryFacts > div:nth-child(2) {
+  border-left: 1px solid var(--color-divider);
 }
 
 .orderTotal {
   border-top: 1px solid var(--color-divider);
-  padding-top: 0.875rem;
 }
 
 .orderTotal > dd > span > button,
@@ -95,7 +102,7 @@
 }
 
 .artworkStage {
-  border-radius: 0.5rem;
+  border-radius: 0.875rem;
   background: var(--color-surface-muted);
   padding: 1rem;
 }
@@ -132,7 +139,6 @@
     grid-column: auto;
     border-top: 0;
     border-left: 1px solid var(--color-divider);
-    padding: 0.25rem 0 0.25rem 1rem;
   }
 
   .summaryDetails {

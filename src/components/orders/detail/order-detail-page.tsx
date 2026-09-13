@@ -847,13 +847,17 @@ function OrderDetailContent({
         // ปุ่มขั้นต่อไปหายไปตอนติดด่าน — เหตุผลต้องมาโผล่ตรงนี้แทน ไม่งั้นปุ่มหายเงียบ
         blockers={nextStepBlockers(nextStep, orderContext.data?.readiness ?? null)}
       />
-      <OrderNextStepGuidance
-        nextStep={nextStep}
-        readiness={orderContext.data?.readiness ?? null}
-        onEditItems={canUseEditForm && canEditItems ? openItemsEditPage : undefined}
-        onAnchor={handleAnchor}
-        canSeeMoney={canSeeMoney}
-      />
+      {/* คำอธิบายขั้นต่อไปใต้รางถอดออก (เบสเคาะ 2026-09-14 "ไม่ต้องมี ขั้นต่อไป") — ปุ่มบนหัวหน้าพอ
+          เหลือเฉพาะตอนติดด่านพร้อมผลิต ซึ่งเป็น "เหตุที่ปุ่มหาย + ทางแก้" ไม่ใช่คำอธิบาย */}
+      {nextStepBlockers(nextStep, orderContext.data?.readiness ?? null).length > 0 && (
+        <OrderNextStepGuidance
+          nextStep={nextStep}
+          readiness={orderContext.data?.readiness ?? null}
+          onEditItems={canUseEditForm && canEditItems ? openItemsEditPage : undefined}
+          onAnchor={handleAnchor}
+          canSeeMoney={canSeeMoney}
+        />
+      )}
       </div>
       </div>
 
@@ -894,7 +898,6 @@ function OrderDetailContent({
                 <OrderArtworkCard
                   orderId={id}
                   description={order.description}
-                  onOpenFiles={() => changeTab("files")}
                 />
               }
               channelColor={channelColor}
