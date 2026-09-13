@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { ArrowRight, CalendarDays, ClipboardList, FileImage, ImageOff, MapPin, Package, PackageOpen, Pencil, Phone, Shirt, Truck } from "lucide-react";
+import { ArrowRight, CalendarDays, ClipboardList, FileImage, Package, Pencil, Phone, Shirt, Truck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -20,19 +20,18 @@ const shippingLocality = [PREVIEW_ORDER.shippingSubDistrict, PREVIEW_ORDER.shipp
 function SizeAllocation({ label }: { label: string }) {
   return <table className={styles.sizeTable}>
     <caption className="sr-only">{label}</caption>
-    <thead><tr><th scope="col">ไซซ์</th>{sampleSizes.map(size => <th key={size.id} scope="col">{size.size}</th>)}<th scope="col">รวม</th></tr></thead>
-    <tbody><tr><th scope="row">จำนวนตัว</th>{sampleSizes.map(size => <td key={size.id}>{size.quantity}</td>)}<td className={styles.quantityTotal}>{totalQuantity}</td></tr></tbody>
+    <thead><tr><th scope="col">ไซซ์</th>{sampleSizes.map(size => <th key={size.id} scope="col">{size.size}</th>)}</tr></thead>
+    <tbody><tr><th scope="row">จำนวนตัว</th>{sampleSizes.map(size => <td key={size.id}>{size.quantity}</td>)}</tr></tbody>
   </table>;
 }
 
-export function WorkspaceProduction({ hasMockup, printFileCount, deadline, onOpenMockup, onOpenPrintFiles, onOpenItems, onOpenWorkOrder }: {
+export function WorkspaceProduction({ hasMockup, printFileCount, deadline, onOpenMockup, onOpenPrintFiles, onOpenItems }: {
   hasMockup: boolean;
   printFileCount: number;
   deadline: string;
   onOpenMockup: () => void;
   onOpenPrintFiles: () => void;
   onOpenItems: () => void;
-  onOpenWorkOrder: () => void;
 }) {
   return <section className={styles.workspace} aria-label="งานผลิตตัวอย่าง">
     <header className={styles.heading}>
@@ -51,28 +50,19 @@ export function WorkspaceProduction({ hasMockup, printFileCount, deadline, onOpe
         <div className={styles.printSpec}>
           <span className={styles.technique}>{samplePrint.printType}</span>
           <div><h4>{samplePrint.designNote}</h4><p>{String(samplePrint.width)} × {String(samplePrint.height)} ซม.</p></div>
-          <Button variant="outline" size="sm" onClick={onOpenItems}>ดูรายการ<ArrowRight /></Button>
+          <Button variant="link" size="sm" onClick={onOpenItems}>ดูรายการ<ArrowRight /></Button>
         </div>
-        <div className={styles.workNote}><Package size={17} /><p>{sampleItem.notes}</p></div>
+        <p className={styles.workNote}>{sampleItem.notes}</p>
       </section>
 
       <section className={styles.preparation} aria-labelledby="workspace-production-files">
-        <h3 id="workspace-production-files">แบบและไฟล์ของงาน</h3>
-        <div className={styles.fileState}>
-          {hasMockup ? <FileImage size={20} /> : <ImageOff size={20} />}
-          <div><h4>ม็อกอัพ{hasMockup && <span>v2</span>}</h4><Badge variant="warning" size="sm">{hasMockup ? "รอลูกค้าตรวจ" : "ยังไม่มีม็อกอัพ"}</Badge></div>
-          <Button variant="outline" size="sm" onClick={onOpenMockup}>ดูม็อกอัพ<ArrowRight /></Button>
-        </div>
-        <div className={styles.fileState}>
-          <FileImage size={20} />
-          <div><h4>ไฟล์พิมพ์</h4><span className={styles.fileAvailability}>{printFileCount > 0 ? `${printFileCount} ไฟล์ตัวอย่าง` : "ยังไม่มีไฟล์พิมพ์"}</span></div>
-          <Button variant="outline" size="sm" onClick={onOpenPrintFiles}>เปิดไฟล์พิมพ์<ArrowRight /></Button>
-        </div>
-        <div className={styles.workOrder}>
-          <ClipboardList size={21} />
-          <div><h4>ใบสั่งงาน</h4><p>รายละเอียดจากออเดอร์นี้</p></div>
-          <Button variant="ghost" size="sm" onClick={onOpenWorkOrder}>ดูตัวอย่าง<ArrowRight /></Button>
-        </div>
+        <h3 id="workspace-production-files">แบบและไฟล์</h3>
+        <Button variant="ghost" className={styles.fileLink} aria-label="ดูม็อกอัพ" onClick={onOpenMockup}>
+          <FileImage /><span><strong>ดูม็อกอัพ{hasMockup && " v2"}<ArrowRight size={14} /></strong><small>{hasMockup ? "รอลูกค้าตรวจ" : "ยังไม่มีม็อกอัพ"}</small></span>
+        </Button>
+        <Button variant="ghost" className={styles.fileLink} aria-label="เปิดไฟล์พิมพ์" onClick={onOpenPrintFiles}>
+          <FileImage /><span><strong>เปิดไฟล์พิมพ์<ArrowRight size={14} /></strong><small>{printFileCount > 0 ? `${printFileCount} ไฟล์ตัวอย่าง` : "ยังไม่มีไฟล์พิมพ์"}</small></span>
+        </Button>
       </section>
     </div>
   </section>;
@@ -90,33 +80,32 @@ export function WorkspaceDelivery({ deadline, shippingAddress, onEditShipping, o
   return <>
     <section className={styles.workspace} aria-label="การจัดส่งตัวอย่าง">
       <header className={styles.heading}>
-        <div><Truck size={19} /><h2>การจัดส่ง</h2><Badge size="sm">ยังไม่พร้อมส่ง</Badge></div>
+        <div><Truck size={19} /><h2>การจัดส่ง</h2></div>
         <span className={styles.deadline}><CalendarDays size={15} />กำหนดส่ง <strong>{formatDate(deadline)}</strong></span>
       </header>
 
       <div className={styles.deliveryColumns}>
         <section className={styles.destination} aria-labelledby="workspace-delivery-recipient">
-          <div className={styles.sectionHeading}><h3 id="workspace-delivery-recipient"><MapPin size={17} />ผู้รับและที่อยู่</h3><Button variant="outline" size="sm" onClick={onEditShipping}><Pencil />แก้ไขที่อยู่</Button></div>
+          <div className={styles.sectionHeading}><h3 id="workspace-delivery-recipient">ผู้รับและที่อยู่</h3><Button variant="link" size="sm" onClick={onEditShipping}><Pencil />แก้ไข</Button></div>
           <div className={styles.address}>
             <strong>{PREVIEW_ORDER.shippingRecipientName}</strong>
             <p>{shippingAddress}<br />{shippingLocality}</p>
             <span><Phone size={16} />{PREVIEW_ORDER.shippingPhone}</span>
           </div>
-          <Button variant="ghost" size="sm" className={styles.previewAddress} onClick={() => setShowAddressPreview(true)}><ClipboardList />ดูตัวอย่างใบปะหน้า<ArrowRight /></Button>
+          <Button variant="link" size="sm" className={styles.previewAddress} onClick={() => setShowAddressPreview(true)}><ClipboardList />ดูตัวอย่างใบปะหน้า<ArrowRight /></Button>
         </section>
 
         <section className={styles.manifest} aria-labelledby="workspace-delivery-items">
-          <div className={styles.sectionHeading}><h3 id="workspace-delivery-items"><Package size={17} />รายการที่จะจัดส่ง</h3><Button variant="ghost" size="sm" onClick={onOpenItems}>ดูรายการ<ArrowRight /></Button></div>
-          <div className={styles.manifestProduct}><h4>{sampleItem.description}</h4><span>{sampleProduct.description}</span></div>
+          <div className={styles.sectionHeading}><h3 id="workspace-delivery-items">รายการจัดส่ง</h3><Button variant="link" size="sm" onClick={onOpenItems}>ดูรายการ<ArrowRight /></Button></div>
+          <div className={styles.manifestProduct}><div><h4>{sampleItem.description}</h4><span>{sampleProduct.description}</span></div><span className={styles.quantity}>{totalQuantity}<small>ตัว</small></span></div>
           <SizeAllocation label="จำนวนเสื้อที่จะจัดส่งตามออเดอร์แยกไซซ์" />
-          <div className={styles.packingNote}><PackageOpen size={18} /><p>{PREVIEW_ORDER.notes}</p></div>
+          <p className={styles.packingNote}>{PREVIEW_ORDER.notes}</p>
         </section>
       </div>
 
       <section className={styles.shipmentState} aria-label="รอบจัดส่ง">
-        <span className={styles.shipmentIcon}><Truck size={24} strokeWidth={1.5} /></span>
-        <div><h3>ยังไม่มีรอบจัดส่ง</h3><p>งานอยู่ระหว่างเตรียมแบบ</p></div>
-        <Button variant="outline" size="sm" onClick={onOpenProduction}>ดูงานผลิต<ArrowRight /></Button>
+        <p>ยังไม่มีรอบจัดส่ง · รอเตรียมแบบ</p>
+        <Button variant="link" size="sm" onClick={onOpenProduction}>ดูงานผลิต<ArrowRight /></Button>
       </section>
     </section>
 

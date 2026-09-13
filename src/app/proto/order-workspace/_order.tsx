@@ -90,6 +90,7 @@ export function WorkspaceOrder({ variant, scenario, onGoHome, onNotice }: {
       <div><dt>เงื่อนไขประจำ</dt><dd>เครดิต 30 วัน</dd></div>
       <div><dt>เลขภาษี</dt><dd>{customer.taxId}</dd></div>
     </dl>
+    <div className="flex flex-wrap gap-2">{customer.tags.map(tag => <Badge key={tag} size="sm">{tag}</Badge>)}</div>
     <p className="text-sm text-secondary">{customer.notes}</p>
   </div>);
   const openFile = (file: WorkspaceSampleFile) => openDetail(file.name, file.path
@@ -189,7 +190,7 @@ export function WorkspaceOrder({ variant, scenario, onGoHome, onNotice }: {
         <TabsContent value="files" className="pt-5"><WorkspaceFiles activeGroup={fileTab} onGroupChange={setFileTab} hasMockup={hasMockup} rawFiles={RAW_FILES} printFiles={printFiles} onAddMockup={addMockupExample} onAddPrintFile={addPrintExample} onPreviewFile={openFile} /></TabsContent>
         <TabsContent value="items" className="pt-5"><OrderItemsDisplay orderId={order.id} items={PREVIEW_ITEMS} fees={PREVIEW_FEES} showMoney canEditReceiveTracking={false} totals={{ discount: 0, taxRate: 7, taxAmount: PREVIEW_PRICING.taxAmount, totalAmount: PREVIEW_PRICING.grandTotal }} priceSummary={variant === "new" ? <WorkspacePriceSummary onOpenMoney={() => setTab("money")} /> : undefined} /></TabsContent>
         <TabsContent value="money" keepMounted className="pt-5"><WorkspaceMoney onOpenItems={() => setTab("items")} poNumber={draft.poNumber} onRecordedPayment={amount => addActivity({ title: `บันทึกรับเงินตัวอย่าง ${formatCurrency(amount / 100)}`, category: "money", target: { tab: "money", label: "ดูเงินและบิล" } })} /></TabsContent>
-        <TabsContent value="production" className="pt-5"><WorkspaceProduction hasMockup={hasMockup} printFileCount={printFiles.length} deadline={order.deadline} onOpenMockup={openFiles} onOpenPrintFiles={() => { setTab("files"); setFileTab("print"); }} onOpenItems={() => setTab("items")} onOpenWorkOrder={openWorkOrder} /></TabsContent>
+        <TabsContent value="production" className="pt-5"><WorkspaceProduction hasMockup={hasMockup} printFileCount={printFiles.length} deadline={order.deadline} onOpenMockup={openFiles} onOpenPrintFiles={() => { setTab("files"); setFileTab("print"); }} onOpenItems={() => setTab("items")} /></TabsContent>
         <TabsContent value="delivery" className="pt-5"><WorkspaceDelivery deadline={order.deadline} shippingAddress={draft.shippingAddress} onEditShipping={() => setEdit("shipping")} onOpenProduction={() => setTab("production")} onOpenItems={() => setTab("items")} /></TabsContent>
         <TabsContent value="history" keepMounted className="pt-5"><WorkspaceHistory events={activities} onNavigate={target => { setTab(target.tab); if (target.fileGroup) setFileTab(target.fileGroup); }} /></TabsContent>
       </Tabs>
