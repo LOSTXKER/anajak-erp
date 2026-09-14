@@ -7,13 +7,20 @@ import {
   CalendarDays,
   ChevronRight,
   CreditCard,
+  ExternalLink,
+  Flag,
+  Hash,
   Info,
   Mail,
   MessageCircle,
   Package,
+  PackageCheck,
   Palette,
+  Pencil,
   Phone,
+  Plus,
   Repeat2,
+  Tag,
   Truck,
   User,
   Wallet,
@@ -21,9 +28,9 @@ import {
 import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ChatLink } from "@/components/customers/chat-link";
-import { HomeIconTile, type HomeTone } from "@/components/dashboard/home/home-card";
-import { cn, formatBaht, formatDate, formatDateTime } from "@/lib/utils";
+import { safeChatUrl } from "@/components/customers/chat-link";
+import { HomeChip, HomeIconTile, type HomeTone } from "@/components/dashboard/home/home-card";
+import { cn, formatBaht, formatDate, formatDateCompact, formatTime } from "@/lib/utils";
 import { differenceInBangkokDays } from "@/lib/date-utils";
 import type { OrderType, CustomerStatus } from "@prisma/client";
 import { CHANNEL_LABELS, ORDER_TYPE_UI_LABELS, PRIORITY_LABELS } from "@/lib/order-status";
@@ -32,12 +39,13 @@ import { FOCUS_BUTTON, INTERACTIVE_PRESSED, RADIUS } from "@/components/ui/token
 import { VISUAL_TONE_CLASSES, type VisualTone } from "@/lib/visual-tone";
 
 /* ============================================================
-   แท็บ "ภาพรวม" ของหน้าออเดอร์ (ต้นแบบรอบ 2 · เบส "โอเคทำจริงเลย" 2026-09-14)
+   แท็บ "ภาพรวม" ของหน้าออเดอร์ (ต้นแบบรอบ 2 · เบส "โอเคทำจริงเลย" 2026-09-14
+   · ไล่ให้ตรงต้นแบบทีละส่วน 2026-09-15 หลังเบสบอก "ไม่เห็นเหมือนเลย")
 
    โครง: ข้อมูลออเดอร์ซ้าย · ม็อกอัพ & ไฟล์ขวา (เบสเคาะ 2026-09-13)
-   การ์ดซ้ายใบเดียวเรียงตามที่คนเปิดใบงานถาม: กำหนดส่ง/จำนวน/ยอด → ประเภท/ช่องทาง/เงื่อนไข →
-   ลูกค้า (ติดต่อได้ทันที) → การจัดส่ง → ใครเปิด/แก้ล่าสุด
-   ช่องข้อมูลหลักมีภาพช่วยอ่าน: วงเวลาที่ใช้ไปของกำหนดส่ง, ไซซ์แยก, แถบรับเงินแล้ว
+   การ์ดซ้ายใบเดียวเรียงตามที่คนเปิดใบงานถาม: ช่องข้อมูลหลัก 3 ช่อง (กำหนดส่ง/จำนวน/ยอด) →
+   ช่องข้อมูลย่อยมีไอคอน → ลูกค้า (ติดต่อได้ทันที) → การจัดส่ง → ใครเปิด/แก้ล่าสุด
+   ช่องข้อมูลหลักมีภาพช่วยอ่าน: วงเวลาที่ใช้ไปของกำหนดส่ง, ไซซ์แยก, แถบชำระแล้ว
 
    ⚠️ TabsContent ของหน้านี้ keepMounted (ซ่อนด้วย CSS ไม่ถอด DOM)
    → ข้อมูลเงินต้อง gate ด้วย {showMoney && ...} ระดับ JSX เท่านั้น ห้ามซ่อนด้วยคลาส
@@ -156,7 +164,7 @@ interface OrderOverviewTabProps {
 }
 
 // ============================================================
-// ชิ้นส่วนหน้าตา
+// ชิ้นส่วนหน้าตา (ต้นแบบ .fact / .prop / .rw / .ref)
 // ============================================================
 
 function TileTitle({ icon, tone = "neutral", children }: { icon: LucideIcon; tone?: HomeTone; children: React.ReactNode }) {
@@ -177,20 +185,22 @@ function SubHeading({ icon, tone, children }: { icon: LucideIcon; tone?: HomeTon
   );
 }
 
-/** กริดของช่องข้อมูลรอง — แยก 2 คอลัมน์เมื่อพื้นที่พอ */
+/** กริดของช่องข้อมูลย่อย — แยก 2 คอลัมน์เมื่อพื้นที่พอ */
 function FieldGrid({ children }: { children: React.ReactNode }) {
-  return <dl className="grid grid-cols-1 gap-x-6 gap-y-3.5 sm:grid-cols-2">{children}</dl>;
+  return <dl className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">{children}</dl>;
 }
 
-/** ช่องข้อมูลหนึ่งช่อง — ป้ายเล็กกว่าค่าเสมอ · ค่าว่างจางกว่าข้อมูลจริง */
+/** ช่องข้อมูลย่อยหนึ่งช่อง — ไอคอน+ป้ายเล็กกว่าค่าเสมอ · ค่าว่างจางกว่าข้อมูลจริง */
 function Field({
   label,
+  icon: Icon,
   children,
   wide,
   emptyText,
   emptyTone,
 }: {
   label: React.ReactNode;
+  icon?: LucideIcon;
   children?: React.ReactNode;
   /** ค่ายาว (ที่อยู่/หมายเหตุ) — กินเต็มแถว */
   wide?: boolean;
@@ -205,7 +215,10 @@ function Field({
 
   return (
     <div className={cn("min-w-0 space-y-0.5", wide && "sm:col-span-2")}>
-      <dt className="text-xs text-muted">{label}</dt>
+      <dt className="flex items-center gap-1.5 text-xs text-muted">
+        {Icon ? <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" /> : null}
+        {label}
+      </dt>
       {/* ไทยห้าม truncate — ปล่อยตัดบรรทัดได้ทุกตำแหน่ง ดีกว่าจุดไข่ปลาที่ตัดสระทิ้ง */}
       <dd
         className={cn(
@@ -230,13 +243,14 @@ const FACT_TONE = {
 } as const;
 type FactTone = keyof typeof FACT_TONE;
 
-/** ข้อเท็จจริงหลักของใบงาน — ช่องจมหนึ่งช่อง ค่าเด่นกว่าป้าย มีภาพช่วยอ่านทางซ้ายได้ */
+/** ช่องข้อมูลหลักของใบงาน (ต้นแบบ .fact) — กล่องจมขอบบาง ค่าเด่นกว่าป้าย มีภาพช่วยอ่านทางซ้ายได้ */
 function SummaryFact({
   label,
   icon: Icon,
   tone = "neutral",
   visual,
   detail,
+  mono = false,
   children,
 }: {
   label: React.ReactNode;
@@ -244,19 +258,26 @@ function SummaryFact({
   tone?: FactTone;
   visual?: React.ReactNode;
   detail?: React.ReactNode;
+  mono?: boolean;
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-w-0 items-center gap-3 rounded-xl bg-surface-muted px-3.5 py-3">
+    <div className="flex min-w-0 items-center gap-2.5 rounded-xl border border-divider bg-surface-muted px-3 py-2.5">
       {visual}
       <div className="min-w-0 flex-1">
-        <dt className="flex items-center gap-1.5 text-xs font-medium text-muted">
+        <dt className="flex items-center gap-1.5 whitespace-nowrap text-xs text-muted">
           {Icon ? <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" /> : null}
           {label}
         </dt>
-        <dd className={cn("mt-0.5 min-w-0 text-lg font-semibold tabular-nums [overflow-wrap:anywhere]", FACT_TONE[tone])}>
+        <dd
+          className={cn(
+            "mt-0.5 min-w-0 font-semibold tabular-nums [overflow-wrap:anywhere]",
+            mono ? "font-mono text-base" : "text-lg",
+            FACT_TONE[tone],
+          )}
+        >
           {children}
-          {detail ? <span className="mt-1 block text-xs font-normal text-muted">{detail}</span> : null}
+          {detail ? <span className="mt-1 block font-sans text-xs font-normal text-muted">{detail}</span> : null}
         </dd>
       </div>
     </div>
@@ -274,15 +295,15 @@ function DueRing({ used, label, tone }: { used: number; label: string; tone: Fac
   const circumference = 2 * Math.PI * 16;
   const ratio = Math.min(1, Math.max(0, used));
   return (
-    <span className="relative h-11 w-11 shrink-0" aria-hidden="true">
-      <svg viewBox="0 0 40 40" className="h-11 w-11 -rotate-90">
-        <circle cx="20" cy="20" r="16" className="fill-none stroke-border" strokeWidth="4" />
+    <span className="relative h-10 w-10 shrink-0" aria-hidden="true">
+      <svg viewBox="0 0 40 40" className="h-10 w-10 -rotate-90">
+        <circle cx="20" cy="20" r="16" className="fill-none stroke-border" strokeWidth="5" />
         <circle
           cx="20"
           cy="20"
           r="16"
           className={cn("fill-none", RING_TONE[tone])}
-          strokeWidth="4"
+          strokeWidth="5"
           strokeLinecap="round"
           strokeDasharray={circumference}
           strokeDashoffset={circumference * (1 - ratio)}
@@ -295,34 +316,44 @@ function DueRing({ used, label, tone }: { used: number; label: string; tone: Fac
   );
 }
 
-const CONTACT_ROW = "flex min-h-11 min-w-0 items-center gap-3 rounded-xl border border-divider px-2.5 py-2";
+/* แถวติดต่อ (ต้นแบบ .rw) — ต้องดูออกว่ากดได้ (เบสทัก 2026-09-13 "ผู้ติดต่อซ่อนเกินไป") */
+const CONTACT_ROW =
+  "grid min-h-11 w-full grid-cols-[2rem_minmax(0,1fr)_1rem] items-center gap-2.5 rounded-lg border border-divider bg-surface py-1 pl-1.5 pr-2 text-left";
+const CONTACT_TILE = "flex h-8 w-8 items-center justify-center rounded-lg";
 
-/** ช่องทางติดต่อหนึ่งแถว — ต้องดูออกว่ากดได้ (เบสทัก 2026-09-13 "ผู้ติดต่อซ่อนเกินไป") */
 function ContactRow({
   href,
+  external = false,
   icon: Icon,
+  tileClassName = "bg-surface-muted text-secondary",
   sub,
   children,
 }: {
   href?: string;
+  external?: boolean;
   icon: LucideIcon;
+  tileClassName?: string;
   sub?: string;
   children: React.ReactNode;
 }) {
   const body = (
     <>
-      <span aria-hidden="true" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-muted text-secondary">
+      <span aria-hidden="true" className={cn(CONTACT_TILE, tileClassName)}>
         <Icon className="h-4 w-4" />
       </span>
-      <span className="min-w-0 flex-1">
+      <span className="min-w-0">
         <span className="block text-sm font-medium text-strong [overflow-wrap:anywhere]">{children}</span>
-        {sub ? <span className="block text-xs text-muted">{sub}</span> : null}
+        {sub ? <span className="block text-xs text-muted [overflow-wrap:anywhere]">{sub}</span> : null}
       </span>
-      {href ? <ArrowRight className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" /> : null}
+      {href ? <ExternalLink className="h-4 w-4 text-muted" aria-hidden="true" /> : <span aria-hidden="true" />}
     </>
   );
   return href ? (
-    <a href={href} className={cn(CONTACT_ROW, FOCUS_BUTTON, INTERACTIVE_PRESSED)}>
+    <a
+      href={href}
+      {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+      className={cn(CONTACT_ROW, FOCUS_BUTTON, INTERACTIVE_PRESSED)}
+    >
       {body}
     </a>
   ) : (
@@ -330,7 +361,7 @@ function ContactRow({
   );
 }
 
-/** metadata ระดับอ้างอิง — บรรทัดเงียบ ไม่แข่งกับข้อเท็จจริงหลัก */
+/** metadata ระดับอ้างอิง (ต้นแบบ .ref) — บรรทัดเงียบ ไม่แข่งกับข้อเท็จจริงหลัก */
 function ReferenceItem({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex min-w-0 flex-wrap gap-x-1.5">
@@ -417,6 +448,7 @@ export function OrderOverviewTab({
     customer?.billingPostalCode ?? null,
   ]);
 
+  const chatUrl = safeChatUrl(customer?.chatUrl);
   const hasChat = Boolean(customer?.chatName || customer?.chatUrl);
   const hasCustomerContact = Boolean(customer?.phone || hasChat || customer?.lineId || customer?.email);
   const hasCustomerHistory = Boolean(
@@ -451,10 +483,23 @@ export function OrderOverviewTab({
     dueInDays == null ? "neutral" : dueInDays < 0 ? "danger" : dueInDays <= 1 ? "warning" : "neutral";
   const dueRing =
     dueInDays != null && leadDays != null && leadDays > 0 ? (
-      <DueRing used={(leadDays - dueInDays) / leadDays} label={String(dueInDays)} tone={dueTone} />
+      <DueRing
+        used={(leadDays - dueInDays) / leadDays}
+        label={dueInDays < 0 ? `-${-dueInDays}` : dueInDays === 0 ? "วันนี้" : String(dueInDays)}
+        tone={dueTone}
+      />
     ) : null;
+  const usedDays =
+    dueInDays != null && leadDays != null && leadDays > 0 ? Math.min(Math.max(0, leadDays - dueInDays), leadDays) : null;
   const dueDetail =
-    dueInDays == null ? null : dueInDays < 0 ? `เลยกำหนด ${-dueInDays} วัน` : dueInDays === 0 ? "ส่งวันนี้" : `อีก ${dueInDays} วัน`;
+    dueInDays == null
+      ? null
+      : [
+          dueInDays < 0 ? `เลยกำหนด ${-dueInDays} วัน` : dueInDays === 0 ? "ส่งวันนี้" : `เหลือ ${dueInDays} วัน`,
+          usedDays != null ? `ใช้ไป ${usedDays}/${leadDays} วัน` : null,
+        ]
+          .filter(Boolean)
+          .join(" · ");
 
   const paidRatio =
     showMoney && paidAmount != null && totalAmount > 0 ? Math.min(1, Math.max(0, paidAmount / totalAmount)) : null;
@@ -464,17 +509,18 @@ export function OrderOverviewTab({
   const editButton = (section: "info" | "shipping", accessibleLabel: string, visibleLabel = "แก้ไข") =>
     onEditInfo ? (
       <Button type="button" variant="ghost" size="sm" aria-label={accessibleLabel} onClick={() => onEditInfo(section)}>
+        <Pencil />
         {visibleLabel}
       </Button>
     ) : undefined;
 
   const factsGrid = (
-    <dl className={cn("grid gap-2.5", showMoney ? "sm:grid-cols-3" : "sm:grid-cols-2")}>
+    <dl className="grid gap-2.5 sm:grid-cols-3">
       <SummaryFact label="กำหนดส่ง" icon={CalendarDays} tone={dueTone} visual={dueRing} detail={dueDetail}>
         {order.deadline ? (
-          formatDate(order.deadline)
+          formatDateCompact(order.deadline)
         ) : (
-          <span className="text-base font-medium text-amber-700 dark:text-amber-300">ยังไม่กำหนดส่ง</span>
+          <span className="text-base font-medium text-muted">ยังไม่กำหนด</span>
         )}
       </SummaryFact>
 
@@ -482,15 +528,9 @@ export function OrderOverviewTab({
         label="จำนวน"
         icon={Package}
         detail={
-          sizeBreakdown && sizeBreakdown.length > 0 ? (
-            <span className="flex flex-wrap gap-1">
-              {sizeBreakdown.map((row) => (
-                <span key={row.size} className="rounded-md bg-surface px-1.5 tabular-nums text-secondary">
-                  {row.size} <span className="font-semibold text-strong">{row.quantity.toLocaleString()}</span>
-                </span>
-              ))}
-            </span>
-          ) : undefined
+          sizeBreakdown && sizeBreakdown.length > 0
+            ? sizeBreakdown.map((row) => `${row.size} ${row.quantity.toLocaleString()}`).join(" · ")
+            : undefined
         }
       >
         {totalQuantity > 0 ? (
@@ -509,6 +549,7 @@ export function OrderOverviewTab({
         <SummaryFact
           label="ยอดรวม"
           icon={Banknote}
+          mono
           detail={
             totalNeedsReview ? (
               <span className="text-amber-700 dark:text-amber-300">ยอดเป็นศูนย์ — ตรวจสอบราคา</span>
@@ -518,16 +559,16 @@ export function OrderOverviewTab({
                   <span
                     className={cn(
                       "block h-full rounded-full",
-                      paidRatio >= 1 ? "bg-green-600 dark:bg-green-400" : paidRatio > 0 ? "bg-amber-500" : "bg-transparent",
+                      paidRatio >= 1 ? "bg-green-600 dark:bg-green-400" : paidRatio > 0 ? "bg-amber-500" : "bg-red-500",
                     )}
-                    style={{ width: `${Math.round(paidRatio * 100)}%` }}
+                    style={{ width: `${Math.max(2, Math.round(paidRatio * 100))}%` }}
                   />
                 </span>
                 {paidRatio >= 1
-                  ? "รับเงินครบแล้ว"
+                  ? "ชำระครบแล้ว"
                   : paidAmount > 0
-                    ? `รับแล้ว ${formatBaht(paidAmount)} (${Math.round(paidRatio * 100)}%)`
-                    : "ยังไม่ได้รับเงิน"}
+                    ? `ชำระแล้ว ${Math.round(paidRatio * 100)}% · ค้าง ${formatBaht(Math.max(0, totalAmount - paidAmount))}`
+                    : `ยังไม่ได้รับเงิน${termsLabel ? ` · ${termsLabel}` : ""}`}
               </>
             ) : undefined
           }
@@ -541,38 +582,35 @@ export function OrderOverviewTab({
           )}
         </SummaryFact>
       )}
+      {!showMoney && (
+        <SummaryFact label="วิธีพิมพ์" icon={Tag}>
+          {printLabel ?? ORDER_TYPE_UI_LABELS[order.orderType]}
+        </SummaryFact>
+      )}
     </dl>
   );
 
   const orderFields = (
     <FieldGrid>
-      <Field label="ประเภทงาน">
-        <span className="inline-flex flex-wrap items-center gap-1.5">
-          <Badge variant={order.orderType === "CUSTOM" ? "accent" : "default"} size="sm">
-            {ORDER_TYPE_UI_LABELS[order.orderType]}
-          </Badge>
-          {printLabel ? (
-            <Badge variant="default" size="sm">
-              {printLabel}
-            </Badge>
-          ) : null}
-        </span>
+      <Field label="ประเภทงาน" icon={Tag}>
+        {`${ORDER_TYPE_UI_LABELS[order.orderType]}${printLabel ? ` · ${printLabel}` : ""}`}
       </Field>
-      <Field label="ช่องทาง">
-        <span className={cn("inline-flex rounded-full px-2 py-0.5 text-xs font-medium", channelColor.bg, channelColor.text)}>
-          {CHANNEL_LABELS[order.channel] ?? order.channel}
-        </span>
-      </Field>
-      <Field label="ความเร่งด่วน">
-        <Badge
-          variant={order.priority === "URGENT" ? "destructive" : order.priority === "HIGH" ? "warning" : "default"}
-          size="sm"
-        >
-          {PRIORITY_LABELS[order.priority] ?? order.priority}
-        </Badge>
+      <Field label="ช่องทาง" icon={MessageCircle}>
+        {order.channel === "LINE" ? (
+          <span
+            className={cn(
+              "inline-flex rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-green-600/30 dark:ring-green-400/30",
+              channelColor.text,
+            )}
+          >
+            LINE
+          </span>
+        ) : (
+          CHANNEL_LABELS[order.channel] ?? order.channel
+        )}
       </Field>
       {termsLabel && (
-        <Field label="เงื่อนไขชำระ">
+        <Field label="เงื่อนไขชำระ" icon={Wallet}>
           <span>
             {termsLabel}
             {termsDiffers && (
@@ -582,65 +620,79 @@ export function OrderOverviewTab({
         </Field>
       )}
       {order.poNumber && (
-        <Field label="เลขที่ PO">
+        <Field label="เลขที่ PO" icon={Hash}>
           <span className="font-mono">{order.poNumber}</span>
         </Field>
       )}
+      <Field label="ความเร่งด่วน" icon={Flag}>
+        {order.priority === "URGENT" || order.priority === "HIGH" ? (
+          <HomeChip tone={order.priority === "URGENT" ? "danger" : "warning"}>
+            {PRIORITY_LABELS[order.priority] ?? order.priority}
+          </HomeChip>
+        ) : (
+          PRIORITY_LABELS[order.priority] ?? order.priority
+        )}
+      </Field>
       {order.externalOrderId && (
-        <Field label="หมายเลขภายนอก">
+        <Field label="หมายเลขภายนอก" icon={Hash}>
           <span className="font-mono">{order.externalOrderId}</span>
         </Field>
       )}
       {isMarketplace && showMoney && order.platformFee != null && (
-        <Field label="ค่าธรรมเนียมแพลตฟอร์ม">
+        <Field label="ค่าธรรมเนียมแพลตฟอร์ม" icon={Banknote}>
           <span className="tabular-nums text-red-600 dark:text-red-400">-{formatBaht(order.platformFee)}</span>
         </Field>
       )}
-      {order.stockReservedAt && <Field label="จองสต๊อกแล้ว">{formatDateTime(order.stockReservedAt)}</Field>}
+      {order.stockReservationError ? (
+        <Field label="จองสต๊อก" icon={PackageCheck}>
+          <HomeChip tone="danger">จองไม่สำเร็จ</HomeChip>
+        </Field>
+      ) : order.stockReservedAt ? (
+        <Field label="จองสต๊อก" icon={PackageCheck}>
+          <HomeChip tone="success">
+            {totalQuantity > 0 ? `จองแล้ว ${totalQuantity.toLocaleString()} ตัว` : "จองแล้ว"}
+          </HomeChip>
+        </Field>
+      ) : null}
     </FieldGrid>
   );
 
   const customerGroup = (
     <div data-order-overview-card="customer" className="space-y-3 border-t border-divider pt-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <SubHeading icon={User} tone="brand">
-          ลูกค้าและผู้ติดต่อ
-        </SubHeading>
-        {customer ? (
-          onOpenCustomer ? (
-            <Button type="button" variant="outline" size="sm" onClick={onOpenCustomer} aria-label="เปิดหน้าลูกค้า">
-              ข้อมูลลูกค้า
-              <ArrowRight />
-            </Button>
-          ) : (
-            <Button asChild variant="outline" size="sm">
-              <Link href={`/customers/${customer.id}`} aria-label="เปิดหน้าลูกค้า">
-                ข้อมูลลูกค้า
-                <ArrowRight />
-              </Link>
-            </Button>
-          )
-        ) : null}
-      </div>
+      <SubHeading icon={User} tone="brand">
+        ลูกค้าและผู้ติดต่อ
+      </SubHeading>
 
       {customer ? (
         <>
-          <div className="flex min-w-0 items-start gap-3">
+          <div className="flex min-w-0 flex-wrap items-center gap-3">
             <span
               aria-hidden="true"
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-sm font-semibold text-blue-700 dark:bg-blue-950/50 dark:text-blue-300"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-base font-semibold text-blue-800 dark:bg-blue-950/60 dark:text-blue-200"
             >
               {customer.name.trim().slice(0, 1) || "?"}
             </span>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="text-base font-semibold text-strong [overflow-wrap:anywhere]">{customer.name}</p>
-              <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-secondary">
-                {customer.company ? <span className="[overflow-wrap:anywhere]">{customer.company}</span> : null}
-                <Badge variant="accent" size="sm">
-                  {customer.customerType === "CORPORATE" ? "นิติบุคคล" : "บุคคลธรรมดา"}
-                </Badge>
+              <p className="text-sm text-muted [overflow-wrap:anywhere]">
+                {[customer.company, customer.customerType === "CORPORATE" ? "นิติบุคคล" : "บุคคลธรรมดา"]
+                  .filter(Boolean)
+                  .join(" · ")}
               </p>
             </div>
+            {onOpenCustomer ? (
+              <Button type="button" variant="outline" size="sm" onClick={onOpenCustomer} aria-label="เปิดหน้าลูกค้า">
+                ข้อมูลลูกค้า
+                <ArrowRight />
+              </Button>
+            ) : (
+              <Button asChild variant="outline" size="sm">
+                <Link href={`/customers/${customer.id}`} aria-label="เปิดหน้าลูกค้า">
+                  ข้อมูลลูกค้า
+                  <ArrowRight />
+                </Link>
+              </Button>
+            )}
           </div>
 
           {/* gate เงินครอบทั้งก้อน — ช่างไม่เห็นแม้แต่หัวข้อ (TabsContent keepMounted → gate ที่ JSX) */}
@@ -658,45 +710,45 @@ export function OrderOverviewTab({
             </dl>
           )}
 
-          {hasCustomerContact ? (
-            <div className="grid gap-2 sm:grid-cols-2">
-              {customer.phone ? (
-                <ContactRow href={`tel:${customer.phone.replace(/[^\d+]/g, "")}`} icon={Phone} sub="โทรหาผู้ติดต่อ">
-                  {customer.phone}
-                </ContactRow>
-              ) : null}
-              {hasChat ? (
-                <div className={CONTACT_ROW}>
-                  <span
-                    aria-hidden="true"
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-green-50 text-green-700 dark:bg-green-950/50 dark:text-green-300"
-                  >
-                    <MessageCircle className="h-4 w-4" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <ChatLink name={customer.chatName} url={customer.chatUrl} wrap className="text-sm font-medium" />
-                    <span className="block text-xs text-muted">
-                      ห้องแชท{customer.lineId ? ` · LINE ${customer.lineId}` : ""}
-                    </span>
-                  </span>
-                </div>
-              ) : customer.lineId ? (
-                <ContactRow icon={MessageCircle} sub="LINE ID">
-                  {customer.lineId}
-                </ContactRow>
-              ) : null}
-              {customer.email ? (
-                <ContactRow href={`mailto:${customer.email}`} icon={Mail} sub="อีเมล">
-                  {customer.email}
-                </ContactRow>
-              ) : null}
-            </div>
-          ) : (
-            <p className="text-sm text-muted">ยังไม่มีช่องทางติดต่อ</p>
-          )}
+          <div className="grid gap-1">
+            {customer.phone ? (
+              <ContactRow href={`tel:${customer.phone.replace(/[^\d+]/g, "")}`} icon={Phone} sub="โทรหาผู้ติดต่อ">
+                {customer.phone}
+              </ContactRow>
+            ) : null}
+            {hasChat ? (
+              <ContactRow
+                href={chatUrl ?? undefined}
+                external
+                icon={MessageCircle}
+                tileClassName="bg-green-50 text-green-600 dark:bg-green-950/50 dark:text-green-300"
+                sub={`ห้องแชท${customer.lineId ? ` · LINE ${customer.lineId}` : ""}`}
+              >
+                {customer.chatName || "เปิดแชท"}
+              </ContactRow>
+            ) : customer.lineId ? (
+              <ContactRow
+                icon={MessageCircle}
+                tileClassName="bg-green-50 text-green-600 dark:bg-green-950/50 dark:text-green-300"
+                sub="LINE ID"
+              >
+                {customer.lineId}
+              </ContactRow>
+            ) : null}
+            {customer.email ? (
+              <ContactRow href={`mailto:${customer.email}`} icon={Mail} sub="อีเมล">
+                {customer.email}
+              </ContactRow>
+            ) : null}
+            {!hasCustomerContact ? (
+              <ContactRow icon={User}>
+                <span className="font-normal text-muted">ยังไม่มีช่องทางติดต่อ</span>
+              </ContactRow>
+            ) : null}
+          </div>
 
           <FieldGrid>
-            <Field label="เลขผู้เสียภาษี" emptyTone="warn" emptyText="ยังไม่มีเลขภาษี — ออกใบกำกับไม่ได้">
+            <Field label="เลขผู้เสียภาษี" icon={Hash} emptyTone="warn" emptyText="ยังไม่มีเลขภาษี — ออกใบกำกับไม่ได้">
               {customer.taxId && (
                 <span className="font-mono">
                   {customer.taxId}
@@ -777,7 +829,7 @@ export function OrderOverviewTab({
         <SubHeading icon={Truck} tone="success">
           การจัดส่ง
         </SubHeading>
-        {editButton("shipping", hasShipping ? "แก้ไขที่อยู่จัดส่ง" : "เพิ่มที่อยู่จัดส่ง", hasShipping ? "แก้ไข" : "เพิ่มที่อยู่")}
+        {hasShipping ? editButton("shipping", "แก้ไขที่อยู่จัดส่ง") : null}
       </div>
       {hasShipping ? (
         <address className="text-sm not-italic leading-6 text-strong [overflow-wrap:anywhere]">
@@ -790,14 +842,19 @@ export function OrderOverviewTab({
           {order.shippingPhone && <PhoneLink phone={order.shippingPhone} />}
         </address>
       ) : (
-        <p className="text-sm text-muted">
-          {customer?.address && onEditInfo
-            ? "ยังไม่มีที่อยู่จัดส่ง — หน้าแก้ไขเลือกใช้ที่อยู่ลูกค้าได้ทันที"
-            : "ยังไม่มีที่อยู่จัดส่ง — เพิ่มผู้รับและที่อยู่ก่อนสร้างใบส่งของ"}
-        </p>
+        <div className="flex flex-wrap items-center gap-2.5 rounded-lg bg-surface-muted px-3 py-2.5 text-sm text-secondary">
+          <Truck className="h-4 w-4 shrink-0" aria-hidden="true" />
+          <span className="min-w-0 flex-1 basis-40">ยังไม่ระบุที่อยู่จัดส่ง</span>
+          {onEditInfo ? (
+            <Button type="button" variant="outline" size="sm" aria-label="เพิ่มที่อยู่จัดส่ง" onClick={() => onEditInfo("shipping")}>
+              <Plus />
+              ใส่ที่อยู่
+            </Button>
+          ) : null}
+        </div>
       )}
       {order.trackingNumber && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-surface-muted px-3 py-2">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-surface-muted px-3 py-2">
           <span className="min-w-0 text-sm">
             <span className="block text-xs text-muted">เลขพัสดุในออเดอร์</span>
             <span className="font-mono font-medium text-strong [overflow-wrap:anywhere]">{order.trackingNumber}</span>
@@ -814,20 +871,23 @@ export function OrderOverviewTab({
   );
 
   const referenceSection = (
-    <dl className="flex flex-wrap gap-x-5 gap-y-1 border-t border-divider pt-3 text-xs text-muted">
-      {creatorName && <ReferenceItem label="เปิดโดย">{creatorName}</ReferenceItem>}
-      <ReferenceItem label="เปิดเมื่อ">{formatDateTime(order.createdAt)}</ReferenceItem>
-      {order.confirmedAt && <ReferenceItem label="ยืนยันเมื่อ">{formatDateTime(order.confirmedAt)}</ReferenceItem>}
-      {order.completedAt && <ReferenceItem label="ปิดงานเมื่อ">{formatDateTime(order.completedAt)}</ReferenceItem>}
+    <dl className="flex flex-wrap gap-x-3.5 gap-y-1 border-t border-divider pt-3 text-xs text-muted">
+      <ReferenceItem label={creatorName ? "เปิดโดย" : "เปิดเมื่อ"}>
+        {creatorName ? `${creatorName} · ${formatDateCompact(order.createdAt)}` : formatDateCompact(order.createdAt)}
+      </ReferenceItem>
+      {order.confirmedAt && <ReferenceItem label="ยืนยันเมื่อ">{formatDateCompact(order.confirmedAt)}</ReferenceItem>}
+      {order.completedAt && <ReferenceItem label="ปิดงานเมื่อ">{formatDateCompact(order.completedAt)}</ReferenceItem>}
       {order.cancelledAt && (
         <ReferenceItem label="ยกเลิกเมื่อ">
           <span className="text-red-600 dark:text-red-400">
-            {formatDateTime(order.cancelledAt)}
+            {formatDateCompact(order.cancelledAt)}
             {order.cancelledReason && ` — ${order.cancelledReason}`}
           </span>
         </ReferenceItem>
       )}
-      <ReferenceItem label="แก้ล่าสุด">{formatDateTime(order.updatedAt)}</ReferenceItem>
+      <ReferenceItem label="แก้ล่าสุด">
+        {formatDateCompact(order.updatedAt)} {formatTime(order.updatedAt)} น.
+      </ReferenceItem>
     </dl>
   );
 
@@ -890,7 +950,7 @@ export function OrderOverviewTab({
         }
         action={editButton("info", "แก้ไขข้อมูลออเดอร์")}
       >
-        <div className="space-y-5">
+        <div className="space-y-4">
           {factsGrid}
           {orderFields}
           {customerGroup}

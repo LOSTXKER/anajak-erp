@@ -46,6 +46,16 @@ export function formatDateShort(date: Date | string | number): string {
   }).format(new Date(date));
 }
 
+/** วันที่แบบย่อมีปี 2 หลัก เช่น "14 ก.ย. 69" — หน้าออเดอร์ตามต้นแบบรอบ 2 (2026-09-14) */
+export function formatDateCompact(date: Date | string | number): string {
+  return new Intl.DateTimeFormat("th-TH", {
+    year: "2-digit",
+    month: "short",
+    day: "numeric",
+    timeZone: BANGKOK_TZ,
+  }).format(new Date(date));
+}
+
 export function formatDateTime(date: Date | string): string {
   return new Intl.DateTimeFormat("th-TH", {
     year: "numeric",

@@ -41,6 +41,19 @@ import { FOCUS_INSET, RADIUS } from "@/components/ui/tokens";
      · flex-basis ของช่องหัว-ท้าย = รัศมี (ทำให้ระยะระหว่างจุดเท่ากันทุกช่วง) */
 const NODE_SIZE = "h-6 w-6";
 
+/* ขั้นที่ยืนอยู่ = แคปซูลแนวนอน (ต้นแบบรอบ 2 .step.cur · ไล่ให้ตรงต้นแบบ 2026-09-15)
+   พื้น/เส้นอ่อนตามโทน · วงเลขในแคปซูลเป็นวงขาวขอบสีมีวงเรืองรอบ */
+const CAPSULE_TONE = {
+  normal: "border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-200",
+  hold: "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200",
+  cancel: "border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200",
+} as const;
+const CAPSULE_NODE = {
+  normal: "border-blue-600 text-blue-700 ring-4 ring-blue-100 dark:border-blue-400 dark:text-blue-300 dark:ring-blue-500/25",
+  hold: "border-amber-500 text-amber-700 ring-4 ring-amber-100 dark:text-amber-300 dark:ring-amber-500/25",
+  cancel: "border-red-600 text-red-700 ring-4 ring-red-100 dark:text-red-300 dark:ring-red-500/25",
+} as const;
+
 interface OrderStatusBarProps {
   flowSteps: string[];
   currentStepIndex: number;
@@ -202,7 +215,7 @@ export function OrderStatusBar({
               style={{
                 flex: isFirst || isLast ? "0.5 1 12px" : "1 1 0%",
                 // ขั้นปัจจุบันกว้างขึ้นให้แคปซูลมีที่ · ช่องอื่นคงความกว้างเดิม ช่วงระหว่างจุดจึงยังเท่ากัน
-                minWidth: st === "current" ? 136 : isFirst || isLast ? 56 : 84,
+                minWidth: st === "current" ? 184 : isFirst || isLast ? 56 : 84,
               }}
               className={cn(
                 "relative flex flex-col gap-1.5 px-0.5",
@@ -231,65 +244,70 @@ export function OrderStatusBar({
                         ? "bg-amber-400 dark:bg-amber-600"
                         : tone === "cancel"
                           ? "bg-slate-300 dark:bg-slate-700"
-                          : "bg-blue-400 dark:bg-blue-700"
+                          : "bg-blue-600 dark:bg-blue-500"
                       : "bg-slate-200 dark:bg-slate-800",
                   )}
                 />
               )}
-              <span
-                aria-hidden="true"
-                className={cn(
-                  "relative z-[1] flex shrink-0 items-center justify-center rounded-full",
-                  // เลขในวงกลมต้องความกว้างเท่ากันทุกตัว ไม่งั้น 1 กับ 11 ดูไม่อยู่กลางวง
-                  "text-2xs font-semibold tabular-nums leading-none",
-                  NODE_SIZE,
-                  st === "done" &&
-                    (tone === "cancel"
-                      ? "bg-slate-600 text-white dark:bg-slate-700"
-                      : tone === "hold"
-                        ? "bg-amber-700 text-white"
-                        : "bg-blue-600 text-white"),
-                  st === "current" &&
-                    (tone === "cancel"
-                      ? "bg-red-600 text-white ring-[3px] ring-red-100 dark:ring-red-500/25"
-                      : tone === "hold"
-                        ? "bg-amber-500 text-white ring-[3px] ring-amber-100 dark:ring-amber-500/25"
-                        : "bg-blue-600 text-white ring-[3px] ring-blue-100 dark:bg-blue-500 dark:ring-blue-500/25"),
-                  (st === "todo" || st === "skipped") &&
-                    "border-2 border-border bg-bg text-muted",
-                )}
-              >
-                {/* เลขขั้นอยู่ในวงทุกสถานะ (เบสสั่ง) — เดิมขั้นที่ผ่านแล้วเป็นเครื่องหมายถูก
-                    ตอนนี้บอก "ผ่านแล้ว" ด้วยวงทึบ + เส้นเชื่อมที่ติดสีแทน · ข้อดีคือ
-                    สั่งงานทางโทรศัพท์อ้างเลขขั้นได้ ("งานอยู่ขั้น 6") */}
-                {i + 1}
-              </span>
-              <span
-                className={cn(
-                  // ห้าม truncate — ป้ายไทยยาวให้ขึ้นบรรทัดใหม่
-                  "text-2xs [overflow-wrap:anywhere]",
-                  isFirst ? "text-left" : isLast ? "text-right" : "text-center",
-                  /* ขั้นที่ยืนอยู่เป็นแคปซูล (ต้นแบบหน้าออเดอร์รอบ 2 · เบสเคาะ 2026-09-14) — ชื่อขั้น + อยู่มากี่วัน/ใครทำ
-                     วงกับเส้นอยู่ที่เดิมทุกประการ แคปซูลแทนป้ายใต้วง รางจึงไม่เสียความสมมาตรที่เบสเคาะไว้ */
-                  st === "current" &&
-                    cn(
-                      "rounded-lg px-2 py-1 font-semibold",
-                      tone === "cancel"
-                        ? "bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300"
-                        : tone === "hold"
-                          ? "bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200"
-                          : "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300",
-                    ),
-                  st === "done" && "text-secondary",
-                  st === "todo" && "text-muted",
-                  st === "skipped" && "text-muted line-through",
-                )}
-              >
-                {label(step)}
-                {st === "current" && (currentDetail || note) ? (
-                  <span className="block font-normal text-secondary">{currentDetail ?? note}</span>
-                ) : null}
-              </span>
+              {st === "current" ? (
+                /* แคปซูลสูง 36px ยกขึ้น 6px → กึ่งกลางอยู่ที่ 12px จากบนเท่าวงปกติ เส้นรางจึงวิ่งผ่านกลางแคปซูลพอดี */
+                <span
+                  className={cn(
+                    "relative z-[1] -mt-1.5 inline-flex max-w-full items-center gap-2.5 whitespace-nowrap rounded-full border py-[5px] pl-[5px] pr-3.5 text-left",
+                    CAPSULE_TONE[tone],
+                  )}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      "flex shrink-0 items-center justify-center rounded-full border-2 bg-surface text-2xs font-semibold tabular-nums leading-none",
+                      NODE_SIZE,
+                      CAPSULE_NODE[tone],
+                    )}
+                  >
+                    {i + 1}
+                  </span>
+                  <span className="grid gap-px text-xs font-semibold">
+                    {label(step)}
+                    {currentDetail || note ? (
+                      <span className="text-2xs font-normal tabular-nums text-muted">{currentDetail ?? note}</span>
+                    ) : null}
+                  </span>
+                </span>
+              ) : (
+                <>
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      "relative z-[1] flex shrink-0 items-center justify-center rounded-full",
+                      // เลขในวงกลมต้องความกว้างเท่ากันทุกตัว ไม่งั้น 1 กับ 11 ดูไม่อยู่กลางวง
+                      "text-2xs font-semibold tabular-nums leading-none",
+                      NODE_SIZE,
+                      st === "done" &&
+                        (tone === "cancel"
+                          ? "bg-slate-600 text-white dark:bg-slate-700"
+                          : tone === "hold"
+                            ? "bg-amber-700 text-white"
+                            : "bg-blue-600 text-white"),
+                      (st === "todo" || st === "skipped") &&
+                        "border-2 border-slate-300 bg-surface text-muted dark:border-slate-600",
+                    )}
+                  >
+                    {/* เลขขั้นอยู่ในวงทุกสถานะ (เบสสั่ง) — สั่งงานทางโทรศัพท์อ้างเลขขั้นได้ ("งานอยู่ขั้น 6") */}
+                    {i + 1}
+                  </span>
+                  <span
+                    className={cn(
+                      // ห้าม truncate — ป้ายไทยยาวให้ขึ้นบรรทัดใหม่
+                      "text-2xs text-muted [overflow-wrap:anywhere]",
+                      isFirst ? "text-left" : isLast ? "text-right" : "text-center",
+                      st === "skipped" && "line-through",
+                    )}
+                  >
+                    {label(step)}
+                  </span>
+                </>
+              )}
             </li>
           );
         })}

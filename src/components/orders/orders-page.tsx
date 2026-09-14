@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { Download, MoreHorizontal, Plus, ShoppingCart, Workflow, X } from "lucide-react";
+import { Download, Filter, MoreHorizontal, Plus, ShoppingCart, Workflow, X } from "lucide-react";
 import type { CustomerStatus, InternalStatus, OrderType } from "@prisma/client";
 import { useListPageState, usePageClamp } from "@/hooks/use-list-page-state";
 import { trpc } from "@/lib/trpc";
@@ -17,12 +17,11 @@ import { QueryError } from "@/components/ui/query-error";
 import { SearchInput } from "@/components/ui/search-input";
 import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TablePagination } from "@/components/ui/table-pagination";
-import { Toolbar } from "@/components/ui/toolbar";
-import { MENU_ITEM, OVERLAY_PANEL } from "@/components/ui/tokens";
+import { FOCUS_BUTTON, MENU_ITEM, OVERLAY_PANEL } from "@/components/ui/tokens";
 import { HomeCard } from "@/components/dashboard/home/home-card";
 import { OrderPipeline } from "@/components/orders/list/order-pipeline";
 import { OrderPeekPanel } from "@/components/orders/list/order-peek-panel";
+import { OrdersPager } from "@/components/orders/list/orders-pager";
 import { OrdersTable } from "@/components/orders/list/orders-table";
 import { cn } from "@/lib/utils";
 import {
@@ -225,6 +224,19 @@ function OrdersPageContent() {
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [peekId, rows]);
 
+  // คีย์ลัด "/" = ไปช่องค้นหา (ต้นแบบมีป้าย / ในช่อง) · ไม่แย่งตอนกำลังพิมพ์/อยู่ในเมนู
+  useEffect(() => {
+    const onSlash = (event: KeyboardEvent) => {
+      if (event.key !== "/" || event.metaKey || event.ctrlKey || event.altKey) return;
+      const target = event.target instanceof Element ? event.target : null;
+      if (target?.closest("input,textarea,select,[contenteditable=true],[role=combobox],[role=menu],[role=dialog]")) return;
+      event.preventDefault();
+      searchInputRef.current?.focus();
+    };
+    document.addEventListener("keydown", onSlash);
+    return () => document.removeEventListener("keydown", onSlash);
+  }, [searchInputRef]);
+
   const hasToolbarFilters = Boolean(channel || orderType || attention || createdAfter || createdBefore);
   const clearToolbarFilters = () => {
     updateList({ channel: null, type: null, attention: null, from: null, to: null, page: null });
@@ -255,7 +267,7 @@ function OrdersPageContent() {
           {data ? (
             <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
               <span>
-                <span className="font-medium tabular-nums text-secondary">{headline.total.toLocaleString("th-TH")}</span> ใบทั้งหมด
+                <span className="tabular-nums">{headline.total.toLocaleString("th-TH")}</span> ใบทั้งหมด
               </span>
               <span aria-hidden="true">·</span>
               <span>
@@ -312,7 +324,24 @@ function OrdersPageContent() {
         </div>
       </header>
 
-      <HomeCard id="orders-pipeline" title="เส้นทางงาน" icon={Workflow} tone="brand">
+      <HomeCard
+        id="orders-pipeline"
+        title="เส้นทางงาน"
+        icon={Workflow}
+        tone="brand"
+        action={
+          <span className="hidden items-center gap-3 text-xs text-muted md:flex">
+            <span className="inline-flex items-center gap-1.5">
+              <span aria-hidden="true" className="h-2 w-2 rounded-full bg-green-600 dark:bg-green-400" />
+              ตามกำหนด
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span aria-hidden="true" className="h-2 w-2 rounded-full bg-red-600 dark:bg-red-400" />
+              มีงานเลยกำหนด
+            </span>
+          </span>
+        }
+      >
         <OrderPipeline
           counts={data?.statusCounts}
           overdue={data?.overdueCounts}
@@ -331,17 +360,17 @@ function OrdersPageContent() {
             <>
               {/* ป้ายตัวกรองความเร่งด่วนที่ค้างมาจากหน้าแรก (?attention=) — ต้องเห็นว่ากรองอะไรอยู่และล้างได้ */}
               {attention ? (
-                <span className="inline-flex items-center gap-1.5 border-b-2 border-blue-600 py-1 pl-1 text-xs font-semibold text-blue-700 dark:border-blue-400 dark:text-blue-400">
+                <span className="inline-flex min-h-7 items-center gap-1.5 rounded-full bg-blue-100 pl-2.5 pr-1 text-xs font-medium text-blue-800 dark:bg-blue-950/60 dark:text-blue-200">
+                  <Filter className="h-3.5 w-3.5" aria-hidden="true" />
                   {ATTENTION_FILTERS.find((f) => f.value === attention)?.label}
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
+                  <button
+                    type="button"
                     aria-label="ล้างตัวกรองความเร่งด่วน"
                     onClick={() => updateList({ attention: null, page: null })}
-                    className="h-6 w-6 min-w-0 text-current"
+                    className={cn(FOCUS_BUTTON, "flex h-5 w-5 items-center justify-center rounded-full")}
                   >
-                    <X />
-                  </Button>
+                    <X className="h-3.5 w-3.5" aria-hidden="true" />
+                  </button>
                 </span>
               ) : null}
               <Button variant="ghost" size="sm" onClick={clearToolbarFilters} className="px-2 text-secondary">
@@ -352,79 +381,86 @@ function OrdersPageContent() {
           ) : undefined
         }
       >
-        <div className="px-4 pb-3 sm:px-5">
-          <Toolbar>
+        {/* แถบเครื่องมือตามต้นแบบ (.tools): ช่องค้นหากว้างพอดี มีคีย์ลัด / · ช่วงวันที่ · ช่องทาง · ประเภท · จำนวนชิดขวา */}
+        <div className="flex flex-wrap items-center gap-2 px-4 pb-3 sm:px-[1.125rem]">
+          <div className="relative min-w-0 basis-full sm:max-w-[21.25rem] sm:flex-1 sm:basis-[15.625rem]">
             <SearchInput
               ref={searchInputRef}
-              containerClassName="@2xl:max-w-sm @2xl:flex-1"
+              containerClassName="w-full"
               surface="raised"
-              placeholder="ค้นหาเลขออเดอร์ หรือลูกค้า..."
+              placeholder="ค้นหาเลขออเดอร์ หรือลูกค้า"
               defaultValue={search}
+              className="pr-9"
               onChange={(event) => {
                 setPeekId(null);
                 onSearchChange(event.target.value);
               }}
             />
-            <div className="grid w-full min-w-0 grid-cols-2 items-center gap-2 @2xl:flex @2xl:w-auto @2xl:flex-nowrap">
-              {/* จอกว้างเรียงที่หัวคอลัมน์ · จอแคบเป็นการ์ดไม่มีหัวคอลัมน์ จึงยังต้องมีช่องเรียง */}
-              <Select
-                surface="raised"
-                aria-label="เรียงลำดับ"
-                value={sort}
-                onChange={(e) => updateList({ sort: e.target.value === DEFAULT_SORT ? null : e.target.value, page: null })}
-                className="w-full min-w-0 px-3 lg:hidden"
+            {search ? null : (
+              <kbd
+                aria-hidden="true"
+                className="pointer-events-none absolute right-2.5 top-1/2 hidden -translate-y-1/2 rounded-md border border-border bg-surface px-1.5 font-mono text-2xs tabular-nums text-muted sm:block"
               >
-                {sortOptions.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </Select>
-              <div className="min-w-0 [&>span]:w-full @2xl:flex-none">
-                <DateRangePicker
-                  from={createdAfter}
-                  to={createdBefore}
-                  className="w-full min-w-0 justify-start @2xl:w-auto"
-                  onChange={(f, t) => updateList({ from: f || null, to: t || null, page: null })}
-                />
-              </div>
-              <Select
-                surface="raised"
-                aria-label="กรองช่องทางออเดอร์"
-                value={channel}
-                onChange={(event) => updateList({ channel: event.target.value || null, page: null })}
-                className="min-w-0 @2xl:w-40"
-              >
-                {CHANNEL_FILTERS.map((filter) => (
-                  <option key={filter.value} value={filter.value}>
-                    {filter.label}
-                  </option>
-                ))}
-              </Select>
-              <Select
-                surface="raised"
-                aria-label="กรองประเภทออเดอร์"
-                value={orderType}
-                onChange={(event) => updateList({ type: event.target.value || null, page: null })}
-                className="min-w-0 @2xl:w-40"
-              >
-                {TYPE_FILTERS.map((filter) => (
-                  <option key={filter.value} value={filter.value}>
-                    {filter.label}
-                  </option>
-                ))}
-              </Select>
-            </div>
-            {data ? (
-              <p
-                aria-busy={isFetching}
-                aria-live="polite"
-                className="self-end whitespace-nowrap text-xs tabular-nums text-muted @2xl:ml-auto @2xl:self-auto"
-              >
-                {isFetching ? "กำลังอัปเดต…" : `${data.total.toLocaleString("th-TH")} ออเดอร์`}
-              </p>
-            ) : null}
-          </Toolbar>
+                /
+              </kbd>
+            )}
+          </div>
+          {/* จอกว้างเรียงที่หัวคอลัมน์ · จอแคบเป็นการ์ดไม่มีหัวคอลัมน์ จึงยังต้องมีช่องเรียง */}
+          <Select
+            surface="raised"
+            aria-label="เรียงลำดับ"
+            value={sort}
+            onChange={(e) => updateList({ sort: e.target.value === DEFAULT_SORT ? null : e.target.value, page: null })}
+            className="w-auto min-w-0 lg:hidden"
+          >
+            {sortOptions.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </Select>
+          <DateRangePicker
+            from={createdAfter}
+            to={createdBefore}
+            placeholder="ทุกช่วงวันที่"
+            className="w-auto min-w-0"
+            onChange={(f, t) => updateList({ from: f || null, to: t || null, page: null })}
+          />
+          <Select
+            surface="raised"
+            aria-label="กรองช่องทางออเดอร์"
+            value={channel}
+            onChange={(event) => updateList({ channel: event.target.value || null, page: null })}
+            className="w-auto min-w-0"
+          >
+            {CHANNEL_FILTERS.map((filter) => (
+              <option key={filter.value} value={filter.value}>
+                {filter.label}
+              </option>
+            ))}
+          </Select>
+          <Select
+            surface="raised"
+            aria-label="กรองประเภทออเดอร์"
+            value={orderType}
+            onChange={(event) => updateList({ type: event.target.value || null, page: null })}
+            className="w-auto min-w-0"
+          >
+            {TYPE_FILTERS.map((filter) => (
+              <option key={filter.value} value={filter.value}>
+                {filter.label}
+              </option>
+            ))}
+          </Select>
+          {data ? (
+            <p
+              aria-busy={isFetching}
+              aria-live="polite"
+              className="ml-auto whitespace-nowrap text-xs tabular-nums text-muted"
+            >
+              {isFetching ? "กำลังอัปเดต…" : `${data.total.toLocaleString("th-TH")} ออเดอร์`}
+            </p>
+          ) : null}
         </div>
 
         {isError && !data ? (
@@ -461,7 +497,7 @@ function OrdersPageContent() {
           </div>
         ) : (
           <>
-            <div aria-busy={isFetching} className={cn("border-t border-divider transition-opacity", isFetching && "opacity-60")}>
+            <div aria-busy={isFetching} className={cn("transition-opacity", isFetching && "opacity-60")}>
               <OrdersTable
                 orders={rows}
                 canSeeMoney={canSeeMoney}
@@ -470,16 +506,14 @@ function OrdersPageContent() {
                 sortColumn={sortColumn}
               />
             </div>
-            {data && data.pages > 1 ? (
-              <div className="border-t border-divider px-4 py-3 sm:px-5">
-                <TablePagination
-                  page={page}
-                  totalPages={data.pages}
-                  total={data.total}
-                  limit={20}
-                  onPageChange={(nextPage) => updateList({ page: String(nextPage) })}
-                />
-              </div>
+            {data ? (
+              <OrdersPager
+                page={page}
+                pages={data.pages}
+                total={data.total}
+                limit={20}
+                onPageChange={(nextPage) => updateList({ page: String(nextPage) })}
+              />
             ) : null}
           </>
         )}

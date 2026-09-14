@@ -1,6 +1,11 @@
 import { MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+/** ลิงก์ห้องแชทที่เปิดได้จริง — รับเฉพาะ http/https · อย่างอื่นคืน null (ใช้ด่านเดียวกันทุกจุด) */
+export function safeChatUrl(url?: string | null): string | null {
+  return url && /^https?:\/\//i.test(url) ? url : null;
+}
+
 /** ห้องแชทของลูกค้า — กดแล้วเปิดแชทจริงในแท็บใหม่
  *  รับเฉพาะลิงก์ http/https (ฝั่ง server กันไว้อีกชั้น) — ไม่ยอมให้ href กลายเป็นสคริปต์
  *
@@ -28,7 +33,7 @@ export function ChatLink({
   className?: string;
 }) {
   if (!name && !url) return null;
-  const safe = url && /^https?:\/\//i.test(url) ? url : null;
+  const safe = safeChatUrl(url);
   const label = name || "เปิดแชท";
   const clamp = wrap ? "[overflow-wrap:anywhere]" : "truncate";
 

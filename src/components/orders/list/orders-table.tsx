@@ -1,27 +1,32 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronRight, MessageCircle } from "lucide-react";
 import type { RouterOutput } from "@/lib/trpc";
-import { Badge } from "@/components/ui/badge";
-import { DataTable } from "@/components/ui/data-table";
-import { DueTag } from "@/components/ui/due-tag";
-import { FOCUS_BUTTON, INTERACTIVE_PRESSED } from "@/components/ui/tokens";
-import { ChatLink } from "@/components/customers/chat-link";
+import { FOCUS_BUTTON, FOCUS_INSET, INTERACTIVE_PRESSED, TABLE_HEAD_SURFACE } from "@/components/ui/tokens";
+import { safeChatUrl } from "@/components/customers/chat-link";
 import { MockupThumbnail } from "@/components/mockup/mockup-thumbnail";
-import { OrderProblemLabel, OrderStatusDot, StepProgress } from "@/components/orders/order-problem";
+import {
+  OrderAttentionLine,
+  OrderDueChip,
+  OrderPrintChip,
+  OrderPriorityChip,
+  OrderStatusDot,
+  StepProgress,
+} from "@/components/orders/order-problem";
 import { describeOrderAttention } from "@/lib/home-orders";
 import { mockupCoverImage } from "@/lib/mockup";
-import { isAttentionStatus } from "@/lib/order-progress";
-import { CHANNEL_LABELS, PRIORITY_LABELS } from "@/lib/order-status";
+import { CHANNEL_LABELS } from "@/lib/order-status";
 import type { SortDirection, SortKey } from "@/lib/order-list-contract";
-import { cn, formatBaht, formatDateShort } from "@/lib/utils";
+import { cn, formatBaht, formatDateCompact } from "@/lib/utils";
 
 /* ============================================================
-   ตารางออเดอร์ (ต้นแบบรอบ 2 · เบสเคาะ 2026-09-14)
+   ตารางออเดอร์ (ต้นแบบรอบ 2 · เบสเคาะ 2026-09-14 · ไล่ให้ตรงต้นแบบทีละส่วน 2026-09-15)
 
    คอลัมน์ตอบคำถามตามลำดับที่หัวหน้าไล่ดู: ใบไหน/ลูกค้าไหน → อยู่ขั้นไหน → ต้องจัดการอะไร
-   → เงิน → ส่งเมื่อไร · "ต้องจัดการ" ใช้กฎเดียวกับหน้าแรก (lib/home-orders) ไม่คิดใหม่ที่นี่
+   → เงิน → การชำระ → ส่งเมื่อไร · "ต้องจัดการ" ใช้กฎเดียวกับหน้าแรก (lib/home-orders)
+   หัวตารางเป็นแถบพื้นจมเต็มการ์ด · แถวเลยกำหนด/ส่งวันนี้/พักงาน/กำลังดูย่อ มีขีดสีซ้าย
    กดแถว = ดูย่อทางขวา (จอกว้าง), ลูกศรท้ายแถว = เปิดใบเต็ม, จอแคบเป็นการ์ดที่เปิดใบเต็มเลย
    ============================================================ */
 
@@ -45,47 +50,93 @@ export function orderListCover(order: OrderListRow): string | null {
 
 export function PaymentIndicator({ status }: { status: string }) {
   const payment = PAYMENT_DOT[status];
-  if (!payment) return <span className="text-xs text-muted">—</span>;
+  if (!payment) return <span className="text-sm text-muted">—</span>;
   return (
-    <span className={cn("inline-flex items-center gap-1.5 whitespace-nowrap text-xs font-medium", payment.text)}>
+    <span className={cn("inline-flex items-center gap-1.5 whitespace-nowrap text-xs", payment.text)}>
       <span aria-hidden="true" className={cn("h-1.5 w-1.5 rounded-full", payment.dot)} />
       {payment.label}
     </span>
   );
 }
 
-/** กำหนดส่งของแถว — งานที่ยังเดินใช้ป้ายตามความรีบ · งานที่จบแล้วเหลือแค่วันที่ */
-export function OrderDeadlineCell({ order }: { order: OrderListRow }) {
-  if (!isAttentionStatus(order.internalStatus)) {
-    return order.deadline ? (
-      <span className="whitespace-nowrap text-xs tabular-nums text-muted">{formatDateShort(order.deadline)}</span>
-    ) : (
-      <span className="text-xs text-muted">—</span>
-    );
-  }
-  const due = order.progress.dueInDays;
-  return (
-    <DueTag
-      dueInDays={due}
-      dateLabel={order.deadline && due !== null && due > 1 ? formatDateShort(order.deadline) : null}
-      size="sm"
-    />
-  );
-}
-
-export function PriorityBadge({ priority }: { priority: string }) {
-  if (priority !== "URGENT" && priority !== "HIGH") return null;
-  return (
-    <Badge variant={priority === "URGENT" ? "destructive" : "warning"} size="sm">
-      {PRIORITY_LABELS[priority]}
-    </Badge>
-  );
-}
+/** ชื่อเดิมที่หัวใบออเดอร์ใช้อยู่ — ตัวจริงคือชิปความเร่งด่วนกลาง */
+export const PriorityBadge = OrderPriorityChip;
 
 function stepsText(order: OrderListRow): string {
   const { currentStep, stepsDone, stepsTotal } = order.progress;
   if (currentStep) return `${Math.min(stepsDone + 1, stepsTotal)}/${stepsTotal} ${currentStep.label}`;
   return stepsDone >= stepsTotal ? "ครบทุกขั้น" : `${stepsDone}/${stepsTotal}`;
+}
+
+/* หัวตาราง = แถบพื้นจมมีเส้นบน-ล่าง (ต้นแบบ .orders th) · เซลล์มีเส้นล่างบาง */
+const TH = "whitespace-nowrap border-y border-divider bg-surface-muted px-3.5 py-2 text-left text-xs font-medium text-muted";
+const TD = "border-b border-divider px-3.5 py-2.5 align-middle";
+
+function SortTh({
+  direction,
+  defaultDirection,
+  onSort,
+  align = "left",
+  className,
+  children,
+}: SortColumnProps & { align?: "left" | "right"; className?: string; children: ReactNode }) {
+  const active = direction !== null;
+  const Icon = !active ? ArrowUpDown : direction === "asc" ? ArrowUp : ArrowDown;
+  return (
+    <th
+      scope="col"
+      aria-sort={active ? (direction === "asc" ? "ascending" : "descending") : undefined}
+      className={cn(TH, align === "right" && "text-right", className)}
+    >
+      <button
+        type="button"
+        onClick={() => onSort(active ? (direction === "asc" ? "desc" : "asc") : defaultDirection)}
+        className={cn(
+          FOCUS_INSET,
+          "-mx-1 inline-flex items-center gap-1 rounded-md px-1 py-0.5",
+          active && "text-blue-700 dark:text-blue-300",
+        )}
+      >
+        {children}
+        <Icon
+          className={cn("h-3 w-3 shrink-0", active ? "text-blue-600 dark:text-blue-400" : "opacity-50")}
+          aria-hidden="true"
+        />
+      </button>
+    </th>
+  );
+}
+
+function CustomerCell({ order }: { order: OrderListRow }) {
+  const name = order.customer?.name?.trim() || "—";
+  const chatUrl = safeChatUrl(order.customer?.chatUrl);
+  const chatName = order.customer?.chatName?.trim() || (chatUrl ? "เปิดแชท" : null);
+  return (
+    <>
+      <span className="block truncate text-sm font-medium text-strong">{name}</span>
+      {chatUrl ? (
+        <a
+          href={chatUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={cn(
+            FOCUS_BUTTON,
+            "mt-0.5 inline-flex max-w-full items-center gap-1 border-b border-blue-200 text-xs text-blue-700 dark:border-blue-800 dark:text-blue-300",
+          )}
+        >
+          <MessageCircle className="h-3 w-3 shrink-0" aria-hidden="true" />
+          <span className="truncate">{chatName}</span>
+        </a>
+      ) : chatName ? (
+        <span className="mt-0.5 flex min-w-0 items-center gap-1 text-xs text-secondary">
+          <MessageCircle className="h-3 w-3 shrink-0" aria-hidden="true" />
+          <span className="truncate">{chatName}</span>
+        </span>
+      ) : order.customer?.company ? (
+        <span className="mt-0.5 block truncate text-xs text-secondary">{order.customer.company}</span>
+      ) : null}
+    </>
+  );
 }
 
 export function OrdersTable({
@@ -103,142 +154,152 @@ export function OrdersTable({
 }) {
   return (
     <>
-      <DataTable.Root
-        bordered={false}
-        cellPadding="compact"
-        className="hidden lg:block [&_table]:min-w-[56rem] [&_table]:table-fixed"
-      >
-        <colgroup>
-          <col className="w-[13.5rem]" />
-          <col className="w-[10rem]" />
-          <col className="w-[10.5rem]" />
-          <col />
-          <col className={canSeeMoney ? "w-[7.5rem]" : "w-[6rem]"} />
-          <col className="w-[8.5rem]" />
-          <col className="w-11" />
-        </colgroup>
-        <DataTable.Head>
-          <tr>
-            <DataTable.SortableTh className="pl-2" {...sortColumn("orderNumber")}>
-              เลขออเดอร์
-            </DataTable.SortableTh>
-            <DataTable.Th>ลูกค้า</DataTable.Th>
-            <DataTable.Th>ขั้นงาน</DataTable.Th>
-            <DataTable.Th>ต้องจัดการ</DataTable.Th>
-            {canSeeMoney ? (
-              <DataTable.SortableTh align="right" {...sortColumn("totalAmount")}>
-                ยอดรวม
-              </DataTable.SortableTh>
-            ) : (
-              <DataTable.Th>การชำระ</DataTable.Th>
-            )}
-            <DataTable.SortableTh {...sortColumn("deadline")}>กำหนดส่ง</DataTable.SortableTh>
-            <DataTable.Th>
-              <span className="sr-only">เปิดออเดอร์</span>
-            </DataTable.Th>
-          </tr>
-        </DataTable.Head>
-        <tbody className="divide-y divide-divider">
-          {orders.map((order) => {
-            const problem = describeOrderAttention(order.progress);
-            const selected = peekId === order.id;
-            const bar =
-              problem?.group === "late"
-                ? "bg-red-600 dark:bg-red-400"
-                : problem?.group === "today"
-                  ? "bg-amber-500 dark:bg-amber-400"
-                  : null;
-            return (
-              <tr
-                key={order.id}
-                data-order-row={order.id}
-                onClick={(event) => {
-                  if ((event.target as HTMLElement).closest("a,button")) return;
-                  if (window.getSelection()?.toString()) return;
-                  onPeek(order.id);
-                }}
-                className={cn("cursor-pointer transition-colors", INTERACTIVE_PRESSED, selected && "bg-interactive-selected")}
-              >
-                <td className="relative py-2.5 pl-5 pr-3 align-middle">
-                  {bar ? <span aria-hidden="true" className={cn("absolute inset-y-0 left-0 w-1", bar)} /> : null}
-                  <div className="flex min-w-0 items-center gap-3">
-                    <MockupThumbnail cover={orderListCover(order)} alt={`ม็อกอัพ ${order.orderNumber}`} size="sm" />
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-                        <button
-                          type="button"
-                          data-peek-trigger={order.id}
-                          aria-label={`ดูย่อ ${order.orderNumber}`}
-                          aria-expanded={selected}
-                          onClick={() => onPeek(order.id)}
-                          className={cn(FOCUS_BUTTON, "whitespace-nowrap rounded font-mono text-sm font-medium tabular-nums text-strong")}
-                        >
-                          {order.orderNumber}
-                        </button>
-                        {order.printLabel ? (
-                          <Badge variant="default" size="sm">
-                            {order.printLabel}
-                          </Badge>
-                        ) : null}
-                        <PriorityBadge priority={order.priority} />
-                      </div>
-                      <p className="mt-0.5 truncate text-xs text-muted">
-                        {CHANNEL_LABELS[order.channel] ?? order.channel} · เปิด {formatDateShort(order.createdAt)}
-                      </p>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-3 py-2.5 align-middle">
-                  <p className="truncate text-sm font-medium text-strong">{order.customer?.name?.trim() || "—"}</p>
-                  {order.customer?.chatName || order.customer?.chatUrl ? (
-                    <ChatLink stopPropagation name={order.customer.chatName} url={order.customer.chatUrl} className="mt-0.5" />
-                  ) : order.customer?.company ? (
-                    <p className="mt-0.5 truncate text-xs text-muted">{order.customer.company}</p>
-                  ) : null}
-                </td>
-                <td className="px-3 py-2.5 align-middle">
-                  <OrderStatusDot status={order.internalStatus} className="text-sm text-strong" />
-                  {order.progress.stepsTotal > 0 ? (
-                    <div className="mt-1 flex min-w-0 items-center gap-2">
-                      <StepProgress done={order.progress.stepsDone} total={order.progress.stepsTotal} />
-                      <span className="truncate text-xs text-secondary">{stepsText(order)}</span>
-                    </div>
-                  ) : null}
-                </td>
-                <td className="px-3 py-2.5 align-middle">
-                  {problem ? <OrderProblemLabel problem={problem} /> : <span className="text-xs text-muted">—</span>}
-                </td>
-                <td className={cn("px-3 py-2.5 align-middle", canSeeMoney && "text-right")}>
-                  {canSeeMoney ? (
-                    <span className="flex flex-col items-end gap-0.5">
-                      <span className="whitespace-nowrap font-mono text-sm tabular-nums text-strong">
-                        {formatBaht(order.totalAmount ?? 0)}
-                      </span>
-                      {order.paymentLabel !== "none" ? <PaymentIndicator status={order.paymentLabel} /> : null}
-                    </span>
-                  ) : (
-                    <PaymentIndicator status={order.paymentLabel} />
+      <div className="hidden overflow-x-auto lg:block">
+        <table className="w-full min-w-[65rem] table-fixed border-collapse text-sm">
+          <colgroup>
+            <col className="w-[15.5rem]" />
+            <col className="w-[10.75rem]" />
+            <col className="w-[10rem]" />
+            <col className="w-[12.25rem]" />
+            {canSeeMoney ? <col className="w-[6.5rem]" /> : null}
+            <col className="w-[5.25rem]" />
+            <col className="w-[7.375rem]" />
+            <col className="w-10" />
+          </colgroup>
+          <thead className={cn(TABLE_HEAD_SURFACE, "bg-surface-muted")}>
+            <tr>
+              <SortTh className="pl-[1.125rem]" {...sortColumn("orderNumber")}>
+                เลขออเดอร์
+              </SortTh>
+              <th scope="col" className={TH}>
+                ลูกค้า
+              </th>
+              <th scope="col" className={TH}>
+                ขั้นงาน
+              </th>
+              <th scope="col" className={TH}>
+                ต้องจัดการ
+              </th>
+              {canSeeMoney ? (
+                <SortTh align="right" {...sortColumn("totalAmount")}>
+                  ยอดรวม
+                </SortTh>
+              ) : null}
+              <th scope="col" className={TH}>
+                การชำระ
+              </th>
+              <SortTh {...sortColumn("deadline")}>
+                กำหนดส่ง
+              </SortTh>
+              <th scope="col" className={TH}>
+                <span className="sr-only">เปิดออเดอร์</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {orders.map((order) => {
+              const problem = describeOrderAttention(order.progress);
+              const selected = peekId === order.id;
+              const bar = selected
+                ? "bg-blue-600 dark:bg-blue-400"
+                : problem?.group === "late"
+                  ? "bg-red-600 dark:bg-red-400"
+                  : problem?.group === "today"
+                    ? "bg-amber-500 dark:bg-amber-400"
+                    : order.internalStatus === "ON_HOLD"
+                      ? "bg-slate-300 dark:bg-slate-600"
+                      : null;
+              return (
+                <tr
+                  key={order.id}
+                  data-order-row={order.id}
+                  onClick={(event) => {
+                    if ((event.target as HTMLElement).closest("a,button")) return;
+                    if (window.getSelection()?.toString()) return;
+                    onPeek(order.id);
+                  }}
+                  className={cn(
+                    "cursor-pointer [&:last-child>td]:border-b-0",
+                    INTERACTIVE_PRESSED,
+                    selected && "bg-blue-50 dark:bg-blue-950/40",
                   )}
-                </td>
-                <td className="px-3 py-2.5 align-middle">
-                  <OrderDeadlineCell order={order} />
-                </td>
-                <td className="py-2.5 pl-1 pr-3 align-middle">
-                  <Link
-                    href={`/orders/${order.id}`}
-                    aria-label={`เปิดออเดอร์ ${order.orderNumber}`}
-                    className={cn(FOCUS_BUTTON, INTERACTIVE_PRESSED, "flex h-8 w-8 items-center justify-center rounded-lg text-muted")}
-                  >
-                    <ChevronRight className="h-4 w-4" aria-hidden="true" />
-                  </Link>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </DataTable.Root>
+                >
+                  <td className={cn(TD, "relative pl-[1.125rem]")}>
+                    {bar ? <span aria-hidden="true" className={cn("absolute inset-y-0 left-0 w-[3px]", bar)} /> : null}
+                    <div className="flex min-w-0 items-center gap-3">
+                      <MockupThumbnail cover={orderListCover(order)} alt={`ม็อกอัพ ${order.orderNumber}`} size="sm" />
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                          <button
+                            type="button"
+                            data-peek-trigger={order.id}
+                            aria-label={`ดูย่อ ${order.orderNumber}`}
+                            aria-expanded={selected}
+                            onClick={() => onPeek(order.id)}
+                            className={cn(FOCUS_BUTTON, "whitespace-nowrap rounded font-mono text-sm font-medium tabular-nums text-strong")}
+                          >
+                            {order.orderNumber}
+                          </button>
+                          {order.printLabel ? <OrderPrintChip label={order.printLabel} className="px-2" /> : null}
+                          <OrderPriorityChip priority={order.priority} className="px-2" />
+                        </div>
+                        <p className="mt-0.5 truncate text-xs text-muted">
+                          {CHANNEL_LABELS[order.channel] ?? order.channel} · เปิด {formatDateCompact(order.createdAt)}
+                        </p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className={TD}>
+                    <CustomerCell order={order} />
+                  </td>
+                  <td className={TD}>
+                    <OrderStatusDot status={order.internalStatus} className="text-sm text-strong" />
+                    {order.progress.stepsTotal > 0 ? (
+                      <div className="mt-1 flex min-w-0 items-center gap-1.5">
+                        <StepProgress done={order.progress.stepsDone} total={order.progress.stepsTotal} />
+                        <span className="truncate text-xs text-secondary">{stepsText(order)}</span>
+                      </div>
+                    ) : null}
+                  </td>
+                  <td className={TD}>
+                    {problem ? (
+                      <OrderAttentionLine problem={problem} progress={order.progress} />
+                    ) : (
+                      <span className="text-sm text-muted">—</span>
+                    )}
+                  </td>
+                  {canSeeMoney ? (
+                    <td className={cn(TD, "whitespace-nowrap text-right font-mono text-sm tabular-nums text-strong")}>
+                      {formatBaht(order.totalAmount ?? 0)}
+                    </td>
+                  ) : null}
+                  <td className={TD}>
+                    <PaymentIndicator status={order.paymentLabel} />
+                  </td>
+                  <td className={TD}>
+                    <OrderDueChip
+                      status={order.internalStatus}
+                      deadline={order.deadline}
+                      dueInDays={order.progress.dueInDays}
+                    />
+                  </td>
+                  <td className={cn(TD, "pl-1 pr-3")}>
+                    <Link
+                      href={`/orders/${order.id}`}
+                      aria-label={`เปิดออเดอร์ ${order.orderNumber}`}
+                      className={cn(FOCUS_BUTTON, INTERACTIVE_PRESSED, "flex h-7 w-7 items-center justify-center rounded-lg text-muted")}
+                    >
+                      <ChevronRight className="h-4 w-4" aria-hidden="true" />
+                    </Link>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
 
-      <ul aria-label="รายการออเดอร์" className="space-y-2 px-3 py-3 sm:px-4 lg:hidden">
+      <ul aria-label="รายการออเดอร์" className="grid gap-2.5 px-3.5 pb-3.5 lg:hidden">
         {orders.map((order) => {
           const problem = describeOrderAttention(order.progress);
           const name = order.customer?.name?.trim() || "—";
@@ -247,34 +308,36 @@ export function OrdersTable({
               <Link
                 href={`/orders/${order.id}`}
                 aria-label={`เปิดออเดอร์ ${order.orderNumber} ${name}`}
-                className={cn(FOCUS_BUTTON, INTERACTIVE_PRESSED, "block space-y-2 rounded-xl border border-divider p-3")}
+                className={cn(FOCUS_BUTTON, INTERACTIVE_PRESSED, "grid gap-2 rounded-xl border border-border p-3")}
               >
-                <span className="flex items-start gap-3">
-                  <MockupThumbnail cover={orderListCover(order)} alt={`ม็อกอัพ ${order.orderNumber}`} size="sm" />
-                  <span className="min-w-0 flex-1">
-                    <span className="flex flex-wrap items-center gap-1.5">
-                      <span className="font-mono text-sm font-medium tabular-nums text-strong">{order.orderNumber}</span>
-                      {order.printLabel ? (
-                        <Badge variant="default" size="sm">
-                          {order.printLabel}
-                        </Badge>
-                      ) : null}
-                      <PriorityBadge priority={order.priority} />
+                <span className="flex items-center justify-between gap-2">
+                  <span className="flex min-w-0 items-center gap-3">
+                    <MockupThumbnail cover={orderListCover(order)} alt={`ม็อกอัพ ${order.orderNumber}`} size="sm" />
+                    <span className="min-w-0">
+                      <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <span className="font-mono text-sm font-medium tabular-nums text-strong">{order.orderNumber}</span>
+                        {order.printLabel ? <OrderPrintChip label={order.printLabel} className="px-2" /> : null}
+                        <OrderPriorityChip priority={order.priority} className="px-2" />
+                      </span>
+                      <span className="mt-0.5 block truncate text-xs text-secondary">{name}</span>
                     </span>
-                    <span className="mt-0.5 block truncate text-sm font-medium text-secondary">{name}</span>
                   </span>
-                  <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
                 </span>
-                <span className="flex flex-wrap items-center gap-2">
-                  <OrderStatusDot status={order.internalStatus} className="text-xs font-medium text-secondary" />
-                  <OrderDeadlineCell order={order} />
+                <span className="flex flex-wrap items-center gap-2 text-xs text-secondary">
+                  <OrderStatusDot status={order.internalStatus} />
+                  <OrderDueChip
+                    status={order.internalStatus}
+                    deadline={order.deadline}
+                    dueInDays={order.progress.dueInDays}
+                  />
                   {canSeeMoney ? (
                     <span className="ml-auto whitespace-nowrap font-mono text-sm font-medium tabular-nums text-strong">
                       {formatBaht(order.totalAmount ?? 0)}
                     </span>
                   ) : null}
                 </span>
-                {problem ? <OrderProblemLabel problem={problem} /> : null}
+                {problem ? <OrderAttentionLine problem={problem} progress={order.progress} showWho={false} /> : null}
               </Link>
             </li>
           );

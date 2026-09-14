@@ -34,8 +34,12 @@ import {
   MoreHorizontal,
   ClipboardList,
   AlertTriangle,
-  Share2,
+  EyeOff,
+  Link2,
+  PackageX,
+  StickyNote,
   Truck,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MENU_SEPARATOR, OVERLAY_PANEL, TINT } from "@/components/ui/tokens";
@@ -81,7 +85,7 @@ import {
 } from "@/components/orders/detail";
 import { RecordNotFound } from "@/components/ui/record-not-found";
 import { OrderNextStepGuidance } from "@/components/orders/detail/order-next-step-action";
-import { OrderAttentionCallout, OrderDetailHead } from "@/components/orders/detail/order-detail-head";
+import { DetailCallout, OrderAttentionCallout, OrderDetailHead } from "@/components/orders/detail/order-detail-head";
 import { OrderTimelineCard } from "@/components/orders/detail/order-timeline-card";
 import { describeOrderAttention } from "@/lib/home-orders";
 import { describeOrderProgress, isAttentionStatus } from "@/lib/order-progress";
@@ -634,15 +638,20 @@ function OrderDetailContent({
       (revision) => revision.changeType === "STATUS" && revision.newValue === order.internalStatus,
     )?.createdAt ?? (currentStepIndex === 0 ? order.createdAt : null);
   const daysInStatus = enteredStatusAt ? differenceInBangkokDays(now, enteredStatusAt) : null;
+  // ไม่มีประวัติวันที่เข้าขั้น (ข้อมูลเก่า/นำเข้า) → บอกขั้นใบผลิตที่ทำอยู่แทน ไม่เดาจำนวนวัน
   const currentDetail =
-    currentStepIndex >= 0 && daysInStatus !== null
-      ? [
-          daysInStatus <= 0 ? "เข้าขั้นนี้วันนี้" : `อยู่ขั้นนี้ ${daysInStatus} วัน`,
-          progress.currentStep?.assigneeName,
-        ]
-          .filter(Boolean)
-          .join(" · ")
-      : undefined;
+    currentStepIndex < 0
+      ? undefined
+      : daysInStatus !== null
+        ? [
+            daysInStatus <= 0 ? "เข้าขั้นนี้วันนี้" : `อยู่ขั้นนี้ ${daysInStatus} วัน`,
+            progress.currentStep?.assigneeName,
+          ]
+            .filter(Boolean)
+            .join(" · ")
+        : progress.currentStep
+          ? [progress.currentStep.label, progress.currentStep.assigneeName].filter(Boolean).join(" · ")
+          : undefined;
 
   // จำนวนแยกไซซ์ของทั้งใบ — เรียงตามไซซ์มาตรฐาน ไซซ์พิเศษต่อท้ายตามลำดับที่กรอก
   const sizeTotals = new Map<string, number>();
@@ -709,36 +718,41 @@ function OrderDetailContent({
           เรื่องที่ต้องจัดการ, ด่านพร้อมผลิต, จองสต๊อคพัง, ส่งแบบไม่ระบุผู้ส่ง, หมายเหตุใบนี้
           ทั้งหมดอยู่นอกแท็บโดยตั้งใจ — คนแพ็ค (แท็บจัดส่ง) กับช่าง (แท็บงานผลิต) ต้องเห็นโดยไม่ต้องสลับแท็บ */}
       {hasTopAlerts ? (
-        <div className="space-y-2">
-          {attention ? <OrderAttentionCallout problem={attention} action={attentionAction} /> : null}
+        <div className="grid gap-2">
+          {attention ? <OrderAttentionCallout problem={attention} progress={progress} action={attentionAction} /> : null}
 
           {blockers.length > 0 ? (
-            <div className={cn(TINT.error, "space-y-2 rounded-2xl border px-4 py-3")}>
-              <p className="flex items-center gap-2 text-sm font-semibold">
-                <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
-                ยังเข้าคิวผลิตไม่ได้
-              </p>
-              <ul className="space-y-1 text-sm text-strong">
-                {blockers.map((blocker) => (
-                  <li key={blocker} className="flex items-start gap-2 [overflow-wrap:anywhere]">
-                    <span aria-hidden="true" className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-current" />
-                    {blocker}
-                  </li>
-                ))}
-              </ul>
+            <div className={cn(TINT.error, "space-y-2.5 rounded-xl border px-3.5 py-2.5 text-sm")}>
+              <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2">
+                <AlertTriangle className="h-4 w-4 shrink-0" strokeWidth={1.75} aria-hidden="true" />
+                <span className="text-strong">
+                  <span className="font-semibold">ยังเข้าคิวผลิตไม่ได้</span> · ต้องครบก่อน:
+                </span>
+                <ul className="flex flex-wrap gap-1.5">
+                  {blockers.map((blocker) => (
+                    <li
+                      key={blocker}
+                      className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-surface px-2.5 py-0.5 text-xs text-strong [overflow-wrap:anywhere]"
+                    >
+                      <X className="h-3.5 w-3.5 shrink-0 text-red-600 dark:text-red-400" aria-hidden="true" />
+                      {blocker}
+                    </li>
+                  ))}
+                </ul>
+              </div>
               {guidance}
             </div>
           ) : null}
 
           {/* จองสต๊อคมีปัญหา — ด่านพร้อมผลิตกั้นงานไว้แล้ว แต่คนแก้ต้นเหตุคือคนที่เปิดหน้านี้ */}
           {order.stockReservationError && (
-            <div className={cn(TINT.error, "flex flex-wrap items-center gap-3 rounded-2xl border px-4 py-3 text-sm")}>
-              <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
-              <span className="min-w-0 flex-1">
-                <span className="font-medium">จองสต๊อคไม่สำเร็จ:</span> {order.stockReservationError}
-              </span>
-              {isSalesUp &&
-                ["CONFIRMED", "DESIGNING", "DESIGN_APPROVED", "PRODUCTION_QUEUE"].includes(order.internalStatus) && (
+            <DetailCallout
+              tone="danger"
+              icon={PackageX}
+              title="จองสต๊อคไม่สำเร็จ"
+              action={
+                isSalesUp &&
+                ["CONFIRMED", "DESIGNING", "DESIGN_APPROVED", "PRODUCTION_QUEUE"].includes(order.internalStatus) ? (
                   <Button
                     size="sm"
                     variant="outline"
@@ -747,25 +761,24 @@ function OrderDetailContent({
                   >
                     {retryReserve.isPending ? "กำลังจอง..." : "จองใหม่"}
                   </Button>
-                )}
-            </div>
+                ) : undefined
+              }
+            >
+              {order.stockReservationError}
+            </DetailCallout>
           )}
 
           {/* blind ship = ห้ามมีชื่อ/เอกสาร Anajak ในกล่อง · พลาดครั้งเดียวเสียลูกค้าขายซ้ำทั้งราย */}
           {order.blindShip && (
-            <div className={cn(TINT.warning, "flex flex-wrap gap-x-2 gap-y-1 rounded-2xl border px-4 py-3 text-sm")}>
-              <span className="font-medium">ส่งแบบไม่ระบุผู้ส่ง</span>
-              <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
-                ชื่อผู้ส่งบนกล่อง: {order.blindShipSenderName || "ยังไม่ระบุ — ต้องกรอกก่อนแพ็ค"}
-              </span>
-            </div>
+            <DetailCallout icon={EyeOff} title="ส่งแบบไม่ระบุผู้ส่ง">
+              ชื่อผู้ส่งบนกล่อง: {order.blindShipSenderName || "ยังไม่ระบุ — ต้องกรอกก่อนแพ็ค"}
+            </DetailCallout>
           )}
 
           {order.notes?.trim() && (
-            <div className={cn(TINT.warning, "flex flex-wrap gap-x-2 gap-y-1 rounded-2xl border px-4 py-3 text-sm")}>
-              <span className="font-medium">หมายเหตุใบนี้</span>
-              <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">{order.notes}</span>
-            </div>
+            <DetailCallout icon={StickyNote} title="หมายเหตุใบนี้" role="note">
+              {order.notes}
+            </DetailCallout>
           )}
         </div>
       ) : null}
@@ -807,7 +820,7 @@ function OrderDetailContent({
                   disabled={generateStatusLink.isPending}
                   aria-label="คัดลอกลิงก์สถานะสำหรับลูกค้า"
                 >
-                  <Share2 />
+                  <Link2 />
                   <span className="hidden sm:inline">ลิงก์ลูกค้า</span>
                 </Button>
               )}
@@ -947,10 +960,11 @@ function OrderDetailContent({
                 value={t.key}
                 hasPending={t.key === pendingTab}
                 aria-label={t.key === pendingTab ? `${t.label} — มีงานค้าง` : undefined}
+                className="group data-[state=active]:font-medium data-[state=active]:text-strong dark:data-[state=active]:text-strong"
               >
                 {t.label}
                 {tabCounts[t.key] ? (
-                  <span className="rounded-full bg-surface-muted px-1.5 text-2xs font-semibold tabular-nums text-secondary">
+                  <span className="min-w-[1.125rem] rounded-full bg-surface-muted px-1.5 text-center text-2xs font-medium tabular-nums text-secondary group-data-[state=active]:bg-blue-100 group-data-[state=active]:text-blue-800 dark:group-data-[state=active]:bg-blue-950/60 dark:group-data-[state=active]:text-blue-200">
                     {tabCounts[t.key]}
                   </span>
                 ) : null}
@@ -983,6 +997,7 @@ function OrderDetailContent({
                   <OrderArtworkCard
                     orderId={id}
                     description={order.description}
+                    orderType={order.orderType}
                     onOpenFiles={() => changeTab("files")}
                   />
                 }

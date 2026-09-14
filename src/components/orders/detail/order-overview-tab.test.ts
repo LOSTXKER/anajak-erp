@@ -18,7 +18,7 @@ const render = (overrides: Partial<typeof props> = {}) =>
   renderToStaticMarkup(createElement(OrderOverviewTab, { ...props, ...overrides }));
 const text = (html: string) => html.replace(/<[^>]*>/g, "");
 
-describe("ภาพรวมออเดอร์ — ต้นแบบรอบ 2 (2026-09-14)", () => {
+describe("ภาพรวมออเดอร์ — ต้นแบบรอบ 2 (2026-09-14 · ไล่ตรงต้นแบบ 2026-09-15)", () => {
   it("ข้อมูลออเดอร์ซ้าย ม็อกอัพขวา · การ์ดซ้ายเรียงสรุป → ลูกค้า → จัดส่ง", () => {
     const html = render();
     const at = (card: string) => html.indexOf(`data-order-overview-card="${card}"`);
@@ -30,18 +30,17 @@ describe("ภาพรวมออเดอร์ — ต้นแบบรอ�
     expect(html).toContain("มาตรฐานลูกค้า:");
   });
 
-  it("ช่องข้อมูลหลักมีภาพช่วยอ่าน: วันที่เหลือ · ไซซ์แยก · รับเงินแล้ว", () => {
+  it("ช่องข้อมูลหลักมีภาพช่วยอ่าน: วันที่เหลือ · ไซซ์แยก · ชำระแล้วกี่เปอร์เซ็นต์และค้างเท่าไร", () => {
     const html = render();
-    expect(html).toContain("อีก 3 วัน");
-    expect(text(html)).toContain("S 7");
-    expect(text(html)).toContain("M 12");
-    expect(html).toContain("รับแล้ว");
-    expect(html).toContain("(50%)");
+    expect(html).toContain("เหลือ 3 วัน");
+    expect(text(html)).toContain("S 7 · M 12 · L 11");
+    expect(html).toContain("ชำระแล้ว 50%");
+    expect(html).toContain("ค้าง ฿2,996.00");
   });
 
   it("ไม่ render เงินหรือปุ่มแก้เมื่อไม่ได้รับสิทธิ์ แต่ข้อมูลออกบิลยังอยู่", () => {
     const html = render({ showMoney: false, paidAmount: null, onOpenMoney: undefined, onEditInfo: undefined });
-    for (const money of ["ยอดรวม", "ซื้อสะสม", "วงเงินเครดิต", "87,342.50", "5,992", "รับแล้ว"]) {
+    for (const money of ["ยอดรวม", "ซื้อสะสม", "วงเงินเครดิต", "87,342.50", "5,992", "ชำระแล้ว", "ค้าง ฿"]) {
       expect(html).not.toContain(money);
     }
     expect(html).not.toContain("แก้ไขข้อมูลออเดอร์");
@@ -65,10 +64,11 @@ describe("ภาพรวมออเดอร์ — ต้นแบบรอ�
     const ready = renderToStaticMarkup(createElement(OrderArtworkCardView, artworkProps));
     expect(ready).toContain(PREVIEW_ORDER.description);
     expect(ready).toContain(PREVIEW_ARTWORK.fileUrl);
-    expect(ready).toContain("ม็อกอัพ v2");
-    expect(ready).toContain("แก้มาแล้ว 1 รอบ");
+    expect(ready).toContain(">v2<");
+    expect(ready).toContain("ส่งให้ลูกค้าดู");
+    expect(ready).toContain("รอลูกค้าตรวจ");
     const empty = renderToStaticMarkup(createElement(OrderArtworkCardView, { ...artworkProps, latest: null }));
-    expect(empty).toContain("ยังไม่มีม็อกอัพของใบนี้");
+    expect(empty).toContain("ยังไม่มีม็อกอัพ");
     expect(empty).toContain("มีไฟล์จากลูกค้า");
     expect(empty).toContain("ม็อกอัพ &amp; ไฟล์");
   });

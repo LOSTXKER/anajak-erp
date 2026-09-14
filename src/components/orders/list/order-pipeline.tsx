@@ -87,17 +87,13 @@ function PipelineNode({
       <span
         className={cn(
           "whitespace-nowrap text-xs",
-          selected
-            ? "font-semibold text-blue-700 dark:text-blue-300"
-            : compact
-              ? "text-muted"
-              : "font-medium text-secondary",
+          selected ? "font-medium text-blue-700 dark:text-blue-300" : "text-muted",
         )}
       >
         {PIPELINE_SHORT_LABELS[status]}
       </span>
       {late > 0 ? (
-        <span className="absolute left-1/2 top-0 ml-3 whitespace-nowrap rounded-full bg-red-600 px-1.5 text-2xs font-semibold tabular-nums text-white">
+        <span className="absolute -top-1.5 left-1/2 ml-2 whitespace-nowrap rounded-full bg-red-600 px-1.5 text-2xs font-medium tabular-nums text-white">
           เลย {late}
         </span>
       ) : null}
@@ -160,24 +156,25 @@ export function OrderPipeline({ counts, overdue, selected, onSelect, isLoading =
     );
   }
 
+  // ขนาดช่องตามต้นแบบ (.pipe .grid): ทั้งหมด 76px · ช่องว่าง 18px · สถานะ ≥66px · เส้นประ 26px · นอกเส้นทาง 66–76px
   const columns = [
-    "5.5rem",
-    "0.75rem",
-    ...flow.map(() => "minmax(4.5rem,1fr)"),
-    "1.5rem",
-    ...PIPELINE_EXCEPTIONS.map(() => "minmax(4.5rem,5.5rem)"),
+    "4.75rem",
+    "1.125rem",
+    ...flow.map(() => "minmax(4.125rem,1fr)"),
+    "1.625rem",
+    ...PIPELINE_EXCEPTIONS.map(() => "minmax(4.125rem,4.75rem)"),
   ].join(" ");
 
   return (
-    <div className="overflow-x-auto px-4 pb-4 pt-1 sm:px-5">
+    <div className="overflow-x-auto px-4 pb-3.5 pt-2 sm:px-[1.125rem]">
       <div
         ref={gridRef}
         role="group"
         aria-label="กรองตามสถานะในเส้นทางงาน"
-        className="relative grid min-w-[58rem] items-start gap-y-2"
+        className="relative grid min-w-[61.25rem] items-start gap-y-2.5"
         style={{ gridTemplateColumns: columns }}
       >
-        <p className="pb-1.5 text-center text-xs font-medium text-muted">ทั้งหมด</p>
+        <p className="mx-2.5 whitespace-nowrap border-b-2 border-border pb-1.5 text-center text-xs font-medium text-muted">ทั้งหมด</p>
         <span aria-hidden="true" />
         {stages.map((stage) => {
           const sum = stage.statuses.reduce((acc, status) => acc + (counts?.[status] ?? 0), 0);
@@ -187,8 +184,8 @@ export function OrderPipeline({ counts, overdue, selected, onSelect, isLoading =
               key={stage.label}
               style={{ gridColumn: `span ${stage.statuses.length} / span ${stage.statuses.length}` }}
               className={cn(
-                "mx-2 whitespace-nowrap border-b-2 pb-1.5 text-center text-xs font-medium",
-                on ? "border-blue-200 text-blue-700 dark:border-blue-900 dark:text-blue-300" : "border-divider text-muted",
+                "mx-2.5 whitespace-nowrap border-b-2 pb-1.5 text-center text-xs font-medium",
+                on ? "border-blue-200 text-blue-700 dark:border-blue-900 dark:text-blue-300" : "border-border text-muted",
               )}
             >
               {stage.label}
@@ -201,7 +198,7 @@ export function OrderPipeline({ counts, overdue, selected, onSelect, isLoading =
         <span aria-hidden="true" />
         <p
           style={{ gridColumn: `span ${PIPELINE_EXCEPTIONS.length} / span ${PIPELINE_EXCEPTIONS.length}` }}
-          className="whitespace-nowrap pb-1.5 text-center text-xs font-medium text-muted"
+          className="mx-2.5 whitespace-nowrap border-b-2 border-border pb-1.5 text-center text-xs font-medium text-muted"
         >
           นอกเส้นทาง
         </p>
@@ -216,7 +213,7 @@ export function OrderPipeline({ counts, overdue, selected, onSelect, isLoading =
           <span className="flex h-10 items-center justify-center">
             <span
               className={cn(
-                "flex h-10 min-w-12 items-center justify-center rounded-xl border-2 px-2 text-sm font-semibold tabular-nums transition-transform duration-150 group-active:scale-95",
+                "flex h-10 min-w-10 items-center justify-center rounded-xl border-2 px-1.5 text-sm font-semibold tabular-nums transition-transform duration-150 group-active:scale-95",
                 selected === "" ? SELECTED_NODE : "border-border bg-surface-muted text-strong",
               )}
             >
@@ -226,7 +223,7 @@ export function OrderPipeline({ counts, overdue, selected, onSelect, isLoading =
           <span
             className={cn(
               "whitespace-nowrap text-xs",
-              selected === "" ? "font-semibold text-blue-700 dark:text-blue-300" : "font-medium text-secondary",
+              selected === "" ? "font-medium text-blue-700 dark:text-blue-300" : "text-muted",
             )}
           >
             ทุกสถานะ
@@ -244,7 +241,7 @@ export function OrderPipeline({ counts, overdue, selected, onSelect, isLoading =
           />
         ))}
         <span aria-hidden="true" className="flex h-10 items-center justify-center">
-          <span className="h-7 border-l-2 border-dashed border-border" />
+          <span className="h-6 border-l-2 border-dashed border-slate-300 dark:border-slate-600" />
         </span>
         {PIPELINE_EXCEPTIONS.map((status) => (
           <PipelineNode
