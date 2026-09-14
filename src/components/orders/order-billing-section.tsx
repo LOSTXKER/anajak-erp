@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SectionTitle } from "@/components/ui/section";
 import { QueryError } from "@/components/ui/query-error";
-import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
+import { formatBaht, formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
 import { PAYMENT_STATUS_LABELS, PAYMENT_STATUS_VARIANTS } from "@/lib/status-config";
 import { PAYMENT_METHOD_LABELS } from "@/lib/payment-methods";
 import { permAllows } from "@/lib/permissions";
@@ -19,7 +19,7 @@ import {
   canIssueReceiptForPayment,
   invoiceBalance,
 } from "@/lib/billing-ui";
-import { Receipt, Plus, CreditCard, Ban, Printer, DollarSign, Paperclip, Undo2 } from "lucide-react";
+import { Receipt, Plus, CreditCard, Ban, Printer, DollarSign, Paperclip, Undo2, FileText, CheckCircle2, Hourglass } from "lucide-react";
 import type { RouterOutput } from "@/lib/trpc";
 import { FOCUS_BUTTON } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
@@ -120,40 +120,32 @@ export function OrderBillingSection({
           </div>
         </CardHeader>
         <CardContent>
-          {/* Summary */}
-          <div className="mb-4 grid grid-cols-2 gap-3 rounded-lg bg-surface-muted p-3 sm:grid-cols-4">
-            <div className="text-center">
-              <p className="text-xs text-muted">ยอดรวม</p>
-              <p className="text-sm font-semibold tabular-nums text-strong">
-                {formatCurrency(totalAmount)}
-              </p>
-            </div>
-            <div className="text-center">
-              <p className="text-xs text-muted">วางบิลแล้ว</p>
-              <p className="text-sm font-semibold tabular-nums text-strong">
-                {formatCurrency(totalInvoiced)}
-              </p>
-            </div>
-            <div className="text-center">
-              <p className="text-xs text-muted">ชำระแล้ว</p>
-              <p className="text-sm font-semibold tabular-nums text-green-600 dark:text-green-400">
-                {formatCurrency(totalPaid)}
-              </p>
-            </div>
-            {/* เลขที่คนหน้างานถามบ่อยสุด "เหลือเก็บอีกเท่าไร" — แดงเมื่อยังค้าง (UX4) */}
-            <div className="text-center">
-              <p className="text-xs text-muted">ค้างชำระ</p>
-              <p
-                className={`text-sm font-semibold tabular-nums ${
-                  totalOutstanding > 0
-                    ? "text-red-600 dark:text-red-400"
-                    : "text-strong"
-                }`}
-              >
-                {formatCurrency(totalOutstanding)}
-              </p>
-            </div>
-          </div>
+          {/* สรุปยอดของใบ (ต้นแบบหน้าออเดอร์รอบ 2 .facts.four) — ช่องละตัวเลข มีไอคอนบอกความหมาย
+              "เหลือเก็บอีกเท่าไร" คือเลขที่คนหน้างานถามบ่อยสุด — แดงเมื่อยังค้าง (UX4) */}
+          <dl className="mb-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+            {[
+              { key: "total", label: "ยอดรวม", value: totalAmount, icon: Receipt, tone: "text-strong" },
+              { key: "invoiced", label: "วางบิลแล้ว", value: totalInvoiced, icon: FileText, tone: "text-strong" },
+              { key: "paid", label: "ชำระแล้ว", value: totalPaid, icon: CheckCircle2, tone: "text-green-700 dark:text-green-300" },
+              {
+                key: "outstanding",
+                label: "ค้างชำระ",
+                value: totalOutstanding,
+                icon: Hourglass,
+                tone: totalOutstanding > 0 ? "text-red-700 dark:text-red-300" : "text-strong",
+              },
+            ].map((fact) => (
+              <div key={fact.key} className="min-w-0 rounded-xl border border-divider bg-surface-muted px-3 py-2.5">
+                <dt className="flex items-center gap-1.5 whitespace-nowrap text-xs text-muted">
+                  <fact.icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  {fact.label}
+                </dt>
+                <dd className={cn("mt-0.5 truncate font-mono text-base font-semibold tabular-nums", fact.tone)}>
+                  {formatBaht(fact.value)}
+                </dd>
+              </div>
+            ))}
+          </dl>
 
           {/* เตือนเฉพาะคนที่ออกใบได้ (canBill) — role อื่นเห็นแต่ทำอะไรไม่ได้ ชวนงง */}
           {canBill && pendingReceiptCount > 0 && (

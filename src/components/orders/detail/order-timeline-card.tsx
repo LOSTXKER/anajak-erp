@@ -45,6 +45,11 @@ const TYPE_STYLE: Record<string, { icon: LucideIcon; tone: string }> = {
   INFO: { icon: FileText, tone: TONE.neutral },
 };
 
+/** ไอคอน+สีของแถวประวัติตามหมวด — ใช้ร่วมกับแท็บประวัติ ให้สองจุดพูดภาษาเดียวกัน */
+export function revisionStyle(changeType: string): { icon: LucideIcon; tone: string } {
+  return TYPE_STYLE[changeType] ?? TYPE_STYLE.INFO!;
+}
+
 const statusLabel = (value: string) => (INTERNAL_STATUS_LABELS as Record<string, string>)[value] ?? value;
 
 /** หัวเรื่องของแถวประวัติ — แถวเปลี่ยนสถานะแปลเป็นชื่อไทย (description เก่าอาจเป็นอังกฤษดิบ) */
@@ -97,7 +102,7 @@ export function OrderTimelineCard({
           ) : null}
           <ol className="relative grid gap-3.5 sm:auto-cols-[minmax(10rem,1fr)] sm:grid-flow-col sm:gap-2.5">
             {recent.map((revision, index) => {
-              const style = TYPE_STYLE[revision.changeType] ?? TYPE_STYLE.INFO!;
+              const style = revisionStyle(revision.changeType);
               const Icon = style.icon;
               const last = index === recent.length - 1;
               return (

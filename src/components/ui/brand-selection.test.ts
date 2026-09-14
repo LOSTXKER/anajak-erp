@@ -47,16 +47,17 @@ describe("Anajak selected-state contract", () => {
   /* แถบเมนูของ app shell: เมนูที่เปิดอยู่เป็นพื้นฟ้าอ่อน + ตัวหนังสือ/ไอคอนน้ำเงิน ไม่มีขีดริมซ้าย
      (รื้อ 2026-09-14 ตามต้นแบบหน้าแรกแนว minimal ที่เบสเคาะ) — ใช้ token selected ชุดเดียวกับ
      ของที่ถูกเลือกทั้งเว็บ · ก่อนหน้านี้ (2026-08-26) เคยเป็น "เทากลาง + ขีดแบรนด์" แต่ถูกแทนแล้ว
-     ส่วน active filter เฉพาะหน้ายังใช้เส้นใต้น้ำเงิน — คนละระดับกัน จงใจให้ต่าง */
-  it("navigation ที่เปิดอยู่ใช้ selected role ฟ้าอ่อน ไม่มีขีดแบรนด์ · active filter เฉพาะหน้าใช้เส้นใต้น้ำเงิน", () => {
+     ส่วน active filter เฉพาะหน้า (ความเร่งด่วนที่ส่งมาจากหน้าแรก) เป็นชิปฟ้าอ่อนมีไอคอนกรอง + ปุ่มล้าง
+     อยู่หัวการ์ดตาราง ตามต้นแบบหน้าออเดอร์รอบ 2 (.fchip — เบสตีว่าหน้าจริงไม่เหมือนต้นแบบ 2026-09-15) */
+  it("navigation ที่เปิดอยู่ใช้ selected role ฟ้าอ่อน ไม่มีขีดแบรนด์ · active filter เฉพาะหน้าเป็นชิปมีไอคอนกรองและปุ่มล้าง", () => {
     expect(shellSource).toContain('cn("font-medium", INTERACTIVE_SELECTED)');
     expect(shellSource).toContain("text-interactive-selected-text");
     // ขีดริมซ้ายของเมนูซ้ายหายไป (แถบล่างมือถือยังมีเส้นบนของแท็บที่เปิดอยู่ — คนละชิ้น)
     expect(shellSource).not.toContain("before:-left-3");
     expect(shellSource).not.toContain('onChrome ? "bg-interactive-chrome-pressed" : "bg-interactive-pressed"');
-    expect(ordersSource).toContain(
-      "border-b-2 border-blue-600",
-    );
+    expect(ordersSource).toContain("rounded-full bg-blue-100");
+    expect(ordersSource).toContain('<Filter className="h-3.5 w-3.5" aria-hidden="true" />');
+    expect(ordersSource).toContain('aria-label="ล้างตัวกรองความเร่งด่วน"');
   });
 
   /* ตราสัญลักษณ์ไม่ได้ถูกล็อกไว้เลย จึงหลุดไปเงียบ ๆ ระหว่างรื้อ UI-2026:

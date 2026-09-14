@@ -672,7 +672,8 @@ export function OrderOverviewTab({
             >
               {customer.name.trim().slice(0, 1) || "?"}
             </span>
-            <div className="min-w-0 flex-1">
+            {/* basis-40: จอแคบให้ปุ่มข้อมูลลูกค้าตกบรรทัดใหม่ แทนการบีบชื่อลูกค้าเหลือคำละบรรทัด */}
+            <div className="min-w-0 flex-1 basis-40">
               <p className="text-base font-semibold text-strong [overflow-wrap:anywhere]">{customer.name}</p>
               <p className="text-sm text-muted [overflow-wrap:anywhere]">
                 {[customer.company, customer.customerType === "CORPORATE" ? "นิติบุคคล" : "บุคคลธรรมดา"]

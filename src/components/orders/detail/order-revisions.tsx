@@ -1,23 +1,16 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ToneMark } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
-import { formatDateTime } from "@/lib/utils";
+import { History } from "lucide-react";
+import { Section } from "@/components/ui/section";
+import { HomeChip, HomeIconTile } from "@/components/dashboard/home/home-card";
+import { revisionStyle } from "@/components/orders/detail/order-timeline-card";
 import { INTERNAL_STATUS_LABELS } from "@/lib/order-status";
-import { Clock, ArrowRight } from "lucide-react";
+import { BANGKOK_TZ, cn, formatTime } from "@/lib/utils";
 
-// ประวัติการเปลี่ยนแปลง — อ่านรู้เรื่องสำหรับคนหน้างาน (เบสชี้ 2026-06-12):
-// ป้ายชนิดเป็นไทย · แถวสถานะแปลจาก oldValue/newValue เป็นชื่อสถานะไทย ·
-// ชื่อคนมาจาก server (changedByName) · โชว์ประวัติทั้งหมดโดยไม่พับซ่อน
-
-const CHANGE_TYPE_LABELS: Record<string, string> = {
-  STATUS: "สถานะ",
-  ITEMS: "รายการ",
-  FEES: "ค่าธรรมเนียม",
-  DESIGN: "งานออกแบบ",
-  QUOTATION: "ใบเสนอราคา",
-  INFO: "ข้อมูลออเดอร์",
-  CHANGE_ORDER: "ใบแก้ไข",
-};
+/* ============================================================
+   แท็บประวัติ (ต้นแบบหน้าออเดอร์รอบ 2 · ไล่ตรงต้นแบบ 2026-09-15)
+   จัดกลุ่มตามวัน ใหม่ไปเก่า · แต่ละแถวมีจุดสีบอกหมวด (ชุดเดียวกับเส้นเวลาในภาพรวม) ·
+   แถวเปลี่ยนสถานะบอก "สถานะ: เดิม → ใหม่" ด้วยชื่อไทย · ชื่อคนมาจาก server (changedByName)
+   โชว์ประวัติทั้งหมดโดยไม่พับซ่อน (เบสชี้ 2026-06-12)
+   ============================================================ */
 
 interface Revision {
   id: string;
@@ -34,66 +27,96 @@ interface OrderRevisionsProps {
   revisions: Revision[];
 }
 
-const statusLabel = (v: string | null | undefined) =>
-  v ? ((INTERNAL_STATUS_LABELS as Record<string, string>)[v] ?? v) : null;
+const statusLabel = (value: string | null | undefined) =>
+  value ? ((INTERNAL_STATUS_LABELS as Record<string, string>)[value] ?? value) : "";
+
+const dayLabel = new Intl.DateTimeFormat("th-TH", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+  timeZone: BANGKOK_TZ,
+});
 
 export function OrderRevisions({ revisions }: OrderRevisionsProps) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <ToneMark icon={Clock} tone="system" />
-          ประวัติการเปลี่ยนแปลง
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        {!revisions || revisions.length === 0 ? (
-          <p className="text-sm text-muted">
-            ยังไม่มีประวัติการเปลี่ยนแปลง
-          </p>
-        ) : (
-        <div className="space-y-3">
-          {revisions.map((rev) => {
-            // แถวเปลี่ยนสถานะ: แปลจาก oldValue/newValue (enum) เป็นชื่อไทย —
-            // description ใน DB เก่าเก็บข้อความอังกฤษดิบ ใช้เป็น fallback เท่านั้น
-            const isStatusRow =
-              rev.changeType === "STATUS" && rev.oldValue && rev.newValue;
+  const sorted = [...(revisions ?? [])].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
+  const days: { day: string; items: Revision[] }[] = [];
+  for (const revision of sorted) {
+    const day = dayLabel.format(new Date(revision.createdAt));
+    const current = days[days.length - 1];
+    if (current && current.day === day) current.items.push(revision);
+    else days.push({ day, items: [revision] });
+  }
 
-            return (
-              <div
-                key={rev.id}
-                className="flex gap-3 border-l-2 border-border pl-4"
-              >
-                <div className="min-w-0 flex-1">
-                  {isStatusRow ? (
-                    <p className="flex flex-wrap items-center gap-1.5 text-sm text-strong">
-                      <span className="text-muted">
-                        {statusLabel(rev.oldValue)}
+  return (
+    <Section
+      title={
+        <span className="flex items-center gap-2.5">
+          <HomeIconTile icon={History} />
+          ประวัติออเดอร์
+        </span>
+      }
+      action={sorted.length > 0 ? <HomeChip>{sorted.length.toLocaleString("th-TH")} รายการ</HomeChip> : undefined}
+    >
+      {sorted.length === 0 ? (
+        <p className="text-sm text-muted">ยังไม่มีประวัติการเปลี่ยนแปลง</p>
+      ) : (
+        <div className="grid gap-4">
+          {days.map(({ day, items }) => (
+            <section key={day} aria-label={day}>
+              <h3 className="mb-1.5 text-xs font-medium text-muted">{day}</h3>
+              <ol>
+                {items.map((revision, index) => {
+                  const { icon: Icon, tone } = revisionStyle(revision.changeType);
+                  // แถวเปลี่ยนสถานะ: แปลจาก oldValue/newValue (enum) เป็นชื่อไทย — description เก่าอาจเป็นอังกฤษดิบ
+                  const isStatusRow = revision.changeType === "STATUS" && revision.oldValue && revision.newValue;
+                  const first = index === 0;
+                  const last = index === items.length - 1;
+                  return (
+                    <li key={revision.id} className="relative grid grid-cols-[2rem_minmax(0,1fr)] gap-3 py-1.5">
+                      {items.length > 1 ? (
+                        <span
+                          aria-hidden="true"
+                          className={cn(
+                            "absolute left-[0.9375rem] w-0.5 bg-divider",
+                            first ? "bottom-0 top-[1.125rem]" : last ? "top-0 h-[1.125rem]" : "inset-y-0",
+                          )}
+                        />
+                      ) : null}
+                      <span
+                        aria-hidden="true"
+                        className={cn(
+                          "relative z-[1] flex h-8 w-8 items-center justify-center rounded-full border-[3px] border-surface",
+                          tone,
+                        )}
+                      >
+                        <Icon className="h-3.5 w-3.5" strokeWidth={1.8} />
                       </span>
-                      <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted" />
-                      <span className="font-medium">{statusLabel(rev.newValue)}</span>
-                    </p>
-                  ) : (
-                    <p className="text-sm text-strong">
-                      {rev.description}
-                    </p>
-                  )}
-                  <p className="text-xs text-muted">
-                    {rev.changedByName ?? rev.changedBy} &mdash;{" "}
-                    {formatDateTime(rev.createdAt)}
-                  </p>
-                </div>
-                {rev.changeType && (
-                  <Badge variant="secondary" className="h-fit shrink-0">
-                    {CHANGE_TYPE_LABELS[rev.changeType] ?? rev.changeType}
-                  </Badge>
-                )}
-              </div>
-            );
-          })}
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-strong [overflow-wrap:anywhere]">
+                          {isStatusRow ? statusLabel(revision.newValue) : revision.description}
+                        </p>
+                        <p className="text-xs tabular-nums text-muted [overflow-wrap:anywhere]">
+                          {revision.changedByName ?? revision.changedBy} · {formatTime(revision.createdAt)} น.
+                        </p>
+                        {isStatusRow ? (
+                          <p className="mt-1 text-xs text-secondary">
+                            สถานะ: <span className="text-muted line-through">{statusLabel(revision.oldValue)}</span>
+                            {" → "}
+                            <span className="font-medium text-strong">{statusLabel(revision.newValue)}</span>
+                          </p>
+                        ) : null}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ol>
+            </section>
+          ))}
         </div>
-        )}
-      </CardContent>
-    </Card>
+      )}
+    </Section>
   );
 }

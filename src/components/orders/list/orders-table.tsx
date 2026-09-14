@@ -299,18 +299,18 @@ export function OrdersTable({
         </table>
       </div>
 
-      <ul aria-label="รายการออเดอร์" className="grid gap-2.5 px-3.5 pb-3.5 lg:hidden">
+      <ul aria-label="รายการออเดอร์" className="grid grid-cols-[minmax(0,1fr)] gap-2.5 px-3.5 pb-3.5 lg:hidden">
         {orders.map((order) => {
           const problem = describeOrderAttention(order.progress);
           const name = order.customer?.name?.trim() || "—";
           return (
-            <li key={order.id}>
+            <li key={order.id} className="min-w-0">
               <Link
                 href={`/orders/${order.id}`}
                 aria-label={`เปิดออเดอร์ ${order.orderNumber} ${name}`}
-                className={cn(FOCUS_BUTTON, INTERACTIVE_PRESSED, "grid gap-2 rounded-xl border border-border p-3")}
+                className={cn(FOCUS_BUTTON, INTERACTIVE_PRESSED, "grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2 rounded-xl border border-border p-3")}
               >
-                <span className="flex items-center justify-between gap-2">
+                <span className="flex min-w-0 items-center justify-between gap-2">
                   <span className="flex min-w-0 items-center gap-3">
                     <MockupThumbnail cover={orderListCover(order)} alt={`ม็อกอัพ ${order.orderNumber}`} size="sm" />
                     <span className="min-w-0">
@@ -324,7 +324,7 @@ export function OrdersTable({
                   </span>
                   <ChevronRight className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
                 </span>
-                <span className="flex flex-wrap items-center gap-2 text-xs text-secondary">
+                <span className="flex min-w-0 flex-wrap items-center gap-2 text-xs text-secondary">
                   <OrderStatusDot status={order.internalStatus} />
                   <OrderDueChip
                     status={order.internalStatus}

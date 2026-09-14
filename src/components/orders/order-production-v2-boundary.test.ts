@@ -32,7 +32,7 @@ describe("Order production V2 boundary", () => {
 
   it("CTA ของ V2 เป็นการเปิดใบสั่งผลิต ไม่สื่อว่าทำงานซ้ำในหน้าออเดอร์", () => {
     expect(summarySource).toContain(
-      'productionV2Enabled ? "เปิดใบสั่งผลิต" : "จัดการการผลิต"',
+      'productionV2Enabled ? "เปิดใบสั่งผลิต" : "เปิดงานผลิต"',
     );
   });
 

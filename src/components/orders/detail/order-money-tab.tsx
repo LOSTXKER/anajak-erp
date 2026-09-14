@@ -1,10 +1,10 @@
-import { Calculator } from "lucide-react";
-import { Section, SectionTitle } from "@/components/ui/section";
-import { formatCurrency } from "@/lib/utils";
+import { ChartColumn, Receipt } from "lucide-react";
+import { Section } from "@/components/ui/section";
+import { HomeChip, HomeIconTile } from "@/components/dashboard/home/home-card";
+import { cn, formatBaht } from "@/lib/utils";
 import { OrderBillingSection } from "@/components/orders/order-billing-section";
 
-// UX6: แท็บ "เงิน/บิล" — ยกการ์ดสรุปราคา+กำไร (เดิมอยู่ sidebar) มาไว้หัวแท็บ + การ์ดบิลเต็มคอลัมน์
-// เดิมการ์ดบิล 1,336 บรรทัดถูกยัดใน sidebar 1/3 → บนมือถือตกไปท้ายสุด · ย้าย layout ล้วน ไม่แตะ logic บิล
+// UX6: แท็บ "เงิน/บิล" — บิล/รับเงินซ้าย · สรุปราคาปักหมุดขวา
 // หน้านี้ render เฉพาะ role ที่เห็นเงิน (gate canSeeMoney ที่หน้า) — ไม่มี ฿ หลุดถึง role อื่น
 
 interface OrderMoneyTabProps {
@@ -24,11 +24,11 @@ interface OrderMoneyTabProps {
   profitMargin: number | null;
 }
 
-function Row({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
+function Row({ label, children, className }: { label: React.ReactNode; children: React.ReactNode; className?: string }) {
   return (
-    <div className="flex items-start justify-between gap-3 text-sm">
-      <span className="text-xs text-muted">{label}</span>
-      <div className="text-right text-sm font-medium text-strong">{children}</div>
+    <div className={cn("flex items-baseline justify-between gap-3 py-1.5 text-sm text-secondary", className)}>
+      <span>{label}</span>
+      <span className="font-mono font-medium tabular-nums text-strong">{children}</span>
     </div>
   );
 }
@@ -47,7 +47,7 @@ export function OrderMoneyTab({
     totalAmount > 0 || subtotalItems > 0 || subtotalFees > 0 || hasCostEntries;
 
   return (
-    /* หน้าเงิน & บิล (ต้นแบบหน้าออเดอร์รอบ 2 · 2026-09-14): บิล/รับเงินซ้าย · สรุปราคาปักหมุดขวา
+    /* หน้าเงิน & บิล (ต้นแบบหน้าออเดอร์รอบ 2 · ไล่ตรงต้นแบบ 2026-09-15): บิล/รับเงินซ้าย · สรุปราคาปักหมุดขวา
        ลำดับ DOM = บิลก่อน (มือถือเห็นงานที่ต้องทำก่อน) · logic บิลอยู่ใน OrderBillingSection ไม่แตะ */
     <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
       <div className="min-w-0">
@@ -59,69 +59,62 @@ export function OrderMoneyTab({
         />
       </div>
 
-      {/* สรุปราคา + กำไร — ยอดเดียวจุดเดียว (เดิมซ้ำ sidebar↔หัวการ์ดบิล) */}
+      {/* สรุปราคา + กำไร — ยอดรวมตัวใหญ่ตัวเดียว แล้วแตกเป็นแถว (ต้นแบบ .price) */}
       {showSummary && (
         <div className="min-w-0 xl:sticky xl:top-16">
           <Section
             title={
-              <SectionTitle icon={Calculator} tone="finance">
+              <span className="flex items-center gap-2.5">
+                <HomeIconTile icon={Receipt} tone="success" />
                 สรุปราคา
-              </SectionTitle>
+              </span>
             }
+            action={<HomeChip>{order.taxRate > 0 ? `รวม VAT ${order.taxRate}%` : "ไม่มี VAT"}</HomeChip>}
           >
-            <div className="space-y-2.5">
-              <Row label="ยอดรวมสินค้า">
-                <span className="tabular-nums">{formatCurrency(subtotalItems)}</span>
-              </Row>
-              {subtotalFees > 0 && (
-                <Row label="ค่าธรรมเนียม">
-                  <span className="tabular-nums">{formatCurrency(subtotalFees)}</span>
-                </Row>
-              )}
+            <p className="font-mono text-3xl font-semibold tabular-nums text-strong">{formatBaht(totalAmount)}</p>
+            <div className="mt-3">
+              <Row label="ยอดรวมสินค้า">{formatBaht(subtotalItems)}</Row>
+              {subtotalFees > 0 && <Row label="ค่าธรรมเนียม">{formatBaht(subtotalFees)}</Row>}
               {discount > 0 && (
                 <Row label="ส่วนลด">
-                  <span className="tabular-nums text-red-600 dark:text-red-400">
-                    -{formatCurrency(discount)}
-                  </span>
+                  <span className="text-red-600 dark:text-red-400">-{formatBaht(discount)}</span>
                 </Row>
               )}
-              {order.taxRate > 0 && (
-                <Row label={`VAT (${order.taxRate}%)`}>
-                  <span className="tabular-nums">{formatCurrency(order.taxAmount ?? 0)}</span>
-                </Row>
-              )}
-              <div className="flex items-baseline justify-between border-t border-divider pt-2.5">
-                <span className="text-sm font-medium text-strong">ยอดรวมทั้งหมด</span>
-                <span className="text-lg font-semibold tabular-nums text-strong">
-                  {formatCurrency(totalAmount)}
-                </span>
+              {order.taxRate > 0 && <Row label={`VAT (${order.taxRate}%)`}>{formatBaht(order.taxAmount ?? 0)}</Row>}
+              <div className="mt-1.5 flex items-baseline justify-between gap-3 border-t border-border pt-2.5 text-sm font-medium text-strong">
+                <span>ยอดรวมทั้งหมด</span>
+                <span className="font-mono text-base font-semibold tabular-nums">{formatBaht(totalAmount)}</span>
               </div>
+            </div>
 
-              {hasCostEntries && (
-                <div className="space-y-2.5 border-t border-dashed border-border pt-3">
-                  <p className="text-xs font-semibold text-muted">ต้นทุน</p>
-                  <Row label="ต้นทุนรวม">
-                    <span className="tabular-nums">{formatCurrency(totalCost)}</span>
-                  </Row>
-                  <Row label="กำไร">
-                    <span className="tabular-nums">{formatCurrency(totalAmount - totalCost)}</span>
-                  </Row>
+            <div className="mt-4 border-t border-divider pt-3.5">
+              <h3 className="flex items-center gap-2 text-sm font-semibold text-strong">
+                <HomeIconTile icon={ChartColumn} size="sm" />
+                ต้นทุนและกำไร
+              </h3>
+              {hasCostEntries ? (
+                <div className="mt-1.5">
+                  <Row label="ต้นทุนรวม">{formatBaht(totalCost)}</Row>
+                  <Row label="กำไร">{formatBaht(totalAmount - totalCost)}</Row>
                   {profitMargin != null && (
                     <Row label="อัตรากำไร">
                       <span
-                        className={`tabular-nums font-semibold ${
+                        className={cn(
+                          "font-semibold",
                           profitMargin >= 30
                             ? "text-green-600 dark:text-green-400"
                             : profitMargin >= 15
                               ? "text-amber-700 dark:text-amber-400"
-                              : "text-red-600 dark:text-red-400"
-                        }`}
+                              : "text-red-600 dark:text-red-400",
+                        )}
                       >
                         {profitMargin.toFixed(1)}%
                       </span>
                     </Row>
                   )}
                 </div>
+              ) : (
+                <p className="mt-2 rounded-lg bg-surface-muted px-3 py-2.5 text-sm text-secondary">ยังไม่บันทึกต้นทุน</p>
               )}
             </div>
           </Section>

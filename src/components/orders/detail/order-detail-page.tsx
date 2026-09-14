@@ -36,7 +36,9 @@ import {
   AlertTriangle,
   EyeOff,
   Link2,
+  Package,
   PackageX,
+  Pencil,
   StickyNote,
   Truck,
   X,
@@ -87,6 +89,7 @@ import { RecordNotFound } from "@/components/ui/record-not-found";
 import { OrderNextStepGuidance } from "@/components/orders/detail/order-next-step-action";
 import { DetailCallout, OrderAttentionCallout, OrderDetailHead } from "@/components/orders/detail/order-detail-head";
 import { OrderTimelineCard } from "@/components/orders/detail/order-timeline-card";
+import { HomeIconTile } from "@/components/dashboard/home/home-card";
 import { describeOrderAttention } from "@/lib/home-orders";
 import { describeOrderProgress, isAttentionStatus } from "@/lib/order-progress";
 import { billingOverview } from "@/lib/billing-ui";
@@ -1018,8 +1021,8 @@ function OrderDetailContent({
                 showMoney={canSeeMoney}
                 canEditReceiveTracking={canEditReceiveTracking}
                 totals={{ discount, taxRate: order.taxRate, taxAmount: order.taxAmount, totalAmount }}
+                afterItems={<OrderChangeOrders orderId={id} />}
               />
-              <OrderChangeOrders orderId={id} />
             </TabsContent>
           )}
 
@@ -1077,14 +1080,67 @@ function OrderDetailContent({
                   orderShipping={order}
                 />
               ) : (
-                /* แท็บอยู่เสมอแม้ยังไม่ถึงเฟส — ถ้าซ่อนตามสถานะ ชุดแท็บจะเปลี่ยนใต้มือระหว่างวัน */
-                <Section title="จัดส่ง" icon={Truck} tone="production">
-                  <EmptyState
-                    icon={Truck}
-                    title="ยังไม่ถึงขั้นจัดส่ง"
-                    description="ส่วนนี้จะเปิดเมื่อผลิตและตรวจนับเสร็จ"
-                  />
-                </Section>
+                /* แท็บอยู่เสมอแม้ยังไม่ถึงเฟส — ถ้าซ่อนตามสถานะ ชุดแท็บจะเปลี่ยนใต้มือระหว่างวัน
+                   ต้นแบบรอบ 2: ผู้รับและที่อยู่ซ้าย (เตรียมไว้ก่อนได้) · ใบส่งของขวา (เปิดเมื่อผลิตและตรวจนับเสร็จ) */
+                <div className="grid items-start gap-4 xl:grid-cols-2">
+                  <Section
+                    title={
+                      <span className="flex items-center gap-2.5">
+                        <HomeIconTile icon={Truck} tone="success" />
+                        ผู้รับและที่อยู่
+                      </span>
+                    }
+                    action={
+                      canUseEditForm && (order.shippingAddress || order.shippingRecipientName) ? (
+                        <Button type="button" variant="ghost" size="sm" onClick={() => openInfoEditPage("shipping", "delivery")}>
+                          <Pencil />
+                          แก้ไข
+                        </Button>
+                      ) : undefined
+                    }
+                  >
+                    {order.shippingAddress || order.shippingRecipientName ? (
+                      <address className="text-sm not-italic leading-6 text-strong [overflow-wrap:anywhere]">
+                        {order.shippingRecipientName && <span className="block font-medium">{order.shippingRecipientName}</span>}
+                        {order.shippingAddress && <span className="block">{order.shippingAddress}</span>}
+                        {[order.shippingSubDistrict, order.shippingDistrict, order.shippingProvince, order.shippingPostalCode]
+                          .filter(Boolean)
+                          .join(" ") ? (
+                          <span className="block">
+                            {[order.shippingSubDistrict, order.shippingDistrict, order.shippingProvince, order.shippingPostalCode]
+                              .filter(Boolean)
+                              .join(" ")}
+                          </span>
+                        ) : null}
+                        {order.shippingPhone && <span className="block text-muted">{order.shippingPhone}</span>}
+                      </address>
+                    ) : (
+                      <div className="flex flex-wrap items-center gap-2.5 rounded-lg bg-surface-muted px-3 py-2.5 text-sm text-secondary">
+                        <Truck className="h-4 w-4 shrink-0" aria-hidden="true" />
+                        <span className="min-w-0 flex-1 basis-40">ยังไม่ระบุที่อยู่จัดส่ง</span>
+                        {canUseEditForm ? (
+                          <Button type="button" variant="outline" size="sm" onClick={() => openInfoEditPage("shipping", "delivery")}>
+                            ใส่ที่อยู่
+                          </Button>
+                        ) : null}
+                      </div>
+                    )}
+                  </Section>
+                  <Section
+                    title={
+                      <span className="flex items-center gap-2.5">
+                        <HomeIconTile icon={Package} tone="brand" />
+                        ใบส่งของ
+                      </span>
+                    }
+                  >
+                    <EmptyState
+                      icon={Truck}
+                      title="ยังไม่ถึงขั้นจัดส่ง"
+                      description="ส่วนนี้จะเปิดเมื่อผลิตและตรวจนับเสร็จ"
+                    />
+                  </Section>
+                </div>
               )}
             </TabsContent>
           )}

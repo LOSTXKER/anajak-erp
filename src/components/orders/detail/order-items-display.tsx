@@ -5,13 +5,13 @@ import { trpc } from "@/lib/trpc";
 import type { RouterOutput } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Section, SectionTitle, ToneMark } from "@/components/ui/section";
+import { Section, SectionTitle } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { Fact, FactList } from "@/components/ui/fact";
 import { InfoChip } from "@/components/ui/info-chip";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { cn, formatCurrency, isImageUrl } from "@/lib/utils";
+import { cn, formatBaht, formatCurrency, isImageUrl } from "@/lib/utils";
 import {
   COLLAR_TYPES,
   SLEEVE_TYPES,
@@ -27,8 +27,9 @@ import {
 import type { PricingType } from "@/types/order-form";
 import { sumOrderQuantity } from "@/lib/pricing";
 import { getProductSourcePresentation } from "@/lib/order-item-composer";
-import { Package, Receipt, PlusCircle, Edit3, Check, ImageIcon, Calculator } from "lucide-react";
-import { DISPLAY_AMOUNT, FOCUS_BUTTON, RADIUS, TABLE_HEAD_SURFACE, TINT } from "@/components/ui/tokens";
+import { Package, Receipt, PlusCircle, Pencil, Edit3, Check, ImageIcon } from "lucide-react";
+import { HomeChip, HomeIconTile } from "@/components/dashboard/home/home-card";
+import { FOCUS_BUTTON, RADIUS, TABLE_HEAD_SURFACE, TINT } from "@/components/ui/tokens";
 import { Alert } from "@/components/ui/alert";
 
 type OrderData = RouterOutput["order"]["getById"];
@@ -142,6 +143,8 @@ interface OrderItemsDisplayProps {
   canEditReceiveTracking?: boolean;
   // ยอดท้ายบิลจาก order (ส่วนลด/VAT/ยอดรวม) — ไม่ส่ง = คิดจากรายการ+ค่าธรรมเนียมตรงๆ (หน้าลอง)
   totals?: OrderTotals;
+  /** การ์ดที่ต่อท้ายรายการในคอลัมน์ซ้าย เช่นใบแก้ไข (CO) — ต้นแบบวางไว้ใต้การ์ดรายการ */
+  afterItems?: React.ReactNode;
 }
 
 interface OrderTotals {
@@ -348,13 +351,13 @@ function PiecePrice({ prod }: { prod: OrderItemProduct }) {
   const discount = prod.discount ?? 0;
   return (
     <>
-      <span>{formatCurrency(netUnitPrice(prod))}</span>
-      {discount > 0 && <span className="block text-xs text-muted">ลด {formatCurrency(discount)}</span>}
+      <span>{formatBaht(netUnitPrice(prod))}</span>
+      {discount > 0 && <span className="block text-xs text-muted">ลด {formatBaht(discount)}</span>}
     </>
   );
 }
 
-const PIECE_TH = "px-2 py-2.5 text-xs font-medium";
+const PIECE_TH = "px-2 py-2 text-xs font-medium text-muted";
 
 /** ตารางแถวละตัว (จอกว้างของกล่อง) — ช่องเงิน 3 ช่องหายทั้งช่องเมื่อไม่เห็นเงิน ไม่ใช่ว่างเปล่า */
 function PieceTable({
@@ -380,7 +383,7 @@ function PieceTable({
         {showMoney && <col style={{ width: 88 }} />}
         {showMoney && <col style={{ width: 96 }} />}
       </colgroup>
-      <thead className={TABLE_HEAD_SURFACE}>
+      <thead className={cn(TABLE_HEAD_SURFACE, "bg-surface-muted")}>
         <tr>
           <th className={cn(PIECE_TH, "text-center")}>#</th>
           <th className={cn(PIECE_TH, "text-left")}>สินค้า</th>
@@ -399,8 +402,8 @@ function PieceTable({
             <td className={cn(TD, "pt-3")}><PrintCell prints={prints} /></td>
             <td className={cn(TD, NUM, "pt-3 text-center font-medium text-strong")}>{row.qty}</td>
             {showMoney && <td className={cn(TD, NUM, "pt-3 text-right text-secondary")}><PiecePrice prod={row.prod} /></td>}
-            {showMoney && <td className={cn(TD, NUM, "pt-3 text-right text-secondary")}>{prints.length > 0 ? formatCurrency(printCost) : <Dash />}</td>}
-            {showMoney && <td className={cn(TD, NUM, "pt-3 text-right font-semibold text-strong")}>{formatCurrency(pieceTotal(row, printCost))}</td>}
+            {showMoney && <td className={cn(TD, NUM, "pt-3 text-right font-mono text-secondary")}>{prints.length > 0 ? formatBaht(printCost) : <Dash />}</td>}
+            {showMoney && <td className={cn(TD, NUM, "pt-3 text-right font-mono font-semibold text-strong")}>{formatBaht(pieceTotal(row, printCost))}</td>}
           </tr>
         ))}
       </tbody>
@@ -498,7 +501,7 @@ function AddonsTable({ addons, showMoney }: { addons: OrderItemAddon[]; showMone
   return (
     <table className="w-full table-fixed">
       <ItemTableCols />
-      <thead className={TABLE_HEAD_SURFACE}>
+      <thead className={cn(TABLE_HEAD_SURFACE, "bg-surface-muted")}>
         <tr>
           <th colSpan={4} className={cn(TH, "text-left")}>ส่วนเสริม</th>
           <th colSpan={2} className={cn(TH, "text-center")}>คิดราคา</th>
@@ -544,7 +547,7 @@ function SummaryRow({ label, value }: { label: React.ReactNode; value: React.Rea
   return (
     <div className="flex items-start justify-between gap-3 text-sm">
       <span className="text-muted">{label}</span>
-      <span className={cn("text-right text-secondary", NUM)}>{value}</span>
+      <span className={cn("text-right font-mono text-secondary", NUM)}>{value}</span>
     </div>
   );
 }
@@ -565,21 +568,31 @@ function OrderPriceSummaryPanel({ items, fees, totals }: { items: OrderItem[]; f
   // ชุดงานเดียว ไม่มีอะไรบวก/หัก → "รวมสินค้า" ซ้ำกับยอดชุดงาน ไม่ต้องมีท่อนกลาง
   const hasBreakdown = items.length > 1 || fees.length > 0 || discount > 0 || taxRate > 0;
 
+  /* ต้นแบบหน้าออเดอร์รอบ 2 (.price): ยอดรวมตัวใหญ่บนสุด → รายการละบรรทัด → บวก/หัก → ยอดรวมทั้งหมด */
   return (
-    <Section title={<SectionTitle icon={Calculator} tone="finance">สรุปราคา</SectionTitle>}>
-      <div className="space-y-4">
+    <Section
+      title={
+        <span className="flex items-center gap-2.5">
+          <HomeIconTile icon={Receipt} tone="success" />
+          สรุปราคา
+        </span>
+      }
+      action={<HomeChip>{taxRate > 0 ? `รวม VAT ${taxRate}%` : "ไม่มี VAT"}</HomeChip>}
+    >
+      <p className={cn("font-mono text-3xl font-semibold text-strong", NUM)}>{formatBaht(grandTotal)}</p>
+      <div className="mt-3 space-y-3">
         {/* รายการละบรรทัดเดียว — ราคา × จำนวนของแต่ละชิ้นอยู่ในตารางซ้ายแล้ว
-            (เคยใส่บรรทัดย่อยไว้ เบสบอก "อ่านยาก" 2026-09-06 · คอลัมน์ 20rem แคบเกินกว่าจะวาง 3 ช่องตัวเลข) */}
-        <div className="space-y-2.5">
+            (เคยใส่บรรทัดย่อยไว้ เบสบอก "อ่านยาก" 2026-09-06) */}
+        <div className="space-y-2">
           {items.map((item, itemIdx) => {
             const qty = itemQty(item);
             return (
-              <div key={item.id} className="flex items-baseline justify-between gap-3">
-                <p className="min-w-0 truncate text-sm text-secondary">
-                  <span className="font-medium text-strong">{item.description || `รายการที่ ${itemIdx + 1}`}</span>
+              <div key={item.id} className="flex items-baseline justify-between gap-3 text-sm text-secondary">
+                <p className="min-w-0 truncate">
+                  {item.description || `รายการที่ ${itemIdx + 1}`}
                   {qty > 0 && <span className={cn("ml-1.5 text-xs text-muted", NUM)}>{qty} ตัว</span>}
                 </p>
-                <p className={cn("flex-shrink-0 text-sm font-semibold text-strong", NUM)}>{formatCurrency(item.subtotal ?? 0)}</p>
+                <p className={cn("flex-shrink-0 font-mono font-medium text-strong", NUM)}>{formatBaht(item.subtotal ?? 0)}</p>
               </div>
             );
           })}
@@ -587,21 +600,18 @@ function OrderPriceSummaryPanel({ items, fees, totals }: { items: OrderItem[]; f
 
         {hasBreakdown && (
           <div className="space-y-2 border-t border-divider pt-3">
-            <SummaryRow label="รวมสินค้า" value={formatCurrency(subtotalItems)} />
+            <SummaryRow label="รวมสินค้า" value={formatBaht(subtotalItems)} />
             {fees.map((fee, i) => (
-              <SummaryRow key={fee.id ?? i} label={fee.name || fee.feeType || "ค่าธรรมเนียม"} value={formatCurrency(fee.amount ?? 0)} />
+              <SummaryRow key={fee.id ?? i} label={fee.name || fee.feeType || "ค่าธรรมเนียม"} value={formatBaht(fee.amount ?? 0)} />
             ))}
-            {discount > 0 && <SummaryRow label="ส่วนลดท้ายบิล" value={`-${formatCurrency(discount)}`} />}
-            {taxRate > 0 && <SummaryRow label={`VAT (${taxRate}%)`} value={formatCurrency(taxAmount)} />}
+            {discount > 0 && <SummaryRow label="ส่วนลดท้ายบิล" value={`-${formatBaht(discount)}`} />}
+            {taxRate > 0 && <SummaryRow label={`VAT (${taxRate}%)`} value={formatBaht(taxAmount)} />}
           </div>
         )}
 
-        <div className="flex items-baseline justify-between gap-3 border-t border-divider pt-3">
-          <span className="text-sm font-medium text-strong">
-            ยอดรวมทั้งหมด
-            {taxRate > 0 && <span className="ml-1 text-xs font-normal text-muted">(รวม VAT)</span>}
-          </span>
-          <span className={DISPLAY_AMOUNT}>{formatCurrency(grandTotal)}</span>
+        <div className="flex items-baseline justify-between gap-3 border-t border-border pt-2.5">
+          <span className="text-sm font-medium text-strong">ยอดรวมทั้งหมด</span>
+          <span className={cn("font-mono text-base font-semibold text-strong", NUM)}>{formatBaht(grandTotal)}</span>
         </div>
       </div>
     </Section>
@@ -633,10 +643,10 @@ function ItemCard({
   const rows = itemPieceRows(item);
 
   return (
-    <article className={cn("card-surface p-4 sm:p-5", RADIUS.surface)}>
-      {/* หัวการ์ด — ลอกจาก OrderItemRow ของฟอร์ม · ชื่อชุดงานขึ้นแทน "รายการที่ N" เมื่อมี */}
-      <div className="flex min-h-11 items-center gap-2">
-        <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+    <article className="overflow-hidden rounded-xl border border-border">
+      {/* หัวชุดงาน (ต้นแบบรอบ 2 .item-head): พื้นจม เลขชุดงานในกรอบเหลี่ยม · ชื่อ · จำนวน/ยอดชิดขวา */}
+      <div className="flex min-h-11 items-center gap-2.5 bg-surface-muted px-3.5 py-2">
+        <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-lg border border-border bg-surface text-xs font-semibold text-strong">
           {itemIdx + 1}
         </span>
         <h3 className="min-w-0 flex-1 truncate text-sm font-semibold text-strong">
@@ -644,11 +654,11 @@ function ItemCard({
         </h3>
         {totalQty > 0 && <span className={cn("flex-shrink-0 text-xs text-muted", NUM)}>{totalQty} ตัว</span>}
         {showMoney && (item.subtotal ?? 0) > 0 && (
-          <span className={cn("flex-shrink-0 text-sm font-semibold text-strong", NUM)}>{formatCurrency(item.subtotal ?? 0)}</span>
+          <span className={cn("flex-shrink-0 font-mono text-sm font-semibold text-strong", NUM)}>{formatBaht(item.subtotal ?? 0)}</span>
         )}
       </div>
 
-      <div className="space-y-5 pt-4">
+      <div className="space-y-5 px-3.5 py-3.5">
         {/* สเปกเสื้อตัดเย็บ/ลูกค้าส่งมา — เฉพาะที่มี (สต๊อกล้วนไม่มีกล่องนี้) */}
         {products.map((prod) => (
           <ProductSpecBox key={prod.id} prod={prod} orderId={orderId} canEditReceiveTracking={canEditReceiveTracking} />
@@ -698,6 +708,7 @@ export function OrderItemsDisplay({
   showMoney = true,
   canEditReceiveTracking = false,
   totals,
+  afterItems,
 }: OrderItemsDisplayProps) {
   const isEmpty = !items || items.length === 0;
   const isSingleItem = (items?.length ?? 0) === 1;
@@ -708,30 +719,24 @@ export function OrderItemsDisplay({
     return acc;
   }, []);
 
-  // หัว "รายการสินค้า" + ชิป + ปุ่มแก้ไข — ข้อความชุดเดิม แต่ยืนเป็นแถวเหนือการ์ดชุดงาน
-  // (ไม่มีการ์ดใหญ่ครอบซ้ำ — เบสสั่งเอาการ์ดซ้อนการ์ดออกจากฟอร์มไปแล้ว 2026-08-14)
-  const heading = (
-    <div className="flex items-center justify-between gap-3">
-      <CardTitle className="flex flex-wrap items-center gap-x-2 gap-y-1 text-base">
-        <ToneMark icon={Package} tone="product" />
-        <span className="[overflow-wrap:anywhere]">
-          รายการสินค้า
-          {!isSingleItem && !isEmpty ? ` (${items.length})` : ""}
-        </span>
-        {orderTotalQty > 0 ? (
-          <InfoChip size="sm" strong>
-            {orderTotalQty} ชิ้น
-          </InfoChip>
-        ) : null}
-      </CardTitle>
-      {onEditItems && !isEmpty && (
-        <Button variant="outline" size="sm" onClick={onEditItems} className="flex-shrink-0 gap-1.5">
-          <Edit3 />
-          แก้ไข
-        </Button>
-      )}
-    </div>
+  // หัวการ์ด "รายการสินค้า" + ชิปจำนวน + ปุ่มแก้ไขรายการ (ต้นแบบหน้าออเดอร์รอบ 2 — การ์ดเดียวครอบทุกชุดงาน)
+  const title = (
+    <span className="flex flex-wrap items-center gap-2.5">
+      <HomeIconTile icon={Package} tone="brand" />
+      <span className="[overflow-wrap:anywhere]">
+        รายการสินค้า
+        {!isSingleItem && !isEmpty ? ` (${items.length})` : ""}
+      </span>
+      {orderTotalQty > 0 ? <HomeChip className="tabular-nums">{orderTotalQty} ตัว</HomeChip> : null}
+    </span>
   );
+  const editAction =
+    onEditItems && !isEmpty ? (
+      <Button variant="ghost" size="sm" onClick={onEditItems} className="flex-shrink-0">
+        <Pencil />
+        แก้ไขรายการ
+      </Button>
+    ) : undefined;
 
   // การ์ดค่าธรรมเนียมแยก — เหลือเฉพาะ role ที่ไม่เห็นเงิน (เห็นชื่อรายการว่ามีอะไร)
   // role ที่เห็นเงินอ่านค่าธรรมเนียมจากบรรทัดใน "สรุปราคา" ก้อนเดียวแทน ไม่โชว์สองที่
@@ -764,51 +769,51 @@ export function OrderItemsDisplay({
   return (
     <>
       {isEmpty ? (
-        <Card>
-          <CardHeader>{heading}</CardHeader>
-          <CardContent>
-            <div className="flex flex-col items-center gap-3 py-8 text-center">
-              <p className="text-sm text-muted">
-                ยังไม่มีรายการสินค้า/ราคา — ใส่ก่อนถึงจะยืนยันออเดอร์ได้
-              </p>
-              {onEditItems && (
-                <Button onClick={onEditItems} className="gap-1.5">
-                  <PlusCircle />
-                  ใส่รายการสินค้า
-                </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <section aria-label="รายการสินค้า" className="space-y-4">
-          {heading}
-          {/* จอกว้าง 2 คอลัมน์ · จอแคบซ้อนกัน สรุปอยู่ท้ายเหมือนใบเสร็จ
-              role ที่ไม่เห็นเงิน = คอลัมน์เดียวเต็มหน้า (ไม่มีก้อนสรุปให้วาง) */}
-          <div className={cn("grid items-start gap-5", showMoney && "xl:grid-cols-[minmax(0,1fr)_20rem]")}>
-            <div className="space-y-4">
-              {items.map((item, itemIdx) => (
-                <ItemCard
-                  key={item.id}
-                  item={item}
-                  itemIdx={itemIdx}
-                  startIndex={rowStarts[itemIdx]}
-                  showMoney={showMoney}
-                  orderId={orderId}
-                  canEditReceiveTracking={canEditReceiveTracking}
-                />
-              ))}
-              {feesCard}
-            </div>
-            {showMoney && (
-              <div className="xl:sticky xl:top-14">
-                <OrderPriceSummaryPanel items={items} fees={fees ?? []} totals={totals} />
-              </div>
+        <Section title={title}>
+          <div className="flex flex-col items-center gap-3 py-8 text-center">
+            <p className="text-sm text-muted">
+              ยังไม่มีรายการสินค้า/ราคา — ใส่ก่อนถึงจะยืนยันออเดอร์ได้
+            </p>
+            {onEditItems && (
+              <Button onClick={onEditItems} className="gap-1.5">
+                <PlusCircle />
+                ใส่รายการสินค้า
+              </Button>
             )}
           </div>
-        </section>
+        </Section>
+      ) : (
+        /* จอกว้าง 2 คอลัมน์ (รายการซ้าย · สรุปราคาขวา ตามต้นแบบ) · จอแคบซ้อนกัน สรุปอยู่ท้ายเหมือนใบเสร็จ
+           คอลัมน์ขวาคง 20rem เพื่อให้ตารางแถวละตัวกว้างพอขึ้นเป็นตาราง · role ที่ไม่เห็นเงิน = คอลัมน์เดียวเต็มหน้า */
+        <div className={cn("grid items-start gap-4", showMoney && "xl:grid-cols-[minmax(0,1fr)_20rem]")}>
+          <div className="min-w-0 space-y-4">
+            <Section aria-label="รายการสินค้า" title={title} action={editAction}>
+              <div className="space-y-3">
+                {items.map((item, itemIdx) => (
+                  <ItemCard
+                    key={item.id}
+                    item={item}
+                    itemIdx={itemIdx}
+                    startIndex={rowStarts[itemIdx]}
+                    showMoney={showMoney}
+                    orderId={orderId}
+                    canEditReceiveTracking={canEditReceiveTracking}
+                  />
+                ))}
+              </div>
+            </Section>
+            {feesCard}
+            {afterItems}
+          </div>
+          {showMoney && (
+            <div className="min-w-0 xl:sticky xl:top-14">
+              <OrderPriceSummaryPanel items={items} fees={fees ?? []} totals={totals} />
+            </div>
+          )}
+        </div>
       )}
       {isEmpty && feesCard}
+      {isEmpty && afterItems}
 
     </>
   );
