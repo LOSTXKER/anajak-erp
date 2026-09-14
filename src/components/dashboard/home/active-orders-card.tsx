@@ -3,21 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { LucideIcon } from "lucide-react";
-import {
-  ArrowRight,
-  CalendarDays,
-  ChevronRight,
-  Flame,
-  PackageCheck,
-  PauseCircle,
-  Plus,
-  Activity,
-  ShoppingCart,
-  Truck,
-  UserRound,
-  X,
-} from "lucide-react";
+import { ArrowRight, CalendarDays, ChevronRight, Plus, ShoppingCart, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DueTag } from "@/components/ui/due-tag";
@@ -32,46 +18,11 @@ import {
   matchesHomeFilter,
   sortHomeOrders,
   type HomeOrderFilter,
-  type HomeProblem,
-  type HomeProblemKind,
 } from "@/lib/home-orders";
+import { ORDER_PROBLEM_ICON, ORDER_PROBLEM_TEXT, StepProgress } from "@/components/orders/order-problem";
 import { cn, formatBaht, formatDateShort } from "@/lib/utils";
 import type { HomeOrder } from "@/server/services/home-overview";
 import { HomeCard, HomeChip } from "./home-card";
-
-const PROBLEM_ICON: Record<HomeProblemKind, LucideIcon> = {
-  overdue: Flame,
-  "vendor-late": Truck,
-  ready: PackageCheck,
-  "in-progress": Activity,
-  customer: UserRound,
-  vendor: Truck,
-  stuck: PauseCircle,
-};
-
-const PROBLEM_TONE: Record<HomeProblem["tone"], string> = {
-  danger: "font-medium text-red-700 dark:text-red-300",
-  warning: "font-medium text-amber-700 dark:text-amber-300",
-  success: "font-medium text-green-700 dark:text-green-300",
-  neutral: "text-secondary",
-};
-
-function StepProgress({ done, total }: { done: number; total: number }) {
-  if (total === 0) return null;
-  return (
-    <span className="inline-flex gap-0.5" role="img" aria-label={`ขั้น ${done} จาก ${total}`}>
-      {Array.from({ length: total }, (_, index) => (
-        <span
-          key={index}
-          className={cn(
-            "block h-1.5 w-3 rounded-full",
-            index < done ? "bg-blue-600 dark:bg-blue-400" : index === done ? "bg-blue-600/40 dark:bg-blue-400/40" : "bg-border",
-          )}
-        />
-      ))}
-    </span>
-  );
-}
 
 export function ActiveOrdersCard({
   orders,
@@ -192,7 +143,7 @@ export function ActiveOrdersCard({
               <tbody className="divide-y divide-divider">
                 {rows.map((order) => {
                   const problem = describeHomeOrder(order);
-                  const ProblemIcon = problem ? PROBLEM_ICON[problem.kind] : null;
+                  const ProblemIcon = problem ? ORDER_PROBLEM_ICON[problem.kind] : null;
                   const href = `/orders/${order.id}`;
                   return (
                     <tr
@@ -244,7 +195,7 @@ export function ActiveOrdersCard({
                       <td className="px-3 py-2.5">
                         <span className="flex min-w-0 flex-col gap-1">
                           {problem && ProblemIcon ? (
-                            <span className={cn("flex items-start gap-1.5 text-xs", PROBLEM_TONE[problem.tone])}>
+                            <span className={cn("flex items-start gap-1.5 text-xs", ORDER_PROBLEM_TEXT[problem.tone])}>
                               <ProblemIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" strokeWidth={1.75} aria-hidden="true" />
                               {problem.label}
                               {problem.who ? <span className="font-normal text-muted">· {problem.who}</span> : null}

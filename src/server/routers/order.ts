@@ -41,6 +41,9 @@ import {
 import { maybeSweepStaleReservations } from "@/server/services/stock-reservation-sweep";
 import { promoteOrderArtworks, sanitizeArtworkLinks } from "@/server/services/artwork";
 import { PAYMENT_TERMS_VALUES } from "@/lib/payment-terms";
+import { startOfBangkokDay } from "@/lib/date-utils";
+import { ATTENTION_EXCLUDED_STATUSES, describeOrderProgress } from "@/lib/order-progress";
+import { printLabelOf } from "@/lib/print-labels";
 import { stripOrderMoneyForRole } from "@/lib/roles";
 import {
   computeRevisionOverage,
@@ -65,7 +68,7 @@ import {
   assertV2FinalPackReadyToShip,
 } from "@/server/services/packing-readiness";
 import { assertQcReadyForPacking } from "@/server/services/qc-count";
-import type { OrderType, TaxLineType } from "@prisma/client";
+import type { OrderType, Prisma, TaxLineType } from "@prisma/client";
 import {
   ORDER_ATTENTIONS,
   orderAttentionWhere,
@@ -568,7 +571,8 @@ export const orderRouter = router({
       const whereForCounts: Record<string, unknown> = { ...where };
       delete whereForCounts.internalStatus;
 
-      const [orders, total, statusGroups] = await Promise.all([
+      const now = new Date();
+      const [orders, total, statusGroups, overdueGroups] = await Promise.all([
         ctx.prisma.order.findMany({
           where,
           include: {
@@ -580,15 +584,21 @@ export const orderRouter = router({
                 // ชื่อ+ลิงก์ห้องแชท — ตารางออเดอร์ใช้พาไปคุยต่อได้ในคลิกเดียว
                 chatName: true,
                 chatUrl: true,
+                // แผงดูย่อ (2026-09-14) กดโทรหาลูกค้าได้โดยไม่ต้องเปิดใบ
+                phone: true,
               },
             },
             // หน้า registry ใช้เฉพาะรูปม็อกอัพจริงล่าสุด ไม่มี approval token และไม่ถอยไปใช้รูปลาย
+            // approvalStatus/createdAt = "รอลูกค้าอนุมัติแบบกี่วัน" ของคอลัมน์ต้องจัดการ
             designs: {
               orderBy: { versionNumber: "desc" },
               take: 1,
               select: {
                 fileUrl: true,
                 thumbnailUrl: true,
+                versionNumber: true,
+                approvalStatus: true,
+                createdAt: true,
                 files: {
                   orderBy: { sortOrder: "asc" },
                   select: { fileUrl: true, thumbnailUrl: true, position: true },
@@ -599,6 +609,35 @@ export const orderRouter = router({
             invoices: {
               where: { isVoided: false },
               select: { totalAmount: true, paymentStatus: true },
+            },
+            /* คอลัมน์ "ขั้นงาน/ต้องจัดการ" (หน้ารายการใหม่ 2026-09-14) — รูปทรงเดียวกับหน้าแรก
+               แล้วตีความด้วย lib/order-progress ตัวเดียวกัน · ไม่ select ทุน/ราคาของขั้นผลิต */
+            items: {
+              select: { totalQuantity: true, prints: { select: { printType: true } } },
+            },
+            revisions: { orderBy: { createdAt: "desc" }, take: 1, select: { createdAt: true } },
+            productions: {
+              orderBy: { createdAt: "desc" },
+              take: 1,
+              select: {
+                id: true,
+                workOrderNumber: true,
+                steps: {
+                  orderBy: { sortOrder: "asc" },
+                  select: {
+                    stepType: true,
+                    customStepName: true,
+                    status: true,
+                    assignedTo: { select: { name: true } },
+                    outsourceOrders: {
+                      where: { status: { in: ["SENT", "IN_PROGRESS"] } },
+                      orderBy: { expectedBackAt: "asc" },
+                      take: 1,
+                      select: { expectedBackAt: true, vendor: { select: { name: true } } },
+                    },
+                  },
+                },
+              },
             },
           },
           orderBy,
@@ -611,12 +650,30 @@ export const orderRouter = router({
           where: whereForCounts,
           _count: { _all: true },
         }),
+        /* งานเลยกำหนดต่อสถานะ — ป้าย "เลย N" บนราง pipeline · นับตามวันปฏิทินไทย
+           (กำหนดส่งวันนี้ยังไม่นับว่าเลย) ให้ตรงกับป้ายกำหนดส่งในแถวและหน้าแรก */
+        ctx.prisma.order.groupBy({
+          by: ["internalStatus"],
+          where: {
+            AND: [
+              whereForCounts as Prisma.OrderWhereInput,
+              {
+                internalStatus: { notIn: [...ATTENTION_EXCLUDED_STATUSES] },
+                deadline: { lt: startOfBangkokDay(now) },
+              },
+            ],
+          },
+          _count: { _all: true },
+        }),
         // sweep วิ่งคู่ query — .finally ผูกให้จบก่อน settle ทั้งทาง success/error
         // (review จับ: await แยกบรรทัดจะไปไม่ถึงเมื่อ query หลัก throw — sweep ลอยโดน freeze ตัด)
       ]).finally(() => sweepP);
 
       const statusCounts = Object.fromEntries(
         statusGroups.map((g) => [g.internalStatus, g._count._all]),
+      ) as Record<string, number>;
+      const overdueCounts = Object.fromEntries(
+        overdueGroups.map((g) => [g.internalStatus, g._count._all]),
       ) as Record<string, number>;
 
       const ordersWithPayment = orders.map((order) => {
@@ -629,10 +686,18 @@ export const orderRouter = router({
           else if (anyPaid) paymentLabel = "partial";
           else paymentLabel = "unpaid";
         }
+        // ส่งแต่ผลตีความออกไป ไม่ส่งขั้นผลิตดิบทั้งชุด (ชื่อช่าง/ร้านนอกของทุกขั้น) ให้หน้ารายการ
+        const { items, productions, ...rest } = order;
         return {
-          ...order,
+          ...rest,
           paymentLabel,
           invoicedTotal: invoices.reduce((s, inv) => s + inv.totalAmount, 0),
+          quantity: items.reduce((sum, item) => sum + item.totalQuantity, 0),
+          printLabel: printLabelOf(items.flatMap((item) => item.prints.map((print) => print.printType))),
+          production: productions[0]
+            ? { id: productions[0].id, workOrderNumber: productions[0].workOrderNumber }
+            : null,
+          progress: describeOrderProgress(order, now),
         };
       });
 
@@ -663,6 +728,7 @@ export const orderRouter = router({
         total,
         pages: Math.ceil(total / input.limit),
         statusCounts,
+        overdueCounts,
       };
     }),
 

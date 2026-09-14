@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Section } from "@/components/ui/section";
 import { Tabs, TabsBar, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { OrderOverviewTab, type OrderOverviewVariant } from "@/components/orders/detail/order-overview-tab";
+import { OrderOverviewTab } from "@/components/orders/detail/order-overview-tab";
 import { OrderArtworkCardView } from "@/components/orders/detail/order-artwork-card";
 import { OrderStatusBar } from "@/components/orders/detail/order-status-bar";
 import { OrderNextStepAction, OrderNextStepGuidance } from "@/components/orders/detail/order-next-step-action";
@@ -22,7 +22,7 @@ import { ORDER_TAB_DEFS, tabForAnchor, type TabKey } from "@/lib/order-tabs";
 import { FOCUS_BUTTON } from "@/components/ui/tokens";
 import { PREVIEW_ARTWORK, PREVIEW_FEES, PREVIEW_ITEMS, PREVIEW_ORDER, PREVIEW_ORDER_NUMBER, PREVIEW_PRICING } from "./_order-data";
 
-export function UiResetOrder({ variant }: { variant: OrderOverviewVariant }) {
+export function UiResetOrder({ variant }: { variant: "current" | "a" | "b" }) {
   const [tab, setTab] = useState<TabKey>("overview");
   const [feedback, setFeedback] = useState("");
   const showFeedback = (action: string) => setFeedback(`หน้าลอง: ${action} — ยังไม่ได้บันทึกหรือส่งข้อมูล`);
@@ -35,7 +35,7 @@ export function UiResetOrder({ variant }: { variant: OrderOverviewVariant }) {
   const flowSteps = getFlowSteps("CUSTOM");
   const rail = <OrderStatusBar flowSteps={flowSteps} currentStepIndex={flowSteps.indexOf("DESIGNING")} internalStatus="DESIGNING" customerStatus={PREVIEW_ORDER.customerStatus} />;
   const openFiles = () => setTab("files");
-  const artwork = <OrderArtworkCardView variant={variant} latest={PREVIEW_ARTWORK} versionCount={2} rawCount={2} printCount={0} description={PREVIEW_ORDER.description} onOpenFiles={tab === "files" ? undefined : openFiles} />;
+  const artwork = <OrderArtworkCardView latest={PREVIEW_ARTWORK} versionCount={2} rawCount={2} printCount={0} description={PREVIEW_ORDER.description} onOpenFiles={tab === "files" ? undefined : openFiles} />;
   const interceptLinks = (event: MouseEvent<HTMLDivElement>) => {
     const link = (event.target as HTMLElement).closest("a");
     if (!link) return;
@@ -67,7 +67,7 @@ export function UiResetOrder({ variant }: { variant: OrderOverviewVariant }) {
             {ORDER_TAB_DEFS.map((item) => <TabsTrigger key={item.key} value={item.key}>{item.label}</TabsTrigger>)}
           </TabsList></TabsBar>
           <TabsContent value="overview" className="pt-6">
-            <OrderOverviewTab variant={variant} order={PREVIEW_ORDER} showMoney totalAmount={5992} totalQuantity={30}
+            <OrderOverviewTab order={PREVIEW_ORDER} showMoney totalAmount={5992} totalQuantity={30}
               onOpenMoney={() => setTab("money")} onOpenDelivery={() => setTab("delivery")}
               onEditInfo={(section) => showFeedback(section === "shipping" ? "แก้ไขที่อยู่จัดส่ง" : "แก้ไขข้อมูลออเดอร์")}
               onOpenCustomer={() => showFeedback("เปิดหน้าลูกค้า")} artwork={artwork}

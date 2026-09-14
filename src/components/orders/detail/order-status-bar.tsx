@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { INTERNAL_STATUS_LABELS, CUSTOMER_STATUS_COLORS } from "@/lib/order-status";
 import {
   findOffPathAnchor,
@@ -55,6 +55,8 @@ interface OrderStatusBarProps {
    *  เดิมข้อความนี้อยู่บนแถบ "ขั้นต่อไป" ที่เบสสั่งถอดออก 2026-08-11 · ต้องมีที่อยู่
    *  ไม่งั้นปุ่มหายไปเฉยๆ โดยไม่บอกเหตุผล = คนไม่รู้ว่าต้องแก้อะไรถึงจะไปต่อได้ */
   blockers?: string[];
+  /** บรรทัดเล็กในแคปซูลของขั้นปัจจุบัน เช่น "อยู่ขั้นนี้ 4 วัน · นนท์" (หน้าออเดอร์ 2026-09-14) */
+  currentDetail?: ReactNode;
 }
 
 export function OrderStatusBar({
@@ -66,6 +68,7 @@ export function OrderStatusBar({
   cancelledAt,
   cancelledReason,
   blockers = [],
+  currentDetail,
 }: OrderStatusBarProps) {
   const railRef = useRef<HTMLOListElement>(null);
 
@@ -198,7 +201,8 @@ export function OrderStatusBar({
                  ถ้าให้ทุกช่องกว้างเท่ากันหมด ช่วงแรก/ท้ายจะกลายเป็น 1.5 เท่าของช่วงกลาง */
               style={{
                 flex: isFirst || isLast ? "0.5 1 12px" : "1 1 0%",
-                minWidth: isFirst || isLast ? 56 : 84,
+                // ขั้นปัจจุบันกว้างขึ้นให้แคปซูลมีที่ · ช่องอื่นคงความกว้างเดิม ช่วงระหว่างจุดจึงยังเท่ากัน
+                minWidth: st === "current" ? 136 : isFirst || isLast ? 56 : 84,
               }}
               className={cn(
                 "relative flex flex-col gap-1.5 px-0.5",
@@ -265,25 +269,34 @@ export function OrderStatusBar({
                   // ห้าม truncate — ป้ายไทยยาวให้ขึ้นบรรทัดใหม่
                   "text-2xs [overflow-wrap:anywhere]",
                   isFirst ? "text-left" : isLast ? "text-right" : "text-center",
+                  /* ขั้นที่ยืนอยู่เป็นแคปซูล (ต้นแบบหน้าออเดอร์รอบ 2 · เบสเคาะ 2026-09-14) — ชื่อขั้น + อยู่มากี่วัน/ใครทำ
+                     วงกับเส้นอยู่ที่เดิมทุกประการ แคปซูลแทนป้ายใต้วง รางจึงไม่เสียความสมมาตรที่เบสเคาะไว้ */
                   st === "current" &&
-                    (tone === "cancel"
-                      ? "font-semibold text-red-700 dark:text-red-300"
-                      : tone === "hold"
-                        ? "font-semibold text-amber-700 dark:text-amber-300"
-                        : "font-semibold text-blue-700 dark:text-blue-300"),
+                    cn(
+                      "rounded-lg px-2 py-1 font-semibold",
+                      tone === "cancel"
+                        ? "bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300"
+                        : tone === "hold"
+                          ? "bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200"
+                          : "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300",
+                    ),
                   st === "done" && "text-secondary",
                   st === "todo" && "text-muted",
                   st === "skipped" && "text-muted line-through",
                 )}
               >
                 {label(step)}
+                {st === "current" && (currentDetail || note) ? (
+                  <span className="block font-normal text-secondary">{currentDetail ?? note}</span>
+                ) : null}
               </span>
             </li>
           );
         })}
       </ol>
 
-      {note && (
+      {/* พัก/ยกเลิกที่หาขั้นที่ค้างเจอ บอกไว้ในแคปซูลแล้ว — บรรทัดนี้เหลือเฉพาะกรณีหาขั้นไม่เจอ */}
+      {note && anchorIndex < 0 && (
         <p
           className={cn(
             "mt-2.5 rounded-lg px-3 py-2 text-xs leading-relaxed [overflow-wrap:anywhere]",

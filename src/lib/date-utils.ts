@@ -45,3 +45,10 @@ export function getMonthRange(offset = 0, referenceDate?: Date): { start: Date; 
   const end = new Date(d.getFullYear(), d.getMonth() - offset + 1, 1);
   return { start, end };
 }
+
+/** เที่ยงคืนของวันตามเวลาไทย — เส้นแบ่ง "วันนี้" ของตัวเลขที่นับตามวันปฏิทิน */
+export function startOfBangkokDay(reference: DateInput = new Date()): Date {
+  return new Date(
+    new Intl.DateTimeFormat("en-CA", { timeZone: BANGKOK_TZ }).format(new Date(reference)) + "T00:00:00+07:00",
+  );
+}

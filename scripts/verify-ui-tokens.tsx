@@ -340,14 +340,23 @@ const hSm = CONTROL_H_SM.split(" ");
 }
 
 {
-  const registrySources = [
+  // หน้ารายการออเดอร์แยกเป็นหลายไฟล์ตั้งแต่ต้นแบบรอบ 2 (2026-09-14) — ตรวจทั้งชุดเป็นก้อนเดียว
+  const ordersSource = [
     "src/components/orders/orders-page.tsx",
-    "src/app/(dashboard)/customers/page.tsx",
-    "src/app/(dashboard)/quotations/page.tsx",
-    "src/app/(dashboard)/billing/page.tsx",
-    "src/app/(dashboard)/settings/users/page.tsx",
-  ].map((file) => readFileSync(file, "utf8"));
-  const ordersSource = registrySources[0]!;
+    "src/components/orders/list/orders-table.tsx",
+    "src/components/orders/list/order-peek-panel.tsx",
+  ]
+    .map((file) => readFileSync(file, "utf8"))
+    .join("\n");
+  const registrySources = [
+    ordersSource,
+    ...[
+      "src/app/(dashboard)/customers/page.tsx",
+      "src/app/(dashboard)/quotations/page.tsx",
+      "src/app/(dashboard)/billing/page.tsx",
+      "src/app/(dashboard)/settings/users/page.tsx",
+    ].map((file) => readFileSync(file, "utf8")),
+  ];
   if (
     registrySources.some((source) => source.includes("EntityMark")) ||
     !ordersSource.includes("MockupThumbnail") ||
@@ -1940,20 +1949,20 @@ check(
     console.log("✅ status rail ใช้ hairline/interaction cue โดยไม่มีข้อความค้างหรือ track ซ้ำ");
   }
 
-  const orderStatusFilterSource = readFileSync(
-    "src/components/orders/order-status-filter.tsx",
-    "utf8",
-  );
+  /* ตัวกรองสถานะของหน้ารายการออเดอร์เป็นราง pipeline ตั้งแต่ 2026-09-14 (ต้นแบบรอบ 2 เบสเคาะ)
+     แทนแถบเส้นทางงานเดิม · ข้อที่ห้ามหลุด: ปุ่มกรองจริงที่บอกสถานะกด (aria-pressed) ·
+     จุดวิ่งปิดตาม reduced-motion · พักงาน/ยกเลิกแยกนอกราง ไม่แทรกเป็นขั้นถัดไป */
+  const orderPipelineSource = readFileSync("src/components/orders/list/order-pipeline.tsx", "utf8");
   if (
-    !orderStatusFilterSource.includes('className="hidden xl:block"') ||
-    !orderStatusFilterSource.includes("<details") ||
-    !orderStatusFilterSource.includes("ACTIVE_UNDERLINE") ||
-    orderStatusFilterSource.includes("PopoverPrimitive.Content")
+    !orderPipelineSource.includes("aria-pressed={selected}") ||
+    !orderPipelineSource.includes("prefers-reduced-motion") ||
+    !orderPipelineSource.includes("PIPELINE_EXCEPTIONS") ||
+    orderPipelineSource.includes("PopoverPrimitive.Content")
   ) {
     failed++;
-    console.log("❌ ตัวกรองสถานะ Orders ต้องคืน flow เต็มบน desktop และ quick+details บนจอแคบ");
+    console.log("❌ ราง pipeline ของ Orders ต้องเป็นปุ่มกรองจริง ปิดจุดวิ่งตาม reduced-motion และแยกพัก/ยกเลิกออกจากราง");
   } else {
-    console.log("✅ ตัวกรองสถานะ Orders ใช้ flow เต็มบน desktop และ quick+details บนจอแคบ");
+    console.log("✅ ราง pipeline ของ Orders เป็นปุ่มกรองจริง ปิดจุดวิ่งตาม reduced-motion และแยกพัก/ยกเลิกออกจากราง");
   }
 
   const desktopStatusSource =
@@ -2258,9 +2267,12 @@ check(
   }
 }
 
-/* ── ภาพรวมออเดอร์: คงหน้าปัจจุบันและข้อมูล/สิทธิ์ทุกทางเลือก ──────────────
-   A16 ทดลองจัดวางใหม่ได้; ตำแหน่ง/compact ด้านล่างตรวจเฉพาะ current จาก DOM
-   ที่ render แล้ว ไม่ผูกกับลำดับการประกาศ JSX ในไฟล์ */
+/* ── หน้ารายละเอียดออเดอร์ (ต้นแบบรอบ 2 · เบส "โอเคทำจริงเลย" 2026-09-14) ──────
+   ล็อกข้อที่เบสสั่งซ้ำหลายรอบ และข้อมูล/สิทธิ์ที่ห้ามหลุด ไม่ผูกคลาสจัดวางรายตัว
+   ① หัวใบยืนบนผืนหน้า ไม่มีการ์ด/พื้น (08-30) · ปุ่มที่ใช้บ่อยเป็นปุ่มจริง · เมนู ⋯ หายเมื่อว่าง
+   ② ข้อมูลออเดอร์ซ้าย ม็อกอัพขวา (09-13) · การ์ดซ้ายเรียง สรุป → ลูกค้า → จัดส่ง
+   ③ รางสถานะคงเรขาคณิตสมมาตร (08-30) · ขั้นปัจจุบันเป็นแคปซูลใต้วง ไม่มีบรรทัดคำช่วยใต้ราง (09-13)
+   ④ เงินไม่อยู่ใน DOM ของผู้ไม่มีสิทธิ์ · ปุ่มแก้ตามสิทธิ์ · การ์ดม็อกอัพเป็นที่ดู ไม่ใช่ที่จัดการ */
 {
   const overviewSource = readFileSync(
     "src/components/orders/detail/order-overview-tab.tsx",
@@ -2270,12 +2282,17 @@ check(
     "src/components/orders/detail/order-detail-page.tsx",
     "utf8",
   );
+  const headSource = readFileSync(
+    "src/components/orders/detail/order-detail-head.tsx",
+    "utf8",
+  );
   const { OrderOverviewTab } = require("../src/components/orders/detail/order-overview-tab") as typeof import("../src/components/orders/detail/order-overview-tab");
   const { OrderArtworkCardView } = require("../src/components/orders/detail/order-artwork-card") as typeof import("../src/components/orders/detail/order-artwork-card");
   const { PREVIEW_ORDER, PREVIEW_ARTWORK } = require("../src/app/proto/ui-reset/_order-data") as typeof import("../src/app/proto/ui-reset/_order-data");
   const noop = () => {};
   const overviewProps: React.ComponentProps<typeof OrderOverviewTab> = {
     order: PREVIEW_ORDER, showMoney: true, totalAmount: 5992, totalQuantity: 30,
+    dueInDays: 3, paidAmount: 2996, printLabel: "DTF", sizeBreakdown: [{ size: "S", quantity: 7 }],
     onOpenMoney: noop, onOpenDelivery: noop, onEditInfo: noop, onOpenCustomer: noop,
     channelColor: { bg: "bg-green-50", text: "text-green-700" }, isMarketplace: false,
     artwork: <OrderArtworkCardView latest={PREVIEW_ARTWORK} versionCount={2} rawCount={2} printCount={0} description={PREVIEW_ORDER.description} onOpenFiles={noop} />,
@@ -2283,74 +2300,28 @@ check(
   const renderOverview = (overrides: Partial<typeof overviewProps> = {}) =>
     renderToStaticMarkup(<OrderOverviewTab {...overviewProps} {...overrides} />);
   const currentHtml = renderOverview();
-  const summaryIndex = currentHtml.indexOf(
-    'data-order-overview-card="summary"',
-  );
-  const customerIndex = currentHtml.indexOf(
-    'data-order-overview-card="customer"',
-  );
-  const shippingIndex = currentHtml.indexOf(
-    'data-order-overview-card="shipping"',
-  );
+  const cardIndex = (card: string) => currentHtml.indexOf(`data-order-overview-card="${card}"`);
   const problems: string[] = [];
 
-  if (currentHtml !== renderOverview({ variant: "current" })) {
-    problems.push("ไม่ส่ง variant ต้องได้หน้าปัจจุบันเหมือน variant=current");
+  for (const label of ["แก้ไขข้อมูลออเดอร์", "แก้ไขที่อยู่จัดส่ง", "เปิดหน้าลูกค้า", "มาตรฐานลูกค้า:"]) {
+    if (!currentHtml.includes(label)) problems.push(`ภาพรวมไม่มี ${label}`);
   }
-
-  // การทดลองย้ายข้อมูลต้องไม่ทำให้ข้อเท็จจริงหรือทางทำงานหาย และเงินต้องไม่อยู่ใน DOM ของผู้ไม่มีสิทธิ์
-  const textParts = (html: string) => html.replace(/<[^>]*>/g, " ").split(/\s+/).filter(Boolean).sort().join(" ");
-  const baselineText = textParts(currentHtml);
-  const baselineButtons = (currentHtml.match(/<button\b/g) ?? []).length;
-  for (const variant of ["current", "a", "b"] as const) {
-    const html = renderOverview({ variant });
-    if (textParts(html) !== baselineText || (html.match(/<button\b/g) ?? []).length !== baselineButtons) {
-      problems.push(`${variant}: ข้อมูลหรือจำนวนปุ่มเปลี่ยนไปจาก current`);
-    }
-    for (const label of ["แก้ไขข้อมูลออเดอร์", "แก้ไขที่อยู่จัดส่ง", "เปิดหน้าลูกค้า", "มาตรฐานลูกค้า:"]) {
-      if (!html.includes(label)) problems.push(`${variant}: ไม่มี ${label}`);
-    }
-    const restrictedHtml = renderOverview({ variant, showMoney: false, onOpenMoney: undefined, onEditInfo: undefined });
-    for (const hidden of ["ยอดรวม", "ซื้อสะสม", "วงเงินเครดิต", "87,342.50", "5,992", "แก้ไขข้อมูลออเดอร์", "แก้ไขที่อยู่จัดส่ง"]) {
-      if (restrictedHtml.includes(hidden)) problems.push(`${variant}: ยัง render ${hidden} เมื่อไม่ได้รับสิทธิ์`);
-    }
-  }
-
-  /* ลำดับ DOM = ลำดับที่มือถือซ้อนกัน · สรุปต้องมาก่อนการ์ดลูกค้าที่ยาวมาก
-     ไม่งั้นบนมือถือกว่าจะเห็นกำหนดส่ง/ยอดต้องเลื่อนผ่านที่อยู่กับประวัติลูกค้าทั้งหมด */
-  if (
-    summaryIndex < 0 ||
-    customerIndex < 0 ||
-    shippingIndex < 0 ||
-    !(summaryIndex < shippingIndex && shippingIndex < customerIndex)
-  ) {
-    problems.push("current: DOM ต้องเรียงสรุปออเดอร์ → การจัดส่ง → ลูกค้า");
+  const restrictedHtml = renderOverview({ showMoney: false, paidAmount: null, onOpenMoney: undefined, onEditInfo: undefined });
+  for (const hidden of ["ยอดรวม", "ซื้อสะสม", "วงเงินเครดิต", "87,342.50", "5,992", "รับแล้ว", "แก้ไขข้อมูลออเดอร์", "แก้ไขที่อยู่จัดส่ง"]) {
+    if (restrictedHtml.includes(hidden)) problems.push(`ยัง render ${hidden} เมื่อไม่ได้รับสิทธิ์`);
   }
   if (
-    !currentHtml.includes('class="space-y-5"') ||
-    !currentHtml.includes("grid items-start gap-5") ||
-    // คอลัมน์สรุปมาก่อนใน DOM แล้วดันไปขวาบนจอกว้าง — ถอด col-start ออกเมื่อไหร่
-    // มือถือยังถูกอยู่ แต่จอคอมจะกลายเป็นสรุปอยู่ซ้าย/ลูกค้าอยู่ขวา ซึ่งไม่ใช่ที่เบสเคาะ
-    !currentHtml.includes("xl:col-start-2 xl:row-start-1") ||
-    !currentHtml.includes("xl:col-start-1 xl:row-start-1") ||
-    !currentHtml.includes(
-      'class="grid grid-cols-2 gap-x-4 gap-y-4 sm:gap-x-6 sm:gap-y-5 lg:grid-cols-3"',
-    )
+    !(cardIndex("summary") >= 0 &&
+      cardIndex("summary") < cardIndex("customer") &&
+      cardIndex("customer") < cardIndex("shipping") &&
+      cardIndex("shipping") < cardIndex("artwork"))
   ) {
-    problems.push(
-      "current: คงสองคอลัมน์เดิมและสามค่าหลักเป็น 2×2 บนมือถือ",
-    );
+    problems.push("DOM ต้องเรียง ข้อมูลออเดอร์ → ลูกค้า → จัดส่ง (ซ้าย) → ม็อกอัพ (ขวา)");
   }
-  /* หัวข้อการ์ดในแท็บนี้ต้องเงียบ (compact) — หัวใบเป็นจุดเดียวที่เสียงดัง
-     ถ้าการ์ดกลับไปหัวหนาเท่าเดิม ลำดับความสำคัญที่เบสเคาะไว้จะหายทันที */
-  const currentCards = [...currentHtml.matchAll(/<section\b[^>]*data-order-overview-card="([^"]+)"[^>]*>[\s\S]*?<h2\b[^>]*class="([^"]*)"/g)];
-  if (currentCards.length !== 5 || currentCards.some((card) => !card[2]!.includes("text-xs font-medium text-muted"))) {
-    problems.push("current: หัวข้อการ์ดทั้งห้าใบต้องคง compact");
+  if (!currentHtml.includes("xl:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]")) {
+    problems.push("ภาพรวมต้องเป็นสองคอลัมน์ ข้อมูลออเดอร์ซ้าย ม็อกอัพขวา");
   }
-  /* หัวใบ (2026-08-30 เบสสั่ง "ข้างบนไม่ต้องมีอะไรเยอะ มีแค่สถานะและ CTA ก็พอ")
-     — ต้องเป็นแผ่นเดียวที่ห่อ PageHeader + แถบสถานะ · และห้ามมีข้อเท็จจริง
-     ตัวใหญ่กลับขึ้นไปอีก · 2026-08-30 เบสสั่งเอาระบบชื่องานออกทั้งหมด
-     → หัวใบไม่มีบรรทัดรองแล้ว (description ต้องเป็น null ตายตัว) */
+
   const railSource = readFileSync(
     "src/components/orders/detail/order-status-bar.tsx",
     "utf8",
@@ -2359,82 +2330,74 @@ check(
     !detailSource.includes('data-order-head=""') ||
     // minimal = ยืนบนผืนหน้าตรง ๆ · ห่อด้วยการ์ด/พื้น/เงาเมื่อไหร่ = ย้อนคำสั่งเบส
     /data-order-head[\s\S]{0,400}?card-surface/.test(detailSource) ||
-    !detailSource.includes("description={null}") ||
-    !detailSource.includes("titleBadge={") ||
+    headSource.includes("card-surface") ||
+    !detailSource.includes("<OrderDetailHead") ||
+    !headSource.includes("<h1") ||
+    !headSource.includes("MockupThumbnail") ||
     /order\.title/.test(detailSource) ||
     detailSource.includes("<SummaryFact") ||
     // ส่วนบนไม่มีเส้นแบ่งเลย — แยกกลุ่มด้วยระยะอย่างเดียว
     /border-(?:y|t) border-divider/.test(railSource) ||
-    // แถบสถานะต้องกว้างเท่าการ์ดข้างล่าง — จุดหัวชิดซ้ายสุด จุดท้ายชิดขวาสุด
-    // (เบสสั่ง 2026-08-30 "processbar เอาความกว้างให้เท่ากับส่วนอื่นๆ")
+    // แถบสถานะกว้างเท่าการ์ดข้างล่าง — จุดหัวชิดซ้ายสุด จุดท้ายชิดขวาสุด (เบสสั่ง 2026-08-30)
     !railSource.includes('isFirst ? "items-start pl-0" : isLast ? "items-end pr-0"') ||
-    // เส้นเชื่อมต้องเป็นชิ้นเดียวต่อหนึ่งช่วง — เคยแตกเป็น before+after แล้วเบสเจอ
-    // เส้นขาดครึ่งช่วงบนเครื่องตัวเอง (2026-08-30 "ทำไมเส้นไม่ต่อกัน")
+    // เส้นเชื่อมเป็นชิ้นเดียวต่อหนึ่งช่วง (2026-08-30 "ทำไมเส้นไม่ต่อกัน")
     railSource.includes("after:absolute") ||
     railSource.includes("before:absolute") ||
-    /* เรขาคณิตของรางต้องเป็น inline style — คลาส Tailwind ค่าเฉพาะ (flex-[...] /
-       before:left-[calc(...)]) มีผลก็ต่อเมื่อ CSS ถูก generate มาแล้ว เครื่องที่ CSS
-       ยังไม่อัปเดตจะได้รางเพี้ยน (เบสเจอกับตา 2 รอบ 2026-08-30) */
+    // เรขาคณิตของรางเป็น inline style — เครื่องที่ CSS ยังไม่อัปเดตจะไม่ได้รางเพี้ยน
     !railSource.includes('flex: isFirst || isLast ? "0.5 1 12px" : "1 1 0%"') ||
     /flex-\[0\.5|before:left-\[|before:right-\[/.test(railSource) ||
+    // ขั้นปัจจุบันเป็นแคปซูลบอกอยู่มากี่วัน/ใครทำ (ต้นแบบรอบ 2)
+    !railSource.includes("currentDetail") ||
+    !detailSource.includes("currentDetail={currentDetail}") ||
+    // ไม่มีบรรทัดคำช่วยขั้นต่อไปใต้ราง (เบสสั่ง 2026-09-13) — อ่านได้เฉพาะเครื่องอ่านหน้าจอ
+    !detailSource.includes('<div className="sr-only">{guidance}</div>') ||
     // ของที่ใช้บ่อยต้องเป็นปุ่มจริงบนหัว ไม่ใช่ซ่อนในเมนู ⋯
     !detailSource.includes("aria-label=\"พิมพ์ใบสั่งงาน (เปิดแท็บใหม่)\"") ||
     !detailSource.includes("aria-label=\"คัดลอกลิงก์สถานะสำหรับลูกค้า\"") ||
-    // ไอคอนขนาดในเมนู (h-4 w-4) = ร่องรอยว่าสองรายการนี้ถูกยัดกลับเข้าเมนู ⋯ อีก
-    // (เช็คข้อความตรง ๆ ไม่ได้ — ข้อความ toast ตอนคัดลอกสำเร็จใช้คำเดียวกัน)
     detailSource.includes('<ClipboardList className="h-4 w-4" />') ||
     detailSource.includes('<Share2 className="h-4 w-4" />') ||
-    // เมนู ⋯ ต้องหายไปเมื่อไม่มีรายการให้เลือก ไม่ใช่กดแล้วเจอกล่องว่าง
+    // เมนู ⋯ ต้องหายไปเมื่อไม่มีรายการให้เลือก
     !detailSource.includes("hasOverflowMenu")
   ) {
     problems.push(
-      "หัวใบต้องเป็น minimal (ไม่มีพื้น/กรอบ/เส้นแบ่ง) และ CTA ที่ใช้บ่อยต้องเป็นปุ่มจริง ไม่ซ่อนในเมนู ⋯",
+      "หัวใบต้องเป็น minimal (ไม่มีพื้น/กรอบ/เส้นแบ่ง) รางคงสมมาตรพร้อมแคปซูล และ CTA ที่ใช้บ่อยต้องเป็นปุ่มจริง",
     );
   }
-  /* การ์ด "งานนี้พิมพ์อะไร" (เบสเคาะแบบ B จากหน้าลอง /proto/order-overview 2026-08-31)
-     — คำถามแรกของคนเปิดใบงานคือ "งานนี้พิมพ์ลายอะไร" เดิมต้องกดข้ามไปแท็บม็อกอัพทุกครั้ง
-     ข้อบังคับที่ห้ามหลุด:
-     ① การ์ดต้องอยู่บนสุดของคอลัมน์ซ้าย (มาก่อนการ์ดลูกค้าในลำดับ DOM = ลำดับที่มือถือซ้อน)
-     ② รูปต้องมาจาก MockupThumbRow ซึ่งใช้สูตรเลือกรูปกลาง — วาด <img> เองเมื่อไหร่
-        จอนี้จะโชว์คนละรูปกับแท็บม็อกอัพ/ใบสั่งผลิตทันที
-     ③ เป็น "ที่ดู" ไม่ใช่ "ที่จัดการ" — ห้ามมี mutation ของม็อกอัพ/ไฟล์ในการ์ดนี้
-        (ม็อกอัพมีบ้านเดียวคือแท็บม็อกอัพ & ไฟล์ · กติกาเดิมตั้งแต่ 2026-08-22)
-     ④ รายละเอียดงานอยู่ในการ์ดนี้ ไม่ใช่การ์ดตัวหนังสือลอยอีกใบ */
-  const artworkIndex = currentHtml.indexOf('data-order-overview-card="artwork"');
+
+  /* ป้ายแจ้งเตือนอยู่บนสุด (เบสสั่ง 2026-09-13) — "ต้องจัดการ" ใช้กฎเดียวกับหน้าแรก/ตาราง
+     และด่านพร้อมผลิตต้องบอกเหตุผลพร้อมทางแก้ ไม่ให้ปุ่มขั้นต่อไปหายเงียบ */
+  if (
+    !detailSource.includes("describeOrderAttention(progress)") ||
+    !detailSource.includes("<OrderAttentionCallout") ||
+    !detailSource.includes("nextStepBlockers(nextStep") ||
+    detailSource.indexOf("<OrderAttentionCallout") > detailSource.indexOf('data-order-head=""')
+  ) {
+    problems.push("ป้ายต้องจัดการ/ด่านพร้อมผลิตต้องอยู่บนสุดของหน้าและใช้กฎกลาง");
+  }
+
   const artworkSource = readFileSync(
     "src/components/orders/detail/order-artwork-card.tsx",
     "utf8",
   );
   if (
-    artworkIndex < 0 ||
-    !(artworkIndex < customerIndex) ||
     !overviewSource.includes("artwork?: React.ReactNode") ||
     overviewSource.includes('data-order-overview-card="description"') ||
     !artworkSource.includes('data-order-overview-card="artwork"') ||
     !artworkSource.includes("MockupThumbRow") ||
+    !artworkSource.includes("mockupCoverImage") ||
     /useMutation|design\.(upload|approve)|attachment\.(create|delete)/.test(artworkSource) ||
     !detailSource.includes("<OrderArtworkCard")
   ) {
-    problems.push(
-      "current: การ์ดแบบต้องอยู่ก่อนลูกค้าและใช้รูปย่อกลาง; ทุกทางเลือกห้ามมี mutation ของม็อกอัพ/ไฟล์",
-    );
+    problems.push("การ์ดม็อกอัพต้องใช้รูปจากสูตรกลางและห้ามมี mutation ของม็อกอัพ/ไฟล์");
   }
-  /* ประวัติลูกค้า = กล่องสีประจำหมวดสี่ช่อง (แบบ B "สีบอกหมวด" · เบสเคาะ 2026-08-31)
-     เดิมเป็นบรรทัดตัวหนังสือเทาใต้ชื่อ ซึ่งเบสทักเองว่าอ่านเป็น "text โง่ ๆ"
-     สองข้อที่ห้ามหลุดไม่ว่าหน้าตาจะเปลี่ยนอีกกี่รอบ:
-       ① gate เงินครอบทั้งก้อน — ช่างต้องไม่เห็นแม้แต่หัวข้อ
-       ② กล่องต้องใช้สีจาก VISUAL_TONE_CLASSES ไม่ใช่คลาสสีที่เขียนเอง */
+  /* ประวัติลูกค้า = กล่องสีประจำหมวด (เบสเคาะ 2026-08-31) · gate เงินครอบทั้งก้อน */
   if (
     !overviewSource.includes("customerHistoryCells") ||
-    !overviewSource.includes(
-      "showMoney && hasCustomerHistory && customerHistoryCells.length > 0",
-    ) ||
+    !overviewSource.includes("showMoney && hasCustomerHistory && customerHistoryCells.length > 0") ||
     !overviewSource.includes("VISUAL_TONE_CLASSES[cell.tone].soft") ||
     overviewSource.includes('<Group label="ประวัติลูกค้า"')
   ) {
-    problems.push(
-      "current: คงสีประจำหมวดของประวัติลูกค้า; ทุกทางเลือกยัง gate ด้วย showMoney ทั้งก้อน",
-    );
+    problems.push("ประวัติลูกค้าต้องใช้สีประจำหมวดและ gate ด้วย showMoney ทั้งก้อน");
   }
   if (
     !overviewSource.includes("if (!filled && !emptyText) return null") ||
@@ -2445,34 +2408,25 @@ check(
     problems.push("optional ว่างต้องหาย และ empty state หลักต้องบอกความหมายตรง");
   }
   if (
-    !overviewSource.includes(
-      "isMarketplace && showMoney && order.platformFee != null",
-    ) ||
+    !overviewSource.includes("isMarketplace && showMoney && order.platformFee != null") ||
     !overviewSource.includes("showMoney && hasCustomerHistory") ||
-    !/\{showMoney && \(\s*<SummaryFact[\s\S]*?label="ยอดรวม"/.test(
-      overviewSource,
-    ) ||
-    !detailSource.includes(
-      'onOpenMoney={canSeeMoney ? () => changeTab("money") : undefined}',
-    ) ||
+    !/\{showMoney && \(\s*<SummaryFact[\s\S]*?label="ยอดรวม"/.test(overviewSource) ||
+    !detailSource.includes('onOpenMoney={canSeeMoney ? () => changeTab("money") : undefined}') ||
     !/onEditInfo=\{\s*canUseEditForm\s*\?/.test(detailSource) ||
     !detailSource.includes('openInfoEditPage(section, "overview")') ||
-    !detailSource.includes(
-      'router.push(buildOrderEditHref(id, { tab: "intake", focus, returnTab }))',
-    ) ||
-    !detailSource.includes("onOpenDelivery={() => changeTab(\"delivery\")}")
+    !detailSource.includes('router.push(buildOrderEditHref(id, { tab: "intake", focus, returnTab }))') ||
+    !detailSource.includes('onOpenDelivery={() => changeTab("delivery")}') ||
+    !detailSource.includes("const paidAmount = canSeeMoney")
   ) {
-    problems.push(
-      "เงิน/edit ต้อง gate เดิม พร้อม focus/return URL และ tracking ต้องเปิดแท็บจัดส่งจริง",
-    );
+    problems.push("เงิน/edit ต้อง gate เดิม พร้อม focus/return URL และ tracking ต้องเปิดแท็บจัดส่งจริง");
   }
 
   if (problems.length) {
     failed++;
-    console.log("❌ ภาพรวมออเดอร์ผิด contract ของ current หรือข้อมูล/สิทธิ์ในทางเลือก");
+    console.log("❌ หน้ารายละเอียดออเดอร์ผิด contract ของต้นแบบรอบ 2 หรือข้อมูล/สิทธิ์");
     problems.forEach((problem) => console.log(`   ${problem}`));
   } else {
-    console.log("✅ ภาพรวมออเดอร์คง current/default และข้อมูล/ปุ่ม/สิทธิ์ครบทุกทางเลือก");
+    console.log("✅ หน้ารายละเอียดออเดอร์ตรงต้นแบบรอบ 2 และข้อมูล/ปุ่ม/สิทธิ์ครบ");
   }
 }
 

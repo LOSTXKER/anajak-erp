@@ -1,5 +1,6 @@
 import type { InternalStatus } from "@prisma/client";
 import { INTERNAL_STATUS_LABELS } from "@/lib/order-status";
+import { isAttentionStatus } from "@/lib/order-progress";
 
 /* ============================================================
    ออเดอร์บนหน้าแรก — "ออเดอร์หนึ่งใบ = หนึ่งเหตุที่ต้องจัดการ" (เบสเคาะ 2026-09-14)
@@ -109,6 +110,12 @@ export function describeHomeOrder(order: HomeOrderLike): HomeProblem | null {
     };
   }
   return null;
+}
+
+/** "ต้องจัดการ" ที่ใช้กับออเดอร์ได้ทุกสถานะ (ตาราง/หน้ารายละเอียด) — ใบร่าง/ส่งแล้ว/ปิด/ยกเลิก
+ *  ไม่มีเรื่องต้องตาม แม้กำหนดส่งจะผ่านไปแล้ว · หน้าแรกส่งมาแต่ใบที่ยังเดินอยู่จึงเรียกตัวบนตรง ๆ */
+export function describeOrderAttention(order: HomeOrderLike): HomeProblem | null {
+  return isAttentionStatus(order.internalStatus) ? describeHomeOrder(order) : null;
 }
 
 export const HOME_ORDER_FILTERS = [

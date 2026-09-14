@@ -47,83 +47,86 @@ export function OrderMoneyTab({
     totalAmount > 0 || subtotalItems > 0 || subtotalFees > 0 || hasCostEntries;
 
   return (
-    <div className="space-y-5">
+    /* หน้าเงิน & บิล (ต้นแบบหน้าออเดอร์รอบ 2 · 2026-09-14): บิล/รับเงินซ้าย · สรุปราคาปักหมุดขวา
+       ลำดับ DOM = บิลก่อน (มือถือเห็นงานที่ต้องทำก่อน) · logic บิลอยู่ใน OrderBillingSection ไม่แตะ */
+    <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+      <div className="min-w-0">
+        <OrderBillingSection
+          orderId={order.id}
+          customerId={order.customerId}
+          totalAmount={totalAmount}
+          internalStatus={order.internalStatus}
+        />
+      </div>
+
       {/* สรุปราคา + กำไร — ยอดเดียวจุดเดียว (เดิมซ้ำ sidebar↔หัวการ์ดบิล) */}
       {showSummary && (
-        <Section
-          title={
-            <SectionTitle icon={Calculator} tone="finance">
-              สรุปราคา
-            </SectionTitle>
-          }
-        >
-          <div className="space-y-2.5">
-            <Row label="ยอดรวมสินค้า">
-              <span className="tabular-nums">{formatCurrency(subtotalItems)}</span>
-            </Row>
-            {subtotalFees > 0 && (
-              <Row label="ค่าธรรมเนียม">
-                <span className="tabular-nums">{formatCurrency(subtotalFees)}</span>
+        <div className="min-w-0 xl:sticky xl:top-16">
+          <Section
+            title={
+              <SectionTitle icon={Calculator} tone="finance">
+                สรุปราคา
+              </SectionTitle>
+            }
+          >
+            <div className="space-y-2.5">
+              <Row label="ยอดรวมสินค้า">
+                <span className="tabular-nums">{formatCurrency(subtotalItems)}</span>
               </Row>
-            )}
-            {discount > 0 && (
-              <Row label="ส่วนลด">
-                <span className="tabular-nums text-red-600 dark:text-red-400">
-                  -{formatCurrency(discount)}
+              {subtotalFees > 0 && (
+                <Row label="ค่าธรรมเนียม">
+                  <span className="tabular-nums">{formatCurrency(subtotalFees)}</span>
+                </Row>
+              )}
+              {discount > 0 && (
+                <Row label="ส่วนลด">
+                  <span className="tabular-nums text-red-600 dark:text-red-400">
+                    -{formatCurrency(discount)}
+                  </span>
+                </Row>
+              )}
+              {order.taxRate > 0 && (
+                <Row label={`VAT (${order.taxRate}%)`}>
+                  <span className="tabular-nums">{formatCurrency(order.taxAmount ?? 0)}</span>
+                </Row>
+              )}
+              <div className="flex items-baseline justify-between border-t border-divider pt-2.5">
+                <span className="text-sm font-medium text-strong">ยอดรวมทั้งหมด</span>
+                <span className="text-lg font-semibold tabular-nums text-strong">
+                  {formatCurrency(totalAmount)}
                 </span>
-              </Row>
-            )}
-            {order.taxRate > 0 && (
-              <Row label={`VAT (${order.taxRate}%)`}>
-                <span className="tabular-nums">{formatCurrency(order.taxAmount ?? 0)}</span>
-              </Row>
-            )}
-            <div className="flex items-baseline justify-between border-t border-divider pt-2.5">
-              <span className="text-sm font-medium text-strong">ยอดรวมทั้งหมด</span>
-              <span className="text-lg font-semibold tabular-nums text-strong">
-                {formatCurrency(totalAmount)}
-              </span>
-            </div>
-
-            {hasCostEntries && (
-              <div className="space-y-2.5 border-t border-dashed border-border pt-3">
-                <p className="text-xs font-semibold text-muted">
-                  ต้นทุน
-                </p>
-                <Row label="ต้นทุนรวม">
-                  <span className="tabular-nums">{formatCurrency(totalCost)}</span>
-                </Row>
-                <Row label="กำไร">
-                  <span className="tabular-nums">{formatCurrency(totalAmount - totalCost)}</span>
-                </Row>
-                {profitMargin != null && (
-                  <Row label="อัตรากำไร">
-                    <span
-                      className={`tabular-nums font-semibold ${
-                        profitMargin >= 30
-                          ? "text-green-600 dark:text-green-400"
-                          : profitMargin >= 15
-                            ? "text-amber-700 dark:text-amber-400"
-                            : "text-red-600 dark:text-red-400"
-                      }`}
-                    >
-                      {profitMargin.toFixed(1)}%
-                    </span>
-                  </Row>
-                )}
               </div>
-            )}
-          </div>
-        </Section>
-      )}
 
-      {/* การ์ดบิล — เต็มคอลัมน์ (เดิมยัดใน sidebar 1/3) · logic ภายในไม่แตะ */}
-      <OrderBillingSection
-        orderId={order.id}
-        customerId={order.customerId}
-        totalAmount={totalAmount}
-        internalStatus={order.internalStatus}
-      />
+              {hasCostEntries && (
+                <div className="space-y-2.5 border-t border-dashed border-border pt-3">
+                  <p className="text-xs font-semibold text-muted">ต้นทุน</p>
+                  <Row label="ต้นทุนรวม">
+                    <span className="tabular-nums">{formatCurrency(totalCost)}</span>
+                  </Row>
+                  <Row label="กำไร">
+                    <span className="tabular-nums">{formatCurrency(totalAmount - totalCost)}</span>
+                  </Row>
+                  {profitMargin != null && (
+                    <Row label="อัตรากำไร">
+                      <span
+                        className={`tabular-nums font-semibold ${
+                          profitMargin >= 30
+                            ? "text-green-600 dark:text-green-400"
+                            : profitMargin >= 15
+                              ? "text-amber-700 dark:text-amber-400"
+                              : "text-red-600 dark:text-red-400"
+                        }`}
+                      >
+                        {profitMargin.toFixed(1)}%
+                      </span>
+                    </Row>
+                  )}
+                </div>
+              )}
+            </div>
+          </Section>
+        </div>
+      )}
     </div>
   );
 }

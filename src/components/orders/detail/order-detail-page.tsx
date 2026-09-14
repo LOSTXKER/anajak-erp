@@ -6,7 +6,6 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { useConfirm, usePromptText } from "@/components/ui/confirm-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
@@ -16,8 +15,6 @@ import { PageHeader } from "@/components/page-header";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
   INTERNAL_STATUS_LABELS,
-  CUSTOMER_STATUS_LABELS,
-  PRIORITY_LABELS,
   CHANNEL_COLORS,
   getFlowSteps,
   getNextStatuses,
@@ -39,7 +36,6 @@ import {
   AlertTriangle,
   Share2,
   Truck,
-  ShoppingCart,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MENU_SEPARATOR, OVERLAY_PANEL, TINT } from "@/components/ui/tokens";
@@ -85,6 +81,15 @@ import {
 } from "@/components/orders/detail";
 import { RecordNotFound } from "@/components/ui/record-not-found";
 import { OrderNextStepGuidance } from "@/components/orders/detail/order-next-step-action";
+import { OrderAttentionCallout, OrderDetailHead } from "@/components/orders/detail/order-detail-head";
+import { OrderTimelineCard } from "@/components/orders/detail/order-timeline-card";
+import { describeOrderAttention } from "@/lib/home-orders";
+import { describeOrderProgress, isAttentionStatus } from "@/lib/order-progress";
+import { billingOverview } from "@/lib/billing-ui";
+import { differenceInBangkokDays } from "@/lib/date-utils";
+import { mockupCoverImage } from "@/lib/mockup";
+import { printLabelOf } from "@/lib/print-labels";
+import { STANDARD_SIZES } from "@/lib/size-matrix";
 
 
 // ============================================================
@@ -267,6 +272,10 @@ function OrderDetailContent({
     { enabled: !!order && ["CONFIRMED", "ON_HOLD"].includes(order.internalStatus) }
   );
   const utils = trpc.useUtils();
+  // จำนวนไฟล์บนหัวแท็บ — key เดียวกับการ์ดม็อกอัพ/แท็บไฟล์ (react-query cache ร่วม ไม่ยิงเพิ่ม)
+  const attachmentsQuery = trpc.attachment.listByEntity.useQuery({ entityType: "ORDER", entityId: id });
+  // "ตอนนี้" ของหน้า — คิดวันถึงกำหนดส่ง/อยู่ขั้นนี้กี่วัน ครั้งเดียวต่อการเปิดหน้า
+  const [now] = useState(() => new Date());
 
   const updateStatus = useMutationWithInvalidation(trpc.order.updateStatus, {
     invalidate: [utils.order.getById, utils.order.list],
@@ -602,271 +611,326 @@ function OrderDetailContent({
   const dropdownItemClass =
     "flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-secondary outline-none data-[highlighted]:bg-interactive-hover data-[highlighted]:text-strong";
 
-  const isUrgent = order.priority === "URGENT";
-  const isHighPriority = order.priority === "HIGH";
+  /* ── หัวใบ + "ต้องจัดการ" (ต้นแบบหน้าออเดอร์รอบ 2 · เบส "โอเคทำจริงเลย" 2026-09-14) ──
+     สูตรเดียวกับหน้าแรกและตาราง: lib/order-progress → lib/home-orders ไม่มีกฎใหม่ในหน้านี้ */
+  const progress = describeOrderProgress(order, now);
+  const attention = describeOrderAttention(progress);
+  const hasProduction = (order.productions ?? []).length > 0;
+  const attentionAction: { label: string; onClick: () => void } | undefined = !attention
+    ? undefined
+    : attention.kind === "customer"
+      ? { label: "ดูม็อกอัพ", onClick: () => changeTab("files") }
+      : attention.kind === "ready"
+        ? { label: "ไปส่วนจัดส่ง", onClick: () => changeTab("delivery") }
+        : hasProduction
+          ? { label: "ดูงานผลิต", onClick: () => changeTab("production") }
+          : undefined;
+  // ติดด่านพร้อมผลิต = ปุ่มขั้นต่อไปหายไป · เหตุผลและทางแก้ต้องขึ้นบนสุดแทน (ไม่ให้ปุ่มหายเงียบ)
+  const blockers = nextStepBlockers(nextStep, orderContext.data?.readiness ?? null);
+
+  // อยู่ขั้นนี้มากี่วัน = ประวัติเปลี่ยนสถานะล่าสุดที่เข้าสถานะนี้ (ไม่มีแถว + เป็นขั้นแรก = นับจากวันเปิดงาน)
+  const enteredStatusAt =
+    (order.revisions ?? []).find(
+      (revision) => revision.changeType === "STATUS" && revision.newValue === order.internalStatus,
+    )?.createdAt ?? (currentStepIndex === 0 ? order.createdAt : null);
+  const daysInStatus = enteredStatusAt ? differenceInBangkokDays(now, enteredStatusAt) : null;
+  const currentDetail =
+    currentStepIndex >= 0 && daysInStatus !== null
+      ? [
+          daysInStatus <= 0 ? "เข้าขั้นนี้วันนี้" : `อยู่ขั้นนี้ ${daysInStatus} วัน`,
+          progress.currentStep?.assigneeName,
+        ]
+          .filter(Boolean)
+          .join(" · ")
+      : undefined;
+
+  // จำนวนแยกไซซ์ของทั้งใบ — เรียงตามไซซ์มาตรฐาน ไซซ์พิเศษต่อท้ายตามลำดับที่กรอก
+  const sizeTotals = new Map<string, number>();
+  for (const item of order.items ?? []) {
+    for (const product of item.products ?? []) {
+      for (const variant of product.variants ?? []) {
+        sizeTotals.set(variant.size, (sizeTotals.get(variant.size) ?? 0) + variant.quantity);
+      }
+    }
+  }
+  const sizeRank = (size: string) => {
+    const index = (STANDARD_SIZES as readonly string[]).indexOf(size);
+    return index < 0 ? STANDARD_SIZES.length : index;
+  };
+  const sizeBreakdown = [...sizeTotals]
+    .filter(([, quantity]) => quantity > 0)
+    .map(([size, quantity]) => ({ size, quantity }))
+    .sort((a, b) => sizeRank(a.size) - sizeRank(b.size));
+
+  const printLabel = printLabelOf(
+    (order.items ?? []).flatMap((item) => (item.prints ?? []).map((print) => print.printType)),
+  );
+  // รับเงินแล้วเท่าไร — สูตรกลางเดียวกับการ์ดบิล (รวมหัก ณ ที่จ่าย ไม่นับบิลที่ยกเลิก) · คิดเฉพาะคนเห็นเงิน
+  const paidAmount = canSeeMoney
+    ? billingOverview(
+        (order.invoices ?? []).map((invoice) => ({
+          type: invoice.type,
+          totalAmount: Number(invoice.totalAmount ?? 0),
+          amount: Number(invoice.amount ?? 0),
+          discount: Number(invoice.discount ?? 0),
+          tax: Number(invoice.tax ?? 0),
+          isVoided: invoice.isVoided,
+          paymentStatus: invoice.paymentStatus,
+          forPaymentId: invoice.forPaymentId,
+          payments: (invoice.payments ?? []).map((payment) => ({
+            amount: Number(payment.amount),
+            whtAmount: Number(payment.whtAmount),
+          })),
+        })),
+      ).totalPaid
+    : null;
+  const cover = order.designs?.[0] ? mockupCoverImage(order.designs[0]) : null;
+  const tabCounts: Partial<Record<TabKey, number>> = {
+    files: (attachmentsQuery.data?.length ?? 0) + (order.designs?.length ?? 0),
+    delivery: order.deliveries?.length ?? 0,
+    history: order.revisions?.length ?? 0,
+  };
+  const guidance = (
+    <OrderNextStepGuidance
+      nextStep={nextStep}
+      readiness={orderContext.data?.readiness ?? null}
+      onEditItems={canUseEditForm && canEditItems ? openItemsEditPage : undefined}
+      onAnchor={handleAnchor}
+      canSeeMoney={canSeeMoney}
+    />
+  );
+  const hasTopAlerts = Boolean(
+    attention || blockers.length > 0 || order.stockReservationError || order.blindShip || order.notes?.trim(),
+  );
 
   return (
-    <div className="space-y-6">
-      {/* ── หัวใบ (เบสเคาะจากหน้าลอง /proto/order-detail แบบ B · 2026-08-30) ──
-          บอกแค่ "ใบไหน · อยู่ขั้นไหน · ต้องกดอะไรต่อ" แล้วให้ทุกอย่างใต้แถบแท็บ
-          เงียบลง (หัวข้อการ์ดในแท็บภาพรวมเป็น compact) — เปิดหน้ามาตาจึงตกที่นี่ก่อน
+    <div className="space-y-5">
+      {/* ── ป้ายแจ้งเตือนอยู่บนสุดของหน้า (เบสสั่ง 2026-09-13) ──
+          เรื่องที่ต้องจัดการ, ด่านพร้อมผลิต, จองสต๊อคพัง, ส่งแบบไม่ระบุผู้ส่ง, หมายเหตุใบนี้
+          ทั้งหมดอยู่นอกแท็บโดยตั้งใจ — คนแพ็ค (แท็บจัดส่ง) กับช่าง (แท็บงานผลิต) ต้องเห็นโดยไม่ต้องสลับแท็บ */}
+      {hasTopAlerts ? (
+        <div className="space-y-2">
+          {attention ? <OrderAttentionCallout problem={attention} action={attentionAction} /> : null}
 
-          เบสสั่ง 2 รอบ อย่าย้อนกลับ:
-          ① "ข้างบนไม่ต้องมีอะไรเยอะ มีแค่สถานะและ CTA ก็พอ"
-             → ห้ามเอา กำหนดส่ง/จำนวน/ยอด กลับขึ้นมา (อยู่การ์ด "ข้อมูลออเดอร์" แล้ว)
-          ② "ส่วนบนขอแบบไม่ต้องมีพื้นกรอบ แบบ minimal"
-             → ห้ามห่อด้วยการ์ด/พื้น/เงา · หัวใบยืนบนผืนหน้าตรง ๆ เส้นเดียวที่มีคือ
-               เส้นบางเหนือแถบสถานะ ซึ่งทำหน้าที่แยก "ใบนี้คืออะไร" ออกจาก "ไปถึงไหนแล้ว"
-               (ความเร่งด่วนบอกด้วยป้ายข้างเลขที่ ไม่ต้องมีแถบสีซ้ายที่ต้องอาศัยกรอบ)
+          {blockers.length > 0 ? (
+            <div className={cn(TINT.error, "space-y-2 rounded-2xl border px-4 py-3")}>
+              <p className="flex items-center gap-2 text-sm font-semibold">
+                <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
+                ยังเข้าคิวผลิตไม่ได้
+              </p>
+              <ul className="space-y-1 text-sm text-strong">
+                {blockers.map((blocker) => (
+                  <li key={blocker} className="flex items-start gap-2 [overflow-wrap:anywhere]">
+                    <span aria-hidden="true" className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-current" />
+                    {blocker}
+                  </li>
+                ))}
+              </ul>
+              {guidance}
+            </div>
+          ) : null}
 
-          ③ "เอาระบบชื่องานออกให้หมด" (2026-08-30)
-             → หัวใบไม่มีบรรทัดรองแล้ว เหลือ เลขที่ + ป้ายสถานะ/ความเร่งด่วน + ปุ่ม
-               ตรงตามข้อ ① ที่เบสสั่งไว้แต่แรก · ลูกค้า/รายละเอียดงานอยู่ในแท็บภาพรวม */}
-      <div data-order-head="" className="space-y-5">
-      <PageHeader
-        icon={ShoppingCart}
-        breadcrumb={[
-          { label: "ออเดอร์", href: "/orders" },
-          { label: order.orderNumber },
-        ]}
-        title={order.orderNumber}
-        description={null}
-        titleBadge={
-          <span className="flex flex-wrap items-center gap-1.5">
-            <Badge variant="accent" size="sm">
-              {CUSTOMER_STATUS_LABELS[order.customerStatus] ?? order.customerStatus}
-            </Badge>
-            {(isUrgent || isHighPriority) && (
-              <Badge variant={isUrgent ? "destructive" : "warning"} size="sm">
-                {PRIORITY_LABELS[order.priority] ?? order.priority}
-              </Badge>
-            )}
-          </span>
-        }
-        action={
-          <>
-            {/* ── ของที่ใช้บ่อยต้องเห็นเป็นปุ่ม ไม่ใช่ซ่อนในเมนู ⋯ (เบสสั่ง 2026-08-30
-                "CTA ที่ซ่อน อันไหนที่สำคัญใช้บ่อย ไม่ต้องเอาไปอยู่ 3 จุด") ──
-                พิมพ์ใบสั่งงาน = ทุก role ทุกสถานะ (ใบที่ส่งลงหน้างานจริง ใช้ทุกวัน)
-                ลิงก์สถานะลูกค้า = ฝ่ายขายส่งให้ลูกค้าเช็คเองแทนการตอบแชท
-                เหลือในเมนู ⋯ เฉพาะของที่นาน ๆ ใช้ หรือของอันตราย (สำเนา · ออกใบเสนอ ·
-                เดินสถานะเอง · ยกเลิก) และ "แก้ไข" ที่แต่ละการ์ดมีปุ่มของตัวเองอยู่แล้ว
-                จอแคบเหลือไอคอนล้วน — ชื่อยังอยู่ใน aria-label ให้เครื่องอ่านหน้าจอ */}
-            <Button asChild variant="outline" size="sm">
-              <a
-                href={`/print/job-ticket/${id}`}
-                target="_blank"
-                rel="noreferrer"
-                aria-label="พิมพ์ใบสั่งงาน (เปิดแท็บใหม่)"
-              >
-                <ClipboardList />
-                <span className="hidden sm:inline">ใบสั่งงาน</span>
-              </a>
-            </Button>
-            {isSalesUp && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => copyStatusLink()}
-                disabled={generateStatusLink.isPending}
-                aria-label="คัดลอกลิงก์สถานะสำหรับลูกค้า"
-              >
-                <Share2 />
-                <span className="hidden sm:inline">ลิงก์ลูกค้า</span>
-              </Button>
-            )}
-            {/* ปุ่มขั้นต่อไป (เบสสั่งถอดแถบฟ้าออก 2026-08-11 → ย้ายปุ่มมาไว้ตรงนี้)
-                ยังเป็นทางเดียวที่เช็คด่านพร้อมผลิตให้ก่อนกด · ติดด่านเมื่อไหร่ปุ่มจะหายไป
-                แล้วแถบสถานะจะบอกแทนว่าติดอะไร (กันปุ่มที่กดแล้ว server ปฏิเสธ — B8) */}
-            <OrderNextStepAction
-              nextStep={nextStep}
-              readiness={orderContext.data?.readiness ?? null}
-              isPending={updateStatus.isPending}
-              onStatus={handleStatusChange}
-              // ต้องผ่านทั้ง permission และ status gate เดียวกับปุ่มแก้รายการจุดอื่น
-              onEditItems={canUseEditForm && canEditItems ? openItemsEditPage : undefined}
-              onAnchor={handleAnchor}
-              canSeeMoney={canSeeMoney}
-            />
-            {/* เมนู ⋯ เหลือของที่นาน ๆ ใช้ · "ใบสั่งงาน" ย้ายออกไปเป็นปุ่มจริงแล้ว
-                (ยังไม่ gate ตาม role เหมือนเดิม — review เคยจับว่าช่าง/กราฟิกต้องพิมพ์ได้)
-                ไม่มีรายการให้เลือกเลย = ไม่ต้องมีปุ่ม ⋯ ที่กดแล้วเจอเมนูว่าง
-                UX5: ปุ่มสถานะหลักบน header ถูกตัด — เลื่อนสถานะผ่านปุ่มขั้นต่อไป (เช็ค readiness) + รายการในเมนูนี้ */}
-            {hasOverflowMenu && (
-            <DropdownMenu.Root>
-                <DropdownMenu.Trigger asChild>
-                  <Button variant="outline" size="icon-sm" aria-label="เพิ่มเติม">
-                    <MoreHorizontal />
-                  </Button>
-                </DropdownMenu.Trigger>
-                <DropdownMenu.Portal>
-                  <DropdownMenu.Content
-                    align="end"
-                    sideOffset={6}
-                    className={cn(OVERLAY_PANEL, "z-50 min-w-[200px] p-1", "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95")}
+          {/* จองสต๊อคมีปัญหา — ด่านพร้อมผลิตกั้นงานไว้แล้ว แต่คนแก้ต้นเหตุคือคนที่เปิดหน้านี้ */}
+          {order.stockReservationError && (
+            <div className={cn(TINT.error, "flex flex-wrap items-center gap-3 rounded-2xl border px-4 py-3 text-sm")}>
+              <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
+              <span className="min-w-0 flex-1">
+                <span className="font-medium">จองสต๊อคไม่สำเร็จ:</span> {order.stockReservationError}
+              </span>
+              {isSalesUp &&
+                ["CONFIRMED", "DESIGNING", "DESIGN_APPROVED", "PRODUCTION_QUEUE"].includes(order.internalStatus) && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => retryReserve.mutate({ id })}
+                    disabled={retryReserve.isPending}
                   >
-                    {isSalesUp && (
-                      <>
-                        {canUseEditForm && (
-                          <>
-                            <DropdownMenu.Item
-                              className={dropdownItemClass}
-                              onSelect={() => openInfoEditPage("info", activeTab)}
-                            >
-                              <FileText className="h-4 w-4" />
-                              แก้ไขข้อมูลออเดอร์
-                            </DropdownMenu.Item>
-                            {canEditItems && (
+                    {retryReserve.isPending ? "กำลังจอง..." : "จองใหม่"}
+                  </Button>
+                )}
+            </div>
+          )}
+
+          {/* blind ship = ห้ามมีชื่อ/เอกสาร Anajak ในกล่อง · พลาดครั้งเดียวเสียลูกค้าขายซ้ำทั้งราย */}
+          {order.blindShip && (
+            <div className={cn(TINT.warning, "flex flex-wrap gap-x-2 gap-y-1 rounded-2xl border px-4 py-3 text-sm")}>
+              <span className="font-medium">ส่งแบบไม่ระบุผู้ส่ง</span>
+              <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
+                ชื่อผู้ส่งบนกล่อง: {order.blindShipSenderName || "ยังไม่ระบุ — ต้องกรอกก่อนแพ็ค"}
+              </span>
+            </div>
+          )}
+
+          {order.notes?.trim() && (
+            <div className={cn(TINT.warning, "flex flex-wrap gap-x-2 gap-y-1 rounded-2xl border px-4 py-3 text-sm")}>
+              <span className="font-medium">หมายเหตุใบนี้</span>
+              <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">{order.notes}</span>
+            </div>
+          )}
+        </div>
+      ) : null}
+
+      {/* ── หัวใบ: ยืนบนผืนหน้า ไม่มีกรอบ (เบสสั่ง 2026-08-30 "แบบ minimal") ──
+          รูปม็อกอัพ + เลขที่ + สถานะ + ลูกค้า ทางซ้าย, ปุ่มเดิมทางขวา, รางสถานะใต้หัว */}
+      <div data-order-head="" className="space-y-4">
+        <OrderDetailHead
+          orderNumber={order.orderNumber}
+          cover={cover}
+          internalStatus={order.internalStatus}
+          customerStatus={order.customerStatus}
+          priority={order.priority}
+          customer={
+            order.customer
+              ? { id: order.customer.id, name: order.customer.name, company: order.customer.company }
+              : null
+          }
+          description={order.description}
+          actions={
+            <>
+              {/* ของที่ใช้บ่อยเป็นปุ่มจริง ไม่ซ่อนในเมนู ⋯ (เบสสั่ง 2026-08-30) — จอแคบเหลือไอคอน ชื่ออยู่ใน aria-label */}
+              <Button asChild variant="outline" size="sm">
+                <a
+                  href={`/print/job-ticket/${id}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="พิมพ์ใบสั่งงาน (เปิดแท็บใหม่)"
+                >
+                  <ClipboardList />
+                  <span className="hidden sm:inline">ใบสั่งงาน</span>
+                </a>
+              </Button>
+              {isSalesUp && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => copyStatusLink()}
+                  disabled={generateStatusLink.isPending}
+                  aria-label="คัดลอกลิงก์สถานะสำหรับลูกค้า"
+                >
+                  <Share2 />
+                  <span className="hidden sm:inline">ลิงก์ลูกค้า</span>
+                </Button>
+              )}
+              {/* ปุ่มขั้นต่อไป — ทางเดียวที่เช็คด่านพร้อมผลิตก่อนกด · ติดด่านเมื่อไหร่ปุ่มหาย แล้วป้ายบนสุดบอกแทน */}
+              <OrderNextStepAction
+                nextStep={nextStep}
+                readiness={orderContext.data?.readiness ?? null}
+                isPending={updateStatus.isPending}
+                onStatus={handleStatusChange}
+                onEditItems={canUseEditForm && canEditItems ? openItemsEditPage : undefined}
+                onAnchor={handleAnchor}
+                canSeeMoney={canSeeMoney}
+              />
+              {/* เมนู ⋯ เหลือของที่นาน ๆ ใช้หรืออันตราย · ไม่มีรายการให้เลือก = ไม่ต้องมีปุ่ม */}
+              {hasOverflowMenu && (
+                <DropdownMenu.Root>
+                  <DropdownMenu.Trigger asChild>
+                    <Button variant="outline" size="icon-sm" aria-label="เพิ่มเติม">
+                      <MoreHorizontal />
+                    </Button>
+                  </DropdownMenu.Trigger>
+                  <DropdownMenu.Portal>
+                    <DropdownMenu.Content
+                      align="end"
+                      sideOffset={6}
+                      className={cn(OVERLAY_PANEL, "z-50 min-w-[200px] p-1", "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95")}
+                    >
+                      {isSalesUp && (
+                        <>
+                          {canUseEditForm && (
+                            <>
                               <DropdownMenu.Item
                                 className={dropdownItemClass}
-                                onSelect={openItemsEditPage}
+                                onSelect={() => openInfoEditPage("info", activeTab)}
                               >
-                                <Edit3 className="h-4 w-4" />
-                                แก้ไขรายการ
+                                <FileText className="h-4 w-4" />
+                                แก้ไขข้อมูลออเดอร์
                               </DropdownMenu.Item>
-                            )}
-                          </>
-                        )}
-                        <DropdownMenu.Item
-                          className={dropdownItemClass}
-                          onSelect={() => duplicateOrder.mutate({ id })}
-                          disabled={duplicateOrder.isPending}
-                        >
-                          <Copy className="h-4 w-4" />
-                          สำเนาออเดอร์
-                        </DropdownMenu.Item>
-                        {["DRAFT", "INQUIRY"].includes(order.internalStatus) && (
-                          // สะพานใบเสนอ: ออกใบเสนอผูกใบนี้ — ลูกค้าตกลงแล้วยืนยันออเดอร์เดิม ไม่สร้างซ้ำ
+                              {canEditItems && (
+                                <DropdownMenu.Item className={dropdownItemClass} onSelect={openItemsEditPage}>
+                                  <Edit3 className="h-4 w-4" />
+                                  แก้ไขรายการ
+                                </DropdownMenu.Item>
+                              )}
+                            </>
+                          )}
                           <DropdownMenu.Item
                             className={dropdownItemClass}
-                            onSelect={() => router.push(`/quotations/new?orderId=${id}`)}
+                            onSelect={() => duplicateOrder.mutate({ id })}
+                            disabled={duplicateOrder.isPending}
                           >
-                            <FileText className="h-4 w-4" />
-                            ออกใบเสนอราคา
+                            <Copy className="h-4 w-4" />
+                            สำเนาออเดอร์
                           </DropdownMenu.Item>
-                        )}
-                      </>
-                    )}
-                    {otherNext.length > 0 && (
-                      <>
-                        <DropdownMenu.Separator className={MENU_SEPARATOR} />
-                        {otherNext.map((status) => (
+                          {["DRAFT", "INQUIRY"].includes(order.internalStatus) && (
+                            // สะพานใบเสนอ: ออกใบเสนอผูกใบนี้ — ลูกค้าตกลงแล้วยืนยันออเดอร์เดิม ไม่สร้างซ้ำ
+                            <DropdownMenu.Item
+                              className={dropdownItemClass}
+                              onSelect={() => router.push(`/quotations/new?orderId=${id}`)}
+                            >
+                              <FileText className="h-4 w-4" />
+                              ออกใบเสนอราคา
+                            </DropdownMenu.Item>
+                          )}
+                        </>
+                      )}
+                      {otherNext.length > 0 && (
+                        <>
+                          <DropdownMenu.Separator className={MENU_SEPARATOR} />
+                          {otherNext.map((status) => (
+                            <DropdownMenu.Item
+                              key={status}
+                              className={dropdownItemClass}
+                              onSelect={() => handleStatusChange(status)}
+                              disabled={updateStatus.isPending}
+                            >
+                              <ChevronRight className="h-4 w-4" />
+                              {statusItemLabel(status)}
+                            </DropdownMenu.Item>
+                          ))}
+                        </>
+                      )}
+                      {canCancel && (
+                        <>
+                          <DropdownMenu.Separator className={MENU_SEPARATOR} />
                           <DropdownMenu.Item
-                            key={status}
-                            className={dropdownItemClass}
-                            onSelect={() => handleStatusChange(status)}
+                            className={cn(
+                              dropdownItemClass,
+                              "text-red-600 data-[highlighted]:bg-red-50 data-[highlighted]:text-red-700 dark:text-red-400 dark:data-[highlighted]:bg-red-950/40",
+                            )}
+                            onSelect={() => handleStatusChange("CANCELLED")}
                             disabled={updateStatus.isPending}
                           >
-                            <ChevronRight className="h-4 w-4" />
-                            {statusItemLabel(status)}
+                            <XCircle className="h-4 w-4" />
+                            ยกเลิกออเดอร์
                           </DropdownMenu.Item>
-                        ))}
-                      </>
-                    )}
-                    {canCancel && (
-                      <>
-                        <DropdownMenu.Separator className={MENU_SEPARATOR} />
-                        <DropdownMenu.Item
-                          className={cn(
-                            dropdownItemClass,
-                            "text-red-600 data-[highlighted]:bg-red-50 data-[highlighted]:text-red-700 dark:text-red-400 dark:data-[highlighted]:bg-red-950/40"
-                          )}
-                          onSelect={() => handleStatusChange("CANCELLED")}
-                          disabled={updateStatus.isPending}
-                        >
-                          <XCircle className="h-4 w-4" />
-                          ยกเลิกออเดอร์
-                        </DropdownMenu.Item>
-                      </>
-                    )}
-                  </DropdownMenu.Content>
-                </DropdownMenu.Portal>
-              </DropdownMenu.Root>
-            )}
-          </>
-        }
-      />
+                        </>
+                      )}
+                    </DropdownMenu.Content>
+                  </DropdownMenu.Portal>
+                </DropdownMenu.Root>
+              )}
+            </>
+          }
+        />
 
-      {/* แถบสรุป 3 ช่องบนมือถือ (ลูกค้า/กำหนดส่ง/ความเร่งด่วน) ถูกถอดออก — เบสสั่ง 2026-08-11
-          หลังเห็นจอจริง · ทั้งสามอย่างย้ายไปอยู่บนสุดของการ์ด "ข้อมูลออเดอร์" ในแท็บภาพรวม
-          (แท็บแรกที่เปิดมาเจอ) จึงไม่ได้หายไปจากหน้า แค่ไม่ต้องมีแถบซ้ำอีกชั้น */}
-
-      {/* revisions = ชุดเดียวกับที่แท็บประวัติใช้ (ไม่ยิง query เพิ่ม) — แถบสถานะเอาไปหาว่า
-          งานพัก/ยกเลิกค้างไว้ที่ขั้นไหนของสายงาน เพราะ 2 สถานะนี้ไม่มีที่ยืนใน flow
-          อยู่ใน "หัวใบ" เพราะ "งานอยู่ตรงไหน" คือส่วนหนึ่งของหัวเรื่อง ไม่ใช่ของแยกชิ้น */}
-      <OrderStatusBar
-        flowSteps={flowSteps}
-        currentStepIndex={currentStepIndex}
-        internalStatus={order.internalStatus}
-        customerStatus={order.customerStatus}
-        revisions={order.revisions ?? []}
-        cancelledAt={order.cancelledAt}
-        cancelledReason={order.cancelledReason}
-        // ปุ่มขั้นต่อไปหายไปตอนติดด่าน — เหตุผลต้องมาโผล่ตรงนี้แทน ไม่งั้นปุ่มหายเงียบ
-        blockers={nextStepBlockers(nextStep, orderContext.data?.readiness ?? null)}
-      />
-      <OrderNextStepGuidance
-        nextStep={nextStep}
-        readiness={orderContext.data?.readiness ?? null}
-        onEditItems={canUseEditForm && canEditItems ? openItemsEditPage : undefined}
-        onAnchor={handleAnchor}
-        canSeeMoney={canSeeMoney}
-      />
+        {/* revisions = ชุดเดียวกับแท็บประวัติ — รางใช้หาว่างานพัก/ยกเลิกค้างที่ขั้นไหน
+            ขั้นที่ยืนอยู่เป็นแคปซูลบอกว่าอยู่มากี่วันและใครทำ (ต้นแบบรอบ 2) */}
+        <OrderStatusBar
+          flowSteps={flowSteps}
+          currentStepIndex={currentStepIndex}
+          internalStatus={order.internalStatus}
+          customerStatus={order.customerStatus}
+          revisions={order.revisions ?? []}
+          cancelledAt={order.cancelledAt}
+          cancelledReason={order.cancelledReason}
+          currentDetail={currentDetail}
+        />
+        {/* คำอธิบายขั้นต่อไปผูกกับปุ่มผ่าน aria-describedby — เบสไม่เอาบรรทัดคำช่วยใต้ราง (2026-09-13)
+            จึงให้เครื่องอ่านหน้าจออ่านได้อย่างเดียว · ตอนติดด่านย้ายไปอยู่ในป้ายบนสุดพร้อมปุ่มแก้ */}
+        {blockers.length === 0 ? <div className="sr-only">{guidance}</div> : null}
       </div>
 
-      {/* จองสต๊อคมีปัญหา — ต้องเห็นทันทีบนหน้าออเดอร์ (ด่านพร้อมผลิตจะกั้นงานไม่ให้เข้าคิวช่างอยู่แล้ว
-          แต่คนแก้ต้นเหตุคือคนที่เปิดหน้านี้) · จองสำเร็จดูได้จากประวัติออเดอร์ */}
-      {order.stockReservationError && (
-        <div className={cn(TINT.error, "flex flex-wrap items-center gap-3 rounded-lg border px-4 py-3 text-sm")}>
-          <AlertTriangle className="h-4 w-4 shrink-0" />
-          <span className="min-w-0 flex-1">
-            <span className="font-medium">จองสต๊อคไม่สำเร็จ:</span> {order.stockReservationError}
-          </span>
-          {isSalesUp &&
-            ["CONFIRMED", "DESIGNING", "DESIGN_APPROVED", "PRODUCTION_QUEUE"].includes(
-              order.internalStatus
-            ) && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => retryReserve.mutate({ id })}
-                disabled={retryReserve.isPending}
-              >
-                {retryReserve.isPending ? "กำลังจอง..." : "จองใหม่"}
-              </Button>
-            )}
-        </div>
-      )}
-
-      {/* หมายเหตุใบนี้อยู่ "นอกแท็บ" โดยตั้งใจ — คนแพ็ค (แท็บจัดส่ง) กับช่าง (แท็บงานผลิต)
-          ต้องเห็น "ห้ามพับ / ส่งก่อนบ่าย 3" โดยไม่ต้องสลับกลับมาแท็บภาพรวม พลาดแล้วงานเสีย
-          โผล่เฉพาะใบที่มีหมายเหตุ — ใบปกติไม่กินที่เลย */}
-      {/* blind ship = ห้ามมีชื่อ/เอกสาร Anajak ในกล่อง · พลาดครั้งเดียวเสียลูกค้าขายซ้ำทั้งราย
-          อยู่นอกแท็บเพราะคนแพ็คทำงานอยู่แท็บ "จัดส่ง" — เดิมอยู่ในการ์ดแท็บภาพรวมที่ไม่มีใครกลับไปเปิด
-          เขียนเป็นประโยคเต็ม ไม่ใช้ไอคอน/สีล้วน (สีบอกว่า "มีอะไรบางอย่าง" แต่ไม่บอกว่าต้องทำอะไร) */}
-      {order.blindShip && (
-        <div className={cn(TINT.warning, "flex flex-wrap gap-x-2 gap-y-1 rounded-lg border px-4 py-3 text-sm")}>
-          <span className="font-medium">ส่งแบบไม่ระบุผู้ส่ง</span>
-          <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
-            ชื่อผู้ส่งบนกล่อง:{" "}
-            {order.blindShipSenderName || "ยังไม่ระบุ — ต้องกรอกก่อนแพ็ค"}
-          </span>
-        </div>
-      )}
-
-      {order.notes?.trim() && (
-        <div className={cn(TINT.warning, "flex flex-wrap gap-x-2 gap-y-1 rounded-lg border px-4 py-3 text-sm")}>
-          <span className="font-medium">หมายเหตุใบนี้</span>
-          <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">{order.notes}</span>
-        </div>
-      )}
-
-      {/* ====================================================
-          แท็บ + เนื้อหา — เต็มความกว้าง ไม่มีคอลัมน์ขวาแล้ว
-          คอลัมน์ขวาเดิม (ลูกค้า/ข้อมูลออเดอร์/ที่อยู่) คือของชิ้นเดียวกับแท็บ "ภาพรวม" เป๊ะ
-          เก็บไว้ทั้งคู่ = พูดเรื่องเดียวกัน 2 ที่ แล้ววันหลังแก้ที่เดียวอีกที่ค้าง
-          ผลพลอยได้: แถบแท็บไม่พาดคลุมของที่กดแล้วไม่เปลี่ยนอีกต่อไป (เบสบ่นเรื่องนี้ตรงๆ)
-      ==================================================== */}
       {deniedTab === "money" && (
         <Alert variant="warning" icon={AlertTriangle} title="เปิดส่วนเงินและบิลไม่ได้">
           บัญชีนี้ไม่มีสิทธิ์ดูข้อมูลการเงิน ระบบจึงพากลับมาที่ภาพรวม
@@ -874,8 +938,7 @@ function OrderDetailContent({
       )}
 
       <Tabs value={activeTab} onValueChange={changeTab}>
-        {/* sticky — เลื่อนลงไปลึกแค่ไหนก็ยังสลับแท็บได้
-            TabsBar = พื้นรองที่ทำให้เนื้อหาไม่วิ่งทะลุขึ้นมาอยู่ข้างแท็บตอนเลื่อน */}
+        {/* sticky — เลื่อนลงไปลึกแค่ไหนก็ยังสลับแท็บได้ · ตัวเลขข้างชื่อ = มีของอยู่ในแท็บนั้นกี่ชิ้น */}
         <TabsBar>
           <TabsList aria-label="ส่วนของออเดอร์">
             {visibleTabs.map((t) => (
@@ -886,117 +949,130 @@ function OrderDetailContent({
                 aria-label={t.key === pendingTab ? `${t.label} — มีงานค้าง` : undefined}
               >
                 {t.label}
+                {tabCounts[t.key] ? (
+                  <span className="rounded-full bg-surface-muted px-1.5 text-2xs font-semibold tabular-nums text-secondary">
+                    {tabCounts[t.key]}
+                  </span>
+                ) : null}
               </TabsTrigger>
             ))}
           </TabsList>
         </TabsBar>
 
-      <div className="mt-6">
-        <div>
-          {/* แท็บแรก: ภาพรวม — ผู้ติดต่อ/ข้อมูลงาน/ที่อยู่/แบรนด์ (เบสสั่ง 2026-08-11)
-              นี่คือบ้านของสิ่งที่เคยอยู่คอลัมน์ขวา บวกของที่มีในฐานแต่หน้าไม่เคยโชว์ */}
-          {visitedTabs.has("overview") && <TabsContent value="overview" keepMounted className="space-y-6">
-            <OrderOverviewTab
-              order={order}
-              showMoney={canSeeMoney}
-              totalAmount={totalAmount}
-              totalQuantity={sumOrderQuantity(order.items ?? [])}
-              onOpenMoney={canSeeMoney ? () => changeTab("money") : undefined}
-              onOpenDelivery={() => changeTab("delivery")}
-              onEditInfo={
-                canUseEditForm
-                  ? (section) => openInfoEditPage(section, "overview")
-                  : undefined
-              }
-              artwork={
-                <OrderArtworkCard
-                  orderId={id}
-                  description={order.description}
-                  onOpenFiles={() => changeTab("files")}
-                />
-              }
-              channelColor={channelColor}
-              isMarketplace={isMarketplace}
-            />
-          </TabsContent>}
+        <div className="mt-5">
+          {/* แท็บแรก: ภาพรวม — ข้อมูลออเดอร์ซ้าย · ม็อกอัพ & ไฟล์ขวา (เบสเคาะ 2026-09-13) · เส้นเวลาใต้ */}
+          {visitedTabs.has("overview") && (
+            <TabsContent value="overview" keepMounted className="space-y-4">
+              <OrderOverviewTab
+                order={order}
+                showMoney={canSeeMoney}
+                totalAmount={totalAmount}
+                totalQuantity={sumOrderQuantity(order.items ?? [])}
+                dueInDays={isAttentionStatus(order.internalStatus) ? progress.dueInDays : undefined}
+                sizeBreakdown={sizeBreakdown}
+                paidAmount={paidAmount}
+                printLabel={printLabel}
+                onOpenMoney={canSeeMoney ? () => changeTab("money") : undefined}
+                onOpenDelivery={() => changeTab("delivery")}
+                onEditInfo={
+                  canUseEditForm
+                    ? (section) => openInfoEditPage(section, "overview")
+                    : undefined
+                }
+                artwork={
+                  <OrderArtworkCard
+                    orderId={id}
+                    description={order.description}
+                    onOpenFiles={() => changeTab("files")}
+                  />
+                }
+                channelColor={channelColor}
+                isMarketplace={isMarketplace}
+              />
+              <OrderTimelineCard revisions={order.revisions ?? []} onOpenHistory={() => changeTab("history")} />
+            </TabsContent>
+          )}
 
-          {visitedTabs.has("items") && <TabsContent value="items" keepMounted className="space-y-6">
-            <OrderItemsDisplay
-              orderId={id}
-              items={order.items ?? []}
-              fees={order.fees ?? []}
-              onEditItems={canEditItems && canUseEditForm ? openItemsEditPage : undefined}
-              showMoney={canSeeMoney}
-              canEditReceiveTracking={canEditReceiveTracking}
-              totals={{ discount, taxRate: order.taxRate, taxAmount: order.taxAmount, totalAmount }}
-            />
-            <OrderChangeOrders orderId={id} />
-          </TabsContent>}
+          {visitedTabs.has("items") && (
+            <TabsContent value="items" keepMounted className="space-y-6">
+              <OrderItemsDisplay
+                orderId={id}
+                items={order.items ?? []}
+                fees={order.fees ?? []}
+                onEditItems={canEditItems && canUseEditForm ? openItemsEditPage : undefined}
+                showMoney={canSeeMoney}
+                canEditReceiveTracking={canEditReceiveTracking}
+                totals={{ discount, taxRate: order.taxRate, taxAmount: order.taxAmount, totalAmount }}
+              />
+              <OrderChangeOrders orderId={id} />
+            </TabsContent>
+          )}
 
-          {visitedTabs.has("production") && <TabsContent value="production" keepMounted className="space-y-6">
-            {/* ม็อกอัพย้ายไปแท็บ "ม็อกอัพ & ไฟล์" เป็นบ้านเดียว (2026-08-22) — ตรงนี้เหลือ
-                แถบสรุปพาไป ไม่ทำ UI จัดการซ้ำ เดิมกางการ์ดอัป/อนุมัติเต็มตัวไว้บนสุดของแท็บ
-                แล้วแท็บไฟล์ก็มีสรุปของเรื่องเดียวกันอีก คนอ่านไม่รู้ว่าอันไหนของจริง */}
-            <OrderMockupHandoff
-              orderId={id}
-              onOpenMockup={() => changeTab("files")}
-            />
+          {visitedTabs.has("production") && (
+            <TabsContent value="production" keepMounted>
+              {/* สองคอลัมน์ตามต้นแบบ: ความคืบหน้าการผลิต/รับเสื้อซ้าย · ของที่ต้องพร้อม (ม็อกอัพ/QC) ขวา
+                  ตัวจัดการผลิตจริงอยู่หน้าผลิต · ม็อกอัพมีบ้านเดียวที่แท็บม็อกอัพ & ไฟล์ */}
+              <div className="grid items-start gap-4 xl:grid-cols-2">
+                <div className="min-w-0 space-y-4">
+                  {/* การ์ดสรุปอ่านอย่างเดียว — ตัวจัดการผลิตจริงอยู่ /production (เบสเคาะแยกโมดูล) */}
+                  <ProductionSummaryCard
+                    orderId={id}
+                    internalStatus={order.internalStatus}
+                    productions={order.productions ?? []}
+                    isManagerUp={!!me && permAllows(me.permissions, "supervise_operations")}
+                    productionV2Enabled={productionV2Enabled}
+                  />
+                  {/* V2 ให้ Prep/QC ทำจาก Station เท่านั้น หน้าออเดอร์คงเป็น summary + deep link */}
+                  {!productionV2Enabled ? (
+                    <OrderGoodsReceiptSection
+                      orderId={id}
+                      itemSources={(order.items ?? []).flatMap((it) =>
+                        (it.products ?? [])
+                          .map((p) => p.itemSource)
+                          .filter((s): s is string => s !== null)
+                      )}
+                      canReceive={!!me && permAllows(me.permissions, "manage_delivery")}
+                    />
+                  ) : null}
+                </div>
+                <div className="min-w-0 space-y-4">
+                  <OrderMockupHandoff orderId={id} onOpenMockup={() => changeTab("files")} />
+                  {!productionV2Enabled ? (
+                    <OrderQcSection
+                      orderId={id}
+                      internalStatus={order.internalStatus}
+                      canCount={!!me && permAllows(me.permissions, "manage_production")}
+                    />
+                  ) : null}
+                </div>
+              </div>
+            </TabsContent>
+          )}
 
-            {/* V2 ให้ Prep/QC ทำจาก Station เท่านั้น หน้าออเดอร์คงเป็น summary + deep link.
-                หน้าเดิมยังอยู่ครบหลัง flag หนึ่ง release เพื่อ rollback. */}
-            {!productionV2Enabled ? (
-              <>
-                <OrderGoodsReceiptSection
-                  orderId={id}
-                  itemSources={(order.items ?? []).flatMap((it) =>
-                    (it.products ?? [])
-                      .map((p) => p.itemSource)
-                      .filter((s): s is string => s !== null)
-                  )}
-                  canReceive={!!me && permAllows(me.permissions, "manage_delivery")}
-                />
-
-                <OrderQcSection
+          {visitedTabs.has("delivery") && (
+            <TabsContent value="delivery" keepMounted className="space-y-6">
+              {showDeliverySection ? (
+                <OrderDeliverySection
                   orderId={id}
                   internalStatus={order.internalStatus}
-                  canCount={!!me && permAllows(me.permissions, "manage_production")}
+                  customerName={order.customer?.name}
+                  customerPhone={order.customer?.phone ?? undefined}
+                  customerHasAddress={!!order.customer?.address}
+                  customerAddress={order.customer?.address}
+                  orderShipping={order}
                 />
-              </>
-            ) : null}
-
-            {/* การ์ดสรุปอ่านอย่างเดียว — ตัวจัดการผลิตจริงอยู่ /production/[id] (เบสเคาะแยกโมดูล) */}
-            <ProductionSummaryCard
-              orderId={id}
-              internalStatus={order.internalStatus}
-              productions={order.productions ?? []}
-              isManagerUp={!!me && permAllows(me.permissions, "supervise_operations")}
-              productionV2Enabled={productionV2Enabled}
-            />
-          </TabsContent>}
-
-          {visitedTabs.has("delivery") && <TabsContent value="delivery" keepMounted className="space-y-6">
-            {showDeliverySection ? (
-              <OrderDeliverySection
-                orderId={id}
-                internalStatus={order.internalStatus}
-                customerName={order.customer?.name}
-                customerPhone={order.customer?.phone ?? undefined}
-                customerHasAddress={!!order.customer?.address}
-                customerAddress={order.customer?.address}
-                orderShipping={order}
-              />
-            ) : (
-              /* แท็บอยู่เสมอแม้ยังไม่ถึงเฟส — ถ้าซ่อนตามสถานะ ชุดแท็บจะเปลี่ยนใต้มือ
-                 ระหว่างวันเดียวกัน (สถานะเดินหลายรอบต่อวัน) ตำแหน่งที่คนจำไว้จะขยับ */
-              <Section title="จัดส่ง" icon={Truck} tone="production">
-                <EmptyState
-                  icon={Truck}
-                  title="ยังไม่ถึงขั้นจัดส่ง"
-                  description="ส่วนนี้จะเปิดเมื่อผลิตและตรวจนับเสร็จ"
-                />
-              </Section>
-            )}
-          </TabsContent>}
+              ) : (
+                /* แท็บอยู่เสมอแม้ยังไม่ถึงเฟส — ถ้าซ่อนตามสถานะ ชุดแท็บจะเปลี่ยนใต้มือระหว่างวัน */
+                <Section title="จัดส่ง" icon={Truck} tone="production">
+                  <EmptyState
+                    icon={Truck}
+                    title="ยังไม่ถึงขั้นจัดส่ง"
+                    description="ส่วนนี้จะเปิดเมื่อผลิตและตรวจนับเสร็จ"
+                  />
+                </Section>
+              )}
+            </TabsContent>
+          )}
 
           {/* ไม่มีสิทธิ์ดูเงิน = ไม่ render ทั้งก้อน (แท็บก็ถูกกรองออกจาก visibleTabs) */}
           {canSeeMoney && visitedTabs.has("money") && (
@@ -1014,28 +1090,27 @@ function OrderDetailContent({
             </TabsContent>
           )}
 
-          {visitedTabs.has("files") && <TabsContent value="files" keepMounted className="space-y-6">
-            {/* ชั้น 2 (ม็อกอัพ) มาก่อนเพราะเป็นของที่คนเปิดแท็บนี้มาหาบ่อยที่สุด —
-                ชั้น 1 ไฟล์ดิบลูกค้า และชั้น 3 ไฟล์พิมพ์ อยู่ในการ์ดถัดลงไป */}
-            <MockupPanel
-              orderId={id}
-              internalStatus={order.internalStatus}
-              canSeeMoney={canSeeMoney}
-            />
-            <OrderFilesPanel
-              orderId={id}
-              userId={me.id}
-              userRole={me.role}
-            />
-          </TabsContent>}
+          {visitedTabs.has("files") && (
+            <TabsContent value="files" keepMounted>
+              {/* ม็อกอัพซ้าย (ของที่คนเปิดแท็บนี้มาหาบ่อยสุด) · ไฟล์ลูกค้า/ไฟล์พิมพ์ขวา */}
+              <div className="grid items-start gap-4 xl:grid-cols-2">
+                <div className="min-w-0">
+                  <MockupPanel orderId={id} internalStatus={order.internalStatus} canSeeMoney={canSeeMoney} />
+                </div>
+                <div className="min-w-0">
+                  <OrderFilesPanel orderId={id} userId={me.id} userRole={me.role} />
+                </div>
+              </div>
+            </TabsContent>
+          )}
 
-          {visitedTabs.has("history") && <TabsContent value="history" keepMounted className="space-y-6">
-            <OrderRevisions revisions={order.revisions ?? []} />
-          </TabsContent>}
+          {visitedTabs.has("history") && (
+            <TabsContent value="history" keepMounted className="space-y-6">
+              <OrderRevisions revisions={order.revisions ?? []} />
+            </TabsContent>
+          )}
         </div>
-      </div>
       </Tabs>
-
     </div>
   );
 }

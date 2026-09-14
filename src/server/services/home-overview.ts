@@ -1,14 +1,9 @@
 import type { CustomerStatus, InternalStatus, Prisma } from "@prisma/client";
 import type { ExtendedPrismaClient } from "@/lib/prisma";
-import { differenceInBangkokDays } from "@/lib/date-utils";
-import {
-  evaluateHeatPressGate,
-  isOutsourceStep,
-  STEP_TYPE_LABELS,
-  type GateStepLite,
-} from "@/lib/production-steps";
+import { differenceInBangkokDays, startOfBangkokDay } from "@/lib/date-utils";
+import { DESIGN_WAIT_STATUSES, describeOrderProgress } from "@/lib/order-progress";
+import { evaluateHeatPressGate, type GateStepLite } from "@/lib/production-steps";
 import { printLabelOf } from "@/lib/print-labels";
-import { BANGKOK_TZ } from "@/lib/utils";
 import { aggToNumber } from "@/server/services/money";
 import { getOwnerPulse } from "@/server/services/owner-pulse";
 import { PREP_QUEUE_WHERE } from "@/server/services/factory-board";
@@ -32,7 +27,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 // ออเดอร์ที่ยังต้องดูแลบนหน้าแรก — ส่งแล้ว/จบ/ยกเลิก/ร่าง ไม่นับ
 const ACTIVE_ORDER_EXCLUDED = ["DRAFT", "CANCELLED", "COMPLETED", "SHIPPED"] as const satisfies readonly InternalStatus[];
 // ช่วงก่อนเปิดใบผลิต = ช่องแรกของผัง (ออกแบบ/รอลูกค้า)
-const DESIGN_STAGE_STATUSES = ["CONFIRMED", "DESIGNING"] as const satisfies readonly InternalStatus[];
+const DESIGN_STAGE_STATUSES = DESIGN_WAIT_STATUSES;
 const OUTSOURCE_OPEN_STATUSES = ["SENT", "IN_PROGRESS"] as const;
 
 const FILM_QUEUE_WHERE = {
@@ -166,9 +161,7 @@ export interface HomeOverview {
 
 /** เที่ยงคืนของวันนี้ตามเวลาไทย — เส้นแบ่ง "วันนี้" ของทุกตัวเลขในไฟล์นี้ */
 export function startOfBangkokToday(now = new Date()): Date {
-  return new Date(
-    new Intl.DateTimeFormat("en-CA", { timeZone: BANGKOK_TZ }).format(now) + "T00:00:00+07:00",
-  );
+  return startOfBangkokDay(now);
 }
 
 /** สรุปด่านรีดร้อน: กี่ใบพร้อมรีด กี่ใบติดรอฟิล์ม/รอเสื้อ (ใบเดียวติดได้ทั้งสองอย่าง) */
@@ -225,77 +218,27 @@ export function computeOnTime(
   return { shipped, onTime, rate: shipped > 0 ? Math.round((onTime / shipped) * 100) : null };
 }
 
-const OPEN_STEP = new Set(["PENDING", "IN_PROGRESS"]);
-
-function stepLabel(step: { stepType: string; customStepName: string | null }): string {
-  return (step.customStepName || STEP_TYPE_LABELS[step.stepType] || step.stepType).replace(" (ร้านนอก)", "");
-}
-
-/** แปลงแถวออเดอร์เป็นข้อมูลหน้าแรก — เงินคืนเฉพาะเมื่อ canSeeFinance */
+/** แปลงแถวออเดอร์เป็นข้อมูลหน้าแรก — เงินคืนเฉพาะเมื่อ canSeeFinance
+ *  ขั้นที่ค้าง/ร้านนอก/รอลูกค้า/วันที่นิ่ง ใช้สูตรกลาง lib/order-progress (ตารางออเดอร์ใช้ตัวเดียวกัน) */
 export function describeHomeOrderRow(
   row: HomeOrderRow,
   now: Date,
   canSeeFinance: boolean,
 ): HomeOrder {
-  const steps = row.productions[0]?.steps ?? [];
-  const current = steps.find((step) => OPEN_STEP.has(step.status)) ?? null;
-  const stepsDone = steps.filter((step) => step.status === "COMPLETED").length;
-
-  // งานที่อยู่ร้านนอก: ใบ outsource ที่ยังไม่รับกลับ ใบไหนก็ได้ในใบผลิต (ไม่ใช่แค่ขั้นปัจจุบัน)
-  const startToday = startOfBangkokToday(now);
-  let vendor: HomeOrder["vendor"] = null;
-  for (const step of steps) {
-    const open = step.outsourceOrders[0];
-    if (!open) continue;
-    const overdueDays =
-      open.expectedBackAt && open.expectedBackAt < startToday
-        ? Math.max(0, -(differenceInBangkokDays(open.expectedBackAt, now) ?? 0))
-        : 0;
-    if (!vendor || overdueDays > vendor.overdueDays) vendor = { name: open.vendor.name, overdueDays };
-  }
-
-  const latestDesign = row.designs[0];
-  const waitingCustomerDays =
-    latestDesign?.approvalStatus === "PENDING" &&
-    (DESIGN_STAGE_STATUSES as readonly InternalStatus[]).includes(row.internalStatus)
-      ? Math.max(0, differenceInBangkokDays(now, latestDesign.createdAt) ?? 0)
-      : null;
-
-  // ความเคลื่อนไหวล่าสุด = updatedAt หรือประวัติ (revision) ล่าสุด — นิยามเดียวกับ owner-pulse
-  const lastActivity = [row.updatedAt, row.revisions[0]?.createdAt]
-    .filter((value): value is Date => value instanceof Date)
-    .sort((a, b) => b.getTime() - a.getTime())[0];
-  const stuckDays = lastActivity ? Math.max(0, differenceInBangkokDays(now, lastActivity) ?? 0) : null;
-
   const firstItem = row.items[0];
   const title =
     row.description?.trim() || firstItem?.products[0]?.description?.trim() || firstItem?.description?.trim() || null;
 
   return {
+    ...describeOrderProgress(row, now),
     id: row.id,
-    orderNumber: row.orderNumber,
     customerName: row.customer.company || row.customer.name,
     title,
     printLabel: printLabelOf(row.items.flatMap((item) => item.prints.map((print) => print.printType))),
     quantity: row.items.reduce((sum, item) => sum + item.totalQuantity, 0),
     totalAmount: canSeeFinance ? row.totalAmount : null,
     deadline: row.deadline,
-    dueInDays: differenceInBangkokDays(row.deadline, now),
     customerStatus: row.customerStatus,
-    internalStatus: row.internalStatus,
-    currentStep: current
-      ? {
-          label: stepLabel(current),
-          assigneeName: current.assignedTo?.name ?? null,
-          outsource: isOutsourceStep(current.stepType),
-        }
-      : null,
-    stepsDone,
-    stepsTotal: steps.length,
-    waitingCustomerDays,
-    vendor,
-    stuckDays,
-    ready: row.internalStatus === "READY_TO_SHIP",
   };
 }
 

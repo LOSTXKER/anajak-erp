@@ -1,62 +1,50 @@
 import Link from "next/link";
+import type { LucideIcon } from "lucide-react";
 import {
-  User,
-  Info,
-  Truck,
-  Palette,
   ArrowRight,
-  Wallet,
-  Repeat2,
+  Banknote,
   CalendarClock,
+  CalendarDays,
+  ChevronRight,
   CreditCard,
+  Info,
+  Mail,
+  MessageCircle,
+  Package,
+  Palette,
+  Phone,
+  Repeat2,
+  Truck,
+  User,
+  Wallet,
 } from "lucide-react";
-import { Section, SectionTitle } from "@/components/ui/section";
+import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ChatLink } from "@/components/customers/chat-link";
-import { cn, formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
+import { HomeIconTile, type HomeTone } from "@/components/dashboard/home/home-card";
+import { cn, formatBaht, formatDate, formatDateTime } from "@/lib/utils";
+import { differenceInBangkokDays } from "@/lib/date-utils";
 import type { OrderType, CustomerStatus } from "@prisma/client";
-import {
-  CHANNEL_LABELS,
-  CUSTOMER_STATUS_LABELS,
-  ORDER_TYPE_UI_LABELS,
-  PRIORITY_LABELS,
-} from "@/lib/order-status";
+import { CHANNEL_LABELS, ORDER_TYPE_UI_LABELS, PRIORITY_LABELS } from "@/lib/order-status";
 import { PAYMENT_TERMS_LABELS } from "@/lib/payment-terms";
-import { DISPLAY_AMOUNT, FOCUS_BUTTON, RADIUS } from "@/components/ui/tokens";
+import { FOCUS_BUTTON, INTERACTIVE_PRESSED, RADIUS } from "@/components/ui/tokens";
 import { VISUAL_TONE_CLASSES, type VisualTone } from "@/lib/visual-tone";
 
 /* ============================================================
-   แท็บ "ภาพรวม" — ที่รวมของที่ "ไม่ใช่รายการสินค้า" ทั้งหมด
-   (เบสสั่ง 2026-08-11: "tab แรกเป็นแบบภาพรวมดีกว่า จะเป็นพวกผู้ติดต่อ
-    และอื่นๆ แต่รายการ แยกไปอีก tab นึง")
+   แท็บ "ภาพรวม" ของหน้าออเดอร์ (ต้นแบบรอบ 2 · เบส "โอเคทำจริงเลย" 2026-09-14)
 
-   หลังย้ายการแก้ไขไปหน้าเต็ม หน้านี้เป็น read surface: สรุปข้อมูลตัดสินใจก่อน
-   แล้วค่อยแยกลูกค้า/การจัดส่งตามเจ้าของข้อมูล · optional ที่ไม่มีค่าหายทั้งแถว
-   แทนการจำลองฟอร์มอ่านอย่างเดียวด้วยช่อง "-" จำนวนมาก
+   โครง: ข้อมูลออเดอร์ซ้าย · ม็อกอัพ & ไฟล์ขวา (เบสเคาะ 2026-09-13)
+   การ์ดซ้ายใบเดียวเรียงตามที่คนเปิดใบงานถาม: กำหนดส่ง/จำนวน/ยอด → ประเภท/ช่องทาง/เงื่อนไข →
+   ลูกค้า (ติดต่อได้ทันที) → การจัดส่ง → ใครเปิด/แก้ล่าสุด
+   ช่องข้อมูลหลักมีภาพช่วยอ่าน: วงเวลาที่ใช้ไปของกำหนดส่ง, ไซซ์แยก, แถบรับเงินแล้ว
 
-   ── หน้าตารอบ 2026-08-30 (เบสเคาะจากหน้าลอง /proto/order-detail แบบ B) ──
-   เดิมเป็นการ์ดใหญ่ "สรุปออเดอร์" เต็มความกว้างบนสุด แล้วค่อยการ์ดลูกค้า/จัดส่ง
-   ทุกการ์ดหัวข้อตัวหนาเท่ากันหมด อ่านแล้วไม่รู้ว่าอะไรสำคัญกว่าอะไร
-
-   ตอนนี้: **หัวใบ** (ใน order-detail-page.tsx) เป็นจุดเดียวที่เสียงดัง — เลขที่
-   สถานะ ปุ่มขั้นต่อไป · แท็บนี้จึง "เงียบ" ทั้งหมด หัวข้อการ์ดเป็น
-   `compact` (ตัวเล็กสีจาง) ไม่แข่งกับหัวใบ
-
-   สิ่งที่ต้องรู้ก่อนแก้ต่อ:
-   - เบสสั่งเอง 2026-08-30 ว่าหัวใบ "มีแค่สถานะกับ CTA ก็พอ" → กำหนดส่ง/จำนวน/ยอด
-     ที่เคยอยู่บนหัวย้ายมาอยู่บนสุดของการ์ด "ข้อมูลออเดอร์" **ห้ามลบทิ้ง**
-     สามค่านี้ไม่มีที่อยู่อื่นในทั้งหน้า (ลูกค้าไม่ต้องย้ายมา — การ์ดลูกค้าบอกอยู่แล้ว)
-   - คอลัมน์สรุปถูกวางไว้ **ก่อน** ในลำดับ DOM แล้วค่อยดันไปอยู่ขวาด้วย grid
-     บนจอกว้าง — เพื่อให้มือถือ (ที่ซ้อนตามลำดับ DOM) เห็นกำหนดส่ง/ยอด
-     ก่อนต้องเลื่อนผ่านรายละเอียดงานกับการ์ดลูกค้าที่ยาว
-
-   ⚠️ TabsContent ของหน้านี้ forceMount เสมอ (ซ่อนด้วย CSS ไม่ถอด DOM)
-   → ข้อมูลเงินต้อง gate ด้วย {showMoney && ...} ระดับ JSX เท่านั้น
-   ห้ามซ่อนด้วยคลาส และห้าม fallback เป็น ฿0/— เพราะช่างจะเปิด DOM เห็นตัวเลขจริง
+   ⚠️ TabsContent ของหน้านี้ keepMounted (ซ่อนด้วย CSS ไม่ถอด DOM)
+   → ข้อมูลเงินต้อง gate ด้วย {showMoney && ...} ระดับ JSX เท่านั้น ห้ามซ่อนด้วยคลาส
+   และห้าม fallback เป็น ฿0/— เพราะช่างจะเปิด DOM เห็นตัวเลขจริง
    ============================================================ */
 
-/** ช่องหนึ่งช่องของ "ประวัติลูกค้า" ในการ์ดลูกค้า (แบบ B · สีบอกหมวด) */
+/** ช่องหนึ่งช่องของ "ประวัติลูกค้า" (แบบ B · สีบอกหมวด เบสเคาะ 2026-08-31) */
 type CustomerHistoryCell = {
   key: string;
   label: string;
@@ -139,26 +127,29 @@ interface OverviewOrder {
   createdBy: { name: string | null } | string | null;
 }
 
-export type OrderOverviewVariant = "current" | "a" | "b";
-
 interface OrderOverviewTabProps {
-  /** หน้าลอง A16; ไม่ส่งยังใช้โครงที่ใช้งานอยู่ */
-  variant?: OrderOverviewVariant;
   order: OverviewOrder;
   // นโยบาย ⑦: ช่าง/กราฟิกไม่เห็นเงินฝั่งขาย — false = ไม่โชว์ยอด/ปุ่มเงินเลย (ห้ามโชว์ ฿0)
   showMoney: boolean;
   totalAmount: number;
   totalQuantity: number;
-  // การ์ดบิล+สรุปราคาอยู่แท็บ "เงิน/บิล" — ที่นี่โชว์ยอดรวมบรรทัดเดียว กดแล้วเด้งไปแท็บนั้น
+  /** วันถึงกำหนดส่งตามปฏิทินไทย (หน้าแม่คิดจาก "ตอนนี้") · ไม่ส่ง = ไม่วาดวงเวลา (เช่นงานที่จบแล้ว) */
+  dueInDays?: number | null;
+  /** จำนวนแยกไซซ์ของทั้งใบ */
+  sizeBreakdown?: readonly { size: string; quantity: number }[];
+  /** ยอดที่รับชำระแล้วจากสูตรกลาง billingOverview — ส่งมาเฉพาะคนเห็นเงิน */
+  paidAmount?: number | null;
+  /** ชนิดงานพิมพ์ของทั้งใบ เช่น DTF · สกรีน · ผสม */
+  printLabel?: string | null;
+  // การ์ดบิล+สรุปราคาอยู่แท็บ "เงิน/บิล" — ที่นี่โชว์ยอดรวม กดแล้วเด้งไปแท็บนั้น
   onOpenMoney?: () => void;
   // เลขพัสดุเป็นข้อมูลของงานจัดส่ง ไม่ใช่ฟอร์มที่อยู่ — กดแล้วไปดู delivery จริงทุกใบ
   onOpenDelivery?: () => void;
-  // เปิดฟอร์มแก้เต็มหน้าโดยโฟกัสการ์ดที่กด — ไม่ส่งมา = ไม่มีสิทธิ์แก้ ปุ่มไม่ต้องขึ้น
+  // เปิดฟอร์มแก้เต็มหน้าโดยโฟกัสส่วนที่กด — ไม่ส่งมา = ไม่มีสิทธิ์แก้ ปุ่มไม่ต้องขึ้น
   onEditInfo?: (section: "info" | "shipping") => void;
   onOpenCustomer?: () => void;
-  /* การ์ด "งานนี้พิมพ์อะไร" (ม็อกอัพ + รายละเอียดงาน + สรุปไฟล์) — ส่งเข้ามาเป็นชิ้นสำเร็จ
-     เพราะแท็บนี้เป็น read surface ที่รับ props ล้วน ไม่ยิง query เอง ส่วนการ์ดนั้นต้องยิง
-     (ม็อกอัพ/ไฟล์อยู่คนละตาราง) · หน้าแม่จึงประกอบมาให้ แล้วที่นี่แค่วางตำแหน่ง */
+  /* การ์ด "ม็อกอัพ & ไฟล์" คอลัมน์ขวา — ส่งเข้ามาเป็นชิ้นสำเร็จ เพราะแท็บนี้เป็น read surface
+     ที่รับ props ล้วน ไม่ยิง query เอง ส่วนการ์ดนั้นต้องยิง (ม็อกอัพ/ไฟล์อยู่คนละตาราง) */
   artwork?: React.ReactNode;
   channelColor: { bg: string; text: string };
   isMarketplace: boolean;
@@ -168,17 +159,30 @@ interface OrderOverviewTabProps {
 // ชิ้นส่วนหน้าตา
 // ============================================================
 
-/** กริดของช่องข้อมูลรอง — การ์ดล่างค่อยแยก 2 คอลัมน์เมื่อพื้นที่พอ */
-function FieldGrid({ children }: { children: React.ReactNode }) {
+function TileTitle({ icon, tone = "neutral", children }: { icon: LucideIcon; tone?: HomeTone; children: React.ReactNode }) {
   return (
-    <dl className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
+    <span className="flex items-center gap-2.5">
+      <HomeIconTile icon={icon} tone={tone} />
       {children}
-    </dl>
+    </span>
   );
 }
 
-/** ช่องข้อมูลหนึ่งช่อง — ป้ายเล็กกว่าค่าเสมอ · ค่าว่างจางกว่าข้อมูลจริง
- *  (ถ้าป้ายกับค่าน้ำหนักเท่ากัน สายตาจะไล่หาข้อมูลจริงไม่เจอเวลาช่องเยอะๆ) */
+function SubHeading({ icon, tone, children }: { icon: LucideIcon; tone?: HomeTone; children: React.ReactNode }) {
+  return (
+    <h3 className="flex items-center gap-2 text-sm font-semibold text-strong">
+      <HomeIconTile icon={icon} tone={tone} size="sm" />
+      {children}
+    </h3>
+  );
+}
+
+/** กริดของช่องข้อมูลรอง — แยก 2 คอลัมน์เมื่อพื้นที่พอ */
+function FieldGrid({ children }: { children: React.ReactNode }) {
+  return <dl className="grid grid-cols-1 gap-x-6 gap-y-3.5 sm:grid-cols-2">{children}</dl>;
+}
+
+/** ช่องข้อมูลหนึ่งช่อง — ป้ายเล็กกว่าค่าเสมอ · ค่าว่างจางกว่าข้อมูลจริง */
 function Field({
   label,
   children,
@@ -188,17 +192,13 @@ function Field({
 }: {
   label: React.ReactNode;
   children?: React.ReactNode;
-  /** ค่ายาว (รายละเอียด/ที่อยู่/หมายเหตุ) — กินเต็มแถว ไม่ต้องบีบครึ่งคอลัมน์ */
+  /** ค่ายาว (ที่อยู่/หมายเหตุ) — กินเต็มแถว */
   wide?: boolean;
   emptyText?: string;
   /** ว่างแล้วมีผลกระทบจริง (เช่นไม่มีเลขภาษี = ออกใบกำกับไม่ได้) — ใช้โทนเตือนแทนสีจาง */
   emptyTone?: "warn";
 }) {
-  const filled =
-    children !== null &&
-    children !== undefined &&
-    children !== false &&
-    children !== "";
+  const filled = children !== null && children !== undefined && children !== false && children !== "";
 
   // optional ที่ไม่มีค่าไม่ใช่ข้อมูล — ถอดทั้ง label/value ออกแทนการสร้างแถว "-"
   if (!filled && !emptyText) return null;
@@ -223,92 +223,129 @@ function Field({
   );
 }
 
-/** ข้อเท็จจริงหลักของใบงาน — ค่าต้องเด่นกว่าป้าย แต่ไม่ทำเป็นการ์ดย่อยซ้อนการ์ด */
+const FACT_TONE = {
+  neutral: "text-strong",
+  warning: "text-amber-700 dark:text-amber-300",
+  danger: "text-red-700 dark:text-red-300",
+} as const;
+type FactTone = keyof typeof FACT_TONE;
+
+/** ข้อเท็จจริงหลักของใบงาน — ช่องจมหนึ่งช่อง ค่าเด่นกว่าป้าย มีภาพช่วยอ่านทางซ้ายได้ */
 function SummaryFact({
   label,
-  children,
+  icon: Icon,
+  tone = "neutral",
+  visual,
   detail,
+  children,
 }: {
   label: React.ReactNode;
-  children: React.ReactNode;
+  icon?: LucideIcon;
+  tone?: FactTone;
+  visual?: React.ReactNode;
   detail?: React.ReactNode;
+  children: React.ReactNode;
 }) {
   return (
-    <div className="min-w-0 space-y-1">
-      <dt className="text-xs font-medium text-muted">{label}</dt>
-      <dd className="min-w-0 text-lg font-semibold text-strong [overflow-wrap:anywhere]">
-        <span className="block min-w-0 [overflow-wrap:anywhere]">
+    <div className="flex min-w-0 items-center gap-3 rounded-xl bg-surface-muted px-3.5 py-3">
+      {visual}
+      <div className="min-w-0 flex-1">
+        <dt className="flex items-center gap-1.5 text-xs font-medium text-muted">
+          {Icon ? <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" /> : null}
+          {label}
+        </dt>
+        <dd className={cn("mt-0.5 min-w-0 text-lg font-semibold tabular-nums [overflow-wrap:anywhere]", FACT_TONE[tone])}>
           {children}
-        </span>
-        {detail && (
-          <span className="mt-1 block min-w-0 text-xs font-normal text-muted [overflow-wrap:anywhere]">
-            {detail}
-          </span>
-        )}
-      </dd>
+          {detail ? <span className="mt-1 block text-xs font-normal text-muted">{detail}</span> : null}
+        </dd>
+      </div>
     </div>
   );
 }
 
-/** metadata ระดับอ้างอิง — วางเป็นบรรทัดเงียบ ไม่แข่งกับข้อเท็จจริงหลัก */
-function ReferenceItem({
-  label,
+const RING_TONE: Record<FactTone, string> = {
+  neutral: "stroke-blue-600 dark:stroke-blue-400",
+  warning: "stroke-amber-500",
+  danger: "stroke-red-500",
+};
+
+/** วงเวลาของกำหนดส่ง — ส่วนที่ทึบ = เวลาที่ใช้ไปแล้วนับจากวันเปิดงาน · ตัวเลข = วันที่เหลือ */
+function DueRing({ used, label, tone }: { used: number; label: string; tone: FactTone }) {
+  const circumference = 2 * Math.PI * 16;
+  const ratio = Math.min(1, Math.max(0, used));
+  return (
+    <span className="relative h-11 w-11 shrink-0" aria-hidden="true">
+      <svg viewBox="0 0 40 40" className="h-11 w-11 -rotate-90">
+        <circle cx="20" cy="20" r="16" className="fill-none stroke-border" strokeWidth="4" />
+        <circle
+          cx="20"
+          cy="20"
+          r="16"
+          className={cn("fill-none", RING_TONE[tone])}
+          strokeWidth="4"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={circumference * (1 - ratio)}
+        />
+      </svg>
+      <span className="absolute inset-0 flex items-center justify-center text-2xs font-semibold tabular-nums text-strong">
+        {label}
+      </span>
+    </span>
+  );
+}
+
+const CONTACT_ROW = "flex min-h-11 min-w-0 items-center gap-3 rounded-xl border border-divider px-2.5 py-2";
+
+/** ช่องทางติดต่อหนึ่งแถว — ต้องดูออกว่ากดได้ (เบสทัก 2026-09-13 "ผู้ติดต่อซ่อนเกินไป") */
+function ContactRow({
+  href,
+  icon: Icon,
+  sub,
   children,
 }: {
-  label: string;
+  href?: string;
+  icon: LucideIcon;
+  sub?: string;
   children: React.ReactNode;
 }) {
+  const body = (
+    <>
+      <span aria-hidden="true" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-muted text-secondary">
+        <Icon className="h-4 w-4" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-medium text-strong [overflow-wrap:anywhere]">{children}</span>
+        {sub ? <span className="block text-xs text-muted">{sub}</span> : null}
+      </span>
+      {href ? <ArrowRight className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" /> : null}
+    </>
+  );
+  return href ? (
+    <a href={href} className={cn(CONTACT_ROW, FOCUS_BUTTON, INTERACTIVE_PRESSED)}>
+      {body}
+    </a>
+  ) : (
+    <div className={CONTACT_ROW}>{body}</div>
+  );
+}
+
+/** metadata ระดับอ้างอิง — บรรทัดเงียบ ไม่แข่งกับข้อเท็จจริงหลัก */
+function ReferenceItem({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex min-w-0 flex-wrap gap-x-1.5">
       <dt>{label}</dt>
-      <dd className="font-medium text-secondary [overflow-wrap:anywhere]">
-        {children}
-      </dd>
+      <dd className="font-medium text-secondary [overflow-wrap:anywhere]">{children}</dd>
     </div>
   );
 }
 
-/** กลุ่มย่อยในการ์ด — หัวกลุ่มเป็นคำถามที่คนถามจริง ไม่ใช่ชื่อตารางในฐานข้อมูล
- *  divided = ขึ้นกลุ่มใหม่ คั่นด้วยเส้นบาง (การ์ดไม่มีขอบ เส้นในนี้คือตัวแบ่งจังหวะอ่าน) */
-function Group({
-  label,
-  divided,
-  className,
-  children,
-}: {
-  label?: React.ReactNode;
-  divided?: boolean;
-  className?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div
-      className={cn(
-        "space-y-3",
-        divided && "border-t border-divider pt-4",
-        className,
-      )}
-    >
-      {label && (
-        <p className="text-xs font-semibold text-muted">
-          {label}
-        </p>
-      )}
-      {children}
-    </div>
-  );
-}
-
-/** เบอร์โทรต้องกดโทรได้ — บนมือถือหน้างานคือการกระทำที่ใช้บ่อยที่สุดของการ์ดผู้ติดต่อ
- *  href ต้องเหลือแต่ตัวเลข/+ ไม่งั้นเบอร์ที่พิมพ์เว้นวรรค/ขีดจะโทรไม่ออกบางเครื่อง */
+/** เบอร์โทรต้องกดโทรได้ — href เหลือแต่ตัวเลข/+ ไม่งั้นเบอร์ที่มีขีด/เว้นวรรคโทรไม่ออกบางเครื่อง */
 function PhoneLink({ phone }: { phone: string }) {
   return (
     <a
       href={`tel:${phone.replace(/[^\d+]/g, "")}`}
-      className={cn(
-        "inline-flex min-h-11 min-w-11 items-center rounded-lg text-blue-600 hover:underline dark:text-blue-400",
-        FOCUS_BUTTON,
-      )}
+      className={cn("inline-flex min-h-11 min-w-11 items-center rounded-lg text-blue-700 underline decoration-blue-200 underline-offset-4 dark:text-blue-300 dark:decoration-blue-800", FOCUS_BUTTON)}
     >
       {phone}
     </a>
@@ -324,11 +361,14 @@ function areaLine(parts: (string | null)[]) {
 // ============================================================
 
 export function OrderOverviewTab({
-  variant = "current",
   order,
   showMoney,
   totalAmount,
   totalQuantity,
+  dueInDays,
+  sizeBreakdown,
+  paidAmount,
+  printLabel,
   onOpenMoney,
   onOpenDelivery,
   onEditInfo,
@@ -338,32 +378,23 @@ export function OrderOverviewTab({
   isMarketplace,
 }: OrderOverviewTabProps) {
   const customer = order.customer;
-  const currentLayout = variant === "current";
 
-  const creatorName =
-    typeof order.createdBy === "string"
-      ? order.createdBy
-      : (order.createdBy?.name ?? null);
+  const creatorName = typeof order.createdBy === "string" ? order.createdBy : (order.createdBy?.name ?? null);
 
-  const termsLabel = order.paymentTerms
-    ? (PAYMENT_TERMS_LABELS[order.paymentTerms] ?? order.paymentTerms)
-    : null;
+  const termsLabel = order.paymentTerms ? (PAYMENT_TERMS_LABELS[order.paymentTerms] ?? order.paymentTerms) : null;
   const customerTerms = customer?.defaultPaymentTerms ?? null;
   // ต่างจากมาตรฐานลูกค้า = ตั้งใจให้ใบนี้พิเศษ ต้องบอกว่ามาตรฐานคืออะไรด้วย
-  // ไม่งั้นคนอ่านไม่รู้ว่ากำลังดู "ข้อยกเว้น" อยู่ แล้วเผลอเอาไปอ้างเป็นเทอมประจำ
   const termsDiffers = !!customerTerms && customerTerms !== order.paymentTerms;
-  const customerTermsLabel = customerTerms
-    ? (PAYMENT_TERMS_LABELS[customerTerms] ?? customerTerms)
-    : null;
+  const customerTermsLabel = customerTerms ? (PAYMENT_TERMS_LABELS[customerTerms] ?? customerTerms) : null;
 
   const hasShipping = Boolean(
     order.shippingRecipientName ||
-    order.shippingPhone ||
-    order.shippingAddress ||
-    order.shippingSubDistrict ||
-    order.shippingDistrict ||
-    order.shippingProvince ||
-    order.shippingPostalCode,
+      order.shippingPhone ||
+      order.shippingAddress ||
+      order.shippingSubDistrict ||
+      order.shippingDistrict ||
+      order.shippingProvince ||
+      order.shippingPostalCode,
   );
   const shippingArea = areaLine([
     order.shippingSubDistrict,
@@ -374,10 +405,10 @@ export function OrderOverviewTab({
 
   const hasBilling = Boolean(
     customer?.billingAddress ||
-    customer?.billingSubDistrict ||
-    customer?.billingDistrict ||
-    customer?.billingProvince ||
-    customer?.billingPostalCode,
+      customer?.billingSubDistrict ||
+      customer?.billingDistrict ||
+      customer?.billingProvince ||
+      customer?.billingPostalCode,
   );
   const billingArea = areaLine([
     customer?.billingSubDistrict ?? null,
@@ -386,66 +417,27 @@ export function OrderOverviewTab({
     customer?.billingPostalCode ?? null,
   ]);
 
-  const hasCustomerContact = Boolean(
-    customer?.phone ||
-    customer?.chatName ||
-    customer?.chatUrl ||
-    customer?.lineId ||
-    customer?.email,
-  );
+  const hasChat = Boolean(customer?.chatName || customer?.chatUrl);
+  const hasCustomerContact = Boolean(customer?.phone || hasChat || customer?.lineId || customer?.email);
   const hasCustomerHistory = Boolean(
     customer &&
-    (customer.creditLimit != null ||
-      customer.totalSpent != null ||
-      customer.totalOrders > 0 ||
-      customer.lastOrderAt),
+      (customer.creditLimit != null || customer.totalSpent != null || customer.totalOrders > 0 || customer.lastOrderAt),
   );
-  /* ประวัติลูกค้า = สี่ค่าที่คนถามจริงตอนเปิดใบงาน เรียงจากตัวที่ใช้ตัดสินใจบ่อยสุด
-     แต่ละช่องได้ "สีประจำหมวด" ของมันเอง (เงิน = การเงิน · จำนวนครั้ง = แบรนด์ ฯลฯ)
-     — แบบ B "สีบอกหมวด" เบสเคาะ 2026-08-31 จากหน้าลอง /proto/look
-
-     ก่อนหน้านี้เป็นบรรทัดตัวหนังสือเทาใต้ชื่อ ซึ่งเบสทักเองว่า "ของที่มันพิเศษ
-     ดันเขียนแค่ text โง่ ๆ" — ค่าเท่าเดิมทุกตัว เปลี่ยนแค่ที่ยืนของมัน
-
-     ช่องไหนไม่มีค่าก็หายไปทั้งช่อง (กติกาเดิมของแท็บนี้: optional ว่างต้องหาย
-     ไม่ใช่โชว์ "—" ให้เต็มกริด) · gate เงินยังครอบทั้งก้อนเหมือนเดิม */
+  /* ประวัติลูกค้า = สี่ค่าที่คนถามจริงตอนเปิดใบงาน แต่ละช่องได้สีประจำหมวดของมันเอง
+     ช่องไหนไม่มีค่าก็หายไปทั้งช่อง · gate เงินยังครอบทั้งก้อนเหมือนเดิม */
   const customerHistoryCells: CustomerHistoryCell[] = customer
     ? ([
         customer.totalSpent != null
-          ? {
-              key: "spent",
-              label: "ซื้อสะสม",
-              value: formatCurrency(customer.totalSpent),
-              icon: Wallet,
-              tone: "finance",
-            }
+          ? { key: "spent", label: "ซื้อสะสม", value: formatBaht(customer.totalSpent), icon: Wallet, tone: "finance" }
           : null,
         customer.totalOrders > 0
-          ? {
-              key: "orders",
-              label: "สั่งมาแล้ว",
-              value: `${customer.totalOrders.toLocaleString()} ครั้ง`,
-              icon: Repeat2,
-              tone: "brand",
-            }
+          ? { key: "orders", label: "สั่งมาแล้ว", value: `${customer.totalOrders.toLocaleString()} ครั้ง`, icon: Repeat2, tone: "brand" }
           : null,
         customer.lastOrderAt
-          ? {
-              key: "last",
-              label: "สั่งล่าสุด",
-              value: formatDate(customer.lastOrderAt),
-              icon: CalendarClock,
-              tone: "system",
-            }
+          ? { key: "last", label: "สั่งล่าสุด", value: formatDate(customer.lastOrderAt), icon: CalendarClock, tone: "system" }
           : null,
         customer.creditLimit != null
-          ? {
-              key: "credit",
-              label: "วงเงินเครดิต",
-              value: formatCurrency(customer.creditLimit),
-              icon: CreditCard,
-              tone: "finance",
-            }
+          ? { key: "credit", label: "วงเงินเครดิต", value: formatBaht(customer.creditLimit), icon: CreditCard, tone: "finance" }
           : null,
       ].filter(Boolean) as CustomerHistoryCell[])
     : [];
@@ -453,275 +445,412 @@ export function OrderOverviewTab({
   const hasPricedWork = totalAmount !== 0 || totalQuantity > 0;
   const totalNeedsReview = totalQuantity > 0 && totalAmount === 0;
 
-  /* แต่ละการ์ดมีปุ่มแก้ไขของตัวเอง (เบสสั่ง 2026-08-11) — ปุ่มเดียวบนการ์ดเดียว
-     ทำให้คนที่อยากแก้ที่อยู่ต้องเดาว่าปุ่มบนการ์ดอื่นแก้ที่อยู่ได้ด้วย
-     ฟอร์มยังเป็นใบเดียวตามเดิม (ยอด/ภาษี/ส่วนลดผูกกันข้ามหัวข้อ) แค่เลื่อนไปหัวข้อที่กดมา */
-  const editButton = (
-    section: "info" | "shipping",
-    accessibleLabel: string,
-    visibleLabel = "แก้ไข",
-  ) =>
+  // วงเวลา: สัดส่วนวันที่ใช้ไปนับจากวันเปิดงานถึงกำหนดส่ง (วันปฏิทินไทยทั้งคู่)
+  const leadDays = order.deadline ? differenceInBangkokDays(order.deadline, order.createdAt) : null;
+  const dueTone: FactTone =
+    dueInDays == null ? "neutral" : dueInDays < 0 ? "danger" : dueInDays <= 1 ? "warning" : "neutral";
+  const dueRing =
+    dueInDays != null && leadDays != null && leadDays > 0 ? (
+      <DueRing used={(leadDays - dueInDays) / leadDays} label={String(dueInDays)} tone={dueTone} />
+    ) : null;
+  const dueDetail =
+    dueInDays == null ? null : dueInDays < 0 ? `เลยกำหนด ${-dueInDays} วัน` : dueInDays === 0 ? "ส่งวันนี้" : `อีก ${dueInDays} วัน`;
+
+  const paidRatio =
+    showMoney && paidAmount != null && totalAmount > 0 ? Math.min(1, Math.max(0, paidAmount / totalAmount)) : null;
+
+  /* แต่ละส่วนมีปุ่มแก้ไขของตัวเอง (เบสสั่ง 2026-08-11) — ฟอร์มยังเป็นใบเดียว
+     แค่เลื่อนไปหัวข้อที่กดมา · ไม่มีสิทธิ์แก้ = ไม่มีปุ่ม */
+  const editButton = (section: "info" | "shipping", accessibleLabel: string, visibleLabel = "แก้ไข") =>
     onEditInfo ? (
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        aria-label={accessibleLabel}
-        onClick={() => onEditInfo(section)}
-      >
+      <Button type="button" variant="ghost" size="sm" aria-label={accessibleLabel} onClick={() => onEditInfo(section)}>
         {visibleLabel}
       </Button>
     ) : undefined;
 
-  const summarySection = (
-    <Section
-      data-order-overview-card="summary"
-      compact={currentLayout}
-      surface={currentLayout ? undefined : "plain"}
-      title={<SectionTitle icon={Info} tone="brand">ข้อมูลออเดอร์</SectionTitle>}
-      action={editButton("info", "แก้ไขข้อมูลออเดอร์")}
-    >
-      <div className="space-y-5">
-        {/* สามค่าที่คนเปิดใบงานมาหาบ่อยที่สุด — เคยอยู่บนหัวหน้า
-            ย้ายลงมาที่นี่ตอนเบสสั่งให้หัวใบเหลือแค่สถานะกับปุ่ม (2026-08-30) */}
-        <dl className={cn("grid grid-cols-2 gap-x-4 gap-y-4 sm:gap-x-6 sm:gap-y-5", currentLayout && "lg:grid-cols-3")}>
-          <SummaryFact
-            label="กำหนดส่ง"
-            detail={
-              <span className="inline-flex flex-wrap items-center gap-1.5">
-                <span>ความเร่งด่วน</span>
-                <Badge
-                  variant={
-                    order.priority === "URGENT"
-                      ? "destructive"
-                      : order.priority === "HIGH"
-                        ? "warning"
-                        : "default"
-                  }
-                  size="sm"
-                >
-                  {PRIORITY_LABELS[order.priority] ?? order.priority}
-                </Badge>
-              </span>
-            }
-          >
-            {order.deadline ? (
-              formatDate(order.deadline)
-            ) : (
-              <span className="text-base font-medium text-amber-700 dark:text-amber-300">
-                ยังไม่กำหนดส่ง
-              </span>
-            )}
-          </SummaryFact>
+  const factsGrid = (
+    <dl className={cn("grid gap-2.5", showMoney ? "sm:grid-cols-3" : "sm:grid-cols-2")}>
+      <SummaryFact label="กำหนดส่ง" icon={CalendarDays} tone={dueTone} visual={dueRing} detail={dueDetail}>
+        {order.deadline ? (
+          formatDate(order.deadline)
+        ) : (
+          <span className="text-base font-medium text-amber-700 dark:text-amber-300">ยังไม่กำหนดส่ง</span>
+        )}
+      </SummaryFact>
 
-          <SummaryFact label="จำนวนรวม">
-            {totalQuantity > 0 ? (
-              `${totalQuantity.toLocaleString()} ชิ้น`
-            ) : order.estimatedQuantity ? (
-              `~${order.estimatedQuantity.toLocaleString()} ชิ้น`
-            ) : (
-              <span className="text-base font-medium text-muted">
-                ยังไม่มีรายการ
-              </span>
-            )}
-          </SummaryFact>
-
-          {/* เงินต้อง gate ระดับ JSX เพราะแท็บ keepMounted — ห้ามซ่อนด้วย CSS */}
-          {showMoney && (
-            <SummaryFact
-              label="ยอดรวม"
-              detail={
-                totalNeedsReview ? (
-                  <span className="text-amber-700 dark:text-amber-300">
-                    ยอดเป็นศูนย์ — ตรวจสอบราคา
-                  </span>
-                ) : undefined
-              }
-            >
-              {onOpenMoney ? (
-                <button
-                  type="button"
-                  onClick={onOpenMoney}
-                  className={cn(
-                    "inline-flex min-h-11 min-w-11 items-center rounded-lg text-left hover:underline",
-                    hasPricedWork
-                      ? DISPLAY_AMOUNT
-                      : "text-base font-medium text-muted",
-                    FOCUS_BUTTON,
-                  )}
-                >
-                  {hasPricedWork
-                    ? formatCurrency(totalAmount)
-                    : "ยังไม่ตีราคา"}
-                </button>
-              ) : (
-                <span
-                  className={
-                    hasPricedWork
-                      ? DISPLAY_AMOUNT
-                      : "text-base font-medium text-muted"
-                  }
-                >
-                  {hasPricedWork
-                    ? formatCurrency(totalAmount)
-                    : "ยังไม่ตีราคา"}
+      <SummaryFact
+        label="จำนวน"
+        icon={Package}
+        detail={
+          sizeBreakdown && sizeBreakdown.length > 0 ? (
+            <span className="flex flex-wrap gap-1">
+              {sizeBreakdown.map((row) => (
+                <span key={row.size} className="rounded-md bg-surface px-1.5 tabular-nums text-secondary">
+                  {row.size} <span className="font-semibold text-strong">{row.quantity.toLocaleString()}</span>
                 </span>
-              )}
-            </SummaryFact>
-          )}
-        </dl>
+              ))}
+            </span>
+          ) : undefined
+        }
+      >
+        {totalQuantity > 0 ? (
+          <>
+            {totalQuantity.toLocaleString()} <span className="text-sm font-normal text-muted">ตัว</span>
+          </>
+        ) : order.estimatedQuantity ? (
+          `~${order.estimatedQuantity.toLocaleString()} ตัว`
+        ) : (
+          <span className="text-base font-medium text-muted">ยังไม่มีรายการ</span>
+        )}
+      </SummaryFact>
 
-        <Group divided>
+      {/* เงินต้อง gate ระดับ JSX เพราะแท็บ keepMounted — ห้ามซ่อนด้วย CSS */}
+      {showMoney && (
+        <SummaryFact
+          label="ยอดรวม"
+          icon={Banknote}
+          detail={
+            totalNeedsReview ? (
+              <span className="text-amber-700 dark:text-amber-300">ยอดเป็นศูนย์ — ตรวจสอบราคา</span>
+            ) : paidRatio != null && paidAmount != null ? (
+              <>
+                <span aria-hidden="true" className="mb-1 block h-1.5 overflow-hidden rounded-full bg-border">
+                  <span
+                    className={cn(
+                      "block h-full rounded-full",
+                      paidRatio >= 1 ? "bg-green-600 dark:bg-green-400" : paidRatio > 0 ? "bg-amber-500" : "bg-transparent",
+                    )}
+                    style={{ width: `${Math.round(paidRatio * 100)}%` }}
+                  />
+                </span>
+                {paidRatio >= 1
+                  ? "รับเงินครบแล้ว"
+                  : paidAmount > 0
+                    ? `รับแล้ว ${formatBaht(paidAmount)} (${Math.round(paidRatio * 100)}%)`
+                    : "ยังไม่ได้รับเงิน"}
+              </>
+            ) : undefined
+          }
+        >
+          {onOpenMoney ? (
+            <button type="button" onClick={onOpenMoney} className={cn("rounded-lg text-left", FOCUS_BUTTON)}>
+              {hasPricedWork ? formatBaht(totalAmount) : "ยังไม่ตีราคา"}
+            </button>
+          ) : (
+            <span>{hasPricedWork ? formatBaht(totalAmount) : "ยังไม่ตีราคา"}</span>
+          )}
+        </SummaryFact>
+      )}
+    </dl>
+  );
+
+  const orderFields = (
+    <FieldGrid>
+      <Field label="ประเภทงาน">
+        <span className="inline-flex flex-wrap items-center gap-1.5">
+          <Badge variant={order.orderType === "CUSTOM" ? "accent" : "default"} size="sm">
+            {ORDER_TYPE_UI_LABELS[order.orderType]}
+          </Badge>
+          {printLabel ? (
+            <Badge variant="default" size="sm">
+              {printLabel}
+            </Badge>
+          ) : null}
+        </span>
+      </Field>
+      <Field label="ช่องทาง">
+        <span className={cn("inline-flex rounded-full px-2 py-0.5 text-xs font-medium", channelColor.bg, channelColor.text)}>
+          {CHANNEL_LABELS[order.channel] ?? order.channel}
+        </span>
+      </Field>
+      <Field label="ความเร่งด่วน">
+        <Badge
+          variant={order.priority === "URGENT" ? "destructive" : order.priority === "HIGH" ? "warning" : "default"}
+          size="sm"
+        >
+          {PRIORITY_LABELS[order.priority] ?? order.priority}
+        </Badge>
+      </Field>
+      {termsLabel && (
+        <Field label="เงื่อนไขชำระ">
+          <span>
+            {termsLabel}
+            {termsDiffers && (
+              <span className="mt-0.5 block text-xs font-normal text-muted">มาตรฐานลูกค้า: {customerTermsLabel}</span>
+            )}
+          </span>
+        </Field>
+      )}
+      {order.poNumber && (
+        <Field label="เลขที่ PO">
+          <span className="font-mono">{order.poNumber}</span>
+        </Field>
+      )}
+      {order.externalOrderId && (
+        <Field label="หมายเลขภายนอก">
+          <span className="font-mono">{order.externalOrderId}</span>
+        </Field>
+      )}
+      {isMarketplace && showMoney && order.platformFee != null && (
+        <Field label="ค่าธรรมเนียมแพลตฟอร์ม">
+          <span className="tabular-nums text-red-600 dark:text-red-400">-{formatBaht(order.platformFee)}</span>
+        </Field>
+      )}
+      {order.stockReservedAt && <Field label="จองสต๊อกแล้ว">{formatDateTime(order.stockReservedAt)}</Field>}
+    </FieldGrid>
+  );
+
+  const customerGroup = (
+    <div data-order-overview-card="customer" className="space-y-3 border-t border-divider pt-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <SubHeading icon={User} tone="brand">
+          ลูกค้าและผู้ติดต่อ
+        </SubHeading>
+        {customer ? (
+          onOpenCustomer ? (
+            <Button type="button" variant="outline" size="sm" onClick={onOpenCustomer} aria-label="เปิดหน้าลูกค้า">
+              ข้อมูลลูกค้า
+              <ArrowRight />
+            </Button>
+          ) : (
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/customers/${customer.id}`} aria-label="เปิดหน้าลูกค้า">
+                ข้อมูลลูกค้า
+                <ArrowRight />
+              </Link>
+            </Button>
+          )
+        ) : null}
+      </div>
+
+      {customer ? (
+        <>
+          <div className="flex min-w-0 items-start gap-3">
+            <span
+              aria-hidden="true"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-sm font-semibold text-blue-700 dark:bg-blue-950/50 dark:text-blue-300"
+            >
+              {customer.name.trim().slice(0, 1) || "?"}
+            </span>
+            <div className="min-w-0">
+              <p className="text-base font-semibold text-strong [overflow-wrap:anywhere]">{customer.name}</p>
+              <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-secondary">
+                {customer.company ? <span className="[overflow-wrap:anywhere]">{customer.company}</span> : null}
+                <Badge variant="accent" size="sm">
+                  {customer.customerType === "CORPORATE" ? "นิติบุคคล" : "บุคคลธรรมดา"}
+                </Badge>
+              </p>
+            </div>
+          </div>
+
+          {/* gate เงินครอบทั้งก้อน — ช่างไม่เห็นแม้แต่หัวข้อ (TabsContent keepMounted → gate ที่ JSX) */}
+          {showMoney && hasCustomerHistory && customerHistoryCells.length > 0 && (
+            <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {customerHistoryCells.map((cell) => (
+                <div key={cell.key} className={cn("px-3 py-2", RADIUS.inner, VISUAL_TONE_CLASSES[cell.tone].soft)}>
+                  <dt className="flex items-center gap-1.5 text-xs">
+                    <cell.icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                    {cell.label}
+                  </dt>
+                  <dd className="mt-0.5 text-sm font-semibold tabular-nums [overflow-wrap:anywhere]">{cell.value}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+
+          {hasCustomerContact ? (
+            <div className="grid gap-2 sm:grid-cols-2">
+              {customer.phone ? (
+                <ContactRow href={`tel:${customer.phone.replace(/[^\d+]/g, "")}`} icon={Phone} sub="โทรหาผู้ติดต่อ">
+                  {customer.phone}
+                </ContactRow>
+              ) : null}
+              {hasChat ? (
+                <div className={CONTACT_ROW}>
+                  <span
+                    aria-hidden="true"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-green-50 text-green-700 dark:bg-green-950/50 dark:text-green-300"
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <ChatLink name={customer.chatName} url={customer.chatUrl} wrap className="text-sm font-medium" />
+                    <span className="block text-xs text-muted">
+                      ห้องแชท{customer.lineId ? ` · LINE ${customer.lineId}` : ""}
+                    </span>
+                  </span>
+                </div>
+              ) : customer.lineId ? (
+                <ContactRow icon={MessageCircle} sub="LINE ID">
+                  {customer.lineId}
+                </ContactRow>
+              ) : null}
+              {customer.email ? (
+                <ContactRow href={`mailto:${customer.email}`} icon={Mail} sub="อีเมล">
+                  {customer.email}
+                </ContactRow>
+              ) : null}
+            </div>
+          ) : (
+            <p className="text-sm text-muted">ยังไม่มีช่องทางติดต่อ</p>
+          )}
+
           <FieldGrid>
-            <Field label="ประเภทงาน">
-              <Badge
-                variant={order.orderType === "CUSTOM" ? "accent" : "default"}
-                size="sm"
-              >
-                {ORDER_TYPE_UI_LABELS[order.orderType]}
-              </Badge>
-            </Field>
-            <Field label="ช่องทาง">
-              <span
-                className={cn(
-                  "inline-flex rounded-full px-2 py-0.5 text-xs font-medium",
-                  channelColor.bg,
-                  channelColor.text,
-                )}
-              >
-                {CHANNEL_LABELS[order.channel] ?? order.channel}
-              </span>
-            </Field>
-            <Field label="สถานะที่ลูกค้าเห็น">
-              <Badge variant="default" size="sm">
-                {CUSTOMER_STATUS_LABELS[order.customerStatus] ??
-                  order.customerStatus}
-              </Badge>
-            </Field>
-            {termsLabel && (
-              <Field label="เงื่อนไขชำระ">
-                <span>
-                  {termsLabel}
-                  {termsDiffers && (
-                    <span className="mt-0.5 block text-xs font-normal text-muted">
-                      มาตรฐานลูกค้า: {customerTermsLabel}
+            <Field label="เลขผู้เสียภาษี" emptyTone="warn" emptyText="ยังไม่มีเลขภาษี — ออกใบกำกับไม่ได้">
+              {customer.taxId && (
+                <span className="font-mono">
+                  {customer.taxId}
+                  {customer.branchNumber && (
+                    <span className="ml-1.5 font-sans text-xs font-normal text-muted">
+                      (สาขา {customer.branchNumber === "00000" ? "สำนักงานใหญ่" : customer.branchNumber})
                     </span>
                   )}
                 </span>
-              </Field>
-            )}
-            {order.poNumber && (
-              <Field label="เลขที่ PO">
-                <span className="font-mono">{order.poNumber}</span>
-              </Field>
-            )}
-            {order.externalOrderId && (
-              <Field label="หมายเลขภายนอก">
-                <span className="font-mono">{order.externalOrderId}</span>
-              </Field>
-            )}
-            {isMarketplace && showMoney && order.platformFee != null && (
-              <Field label="ค่าธรรมเนียมแพลตฟอร์ม">
-                <span className="tabular-nums text-red-600 dark:text-red-400">
-                  -{formatCurrency(order.platformFee)}
-                </span>
-              </Field>
-            )}
-            {order.stockReservedAt && (
-              <Field label="จองสต๊อกแล้ว">
-                {formatDateTime(order.stockReservedAt)}
-              </Field>
-            )}
-          </FieldGrid>
-        </Group>
-      </div>
-    </Section>
-  );
-
-  const shippingSection = (
-    <Section
-      data-order-overview-card="shipping"
-      compact={currentLayout}
-      surface={currentLayout ? undefined : "plain"}
-      title={<SectionTitle icon={Truck} tone="production">การจัดส่ง</SectionTitle>}
-      action={editButton(
-        "shipping",
-        hasShipping ? "แก้ไขที่อยู่จัดส่ง" : "เพิ่มที่อยู่จัดส่ง",
-        hasShipping ? "แก้ไข" : "เพิ่มที่อยู่",
-      )}
-    >
-      <div className="space-y-5">
-        {hasShipping ? (
-          <FieldGrid>
-            <Field label="ผู้รับ">{order.shippingRecipientName}</Field>
-            <Field label="เบอร์ผู้รับ">
-              {order.shippingPhone && (
-                <PhoneLink phone={order.shippingPhone} />
               )}
             </Field>
-            <Field
-              label="ที่อยู่จัดส่ง"
-              wide
-              emptyTone="warn"
-              emptyText="ยังไม่มีที่อยู่จัดส่ง"
-            >
-              {order.shippingAddress || shippingArea ? (
-                <span className="block space-y-0.5">
-                  {order.shippingAddress && (
-                    <span className="block">{order.shippingAddress}</span>
-                  )}
-                  {shippingArea && (
-                    <span className="block">{shippingArea}</span>
-                  )}
-                </span>
-              ) : undefined}
-            </Field>
+            {customer.notes && (
+              <Field label="หมายเหตุลูกค้า (ทุกใบ)" wide>
+                {customer.notes}
+              </Field>
+            )}
           </FieldGrid>
-        ) : (
-          <div className="space-y-1">
-            <p className="text-sm font-medium text-strong">
-              ยังไม่มีที่อยู่จัดส่ง
-            </p>
-            <p className="text-sm text-muted">
-              {customer?.address && onEditInfo
-                ? "หน้าแก้ไขสามารถเลือกใช้ที่อยู่ลูกค้าได้ทันที"
-                : "เพิ่มผู้รับและที่อยู่ก่อนสร้างใบส่งของ"}
-            </p>
+
+          {/* ที่อยู่ลูกค้า/ออกบิล/ป้าย ใช้ตอนออกเอกสาร ไม่ใช่ทุกครั้งที่เปิดใบ — พับไว้ กดดูได้ */}
+          {customer.address || hasBilling || customer.tags.length > 0 ? (
+            <details className="group">
+              <summary
+                className={cn(
+                  FOCUS_BUTTON,
+                  "flex w-fit cursor-pointer list-none items-center gap-1.5 rounded-lg py-1 text-sm font-medium text-secondary [&::-webkit-details-marker]:hidden",
+                )}
+              >
+                <ChevronRight className="h-4 w-4 transition-transform group-open:rotate-90" aria-hidden="true" />
+                ที่อยู่ลูกค้าและออกบิล
+              </summary>
+              <div className="pt-3">
+                <FieldGrid>
+                  <Field label="ที่อยู่ลูกค้า" wide emptyText="ยังไม่มีที่อยู่ลูกค้า">
+                    {customer.address}
+                  </Field>
+                  {hasBilling ? (
+                    <Field label="ที่อยู่ออกบิล" wide>
+                      <span className="block space-y-0.5">
+                        {customer.billingAddress && <span className="block">{customer.billingAddress}</span>}
+                        {billingArea && <span className="block">{billingArea}</span>}
+                      </span>
+                    </Field>
+                  ) : customer.address ? (
+                    <Field label="ที่อยู่ออกบิล" wide>
+                      ใช้ที่อยู่ลูกค้า
+                    </Field>
+                  ) : null}
+                  {customer.tags.length > 0 && (
+                    <Field label="ป้ายลูกค้า" wide>
+                      <span className="flex flex-wrap gap-1.5">
+                        {customer.tags.map((tag) => (
+                          <Badge
+                            key={tag}
+                            variant="secondary"
+                            size="sm"
+                            className={cn("max-w-full whitespace-normal [overflow-wrap:anywhere]", VISUAL_TONE_CLASSES.system.soft)}
+                          >
+                            {tag}
+                          </Badge>
+                        ))}
+                      </span>
+                    </Field>
+                  )}
+                </FieldGrid>
+              </div>
+            </details>
+          ) : null}
+        </>
+      ) : (
+        <p className="text-sm text-muted">ใบนี้ยังไม่ผูกกับลูกค้า</p>
+      )}
+    </div>
+  );
+
+  const shippingGroup = (
+    <div data-order-overview-card="shipping" className="space-y-3 border-t border-divider pt-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <SubHeading icon={Truck} tone="success">
+          การจัดส่ง
+        </SubHeading>
+        {editButton("shipping", hasShipping ? "แก้ไขที่อยู่จัดส่ง" : "เพิ่มที่อยู่จัดส่ง", hasShipping ? "แก้ไข" : "เพิ่มที่อยู่")}
+      </div>
+      {hasShipping ? (
+        <address className="text-sm not-italic leading-6 text-strong [overflow-wrap:anywhere]">
+          {order.shippingRecipientName && <span className="block font-medium">{order.shippingRecipientName}</span>}
+          {order.shippingAddress && <span className="block">{order.shippingAddress}</span>}
+          {shippingArea && <span className="block">{shippingArea}</span>}
+          {!order.shippingAddress && !shippingArea && (
+            <span className="block text-amber-700 dark:text-amber-300">ยังไม่มีที่อยู่จัดส่ง</span>
+          )}
+          {order.shippingPhone && <PhoneLink phone={order.shippingPhone} />}
+        </address>
+      ) : (
+        <p className="text-sm text-muted">
+          {customer?.address && onEditInfo
+            ? "ยังไม่มีที่อยู่จัดส่ง — หน้าแก้ไขเลือกใช้ที่อยู่ลูกค้าได้ทันที"
+            : "ยังไม่มีที่อยู่จัดส่ง — เพิ่มผู้รับและที่อยู่ก่อนสร้างใบส่งของ"}
+        </p>
+      )}
+      {order.trackingNumber && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-surface-muted px-3 py-2">
+          <span className="min-w-0 text-sm">
+            <span className="block text-xs text-muted">เลขพัสดุในออเดอร์</span>
+            <span className="font-mono font-medium text-strong [overflow-wrap:anywhere]">{order.trackingNumber}</span>
+          </span>
+          {onOpenDelivery && (
+            <Button type="button" variant="ghost" size="sm" onClick={onOpenDelivery}>
+              ดูการจัดส่ง
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </Button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
+  const referenceSection = (
+    <dl className="flex flex-wrap gap-x-5 gap-y-1 border-t border-divider pt-3 text-xs text-muted">
+      {creatorName && <ReferenceItem label="เปิดโดย">{creatorName}</ReferenceItem>}
+      <ReferenceItem label="เปิดเมื่อ">{formatDateTime(order.createdAt)}</ReferenceItem>
+      {order.confirmedAt && <ReferenceItem label="ยืนยันเมื่อ">{formatDateTime(order.confirmedAt)}</ReferenceItem>}
+      {order.completedAt && <ReferenceItem label="ปิดงานเมื่อ">{formatDateTime(order.completedAt)}</ReferenceItem>}
+      {order.cancelledAt && (
+        <ReferenceItem label="ยกเลิกเมื่อ">
+          <span className="text-red-600 dark:text-red-400">
+            {formatDateTime(order.cancelledAt)}
+            {order.cancelledReason && ` — ${order.cancelledReason}`}
+          </span>
+        </ReferenceItem>
+      )}
+      <ReferenceItem label="แก้ล่าสุด">{formatDateTime(order.updatedAt)}</ReferenceItem>
+    </dl>
+  );
+
+  const brandSection = order.brandProfile && (
+    <Section data-order-overview-card="brand" title={<TileTitle icon={Palette}>แบรนด์ลูกค้า</TileTitle>}>
+      <div className="space-y-4">
+        {order.brandProfile.colorCodes.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {order.brandProfile.colorCodes.map((code) => (
+              <span
+                key={code}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-surface-muted px-2 py-1 font-mono text-xs text-secondary"
+              >
+                <span
+                  aria-hidden="true"
+                  className="h-3.5 w-3.5 shrink-0 rounded-full ring-1 ring-slate-300 dark:ring-white/20"
+                  style={{ backgroundColor: code }}
+                />
+                {code}
+              </span>
+            ))}
           </div>
         )}
-
-        {order.trackingNumber && (
-          <Group label="เลขพัสดุในออเดอร์" divided>
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <span className="font-mono text-sm font-medium text-strong [overflow-wrap:anywhere]">
-                {order.trackingNumber}
-              </span>
-              {onOpenDelivery && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={onOpenDelivery}
-                >
-                  ดูการจัดส่ง
-                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
-                </Button>
-              )}
-            </div>
-          </Group>
-        )}
-      </div>
-    </Section>
-  );
-
-  const brandSection = (
-    order.brandProfile && (
-      <Section
-        data-order-overview-card="brand"
-        compact={currentLayout}
-        surface={currentLayout ? undefined : "plain"}
-        title={<SectionTitle icon={Palette} tone="product">แบรนด์ลูกค้า</SectionTitle>}
-      >
         <FieldGrid>
           <Field label="ชื่อแบรนด์">{order.brandProfile.brandName}</Field>
           {order.brandProfile.logoUrl && (
@@ -731,7 +860,7 @@ export function OrderOverviewTab({
                 target="_blank"
                 rel="noopener noreferrer"
                 className={cn(
-                  "inline-flex min-h-11 min-w-11 items-center rounded-lg text-blue-600 hover:underline dark:text-blue-400",
+                  "inline-flex min-h-11 min-w-11 items-center rounded-lg text-blue-700 underline decoration-blue-200 underline-offset-4 dark:text-blue-300 dark:decoration-blue-800",
                   FOCUS_BUTTON,
                 )}
               >
@@ -739,293 +868,39 @@ export function OrderOverviewTab({
               </a>
             </Field>
           )}
-          {order.brandProfile.colorCodes.length > 0 && (
-            <Field label="โค้ดสี" wide>
-              <span className="flex flex-wrap gap-2">
-                {order.brandProfile.colorCodes.map((code) => (
-                  <span
-                    key={code}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2 py-1 font-mono text-xs text-secondary dark:bg-slate-800"
-                  >
-                    <span
-                      aria-hidden="true"
-                      className="h-3 w-3 shrink-0 rounded-full ring-1 ring-slate-300 dark:ring-white/20"
-                      style={{ backgroundColor: code }}
-                    />
-                    {code}
-                  </span>
-                ))}
-              </span>
-            </Field>
-          )}
-          {order.brandProfile.fonts.length > 0 && (
-            <Field label="ฟอนต์" wide>
-              {order.brandProfile.fonts.join(" · ")}
-            </Field>
-          )}
+          {order.brandProfile.fonts.length > 0 && <Field label="ฟอนต์">{order.brandProfile.fonts.join(", ")}</Field>}
           {order.brandProfile.styleNotes && (
             <Field label="โน้ตสไตล์" wide>
               {order.brandProfile.styleNotes}
             </Field>
           )}
         </FieldGrid>
-      </Section>
-    )
-  );
-
-  const referenceSection = (
-    <dl className="flex flex-wrap gap-x-5 gap-y-1 px-1 text-xs text-muted">
-      {creatorName && (
-        <ReferenceItem label="เปิดโดย">{creatorName}</ReferenceItem>
-      )}
-      <ReferenceItem label="เปิดเมื่อ">
-        {formatDateTime(order.createdAt)}
-      </ReferenceItem>
-      {order.confirmedAt && (
-        <ReferenceItem label="ยืนยันเมื่อ">
-          {formatDateTime(order.confirmedAt)}
-        </ReferenceItem>
-      )}
-      {order.completedAt && (
-        <ReferenceItem label="ปิดงานเมื่อ">
-          {formatDateTime(order.completedAt)}
-        </ReferenceItem>
-      )}
-      {order.cancelledAt && (
-        <ReferenceItem label="ยกเลิกเมื่อ">
-          <span className="text-red-600 dark:text-red-400">
-            {formatDateTime(order.cancelledAt)}
-            {order.cancelledReason && ` — ${order.cancelledReason}`}
-          </span>
-        </ReferenceItem>
-      )}
-      <ReferenceItem label="แก้ล่าสุด">
-        {formatDateTime(order.updatedAt)}
-      </ReferenceItem>
-    </dl>
-  );
-
-  const customerSection = (
-    <Section
-      data-order-overview-card="customer"
-      compact={currentLayout}
-      surface={currentLayout ? undefined : "plain"}
-      title={<SectionTitle icon={User} tone="brand">ลูกค้าและผู้ติดต่อ</SectionTitle>}
-      action={
-        customer ? onOpenCustomer ? (
-          <Button type="button" variant="ghost" size="sm" onClick={onOpenCustomer}>
-            เปิดหน้าลูกค้า
-          </Button>
-        ) : (
-          <Button asChild variant="ghost" size="sm">
-            <Link href={`/customers/${customer.id}`}>เปิดหน้าลูกค้า</Link>
-          </Button>
-        ) : undefined
-      }
-    >
-      {customer ? (
-        <div className="space-y-5">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-base font-semibold text-strong [overflow-wrap:anywhere]">
-                {customer.name}
-              </p>
-              {customer.company && (
-                <p className="text-sm text-secondary [overflow-wrap:anywhere]">
-                  {customer.company}
-                </p>
-              )}
-            </div>
-            <Badge variant="accent" size="sm">
-              {customer.customerType === "CORPORATE"
-                ? "นิติบุคคล"
-                : "บุคคลธรรมดา"}
-            </Badge>
-          </div>
-
-          {/* gate เงินเหมือนเดิมทุกประการ: showMoney && hasCustomerHistory ครอบ
-              ทั้งก้อน ช่างจึงไม่เห็นอะไรเลยแม้แต่หัวข้อ (TabsContent forceMount
-              → ต้อง gate ที่ JSX ห้ามซ่อนด้วยคลาส) */}
-          {showMoney && hasCustomerHistory && customerHistoryCells.length > 0 && (
-            <dl className={cn("grid grid-cols-2 gap-3", variant !== "b" && "sm:grid-cols-4")}>
-              {customerHistoryCells.map((cell) => (
-                <div
-                  key={cell.key}
-                  className={cn(
-                    currentLayout
-                      ? cn("px-3 py-3", RADIUS.inner, VISUAL_TONE_CLASSES[cell.tone].soft)
-                      : "border-l border-divider pl-3",
-                  )}
-                >
-                  <dt className={cn("flex items-center gap-1.5 text-xs", !currentLayout && "text-muted")}>
-                    {currentLayout && <cell.icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />}
-                    {cell.label}
-                  </dt>
-                  <dd className={cn("mt-1 font-semibold tabular-nums [overflow-wrap:anywhere]", currentLayout ? "text-lg" : "text-sm text-secondary")}>
-                    {cell.value}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          )}
-
-          <FieldGrid>
-            <Field
-              label="เลขผู้เสียภาษี"
-              emptyTone="warn"
-              emptyText="ยังไม่มีเลขภาษี — ออกใบกำกับไม่ได้"
-            >
-              {customer.taxId && (
-                <span className="font-mono">
-                  {customer.taxId}
-                  {customer.branchNumber && (
-                    <span className="ml-1.5 font-sans text-xs font-normal text-muted">
-                      (สาขา{" "}
-                      {customer.branchNumber === "00000"
-                        ? "สำนักงานใหญ่"
-                        : customer.branchNumber}
-                      )
-                    </span>
-                  )}
-                </span>
-              )}
-            </Field>
-          </FieldGrid>
-
-          <Group label="ช่องทางติดต่อ" divided>
-            {hasCustomerContact ? (
-              <FieldGrid>
-                <Field label="โทรศัพท์">
-                  {customer.phone && <PhoneLink phone={customer.phone} />}
-                </Field>
-                <Field label="ห้องแชท">
-                  {(customer.chatName || customer.chatUrl) && (
-                    <ChatLink
-                      name={customer.chatName}
-                      url={customer.chatUrl}
-                      wrap
-                      className="min-h-11 min-w-11 text-sm"
-                    />
-                  )}
-                </Field>
-                <Field label="LINE ID">{customer.lineId}</Field>
-                <Field label="อีเมล">{customer.email}</Field>
-              </FieldGrid>
-            ) : (
-              <p className="text-sm text-muted">ยังไม่มีช่องทางติดต่อ</p>
-            )}
-          </Group>
-
-          <Group label="ที่อยู่ลูกค้าและออกบิล" divided>
-            <FieldGrid>
-              <Field
-                label="ที่อยู่ลูกค้า"
-                wide
-                emptyText="ยังไม่มีที่อยู่ลูกค้า"
-              >
-                {customer.address}
-              </Field>
-              {hasBilling ? (
-                <Field label="ที่อยู่ออกบิล" wide>
-                  <span className="block space-y-0.5">
-                    {customer.billingAddress && (
-                      <span className="block">
-                        {customer.billingAddress}
-                      </span>
-                    )}
-                    {billingArea && (
-                      <span className="block">{billingArea}</span>
-                    )}
-                  </span>
-                </Field>
-              ) : customer.address ? (
-                <Field label="ที่อยู่ออกบิล" wide>
-                  ใช้ที่อยู่ลูกค้า
-                </Field>
-              ) : null}
-              {customer.tags.length > 0 && (
-                <Field label="ป้ายลูกค้า" wide>
-                  <span className="flex flex-wrap gap-1.5">
-                    {/* ป้ายลูกค้าเป็นคำที่ทีมตั้งเอง ไม่มีความหมายเชิงสถานะ →
-                        ได้โทน "ระบบ" (เทาอมฟ้า) ไม่ใช่สีเตือน (แบบ B · 2026-08-31) */}
-                    {customer.tags.map((tag) => (
-                      <Badge
-                        key={tag}
-                        variant="secondary"
-                        size="sm"
-                        className={cn(
-                          "max-w-full whitespace-normal [overflow-wrap:anywhere]",
-                          VISUAL_TONE_CLASSES.system.soft,
-                        )}
-                      >
-                        {tag}
-                      </Badge>
-                    ))}
-                  </span>
-                </Field>
-              )}
-              {customer.notes && (
-                <Field label="หมายเหตุลูกค้า (ทุกใบ)" wide>
-                  {customer.notes}
-                </Field>
-              )}
-            </FieldGrid>
-          </Group>
-
-        </div>
-      ) : (
-        <p className="text-sm text-muted">ใบนี้ยังไม่ผูกกับลูกค้า</p>
-      )}
+      </div>
     </Section>
   );
 
-  if (variant === "a") {
-    return (
-      <div data-order-overview-variant="a" className="space-y-8">
-        <div className="grid items-start gap-8 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-          <div className="min-w-0">{artwork}</div>
-          <div className="min-w-0">{summarySection}</div>
-        </div>
-        <div className="grid items-start gap-8 lg:grid-cols-2">
-          {shippingSection}
-          {brandSection}
-        </div>
-        {customerSection}
-        {referenceSection}
-      </div>
-    );
-  }
-
-  if (variant === "b") {
-    return (
-      <div data-order-overview-variant="b" className="grid items-start gap-8 xl:grid-cols-[minmax(0,1fr)_22rem]">
-        <div className="min-w-0 space-y-8">
-          {artwork}
-          {brandSection}
-          {referenceSection}
-        </div>
-        <aside aria-label="ข้อมูลประกอบออเดอร์" className="min-w-0 space-y-6 rounded-2xl border border-divider bg-surface p-5">
-          {summarySection}
-          {customerSection}
-          {shippingSection}
-        </aside>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-5">
-      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-        <div className="space-y-5 xl:col-start-2 xl:row-start-1">
-          {summarySection}
-          {shippingSection}
-          {brandSection}
+    <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
+      <Section
+        data-order-overview-card="summary"
+        title={
+          <TileTitle icon={Info} tone="brand">
+            ข้อมูลออเดอร์
+          </TileTitle>
+        }
+        action={editButton("info", "แก้ไขข้อมูลออเดอร์")}
+      >
+        <div className="space-y-5">
+          {factsGrid}
+          {orderFields}
+          {customerGroup}
+          {shippingGroup}
           {referenceSection}
         </div>
-        <div className="space-y-5 xl:col-start-1 xl:row-start-1">
-          {artwork}
-          {customerSection}
-        </div>
+      </Section>
+      <div className="min-w-0 space-y-4">
+        {artwork}
+        {brandSection}
       </div>
     </div>
   );
