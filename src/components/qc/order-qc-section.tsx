@@ -1,12 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState, type ReactNode } from "react";
 import { trpc, type RouterOutput } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { SectionTitle } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { FileUpload } from "@/components/ui/file-upload";
@@ -28,19 +25,31 @@ import {
   qcReasonLabel,
   type QcDefectReason,
 } from "@/lib/qc";
-import { ShieldCheck, ClipboardCheck, Plus, Trash2, AlertTriangle, CheckCircle2 } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  ChevronRight,
+  ClipboardCheck,
+  Plus,
+  ScanLine,
+  ShieldCheck,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { ImageRemoveButton } from "@/components/ui/image-remove-button";
 import { Alert } from "@/components/ui/alert";
 import { DASHED_INTERACTIVE, TINT } from "@/components/ui/tokens";
+import { c, Rw, StateBox, SubHead } from "@/components/orders/orders-ui";
 
-// การ์ด "ตรวจนับ QC" บนหน้าออเดอร์ — นับของจุดที่ 2 ก่อนแพ็ค (FLOW-REDESIGN ก้อน 3)
+// ส่วน "ตรวจนับ QC" ท้ายการ์ด "ของที่ต้องพร้อมก่อนผลิต" ในแท็บงานผลิต — นับของจุดที่ 2 ก่อนแพ็ค (FLOW-REDESIGN ก้อน 3)
 // นับจริง "ดีกี่ตัว เสียกี่ตัว" · ของดีสะสมครบยอด→เข้าแพ็ก (ของเสียจากเสื้อเผื่อ
 // บันทึกเป็นสถิติ) · ของดียังไม่ครบและมีเสีย→ถอยกลับผลิต/พักรอของตามเสื้อสำรอง
-// โชว์เฉพาะตอนอยู่ขั้นตรวจคุณภาพ หรือมีประวัติตรวจแล้ว (mobile-first: คนนับถือมือถือหน้ากองเสื้อ)
+// หน้าตาตามต้นแบบ tabProduction() (รื้อ 2026-09-15): เส้นคั่น + หัวย่อย + ช่องสถานะ · ผลรายรอบพับไว้
+// วางใน .cb ของการ์ดแม่ ไม่มีกรอบของตัวเอง · หน้าแม่ไม่วางส่วนนี้เมื่อเปิด Production V2
 
 type QcContext = RouterOutput["qc"]["context"];
+type QcRound = RouterOutput["qc"]["listByOrder"][number];
 type ManufacturingQuantityLine = {
   id: string;
   description: string | null;
@@ -59,36 +68,33 @@ interface OrderQcSectionProps {
   canCount: boolean;
 }
 
+// สถานะที่ยังไม่ถึงด่านตรวจ — ไม่มีผลตรวจแปลว่า "ยังไม่ถึง" · เลยด่านไปแล้วแต่ไม่มีผล = ไม่มีบันทึกในระบบ
+const BEFORE_QC = new Set([
+  "DRAFT",
+  "INQUIRY",
+  "CONFIRMED",
+  "DESIGNING",
+  "DESIGN_APPROVED",
+  "PRODUCTION_QUEUE",
+  "PRODUCING",
+]);
+
+function defectLine(d: QcRound["defects"][number]) {
+  return [
+    `${d.qty} ตัว`,
+    qcReasonLabel(d.reason),
+    d.size ? `ไซส์ ${d.size}${d.color ? `/${d.color}` : ""}` : null,
+    d.printLabel ? `ลาย ${d.printLabel}` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
 export function OrderQcSection({ orderId, internalStatus, canCount }: OrderQcSectionProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const isQualityCheck = internalStatus === "QUALITY_CHECK";
   const { data: records, isLoading, isError, refetch } = trpc.qc.listByOrder.useQuery({ orderId });
-
-  if (isLoading && !records) {
-    return (
-      <Card>
-        <CardContent className="space-y-2 py-5">
-          <Skeleton className="h-11 rounded-lg" />
-          <Skeleton className="h-16 rounded-lg" />
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (isError && !records) {
-    return (
-      <Card>
-        <QueryError
-          message="โหลดประวัติ QC ไม่สำเร็จ"
-          onRetry={() => void refetch()}
-        />
-      </Card>
-    );
-  }
-
-  // QC เป็น business-conditional: ยังไม่ถึงขั้นและไม่มีประวัติ = ไม่มีข้อมูลให้แสดง
-  if (!isQualityCheck && (records?.length ?? 0) === 0) return null;
 
   const rounds = records ?? [];
   const totalGood = rounds.reduce((s, r) => s + r.qtyGood, 0);
@@ -100,133 +106,120 @@ export function OrderQcSection({ orderId, internalStatus, canCount }: OrderQcSec
       ? [...new Set(latest.defects.map((d) => qcReasonLabel(d.reason)))].join("/")
       : null;
 
+  const action = isQualityCheck ? (
+    canCount ? (
+      <button type="button" className={c("btn primary sm")} onClick={() => setDialogOpen(true)}>
+        <ScanLine aria-hidden="true" />
+        ตรวจนับ
+      </button>
+    ) : (
+      <span className={c("chip gray")}>รอทีมผลิตนับของ</span>
+    )
+  ) : undefined;
+
+  let summary: ReactNode;
+  if (isLoading && !records) {
+    summary = <span className={c("sk skrow")} aria-hidden="true" />;
+  } else if (isError && !records) {
+    summary = (
+      <StateBox
+        tone="bad"
+        icon={AlertTriangle}
+        action={
+          <button type="button" className={c("btn sm")} onClick={() => void refetch()}>
+            ลองใหม่
+          </button>
+        }
+      >
+        โหลดประวัติ QC ไม่สำเร็จ
+      </StateBox>
+    );
+  } else if (!latest) {
+    summary = isQualityCheck ? (
+      <StateBox tone="on" icon={ShieldCheck}>
+        ยังไม่มีผลตรวจ — นับจริงก่อนแพ็ค: ดีกี่ตัว เสียกี่ตัว
+      </StateBox>
+    ) : (
+      <StateBox icon={ShieldCheck}>
+        {BEFORE_QC.has(internalStatus) ? "ยังไม่ถึงขั้นตรวจ" : "ไม่มีผลตรวจ QC ในระบบ"}
+      </StateBox>
+    );
+  } else {
+    summary = (
+      <StateBox
+        tone={isQualityCheck ? "on" : latest.qtyDefect > 0 ? "warn" : "good"}
+        icon={isQualityCheck ? ShieldCheck : CheckCircle2}
+      >
+        นับแล้ว ดี {totalGood.toLocaleString("th-TH")} ตัว
+        {` · เสีย ${totalDefect.toLocaleString("th-TH")} ตัว`}
+        {` · ${rounds.length} รอบ`}
+        {latestReasons ? ` · รอบล่าสุดเสีย: ${latestReasons}` : ""}
+      </StateBox>
+    );
+  }
+
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-            <SectionTitle icon={ShieldCheck} tone="production">
-              ตรวจนับ QC
-            </SectionTitle>
-          </CardTitle>
-          {isQualityCheck &&
-            (canCount ? (
-              <Button size="sm" className="h-9 gap-1.5" onClick={() => setDialogOpen(true)}>
-                <ClipboardCheck />
-                ตรวจนับ
-              </Button>
-            ) : (
-              <span className="text-xs text-muted">รอทีมผลิตนับของ</span>
-            ))}
-        </div>
-        {rounds.length > 0 && (
-          <p className="text-xs text-muted">
-            ตรวจแล้ว {rounds.length} รอบ · ดี {totalGood} ตัว · เสีย {totalDefect} ตัว
-            {latestReasons ? ` · รอบล่าสุดเสีย: ${latestReasons}` : ""}
-          </p>
-        )}
-      </CardHeader>
-      <CardContent className="space-y-2">
-        {rounds.length === 0 ? (
-          <p className="py-2 text-center text-sm text-muted">
-            ยังไม่มีผลตรวจ — นับจริงก่อนแพ็ค: ดีกี่ตัว เสียกี่ตัว
-          </p>
-        ) : (
-          rounds.map((r, idx) => {
-            return (
-              <div
-                key={r.id}
-                className="rounded-lg border border-divider"
-              >
-                <div
-                  className="flex min-h-11 w-full flex-wrap items-center justify-between gap-2 px-3 py-2 text-left"
-                >
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-strong">
-                      ตรวจรอบที่ {rounds.length - idx}
-                      <span className="ml-2 text-xs font-normal tabular-nums text-muted">
+    <>
+      <div className={c("hr")} />
+      <SubHead icon={ShieldCheck} tone="good" title="ตรวจนับ QC" right={action} />
+      {summary}
+
+      {rounds.length > 0 ? (
+        <details className={c("more")}>
+          <summary>
+            <ChevronRight aria-hidden="true" />
+            ผลตรวจรายรอบ
+          </summary>
+          <div className={c("rows top")}>
+            {rounds.map((r, idx) => (
+              <Fragment key={r.id}>
+                <Rw
+                  icon={r.qtyDefect > 0 ? AlertTriangle : CheckCircle2}
+                  tone={r.qtyDefect > 0 ? "bad" : "good"}
+                  title={
+                    <>
+                      ตรวจรอบที่ {rounds.length - idx}{" "}
+                      <span className={c("soft")}>
                         ดี {r.qtyGood} · เสีย {r.qtyDefect}
                       </span>
-                    </p>
-                    <p className="text-xs text-muted">
-                      {formatDate(r.checkedAt)} · {r.checkedBy.name}
-                      {r.notes ? ` · ${r.notes}` : ""}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    {r.qtyDefect > 0 ? (
-                      <Badge variant="destructive" size="sm">
-                        เสีย {r.qtyDefect}
-                      </Badge>
+                    </>
+                  }
+                  sub={[formatDate(r.checkedAt), r.checkedBy.name, r.notes].filter(Boolean).join(" · ")}
+                  right={
+                    r.qtyDefect > 0 ? (
+                      <span className={c("chip bad")}>เสีย {r.qtyDefect}</span>
                     ) : (
-                      <Badge variant="success" size="sm">
-                        ดีล้วน
-                      </Badge>
-                    )}
+                      <span className={c("chip good")}>ดีล้วน</span>
+                    )
+                  }
+                />
+                {r.defects.map((d) => (
+                  <div key={d.id} className={c("state bad")}>
+                    <span className={c("grow")}>
+                      {defectLine(d)}
+                      {d.note ? <small style={{ display: "block", color: "var(--ink-2)" }}>{d.note}</small> : null}
+                    </span>
+                    {d.photoUrls.length > 0 ? (
+                      <span style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                        {d.photoUrls.map((url) => (
+                          <a key={url} href={url} target="_blank" rel="noreferrer" className={c("thumb")}>
+                            {/* ใช้ image element ตรง — รูปเสิร์ฟผ่าน /api/files (เช็ค session)
+                                next/image optimizer fetch ฝั่ง server ไม่มี cookie จะ 401 */}
+                            <img src={url} alt="รูปของเสีย" loading="lazy" decoding="async" />
+                          </a>
+                        ))}
+                      </span>
+                    ) : null}
                   </div>
-                </div>
-                  <div className="space-y-2 border-t border-divider px-3 py-2">
-                    {r.defects.length === 0 ? (
-                      <p className="text-xs text-muted">ไม่มีของเสียในรอบนี้</p>
-                    ) : (
-                      r.defects.map((d) => (
-                        <div
-                          key={d.id}
-                          className="space-y-1.5 rounded-lg bg-slate-50 p-2 dark:bg-slate-800/50"
-                        >
-                          <p className="text-xs">
-                            <span className="font-medium text-red-600 dark:text-red-400">
-                              {d.qty} ตัว · {qcReasonLabel(d.reason)}
-                            </span>
-                            {d.size && (
-                              <span className="text-muted">
-                                {" "}
-                                · ไซส์ {d.size}
-                                {d.color ? `/${d.color}` : ""}
-                              </span>
-                            )}
-                            {d.printLabel && (
-                              <span className="text-muted"> · ลาย {d.printLabel}</span>
-                            )}
-                          </p>
-                          {d.note && (
-                            <p className="text-xs text-muted">{d.note}</p>
-                          )}
-                          {d.photoUrls.length > 0 && (
-                            <div className="flex flex-wrap gap-1.5">
-                              {d.photoUrls.map((url) => (
-                                <a
-                                  key={url}
-                                  href={url}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="relative block h-14 w-14"
-                                >
-                                  {/* ใช้ image element ตรง — รูปเสิร์ฟผ่าน /api/files (เช็ค session)
-                                      next/image optimizer fetch ฝั่ง server ไม่มี cookie จะ 401 */}
-                                  <img
-                                    src={url}
-                                    alt="รูปของเสีย"
-                                    loading="lazy"
-                                    decoding="async"
-                                    className="h-full w-full rounded-lg object-cover"
-                                  />
-                                </a>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      ))
-                    )}
-                  </div>
-              </div>
-            );
-          })
-        )}
-      </CardContent>
+                ))}
+              </Fragment>
+            ))}
+          </div>
+        </details>
+      ) : null}
 
       {dialogOpen && <QcCountDialog orderId={orderId} onClose={() => setDialogOpen(false)} />}
-    </Card>
+    </>
   );
 }
 

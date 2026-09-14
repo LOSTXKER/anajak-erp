@@ -1,87 +1,70 @@
 "use client";
 
+import { ImageIcon } from "lucide-react";
+import { c, Rw } from "@/components/orders/orders-ui";
+import { mockupImageCount } from "@/lib/mockup";
 import { trpc } from "@/lib/trpc";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { RADIUS, SUNK_PANEL } from "@/components/ui/tokens";
-import { APPROVAL_STATUS_LABELS, APPROVAL_STATUS_VARIANTS } from "@/lib/status-config";
-import { cn } from "@/lib/utils";
-import { mockupCoverImage, mockupImageCount } from "@/lib/mockup";
-import { MockupThumbnail } from "./mockup-thumbnail";
-import { ArrowRight } from "lucide-react";
 
 /**
- * แถบสรุปม็อกอัพในแท็บงานผลิตของหน้าออเดอร์ — บอกสถานะแล้วพาไปที่เดียวที่จัดการได้จริง
+ * แถว "ม็อกอัพ" ในการ์ด "ของที่ต้องพร้อมก่อนผลิต" (แท็บงานผลิต) — บอกสถานะแล้วพาไปที่เดียวที่จัดการได้จริง
  *
  * ตั้งใจไม่มี action ของตัวเอง: ม็อกอัพมีบ้านเดียวคือแท็บ "ม็อกอัพ & ไฟล์" ถ้าตรงนี้
- * อัป/อนุมัติได้ด้วยก็กลับไปเป็นสองบ้านเหมือนเดิม
+ * อัป/อนุมัติได้ด้วยก็กลับไปเป็นสองบ้านเหมือนเดิม — ทั้งแถวกดแล้วเปิดแท็บนั้น
  *
+ * หน้าตาตามต้นแบบ tabProduction() (รื้อ 2026-09-15): ไอคอนเขียว = ลูกค้าอนุมัติ, ส้ม = งานสั่งทำที่ยังไม่ผ่าน
  * ใช้ query key เดียวกับ MockupPanel — react-query cache ให้ ไม่ได้ยิงเพิ่ม
  */
+
+const APPROVAL_TEXT: Record<string, string> = {
+  APPROVED: "ลูกค้าอนุมัติแล้ว",
+  PENDING: "รอลูกค้าตรวจ",
+  REVISION_REQUESTED: "ลูกค้าขอแก้",
+  REJECTED: "ลูกค้าไม่ผ่านแบบ",
+};
+
 export function OrderMockupHandoff({
   orderId,
   onOpenMockup,
+  orderType,
 }: {
   orderId: string;
   onOpenMockup: () => void;
+  /** ไม่ส่ง = ถือเป็นงานสั่งทำ (ต้องมีม็อกอัพ) */
+  orderType?: string;
 }) {
   const designs = trpc.design.listByOrder.useQuery({ orderId });
 
   if (designs.isLoading) {
-    return <Skeleton className="h-20 rounded-lg" />;
+    return <span className={c("sk skrow")} aria-hidden="true" />;
   }
-  // โหลดพังตรงนี้ไม่ใช่เรื่องคอขาดบาดตาย — แท็บม็อกอัพมี error+retry เต็มรูปแบบอยู่แล้ว
-  // แถบสรุปจึงเงียบไปแทนที่จะเอา error มาขวางงานตรวจรับ/QC ที่อยู่ใต้ลงไป
-  if (designs.isError) return null;
 
+  const isCustom = orderType !== "READY_MADE";
   const latest = designs.data?.[0];
-  const imageCount = latest ? mockupImageCount(latest) : 0;
+  const tone =
+    latest?.approvalStatus === "APPROVED"
+      ? "good"
+      : latest?.approvalStatus === "REJECTED"
+        ? "bad"
+        : isCustom && !designs.isError
+          ? "warn"
+          : undefined;
+  // โหลดพังไม่ขวางงาน — แท็บม็อกอัพมี error+retry เต็มรูปแบบ แถวนี้บอกสั้น ๆ แล้วพาไปที่นั่น
+  const sub = designs.isError
+    ? "โหลดสถานะไม่สำเร็จ ดูในแท็บม็อกอัพ"
+    : latest
+      ? `v${latest.versionNumber} · ${APPROVAL_TEXT[latest.approvalStatus] ?? latest.approvalStatus}`
+      : isCustom
+        ? "ยังไม่มี"
+        : "งานสำเร็จรูป ไม่ต้องมี";
 
   return (
-    <div
-      className={cn(
-        "flex flex-wrap items-center justify-between gap-3 p-3",
-        SUNK_PANEL,
-        RADIUS.surface,
-      )}
-    >
-      <div className="flex min-w-0 items-center gap-3">
-        <MockupThumbnail
-          cover={latest ? mockupCoverImage(latest) : null}
-          alt={latest ? `ม็อกอัพ v${latest.versionNumber}` : "ม็อกอัพ"}
-          count={imageCount}
-          size="md"
-        />
-        <div className="min-w-0 space-y-1">
-          <p className="text-sm font-medium text-strong">ม็อกอัพ</p>
-          {latest ? (
-            <p className="flex flex-wrap items-center gap-1.5 text-xs text-muted">
-              <Badge
-                variant={
-                  APPROVAL_STATUS_VARIANTS[
-                    latest.approvalStatus as keyof typeof APPROVAL_STATUS_VARIANTS
-                  ] || "default"
-                }
-              >
-                {APPROVAL_STATUS_LABELS[
-                  latest.approvalStatus as keyof typeof APPROVAL_STATUS_LABELS
-                ] || latest.approvalStatus}
-              </Badge>
-              <span>
-                เวอร์ชัน {latest.versionNumber} · {imageCount} รูป
-              </span>
-            </p>
-          ) : (
-            <p className="text-xs text-muted">ยังไม่มีม็อกอัพของออเดอร์นี้</p>
-          )}
-        </div>
-      </div>
-
-      <Button variant="outline" size="sm" className="gap-1.5" onClick={onOpenMockup}>
-        เปิดแท็บม็อกอัพ
-        <ArrowRight />
-      </Button>
-    </div>
+    <Rw
+      onClick={onOpenMockup}
+      icon={ImageIcon}
+      tone={tone}
+      title="ม็อกอัพ"
+      sub={sub}
+      right={latest ? `${mockupImageCount(latest)} รูป` : undefined}
+    />
   );
 }

@@ -47,6 +47,16 @@ import { ContextPanel } from "../src/components/ui/context-panel";
 import { HelpTip } from "../src/components/ui/help-tip";
 import { VISUAL_TONE_CLASSES } from "../src/lib/visual-tone";
 
+/* หน้าออเดอร์ใช้ CSS Module ที่ยกจากต้นแบบรอบ 2 (orders.module.css · 2026-09-15)
+   node โหลดไฟล์ .css ไม่ได้ — ด่านที่ render คอมโพเนนต์จริงให้ชื่อคลาสออกมาตามที่เขียนใน c("…") */
+require.extensions[".css"] = (module) => {
+  const classes: object = new Proxy(
+    {},
+    { get: (_target, key) => (key === "__esModule" ? false : key === "default" ? classes : typeof key === "string" ? key : undefined) },
+  );
+  module.exports = classes;
+};
+
 let failed = 0;
 const globalsSource = readFileSync("src/app/globals.css", "utf8");
 
@@ -359,7 +369,8 @@ const hSm = CONTROL_H_SM.split(" ");
   ];
   if (
     registrySources.some((source) => source.includes("EntityMark")) ||
-    !ordersSource.includes("MockupThumbnail") ||
+    // หน้าออเดอร์ยกจากต้นแบบรอบ 2 (2026-09-15): รูปปกช่อง .thumb ของต้นแบบ แต่รูปยังมาจากสูตรกลางชุดเดียวกับคิวผลิต
+    !ordersSource.includes("<Thumb cover={orderListCover(order)}") ||
     !ordersSource.includes("mockupCoverImage") ||
     ordersSource.includes('data-order-mockup="empty"') ||
     ordersSource.includes("reserveSpace") ||
@@ -1022,7 +1033,9 @@ check(
       !path.includes(`${sep}components${sep}print${sep}`) &&
       !path.includes(`${sep}app${sep}(print)${sep}`) &&
       !path.includes(`${sep}app${sep}(public)${sep}`) &&
-      !path.endsWith(`${sep}components${sep}ui${sep}data-table.tsx`);
+      !path.endsWith(`${sep}components${sep}ui${sep}data-table.tsx`) &&
+      // หน้าออเดอร์ยกหัวตาราง .orders th / .tbl th (พื้นจม) จากต้นแบบรอบ 2 ที่เบสเคาะ — สีหัวอยู่ orders.module.css
+      !source.includes('from "@/components/orders/orders-ui"');
     if (isDashboardRawTable) {
       for (const match of source.matchAll(/<thead\b([^>]*)>/g)) {
         if (!(match[1] ?? "").includes("TABLE_HEAD_SURFACE")) {
@@ -2318,39 +2331,29 @@ check(
   ) {
     problems.push("DOM ต้องเรียง ข้อมูลออเดอร์ → ลูกค้า → จัดส่ง (ซ้าย) → ม็อกอัพ (ขวา)");
   }
-  if (!currentHtml.includes("xl:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]")) {
+  if (!currentHtml.startsWith('<div class="two">')) {
     problems.push("ภาพรวมต้องเป็นสองคอลัมน์ ข้อมูลออเดอร์ซ้าย ม็อกอัพขวา");
   }
 
-  const railSource = readFileSync(
-    "src/components/orders/detail/order-status-bar.tsx",
-    "utf8",
-  );
+  /* 2026-09-15 รื้อตามต้นแบบรอบ 2 ทีละชิ้น: หัวใบ + รางสถานะ (.dhead/.steps) อยู่ order-detail-head.tsx
+     รางเดิม order-status-bar.tsx ยังเป็นของหน้าผลิต ด่านเรขาคณิตรางเดิมจึงไม่ครอบหน้าออเดอร์แล้ว */
+  const railSource = headSource;
   if (
-    !detailSource.includes('data-order-head=""') ||
+    !headSource.includes('data-order-head=""') ||
     // minimal = ยืนบนผืนหน้าตรง ๆ · ห่อด้วยการ์ด/พื้น/เงาเมื่อไหร่ = ย้อนคำสั่งเบส
-    /data-order-head[\s\S]{0,400}?card-surface/.test(detailSource) ||
+    /data-order-head[\s\S]{0,400}?c\("card/.test(headSource) ||
     headSource.includes("card-surface") ||
     !detailSource.includes("<OrderDetailHead") ||
-    !headSource.includes("<h1") ||
-    !headSource.includes("MockupThumbnail") ||
+    !headSource.includes("<h1>") ||
+    !headSource.includes("<Thumb cover={cover}") ||
     /order\.title/.test(detailSource) ||
-    detailSource.includes("<SummaryFact") ||
-    // ส่วนบนไม่มีเส้นแบ่งเลย — แยกกลุ่มด้วยระยะอย่างเดียว
-    /border-(?:y|t) border-divider/.test(railSource) ||
-    // แถบสถานะกว้างเท่าการ์ดข้างล่าง — จุดหัวชิดซ้ายสุด จุดท้ายชิดขวาสุด (เบสสั่ง 2026-08-30)
-    !railSource.includes('isFirst ? "items-start pl-0" : isLast ? "items-end pr-0"') ||
-    // เส้นเชื่อมเป็นชิ้นเดียวต่อหนึ่งช่วง (2026-08-30 "ทำไมเส้นไม่ต่อกัน")
-    railSource.includes("after:absolute") ||
-    railSource.includes("before:absolute") ||
-    // เรขาคณิตของรางเป็น inline style — เครื่องที่ CSS ยังไม่อัปเดตจะไม่ได้รางเพี้ยน
-    !railSource.includes('flex: isFirst || isLast ? "0.5 1 12px" : "1 1 0%"') ||
-    /flex-\[0\.5|before:left-\[|before:right-\[/.test(railSource) ||
-    // ขั้นปัจจุบันเป็นแคปซูลบอกอยู่มากี่วัน/ใครทำ (ต้นแบบรอบ 2)
+    // ขั้นที่ยืนอยู่เป็นแคปซูลบอกอยู่มากี่วัน/ใครทำ · พัก/ยกเลิกยืมตำแหน่งขั้นที่ค้างจากประวัติ
+    !railSource.includes('aria-current="step"') ||
+    !railSource.includes("findOffPathAnchor") ||
     !railSource.includes("currentDetail") ||
     !detailSource.includes("currentDetail={currentDetail}") ||
     // ไม่มีบรรทัดคำช่วยขั้นต่อไปใต้ราง (เบสสั่ง 2026-09-13) — อ่านได้เฉพาะเครื่องอ่านหน้าจอ
-    !detailSource.includes('<div className="sr-only">{guidance}</div>') ||
+    !detailSource.includes('<div className={c("sr")}>{guidance}</div>') ||
     // ของที่ใช้บ่อยต้องเป็นปุ่มจริงบนหัว ไม่ใช่ซ่อนในเมนู ⋯
     !detailSource.includes("aria-label=\"พิมพ์ใบสั่งงาน (เปิดแท็บใหม่)\"") ||
     !detailSource.includes("aria-label=\"คัดลอกลิงก์สถานะสำหรับลูกค้า\"") ||
@@ -2368,9 +2371,9 @@ check(
      และด่านพร้อมผลิตต้องบอกเหตุผลพร้อมทางแก้ ไม่ให้ปุ่มขั้นต่อไปหายเงียบ */
   if (
     !detailSource.includes("describeOrderAttention(progress)") ||
-    !detailSource.includes("<OrderAttentionCallout") ||
+    !detailSource.includes("<ProblemCallout") ||
     !detailSource.includes("nextStepBlockers(nextStep") ||
-    detailSource.indexOf("<OrderAttentionCallout") > detailSource.indexOf('data-order-head=""')
+    detailSource.indexOf("<ProblemCallout") > detailSource.indexOf("<OrderDetailHead")
   ) {
     problems.push("ป้ายต้องจัดการ/ด่านพร้อมผลิตต้องอยู่บนสุดของหน้าและใช้กฎกลาง");
   }
@@ -2394,13 +2397,14 @@ check(
   if (
     !overviewSource.includes("customerHistoryCells") ||
     !overviewSource.includes("showMoney && hasCustomerHistory && customerHistoryCells.length > 0") ||
-    !overviewSource.includes("VISUAL_TONE_CLASSES[cell.tone].soft") ||
+    !overviewSource.includes('c("facts four hist")') ||
     overviewSource.includes('<Group label="ประวัติลูกค้า"')
   ) {
     problems.push("ประวัติลูกค้าต้องใช้สีประจำหมวดและ gate ด้วย showMoney ทั้งก้อน");
   }
   if (
-    !overviewSource.includes("if (!filled && !emptyText) return null") ||
+    // ช่องไม่บังคับที่ว่าง (เช่นเลขที่ PO) ไม่สร้างแถว "-" — วาดเฉพาะตอนมีค่า
+    !overviewSource.includes("{order.poNumber ? (") ||
     overviewSource.includes('emptyText ?? "-"') ||
     overviewSource.includes('"ยังไม่จอง"') ||
     !overviewSource.includes('"ยังไม่ตีราคา"')
@@ -2410,7 +2414,7 @@ check(
   if (
     !overviewSource.includes("isMarketplace && showMoney && order.platformFee != null") ||
     !overviewSource.includes("showMoney && hasCustomerHistory") ||
-    !/\{showMoney && \(\s*<SummaryFact[\s\S]*?label="ยอดรวม"/.test(overviewSource) ||
+    !/\{showMoney && \(\s*<div className=\{c\("fact"\)\}>[\s\S]*?ยอดรวม/.test(overviewSource) ||
     !detailSource.includes('onOpenMoney={canSeeMoney ? () => changeTab("money") : undefined}') ||
     !/onEditInfo=\{\s*canUseEditForm\s*\?/.test(detailSource) ||
     !detailSource.includes('openInfoEditPage(section, "overview")') ||

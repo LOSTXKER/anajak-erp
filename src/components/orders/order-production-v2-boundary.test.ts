@@ -13,8 +13,14 @@ const summarySource = readFileSync(
   new URL("./production-summary-card.tsx", import.meta.url),
   "utf8",
 );
+// หน้าออเดอร์รื้อตามต้นแบบรอบ 2 (2026-09-15): แท็บงานผลิต/รายการแยกไฟล์ของหน้าออเดอร์เอง
+// OrderItemsDisplay ตัวเดิมยังเป็นของหน้าใบผลิต — ด่านนี้ดูไฟล์ที่หน้าออเดอร์ใช้จริง
+const productionTabSource = readFileSync(
+  new URL("./detail/order-production-tab.tsx", import.meta.url),
+  "utf8",
+);
 const itemsSource = readFileSync(
-  new URL("./detail/order-items-display.tsx", import.meta.url),
+  new URL("./detail/order-items-tab.tsx", import.meta.url),
   "utf8",
 );
 
@@ -24,10 +30,12 @@ describe("Order production V2 boundary", () => {
   });
 
   it("ซ่อน surface รับของและ QC เมื่อเปิด V2 แต่เก็บ legacy fallback", () => {
-    expect(detailSource).toContain("{!productionV2Enabled ? (");
-    expect(detailSource).toContain("<OrderGoodsReceiptSection");
-    expect(detailSource).toContain("<OrderQcSection");
+    expect(detailSource).toContain("<OrderProductionTab");
     expect(detailSource).toContain("productionV2Enabled={productionV2Enabled}");
+    expect(productionTabSource).toContain("{!productionV2Enabled ? (");
+    expect(productionTabSource).toContain("<OrderGoodsReceiptSection");
+    expect(productionTabSource).toContain("<OrderQcSection");
+    expect(productionTabSource).toContain("productionV2Enabled={productionV2Enabled}");
   });
 
   it("CTA ของ V2 เป็นการเปิดใบสั่งผลิต ไม่สื่อว่าทำงานซ้ำในหน้าออเดอร์", () => {
@@ -43,7 +51,7 @@ describe("Order production V2 boundary", () => {
       "canEditReceiveTracking={canEditReceiveTracking}",
     );
     expect(itemsSource).toContain("readOnly={!canEditReceiveTracking}");
-    expect(itemsSource).toContain("{!readOnly ? (");
+    expect(itemsSource).toContain("!readOnly ? (");
   });
 
   it("ออเดอร์ที่มีใบผลิตแล้วไม่เปิด action เปลี่ยนนิยามหรือสถานะซ้ำ", () => {

@@ -2,28 +2,17 @@
 
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { Download, Filter, MoreHorizontal, Plus, ShoppingCart, Workflow, X } from "lucide-react";
+import { AlertTriangle, Download, Filter, Plus, Search, ShoppingCart, Workflow, X } from "lucide-react";
 import type { CustomerStatus, InternalStatus, OrderType } from "@prisma/client";
 import { useListPageState, usePageClamp } from "@/hooks/use-list-page-state";
 import { trpc } from "@/lib/trpc";
 import { permAllows } from "@/lib/permissions";
 import { canCreateOrderWithPricing } from "@/lib/order-access";
-import { Button } from "@/components/ui/button";
-import { DateRangePicker } from "@/components/ui/date-range-picker";
-import { EmptyState } from "@/components/ui/empty-state";
-import { ListPageSkeleton } from "@/components/ui/page-skeleton";
-import { QueryError } from "@/components/ui/query-error";
-import { SearchInput } from "@/components/ui/search-input";
-import { Select } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
-import { FOCUS_BUTTON, MENU_ITEM, OVERLAY_PANEL } from "@/components/ui/tokens";
-import { HomeCard } from "@/components/dashboard/home/home-card";
+import { c, CardHead } from "@/components/orders/orders-ui";
 import { OrderPipeline } from "@/components/orders/list/order-pipeline";
 import { OrderPeekPanel } from "@/components/orders/list/order-peek-panel";
 import { OrdersPager } from "@/components/orders/list/orders-pager";
 import { OrdersTable } from "@/components/orders/list/orders-table";
-import { cn } from "@/lib/utils";
 import {
   CHANNEL_LABELS,
   CUSTOMER_STATUS_LABELS,
@@ -44,13 +33,15 @@ import {
   type SortDirection,
   type SortKey,
 } from "@/lib/order-list-contract";
+import { BANGKOK_TZ, formatDateCompact } from "@/lib/utils";
 
 /* ============================================================
-   หน้ารายการออเดอร์ (รื้อ 2026-09-14 ตามต้นแบบรอบ 2 · เบส "โอเคทำจริงเลย")
+   หน้ารายการออเดอร์ — ต้นแบบรอบ 2 listPage() ทีละชิ้น
+   (รื้อเขียนใหม่ 2026-09-15 หลังเบสบอก "UI มันไม่เหมือนกันเลย … รื้อเขียนใหม่ refactor ไปเลย")
    ต้นแบบ: สมอง records/projects/anajak-erp/mockup-orders-minimal-2026-09-14.html
 
-   หัวหน้า (ตัวเลขทั้งหมด/กำลังเดิน/เลยกำหนด) → ราง pipeline กรองสถานะ → ตารางในการ์ด
-   (ค้นหา/วันที่/ช่องทาง/ประเภทอยู่หัวการ์ด) → กดแถวดูย่อทางขวา, ↑↓ ไล่ใบ, Esc ปิด
+   หัวหน้า (ทั้งหมด/กำลังเดิน/เลยกำหนด) → การ์ดเส้นทางงาน (ราง pipeline กรองสถานะ) → การ์ดรายการ
+   (ค้นหา / ช่วงวันที่ / ช่องทาง / ประเภท / จำนวน) → ตาราง → แบ่งหน้า · กดแถวดูย่อทางขวา ↑↓ ไล่ใบ Esc ปิด
    สถานะ/ตัวกรอง/หน้า/การเรียงอยู่ใน URL ชุดเดิม ลิงก์จากหน้าแรก (?status= ?attention=) ใช้ได้เหมือนเดิม
    ============================================================ */
 
@@ -111,7 +102,6 @@ function exportOrdersCsv(
   URL.revokeObjectURL(url);
 }
 
-/** คืนโฟกัสให้ปุ่มของแถวที่เพิ่งดูย่อ — ปิดแผงแล้วคีย์บอร์ดไม่หลุดไปต้นหน้า */
 /** คืนโฟกัสให้ปุ่มเลขออเดอร์ของแถวที่ดูย่อ: ทำทันที (rAF หยุดในแท็บที่ถูกซ่อน) รอเฟรมถัดไปเฉพาะตอนแถวยังไม่ขึ้น */
 function focusPeekTrigger(id: string) {
   const find = () => document.querySelector<HTMLElement>(`[data-peek-trigger="${id}"]`);
@@ -120,24 +110,46 @@ function focusPeekTrigger(id: string) {
   else requestAnimationFrame(() => find()?.focus());
 }
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+const bangkokYmd = new Intl.DateTimeFormat("en-CA", {
+  timeZone: BANGKOK_TZ,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+const monthLabel = new Intl.DateTimeFormat("th-TH", { month: "short", year: "2-digit", timeZone: BANGKOK_TZ });
+
+/** ช่วงวันที่เปิดออเดอร์แบบเลือกสำเร็จ (ต้นแบบ select ช่วงวันที่) — คิดเป็นวันปฏิทินไทย */
+function datePresets(now: Date) {
+  const today = bangkokYmd.format(now);
+  return [
+    { value: "7", label: "7 วันล่าสุด", from: bangkokYmd.format(new Date(now.getTime() - 6 * DAY_MS)), to: today },
+    { value: "30", label: "30 วันล่าสุด", from: bangkokYmd.format(new Date(now.getTime() - 29 * DAY_MS)), to: today },
+    { value: "m", label: `เดือนนี้ (${monthLabel.format(now)})`, from: `${today.slice(0, 8)}01`, to: today },
+  ];
+}
+
 export default function OrdersPage() {
   return (
-    <Suspense fallback={<ListPageSkeleton />}>
+    <Suspense fallback={<OrdersLoading />}>
       <OrdersPageContent />
     </Suspense>
   );
 }
 
+function OrdersLoading() {
+  return (
+    <div className={c("tokens page")} role="status" aria-label="กำลังโหลดรายการออเดอร์">
+      <span className={c("sk")} style={{ height: 56, width: "40%" }} />
+      <span className={c("sk")} style={{ height: 140 }} />
+      <span className={c("sk")} style={{ height: 420 }} />
+    </div>
+  );
+}
+
 function OrdersPageContent() {
-  const {
-    search,
-    page,
-    searchParams,
-    replaceListState,
-    onSearchChange,
-    searchInputRef,
-    clearSearch,
-  } = useListPageState();
+  const { search, page, searchParams, replaceListState, onSearchChange, searchInputRef, clearSearch } =
+    useListPageState();
   const rawChannel = searchParams.get("channel") ?? "";
   const channel = Object.hasOwn(CHANNEL_LABELS, rawChannel) ? rawChannel : "";
   const rawOrderType = searchParams.get("type") ?? "";
@@ -156,6 +168,7 @@ function OrdersPageContent() {
   // ช่าง/กราฟิกไม่เห็นเงินฝั่งขาย — ซ่อนยอด + sort ยอด (ระหว่างโหลด me = ซ่อนไว้ก่อน ปลอดภัยกว่า)
   const canSeeMoney = permAllows(me?.permissions, "see_order_money");
   const { sortOptions, sort, sortBy, sortOrder } = resolveOrderListSort(rawSort, canSeeMoney);
+  const [now] = useState(() => new Date());
 
   const [peekId, setPeekId] = useState<string | null>(null);
   // เปลี่ยนตัวกรอง/หน้า/การเรียง = ชุดแถวเปลี่ยน · ปิดดูย่อก่อน ไม่ให้แผงค้างใบที่หายไปจากตาราง
@@ -224,7 +237,7 @@ function OrdersPageContent() {
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [peekId, rows]);
 
-  // คีย์ลัด "/" = ไปช่องค้นหา (ต้นแบบมีป้าย / ในช่อง) · ไม่แย่งตอนกำลังพิมพ์/อยู่ในเมนู
+  // คีย์ลัด "/" = ไปช่องค้นหา (ป้าย / ในช่อง) · ไม่แย่งตอนกำลังพิมพ์/อยู่ในเมนู
   useEffect(() => {
     const onSlash = (event: KeyboardEvent) => {
       if (event.key !== "/" || event.metaKey || event.ctrlKey || event.altKey) return;
@@ -237,11 +250,6 @@ function OrdersPageContent() {
     return () => document.removeEventListener("keydown", onSlash);
   }, [searchInputRef]);
 
-  const hasToolbarFilters = Boolean(channel || orderType || attention || createdAfter || createdBefore);
-  const clearToolbarFilters = () => {
-    updateList({ channel: null, type: null, attention: null, from: null, to: null, page: null });
-  };
-  // empty state ตอนหาไม่เจอ: นับทั้งสถานะ/วันที่/คำค้น แล้วล้างทุกอย่างในจังหวะเดียว
   const hasActiveFilters = hasActiveOrderListFilters({
     search,
     channel,
@@ -256,92 +264,70 @@ function OrdersPageContent() {
     clearSearch({ channel: null, type: null, status: null, attention: null, from: null, to: null });
   };
 
+  const presets = datePresets(now);
+  const rangeValue =
+    !createdAfter && !createdBefore
+      ? ""
+      : (presets.find((preset) => preset.from === createdAfter && preset.to === createdBefore)?.value ?? "custom");
+
   const headline = ordersHeadline(data?.statusCounts, data?.overdueCounts);
   const canExport = Boolean(rows && rows.length > 0);
 
   return (
-    <div className="space-y-4 sm:space-y-5">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-semibold text-strong">ออเดอร์</h1>
+    <div className={c("tokens page")}>
+      <div className={c("head")}>
+        <div>
+          <h1>ออเดอร์</h1>
           {data ? (
-            <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
-              <span>
-                <span className="tabular-nums">{headline.total.toLocaleString("th-TH")}</span> ใบทั้งหมด
-              </span>
-              <span aria-hidden="true">·</span>
-              <span>
-                กำลังเดิน <span className="font-medium tabular-nums text-secondary">{headline.active.toLocaleString("th-TH")}</span>
-              </span>
+            <p className={c("date")}>
+              <span className={c("num")}>{headline.total.toLocaleString("th-TH")}</span> ใบทั้งหมด · กำลังเดิน{" "}
+              <b className={c("num")}>{headline.active.toLocaleString("th-TH")}</b>
               {headline.overdue > 0 ? (
                 <>
-                  <span aria-hidden="true">·</span>
-                  <span className="font-medium text-red-700 dark:text-red-300">
-                    เลยกำหนด <span className="tabular-nums">{headline.overdue.toLocaleString("th-TH")}</span>
-                  </span>
+                  {" · "}
+                  <span className={c("late")}>เลยกำหนด {headline.overdue.toLocaleString("th-TH")}</span>
                 </>
               ) : null}
             </p>
           ) : null}
         </div>
-        <div className="flex items-center gap-2">
-          {canExport && rows ? (
-            <Button variant="outline" onClick={() => exportOrdersCsv(rows, canSeeMoney)} className="hidden sm:inline-flex">
-              <Download />
-              ส่งออกหน้านี้
-            </Button>
-          ) : null}
+        <div className={c("acts")}>
+          <button
+            type="button"
+            className={c("btn")}
+            disabled={!canExport}
+            onClick={() => rows && exportOrdersCsv(rows, canSeeMoney)}
+          >
+            <Download aria-hidden="true" />
+            ส่งออกหน้านี้
+          </button>
           {canCreateOrder ? (
-            <Button asChild>
-              <Link href="/orders/new">
-                <Plus />
-                สร้างออเดอร์
-              </Link>
-            </Button>
-          ) : null}
-          {canExport && rows ? (
-            <DropdownMenu.Root>
-              <DropdownMenu.Trigger asChild>
-                <Button variant="outline" size="icon" aria-label="เพิ่มเติม" className="sm:hidden">
-                  <MoreHorizontal />
-                </Button>
-              </DropdownMenu.Trigger>
-              <DropdownMenu.Portal>
-                <DropdownMenu.Content align="end" sideOffset={6} className={cn(OVERLAY_PANEL, "z-50 min-w-48 p-1")}>
-                  <DropdownMenu.Item
-                    className={cn(MENU_ITEM, "min-h-11 rounded-lg")}
-                    onSelect={() => exportOrdersCsv(rows, canSeeMoney)}
-                  >
-                    <span className="inline-flex items-center gap-2">
-                      <Download className="h-4 w-4" />
-                      ส่งออกหน้านี้
-                    </span>
-                  </DropdownMenu.Item>
-                </DropdownMenu.Content>
-              </DropdownMenu.Portal>
-            </DropdownMenu.Root>
+            <Link href="/orders/new" className={c("btn primary")}>
+              <Plus aria-hidden="true" />
+              สร้างออเดอร์
+            </Link>
           ) : null}
         </div>
-      </header>
+      </div>
 
-      <HomeCard
-        id="orders-pipeline"
-        title="เส้นทางงาน"
-        icon={Workflow}
-        tone="brand"
-        action={
-          <span className="hidden items-center gap-3 text-xs text-muted md:flex">
-            <span className="inline-flex items-center gap-1.5">
-              <span aria-hidden="true" className="h-2 w-2 rounded-full bg-green-600 dark:bg-green-400" />
-              ตามกำหนด
+      <section className={c("card")} aria-label="เส้นทางงาน">
+        <CardHead
+          icon={Workflow}
+          tone="blue"
+          title="เส้นทางงาน"
+          right={
+            <span className={c("legend")}>
+              <span>
+                <i className={c("ok")} />
+                ตามกำหนด
+              </span>
+              <span>
+                <i className={c("bad")} />
+                มีงานเลยกำหนด
+              </span>
             </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span aria-hidden="true" className="h-2 w-2 rounded-full bg-red-600 dark:bg-red-400" />
-              มีงานเลยกำหนด
-            </span>
-          </span>
-        }
-      >
+          }
+        />
         <OrderPipeline
           counts={data?.statusCounts}
           overdue={data?.overdueCounts}
@@ -349,155 +335,172 @@ function OrdersPageContent() {
           onSelect={(status) => updateList({ status: status || null, page: null })}
           isLoading={isLoading}
         />
-      </HomeCard>
+      </section>
 
-      <HomeCard
-        id="orders-table"
-        title={internalStatus ? INTERNAL_STATUS_LABELS[internalStatus as InternalStatus] : "ทุกสถานะ"}
-        icon={ShoppingCart}
-        action={
-          hasToolbarFilters ? (
-            <>
-              {/* ป้ายตัวกรองความเร่งด่วนที่ค้างมาจากหน้าแรก (?attention=) — ต้องเห็นว่ากรองอะไรอยู่และล้างได้ */}
-              {attention ? (
-                <span className="inline-flex min-h-7 items-center gap-1.5 rounded-full bg-blue-100 pl-2.5 pr-1 text-xs font-medium text-blue-800 dark:bg-blue-950/60 dark:text-blue-200">
-                  <Filter className="h-3.5 w-3.5" aria-hidden="true" />
-                  {ATTENTION_FILTERS.find((f) => f.value === attention)?.label}
-                  <button
-                    type="button"
-                    aria-label="ล้างตัวกรองความเร่งด่วน"
-                    onClick={() => updateList({ attention: null, page: null })}
-                    className={cn(FOCUS_BUTTON, "flex h-5 w-5 items-center justify-center rounded-full")}
-                  >
-                    <X className="h-3.5 w-3.5" aria-hidden="true" />
-                  </button>
-                </span>
-              ) : null}
-              <Button variant="ghost" size="sm" onClick={clearToolbarFilters} className="px-2 text-secondary">
-                <X />
-                ล้างตัวกรอง
-              </Button>
-            </>
-          ) : undefined
-        }
-      >
-        {/* แถบเครื่องมือตามต้นแบบ (.tools): ช่องค้นหากว้างพอดี มีคีย์ลัด / · ช่วงวันที่ · ช่องทาง · ประเภท · จำนวนชิดขวา */}
-        <div className="flex flex-wrap items-center gap-2 px-4 pb-3 sm:px-[1.125rem]">
-          <div className="relative min-w-0 basis-full sm:max-w-[21.25rem] sm:flex-1 sm:basis-[15.625rem]">
-            <SearchInput
+      <section className={c("card")} aria-label="รายการออเดอร์">
+        <CardHead
+          icon={ShoppingCart}
+          title={internalStatus ? INTERNAL_STATUS_LABELS[internalStatus as InternalStatus] : "ทุกสถานะ"}
+          right={
+            hasActiveFilters ? (
+              <>
+                {attention ? (
+                  <span className={c("fchip")}>
+                    <Filter aria-hidden="true" />
+                    {ATTENTION_FILTERS.find((filter) => filter.value === attention)?.label}
+                    <button
+                      type="button"
+                      aria-label="ล้างตัวกรองความเร่งด่วน"
+                      onClick={() => updateList({ attention: null, page: null })}
+                    >
+                      <X aria-hidden="true" />
+                    </button>
+                  </span>
+                ) : null}
+                <button type="button" className={c("btn ghost sm")} onClick={clearFiltersAndSearch}>
+                  <X aria-hidden="true" />
+                  ล้างตัวกรอง
+                </button>
+              </>
+            ) : undefined
+          }
+        />
+
+        <div className={c("tools")}>
+          <label className={c("sinput")}>
+            <Search aria-hidden="true" />
+            <input
               ref={searchInputRef}
-              containerClassName="w-full"
-              surface="raised"
-              placeholder="ค้นหาเลขออเดอร์ หรือลูกค้า"
+              type="search"
               defaultValue={search}
-              className="pr-9"
+              placeholder="ค้นหาเลขออเดอร์ หรือลูกค้า"
+              aria-label="ค้นหาออเดอร์"
               onChange={(event) => {
                 setPeekId(null);
                 onSearchChange(event.target.value);
               }}
             />
-            {search ? null : (
-              <kbd
-                aria-hidden="true"
-                className="pointer-events-none absolute right-2.5 top-1/2 hidden -translate-y-1/2 rounded-md border border-border bg-surface px-1.5 font-mono text-2xs tabular-nums text-muted sm:block"
+            {search ? (
+              <button
+                type="button"
+                className={c("clr")}
+                aria-label="ล้างคำค้น"
+                onClick={() => {
+                  setPeekId(null);
+                  clearSearch();
+                  searchInputRef.current?.focus();
+                }}
               >
-                /
-              </kbd>
+                <X aria-hidden="true" />
+              </button>
+            ) : (
+              <kbd aria-hidden="true">/</kbd>
             )}
-          </div>
-          {/* จอกว้างเรียงที่หัวคอลัมน์ · จอแคบเป็นการ์ดไม่มีหัวคอลัมน์ จึงยังต้องมีช่องเรียง */}
-          <Select
-            surface="raised"
+          </label>
+          {/* จอแคบเป็นการ์ดไม่มีหัวคอลัมน์ให้กดเรียง จึงมีช่องเรียงเฉพาะจอแคบ */}
+          <select
+            className={c("sel mobileonly")}
             aria-label="เรียงลำดับ"
             value={sort}
-            onChange={(e) => updateList({ sort: e.target.value === DEFAULT_SORT ? null : e.target.value, page: null })}
-            className="w-auto min-w-0 lg:hidden"
+            onChange={(event) => updateList({ sort: event.target.value === DEFAULT_SORT ? null : event.target.value, page: null })}
           >
-            {sortOptions.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
+            {sortOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
               </option>
             ))}
-          </Select>
-          <DateRangePicker
-            from={createdAfter}
-            to={createdBefore}
-            placeholder="ทุกช่วงวันที่"
-            className="w-auto min-w-0"
-            onChange={(f, t) => updateList({ from: f || null, to: t || null, page: null })}
-          />
-          <Select
-            surface="raised"
-            aria-label="กรองช่องทางออเดอร์"
+          </select>
+          <select
+            className={c("sel", rangeValue && "on")}
+            aria-label="ช่วงวันที่เปิดออเดอร์"
+            value={rangeValue}
+            onChange={(event) => {
+              const preset = presets.find((item) => item.value === event.target.value);
+              updateList({ from: preset?.from ?? null, to: preset?.to ?? null, page: null });
+            }}
+          >
+            <option value="">ทุกช่วงวันที่</option>
+            {presets.map((preset) => (
+              <option key={preset.value} value={preset.value}>
+                {preset.label}
+              </option>
+            ))}
+            {rangeValue === "custom" ? (
+              <option value="custom">
+                {createdAfter ? formatDateCompact(createdAfter) : "…"} – {createdBefore ? formatDateCompact(createdBefore) : "…"}
+              </option>
+            ) : null}
+          </select>
+          <select
+            className={c("sel", channel && "on")}
+            aria-label="กรองช่องทาง"
             value={channel}
             onChange={(event) => updateList({ channel: event.target.value || null, page: null })}
-            className="w-auto min-w-0"
           >
             {CHANNEL_FILTERS.map((filter) => (
               <option key={filter.value} value={filter.value}>
                 {filter.label}
               </option>
             ))}
-          </Select>
-          <Select
-            surface="raised"
-            aria-label="กรองประเภทออเดอร์"
+          </select>
+          <select
+            className={c("sel", orderType && "on")}
+            aria-label="กรองประเภทงาน"
             value={orderType}
             onChange={(event) => updateList({ type: event.target.value || null, page: null })}
-            className="w-auto min-w-0"
           >
             {TYPE_FILTERS.map((filter) => (
               <option key={filter.value} value={filter.value}>
                 {filter.label}
               </option>
             ))}
-          </Select>
-          {data ? (
-            <p
-              aria-busy={isFetching}
-              aria-live="polite"
-              className="ml-auto whitespace-nowrap text-xs tabular-nums text-muted"
-            >
-              {isFetching ? "กำลังอัปเดต…" : `${data.total.toLocaleString("th-TH")} ออเดอร์`}
-            </p>
-          ) : null}
+          </select>
+          <span className={c("cnt")} aria-live="polite" aria-busy={isFetching}>
+            {!data ? "" : isFetching ? "กำลังอัปเดต…" : `${data.total.toLocaleString("th-TH")} ออเดอร์`}
+          </span>
         </div>
 
         {isError && !data ? (
-          <div className="border-t border-divider">
-            <QueryError message="โหลดรายการออเดอร์ไม่สำเร็จ" onRetry={() => void refetch()} />
+          <div className={c("noresult")} role="alert">
+            <AlertTriangle aria-hidden="true" />
+            <span>โหลดรายการออเดอร์ไม่สำเร็จ</span>
+            <button type="button" className={c("btn sm")} onClick={() => void refetch()}>
+              ลองอีกครั้ง
+            </button>
           </div>
         ) : !rows ? (
-          <div className="space-y-2 border-t border-divider px-4 py-4 sm:px-5" role="status" aria-label="กำลังโหลดรายการออเดอร์">
-            {Array.from({ length: 6 }, (_, index) => (
-              <Skeleton key={index} className="h-14 rounded-xl" />
-            ))}
+          <div className={c("cb")} role="status" aria-label="กำลังโหลดรายการออเดอร์">
+            <div className={c("skstack")}>
+              <span className={c("sk skrow")} />
+              <span className={c("sk skrow")} />
+              <span className={c("sk skrow")} />
+            </div>
           </div>
         ) : rows.length === 0 ? (
-          <div className="border-t border-divider">
-            <EmptyState
-              icon={ShoppingCart}
-              title="ไม่พบออเดอร์"
-              description={hasActiveFilters ? "ลองล้างตัวกรองหรือปรับคำค้นหา" : undefined}
-              action={
-                hasActiveFilters ? (
-                  <Button variant="outline" size="sm" onClick={clearFiltersAndSearch}>
-                    ล้างตัวกรองและคำค้น
-                  </Button>
-                ) : canCreateOrder ? (
-                  <Button asChild size="sm">
-                    <Link href="/orders/new">
-                      <Plus />
-                      สร้างออเดอร์
-                    </Link>
-                  </Button>
-                ) : undefined
-              }
-            />
+          <div className={c("noresult")}>
+            <Search aria-hidden="true" />
+            {hasActiveFilters ? (
+              <>
+                <span>ไม่พบออเดอร์ตามตัวกรองนี้</span>
+                <button type="button" className={c("btn sm")} onClick={clearFiltersAndSearch}>
+                  ล้างตัวกรองและคำค้น
+                </button>
+              </>
+            ) : (
+              <>
+                <span>ยังไม่มีออเดอร์</span>
+                {canCreateOrder ? (
+                  <Link href="/orders/new" className={c("btn primary sm")}>
+                    <Plus aria-hidden="true" />
+                    สร้างออเดอร์
+                  </Link>
+                ) : null}
+              </>
+            )}
           </div>
         ) : (
           <>
-            <div aria-busy={isFetching} className={cn("transition-opacity", isFetching && "opacity-60")}>
+            <div aria-busy={isFetching} className={c(isFetching && "busy")}>
               <OrdersTable
                 orders={rows}
                 canSeeMoney={canSeeMoney}
@@ -506,18 +509,16 @@ function OrdersPageContent() {
                 sortColumn={sortColumn}
               />
             </div>
-            {data ? (
-              <OrdersPager
-                page={page}
-                pages={data.pages}
-                total={data.total}
-                limit={20}
-                onPageChange={(nextPage) => updateList({ page: String(nextPage) })}
-              />
-            ) : null}
+            <OrdersPager
+              page={page}
+              pages={data?.pages ?? 1}
+              total={data?.total ?? rows.length}
+              limit={20}
+              onPageChange={(nextPage) => updateList({ page: String(nextPage) })}
+            />
           </>
         )}
-      </HomeCard>
+      </section>
 
       {peekOrder && rows ? (
         <OrderPeekPanel

@@ -12,13 +12,15 @@ const props: ComponentProps<typeof OrderOverviewTab> = {
   sizeBreakdown: [{ size: "S", quantity: 7 }, { size: "M", quantity: 12 }, { size: "L", quantity: 11 }],
   onOpenMoney: () => {}, onOpenDelivery: () => {}, onEditInfo: () => {}, onOpenCustomer: () => {},
   artwork: createElement("p", null, "แบบเสื้อที่ต้องผลิต"),
-  channelColor: { bg: "bg-green-50", text: "text-green-700" }, isMarketplace: false,
+  isMarketplace: false,
 };
 const render = (overrides: Partial<typeof props> = {}) =>
   renderToStaticMarkup(createElement(OrderOverviewTab, { ...props, ...overrides }));
 const text = (html: string) => html.replace(/<[^>]*>/g, "");
 
-describe("ภาพรวมออเดอร์ — ต้นแบบรอบ 2 (2026-09-14 · ไล่ตรงต้นแบบ 2026-09-15)", () => {
+/* ภาพรวมรื้อตามต้นแบบรอบ 2 ทีละชิ้น (2026-09-15 เบส "รื้อเขียนใหม่ refactor ไปเลย")
+   ล็อกข้อมูล/สิทธิ์/ลำดับ ไม่ล็อกคลาสจัดวาง — หน้าตาอยู่ orders.module.css ที่ยกจากต้นแบบ */
+describe("ภาพรวมออเดอร์ — ต้นแบบรอบ 2", () => {
   it("ข้อมูลออเดอร์ซ้าย ม็อกอัพขวา · การ์ดซ้ายเรียงสรุป → ลูกค้า → จัดส่ง", () => {
     const html = render();
     const at = (card: string) => html.indexOf(`data-order-overview-card="${card}"`);
@@ -48,18 +50,17 @@ describe("ภาพรวมออเดอร์ — ต้นแบบรอ�
     expect(html).toContain(PREVIEW_ORDER.customer!.taxId);
   });
 
-  it("เก็บที่อยู่/โลโก้/โทรศัพท์และลิงก์ลูกค้าเมื่อไม่ส่ง callback", () => {
+  it("เก็บที่อยู่/โทรศัพท์และลิงก์ลูกค้าเมื่อไม่ส่ง callback", () => {
     const html = render({ onOpenCustomer: undefined });
     expect(html).toContain(`href="/customers/${PREVIEW_ORDER.customer!.id}"`);
     expect(html).toContain("tel:0800001280");
-    expect(html).toContain(PREVIEW_ORDER.brandProfile!.logoUrl);
     expect(html).toContain(PREVIEW_ORDER.shippingAddress);
   });
 
-  it("การ์ดม็อกอัพเป็นที่ดู: รูปปกจากสูตรกลาง จำนวนไฟล์ รายละเอียดงาน ทั้งมีแบบและยังไม่มี", () => {
+  it("การ์ดม็อกอัพเป็นที่ดู: รูปปกจากสูตรกลาง จำนวนไฟล์ รายละเอียดงาน/แบรนด์ ทั้งมีแบบและยังไม่มี", () => {
     const artworkProps = {
       latest: PREVIEW_ARTWORK, versionCount: 2, rawCount: 2, printCount: 0,
-      description: PREVIEW_ORDER.description, onOpenFiles: () => {},
+      description: PREVIEW_ORDER.description, brand: PREVIEW_ORDER.brandProfile, onOpenFiles: () => {},
     };
     const ready = renderToStaticMarkup(createElement(OrderArtworkCardView, artworkProps));
     expect(ready).toContain(PREVIEW_ORDER.description);
@@ -67,20 +68,23 @@ describe("ภาพรวมออเดอร์ — ต้นแบบรอ�
     expect(ready).toContain(">v2<");
     expect(ready).toContain("ส่งให้ลูกค้าดู");
     expect(ready).toContain("รอลูกค้าตรวจ");
+    // แบรนด์ลูกค้าย้ายมาอยู่ใต้รายละเอียดงานตามต้นแบบ — โลโก้ยังเปิดได้
+    expect(ready).toContain(PREVIEW_ORDER.brandProfile!.logoUrl);
     const empty = renderToStaticMarkup(createElement(OrderArtworkCardView, { ...artworkProps, latest: null }));
     expect(empty).toContain("ยังไม่มีม็อกอัพ");
     expect(empty).toContain("มีไฟล์จากลูกค้า");
     expect(empty).toContain("ม็อกอัพ &amp; ไฟล์");
   });
 
-  it("เส้นเวลาแปลงแถวสถานะเป็นชื่อไทย เรียงเก่าไปใหม่ และไม่วาดเมื่อไม่มีประวัติ", () => {
+  it("เส้นเวลาใช้ชื่อสถานะใหม่ภาษาไทยเป็นหัวเรื่อง เรียงเก่าไปใหม่ และไม่วาดเมื่อไม่มีประวัติ", () => {
     const revisions: TimelineRevision[] = [
       { id: "r2", description: "", changedBy: "u1", changedByName: "ศรุจ", changeType: "STATUS", oldValue: "INQUIRY", newValue: "CONFIRMED", createdAt: "2026-09-11T10:00:00+07:00" },
       { id: "r1", description: "เปิดออเดอร์", changedBy: "u1", changeType: "INFO", createdAt: "2026-09-10T10:00:00+07:00" },
     ];
-    expect(revisionTitle(revisions[0]!)).toBe("สอบถาม → ยืนยันออเดอร์");
+    expect(revisionTitle(revisions[0]!)).toBe("ยืนยันออเดอร์");
     const html = renderToStaticMarkup(createElement(OrderTimelineCard, { revisions }));
-    expect(html.indexOf("เปิดออเดอร์")).toBeLessThan(html.indexOf("สอบถาม → ยืนยันออเดอร์"));
+    expect(html.indexOf("เปิดออเดอร์")).toBeLessThan(html.indexOf("ยืนยันออเดอร์"));
+    expect(html).toContain("ศรุจ");
     expect(renderToStaticMarkup(createElement(OrderTimelineCard, { revisions: [] }))).toBe("");
   });
 });

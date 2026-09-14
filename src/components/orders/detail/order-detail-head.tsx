@@ -1,29 +1,22 @@
-import type { ReactNode } from "react";
-import type { LucideIcon } from "lucide-react";
+"use client";
+
+import { useEffect, useRef, type ReactNode } from "react";
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
 import type { CustomerStatus, InternalStatus } from "@prisma/client";
-import { Button } from "@/components/ui/button";
-import { FOCUS_BUTTON, TINT } from "@/components/ui/tokens";
-import { HomeChip } from "@/components/dashboard/home/home-card";
-import { MockupThumbnail } from "@/components/mockup/mockup-thumbnail";
-import { OrderPriorityChip, OrderProblemCallout, OrderStatusPill } from "@/components/orders/order-problem";
-import type { HomeProblem } from "@/lib/home-orders";
-import type { OrderProgress } from "@/lib/order-progress";
+import { c, PriorityChip, StatusPill, statusLabel, Thumb } from "@/components/orders/orders-ui";
 import { CUSTOMER_STATUS_LABELS } from "@/lib/order-status";
-import { cn } from "@/lib/utils";
+import { findOffPathAnchor, type StatusRevisionLike } from "@/lib/order-status-rail";
+import { formatDateCompact } from "@/lib/utils";
 
 /* ============================================================
-   หัวใบออเดอร์ (ต้นแบบหน้าออเดอร์รอบ 2 · เบสเคาะ "โอเคทำจริงเลย" 2026-09-14
-   · ไล่ให้ตรงต้นแบบทีละส่วน 2026-09-15 หลังเบสเปิดของจริงแล้วบอก "ไม่เห็นเหมือนเลย")
+   หัวใบออเดอร์ + รางสถานะ — ต้นแบบ detailPage() ส่วน .dhead และ .steps (รื้อ 2026-09-15)
 
-   ยืนบนผืนหน้าตรง ๆ ไม่มีกรอบ (คำสั่งเดิม 08-30 "ส่วนบนขอแบบไม่ต้องมีพื้นกรอบ แบบ minimal"):
-   ตำแหน่งหน้า → รูปม็อกอัพ + เลขที่ + ชิปสถานะ/ความเร่งด่วน/สถานะที่ลูกค้าเห็น →
-   ลูกค้า (กดไปหน้าลูกค้า) · บริษัท · ชื่องาน → ปุ่มเดิมทางขวา (ใบสั่งงาน, ลิงก์ลูกค้า, ขั้นต่อไป, ⋯)
-   ตัวนี้รับ props ล้วน — ปุ่ม/สิทธิ์/การเดินสถานะอยู่ที่หน้าแม่ทั้งหมด
+   หัวใบยืนบนผืนหน้า ไม่มีกรอบ (เบสสั่ง 08-30): รูปม็อกอัพ · เลขที่ · สถานะ · ความเร่งด่วน · สถานะที่ลูกค้าเห็น
+   บรรทัดรอง ลูกค้า (กดไปหน้าลูกค้า) · ผู้ติดต่อ · ชื่องาน · ปุ่มทางขวามาจากหน้าแม่ (ใบสั่งงาน/ลิงก์ลูกค้า/ขั้นต่อไป/⋯)
+   รางสถานะอ่านอย่างเดียว ขั้นที่ยืนอยู่เป็นแคปซูลบอกอยู่มากี่วัน/ใครทำ · พัก/ยกเลิกยืมตำแหน่งขั้นที่ค้างจากประวัติ
    ============================================================ */
 
-/** รายละเอียดงานยาวไม่ขึ้นหัวใบ (อยู่การ์ดม็อกอัพแล้ว) — หัวใบรับได้แค่ชื่องานสั้น ๆ */
+/** ชื่องานยาวไม่ขึ้นหัวใบ (อยู่การ์ดม็อกอัพแล้ว) */
 const HEAD_DESCRIPTION_MAX = 60;
 
 export function OrderDetailHead({
@@ -47,130 +40,138 @@ export function OrderDetailHead({
 }) {
   const shortDescription =
     description && description.trim().length <= HEAD_DESCRIPTION_MAX ? description.trim() : null;
-  const company = customer?.company && customer.company !== customer.name ? customer.company : null;
+  const company = customer?.company?.trim() || null;
+  const title = company || customer?.name || null;
+  const person = company && customer?.name && customer.name !== company ? customer.name : null;
 
   return (
-    <div className="space-y-3">
-      <nav aria-label="ตำแหน่งหน้า" className="flex items-center gap-1.5 text-xs text-muted">
-        <Link href="/orders" className={cn(FOCUS_BUTTON, "rounded text-secondary")}>
-          ออเดอร์
-        </Link>
-        <ChevronRight className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-        <span aria-current="page" className="tabular-nums">
-          {orderNumber}
-        </span>
-      </nav>
-
-      <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
-        <div className="flex min-w-0 items-start gap-3.5">
-          <MockupThumbnail cover={cover} alt={`ม็อกอัพ ${orderNumber}`} size="md" className="mt-0.5 hidden rounded-xl sm:flex" />
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-              <h1 className="text-2xl font-semibold tabular-nums text-strong">{orderNumber}</h1>
-              <OrderStatusPill status={internalStatus} className="min-h-7 px-3 text-sm" />
-              <OrderPriorityChip priority={priority} className="min-h-7 px-3 text-sm" />
-              <HomeChip className="bg-transparent font-normal ring-1 ring-inset ring-border">
-                ลูกค้าเห็น · {CUSTOMER_STATUS_LABELS[customerStatus]}
-              </HomeChip>
-            </div>
-            {customer || shortDescription ? (
-              <p className="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-sm text-secondary">
-                {customer ? (
-                  <Link
-                    href={`/customers/${customer.id}`}
-                    className={cn(
-                      FOCUS_BUTTON,
-                      "rounded-sm border-b border-blue-200 text-blue-700 dark:border-blue-800 dark:text-blue-300",
-                    )}
-                  >
-                    {customer.name}
-                  </Link>
-                ) : null}
-                {/* จุดคั่นเกาะกับข้อความถัดไป — ขึ้นบรรทัดใหม่บนจอแคบแล้วไม่เหลือจุดค้างท้ายบรรทัด */}
-                {company ? (
-                  <span className="inline-flex min-w-0 items-baseline gap-2.5">
-                    <span aria-hidden="true" className="text-muted">
-                      ·
-                    </span>
-                    <span className="[overflow-wrap:anywhere]">{company}</span>
-                  </span>
-                ) : null}
-                {shortDescription ? (
-                  <span className="inline-flex min-w-0 items-baseline gap-2.5">
-                    <span aria-hidden="true" className="text-muted">
-                      ·
-                    </span>
-                    <span className="[overflow-wrap:anywhere]">{shortDescription}</span>
-                  </span>
-                ) : null}
-              </p>
-            ) : null}
+    <div className={c("dhead")} data-order-head="">
+      <div className={c("idrow")}>
+        <Thumb cover={cover} alt={`ม็อกอัพ ${orderNumber}`} lg />
+        <div>
+          <div className={c("h1row")}>
+            <h1>{orderNumber}</h1>
+            <StatusPill status={internalStatus} lg />
+            <PriorityChip priority={priority} lg />
+            <span className={c("chip line")}>ลูกค้าเห็น · {CUSTOMER_STATUS_LABELS[customerStatus]}</span>
           </div>
+          {customer || shortDescription ? (
+            <p className={c("sub")}>
+              {customer && title ? <Link href={`/customers/${customer.id}`}>{title}</Link> : null}
+              {person ? (
+                <>
+                  <span className={c("sep")} aria-hidden="true">
+                    ·
+                  </span>
+                  <span>{person}</span>
+                </>
+              ) : null}
+              {shortDescription ? (
+                <>
+                  <span className={c("sep")} aria-hidden="true">
+                    ·
+                  </span>
+                  <span>{shortDescription}</span>
+                </>
+              ) : null}
+            </p>
+          ) : null}
         </div>
-        {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
       </div>
+      {actions ? <div className={c("acts")}>{actions}</div> : null}
     </div>
   );
 }
 
-/** ป้าย "ต้องจัดการ" บนสุดของหน้า — กฎเดียวกับหน้าแรก/ตาราง · ปุ่มพาไปแท็บที่แก้เรื่องนั้นได้ */
-export function OrderAttentionCallout({
-  problem,
-  progress,
-  action,
+/** รางสถานะ (ต้นแบบ .steps) — จุดเลขเรียงตามเส้นทางงาน ขั้นที่ยืนอยู่เป็นแคปซูล */
+export function OrderStatusSteps({
+  flowSteps,
+  currentStepIndex,
+  internalStatus,
+  revisions,
+  cancelledAt,
+  cancelledReason,
+  currentDetail,
 }: {
-  problem: HomeProblem;
-  progress: OrderProgress;
-  action?: { label: string; onClick: () => void };
+  flowSteps: string[];
+  currentStepIndex: number;
+  internalStatus: string;
+  revisions?: StatusRevisionLike[];
+  cancelledAt?: Date | string | null;
+  cancelledReason?: string | null;
+  /** บรรทัดเล็กในแคปซูลของขั้นปัจจุบัน เช่น "อยู่ขั้นนี้ 4 วัน · นนท์" */
+  currentDetail?: ReactNode;
 }) {
-  return (
-    <OrderProblemCallout
-      problem={problem}
-      progress={progress}
-      action={
-        action ? (
-          <Button type="button" variant="outline" size="sm" onClick={action.onClick}>
-            {action.label}
-          </Button>
-        ) : undefined
-      }
-    />
-  );
-}
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const isCancelled = internalStatus === "CANCELLED";
+  const isOnHold = internalStatus === "ON_HOLD";
+  const offPath = currentStepIndex < 0;
+  const anchor = offPath ? findOffPathAnchor({ internalStatus, flowSteps, revisions }) : null;
+  const index = offPath ? (anchor?.index ?? -1) : currentStepIndex;
+  const mode = isCancelled ? "stop" : isOnHold ? "hold" : "cur";
 
-const CALLOUT_TONE = {
-  warning: TINT.warning,
-  danger: TINT.error,
-  info: TINT.info,
-} as const;
+  const capsuleDetail =
+    mode === "hold" && anchor
+      ? `พักตั้งแต่ ${formatDateCompact(anchor.at)} · ค้างที่ ${statusLabel(anchor.status)}`
+      : mode === "stop"
+        ? [
+            (cancelledAt ?? anchor?.at) ? `ยกเลิก ${formatDateCompact((cancelledAt ?? anchor?.at)!)}` : "ยกเลิกแล้ว",
+            cancelledReason?.trim() || null,
+          ]
+            .filter(Boolean)
+            .join(" · ")
+        : currentDetail;
 
-/** ป้ายแจ้งเตือนบนสุดแบบเดียวกันทั้งชุด (ต้นแบบ .callout): ไอคอน · หัวเรื่องตัวหนา · รายละเอียด · ปุ่มแก้ */
-export function DetailCallout({
-  tone = "warning",
-  icon: Icon,
-  title,
-  children,
-  action,
-  role,
-}: {
-  tone?: keyof typeof CALLOUT_TONE;
-  icon: LucideIcon;
-  title: string;
-  children?: ReactNode;
-  action?: ReactNode;
-  role?: "alert" | "note";
-}) {
+  // จอแคบรางยาวเกินจอ — เปิดมาต้องเห็นขั้นที่ยืนอยู่ ไม่ใช่ขั้นแรก ๆ ที่ผ่านไปแล้ว
+  useEffect(() => {
+    const wrap = wrapRef.current;
+    if (!wrap || wrap.scrollWidth <= wrap.clientWidth + 1) return;
+    const node = wrap.querySelector<HTMLElement>('[aria-current="step"]');
+    if (node) wrap.scrollLeft = node.offsetLeft - wrap.clientWidth / 2 + node.offsetWidth / 2;
+  }, [index, flowSteps.length]);
+
   return (
-    <div
-      role={role}
-      className={cn(CALLOUT_TONE[tone], "flex flex-wrap items-center gap-x-2.5 gap-y-2 rounded-xl border px-3.5 py-2.5 text-sm")}
-    >
-      <Icon className="h-4 w-4 shrink-0" strokeWidth={1.75} aria-hidden="true" />
-      <span className="min-w-0 flex-1 basis-48 text-strong [overflow-wrap:anywhere]">
-        <span className="font-semibold">{title}</span>
-        {children ? <span> · {children}</span> : null}
-      </span>
-      {action}
+    <div>
+      <div
+        ref={wrapRef}
+        className={c("stepsw")}
+        // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- รางที่เลื่อนได้ต้องรับโฟกัสให้ผู้ใช้คีย์บอร์ดดูทุกขั้นได้ (WCAG 2.1.1)
+        tabIndex={0}
+        role="group"
+        aria-label="เส้นทางสถานะออเดอร์"
+      >
+        <ol className={c("steps")}>
+          {flowSteps.map((step, position) =>
+            position === index ? (
+              <li key={step} className={c("step", mode)} aria-current="step">
+                <span className={c("c")}>{position + 1}</span>
+                <span className={c("lb")}>
+                  {mode === "hold" ? "พักงาน" : mode === "stop" ? "ยกเลิก" : statusLabel(step)}
+                  {capsuleDetail ? <small>{capsuleDetail}</small> : null}
+                </span>
+              </li>
+            ) : (
+              <li
+                key={step}
+                className={c("step", position < index && "done")}
+                aria-label={`${statusLabel(step)}: ${position < index ? "ผ่านแล้ว" : "ยังไม่ถึง"}`}
+              >
+                <span className={c("c")} aria-hidden="true">
+                  {position + 1}
+                </span>
+                <span className={c("lb")} aria-hidden="true">
+                  {statusLabel(step)}
+                </span>
+              </li>
+            ),
+          )}
+        </ol>
+      </div>
+      {offPath && index < 0 ? (
+        <p className={c("caption steps-note")}>
+          {statusLabel(internalStatus)} · หาขั้นที่ค้างไว้จากประวัติไม่เจอ
+        </p>
+      ) : null}
     </div>
   );
 }

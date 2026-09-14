@@ -2,29 +2,26 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Check, Factory, ListChecks, Plus, Truck } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Section } from "@/components/ui/section";
-import { HomeChip, HomeIconTile, type HomeTone } from "@/components/dashboard/home/home-card";
-import {
-  STEP_TYPE_LABELS,
-  OUTSOURCE_ACTIVE_STATUSES,
-  productionWorkflowSteps,
-} from "@/lib/production-steps";
+import { ArrowUpRight, Check, CheckCircle2, Factory, ListTodo, Pause, Plus, Printer } from "lucide-react";
+import { c, CardHead, StateBox, SubHead } from "@/components/orders/orders-ui";
+import { OUTSOURCE_ACTIVE_STATUSES, productionWorkflowSteps } from "@/lib/production-steps";
+import { productionStepLabel } from "@/lib/order-progress";
 import { differenceInBangkokDays } from "@/lib/date-utils";
 import type { RouterOutput } from "@/lib/trpc";
-import { cn } from "@/lib/utils";
 
 /* ============================================================
-   การ์ดงานผลิตบนหน้าออเดอร์ — อ่านอย่างเดียว ไม่มี dialog/ไม่มีเงิน
-   ตัวจัดการจริง (ขั้นตอน/QC/outsource/เบิกวัตถุดิบ) อยู่หน้าใบผลิต /production/[id]
+   การ์ด "งานผลิต" ซ้ายของแท็บงานผลิต — ต้นแบบ tabProduction() ส่วน left (รื้อ 2026-09-15)
+   อ่านอย่างเดียว ไม่มี dialog/ไม่มีเงิน — ตัวจัดการจริง (ขั้นตอน/QC/outsource/เบิกวัตถุดิบ) อยู่หน้าใบผลิต /production/[id]
    (แยกโมดูลผลิตออกจากหน้าออเดอร์ — เบสเคาะ 2026-06-12)
 
-   หน้าตาตามต้นแบบหน้าออเดอร์รอบ 2 (ไล่ตรงต้นแบบ 2026-09-15): เลขใบผลิตที่หัวการ์ด + ปุ่มไปหน้าผลิต ·
-   ขั้นตอนใบผลิตเป็นแถวเรียงลงมา วงเขียว = เสร็จ · แถวฟ้า = กำลังทำ (ใคร/ร้านไหน · ร้านนอกช้า) · วงเทา = รอ
+   มีใบผลิต: เลขใบที่หัวการ์ด + ปุ่มไปหน้าผลิต · เข้าคิวแล้วบอกว่ารอหัวหน้ากดเริ่ม
+   ขั้นตอนเรียงลงมา: วงเขียว = เสร็จ, แถวฟ้า = กำลังทำ (ใคร/ร้านไหน, ร้านนอกช้า), วงเทา = รอ
+   ยังไม่มีใบผลิต: ช่องสถานะบอกว่าติดอะไร (ไฟล์พิมพ์/พักงาน/ผ่านช่วงผลิต) พร้อมทางไปต่อ
+   ไม่เขียนว่า "เปิดใบผลิตไม่ได้" ตอนขาดไฟล์พิมพ์ เพราะ server ไม่ได้กั้นจริง (ด่านพร้อมผลิตดูแค่แบบอนุมัติ)
    ============================================================ */
 
 type OrderProductions = RouterOutput["order"]["getById"]["productions"];
+type OrderProduction = OrderProductions[number];
 
 interface ProductionSummaryCardProps {
   orderId: string;
@@ -32,9 +29,18 @@ interface ProductionSummaryCardProps {
   productions: OrderProductions;
   isManagerUp: boolean;
   productionV2Enabled: boolean;
+  /** ชนิดงาน — ไม่ส่ง = ถือเป็นงานสั่งทำ (ต้องมีแบบ/ไฟล์พิมพ์) */
+  orderType?: string;
+  /** จำนวนไฟล์พิมพ์ของออเดอร์ · null/ไม่ส่ง = ยังไม่รู้ (โหลดอยู่หรือโหลดไม่ได้) จึงไม่เดา */
+  printFileCount?: number | null;
+  /** พาไปแท็บ "ม็อกอัพ & ไฟล์" เพื่อเพิ่มไฟล์พิมพ์ */
+  onOpenFiles?: () => void;
 }
 
-type StepState = "done" | "current" | "todo";
+type StepState = "done" | "cur" | "todo";
+
+const PAST_PRODUCTION = ["READY_TO_SHIP", "SHIPPED", "COMPLETED"];
+const IN_PRODUCTION = ["PRODUCING", "QUALITY_CHECK", "PACKING"];
 
 export function ProductionSummaryCard({
   orderId,
@@ -42,24 +48,12 @@ export function ProductionSummaryCard({
   productions,
   isManagerUp,
   productionV2Enabled,
+  orderType,
+  printFileCount = null,
+  onOpenFiles,
 }: ProductionSummaryCardProps) {
   const [now] = useState(() => new Date());
   const hasProduction = productions.length > 0;
-
-  // เงื่อนไขโชว์การ์ดเดียวกับ section เดิม — มีใบผลิต หรือสถานะอยู่ช่วงผลิต
-  if (
-    !hasProduction &&
-    ![
-      "PRODUCTION_QUEUE",
-      "DESIGN_APPROVED",
-      "CONFIRMED",
-      "PRODUCING",
-      "QUALITY_CHECK",
-      "PACKING",
-    ].includes(internalStatus)
-  ) {
-    return null;
-  }
 
   // เปิดใบผลิต = อำนาจหัวหน้า + สถานะถึงเกณฑ์ (ชุดเดียวกับปุ่มเดิม)
   const canCreate =
@@ -70,168 +64,260 @@ export function ProductionSummaryCard({
   const single = productions.length === 1 ? productions[0] : null;
 
   return (
-    <Section
-      title={
-        <span className="flex items-center gap-2.5">
-          <HomeIconTile icon={Factory} tone="warning" />
-          งานผลิต
-        </span>
-      }
-      action={
-        single ? (
-          <span className="flex flex-wrap items-center gap-2">
-            {single.workOrderNumber ? (
-              <HomeChip tone="brand" className="font-mono">
-                {single.workOrderNumber}
-              </HomeChip>
-            ) : null}
-            <Button variant="outline" size="sm" asChild>
-              <Link href={`/production/${single.id}`}>
+    <section className={c("card")} aria-labelledby="prod-card-h">
+      <CardHead
+        icon={Factory}
+        tone="warn"
+        id="prod-card-h"
+        title="งานผลิต"
+        right={
+          single ? (
+            <>
+              {single.workOrderNumber ? (
+                <span className={c("chip blue mono")}>{single.workOrderNumber}</span>
+              ) : null}
+              <Link href={`/production/${single.id}`} className={c("btn sm")}>
                 {openLabel}
-                <ArrowRight />
+                <ArrowUpRight aria-hidden="true" />
               </Link>
-            </Button>
-          </span>
-        ) : !hasProduction ? (
-          <HomeChip>ยังไม่เปิดใบผลิต</HomeChip>
-        ) : undefined
-      }
-    >
-      {!hasProduction ? (
-        <div className="flex flex-wrap items-center gap-2.5 rounded-lg bg-surface-muted px-3 py-2.5 text-sm text-secondary">
-          <Factory className="h-4 w-4 shrink-0" aria-hidden="true" />
-          <span className="min-w-0 flex-1 basis-40">
-            ยังไม่มีใบผลิต
-            {canCreate && " — เปิดได้ที่หน้าการผลิต"}
-          </span>
-          {canCreate && (
-            <Button size="sm" asChild>
-              <Link href={`/production?create=${orderId}`}>
-                <Plus />
-                เปิดใบผลิต
-              </Link>
-            </Button>
+            </>
+          ) : !hasProduction ? (
+            <span className={c("chip gray")}>ยังไม่เปิดใบผลิต</span>
+          ) : undefined
+        }
+      />
+      <div className={c("cb")}>
+        <div className={c("stack")} style={{ gap: 12 }}>
+          {hasProduction ? (
+            productions.map((prod) => (
+              <ProductionSteps
+                key={prod.id}
+                prod={prod}
+                internalStatus={internalStatus}
+                showNumber={!single}
+                openLabel={openLabel}
+                now={now}
+              />
+            ))
+          ) : (
+            <NoProductionState
+              orderId={orderId}
+              internalStatus={internalStatus}
+              orderType={orderType}
+              printFileCount={printFileCount}
+              canCreate={canCreate}
+              onOpenFiles={onOpenFiles}
+            />
           )}
         </div>
+      </div>
+    </section>
+  );
+}
+
+/** ขั้นตอนของใบผลิตหนึ่งใบ — วางเป็นลูกตรงของ .stack ตามต้นแบบ (ช่องสถานะ → หัวย่อย → รายการ) */
+function ProductionSteps({
+  prod,
+  internalStatus,
+  showNumber,
+  openLabel,
+  now,
+}: {
+  prod: OrderProduction;
+  internalStatus: string;
+  showNumber: boolean;
+  openLabel: string;
+  now: Date;
+}) {
+  const workflowSteps = productionWorkflowSteps(prod.steps);
+  const completed = workflowSteps.filter((s) => s.status === "COMPLETED").length;
+  const total = workflowSteps.length;
+  // ขั้นที่กำลังทำอยู่ = ขั้นแรกที่ยังไม่เสร็จ
+  const currentStep = workflowSteps.find((s) => s.status !== "COMPLETED");
+  const hasPendingLegacyPackaging = prod.steps.some(
+    (s) => s.stepType === "PACKAGING" && s.status !== "COMPLETED",
+  );
+  const legacyReadyForQc =
+    internalStatus === "PRODUCING" &&
+    hasPendingLegacyPackaging &&
+    workflowSteps.every((s) => s.status === "COMPLETED");
+  // เข้าคิวแล้วแต่ยังไม่มีขั้นไหนเสร็จ — ปุ่มไปหน้าผลิตอยู่หัวการ์ดแล้ว ช่องนี้บอกว่ารอใคร
+  const queued = internalStatus === "PRODUCTION_QUEUE" && completed === 0;
+
+  return (
+    <>
+      {queued ? (
+        <StateBox tone="on" icon={Factory}>
+          {prod.workOrderNumber ?? "ใบผลิต"} เข้าคิวแล้ว · รอหัวหน้าผลิตกดเริ่ม
+        </StateBox>
+      ) : null}
+      {legacyReadyForQc ? (
+        <StateBox tone="warn" icon={CheckCircle2}>
+          ขั้นผลิตจริงครบแล้ว · รอส่งเข้า QC จากใบผลิต
+        </StateBox>
+      ) : null}
+
+      <SubHead
+        icon={ListTodo}
+        tone="warn"
+        title="ขั้นตอนใบผลิต"
+        right={
+          <>
+            {showNumber ? (
+              <Link href={`/production/${prod.id}`} className={c("chip blue mono")}>
+                {prod.workOrderNumber ?? openLabel}
+              </Link>
+            ) : null}
+            <span className={c("chip", total > 0 && completed === total ? "good" : "gray")}>
+              {completed}/{total} เสร็จ
+            </span>
+          </>
+        }
+      />
+
+      {total === 0 ? (
+        <StateBox icon={ListTodo}>ใบผลิตนี้ยังไม่มีขั้นตอน</StateBox>
       ) : (
-        <div className="space-y-4">
-          {productions.map((prod) => {
-            const workflowSteps = productionWorkflowSteps(prod.steps);
-            const completed = workflowSteps.filter((s) => s.status === "COMPLETED").length;
-            const total = workflowSteps.length;
-            // ขั้นที่กำลังทำอยู่ = ขั้นแรกที่ยังไม่เสร็จ
-            const currentStep = workflowSteps.find((s) => s.status !== "COMPLETED");
-            const hasPendingLegacyPackaging = prod.steps.some(
-              (s) => s.stepType === "PACKAGING" && s.status !== "COMPLETED",
+        <ol className={c("inst")}>
+          {workflowSteps.map((step, index) => {
+            const state: StepState =
+              step.status === "COMPLETED" ? "done" : step === currentStep ? "cur" : "todo";
+            const activeOutsource = step.outsourceOrders.find((os) =>
+              OUTSOURCE_ACTIVE_STATUSES.includes(os.status),
             );
-            const legacyReadyForQc =
-              internalStatus === "PRODUCING" &&
-              hasPendingLegacyPackaging &&
-              workflowSteps.every((s) => s.status === "COMPLETED");
-
+            const backIn = activeOutsource?.expectedBackAt
+              ? differenceInBangkokDays(activeOutsource.expectedBackAt, now)
+              : null;
+            const lateDays = backIn !== null && backIn < 0 ? -backIn : 0;
+            const who = activeOutsource?.vendor?.name ?? step.assignedTo?.name ?? null;
+            const chip: { tone: string; label: string } =
+              state === "done"
+                ? { tone: "good", label: "เสร็จ" }
+                : step.status === "FAILED"
+                  ? { tone: "bad", label: "มีปัญหา" }
+                  : step.status === "ON_HOLD"
+                    ? { tone: "warn", label: "พักไว้" }
+                    : state === "cur"
+                      ? lateDays > 0
+                        ? { tone: "bad", label: "ร้านนอกช้า" }
+                        : { tone: "blue", label: "กำลังทำ" }
+                      : { tone: "gray", label: "รอ" };
+            const detail = [
+              state === "done" ? "เสร็จแล้ว" : state === "cur" ? "กำลังทำ" : "รอ",
+              state !== "todo" ? who : null,
+              lateDays > 0 ? `เลยกำหนดรับ ${lateDays} วัน` : null,
+            ]
+              .filter(Boolean)
+              .join(" · ");
             return (
-              <div key={prod.id} className="space-y-2.5">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="flex items-center gap-2 text-sm font-semibold text-strong">
-                    <HomeIconTile icon={ListChecks} tone="warning" size="sm" />
-                    ขั้นตอนใบผลิต
-                  </h3>
-                  {!single ? (
-                    <Link
-                      href={`/production/${prod.id}`}
-                      className="rounded-sm border-b border-blue-200 font-mono text-xs text-blue-700 dark:border-blue-800 dark:text-blue-300"
-                    >
-                      {prod.workOrderNumber ?? openLabel}
-                    </Link>
-                  ) : null}
-                  <HomeChip tone={total > 0 && completed === total ? "success" : "neutral"} className="ml-auto">
-                    {completed}/{total} เสร็จ
-                  </HomeChip>
-                </div>
-
-                {legacyReadyForQc ? (
-                  <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
-                    ขั้นผลิตจริงครบแล้ว · รอส่งเข้า QC จากใบผลิต
-                  </p>
-                ) : null}
-
-                {total === 0 ? (
-                  <p className="text-sm text-muted">ใบผลิตนี้ยังไม่มีขั้นตอน</p>
-                ) : (
-                  <ol className="grid gap-1.5">
-                    {workflowSteps.map((step, index) => {
-                      const state: StepState =
-                        step.status === "COMPLETED" ? "done" : step === currentStep ? "current" : "todo";
-                      const activeOutsource = step.outsourceOrders.find((os) =>
-                        OUTSOURCE_ACTIVE_STATUSES.includes(os.status),
-                      );
-                      const backIn = activeOutsource?.expectedBackAt
-                        ? differenceInBangkokDays(activeOutsource.expectedBackAt, now)
-                        : null;
-                      const lateDays = backIn !== null && backIn < 0 ? -backIn : 0;
-                      const who = activeOutsource?.vendor?.name ?? step.assignedTo?.name ?? null;
-                      const name = step.customStepName || STEP_TYPE_LABELS[step.stepType] || step.stepType;
-                      const chip: { tone: HomeTone; label: string } =
-                        state === "done"
-                          ? { tone: "success", label: "เสร็จ" }
-                          : step.status === "FAILED"
-                            ? { tone: "danger", label: "มีปัญหา" }
-                            : step.status === "ON_HOLD"
-                              ? { tone: "warning", label: "พักไว้" }
-                              : state === "current"
-                                ? lateDays > 0
-                                  ? { tone: "danger", label: "ร้านนอกช้า" }
-                                  : { tone: "brand", label: "กำลังทำ" }
-                                : { tone: "neutral", label: "รอ" };
-                      return (
-                        <li
-                          key={step.id}
-                          className={cn(
-                            "grid grid-cols-[1.75rem_minmax(0,1fr)_auto] items-center gap-3 rounded-lg border px-2.5 py-2",
-                            state === "current"
-                              ? "border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/40"
-                              : "border-divider",
-                          )}
-                        >
-                          <span
-                            aria-hidden="true"
-                            className={cn(
-                              "flex h-7 w-7 items-center justify-center rounded-full text-2xs font-semibold tabular-nums",
-                              state === "done"
-                                ? "bg-green-600 text-white dark:bg-green-500"
-                                : state === "current"
-                                  ? "border-2 border-blue-600 bg-surface text-blue-700 dark:border-blue-400 dark:text-blue-300"
-                                  : "border-2 border-slate-300 text-muted dark:border-slate-600",
-                            )}
-                          >
-                            {state === "done" ? <Check className="h-3.5 w-3.5" strokeWidth={2.5} /> : index + 1}
-                          </span>
-                          <span className="min-w-0">
-                            <span className="block text-sm font-medium text-strong [overflow-wrap:anywhere]">{name}</span>
-                            <span className="flex flex-wrap items-center gap-x-1.5 text-xs text-muted">
-                              {state === "done" ? "เสร็จแล้ว" : state === "current" ? "กำลังทำ" : "รอ"}
-                              {state !== "todo" && who ? (
-                                <span className="inline-flex items-center gap-1">
-                                  · {activeOutsource ? <Truck className="h-3 w-3" aria-hidden="true" /> : null}
-                                  {who}
-                                </span>
-                              ) : null}
-                              {lateDays > 0 ? (
-                                <span className="font-medium text-red-700 dark:text-red-300">· เลยกำหนดรับ {lateDays} วัน</span>
-                              ) : null}
-                            </span>
-                          </span>
-                          <HomeChip tone={chip.tone}>{chip.label}</HomeChip>
-                        </li>
-                      );
-                    })}
-                  </ol>
-                )}
-              </div>
+              <li key={step.id} className={c(state === "done" && "done", state === "cur" && "cur") || undefined}>
+                <span className={c("st")} aria-hidden="true">
+                  {state === "done" ? <Check /> : index + 1}
+                </span>
+                <span className={c("tx")}>
+                  <b>{productionStepLabel(step)}</b>
+                  <small>{detail}</small>
+                </span>
+                <span className={c("chip", chip.tone)}>{chip.label}</span>
+              </li>
             );
           })}
-        </div>
+        </ol>
       )}
-    </Section>
+    </>
+  );
+}
+
+/** ยังไม่มีใบผลิต — บอกว่าติดอะไรจากข้อมูลจริงเท่านั้น (สถานะ/ชนิดงาน/จำนวนไฟล์พิมพ์) */
+function NoProductionState({
+  orderId,
+  internalStatus,
+  orderType,
+  printFileCount,
+  canCreate,
+  onOpenFiles,
+}: {
+  orderId: string;
+  internalStatus: string;
+  orderType?: string;
+  printFileCount: number | null;
+  canCreate: boolean;
+  onOpenFiles?: () => void;
+}) {
+  const createLink = (primary: boolean) =>
+    canCreate ? (
+      <Link href={`/production?create=${orderId}`} className={c("btn sm", primary && "primary")}>
+        <Factory aria-hidden="true" />
+        เปิดใบผลิต
+      </Link>
+    ) : null;
+
+  if (internalStatus === "ON_HOLD") {
+    return (
+      <StateBox tone="warn" icon={Pause}>
+        งานพักอยู่ · ปลดพักก่อนเปิดใบผลิต
+      </StateBox>
+    );
+  }
+  if (internalStatus === "CANCELLED") {
+    return <StateBox icon={Factory}>ออเดอร์ยกเลิกแล้ว ไม่มีงานผลิต</StateBox>;
+  }
+  if (PAST_PRODUCTION.includes(internalStatus)) {
+    return (
+      <StateBox tone="good" icon={CheckCircle2}>
+        ผ่านช่วงผลิตแล้ว
+      </StateBox>
+    );
+  }
+  if (IN_PRODUCTION.includes(internalStatus)) {
+    return <StateBox icon={Factory}>ยังไม่มีใบผลิตในระบบ</StateBox>;
+  }
+
+  // งานสำเร็จรูปไม่มีขั้นออกแบบ — ยืนยันแล้วเปิดใบผลิตได้เลย
+  if (orderType === "READY_MADE") {
+    if (internalStatus === "CONFIRMED" || internalStatus === "PRODUCTION_QUEUE") {
+      return (
+        <StateBox tone="on" icon={Factory} action={createLink(true)}>
+          {canCreate ? "งานสำเร็จรูป พร้อมเปิดใบผลิต" : "รอหัวหน้าผลิตเปิดใบผลิต"}
+        </StateBox>
+      );
+    }
+    return <StateBox icon={Factory}>เปิดใบผลิตได้เมื่อยืนยันออเดอร์</StateBox>;
+  }
+
+  if (internalStatus === "DESIGN_APPROVED" || internalStatus === "PRODUCTION_QUEUE") {
+    if (printFileCount === 0) {
+      return (
+        <StateBox
+          tone="warn"
+          icon={Printer}
+          action={
+            <>
+              {onOpenFiles ? (
+                <button type="button" className={c("btn sm")} onClick={onOpenFiles}>
+                  <Plus aria-hidden="true" />
+                  เพิ่มไฟล์พิมพ์
+                </button>
+              ) : null}
+              {createLink(false)}
+            </>
+          }
+        >
+          แบบผ่านแล้ว แต่ยังไม่มีไฟล์พิมพ์
+        </StateBox>
+      );
+    }
+    return (
+      <StateBox tone="on" icon={CheckCircle2} action={createLink(true)}>
+        {printFileCount ? "แบบผ่านและมีไฟล์พิมพ์แล้ว" : "แบบผ่านแล้ว"}
+      </StateBox>
+    );
+  }
+
+  // งานสั่งทำก่อนแบบผ่าน (สอบถาม/ยืนยัน/ออกแบบ) — หัวหน้ายังเปิดก่อนได้ตามสิทธิ์เดิม
+  return (
+    <StateBox icon={Factory} action={createLink(false)}>
+      ยังไม่มีใบผลิต · รอแบบผ่านและไฟล์พิมพ์
+    </StateBox>
   );
 }

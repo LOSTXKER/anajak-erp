@@ -1,20 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import { AlertTriangle, PackageCheck, PackageOpen, Undo2 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ToneMark } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { RECEIPT_TYPE_LABELS, type ReceiptType } from "@/lib/goods-receipt";
+import { c, CardHead, Rw, StateBox } from "@/components/orders/orders-ui";
 import { GoodsReceiptDialog } from "./goods-receipt-dialog";
-import { QueryError } from "@/components/ui/query-error";
-import { ClipboardCheck, PackageOpen, Undo2, ImageIcon } from "lucide-react";
 
-// การ์ด "ของเข้า / ตรวจรับ" บนหน้าออเดอร์ — จุดเดียวที่แอดมินบันทึกของเข้าโรงงาน
+// การ์ด "ของเข้า / ตรวจรับ" ในแท็บงานผลิตของหน้าออเดอร์ — จุดเดียวที่แอดมินบันทึกของเข้าโรงงาน
 // (เสื้อลูกค้า/เสื้อโรงเย็บ) + คืนของลูกค้า · รับกลับร้านนอกบันทึกที่หน้า /outsource
-// โชว์เฉพาะออเดอร์ที่มีของต้องรับ (เสื้อลูกค้า/โรงเย็บ) หรือมีใบแล้ว
+// โชว์เฉพาะออเดอร์ที่มีของต้องรับ (เสื้อลูกค้า/โรงเย็บ) หรือมีใบแล้ว · ใช้เฉพาะ flow เดิม (V2 ไม่วาง)
+// หน้าตาตามต้นแบบรอบ 2 (รื้อ 2026-09-15): หัวการ์ดมีปุ่มรับของ · ใบตรวจรับเป็นแถว ไอคอนแดง = มีตำหนิ ส้ม = ขาด/เกิน
 
 interface OrderGoodsReceiptSectionProps {
   orderId: string;
@@ -32,7 +29,7 @@ export function OrderGoodsReceiptSection({
   const hasCustomerGarment = itemSources.includes("CUSTOMER_PROVIDED");
   const hasSewingGarment = itemSources.includes("CUSTOM_MADE");
 
-  const { data: receipts, isError, refetch } = trpc.goodsReceipt.listByOrder.useQuery(
+  const { data: receipts, isLoading, isError, refetch } = trpc.goodsReceipt.listByOrder.useQuery(
     { orderId },
     { enabled: hasCustomerGarment || hasSewingGarment }
   );
@@ -41,110 +38,113 @@ export function OrderGoodsReceiptSection({
     return null;
   }
 
+  const list = receipts ?? [];
+  const actions = canReceive
+    ? [
+        hasCustomerGarment ? (
+          <button
+            key="customer"
+            type="button"
+            className={c("btn sm")}
+            onClick={() => setDialogType("CUSTOMER_GARMENT")}
+          >
+            <PackageOpen aria-hidden="true" />
+            รับเสื้อลูกค้า
+          </button>
+        ) : null,
+        hasSewingGarment ? (
+          <button
+            key="sewing"
+            type="button"
+            className={c("btn sm")}
+            onClick={() => setDialogType("SEWING_GARMENT")}
+          >
+            <PackageOpen aria-hidden="true" />
+            รับเสื้อโรงเย็บ
+          </button>
+        ) : null,
+        hasCustomerGarment && list.length > 0 ? (
+          <button
+            key="return"
+            type="button"
+            className={c("btn ghost sm")}
+            onClick={() => setDialogType("CUSTOMER_RETURN")}
+          >
+            <Undo2 aria-hidden="true" />
+            คืนของลูกค้า
+          </button>
+        ) : null,
+      ].filter(Boolean)
+    : [];
+
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-            <ToneMark icon={ClipboardCheck} tone="production" />
-            ของเข้า / ตรวจรับ
-          </CardTitle>
-          {canReceive && (
-            <div className="flex flex-wrap gap-2">
-              {hasCustomerGarment && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8 gap-1.5"
-                  onClick={() => setDialogType("CUSTOMER_GARMENT")}
-                >
-                  <PackageOpen />
-                  รับเสื้อลูกค้า
-                </Button>
-              )}
-              {hasSewingGarment && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8 gap-1.5"
-                  onClick={() => setDialogType("SEWING_GARMENT")}
-                >
-                  <PackageOpen />
-                  รับเสื้อโรงเย็บ
-                </Button>
-              )}
-              {hasCustomerGarment && (receipts?.length ?? 0) > 0 && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-8 gap-1.5 text-muted"
-                  onClick={() => setDialogType("CUSTOMER_RETURN")}
-                >
-                  <Undo2 />
-                  คืนของลูกค้า
-                </Button>
-              )}
-            </div>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-2">
+    <section className={c("card")} aria-labelledby="gr-card-h">
+      <CardHead
+        icon={PackageCheck}
+        tone="warn"
+        id="gr-card-h"
+        title="ของเข้า / ตรวจรับ"
+        right={actions.length > 0 ? <>{actions}</> : undefined}
+      />
+      <div className={c("cb")}>
         {isError ? (
-          <QueryError
-            message="โหลดรายการตรวจรับไม่สำเร็จ"
-            onRetry={() => void refetch()}
-          />
-        ) : (receipts ?? []).length === 0 ? (
-          <p className="py-2 text-center text-sm text-muted">
-            ยังไม่มีใบตรวจรับ — ของเข้าโรงงานเมื่อไหร่ กดนับทันที (นับจริงต่อไซส์)
-          </p>
+          <StateBox
+            tone="bad"
+            icon={AlertTriangle}
+            action={
+              <button type="button" className={c("btn sm")} onClick={() => void refetch()}>
+                ลองใหม่
+              </button>
+            }
+          >
+            โหลดรายการตรวจรับไม่สำเร็จ
+          </StateBox>
+        ) : isLoading ? (
+          <span className={c("sk skrow")} aria-hidden="true" />
+        ) : list.length === 0 ? (
+          <StateBox icon={PackageOpen}>
+            ยังไม่มีใบตรวจรับ — ของเข้าแล้วกดรับ นับจริงต่อไซส์
+          </StateBox>
         ) : (
-          (receipts ?? []).map((r) => {
-            const counted = r.lines.reduce((s, l) => s + l.qtyCounted, 0);
-            const defects = r.lines.reduce((s, l) => s + l.defectQty, 0);
-            const shortages = r.lines.filter(
-              (l) => r.receiptType !== "CUSTOMER_RETURN" && l.qtyCounted !== l.qtyExpected
-            ).length;
-            return (
-              <div
-                key={r.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-divider px-3 py-2"
-              >
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-strong">
-                    {RECEIPT_TYPE_LABELS[r.receiptType as ReceiptType] ?? r.receiptType}
-                    <span className="ml-2 text-xs font-normal tabular-nums text-muted">
-                      {counted} ตัว
-                    </span>
-                  </p>
-                  <p className="text-xs text-muted">
-                    {formatDate(r.receivedAt)} · {r.receivedBy.name}
-                    {r.notes ? ` · ${r.notes}` : ""}
-                  </p>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  {r.photoUrls.length > 0 && (
-                    <span className="flex items-center gap-0.5 text-xs text-muted">
-                      <ImageIcon className="h-3 w-3" />
-                      {r.photoUrls.length}
-                    </span>
-                  )}
-                  {defects > 0 && (
-                    <Badge variant="destructive" size="sm">
-                      ตำหนิ {defects}
-                    </Badge>
-                  )}
-                  {shortages > 0 && (
-                    <Badge variant="warning" size="sm">
-                      ขาด/เกิน {shortages} รายการ
-                    </Badge>
-                  )}
-                </div>
-              </div>
-            );
-          })
+          <div className={c("rows")}>
+            {list.map((r) => {
+              const counted = r.lines.reduce((s, l) => s + l.qtyCounted, 0);
+              const defects = r.lines.reduce((s, l) => s + l.defectQty, 0);
+              const shortages = r.lines.filter(
+                (l) => r.receiptType !== "CUSTOMER_RETURN" && l.qtyCounted !== l.qtyExpected
+              ).length;
+              const hasFlags = r.photoUrls.length > 0 || defects > 0 || shortages > 0;
+              return (
+                <Rw
+                  key={r.id}
+                  icon={PackageCheck}
+                  tone={defects > 0 ? "bad" : shortages > 0 ? "warn" : "good"}
+                  title={
+                    <>
+                      {RECEIPT_TYPE_LABELS[r.receiptType as ReceiptType] ?? r.receiptType}{" "}
+                      <span className={c("soft")}>{counted.toLocaleString("th-TH")} ตัว</span>
+                    </>
+                  }
+                  sub={[formatDate(r.receivedAt), r.receivedBy.name, r.notes].filter(Boolean).join(" · ")}
+                  right={
+                    hasFlags ? (
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                        {r.photoUrls.length > 0 ? (
+                          <span className={c("chip gray")}>{r.photoUrls.length} รูป</span>
+                        ) : null}
+                        {defects > 0 ? <span className={c("chip bad")}>ตำหนิ {defects}</span> : null}
+                        {shortages > 0 ? (
+                          <span className={c("chip warn")}>ขาด/เกิน {shortages} รายการ</span>
+                        ) : null}
+                      </span>
+                    ) : undefined
+                  }
+                />
+              );
+            })}
+          </div>
         )}
-      </CardContent>
+      </div>
 
       {dialogType && (
         <GoodsReceiptDialog
@@ -153,6 +153,6 @@ export function OrderGoodsReceiptSection({
           onClose={() => setDialogType(null)}
         />
       )}
-    </Card>
+    </section>
   );
 }

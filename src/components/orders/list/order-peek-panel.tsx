@@ -1,75 +1,36 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import {
+  ArrowDown,
   ArrowRight,
+  ArrowUp,
   Banknote,
-  CalendarDays,
-  ChevronDown,
-  ChevronRight,
-  ChevronUp,
-  ExternalLink,
+  Calendar,
   Factory,
   ImageOff,
   MessageCircle,
-  Package,
+  PackageCheck,
   Phone,
   Tag,
   X,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { FOCUS_BUTTON, INTERACTIVE_PRESSED } from "@/components/ui/tokens";
-import { HomeChip } from "@/components/dashboard/home/home-card";
 import { safeChatUrl } from "@/components/customers/chat-link";
-import {
-  MockupApprovalChip,
-  OrderDueChip,
-  OrderPriorityChip,
-  OrderProblemCallout,
-  OrderStatusPill,
-} from "@/components/orders/order-problem";
-import { orderListCover, type OrderListRow } from "@/components/orders/list/orders-table";
+import { c, DueTag, MockupPill, ProblemCallout, Rw, StatusPill, statusLabel } from "@/components/orders/orders-ui";
+import { customerLines, orderListCover, type OrderListRow } from "@/components/orders/list/orders-table";
 import { describeOrderAttention } from "@/lib/home-orders";
 import { isAttentionStatus } from "@/lib/order-progress";
-import { getFlowSteps, INTERNAL_STATUS_LABELS } from "@/lib/order-status";
-import { cn, formatBaht, formatDateCompact } from "@/lib/utils";
+import { getFlowSteps } from "@/lib/order-status";
+import { formatBaht, formatDateCompact } from "@/lib/utils";
 
 /* ============================================================
-   ดูย่อออเดอร์ (ต้นแบบรอบ 2 · เบสเคาะ 2026-09-14 · ไล่ให้ตรงต้นแบบทีละส่วน 2026-09-15)
+   ดูย่อออเดอร์ — ต้นแบบ peekHTML() ทีละชิ้น (รื้อ 2026-09-15)
 
-   กดแถวในตารางแล้วแผงสูงเต็มจอเลื่อนมาจากขวา: ม็อกอัพ + สถานะอนุมัติ · ลูกค้า · เรื่องที่ต้องจัดการ ·
-   กำหนดส่ง/จำนวน/ยอด · อยู่ขั้นไหนของเส้นทาง · ใบผลิต/โทร/แชท · ↑↓ ไล่ใบถัดไป · Esc ปิด
-   เป็นที่ "ดู" ไม่ใช่ที่ลงมือ: เดินสถานะ/แก้ข้อมูลยังอยู่ในหน้าใบเต็มที่เดียว (ด่านครบกว่า)
-   ข้อมูลทั้งหมดมาจากแถวของ order.list ไม่ยิง query เพิ่มต่อใบ
+   แผงสูงเต็มจอจากขวา: ม็อกอัพ + สถานะอนุมัติ · ลูกค้า · ต้องจัดการ · กำหนดส่ง/จำนวน/ยอด ·
+   อยู่ขั้นไหนของเส้นทาง · ใบผลิต/โทร/แชท · ↑↓ ไล่ใบ · Esc ปิด
+   เป็นที่ "ดู" ไม่ใช่ที่ลงมือ — เดินสถานะ/แก้ข้อมูลอยู่ในหน้าใบเต็ม · ข้อมูลทั้งหมดมาจากแถวของ order.list
    ============================================================ */
-
-const ROW =
-  "grid min-h-11 w-full grid-cols-[2rem_minmax(0,1fr)_1rem] items-center gap-2.5 rounded-lg border border-divider bg-surface py-1 pl-1.5 pr-2 text-left";
-const TILE = "flex h-8 w-8 items-center justify-center rounded-lg";
-
-function Kbd({ children }: { children: string }) {
-  return (
-    <kbd className="rounded border border-border bg-surface px-1 font-mono text-2xs tabular-nums text-secondary">
-      {children}
-    </kbd>
-  );
-}
-
-function Fact({ icon: Icon, label, children }: { icon: LucideIcon; label: string; children: React.ReactNode }) {
-  return (
-    <div className="grid min-w-0 content-start gap-1 rounded-xl border border-divider bg-surface-muted px-3 py-2.5">
-      <dt className="flex items-center gap-1.5 whitespace-nowrap text-xs text-muted">
-        <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-        {label}
-      </dt>
-      <dd className="flex min-w-0 flex-wrap items-center gap-1.5 text-base font-semibold tabular-nums text-strong">
-        {children}
-      </dd>
-    </div>
-  );
-}
 
 export function OrderPeekPanel({
   order,
@@ -101,187 +62,156 @@ export function OrderPeekPanel({
   const problem = describeOrderAttention(order.progress);
   const flow = getFlowSteps(order.orderType);
   const index = flow.indexOf(order.internalStatus);
-  const statusLabel = INTERNAL_STATUS_LABELS[order.internalStatus];
   const { currentStep, stepsDone, stepsTotal, dueInDays } = order.progress;
-  const name = order.customer?.name?.trim() || "—";
-  const company = order.customer?.company && order.customer.company !== name ? order.customer.company : null;
-  const subline = [company, order.description?.trim() || null, order.printLabel].filter(Boolean).join(" · ");
-  const phone = order.customer?.phone;
+  const { title, person } = customerLines(order);
+  const tech = order.printLabel ?? (order.orderType === "READY_MADE" ? "สำเร็จรูป" : null);
+  const who2 = [person, order.description?.trim() || null, tech].filter(Boolean).join(" · ");
+  const phone = order.customer?.phone?.trim();
   const chatUrl = safeChatUrl(order.customer?.chatUrl);
   const chatName = order.customer?.chatName?.trim() || (chatUrl ? "เปิดแชท" : null);
-  const showDueChip = Boolean(order.deadline) && isAttentionStatus(order.internalStatus) && dueInDays !== null && dueInDays <= 2;
+  const active = isAttentionStatus(order.internalStatus);
 
   return (
-    <aside
-      ref={panelRef}
-      tabIndex={-1}
-      aria-label={`ดูย่อออเดอร์ ${order.orderNumber}`}
-      className="overlay-surface fixed inset-y-0 right-0 z-40 hidden w-[31.25rem] max-w-full flex-col outline-none lg:flex"
-    >
-      <header className="flex items-center gap-2 border-b border-divider px-3.5 py-2.5">
-        <Button type="button" variant="ghost" size="icon-sm" onClick={onClose} aria-label="ปิดดูย่อ">
-          <X />
-        </Button>
-        <span className="min-w-0 truncate font-mono text-sm font-medium tabular-nums text-strong">{order.orderNumber}</span>
-        <OrderStatusPill status={order.internalStatus} />
-        <span className="ml-auto flex items-center gap-1">
-          <Button type="button" variant="outline" size="icon-sm" onClick={onPrev} disabled={!hasPrev} aria-label="ใบก่อนหน้า">
-            <ChevronUp />
-          </Button>
-          <Button type="button" variant="outline" size="icon-sm" onClick={onNext} disabled={!hasNext} aria-label="ใบถัดไป">
-            <ChevronDown />
-          </Button>
+    <aside ref={panelRef} tabIndex={-1} aria-label={`ดูย่อ ${order.orderNumber}`} className={c("peek")}>
+      <div className={c("ph")}>
+        <button type="button" className={c("x")} onClick={onClose} aria-label="ปิดดูย่อ">
+          <X aria-hidden="true" />
+        </button>
+        <span className={c("mono")}>{order.orderNumber}</span>
+        <StatusPill status={order.internalStatus} />
+        <span className={c("pnav")}>
+          <button type="button" onClick={onPrev} disabled={!hasPrev} aria-label="ใบก่อนหน้า">
+            <ArrowUp aria-hidden="true" />
+          </button>
+          <button type="button" onClick={onNext} disabled={!hasNext} aria-label="ใบถัดไป">
+            <ArrowDown aria-hidden="true" />
+          </button>
         </span>
-      </header>
+      </div>
 
-      <div className="grid min-h-0 flex-1 content-start gap-3.5 overflow-y-auto p-4">
-        <div className="relative flex aspect-[2/1] items-center justify-center overflow-hidden rounded-xl border border-divider bg-surface-muted">
-          {cover ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={cover} alt={`ม็อกอัพ ${order.orderNumber}`} className="h-full w-full object-contain" />
-          ) : (
-            <span className="flex flex-col items-center gap-2 text-sm text-muted">
-              <ImageOff className="h-6 w-6" aria-hidden="true" />
-              {order.orderType === "CUSTOM" ? "ยังไม่มีม็อกอัพ" : "งานสำเร็จรูป ไม่ต้องมีแบบ"}
-            </span>
-          )}
-          {design ? <HomeChip className="absolute left-3 top-3">v{design.versionNumber}</HomeChip> : null}
+      <div className={c("pb")}>
+        <div className={c("canvas")}>
           {design ? (
-            <span className="absolute right-3 top-3">
-              <MockupApprovalChip status={design.approvalStatus} sentAt={design.createdAt} now={now} />
-            </span>
-          ) : null}
+            <>
+              <span className={c("ver chip gray")}>v{design.versionNumber}</span>
+              <span className={c("ap")}>
+                <MockupPill design={design} now={now} />
+              </span>
+              {cover ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={cover} alt={`ม็อกอัพ ${order.orderNumber}`} />
+              ) : (
+                <div className={c("e")}>
+                  <ImageOff aria-hidden="true" />
+                  <span>เวอร์ชันนี้ไม่มีรูปตัวอย่าง</span>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className={c("e")}>
+              <ImageOff aria-hidden="true" />
+              <span>{order.orderType === "CUSTOM" ? "ยังไม่มีม็อกอัพ" : "งานสำเร็จรูป ไม่ต้องมีแบบ"}</span>
+            </div>
+          )}
         </div>
 
         <div>
-          <h2 className="flex flex-wrap items-center gap-2.5 text-lg font-semibold text-strong">
-            <span className="min-w-0 [overflow-wrap:anywhere]">{name}</span>
-            <OrderPriorityChip priority={order.priority} />
+          <h2>
+            {title}
+            {order.priority === "URGENT" ? <span className={c("chip bad")}>เร่งด่วน</span> : null}
           </h2>
-          {subline ? <p className="mt-0.5 line-clamp-2 text-sm text-secondary">{subline}</p> : null}
+          {who2 ? <div className={c("who2")}>{who2}</div> : null}
         </div>
 
-        {problem ? <OrderProblemCallout problem={problem} progress={order.progress} /> : null}
+        {problem ? <ProblemCallout problem={problem} progress={order.progress} /> : null}
 
-        <dl className="grid grid-cols-3 gap-2.5">
-          <Fact icon={CalendarDays} label="กำหนดส่ง">
-            {order.deadline ? formatDateCompact(order.deadline) : "—"}
-            {showDueChip && order.deadline ? (
-              <OrderDueChip status={order.internalStatus} deadline={order.deadline} dueInDays={dueInDays} />
+        <div className={c("facts")}>
+          <div className={c("fact")}>
+            <span className={c("k")}>
+              <Calendar aria-hidden="true" />
+              กำหนดส่ง
+            </span>
+            <span className={c("v")}>{order.deadline ? formatDateCompact(order.deadline) : "—"}</span>
+            {active && order.deadline && dueInDays !== null && dueInDays <= 2 ? (
+              <span>
+                <DueTag status={order.internalStatus} deadline={order.deadline} dueInDays={dueInDays} />
+              </span>
             ) : null}
-          </Fact>
-          <Fact icon={Package} label="จำนวน">
-            {order.quantity.toLocaleString("th-TH")}
-            <span className="text-xs font-normal text-muted">ตัว</span>
-          </Fact>
+          </div>
+          <div className={c("fact")}>
+            <span className={c("k")}>
+              <PackageCheck aria-hidden="true" />
+              จำนวน
+            </span>
+            <span className={c("v")}>
+              {order.quantity.toLocaleString("th-TH")}
+              <small>ตัว</small>
+            </span>
+          </div>
           {canSeeMoney ? (
-            <Fact icon={Banknote} label="ยอดรวม">
-              <span className="min-w-0 truncate font-mono text-sm">{formatBaht(order.totalAmount ?? 0)}</span>
-            </Fact>
+            <div className={c("fact")}>
+              <span className={c("k")}>
+                <Banknote aria-hidden="true" />
+                ยอดรวม
+              </span>
+              <span className={c("v mono")}>{formatBaht(order.totalAmount ?? 0)}</span>
+            </div>
           ) : (
-            <Fact icon={Tag} label="วิธีพิมพ์">
-              {order.printLabel ?? "สำเร็จรูป"}
-            </Fact>
+            <div className={c("fact")}>
+              <span className={c("k")}>
+                <Tag aria-hidden="true" />
+                วิธีพิมพ์
+              </span>
+              <span className={c("v")}>{tech ?? "—"}</span>
+            </div>
           )}
-        </dl>
+        </div>
 
         <div
-          className="flex items-center gap-1"
+          className={c("mini")}
           role="img"
-          aria-label={index >= 0 ? `ขั้น ${index + 1} จาก ${flow.length} ${statusLabel}` : statusLabel}
+          aria-label={index >= 0 ? `ขั้น ${index + 1} จาก ${flow.length} ${statusLabel(order.internalStatus)}` : statusLabel(order.internalStatus)}
         >
           {flow.map((status, position) => (
-            <span
-              key={status}
-              className={cn(
-                "h-1.5 min-w-1 flex-1 rounded-full",
-                index < 0 || position > index
-                  ? "bg-border"
-                  : position < index
-                    ? "bg-blue-600 dark:bg-blue-400"
-                    : "bg-blue-600/45 dark:bg-blue-400/45",
-              )}
-            />
+            <i key={status} className={c(index >= 0 && position < index ? "d" : position === index ? "c" : null)} />
           ))}
-          <span className="ml-1.5 whitespace-nowrap text-xs text-muted">
-            {index >= 0 ? `ขั้น ${index + 1}/${flow.length} · ${statusLabel}` : statusLabel}
-          </span>
+          <small>
+            {index >= 0 ? `ขั้น ${index + 1}/${flow.length} · ${statusLabel(order.internalStatus)}` : statusLabel(order.internalStatus)}
+          </small>
         </div>
 
-        <div className="grid gap-1">
+        <div className={c("rows")}>
           {order.production ? (
-            <Link href={`/orders/${order.id}?tab=production`} className={cn(ROW, FOCUS_BUTTON, INTERACTIVE_PRESSED)}>
-              <span className={cn(TILE, "bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300")}>
-                <Factory className="h-4 w-4" aria-hidden="true" />
-              </span>
-              <span className="min-w-0">
-                <span className="block truncate text-sm font-medium text-strong">
-                  {order.production.workOrderNumber ?? "ใบผลิต"}
-                </span>
-                <span className="block truncate text-xs text-muted">
-                  {stepsTotal === 0
-                    ? "ยังไม่มีขั้นผลิต"
-                    : `${stepsDone}/${stepsTotal} ขั้นเสร็จ${currentStep ? ` · กำลัง${currentStep.label}` : ""}`}
-                </span>
-              </span>
-              <ChevronRight className="h-4 w-4 text-muted" aria-hidden="true" />
-            </Link>
+            <Rw
+              href={`/orders/${order.id}?tab=production`}
+              icon={Factory}
+              tone="warn"
+              title={order.production.workOrderNumber ?? "ใบผลิต"}
+              sub={
+                stepsTotal === 0
+                  ? "ยังไม่มีขั้นผลิต"
+                  : `${stepsDone}/${stepsTotal} ขั้นเสร็จ${currentStep ? ` · กำลัง${currentStep.label}` : ""}`
+              }
+            />
           ) : null}
           {phone ? (
-            <a href={`tel:${phone.replace(/[^\d+]/g, "")}`} className={cn(ROW, FOCUS_BUTTON, INTERACTIVE_PRESSED)}>
-              <span className={cn(TILE, "bg-surface-muted text-secondary")}>
-                <Phone className="h-4 w-4" aria-hidden="true" />
-              </span>
-              <span className="min-w-0">
-                <span className="block truncate text-sm font-medium tabular-nums text-strong">{phone}</span>
-                <span className="block truncate text-xs text-muted">โทรหาลูกค้า</span>
-              </span>
-              <ExternalLink className="h-4 w-4 text-muted" aria-hidden="true" />
-            </a>
+            <Rw href={`tel:${phone.replace(/[^\d+]/g, "")}`} icon={Phone} title={phone} sub={person ?? "ผู้ติดต่อ"} arrow="external" />
           ) : null}
           {chatName ? (
-            chatUrl ? (
-              <a href={chatUrl} target="_blank" rel="noopener noreferrer" className={cn(ROW, FOCUS_BUTTON, INTERACTIVE_PRESSED)}>
-                <span className={cn(TILE, "bg-green-50 text-green-600 dark:bg-green-950/50 dark:text-green-300")}>
-                  <MessageCircle className="h-4 w-4" aria-hidden="true" />
-                </span>
-                <span className="min-w-0">
-                  <span className="block truncate text-sm font-medium text-strong">{chatName}</span>
-                  <span className="block truncate text-xs text-muted">ห้องแชทลูกค้า</span>
-                </span>
-                <ExternalLink className="h-4 w-4 text-muted" aria-hidden="true" />
-              </a>
-            ) : (
-              <div className={ROW}>
-                <span className={cn(TILE, "bg-green-50 text-green-600 dark:bg-green-950/50 dark:text-green-300")}>
-                  <MessageCircle className="h-4 w-4" aria-hidden="true" />
-                </span>
-                <span className="min-w-0">
-                  <span className="block truncate text-sm font-medium text-strong">{chatName}</span>
-                  <span className="block truncate text-xs text-muted">ห้องแชทลูกค้า</span>
-                </span>
-              </div>
-            )
+            <Rw href={chatUrl ?? undefined} icon={MessageCircle} tone="lineapp" title={chatName} sub="ห้องแชท LINE" arrow="external" />
           ) : null}
         </div>
       </div>
 
-      <footer className="flex flex-wrap items-center gap-2 border-t border-divider px-4 py-3">
-        <p className="flex flex-wrap items-center gap-1 text-xs text-muted">
-          <Kbd>↑</Kbd>
-          <Kbd>↓</Kbd>
-          <span>ใบถัดไป</span>
-          <span aria-hidden="true">·</span>
-          <Kbd>Esc</Kbd>
-          <span>ปิด</span>
-        </p>
-        <Button asChild size="sm" className="ml-auto">
-          <Link href={`/orders/${order.id}`}>
-            เปิดออเดอร์
-            <ArrowRight />
-          </Link>
-        </Button>
-      </footer>
+      <div className={c("pf")}>
+        <span>
+          <kbd>↑</kbd> <kbd>↓</kbd> ใบถัดไป · <kbd>Esc</kbd> ปิด
+        </span>
+        <Link href={`/orders/${order.id}`} className={c("btn primary sm")}>
+          เปิดออเดอร์
+          <ArrowRight aria-hidden="true" />
+        </Link>
+      </div>
     </aside>
   );
 }

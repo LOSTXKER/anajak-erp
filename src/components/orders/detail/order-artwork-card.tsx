@@ -2,18 +2,12 @@
 
 import { useState } from "react";
 import { ArrowRight, FileText, ImageOff, Shirt, Upload } from "lucide-react";
-
-import { Button } from "@/components/ui/button";
-import { Section } from "@/components/ui/section";
-import { Skeleton } from "@/components/ui/skeleton";
-import { FOCUS_BUTTON, INTERACTIVE_PRESSED } from "@/components/ui/tokens";
-import { HomeChip, HomeIconTile } from "@/components/dashboard/home/home-card";
+import { c, CardHead, MockupPill, SubHead } from "@/components/orders/orders-ui";
 import { MockupThumbRow } from "@/components/mockup/mockup-thumb-row";
-import { MockupApprovalChip } from "@/components/orders/order-problem";
 import { trpc } from "@/lib/trpc";
 import { layerForCategory } from "@/lib/file-layers";
 import { mockupCoverImage, mockupImageCount, type MockupVersionLike } from "@/lib/mockup";
-import { cn, formatDateCompact } from "@/lib/utils";
+import { formatDateCompact } from "@/lib/utils";
 
 /** เท่าที่การ์ดนี้ใช้จริงจาก DesignVersion — รูปทั้งชุดอ่านผ่านสูตรกลางใน lib/mockup */
 export type ArtworkVersion = MockupVersionLike & {
@@ -23,38 +17,41 @@ export type ArtworkVersion = MockupVersionLike & {
   createdAt: Date | string;
 };
 
-/**
- * การ์ด "ม็อกอัพ & ไฟล์" คอลัมน์ขวาของแท็บภาพรวม
- * (เบสเคาะ 2026-09-13 "ข้อมูลออเดอร์อยู่ซ้าย ขวาเป็นไฟล์ม็อกอัพ" · หน้าตาตามต้นแบบรอบ 2 ทีละส่วน · 2026-09-15)
- *
- * รูปปกใหญ่ให้รู้ทันทีว่างานนี้พิมพ์ลายอะไร + สถานะอนุมัติที่หัวการ์ด + จำนวนไฟล์แต่ละชั้น + รายละเอียดงาน
- * เป็น **ที่ดู ไม่ใช่ที่จัดการ** — อัป/อนุมัติ/ลิงก์ลูกค้า/ลบไฟล์ อยู่แท็บ "ม็อกอัพ & ไฟล์" ที่เดียว
- * (กติกาเดิมตั้งแต่ 2026-08-22) · ปุ่มในการ์ดนี้แค่พาไปแท็บนั้น · รูปมาจากสูตรกลาง mockupCoverImage/MockupThumbRow เสมอ
- *
- * query ทั้งสองตัวใช้ key เดียวกับแท็บม็อกอัพ/ไฟล์ — react-query cache ให้ ไม่ได้ยิงซ้ำ
- */
+export interface ArtworkBrand {
+  brandName: string;
+  logoUrl?: string | null;
+  colorCodes: string[];
+  fonts: string[];
+  styleNotes: string | null;
+}
+
+/* ============================================================
+   การ์ด "ม็อกอัพ & ไฟล์" คอลัมน์ขวาของภาพรวม — ต้นแบบ tabOverview() ส่วน right (รื้อ 2026-09-15)
+
+   รูปม็อกอัพใหญ่ + สถานะอนุมัติที่หัวการ์ด → วันที่ส่ง/อนุมัติ → จำนวนไฟล์แต่ละชั้น → รายละเอียดงาน/แบรนด์
+   เป็น **ที่ดู ไม่ใช่ที่จัดการ** (กติกา 08-22): อัป/อนุมัติ/ลบไฟล์อยู่แท็บ "ม็อกอัพ & ไฟล์" ที่เดียว
+   ปุ่มในการ์ดนี้แค่พาไปแท็บนั้น · query ใช้ key เดียวกับแท็บไฟล์ react-query จึงไม่ยิงซ้ำ
+   ============================================================ */
+
 export function OrderArtworkCard({
   orderId,
   description,
   orderType,
+  brand,
   onOpenFiles,
 }: {
   orderId: string;
   description: string | null;
   orderType?: string;
+  brand?: ArtworkBrand | null;
   onOpenFiles?: () => void;
 }) {
   const designs = trpc.design.listByOrder.useQuery({ orderId });
-  const attachments = trpc.attachment.listByEntity.useQuery({
-    entityType: "ORDER",
-    entityId: orderId,
-  });
+  const attachments = trpc.attachment.listByEntity.useQuery({ entityType: "ORDER", entityId: orderId });
   const [now] = useState(() => new Date());
 
   const files = attachments.data ?? [];
-  const rawCount = files.filter(
-    (file: { category?: string | null }) => layerForCategory(file.category) !== "PRINT",
-  ).length;
+  const rawCount = files.filter((file: { category?: string | null }) => layerForCategory(file.category) !== "PRINT").length;
 
   return (
     <OrderArtworkCardView
@@ -64,15 +61,16 @@ export function OrderArtworkCard({
       printCount={files.length - rawCount}
       description={description}
       orderType={orderType}
+      brand={brand}
       onOpenFiles={onOpenFiles}
       now={now}
-      // โหลดยังไม่เสร็จ = ยังไม่รู้ว่ามีม็อกอัพไหม · โครงร่างดีกว่ากระพริบ "ยังไม่มีม็อกอัพ" แล้วเด้งเป็นรูป
+      // โหลดยังไม่เสร็จ = ยังไม่รู้ว่ามีม็อกอัพไหม · โครงร่างดีกว่ากระพริบ "ยังไม่มีม็อกอัพ"
       isLoading={designs.isLoading || attachments.isLoading}
     />
   );
 }
 
-/** ตัวที่วาดจริง — ไม่ยิง query เอง จึงเอาไปวางในหน้าลอง/จอทดสอบด้วยข้อมูลนิ่งได้ */
+/** ตัวที่วาดจริง — ไม่ยิง query เอง เอาไปวางในหน้าลอง/ด่านตรวจด้วยข้อมูลนิ่งได้ */
 export function OrderArtworkCardView({
   latest,
   versionCount,
@@ -80,6 +78,7 @@ export function OrderArtworkCardView({
   printCount,
   description,
   orderType,
+  brand,
   onOpenFiles,
   isLoading = false,
   now,
@@ -90,15 +89,16 @@ export function OrderArtworkCardView({
   printCount: number;
   description: string | null;
   orderType?: string;
+  brand?: ArtworkBrand | null;
   onOpenFiles?: () => void;
   isLoading?: boolean;
-  /** เวลาที่ใช้นับ "รอลูกค้าตรวจกี่วัน" — ไม่ส่งมา = บอกแค่ว่ารอตรวจ */
+  /** เวลาที่ใช้นับ "รอลูกค้าตรวจกี่วัน" */
   now?: Date;
 }) {
   const cover = latest ? mockupCoverImage(latest) : null;
   const imageCount = latest ? mockupImageCount(latest) : 0;
-  const hasDescription = Boolean(description?.trim());
   const isCustom = orderType === undefined || orderType === "CUSTOM";
+  const brief = description?.trim() || null;
   const counts = [
     { key: "mockup", label: "ม็อกอัพ", value: versionCount, unit: "เวอร์ชัน" },
     { key: "raw", label: "ไฟล์ลูกค้า", value: rawCount, unit: null },
@@ -106,120 +106,123 @@ export function OrderArtworkCardView({
   ];
 
   return (
-    <Section
-      data-order-overview-card="artwork"
-      title={
-        <span className="flex items-center gap-2.5">
-          <HomeIconTile icon={Shirt} tone="finance" />
-          ม็อกอัพ &amp; ไฟล์
-        </span>
-      }
-      action={
-        isLoading ? undefined : latest ? (
-          <MockupApprovalChip status={latest.approvalStatus} sentAt={latest.createdAt} now={now} />
-        ) : (
-          <HomeChip>ยังไม่มีม็อกอัพ</HomeChip>
-        )
-      }
-    >
-      <div className="space-y-3">
+    <section className={c("card")} aria-labelledby="ov-art" data-order-overview-card="artwork">
+      <CardHead
+        icon={Shirt}
+        tone="violet"
+        id="ov-art"
+        title="ม็อกอัพ & ไฟล์"
+        right={isLoading ? undefined : <MockupPill design={latest} now={now ?? new Date(latest?.createdAt ?? 0)} />}
+      />
+      <div className={c("cb")}>
         {isLoading ? (
-          <Skeleton className="aspect-[4/3] w-full rounded-xl" />
-        ) : (
-          <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden rounded-xl border border-divider bg-surface-muted">
-            {latest && cover ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={cover}
-                alt={`ม็อกอัพ v${latest.versionNumber}`}
-                loading="lazy"
-                decoding="async"
-                className="h-full w-full object-contain"
-              />
-            ) : (
-              <div className="flex max-w-xs flex-col items-center gap-2 px-6 text-center">
-                <ImageOff className="h-6 w-6 text-muted" aria-hidden="true" />
-                <p className="text-sm text-muted">{latest ? "เวอร์ชันนี้ไม่มีรูปตัวอย่าง" : "ยังไม่มีม็อกอัพ"}</p>
-                {!latest && rawCount > 0 ? (
-                  <p className="text-xs text-muted">มีไฟล์จากลูกค้า {rawCount} ไฟล์รออยู่</p>
-                ) : null}
-                {!latest && isCustom && onOpenFiles ? (
-                  <Button type="button" variant="outline" size="sm" onClick={onOpenFiles}>
-                    <Upload />
-                    อัปม็อกอัพ
-                  </Button>
-                ) : null}
+          <span className={c("sk")} style={{ aspectRatio: "4 / 3" }} />
+        ) : latest ? (
+          <>
+            <div className={c("canvas")}>
+              <span className={c("ver chip gray")}>v{latest.versionNumber}</span>
+              {cover ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={cover} alt={`ม็อกอัพ v${latest.versionNumber}`} loading="lazy" decoding="async" />
+              ) : (
+                <div className={c("e")}>
+                  <ImageOff aria-hidden="true" />
+                  <span>เวอร์ชันนี้ไม่มีรูปตัวอย่าง</span>
+                </div>
+              )}
+            </div>
+            {imageCount > 1 ? (
+              <div className={c("vers")}>
+                <MockupThumbRow version={latest} versionNumber={latest.versionNumber} size="sm" />
               </div>
-            )}
-            {latest ? <HomeChip className="absolute left-3 top-3">v{latest.versionNumber}</HomeChip> : null}
+            ) : null}
+            <div className={c("caption")}>
+              <span>
+                ส่งให้ลูกค้าดู {formatDateCompact(latest.createdAt)}
+                {latest.approvedAt ? ` · อนุมัติ ${formatDateCompact(latest.approvedAt)}` : ""}
+              </span>
+              {onOpenFiles ? (
+                <button type="button" className={c("btn ghost sm")} onClick={onOpenFiles}>
+                  เปิดม็อกอัพ
+                  <ArrowRight aria-hidden="true" />
+                </button>
+              ) : null}
+            </div>
+          </>
+        ) : (
+          <div className={c("canvas")}>
+            <div className={c("e")}>
+              <ImageOff aria-hidden="true" />
+              <span>ยังไม่มีม็อกอัพ</span>
+              {!isCustom ? (
+                <small>งานสำเร็จรูป ไม่ต้องมีแบบ</small>
+              ) : rawCount > 0 ? (
+                <small>มีไฟล์จากลูกค้า {rawCount} ไฟล์รออยู่</small>
+              ) : null}
+              {isCustom && onOpenFiles ? (
+                <button type="button" className={c("btn sm")} onClick={onOpenFiles}>
+                  <Upload aria-hidden="true" />
+                  อัปม็อกอัพ
+                </button>
+              ) : null}
+            </div>
           </div>
         )}
 
-        {latest && imageCount > 1 ? (
-          <MockupThumbRow version={latest} versionNumber={latest.versionNumber} size="sm" />
-        ) : null}
-
-        {latest && !isLoading ? (
-          <div className="flex flex-wrap items-center justify-between gap-2.5 text-xs text-muted">
-            <p>
-              ส่งให้ลูกค้าดู {formatDateCompact(latest.createdAt)}
-              {latest.approvedAt ? ` · อนุมัติ ${formatDateCompact(latest.approvedAt)}` : ""}
-            </p>
-            {onOpenFiles ? (
-              <Button type="button" variant="ghost" size="sm" onClick={onOpenFiles}>
-                เปิดม็อกอัพ
-                <ArrowRight />
-              </Button>
-            ) : null}
-          </div>
-        ) : null}
-
-        {/* จำนวนไฟล์แต่ละชั้น — กดแล้วไปแท็บที่จัดการได้จริง · ชื่อไฟล์อยู่แท็บนั้น */}
+        {/* จำนวนไฟล์แต่ละชั้น — กดแล้วไปแท็บที่จัดการได้จริง */}
         {!isLoading ? (
-          <div className="grid grid-cols-3 gap-2">
+          <div className={c("fcount")}>
             {counts.map((count) => {
               const body = (
                 <>
-                  <span className="block text-xs text-muted">{count.label}</span>
-                  <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-base font-semibold tabular-nums text-strong">
+                  {count.label}
+                  <b>
                     {count.value.toLocaleString("th-TH")}
-                    {count.unit ? <span className="text-xs font-normal text-muted">{count.unit}</span> : null}
+                    {count.unit ? <small>{count.unit}</small> : null}
                     {count.key === "print" && orderType === "CUSTOM" ? (
-                      <HomeChip tone={count.value > 0 ? "success" : "warning"} className="px-1.5 py-0 text-2xs tabular-nums">
+                      <span className={c("chip", count.value > 0 ? "good" : "warn")}>
                         {count.value > 0 ? "พร้อมผลิต" : "ยังไม่มี"}
-                      </HomeChip>
+                      </span>
                     ) : null}
-                  </span>
+                  </b>
                 </>
               );
               return onOpenFiles ? (
-                <button
-                  key={count.key}
-                  type="button"
-                  onClick={onOpenFiles}
-                  className={cn(FOCUS_BUTTON, INTERACTIVE_PRESSED, "rounded-lg border border-divider bg-surface px-2.5 py-2 text-left")}
-                >
+                <button key={count.key} type="button" onClick={onOpenFiles}>
                   {body}
                 </button>
               ) : (
-                <div key={count.key} className="rounded-lg border border-divider bg-surface px-2.5 py-2">
+                <button key={count.key} type="button" disabled>
                   {body}
-                </div>
+                </button>
               );
             })}
           </div>
         ) : null}
 
-        {hasDescription ? (
-          <div className="space-y-2 border-t border-divider pt-3.5">
-            <h3 className="flex items-center gap-2 text-sm font-semibold text-strong">
-              <HomeIconTile icon={FileText} tone="finance" size="sm" />
-              รายละเอียดงาน
-            </h3>
-            <p className="text-sm leading-relaxed text-secondary [overflow-wrap:anywhere]">{description}</p>
-          </div>
+        {brief || brand ? (
+          <>
+            <div className={c("hr")} />
+            <SubHead icon={FileText} tone="violet" title="รายละเอียดงาน" />
+            {brief ? <p className={c("brief")}>{brief}</p> : null}
+            {brand ? (
+              <div className={c("brand-row")}>
+                {brand.colorCodes.map((code) => (
+                  <span key={code} className={c("sw")} style={{ background: code }} title={code} aria-label={`สี ${code}`} role="img" />
+                ))}
+                <span>{brand.brandName}</span>
+                {brand.fonts.length > 0 ? <span className={c("soft")}>· {brand.fonts.join(", ")}</span> : null}
+                {brand.logoUrl ? (
+                  <a href={brand.logoUrl} target="_blank" rel="noopener noreferrer" className={c("chip line")}>
+                    เปิดไฟล์โลโก้
+                  </a>
+                ) : null}
+                {brand.styleNotes ? <span className={c("note")}>{brand.styleNotes}</span> : null}
+              </div>
+            ) : null}
+          </>
         ) : null}
       </div>
-    </Section>
+    </section>
   );
 }

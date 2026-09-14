@@ -33,15 +33,18 @@ interface OrderNextStepActionProps {
  *
  * terminal (COMPLETED/CANCELLED) = nextStep null → ไม่ render อะไรเลย
  */
-export function OrderNextStepAction({
+/**
+ * ตัดสินว่าปุ่มขั้นต่อไปควรมีไหมและกดแล้วทำอะไร — กฎชุดเดียวกับ OrderNextStepAction
+ * หน้าที่วาดปุ่มด้วยหน้าตาของตัวเอง (หน้าออเดอร์ตามต้นแบบรอบ 2) เรียกตัวนี้แทนการเขียนเงื่อนไขซ้ำ
+ */
+export function resolveNextStepAction({
   nextStep,
   readiness,
-  isPending,
   onStatus,
   onEditItems,
   onAnchor,
   canSeeMoney = true,
-}: OrderNextStepActionProps) {
+}: Omit<OrderNextStepActionProps, "isPending">): { label: string; run: () => void } | null {
   if (!nextStep) return null;
 
   const action = nextStep.action;
@@ -63,14 +66,21 @@ export function OrderNextStepAction({
     }
   }
 
+  return { label: nextStep.buttonLabel, run: () => dispatch(action) };
+}
+
+export function OrderNextStepAction({ isPending, ...props }: OrderNextStepActionProps) {
+  const resolved = resolveNextStepAction(props);
+  if (!resolved) return null;
+
   return (
     <Button
-      onClick={() => dispatch(action)}
+      onClick={resolved.run}
       disabled={isPending}
       aria-describedby="order-next-step-guidance"
       className="shrink-0"
     >
-      {nextStep.buttonLabel}
+      {resolved.label}
       <ChevronRight />
     </Button>
   );

@@ -1,34 +1,14 @@
 import { History } from "lucide-react";
-import { Section } from "@/components/ui/section";
-import { HomeChip, HomeIconTile } from "@/components/dashboard/home/home-card";
-import { revisionStyle } from "@/components/orders/detail/order-timeline-card";
-import { INTERNAL_STATUS_LABELS } from "@/lib/order-status";
-import { BANGKOK_TZ, cn, formatTime } from "@/lib/utils";
+import { c, CardHead, Empty, statusLabel, timeText } from "@/components/orders/orders-ui";
+import { revisionKind, revisionTitle, type TimelineRevision } from "@/components/orders/detail/order-timeline-card";
+import { BANGKOK_TZ } from "@/lib/utils";
 
 /* ============================================================
-   แท็บประวัติ (ต้นแบบหน้าออเดอร์รอบ 2 · ไล่ตรงต้นแบบ 2026-09-15)
-   จัดกลุ่มตามวัน ใหม่ไปเก่า · แต่ละแถวมีจุดสีบอกหมวด (ชุดเดียวกับเส้นเวลาในภาพรวม) ·
+   แท็บประวัติ — ต้นแบบ tabHistory() (รื้อ 2026-09-15)
+   จัดกลุ่มตามวัน ใหม่ไปเก่า · จุดสีบอกหมวดชุดเดียวกับเส้นเวลาในภาพรวม ·
    แถวเปลี่ยนสถานะบอก "สถานะ: เดิม → ใหม่" ด้วยชื่อไทย · ชื่อคนมาจาก server (changedByName)
-   โชว์ประวัติทั้งหมดโดยไม่พับซ่อน (เบสชี้ 2026-06-12)
+   โชว์ทั้งหมดโดยไม่พับซ่อน (เบสชี้ 06-12)
    ============================================================ */
-
-interface Revision {
-  id: string;
-  description: string;
-  changedBy: string;
-  changedByName?: string;
-  changeType: string;
-  oldValue?: string | null;
-  newValue?: string | null;
-  createdAt: Date | string;
-}
-
-interface OrderRevisionsProps {
-  revisions: Revision[];
-}
-
-const statusLabel = (value: string | null | undefined) =>
-  value ? ((INTERNAL_STATUS_LABELS as Record<string, string>)[value] ?? value) : "";
 
 const dayLabel = new Intl.DateTimeFormat("th-TH", {
   weekday: "long",
@@ -38,11 +18,11 @@ const dayLabel = new Intl.DateTimeFormat("th-TH", {
   timeZone: BANGKOK_TZ,
 });
 
-export function OrderRevisions({ revisions }: OrderRevisionsProps) {
+export function OrderRevisions({ revisions }: { revisions: TimelineRevision[] }) {
   const sorted = [...(revisions ?? [])].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
-  const days: { day: string; items: Revision[] }[] = [];
+  const days: { day: string; items: TimelineRevision[] }[] = [];
   for (const revision of sorted) {
     const day = dayLabel.format(new Date(revision.createdAt));
     const current = days[days.length - 1];
@@ -51,72 +31,52 @@ export function OrderRevisions({ revisions }: OrderRevisionsProps) {
   }
 
   return (
-    <Section
-      title={
-        <span className="flex items-center gap-2.5">
-          <HomeIconTile icon={History} />
-          ประวัติออเดอร์
-        </span>
-      }
-      action={sorted.length > 0 ? <HomeChip>{sorted.length.toLocaleString("th-TH")} รายการ</HomeChip> : undefined}
-    >
+    <section className={c("card")} aria-labelledby="hs-h">
+      <CardHead
+        icon={History}
+        id="hs-h"
+        title="ประวัติออเดอร์"
+        right={sorted.length > 0 ? <span className={c("chip gray")}>{sorted.length.toLocaleString("th-TH")} รายการ</span> : undefined}
+      />
       {sorted.length === 0 ? (
-        <p className="text-sm text-muted">ยังไม่มีประวัติการเปลี่ยนแปลง</p>
+        <Empty icon={History} title="ยังไม่มีประวัติการเปลี่ยนแปลง" />
       ) : (
-        <div className="grid gap-4">
-          {days.map(({ day, items }) => (
-            <section key={day} aria-label={day}>
-              <h3 className="mb-1.5 text-xs font-medium text-muted">{day}</h3>
-              <ol>
-                {items.map((revision, index) => {
-                  const { icon: Icon, tone } = revisionStyle(revision.changeType);
-                  // แถวเปลี่ยนสถานะ: แปลจาก oldValue/newValue (enum) เป็นชื่อไทย — description เก่าอาจเป็นอังกฤษดิบ
-                  const isStatusRow = revision.changeType === "STATUS" && revision.oldValue && revision.newValue;
-                  const first = index === 0;
-                  const last = index === items.length - 1;
-                  return (
-                    <li key={revision.id} className="relative grid grid-cols-[2rem_minmax(0,1fr)] gap-3 py-1.5">
-                      {items.length > 1 ? (
-                        <span
-                          aria-hidden="true"
-                          className={cn(
-                            "absolute left-[0.9375rem] w-0.5 bg-divider",
-                            first ? "bottom-0 top-[1.125rem]" : last ? "top-0 h-[1.125rem]" : "inset-y-0",
-                          )}
-                        />
-                      ) : null}
-                      <span
-                        aria-hidden="true"
-                        className={cn(
-                          "relative z-[1] flex h-8 w-8 items-center justify-center rounded-full border-[3px] border-surface",
-                          tone,
-                        )}
-                      >
-                        <Icon className="h-3.5 w-3.5" strokeWidth={1.8} />
-                      </span>
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-strong [overflow-wrap:anywhere]">
-                          {isStatusRow ? statusLabel(revision.newValue) : revision.description}
-                        </p>
-                        <p className="text-xs tabular-nums text-muted [overflow-wrap:anywhere]">
-                          {revision.changedByName ?? revision.changedBy} · {formatTime(revision.createdAt)} น.
-                        </p>
-                        {isStatusRow ? (
-                          <p className="mt-1 text-xs text-secondary">
-                            สถานะ: <span className="text-muted line-through">{statusLabel(revision.oldValue)}</span>
-                            {" → "}
-                            <span className="font-medium text-strong">{statusLabel(revision.newValue)}</span>
-                          </p>
-                        ) : null}
-                      </div>
-                    </li>
-                  );
-                })}
-              </ol>
-            </section>
-          ))}
+        <div className={c("cb")}>
+          <div className={c("tl")}>
+            {days.map(({ day, items }) => (
+              <section key={day} aria-label={day}>
+                <h3>{day}</h3>
+                <ol>
+                  {items.map((revision) => {
+                    const { kind, icon: Icon } = revisionKind(revision);
+                    const isStatusRow = revision.changeType === "STATUS" && revision.oldValue && revision.newValue;
+                    return (
+                      <li key={revision.id}>
+                        <span className={c("ic", kind)} aria-hidden="true">
+                          <Icon />
+                        </span>
+                        <div className={c("ev")}>
+                          <b>{revisionTitle(revision)}</b>
+                          <div className={c("m")}>
+                            {revision.changedByName ?? revision.changedBy} · {timeText(revision.createdAt)}
+                          </div>
+                          {isStatusRow ? (
+                            <div className={c("chg")}>
+                              <div>
+                                สถานะ: <span>{statusLabel(revision.oldValue!)}</span> → <b>{statusLabel(revision.newValue!)}</b>
+                              </div>
+                            </div>
+                          ) : null}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </section>
+            ))}
+          </div>
         </div>
       )}
-    </Section>
+    </section>
   );
 }

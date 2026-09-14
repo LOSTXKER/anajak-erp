@@ -25,10 +25,12 @@ describe("FilterPopover visual contract", () => {
   it("orders เปิดตัวกรองที่ใช้ประจำไว้ตรงหน้า ส่วน production ยังใช้ popover กับเงื่อนไขรอง", () => {
     expect(ordersSource).not.toContain("<FilterPopover");
     expect(ordersSource).not.toContain("<FilterChip");
-    expect(ordersSource).toContain('aria-label="กรองช่องทางออเดอร์"');
-    expect(ordersSource).toContain('aria-label="กรองประเภทออเดอร์"');
-    expect(ordersSource.match(/surface="raised"/g)?.length).toBeGreaterThanOrEqual(3);
-    expect(ordersSource).toContain("const clearToolbarFilters = () =>");
+    // หน้าออเดอร์ยกแถบเครื่องมือ .tools จากต้นแบบรอบ 2 (2026-09-15): select ตรงหน้า ช่วงวันที่ ช่องทาง ประเภท
+    expect(ordersSource).toContain('aria-label="กรองช่องทาง"');
+    expect(ordersSource).toContain('aria-label="กรองประเภทงาน"');
+    expect(ordersSource).toContain('aria-label="ช่วงวันที่เปิดออเดอร์"');
+    expect(ordersSource.match(/className=\{c\("sel/g)?.length).toBeGreaterThanOrEqual(3);
+    expect(ordersSource).toContain("const clearFiltersAndSearch = () =>");
     expect(ordersSource).toContain("ล้างตัวกรอง");
   });
 });

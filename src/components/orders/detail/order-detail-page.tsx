@@ -1,21 +1,38 @@
 "use client";
 
-import { Suspense, use, useState, useEffect, useCallback } from "react";
+import { Suspense, use, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import type { InternalStatus } from "@prisma/client";
+import {
+  AlertTriangle,
+  Box,
+  Check,
+  ChevronRight,
+  ClipboardList,
+  Copy,
+  Ellipsis,
+  Eye,
+  Factory,
+  FileText,
+  ImageIcon,
+  Link2,
+  PenLine,
+  Search,
+  Shirt,
+  StickyNote,
+  Truck,
+  Wallet,
+  X,
+  XCircle,
+} from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
-import { Button } from "@/components/ui/button";
 import { useConfirm, usePromptText } from "@/components/ui/confirm-dialog";
-import { Skeleton } from "@/components/ui/skeleton";
-import { QueryError } from "@/components/ui/query-error";
-import { Alert } from "@/components/ui/alert";
-import { EmptyState } from "@/components/ui/empty-state";
-import { PageHeader } from "@/components/page-header";
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
   INTERNAL_STATUS_LABELS,
-  CHANNEL_COLORS,
   getFlowSteps,
   getNextStatuses,
   canPermsSetStatus,
@@ -23,37 +40,12 @@ import {
   isOrderLocked,
   isMarketplaceChannel,
 } from "@/lib/order-status";
-import type { InternalStatus } from "@prisma/client";
 import { permAllows } from "@/lib/permissions";
-import {
-  FileText,
-  ChevronRight,
-  XCircle,
-  Edit3,
-  Copy,
-  MoreHorizontal,
-  ClipboardList,
-  AlertTriangle,
-  EyeOff,
-  Link2,
-  Package,
-  PackageX,
-  Pencil,
-  StickyNote,
-  Truck,
-  X,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-import { MENU_SEPARATOR, OVERLAY_PANEL, TINT } from "@/components/ui/tokens";
 import { canEditOrderWithPricing } from "@/lib/order-access";
 import { buildOrderEditHref, type OrderEditFocus } from "@/lib/order-edit-navigation";
-
-import { MockupPanel } from "@/components/mockup/mockup-panel";
-import { OrderMockupHandoff } from "@/components/mockup/mockup-handoff";
-import { ProductionSummaryCard } from "@/components/orders/production-summary-card";
-import { OrderDeliverySection } from "@/components/orders/order-delivery-section";
-import { OrderGoodsReceiptSection } from "@/components/goods-receipt/order-goods-receipt-section";
-import { OrderQcSection } from "@/components/qc/order-qc-section";
+import { OrderDeliveryTab } from "@/components/orders/detail/order-delivery-tab";
+import { OrderProductionTab } from "@/components/orders/detail/order-production-tab";
+import { OrderFilesTab } from "@/components/orders/detail/order-files-tab";
 import { getOrderNextStep } from "@/lib/order-next-step";
 import { shouldShowDeliverySection } from "@/lib/delivery-ui";
 import { sumOrderQuantity } from "@/lib/pricing";
@@ -63,33 +55,24 @@ import {
   tabForAnchor,
   ORDER_TAB_DEFS,
   ORDER_DEFAULT_TAB,
+  type OrderTabDef,
   type TabKey,
 } from "@/lib/order-tabs";
 import {
-  Tabs,
-  TabsBar,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-} from "@/components/ui/tabs";
-import { Section } from "@/components/ui/section";
-import {
-  OrderItemsDisplay,
-  OrderStatusBar,
   OrderOverviewTab,
   OrderArtworkCard,
-  OrderFilesCard,
   OrderRevisions,
-  OrderChangeOrders,
-  OrderNextStepAction,
   nextStepBlockers,
   OrderMoneyTab,
 } from "@/components/orders/detail";
-import { RecordNotFound } from "@/components/ui/record-not-found";
-import { OrderNextStepGuidance } from "@/components/orders/detail/order-next-step-action";
-import { DetailCallout, OrderAttentionCallout, OrderDetailHead } from "@/components/orders/detail/order-detail-head";
+import { OrderItemsTab } from "@/components/orders/detail/order-items-tab";
+import {
+  OrderNextStepGuidance,
+  resolveNextStepAction,
+} from "@/components/orders/detail/order-next-step-action";
+import { OrderDetailHead, OrderStatusSteps } from "@/components/orders/detail/order-detail-head";
 import { OrderTimelineCard } from "@/components/orders/detail/order-timeline-card";
-import { HomeIconTile } from "@/components/dashboard/home/home-card";
+import { c, Callout, Empty, ProblemCallout } from "@/components/orders/orders-ui";
 import { describeOrderAttention } from "@/lib/home-orders";
 import { describeOrderProgress, isAttentionStatus } from "@/lib/order-progress";
 import { billingOverview } from "@/lib/billing-ui";
@@ -97,85 +80,110 @@ import { differenceInBangkokDays } from "@/lib/date-utils";
 import { mockupCoverImage } from "@/lib/mockup";
 import { printLabelOf } from "@/lib/print-labels";
 import { STANDARD_SIZES } from "@/lib/size-matrix";
+import { formatDateCompact } from "@/lib/utils";
 
+/* ============================================================
+   หน้าใบออเดอร์ — ต้นแบบรอบ 2 detailPage() ทีละชิ้น
+   (รื้อเขียนใหม่ 2026-09-15 หลังเบสบอก "UI มันไม่เหมือนกันเลย … รื้อเขียนใหม่ refactor ไปเลย")
 
-// ============================================================
-// Loading skeleton
-// ============================================================
+   ป้ายแจ้งเตือนบนสุด (เบสสั่ง 09-13) → ตำแหน่งหน้า → หัวใบ (รูป/เลขที่/สถานะ/ลูกค้า + ปุ่ม) →
+   รางสถานะ (ขั้นที่ยืนอยู่เป็นแคปซูล) → แท็บ 7 แท็บ → เนื้อหาแท็บ
+   ตรรกะเดิมทั้งหมดคงไว้: สิทธิ์เห็นเงิน/แก้ไข/เดินสถานะ · ด่านพร้อมผลิต · ลิงก์ลูกค้า · แท็บใน URL
+   ============================================================ */
 
 function OrderDetailSkeleton() {
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Skeleton className="h-9 w-9 rounded-lg" />
-        <div className="space-y-2">
-          <Skeleton className="h-7 w-56" />
-          <Skeleton className="h-4 w-36" />
-        </div>
-      </div>
-      <Skeleton className="h-20 rounded-lg" />
-      {/* โครงต้องตรงกับของจริง (แถบแท็บ + เนื้อหาเต็มความกว้าง) ไม่งั้นจอกระโดดตอนโหลดเสร็จ */}
-      <div className="flex h-11 items-center gap-6 overflow-hidden border-b border-border">
-        <Skeleton className="h-4 w-16 rounded" />
-        <Skeleton className="h-4 w-20 rounded" />
-        <Skeleton className="h-4 w-16 rounded" />
-      </div>
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        <Skeleton className="h-40 rounded-lg md:col-span-2" />
-        <Skeleton className="h-64 rounded-lg" />
-        <Skeleton className="h-64 rounded-lg" />
+    <div className={c("tokens page")} role="status" aria-label="กำลังโหลดออเดอร์">
+      <span className={c("sk")} style={{ height: 18, width: 160 }} />
+      <span className={c("sk")} style={{ height: 32, width: "40%" }} />
+      <span className={c("sk")} style={{ height: 60 }} />
+      <span className={c("sk")} style={{ height: 42 }} />
+      <div className={c("two")}>
+        <span className={c("sk")} style={{ height: 320 }} />
+        <span className={c("sk")} style={{ height: 320 }} />
       </div>
     </div>
   );
 }
 
-function OrderFilesPanel({
-  orderId,
-  userId,
-  userRole,
+/** แถบแท็บ (ต้นแบบ .tabs) — เส้นใต้แท็บเลื่อนตามแท็บที่เลือก · ←→ Home End เลื่อนแท็บด้วยคีย์บอร์ด */
+function OrderTabsBar({
+  tabs,
+  active,
+  counts,
+  pending,
+  onChange,
 }: {
-  orderId: string;
-  userId: string;
-  userRole: string;
+  tabs: OrderTabDef[];
+  active: TabKey;
+  counts: Partial<Record<TabKey, number>>;
+  pending: TabKey | null;
+  onChange: (key: TabKey) => void;
 }) {
-  const attachmentsQuery = trpc.attachment.listByEntity.useQuery({
-    entityType: "ORDER",
-    entityId: orderId,
-  });
-  const isInitialLoading =
-    !attachmentsQuery.data &&
-    (attachmentsQuery.isLoading || attachmentsQuery.isFetching);
+  const listRef = useRef<HTMLDivElement>(null);
+  const indRef = useRef<HTMLSpanElement>(null);
 
-  if (isInitialLoading) {
-    return (
-      <div role="status" aria-label="กำลังโหลดไฟล์แนบออเดอร์">
-        <Skeleton className="h-56 rounded-lg" />
-      </div>
-    );
-  }
+  useLayoutEffect(() => {
+    const list = listRef.current;
+    const ind = indRef.current;
+    if (!list || !ind) return;
+    const place = () => {
+      const on = list.querySelector<HTMLElement>('[aria-selected="true"]');
+      if (!on) return;
+      ind.style.left = `${on.offsetLeft}px`;
+      ind.style.width = `${on.offsetWidth}px`;
+    };
+    place();
+    const observer = new ResizeObserver(place);
+    observer.observe(list);
+    void document.fonts.ready.then(place);
+    return () => observer.disconnect();
+  }, [active, tabs.length, counts]);
 
-  if (!attachmentsQuery.data && attachmentsQuery.isError) {
-    return (
-      <QueryError
-        message="โหลดไฟล์แนบออเดอร์ไม่สำเร็จ"
-        onRetry={() => void attachmentsQuery.refetch()}
-      />
-    );
-  }
+  const move = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    const index = tabs.findIndex((tab) => tab.key === active);
+    const nextIndex =
+      event.key === "Home"
+        ? 0
+        : event.key === "End"
+          ? tabs.length - 1
+          : (index + (event.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length;
+    const next = tabs[nextIndex]!;
+    onChange(next.key);
+    document.getElementById(`order-tab-${next.key}`)?.focus();
+  };
 
   return (
-    <OrderFilesCard
-      orderId={orderId}
-      attachments={attachmentsQuery.data ?? []}
-      userId={userId}
-      userRole={userRole}
-    />
+    <div ref={listRef} role="tablist" aria-label="ส่วนของออเดอร์" className={c("tabs")}>
+      {tabs.map((tab) => {
+        const selected = tab.key === active;
+        const hasPending = pending === tab.key && !selected;
+        return (
+          <button
+            key={tab.key}
+            id={`order-tab-${tab.key}`}
+            type="button"
+            role="tab"
+            aria-selected={selected}
+            aria-controls={`order-panel-${tab.key}`}
+            aria-label={hasPending ? `${tab.label} — มีงานค้าง` : undefined}
+            tabIndex={selected ? 0 : -1}
+            onClick={() => onChange(tab.key)}
+            onKeyDown={move}
+            className={c("tab")}
+          >
+            {tab.label}
+            {counts[tab.key] ? <span className={c("n")}>{counts[tab.key]}</span> : null}
+            {hasPending ? <span className={c("pend")} aria-hidden="true" /> : null}
+          </button>
+        );
+      })}
+      <span ref={indRef} className={c("ind")} aria-hidden="true" />
+    </div>
   );
 }
-
-// ============================================================
-// Main page component
-// ============================================================
 
 export default function OrderDetailPage({
   params,
@@ -186,10 +194,7 @@ export default function OrderDetailPage({
 }) {
   return (
     <Suspense fallback={<OrderDetailSkeleton />}>
-      <OrderDetailContent
-        params={params}
-        productionV2Enabled={productionV2Enabled}
-      />
+      <OrderDetailContent params={params} productionV2Enabled={productionV2Enabled} />
     </Suspense>
   );
 }
@@ -206,16 +211,13 @@ function OrderDetailContent({
   const searchParams = useSearchParams();
   const promptText = usePromptText();
   const confirm = useConfirm();
-  /* ── แท็บ (เบสเคาะกลับมาใช้ 2026-08-05) ────────────────────────────────
-     URL เป็นแหล่งความจริงร่วม แต่ตัว state เก็บใน React — เขียน URL ด้วย
-     history API ตรงๆ ไม่ผ่าน router.replace เพราะ router จะรีเฟรช RSC ทั้งหน้า
-     ทำให้สลับแท็บกระตุก · ผลคือ refresh/back/ส่งลิงก์ให้กันได้แท็บเดิม */
+  /* ── แท็บ (เบสเคาะกลับมาใช้ 2026-08-05) ──
+     URL เป็นแหล่งความจริงร่วม แต่ state เก็บใน React — เขียน URL ด้วย history API ตรง ๆ
+     ไม่ผ่าน router.replace (router จะรีเฟรช RSC ทั้งหน้าจนสลับแท็บกระตุก) */
   const initialTab = normalizeOrderTab(searchParams.get("tab")) ?? ORDER_DEFAULT_TAB;
   const [tab, setTabState] = useState<TabKey>(initialTab);
-  // detail lazy ตอนเปิดครั้งแรก แต่แท็บที่เคยเข้าแล้วต้องคง DOM ไว้ เพื่อไม่ให้ query/UI กระพริบ
-  const [visitedTabs, setVisitedTabs] = useState<Set<TabKey>>(
-    () => new Set([ORDER_DEFAULT_TAB, initialTab]),
-  );
+  // แท็บที่เคยเข้าแล้วคง DOM ไว้ ไม่ให้ query/UI กระพริบตอนสลับกลับ
+  const [visitedTabs, setVisitedTabs] = useState<Set<TabKey>>(() => new Set([ORDER_DEFAULT_TAB, initialTab]));
 
   const changeTab = useCallback((key: string) => {
     const next = normalizeOrderTab(key) ?? ORDER_DEFAULT_TAB;
@@ -235,8 +237,7 @@ function OrderDetailContent({
   // ปุ่มย้อนกลับของเบราว์เซอร์ต้องพากลับแท็บเดิม ไม่ใช่เด้งออกจากหน้า
   useEffect(() => {
     const onPop = () => {
-      const t = normalizeOrderTab(new URL(window.location.href).searchParams.get("tab"));
-      const next = t ?? ORDER_DEFAULT_TAB;
+      const next = normalizeOrderTab(new URL(window.location.href).searchParams.get("tab")) ?? ORDER_DEFAULT_TAB;
       setTabState(next);
       setVisitedTabs((current) => {
         if (current.has(next)) return current;
@@ -256,7 +257,7 @@ function OrderDetailContent({
   function openInfoEditPage(focus: OrderEditFocus, returnTab: TabKey) {
     router.push(buildOrderEditHref(id, { tab: "intake", focus, returnTab }));
   }
-  // ANCHOR ของแถบขั้นต่อไป → สลับไปแท็บที่เกี่ยว (แผนที่เดียวกับ tabForAnchor ไม่มีตรรกะใหม่)
+  // ANCHOR ของขั้นต่อไป → สลับไปแท็บที่เกี่ยว (แผนที่เดียวกับ tabForAnchor)
   function handleAnchor(target: "billing" | "design" | "production" | "delivery" | "qc") {
     changeTab(tabForAnchor(target) ?? ORDER_DEFAULT_TAB);
   }
@@ -264,29 +265,24 @@ function OrderDetailContent({
   const { data: order, isLoading, isError, refetch } = trpc.order.getById.useQuery({ id });
   const meQuery = trpc.user.me.useQuery();
   const me = meQuery.data;
-  // นโยบาย ⑦: ช่าง/กราฟิกไม่เห็นเงินฝั่งขาย — รอ query สิทธิ์ก่อนวาดหน้า
-  // เพื่อไม่ให้ action/แท็บหายแล้วโผล่ภายหลัง · ห้ามใช้ isSalesUp เพราะชุดนั้นไม่มี ACCOUNTANT
+  // นโยบาย ⑦: ช่าง/กราฟิกไม่เห็นเงินฝั่งขาย — รอสิทธิ์ก่อนวาดหน้า ไม่ให้ปุ่ม/แท็บโผล่ภายหลัง
   const canSeeMoney = permAllows(me?.permissions, "see_order_money");
   const deniedTab: TabKey | null = tab === "money" && !canSeeMoney ? "money" : null;
-  const showDeliverySection = shouldShowDeliverySection(
-    order?.internalStatus ?? "",
-    Boolean(order?.deliveries?.length),
-  );
-  // ด่านพร้อมผลิต (เงิน/แบบ/ของ) — ใช้บอก "ติดอะไร" บนแถบขั้นต่อไป (query ที่มีอยู่ ไม่เพิ่ม endpoint)
-  // ยิงเฉพาะสถานะที่แถบอาจบล็อก STATUS→PRODUCTION_QUEUE (CONFIRMED/ON_HOLD) — สถานะอื่น/terminal ไม่ใช้ readiness
+  const showDeliverySection = shouldShowDeliverySection(order?.internalStatus ?? "", Boolean(order?.deliveries?.length));
+  // ด่านพร้อมผลิต — ยิงเฉพาะสถานะที่ปุ่มขั้นต่อไปอาจโดนบล็อก (CONFIRMED/ON_HOLD)
   const orderContext = trpc.production.orderContext.useQuery(
     { orderId: id },
-    { enabled: !!order && ["CONFIRMED", "ON_HOLD"].includes(order.internalStatus) }
+    { enabled: !!order && ["CONFIRMED", "ON_HOLD"].includes(order.internalStatus) },
   );
   const utils = trpc.useUtils();
-  // จำนวนไฟล์บนหัวแท็บ — key เดียวกับการ์ดม็อกอัพ/แท็บไฟล์ (react-query cache ร่วม ไม่ยิงเพิ่ม)
+  // จำนวนไฟล์บนหัวแท็บ — key เดียวกับการ์ดม็อกอัพ/แท็บไฟล์ (cache ร่วม ไม่ยิงเพิ่ม)
   const attachmentsQuery = trpc.attachment.listByEntity.useQuery({ entityType: "ORDER", entityId: id });
-  // "ตอนนี้" ของหน้า — คิดวันถึงกำหนดส่ง/อยู่ขั้นนี้กี่วัน ครั้งเดียวต่อการเปิดหน้า
+  // "ตอนนี้" ของหน้า — คิดวันถึงกำหนด/อยู่ขั้นนี้กี่วัน ครั้งเดียวต่อการเปิดหน้า
   const [now] = useState(() => new Date());
 
   const updateStatus = useMutationWithInvalidation(trpc.order.updateStatus, {
     invalidate: [utils.order.getById, utils.order.list],
-    // server มีด่านปฏิเสธ (วงเงินเครดิต/ปิดงานก่อนวางบิลครบ) — เงียบไม่ได้ ผู้ใช้ต้องเห็นเหตุผล
+    // server มีด่านปฏิเสธ (วงเงินเครดิต/ปิดงานก่อนวางบิลครบ) — ผู้ใช้ต้องเห็นเหตุผล
     onError: (err: { message?: string }) => {
       toast.error(err.message ?? "เปลี่ยนสถานะไม่สำเร็จ");
     },
@@ -295,17 +291,14 @@ function OrderDetailContent({
   const duplicateOrder = useMutationWithInvalidation(trpc.order.duplicate, {
     invalidate: [utils.order.list],
     onSuccess: (data: { id: string; filmStockCount?: number }) => {
-      // เช็คฟิล์มค้างตอนสั่งซ้ำ (ก้อน 4 ชิ้น 2) — เตือนให้เห็น การหยิบใช้ยัง manual
       if (data.filmStockCount && data.filmStockCount > 0) {
-        toast.info(
-          `ลูกค้ามีฟิล์มพร้อมรีดค้าง ${data.filmStockCount} รายการ — เช็คที่คลังฟิล์มก่อนเปิดรอบพิมพ์ใหม่`
-        );
+        toast.info(`ลูกค้ามีฟิล์มพร้อมรีดค้าง ${data.filmStockCount} รายการ — เช็คที่คลังฟิล์มก่อนเปิดรอบพิมพ์ใหม่`);
       }
       router.push(`/orders/${data.id}`);
     },
   });
 
-  // จองสต๊อคใหม่หลังแก้ต้นเหตุ (ของไม่พอ/ท่อล่ม) — server จำกัดช่วงสถานะก่อนเริ่มผลิต
+  // จองสต๊อคใหม่หลังแก้ต้นเหตุ — server จำกัดช่วงสถานะก่อนเริ่มผลิต
   const retryReserve = useMutationWithInvalidation(trpc.order.retryStockReservation, {
     invalidate: [utils.order.getById],
     onSuccess: () => toast.success("จองสต๊อคสำเร็จ"),
@@ -314,23 +307,19 @@ function OrderDetailContent({
     },
   });
 
-  // ลิงก์สถานะลูกค้า (ก้อน 4 — portal) — คัดลอกลิงก์: ใช้ token เดิมถ้ายังไม่หมดอายุ
-  // ไม่งั้นสร้างใหม่ (getLink protected · generate gate salesUp ฝั่ง server)
+  // ลิงก์สถานะลูกค้า: ใช้ token เดิมถ้ายังไม่หมดอายุ ไม่งั้นสร้างใหม่ (generate gate salesUp ฝั่ง server)
   const statusLink = trpc.customerStatus.getLink.useQuery({ orderId: id });
   const generateStatusLink = trpc.customerStatus.generateLink.useMutation();
   async function copyStatusLink() {
     try {
       let tok = statusLink.data?.token ?? null;
-      const expired =
-        !statusLink.data?.expiresAt ||
-        new Date(statusLink.data.expiresAt) < new Date();
+      const expired = !statusLink.data?.expiresAt || new Date(statusLink.data.expiresAt) < new Date();
       if (!tok || expired) {
-        // สร้าง token (await network) — เมนู ⋯ ปิด + โฟกัสหลุด → clipboard API อาจโดนบล็อก
         tok = (await generateStatusLink.mutateAsync({ orderId: id })).token;
         statusLink.refetch();
       }
       const url = `${window.location.origin}/status/${tok}`;
-      // วิธีสำรอง (textarea + execCommand) — โฟกัส element เอง เลยไม่ติด "Document is not focused"
+      // วิธีสำรอง (textarea + execCommand) — โฟกัส element เอง ไม่ติด "Document is not focused"
       const fallbackCopy = () => {
         try {
           const ta = document.createElement("textarea");
@@ -360,8 +349,7 @@ function OrderDetailContent({
     }
   }
 
-  // ลิงก์เก่า ?tab=docs → canonicalize เป็น files ครั้งเดียว (normalizeOrderTab แปลงให้แล้ว
-  // ตอนอ่าน แต่ URL ยังเป็นของเก่า — เขียนทับให้ตรงกัน เผื่อคนก๊อป URL ต่อ)
+  // ลิงก์เก่า ?tab=docs → canonicalize เป็น files ครั้งเดียว
   useEffect(() => {
     const raw = new URL(window.location.href).searchParams.get("tab");
     if (!raw) return;
@@ -372,47 +360,61 @@ function OrderDetailContent({
     window.history.replaceState({}, "", url);
   }, []);
 
-  // deep link ที่ไม่มีสิทธิ์ต้องบอกเหตุผลและ canonicalize URL แทนการตกกลับเงียบๆ
+  // deep link ที่ไม่มีสิทธิ์ต้องบอกเหตุผลและ canonicalize URL แทนการตกกลับเงียบ ๆ
   useEffect(() => {
     if (meQuery.isLoading || meQuery.isError || !me) return;
     if (tab !== "money" || canSeeMoney) return;
-
     const url = new URL(window.location.href);
     url.searchParams.set("tab", ORDER_DEFAULT_TAB);
     window.history.replaceState({}, "", url);
   }, [canSeeMoney, me, meQuery.isError, meQuery.isLoading, tab]);
 
-  // ----------------------------------------------------------
-  // Loading state
-  // ----------------------------------------------------------
   if (isLoading || meQuery.isLoading) return <OrderDetailSkeleton />;
-  if (isError)
+  if (isError || !order || meQuery.isError || !me) {
     return (
-      <div className="space-y-6">
-        <PageHeader breadcrumb={[{ label: "ออเดอร์", href: "/orders" }]} title="ออเดอร์" />
-        <QueryError onRetry={() => refetch()} />
+      <div className={c("tokens page")}>
+        <nav className={c("crumbs")} aria-label="ตำแหน่งหน้า">
+          <Link href="/orders">ออเดอร์</Link>
+          <ChevronRight aria-hidden="true" />
+          <span aria-current="page">{order?.orderNumber ?? "ออเดอร์"}</span>
+        </nav>
+        <section className={c("card")}>
+          {!isError && !order ? (
+            <Empty
+              icon={Search}
+              size="lg"
+              flat
+              title="ไม่พบออเดอร์ใบนี้"
+              action={
+                <Link href="/orders" className={c("btn sm")}>
+                  กลับไปรายการออเดอร์
+                </Link>
+              }
+            />
+          ) : (
+            <Empty
+              icon={AlertTriangle}
+              size="lg"
+              flat
+              title={isError ? "โหลดออเดอร์ไม่สำเร็จ" : "โหลดสิทธิ์ผู้ใช้ไม่สำเร็จ จึงยังเปิดคำสั่งของออเดอร์ไม่ได้"}
+              action={
+                <button
+                  type="button"
+                  className={c("btn sm")}
+                  onClick={() => void (isError ? refetch() : meQuery.refetch())}
+                >
+                  ลองอีกครั้ง
+                </button>
+              }
+            />
+          )}
+        </section>
       </div>
     );
-  if (!order)
-    return (
-      <div className="space-y-6">
-        <PageHeader breadcrumb={[{ label: "ออเดอร์", href: "/orders" }]} title="ออเดอร์" />
-        <RecordNotFound what="ออเดอร์ใบนี้" backHref="/orders" backLabel="กลับไปรายการออเดอร์" />
-      </div>
-    );
-  if (meQuery.isError || !me)
-    return (
-      <div className="space-y-6">
-        <PageHeader breadcrumb={[{ label: "ออเดอร์", href: "/orders" }]} title="ออเดอร์" />
-        <QueryError
-          message="โหลดสิทธิ์ผู้ใช้ไม่สำเร็จ จึงยังเปิด action ของออเดอร์ไม่ได้"
-          onRetry={() => void meQuery.refetch()}
-        />
-      </div>
-    );
+  }
 
   // ----------------------------------------------------------
-  // Derived data
+  // ข้อมูลที่คิดจากใบ
   // ----------------------------------------------------------
   const hasV2Production =
     Boolean(order.productionCompletionOwnerId) ||
@@ -424,95 +426,55 @@ function OrderDetailContent({
     );
   const flowSteps = getFlowSteps(order.orderType);
   const nextStatuses = getNextStatuses(order.orderType, order.internalStatus);
-  // ซ่อนปุ่มที่คนนี้กดแล้ว server ปฏิเสธ (PERM4: ชุดสิทธิ์จริงเดียวกับด่าน server — audit ข้อ 29)
+  // ซ่อนปุ่มที่คนนี้กดแล้ว server ปฏิเสธ (ชุดสิทธิ์จริงเดียวกับด่าน server)
   const roleCanSetStatus = (to: string) => {
     const target = to as InternalStatus;
-    if (hasV2Production && target !== "COMPLETED") {
-      return false;
-    }
-    return canPermsSetStatus(
-      me?.permissions,
-      order.internalStatus,
-      target,
-      productionV2Enabled,
-    );
+    if (hasV2Production && target !== "COMPLETED") return false;
+    return canPermsSetStatus(me.permissions, order.internalStatus, target, productionV2Enabled);
   };
   const forwardStatuses = nextStatuses.filter((s) => s !== "CANCELLED" && roleCanSetStatus(s));
   const canCancel = nextStatuses.includes("CANCELLED") && roleCanSetStatus("CANCELLED");
   // เมนูฝั่งขาย (แก้ข้อมูล/รายการ/สำเนา/ออกใบเสนอ) — server เป็น create_sales_docs
-  const isSalesUp = !!me && permAllows(me.permissions, "create_sales_docs");
-  // ฟอร์มแก้ทั้งใบมีราคาเหมือนหน้าสร้าง — ขาดสิทธิ์เห็นเงินต้องไม่ mount/เปิด route นี้
-  const canUseEditForm = canEditOrderWithPricing(me?.permissions);
+  const isSalesUp = permAllows(me.permissions, "create_sales_docs");
+  // ฟอร์มแก้ทั้งใบมีราคา — ขาดสิทธิ์เห็นเงินต้องไม่เปิด route นี้
+  const canUseEditForm = canEditOrderWithPricing(me.permissions);
   const canEditReceiveTracking =
-    !productionV2Enabled &&
-    !hasV2Production &&
-    permAllows(me?.permissions, ["manage_production", "supervise_operations"]);
-
+    !productionV2Enabled && !hasV2Production && permAllows(me.permissions, ["manage_production", "supervise_operations"]);
   const currentStepIndex = flowSteps.indexOf(order.internalStatus);
-
   const isCompleted = order.internalStatus === "COMPLETED";
-
   const isMarketplace = isMarketplaceChannel(order.channel);
 
-  const totalCost =
-    order.costEntries?.reduce(
-      (sum: number, c: { amount: number }) => sum + c.amount,
-      0,
-    ) ?? 0;
+  const totalCost = order.costEntries?.reduce((sum: number, entry: { amount: number }) => sum + entry.amount, 0) ?? 0;
   const hasCostEntries = order.costEntries && order.costEntries.length > 0;
-
-  // ยอดฝั่งขาย — viewer ที่ไม่เห็นเงิน (นโยบาย ⑦) server ส่ง null มา → คิดเป็น 0
-  // ได้เพราะผลลัพธ์ถูก render เฉพาะใน section ที่ gate ด้วย canSeeMoney แล้วเท่านั้น
+  // ยอดฝั่งขาย — viewer ที่ไม่เห็นเงิน server ส่ง null → คิดเป็น 0 ได้เพราะ render เฉพาะใต้ gate canSeeMoney
   const subtotalItems =
-    order.items?.reduce(
-      (sum: number, item: { subtotal: number | null }) => sum + (item.subtotal ?? 0),
-      0,
-    ) ?? 0;
-  const subtotalFees =
-    order.fees?.reduce(
-      (sum: number, fee: { amount: number | null }) => sum + (fee.amount ?? 0),
-      0,
-    ) ?? 0;
+    order.items?.reduce((sum: number, item: { subtotal: number | null }) => sum + (item.subtotal ?? 0), 0) ?? 0;
+  const subtotalFees = order.fees?.reduce((sum: number, fee: { amount: number | null }) => sum + (fee.amount ?? 0), 0) ?? 0;
   const discount = order.discount ?? 0;
   const totalAmount = order.totalAmount ?? subtotalItems + subtotalFees - discount;
+  const profitMargin = hasCostEntries && totalAmount > 0 ? ((totalAmount - totalCost) / totalAmount) * 100 : null;
 
-  const profitMargin =
-    hasCostEntries && totalAmount > 0
-      ? ((totalAmount - totalCost) / totalAmount) * 100
-      : null;
-
-  // แก้ตรงก่อนอนุมัติ หรือออก CO ได้ก่อนเริ่มผลิต — ใช้กฎกลางเดียวกับ server
+  // แก้ตรงก่อนอนุมัติ หรือออก CO ได้ก่อนเริ่มผลิต — กฎกลางเดียวกับ server
   const canEditItems =
     !hasV2Production &&
-    (!isOrderLocked(order.internalStatus as InternalStatus) ||
-      canIssueChangeOrder(order.internalStatus as InternalStatus));
+    (!isOrderLocked(order.internalStatus as InternalStatus) || canIssueChangeOrder(order.internalStatus as InternalStatus));
 
-  // แถบ "ขั้นต่อไป" — ระบบจำว่างานนี้ต้องทำอะไรต่อ (logic lib/order-next-step.ts) แทนให้ผู้ใช้ไล่เดาจากการ์ด
+  // ขั้นต่อไป — logic lib/order-next-step.ts
   const nextStepInput = buildNextStepInput(order);
   const legacyNextStep = getOrderNextStep(nextStepInput);
   const nextStep =
-    productionV2Enabled &&
-    ["PRODUCTION_QUEUE", "PRODUCING", "QUALITY_CHECK", "PACKING"].includes(
-      order.internalStatus,
-    )
+    productionV2Enabled && ["PRODUCTION_QUEUE", "PRODUCING", "QUALITY_CHECK", "PACKING"].includes(order.internalStatus)
       ? {
           title: "งานกำลังเดินในฝ่ายผลิต",
-          description:
-            "ดูสถานะและปัญหาที่หน้างานผลิต ส่วนพนักงานลงมือและปิดขั้นในโหมดสถานี",
+          description: "ดูสถานะและปัญหาที่หน้างานผลิต ส่วนพนักงานลงมือและปิดขั้นในโหมดสถานี",
           buttonLabel: "เปิดงานผลิต",
           action: { type: "ANCHOR" as const, target: "production" as const },
         }
       : legacyNextStep;
-  /* แท็บที่คนนี้เห็น — ซ่อนได้ตาม "สิทธิ์" เท่านั้น ห้ามซ่อนตามสถานะ
-     (สิทธิ์ผูกกับคน = ชุดแท็บคงที่ตลอดการใช้งาน · สถานะเดินหลายรอบต่อวัน
-      ถ้าซ่อนตามสถานะ ตำแหน่งแท็บจะขยับใต้มือ) */
+  /* แท็บซ่อนได้ตาม "สิทธิ์" เท่านั้น ห้ามซ่อนตามสถานะ (ตำแหน่งแท็บจะขยับใต้มือ) */
   const visibleTabs = ORDER_TAB_DEFS.filter((t) => t.key !== "money" || canSeeMoney);
-
-  /* ระหว่าง effect canonicalize deep link ให้แสดงแท็บที่เข้าได้ก่อนเสมอ */
   const activeTab: TabKey = visibleTabs.some((t) => t.key === tab) ? tab : ORDER_DEFAULT_TAB;
-
-  /* จุดแดงบนหัวแท็บ — ใช้ปลายทางของแถบ "ขั้นต่อไป" ตัวเดียวกัน ไม่มีตรรกะใหม่
-     (ถ้าเขียนกฎใหม่ จุดแดงกับแถบขั้นต่อไปจะเพี้ยนกันวันที่แก้ข้างใดข้างหนึ่ง) */
+  /* จุดแดงบนหัวแท็บ — ปลายทางของขั้นต่อไปตัวเดียวกัน ไม่มีตรรกะใหม่ */
   const pendingTab: TabKey | null =
     nextStep?.action.type === "ANCHOR"
       ? tabForAnchor(nextStep.action.target)
@@ -520,32 +482,24 @@ function OrderDetailContent({
         ? "items"
         : null;
 
-  // ----------------------------------------------------------
-  // Handlers
-  // ----------------------------------------------------------
   async function handleStatusChange(newStatus: string) {
     const current = order?.internalStatus ?? "";
     // ถอยจากจุดที่ประกาศกับลูกค้าแล้ว (ส่งแล้ว/ปิดแล้ว) — server บังคับเหตุผล+ผู้จัดการ
     const isRollback =
-      current === "COMPLETED" ||
-      (current === "SHIPPED" && ["READY_TO_SHIP", "QUALITY_CHECK"].includes(newStatus));
+      current === "COMPLETED" || (current === "SHIPPED" && ["READY_TO_SHIP", "QUALITY_CHECK"].includes(newStatus));
 
     if (newStatus === "CANCELLED") {
-      // บิลค้างต้องเห็นก่อนตัดสินใจ (เบสเคาะ 2026-07-06) — เตือน+ชี้ทาง ไม่บังคับแข็ง
-      // (เคสรับเงินแล้ว void ใบไม่ได้ ต้องใช้ใบลดหนี้/คืนเงินตาม) · server มีด่านเดียวกัน
-      // เช็คจากข้อมูลสด — cache ค้างจะทำ dialog ไม่โผล่ทั้งที่ server จะปฏิเสธ (review จับ)
+      // บิลค้างต้องเห็นก่อนตัดสินใจ (เบสเคาะ 07-06) — เช็คจากข้อมูลสด server มีด่านเดียวกัน
       const fresh = await utils.order.getById.fetch({ id }).catch(() => null);
       const openBills = ((fresh ?? order)?.invoices ?? []).filter(
         (inv) =>
           !inv.isVoided &&
           ["DEPOSIT_INVOICE", "FINAL_INVOICE", "DEBIT_NOTE"].includes(inv.type) &&
-          ["UNPAID", "PARTIALLY_PAID", "OVERDUE"].includes(inv.paymentStatus)
+          ["UNPAID", "PARTIALLY_PAID", "OVERDUE"].includes(inv.paymentStatus),
       );
       if (openBills.length > 0) {
         const proceed = await confirm({
-          title: `มีบิลค้างชำระ ${openBills.length} ใบ (${openBills
-            .map((inv) => inv.invoiceNumber)
-            .join(", ")})`,
+          title: `มีบิลค้างชำระ ${openBills.length} ใบ (${openBills.map((inv) => inv.invoiceNumber).join(", ")})`,
           description:
             "แนะนำยกเลิกบิล/ออกใบลดหนี้ที่การ์ด บิล/การชำระเงิน ก่อน — ไม่งั้นยอดค้างจะโผล่ในรายงานลูกหนี้ทั้งที่งานถูกยกเลิก และอาจทวงลูกค้าผิด",
           confirmText: "ยกเลิกทั้งที่บิลค้าง",
@@ -569,8 +523,7 @@ function OrderDetailContent({
     } else if (isRollback) {
       const reason = await promptText({
         title: current === "COMPLETED" ? "เปิดงานกลับ?" : "ถอยสถานะกลับ?",
-        description:
-          "งานนี้ประกาศส่งแล้ว/ปิดแล้ว — ระบุเหตุผล (เช่น ของตีกลับ/กดพลาด) จะถูกบันทึกในประวัติ",
+        description: "งานนี้ประกาศส่งแล้ว/ปิดแล้ว — ระบุเหตุผล (เช่น ของตีกลับ/กดพลาด) จะถูกบันทึกในประวัติ",
         placeholder: "เหตุผล",
         confirmText: "ยืนยันถอยสถานะ",
         destructive: true,
@@ -580,8 +533,7 @@ function OrderDetailContent({
     } else if (newStatus === "COMPLETED") {
       const ok = await confirm({
         title: "ปิดงานออเดอร์นี้?",
-        description:
-          "ปิดแล้วแก้รายการ/ตัวเงินไม่ได้อีก — เปิดกลับได้เฉพาะผู้จัดการพร้อมเหตุผล",
+        description: "ปิดแล้วแก้รายการ/ตัวเงินไม่ได้อีก — เปิดกลับได้เฉพาะผู้จัดการพร้อมเหตุผล",
         confirmText: "ปิดงาน",
       });
       if (!ok) return;
@@ -589,8 +541,7 @@ function OrderDetailContent({
     } else if (newStatus === "SHIPPED") {
       const ok = await confirm({
         title: "ยืนยันว่าส่งของแล้ว?",
-        description:
-          "แนะนำให้กด \"ส่งของ\" ที่ใบส่งในส่วนจัดส่งแทน — เลขพัสดุจะติดออเดอร์และสถานะเดินให้เอง",
+        description: 'แนะนำให้กด "ส่งของ" ที่ใบส่งในส่วนจัดส่งแทน — เลขพัสดุจะติดออเดอร์และสถานะเดินให้เอง',
         confirmText: "ส่งแล้ว",
       });
       if (!ok) return;
@@ -600,63 +551,51 @@ function OrderDetailContent({
     }
   }
 
-  const channelColor = CHANNEL_COLORS[order.channel] ?? {
-    bg: "bg-slate-100 dark:bg-slate-800",
-    text: "text-secondary",
-  };
-
-  // COMPLETED: ไม่มีปุ่มหลัก — ทางถอย (เปิดงานกลับ) ทั้งหมดอยู่ใน dropdown
-  // UX5: ตัดปุ่มสถานะหลักบน header (ไม่เช็ค readiness = ปุ่มที่ server รู้อยู่แล้วว่าจะพัง ขัด B8) —
-  // เหลือแถบขั้นต่อไปเป็น CTA เดียว (เช็ค readiness จริง) · ทางเดินสถานะทั้งหมดยังครบใน dropdown ⋯
-  const otherNext = forwardStatuses;
-  // เมนู ⋯ มีของให้เลือกจริงไหม — ไม่มีก็ไม่ต้องมีปุ่ม (ช่าง/กราฟิกบางสถานะจะได้เมนูว่าง)
-  const hasOverflowMenu = isSalesUp || otherNext.length > 0 || canCancel;
+  // เมนู ⋯ มีของให้เลือกจริงไหม — ไม่มีก็ไม่ต้องมีปุ่ม
+  const hasOverflowMenu = isSalesUp || forwardStatuses.length > 0 || canCancel;
   const statusItemLabel = (status: string) =>
     isCompleted && status === "SHIPPED"
       ? "เปิดงานกลับ (→ จัดส่งแล้ว)"
       : INTERNAL_STATUS_LABELS[status as keyof typeof INTERNAL_STATUS_LABELS];
-  const dropdownItemClass =
-    "flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-secondary outline-none data-[highlighted]:bg-interactive-hover data-[highlighted]:text-strong";
 
-  /* ── หัวใบ + "ต้องจัดการ" (ต้นแบบหน้าออเดอร์รอบ 2 · เบส "โอเคทำจริงเลย" 2026-09-14) ──
-     สูตรเดียวกับหน้าแรกและตาราง: lib/order-progress → lib/home-orders ไม่มีกฎใหม่ในหน้านี้ */
+  /* "ต้องจัดการ" — สูตรเดียวกับหน้าแรกและตาราง: lib/order-progress → lib/home-orders */
   const progress = describeOrderProgress(order, now);
   const attention = describeOrderAttention(progress);
   const hasProduction = (order.productions ?? []).length > 0;
-  const attentionAction: { label: string; onClick: () => void } | undefined = !attention
-    ? undefined
-    : attention.kind === "customer"
-      ? { label: "ดูม็อกอัพ", onClick: () => changeTab("files") }
-      : attention.kind === "ready"
-        ? { label: "ไปส่วนจัดส่ง", onClick: () => changeTab("delivery") }
-        : hasProduction
-          ? { label: "ดูงานผลิต", onClick: () => changeTab("production") }
-          : undefined;
-  // ติดด่านพร้อมผลิต = ปุ่มขั้นต่อไปหายไป · เหตุผลและทางแก้ต้องขึ้นบนสุดแทน (ไม่ให้ปุ่มหายเงียบ)
-  const blockers = nextStepBlockers(nextStep, orderContext.data?.readiness ?? null);
+  const attentionAction =
+    !attention
+      ? null
+      : attention.kind === "customer"
+        ? { label: "ดูม็อกอัพ", icon: ImageIcon, onClick: () => changeTab("files") }
+        : attention.kind === "ready"
+          ? { label: "ไปส่วนจัดส่ง", icon: Truck, onClick: () => changeTab("delivery") }
+          : hasProduction
+            ? { label: "ดูงานผลิต", icon: Factory, onClick: () => changeTab("production") }
+            : null;
+  // ติดด่านพร้อมผลิต = ปุ่มขั้นต่อไปหาย · เหตุผลและทางแก้ต้องขึ้นบนสุดแทน
+  const readiness = orderContext.data?.readiness ?? null;
+  const blockers = nextStepBlockers(nextStep, readiness);
+  const missingChecks = new Set((readiness?.checks ?? []).filter((check) => !check.ok).map((check) => check.key));
 
-  // อยู่ขั้นนี้มากี่วัน = ประวัติเปลี่ยนสถานะล่าสุดที่เข้าสถานะนี้ (ไม่มีแถว + เป็นขั้นแรก = นับจากวันเปิดงาน)
+  // อยู่ขั้นนี้มากี่วัน = ประวัติเปลี่ยนสถานะล่าสุดที่เข้าสถานะนี้ (ไม่มี + ขั้นแรก = นับจากวันเปิดงาน)
   const enteredStatusAt =
     (order.revisions ?? []).find(
       (revision) => revision.changeType === "STATUS" && revision.newValue === order.internalStatus,
     )?.createdAt ?? (currentStepIndex === 0 ? order.createdAt : null);
   const daysInStatus = enteredStatusAt ? differenceInBangkokDays(now, enteredStatusAt) : null;
-  // ไม่มีประวัติวันที่เข้าขั้น (ข้อมูลเก่า/นำเข้า) → บอกขั้นใบผลิตที่ทำอยู่แทน ไม่เดาจำนวนวัน
+  // ไม่มีวันเข้าขั้น (ข้อมูลเก่า/นำเข้า) → บอกขั้นใบผลิตที่ทำอยู่แทน ไม่เดาจำนวนวัน
   const currentDetail =
     currentStepIndex < 0
       ? undefined
       : daysInStatus !== null
-        ? [
-            daysInStatus <= 0 ? "เข้าขั้นนี้วันนี้" : `อยู่ขั้นนี้ ${daysInStatus} วัน`,
-            progress.currentStep?.assigneeName,
-          ]
+        ? [daysInStatus <= 0 ? "เข้าขั้นนี้วันนี้" : `อยู่ขั้นนี้ ${daysInStatus} วัน`, progress.currentStep?.assigneeName]
             .filter(Boolean)
             .join(" · ")
         : progress.currentStep
           ? [progress.currentStep.label, progress.currentStep.assigneeName].filter(Boolean).join(" · ")
           : undefined;
 
-  // จำนวนแยกไซซ์ของทั้งใบ — เรียงตามไซซ์มาตรฐาน ไซซ์พิเศษต่อท้ายตามลำดับที่กรอก
+  // จำนวนแยกไซซ์ของทั้งใบ — เรียงตามไซซ์มาตรฐาน ไซซ์พิเศษต่อท้าย
   const sizeTotals = new Map<string, number>();
   for (const item of order.items ?? []) {
     for (const product of item.products ?? []) {
@@ -674,10 +613,8 @@ function OrderDetailContent({
     .map(([size, quantity]) => ({ size, quantity }))
     .sort((a, b) => sizeRank(a.size) - sizeRank(b.size));
 
-  const printLabel = printLabelOf(
-    (order.items ?? []).flatMap((item) => (item.prints ?? []).map((print) => print.printType)),
-  );
-  // รับเงินแล้วเท่าไร — สูตรกลางเดียวกับการ์ดบิล (รวมหัก ณ ที่จ่าย ไม่นับบิลที่ยกเลิก) · คิดเฉพาะคนเห็นเงิน
+  const printLabel = printLabelOf((order.items ?? []).flatMap((item) => (item.prints ?? []).map((print) => print.printType)));
+  // รับเงินแล้วเท่าไร — สูตรกลางเดียวกับการ์ดบิล · คิดเฉพาะคนเห็นเงิน
   const paidAmount = canSeeMoney
     ? billingOverview(
         (order.invoices ?? []).map((invoice) => ({
@@ -702,486 +639,394 @@ function OrderDetailContent({
     delivery: order.deliveries?.length ?? 0,
     history: order.revisions?.length ?? 0,
   };
+  const onEditItems = canUseEditForm && canEditItems ? openItemsEditPage : undefined;
   const guidance = (
     <OrderNextStepGuidance
       nextStep={nextStep}
-      readiness={orderContext.data?.readiness ?? null}
-      onEditItems={canUseEditForm && canEditItems ? openItemsEditPage : undefined}
+      readiness={readiness}
+      onEditItems={onEditItems}
       onAnchor={handleAnchor}
       canSeeMoney={canSeeMoney}
     />
   );
-  const hasTopAlerts = Boolean(
-    attention || blockers.length > 0 || order.stockReservationError || order.blindShip || order.notes?.trim(),
-  );
+  const cta = resolveNextStepAction({
+    nextStep,
+    readiness,
+    onStatus: handleStatusChange,
+    onEditItems,
+    onAnchor: handleAnchor,
+    canSeeMoney,
+  });
+  const showAttention = Boolean(attention && order.internalStatus !== "ON_HOLD" && attention.kind !== "ready");
+
+  const alerts = [
+    blockers.length > 0 ? (
+      <Callout
+        key="blockers"
+        tone="danger"
+        role="alert"
+        icon={AlertTriangle}
+        action={
+          <>
+            <ul className={c("miss")}>
+              {(readiness?.checks ?? []).map((check) => (
+                <li key={check.key} className={c(check.ok && "ok")}>
+                  {check.ok ? <Check aria-hidden="true" /> : <X aria-hidden="true" />}
+                  {check.label}
+                  {check.ok ? "" : ` · ${check.detail}${check.waitingOn ? ` — ${check.waitingOn}` : ""}`}
+                </li>
+              ))}
+            </ul>
+            {missingChecks.has("payment") && canSeeMoney ? (
+              <button type="button" className={c("btn sm")} onClick={() => handleAnchor("billing")}>
+                <Wallet aria-hidden="true" />
+                ดูเงินและบิล
+              </button>
+            ) : null}
+            {missingChecks.has("materials") ? (
+              <button type="button" className={c("btn sm")} onClick={() => handleAnchor("production")}>
+                <Shirt aria-hidden="true" />
+                ตรวจเสื้อและใบผลิต
+              </button>
+            ) : null}
+            {missingChecks.has("design") ? (
+              <button type="button" className={c("btn sm")} onClick={() => handleAnchor("design")}>
+                <ImageIcon aria-hidden="true" />
+                ดูม็อกอัพและไฟล์
+              </button>
+            ) : null}
+          </>
+        }
+      >
+        <b>ยังเข้าคิวผลิตไม่ได้</b> · ต้องครบก่อน:
+      </Callout>
+    ) : null,
+    showAttention && attention ? (
+      <ProblemCallout
+        key="attention"
+        problem={attention}
+        progress={progress}
+        action={
+          attentionAction ? (
+            <button type="button" className={c("btn sm")} onClick={attentionAction.onClick}>
+              <attentionAction.icon aria-hidden="true" />
+              {attentionAction.label}
+            </button>
+          ) : undefined
+        }
+      />
+    ) : null,
+    // จองสต๊อคพัง — ด่านพร้อมผลิตกั้นไว้แล้ว แต่คนแก้ต้นเหตุคือคนที่เปิดหน้านี้
+    order.stockReservationError ? (
+      <Callout
+        key="stock"
+        tone="danger"
+        role="alert"
+        icon={Box}
+        action={
+          isSalesUp && ["CONFIRMED", "DESIGNING", "DESIGN_APPROVED", "PRODUCTION_QUEUE"].includes(order.internalStatus) ? (
+            <button
+              type="button"
+              className={c("btn sm")}
+              onClick={() => retryReserve.mutate({ id })}
+              disabled={retryReserve.isPending}
+            >
+              {retryReserve.isPending ? "กำลังจอง..." : "จองใหม่"}
+            </button>
+          ) : undefined
+        }
+      >
+        <b>จองสต๊อคไม่สำเร็จ</b> · {order.stockReservationError}
+      </Callout>
+    ) : null,
+    // blind ship = ห้ามมีชื่อ/เอกสาร Anajak ในกล่อง · พลาดครั้งเดียวเสียลูกค้าขายซ้ำทั้งราย
+    order.blindShip ? (
+      <Callout key="blind" icon={Eye}>
+        <b>ส่งแบบไม่ระบุผู้ส่ง</b> · ชื่อผู้ส่งบนกล่อง: {order.blindShipSenderName || "ยังไม่ระบุ — ต้องกรอกก่อนแพ็ค"}
+      </Callout>
+    ) : null,
+    order.notes?.trim() ? (
+      <Callout key="notes" icon={StickyNote} role="note">
+        <b>หมายเหตุใบนี้</b> · {order.notes}
+      </Callout>
+    ) : null,
+    order.internalStatus === "CANCELLED" ? (
+      <Callout key="cancelled" tone="danger" icon={X}>
+        <b>ยกเลิกแล้ว</b>
+        {order.cancelledReason ? ` · ${order.cancelledReason}` : ""}
+        {order.cancelledAt ? ` · ${formatDateCompact(order.cancelledAt)}` : ""}
+      </Callout>
+    ) : null,
+    deniedTab === "money" ? (
+      <Callout key="denied" tone="danger" role="alert" icon={AlertTriangle}>
+        <b>เปิดส่วนเงินและบิลไม่ได้</b> · บัญชีนี้ไม่มีสิทธิ์ดูข้อมูลการเงิน ระบบจึงพากลับมาที่ภาพรวม
+      </Callout>
+    ) : null,
+  ].filter(Boolean);
+
+  const panel = (key: TabKey, children: React.ReactNode) =>
+    visitedTabs.has(key) ? (
+      <div
+        key={key}
+        role="tabpanel"
+        id={`order-panel-${key}`}
+        aria-labelledby={`order-tab-${key}`}
+        hidden={activeTab !== key}
+        className={c("tabpanel")}
+      >
+        {children}
+      </div>
+    ) : null;
 
   return (
-    <div className="space-y-5">
-      {/* ── ป้ายแจ้งเตือนอยู่บนสุดของหน้า (เบสสั่ง 2026-09-13) ──
-          เรื่องที่ต้องจัดการ, ด่านพร้อมผลิต, จองสต๊อคพัง, ส่งแบบไม่ระบุผู้ส่ง, หมายเหตุใบนี้
-          ทั้งหมดอยู่นอกแท็บโดยตั้งใจ — คนแพ็ค (แท็บจัดส่ง) กับช่าง (แท็บงานผลิต) ต้องเห็นโดยไม่ต้องสลับแท็บ */}
-      {hasTopAlerts ? (
-        <div className="grid gap-2">
-          {attention ? <OrderAttentionCallout problem={attention} progress={progress} action={attentionAction} /> : null}
+    <div className={c("tokens page")}>
+      {/* ป้ายแจ้งเตือนอยู่บนสุดของหน้า (เบสสั่ง 09-13) นอกแท็บโดยตั้งใจ — คนแพ็ค/ช่างต้องเห็นโดยไม่สลับแท็บ */}
+      {alerts.length > 0 ? <div className={c("alerts")}>{alerts}</div> : null}
 
-          {blockers.length > 0 ? (
-            <div className={cn(TINT.error, "space-y-2.5 rounded-xl border px-3.5 py-2.5 text-sm")}>
-              <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2">
-                <AlertTriangle className="h-4 w-4 shrink-0" strokeWidth={1.75} aria-hidden="true" />
-                <span className="text-strong">
-                  <span className="font-semibold">ยังเข้าคิวผลิตไม่ได้</span> · ต้องครบก่อน:
-                </span>
-                <ul className="flex flex-wrap gap-1.5">
-                  {blockers.map((blocker) => (
-                    <li
-                      key={blocker}
-                      className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-surface px-2.5 py-0.5 text-xs text-strong [overflow-wrap:anywhere]"
-                    >
-                      <X className="h-3.5 w-3.5 shrink-0 text-red-600 dark:text-red-400" aria-hidden="true" />
-                      {blocker}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              {guidance}
-            </div>
-          ) : null}
+      <nav className={c("crumbs")} aria-label="ตำแหน่งหน้า">
+        <Link href="/orders">ออเดอร์</Link>
+        <ChevronRight aria-hidden="true" />
+        <span aria-current="page">{order.orderNumber}</span>
+      </nav>
 
-          {/* จองสต๊อคมีปัญหา — ด่านพร้อมผลิตกั้นงานไว้แล้ว แต่คนแก้ต้นเหตุคือคนที่เปิดหน้านี้ */}
-          {order.stockReservationError && (
-            <DetailCallout
-              tone="danger"
-              icon={PackageX}
-              title="จองสต๊อคไม่สำเร็จ"
-              action={
-                isSalesUp &&
-                ["CONFIRMED", "DESIGNING", "DESIGN_APPROVED", "PRODUCTION_QUEUE"].includes(order.internalStatus) ? (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => retryReserve.mutate({ id })}
-                    disabled={retryReserve.isPending}
-                  >
-                    {retryReserve.isPending ? "กำลังจอง..." : "จองใหม่"}
-                  </Button>
-                ) : undefined
-              }
+      <OrderDetailHead
+        orderNumber={order.orderNumber}
+        cover={cover}
+        internalStatus={order.internalStatus}
+        customerStatus={order.customerStatus}
+        priority={order.priority}
+        customer={order.customer ? { id: order.customer.id, name: order.customer.name, company: order.customer.company } : null}
+        description={order.description}
+        actions={
+          <>
+            {/* ของที่ใช้บ่อยเป็นปุ่มจริง (เบสสั่ง 08-30) — จอแคบเหลือไอคอน ชื่ออยู่ใน aria-label */}
+            <a
+              href={`/print/job-ticket/${id}`}
+              target="_blank"
+              rel="noreferrer"
+              className={c("btn")}
+              aria-label="พิมพ์ใบสั่งงาน (เปิดแท็บใหม่)"
             >
-              {order.stockReservationError}
-            </DetailCallout>
-          )}
-
-          {/* blind ship = ห้ามมีชื่อ/เอกสาร Anajak ในกล่อง · พลาดครั้งเดียวเสียลูกค้าขายซ้ำทั้งราย */}
-          {order.blindShip && (
-            <DetailCallout icon={EyeOff} title="ส่งแบบไม่ระบุผู้ส่ง">
-              ชื่อผู้ส่งบนกล่อง: {order.blindShipSenderName || "ยังไม่ระบุ — ต้องกรอกก่อนแพ็ค"}
-            </DetailCallout>
-          )}
-
-          {order.notes?.trim() && (
-            <DetailCallout icon={StickyNote} title="หมายเหตุใบนี้" role="note">
-              {order.notes}
-            </DetailCallout>
-          )}
-        </div>
-      ) : null}
-
-      {/* ── หัวใบ: ยืนบนผืนหน้า ไม่มีกรอบ (เบสสั่ง 2026-08-30 "แบบ minimal") ──
-          รูปม็อกอัพ + เลขที่ + สถานะ + ลูกค้า ทางซ้าย, ปุ่มเดิมทางขวา, รางสถานะใต้หัว */}
-      <div data-order-head="" className="space-y-4">
-        <OrderDetailHead
-          orderNumber={order.orderNumber}
-          cover={cover}
-          internalStatus={order.internalStatus}
-          customerStatus={order.customerStatus}
-          priority={order.priority}
-          customer={
-            order.customer
-              ? { id: order.customer.id, name: order.customer.name, company: order.customer.company }
-              : null
-          }
-          description={order.description}
-          actions={
-            <>
-              {/* ของที่ใช้บ่อยเป็นปุ่มจริง ไม่ซ่อนในเมนู ⋯ (เบสสั่ง 2026-08-30) — จอแคบเหลือไอคอน ชื่ออยู่ใน aria-label */}
-              <Button asChild variant="outline" size="sm">
-                <a
-                  href={`/print/job-ticket/${id}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label="พิมพ์ใบสั่งงาน (เปิดแท็บใหม่)"
-                >
-                  <ClipboardList />
-                  <span className="hidden sm:inline">ใบสั่งงาน</span>
-                </a>
-              </Button>
-              {isSalesUp && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => copyStatusLink()}
-                  disabled={generateStatusLink.isPending}
-                  aria-label="คัดลอกลิงก์สถานะสำหรับลูกค้า"
-                >
-                  <Link2 />
-                  <span className="hidden sm:inline">ลิงก์ลูกค้า</span>
-                </Button>
-              )}
-              {/* ปุ่มขั้นต่อไป — ทางเดียวที่เช็คด่านพร้อมผลิตก่อนกด · ติดด่านเมื่อไหร่ปุ่มหาย แล้วป้ายบนสุดบอกแทน */}
-              <OrderNextStepAction
-                nextStep={nextStep}
-                readiness={orderContext.data?.readiness ?? null}
-                isPending={updateStatus.isPending}
-                onStatus={handleStatusChange}
-                onEditItems={canUseEditForm && canEditItems ? openItemsEditPage : undefined}
-                onAnchor={handleAnchor}
-                canSeeMoney={canSeeMoney}
-              />
-              {/* เมนู ⋯ เหลือของที่นาน ๆ ใช้หรืออันตราย · ไม่มีรายการให้เลือก = ไม่ต้องมีปุ่ม */}
-              {hasOverflowMenu && (
-                <DropdownMenu.Root>
-                  <DropdownMenu.Trigger asChild>
-                    <Button variant="outline" size="icon-sm" aria-label="เพิ่มเติม">
-                      <MoreHorizontal />
-                    </Button>
-                  </DropdownMenu.Trigger>
-                  <DropdownMenu.Portal>
-                    <DropdownMenu.Content
-                      align="end"
-                      sideOffset={6}
-                      className={cn(OVERLAY_PANEL, "z-50 min-w-[200px] p-1", "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95")}
-                    >
-                      {isSalesUp && (
-                        <>
-                          {canUseEditForm && (
-                            <>
-                              <DropdownMenu.Item
-                                className={dropdownItemClass}
-                                onSelect={() => openInfoEditPage("info", activeTab)}
-                              >
-                                <FileText className="h-4 w-4" />
-                                แก้ไขข้อมูลออเดอร์
+              <ClipboardList aria-hidden="true" />
+              <span className={c("lbl")}>ใบสั่งงาน</span>
+            </a>
+            {isSalesUp ? (
+              <button
+                type="button"
+                className={c("btn")}
+                onClick={() => void copyStatusLink()}
+                disabled={generateStatusLink.isPending}
+                aria-label="คัดลอกลิงก์สถานะสำหรับลูกค้า"
+              >
+                <Link2 aria-hidden="true" />
+                <span className={c("lbl")}>ลิงก์ลูกค้า</span>
+              </button>
+            ) : null}
+            {/* ปุ่มขั้นต่อไป — ทางเดียวที่เช็คด่านพร้อมผลิต · ติดด่านปุ่มหาย แล้วป้ายบนสุดบอกแทน */}
+            {cta ? (
+              <button
+                type="button"
+                className={c("btn primary")}
+                onClick={cta.run}
+                disabled={updateStatus.isPending}
+                aria-describedby="order-next-step-guidance"
+              >
+                {cta.label}
+                <ChevronRight aria-hidden="true" />
+              </button>
+            ) : null}
+            {hasOverflowMenu ? (
+              <DropdownMenu.Root>
+                <DropdownMenu.Trigger asChild>
+                  <button type="button" className={c("btn icon")} aria-label="เพิ่มเติม">
+                    <Ellipsis aria-hidden="true" />
+                  </button>
+                </DropdownMenu.Trigger>
+                <DropdownMenu.Portal>
+                  <DropdownMenu.Content align="end" sideOffset={6} className={c("tokens dmenu")}>
+                    {isSalesUp ? (
+                      <>
+                        {canUseEditForm ? (
+                          <>
+                            <DropdownMenu.Item className={c("mi")} onSelect={() => openInfoEditPage("info", activeTab)}>
+                              <FileText aria-hidden="true" />
+                              แก้ไขข้อมูลออเดอร์
+                            </DropdownMenu.Item>
+                            {canEditItems ? (
+                              <DropdownMenu.Item className={c("mi")} onSelect={openItemsEditPage}>
+                                <PenLine aria-hidden="true" />
+                                แก้ไขรายการ
                               </DropdownMenu.Item>
-                              {canEditItems && (
-                                <DropdownMenu.Item className={dropdownItemClass} onSelect={openItemsEditPage}>
-                                  <Edit3 className="h-4 w-4" />
-                                  แก้ไขรายการ
-                                </DropdownMenu.Item>
-                              )}
-                            </>
-                          )}
-                          <DropdownMenu.Item
-                            className={dropdownItemClass}
-                            onSelect={() => duplicateOrder.mutate({ id })}
-                            disabled={duplicateOrder.isPending}
-                          >
-                            <Copy className="h-4 w-4" />
-                            สำเนาออเดอร์
+                            ) : null}
+                          </>
+                        ) : null}
+                        <DropdownMenu.Item
+                          className={c("mi")}
+                          onSelect={() => duplicateOrder.mutate({ id })}
+                          disabled={duplicateOrder.isPending}
+                        >
+                          <Copy aria-hidden="true" />
+                          สำเนาออเดอร์
+                        </DropdownMenu.Item>
+                        {["DRAFT", "INQUIRY"].includes(order.internalStatus) ? (
+                          // สะพานใบเสนอ: ออกใบเสนอผูกใบนี้ — ลูกค้าตกลงแล้วยืนยันออเดอร์เดิม ไม่สร้างซ้ำ
+                          <DropdownMenu.Item className={c("mi")} onSelect={() => router.push(`/quotations/new?orderId=${id}`)}>
+                            <ClipboardList aria-hidden="true" />
+                            ออกใบเสนอราคา
                           </DropdownMenu.Item>
-                          {["DRAFT", "INQUIRY"].includes(order.internalStatus) && (
-                            // สะพานใบเสนอ: ออกใบเสนอผูกใบนี้ — ลูกค้าตกลงแล้วยืนยันออเดอร์เดิม ไม่สร้างซ้ำ
-                            <DropdownMenu.Item
-                              className={dropdownItemClass}
-                              onSelect={() => router.push(`/quotations/new?orderId=${id}`)}
-                            >
-                              <FileText className="h-4 w-4" />
-                              ออกใบเสนอราคา
-                            </DropdownMenu.Item>
-                          )}
-                        </>
-                      )}
-                      {otherNext.length > 0 && (
-                        <>
-                          <DropdownMenu.Separator className={MENU_SEPARATOR} />
-                          {otherNext.map((status) => (
-                            <DropdownMenu.Item
-                              key={status}
-                              className={dropdownItemClass}
-                              onSelect={() => handleStatusChange(status)}
-                              disabled={updateStatus.isPending}
-                            >
-                              <ChevronRight className="h-4 w-4" />
-                              {statusItemLabel(status)}
-                            </DropdownMenu.Item>
-                          ))}
-                        </>
-                      )}
-                      {canCancel && (
-                        <>
-                          <DropdownMenu.Separator className={MENU_SEPARATOR} />
+                        ) : null}
+                      </>
+                    ) : null}
+                    {forwardStatuses.length > 0 ? (
+                      <>
+                        {isSalesUp ? <DropdownMenu.Separator className={c("sep")} /> : null}
+                        {forwardStatuses.map((status) => (
                           <DropdownMenu.Item
-                            className={cn(
-                              dropdownItemClass,
-                              "text-red-600 data-[highlighted]:bg-red-50 data-[highlighted]:text-red-700 dark:text-red-400 dark:data-[highlighted]:bg-red-950/40",
-                            )}
-                            onSelect={() => handleStatusChange("CANCELLED")}
+                            key={status}
+                            className={c("mi")}
+                            onSelect={() => void handleStatusChange(status)}
                             disabled={updateStatus.isPending}
                           >
-                            <XCircle className="h-4 w-4" />
-                            ยกเลิกออเดอร์
+                            <ChevronRight aria-hidden="true" />
+                            {statusItemLabel(status)}
                           </DropdownMenu.Item>
-                        </>
-                      )}
-                    </DropdownMenu.Content>
-                  </DropdownMenu.Portal>
-                </DropdownMenu.Root>
-              )}
-            </>
-          }
-        />
+                        ))}
+                      </>
+                    ) : null}
+                    {canCancel ? (
+                      <>
+                        <DropdownMenu.Separator className={c("sep")} />
+                        <DropdownMenu.Item
+                          className={c("mi danger")}
+                          onSelect={() => void handleStatusChange("CANCELLED")}
+                          disabled={updateStatus.isPending}
+                        >
+                          <XCircle aria-hidden="true" />
+                          ยกเลิกออเดอร์
+                        </DropdownMenu.Item>
+                      </>
+                    ) : null}
+                  </DropdownMenu.Content>
+                </DropdownMenu.Portal>
+              </DropdownMenu.Root>
+            ) : null}
+          </>
+        }
+      />
 
-        {/* revisions = ชุดเดียวกับแท็บประวัติ — รางใช้หาว่างานพัก/ยกเลิกค้างที่ขั้นไหน
-            ขั้นที่ยืนอยู่เป็นแคปซูลบอกว่าอยู่มากี่วันและใครทำ (ต้นแบบรอบ 2) */}
-        <OrderStatusBar
-          flowSteps={flowSteps}
-          currentStepIndex={currentStepIndex}
-          internalStatus={order.internalStatus}
-          customerStatus={order.customerStatus}
-          revisions={order.revisions ?? []}
-          cancelledAt={order.cancelledAt}
-          cancelledReason={order.cancelledReason}
-          currentDetail={currentDetail}
-        />
-        {/* คำอธิบายขั้นต่อไปผูกกับปุ่มผ่าน aria-describedby — เบสไม่เอาบรรทัดคำช่วยใต้ราง (2026-09-13)
-            จึงให้เครื่องอ่านหน้าจออ่านได้อย่างเดียว · ตอนติดด่านย้ายไปอยู่ในป้ายบนสุดพร้อมปุ่มแก้ */}
-        {blockers.length === 0 ? <div className="sr-only">{guidance}</div> : null}
-      </div>
+      <OrderStatusSteps
+        flowSteps={flowSteps}
+        currentStepIndex={currentStepIndex}
+        internalStatus={order.internalStatus}
+        revisions={order.revisions ?? []}
+        cancelledAt={order.cancelledAt}
+        cancelledReason={order.cancelledReason}
+        currentDetail={currentDetail}
+      />
+      {/* คำอธิบายขั้นต่อไปผูกกับปุ่มผ่าน aria-describedby — เบสไม่เอาบรรทัดคำช่วยใต้ราง (09-13) */}
+      {blockers.length === 0 ? <div className={c("sr")}>{guidance}</div> : null}
 
-      {deniedTab === "money" && (
-        <Alert variant="warning" icon={AlertTriangle} title="เปิดส่วนเงินและบิลไม่ได้">
-          บัญชีนี้ไม่มีสิทธิ์ดูข้อมูลการเงิน ระบบจึงพากลับมาที่ภาพรวม
-        </Alert>
+      <OrderTabsBar tabs={visibleTabs} active={activeTab} counts={tabCounts} pending={pendingTab} onChange={changeTab} />
+
+      {panel(
+        "overview",
+        <>
+          <OrderOverviewTab
+            order={order}
+            showMoney={canSeeMoney}
+            totalAmount={totalAmount}
+            totalQuantity={sumOrderQuantity(order.items ?? [])}
+            dueInDays={isAttentionStatus(order.internalStatus) ? progress.dueInDays : undefined}
+            sizeBreakdown={sizeBreakdown}
+            paidAmount={paidAmount}
+            printLabel={printLabel}
+            onOpenMoney={canSeeMoney ? () => changeTab("money") : undefined}
+            onOpenDelivery={() => changeTab("delivery")}
+            onEditInfo={canUseEditForm ? (section) => openInfoEditPage(section, "overview") : undefined}
+            artwork={
+              <OrderArtworkCard
+                orderId={id}
+                description={order.description}
+                orderType={order.orderType}
+                brand={order.brandProfile}
+                onOpenFiles={() => changeTab("files")}
+              />
+            }
+            isMarketplace={isMarketplace}
+          />
+          <OrderTimelineCard revisions={order.revisions ?? []} onOpenHistory={() => changeTab("history")} />
+        </>,
       )}
 
-      <Tabs value={activeTab} onValueChange={changeTab}>
-        {/* sticky — เลื่อนลงไปลึกแค่ไหนก็ยังสลับแท็บได้ · ตัวเลขข้างชื่อ = มีของอยู่ในแท็บนั้นกี่ชิ้น */}
-        <TabsBar>
-          <TabsList aria-label="ส่วนของออเดอร์">
-            {visibleTabs.map((t) => (
-              <TabsTrigger
-                key={t.key}
-                value={t.key}
-                hasPending={t.key === pendingTab}
-                aria-label={t.key === pendingTab ? `${t.label} — มีงานค้าง` : undefined}
-                className="group data-[state=active]:font-medium data-[state=active]:text-strong dark:data-[state=active]:text-strong"
-              >
-                {t.label}
-                {tabCounts[t.key] ? (
-                  <span className="min-w-[1.125rem] rounded-full bg-surface-muted px-1.5 text-center text-2xs font-medium tabular-nums text-secondary group-data-[state=active]:bg-blue-100 group-data-[state=active]:text-blue-800 dark:group-data-[state=active]:bg-blue-950/60 dark:group-data-[state=active]:text-blue-200">
-                    {tabCounts[t.key]}
-                  </span>
-                ) : null}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </TabsBar>
+      {panel(
+        "items",
+        <OrderItemsTab
+          orderId={id}
+          items={order.items ?? []}
+          fees={order.fees ?? []}
+          onEditItems={onEditItems}
+          showMoney={canSeeMoney}
+          canEditReceiveTracking={canEditReceiveTracking}
+          totals={{ discount, taxRate: order.taxRate, taxAmount: order.taxAmount, totalAmount }}
+          onOpenMoney={canSeeMoney ? () => changeTab("money") : undefined}
+        />,
+      )}
 
-        <div className="mt-5">
-          {/* แท็บแรก: ภาพรวม — ข้อมูลออเดอร์ซ้าย · ม็อกอัพ & ไฟล์ขวา (เบสเคาะ 2026-09-13) · เส้นเวลาใต้ */}
-          {visitedTabs.has("overview") && (
-            <TabsContent value="overview" keepMounted className="space-y-4">
-              <OrderOverviewTab
-                order={order}
-                showMoney={canSeeMoney}
-                totalAmount={totalAmount}
-                totalQuantity={sumOrderQuantity(order.items ?? [])}
-                dueInDays={isAttentionStatus(order.internalStatus) ? progress.dueInDays : undefined}
-                sizeBreakdown={sizeBreakdown}
-                paidAmount={paidAmount}
-                printLabel={printLabel}
-                onOpenMoney={canSeeMoney ? () => changeTab("money") : undefined}
-                onOpenDelivery={() => changeTab("delivery")}
-                onEditInfo={
-                  canUseEditForm
-                    ? (section) => openInfoEditPage(section, "overview")
-                    : undefined
-                }
-                artwork={
-                  <OrderArtworkCard
-                    orderId={id}
-                    description={order.description}
-                    orderType={order.orderType}
-                    onOpenFiles={() => changeTab("files")}
-                  />
-                }
-                channelColor={channelColor}
-                isMarketplace={isMarketplace}
-              />
-              <OrderTimelineCard revisions={order.revisions ?? []} onOpenHistory={() => changeTab("history")} />
-            </TabsContent>
-          )}
+      {panel(
+        "production",
+        /* สรุปอ่านอย่างเดียว — ตัวจัดการผลิตจริงอยู่ /production (เบสเคาะแยกโมดูล) · V2 ไม่วางรับของ/QC ในหน้านี้ */
+        <OrderProductionTab
+          orderId={id}
+          order={order}
+          productionV2Enabled={productionV2Enabled}
+          isManagerUp={permAllows(me.permissions, "supervise_operations")}
+          canReceive={permAllows(me.permissions, "manage_delivery")}
+          canCount={permAllows(me.permissions, "manage_production")}
+          onOpenFiles={() => changeTab("files")}
+        />,
+      )}
 
-          {visitedTabs.has("items") && (
-            <TabsContent value="items" keepMounted className="space-y-6">
-              <OrderItemsDisplay
-                orderId={id}
-                items={order.items ?? []}
-                fees={order.fees ?? []}
-                onEditItems={canEditItems && canUseEditForm ? openItemsEditPage : undefined}
-                showMoney={canSeeMoney}
-                canEditReceiveTracking={canEditReceiveTracking}
-                totals={{ discount, taxRate: order.taxRate, taxAmount: order.taxAmount, totalAmount }}
-                afterItems={<OrderChangeOrders orderId={id} />}
-              />
-            </TabsContent>
-          )}
+      {panel(
+        "delivery",
+        /* แท็บอยู่เสมอแม้ยังไม่ถึงเฟส (ซ่อนตามสถานะ = ชุดแท็บเปลี่ยนใต้มือ) · ผู้รับซ้าย ใบส่งของขวา */
+        <OrderDeliveryTab
+          order={order}
+          showDeliverySection={showDeliverySection}
+          canEditShipping={canUseEditForm}
+          onEditShipping={() => openInfoEditPage("shipping", "delivery")}
+        />,
+      )}
 
-          {visitedTabs.has("production") && (
-            <TabsContent value="production" keepMounted>
-              {/* สองคอลัมน์ตามต้นแบบ: ความคืบหน้าการผลิต/รับเสื้อซ้าย · ของที่ต้องพร้อม (ม็อกอัพ/QC) ขวา
-                  ตัวจัดการผลิตจริงอยู่หน้าผลิต · ม็อกอัพมีบ้านเดียวที่แท็บม็อกอัพ & ไฟล์ */}
-              <div className="grid items-start gap-4 xl:grid-cols-2">
-                <div className="min-w-0 space-y-4">
-                  {/* การ์ดสรุปอ่านอย่างเดียว — ตัวจัดการผลิตจริงอยู่ /production (เบสเคาะแยกโมดูล) */}
-                  <ProductionSummaryCard
-                    orderId={id}
-                    internalStatus={order.internalStatus}
-                    productions={order.productions ?? []}
-                    isManagerUp={!!me && permAllows(me.permissions, "supervise_operations")}
-                    productionV2Enabled={productionV2Enabled}
-                  />
-                  {/* V2 ให้ Prep/QC ทำจาก Station เท่านั้น หน้าออเดอร์คงเป็น summary + deep link */}
-                  {!productionV2Enabled ? (
-                    <OrderGoodsReceiptSection
-                      orderId={id}
-                      itemSources={(order.items ?? []).flatMap((it) =>
-                        (it.products ?? [])
-                          .map((p) => p.itemSource)
-                          .filter((s): s is string => s !== null)
-                      )}
-                      canReceive={!!me && permAllows(me.permissions, "manage_delivery")}
-                    />
-                  ) : null}
-                </div>
-                <div className="min-w-0 space-y-4">
-                  <OrderMockupHandoff orderId={id} onOpenMockup={() => changeTab("files")} />
-                  {!productionV2Enabled ? (
-                    <OrderQcSection
-                      orderId={id}
-                      internalStatus={order.internalStatus}
-                      canCount={!!me && permAllows(me.permissions, "manage_production")}
-                    />
-                  ) : null}
-                </div>
-              </div>
-            </TabsContent>
-          )}
+      {/* ไม่มีสิทธิ์ดูเงิน = ไม่ render ทั้งก้อน (แท็บก็ถูกกรองออกจาก visibleTabs) */}
+      {canSeeMoney
+        ? panel(
+            "money",
+            <OrderMoneyTab
+              order={order}
+              subtotalItems={subtotalItems}
+              subtotalFees={subtotalFees}
+              discount={discount}
+              totalAmount={totalAmount}
+              totalCost={totalCost}
+              hasCostEntries={!!hasCostEntries}
+              profitMargin={profitMargin}
+            />,
+          )
+        : null}
 
-          {visitedTabs.has("delivery") && (
-            <TabsContent value="delivery" keepMounted className="space-y-6">
-              {showDeliverySection ? (
-                <OrderDeliverySection
-                  orderId={id}
-                  internalStatus={order.internalStatus}
-                  customerName={order.customer?.name}
-                  customerPhone={order.customer?.phone ?? undefined}
-                  customerHasAddress={!!order.customer?.address}
-                  customerAddress={order.customer?.address}
-                  orderShipping={order}
-                />
-              ) : (
-                /* แท็บอยู่เสมอแม้ยังไม่ถึงเฟส — ถ้าซ่อนตามสถานะ ชุดแท็บจะเปลี่ยนใต้มือระหว่างวัน
-                   ต้นแบบรอบ 2: ผู้รับและที่อยู่ซ้าย (เตรียมไว้ก่อนได้) · ใบส่งของขวา (เปิดเมื่อผลิตและตรวจนับเสร็จ) */
-                <div className="grid items-start gap-4 xl:grid-cols-2">
-                  <Section
-                    title={
-                      <span className="flex items-center gap-2.5">
-                        <HomeIconTile icon={Truck} tone="success" />
-                        ผู้รับและที่อยู่
-                      </span>
-                    }
-                    action={
-                      canUseEditForm && (order.shippingAddress || order.shippingRecipientName) ? (
-                        <Button type="button" variant="ghost" size="sm" onClick={() => openInfoEditPage("shipping", "delivery")}>
-                          <Pencil />
-                          แก้ไข
-                        </Button>
-                      ) : undefined
-                    }
-                  >
-                    {order.shippingAddress || order.shippingRecipientName ? (
-                      <address className="text-sm not-italic leading-6 text-strong [overflow-wrap:anywhere]">
-                        {order.shippingRecipientName && <span className="block font-medium">{order.shippingRecipientName}</span>}
-                        {order.shippingAddress && <span className="block">{order.shippingAddress}</span>}
-                        {[order.shippingSubDistrict, order.shippingDistrict, order.shippingProvince, order.shippingPostalCode]
-                          .filter(Boolean)
-                          .join(" ") ? (
-                          <span className="block">
-                            {[order.shippingSubDistrict, order.shippingDistrict, order.shippingProvince, order.shippingPostalCode]
-                              .filter(Boolean)
-                              .join(" ")}
-                          </span>
-                        ) : null}
-                        {order.shippingPhone && <span className="block text-muted">{order.shippingPhone}</span>}
-                      </address>
-                    ) : (
-                      <div className="flex flex-wrap items-center gap-2.5 rounded-lg bg-surface-muted px-3 py-2.5 text-sm text-secondary">
-                        <Truck className="h-4 w-4 shrink-0" aria-hidden="true" />
-                        <span className="min-w-0 flex-1 basis-40">ยังไม่ระบุที่อยู่จัดส่ง</span>
-                        {canUseEditForm ? (
-                          <Button type="button" variant="outline" size="sm" onClick={() => openInfoEditPage("shipping", "delivery")}>
-                            ใส่ที่อยู่
-                          </Button>
-                        ) : null}
-                      </div>
-                    )}
-                  </Section>
-                  <Section
-                    title={
-                      <span className="flex items-center gap-2.5">
-                        <HomeIconTile icon={Package} tone="brand" />
-                        ใบส่งของ
-                      </span>
-                    }
-                  >
-                    <EmptyState
-                      icon={Truck}
-                      title="ยังไม่ถึงขั้นจัดส่ง"
-                      description="ส่วนนี้จะเปิดเมื่อผลิตและตรวจนับเสร็จ"
-                    />
-                  </Section>
-                </div>
-              )}
-            </TabsContent>
-          )}
+      {panel(
+        "files",
+        <OrderFilesTab
+          orderId={id}
+          internalStatus={order.internalStatus}
+          orderType={order.orderType}
+          canSeeMoney={canSeeMoney}
+          userId={me.id}
+          userRole={me.role}
+        />,
+      )}
 
-          {/* ไม่มีสิทธิ์ดูเงิน = ไม่ render ทั้งก้อน (แท็บก็ถูกกรองออกจาก visibleTabs) */}
-          {canSeeMoney && visitedTabs.has("money") && (
-            <TabsContent value="money" keepMounted className="space-y-6">
-              <OrderMoneyTab
-                order={order}
-                subtotalItems={subtotalItems}
-                subtotalFees={subtotalFees}
-                discount={discount}
-                totalAmount={totalAmount}
-                totalCost={totalCost}
-                hasCostEntries={!!hasCostEntries}
-                profitMargin={profitMargin}
-              />
-            </TabsContent>
-          )}
-
-          {visitedTabs.has("files") && (
-            <TabsContent value="files" keepMounted>
-              {/* ม็อกอัพซ้าย (ของที่คนเปิดแท็บนี้มาหาบ่อยสุด) · ไฟล์ลูกค้า/ไฟล์พิมพ์ขวา */}
-              <div className="grid items-start gap-4 xl:grid-cols-2">
-                <div className="min-w-0">
-                  <MockupPanel orderId={id} internalStatus={order.internalStatus} canSeeMoney={canSeeMoney} />
-                </div>
-                <div className="min-w-0">
-                  <OrderFilesPanel orderId={id} userId={me.id} userRole={me.role} />
-                </div>
-              </div>
-            </TabsContent>
-          )}
-
-          {visitedTabs.has("history") && (
-            <TabsContent value="history" keepMounted className="space-y-6">
-              <OrderRevisions revisions={order.revisions ?? []} />
-            </TabsContent>
-          )}
-        </div>
-      </Tabs>
+      {panel("history", <OrderRevisions revisions={order.revisions ?? []} />)}
     </div>
   );
 }
