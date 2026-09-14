@@ -42,6 +42,7 @@ import {
   INTERACTIVE_CHROME_PRESSED,
   INTERACTIVE_HOVER,
   INTERACTIVE_PRESSED,
+  INTERACTIVE_SELECTED,
   RADIUS,
   SUNK_PANEL,
 } from "@/components/ui/tokens";
@@ -104,17 +105,10 @@ function sidebarNavItemClass({
     // (วัดจริง 2026-08-26 หลังเบสทัก "sidebar ตอนหุบ UI ก็ไม่ดี")
     collapsed && "mx-auto h-10 w-10 justify-center gap-0 px-0 py-0",
     active
-      ? // แบบ ก (เบสเคาะ 2026-08-26) — เมนูที่กำลังเปิดอยู่เลิกเป็นพิลฟ้า
-        // เหลือพื้นเทากลาง ๆ + ขีดสีแบรนด์บาง ๆ ริมซ้ายของแถบ + ตัวหนังสือเข้มขึ้น
-        // น้ำเงินจึงเหลือหน้าที่เดียวในแถบเมนูคือบอกว่า "อยู่ตรงนี้"
-        // ⚠️ ตอนหุบไม่มีขีด — ขีดที่ริมรางห่างจากไอคอนจนอ่านเป็นคนละชิ้น
-        // พื้นเทาเต็มปุ่มสี่เหลี่ยมบอก "อยู่ตรงนี้" ได้ชัดกว่าบนรางแคบ 64px
-        cn(
-          "font-medium text-strong",
-          onChrome ? "bg-interactive-chrome-pressed" : "bg-interactive-pressed",
-          !collapsed &&
-            "before:absolute before:inset-y-1.5 before:-left-3 before:w-0.5 before:rounded-r-full before:bg-blue-600 before:content-[''] dark:before:bg-blue-400",
-        )
+      ? // รื้อ 2026-09-14 (ต้นแบบหน้าแรกที่เบสเคาะ): เมนูที่เปิดอยู่เป็นพื้นฟ้าอ่อน
+        // ตัวหนังสือ/ไอคอนน้ำเงิน Anajak ไม่มีขีดริมซ้าย — ใช้ token selected ชุดเดียวกับ
+        // ของที่ถูกเลือกทั้งเว็บ (INTERACTIVE_SELECTED) · onChrome/collapsed ไม่ต่างกัน
+        cn("font-medium", INTERACTIVE_SELECTED)
       : cn(
           "font-normal",
           "text-secondary",
@@ -207,7 +201,7 @@ function SidebarCollapseButton({
 
 function sidebarNavIconClass(active: boolean) {
   return active
-    ? "text-strong"
+    ? "text-interactive-selected-text"
     : "text-muted group-hover/sidebar-item:text-secondary group-active/sidebar-item:text-strong";
 }
 
@@ -427,8 +421,11 @@ function AppShellContent({ children }: { children: ReactNode }) {
               )}
             >
               <SidebarBrandMark />
-              <span className="truncate text-sm font-semibold text-strong">
-                Anajak Print
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-semibold text-strong">
+                  Anajak Print
+                </span>
+                <span className="block truncate text-xs text-muted">ERP โรงงานสกรีนเสื้อ</span>
               </span>
             </Link>
           )}
@@ -499,7 +496,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
           ของในหน้าสูงขึ้นทั้งชุด แถบ 48px จึงกลายเป็นแถบที่แน่นกว่าเนื้อหาที่มันครอบอยู่)
           จอแคบไม่มีเมนูซ้าย แถบจึงยังพาดเต็มจอและถือตราไว้เหมือนเดิม
           ⚠️ อยู่หลัง <aside> ใน DOM โดยตั้งใจ — ดูเหตุผลที่คอมเมนต์เหนือ <aside> */}
-      <header className="relative z-30 col-span-full row-start-1 flex h-14 min-w-0 items-center border-b border-divider bg-chrome lg:col-span-1 lg:col-start-2 lg:pr-[var(--app-scrollbar-w)]">
+      <header className="relative z-30 col-span-full row-start-1 flex h-14 min-w-0 items-center border-b border-divider bg-bg lg:col-span-1 lg:col-start-2 lg:pr-[var(--app-scrollbar-w)]">
         <Link
           href="/"
           aria-label="ภาพรวม"
@@ -543,8 +540,8 @@ function AppShellContent({ children }: { children: ReactNode }) {
               "border border-border",
               INTERACTIVE_HOVER,
               INTERACTIVE_PRESSED,
-              // จอแคบยังยืดเต็มที่ · จอกว้างหดเป็นชิปกว้างคงที่แล้วดันไปชิดขวา
-              "group flex min-w-0 flex-1 items-center gap-2 px-3 text-sm text-muted transition-colors sm:max-w-lg sm:px-4 lg:ml-auto lg:w-60 lg:max-w-60 lg:flex-none",
+              // จอแคบยังยืดเต็มที่ · จอกว้างเป็นชิปกว้างคงที่ชิดซ้าย (ต้นแบบ 2026-09-14)
+              "group flex min-w-0 flex-1 items-center gap-2 px-3 text-sm text-muted transition-colors sm:max-w-lg sm:px-4 lg:w-72 lg:max-w-72 lg:flex-none",
             )}
           >
             <Search className="h-4 w-4 shrink-0" strokeWidth={1.75} />
@@ -552,7 +549,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
             <kbd className="hidden text-xs sm:inline">⌘K</kbd>
           </button>
 
-          <div className="ml-auto flex shrink-0 items-center gap-2 lg:ml-0">
+          <div className="ml-auto flex shrink-0 items-center gap-2">
             {/* ปุ่มบนแถบบนยืนบน chrome (เทา) ไม่ใช่ surface (ขาว) — hover ชุดปกติ
                 จึงเกือบเท่าพื้นตัวเอง ต้องใช้ชุด chrome ที่เข้มกว่าหนึ่งขั้น */}
             <Button

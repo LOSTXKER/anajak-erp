@@ -14,7 +14,8 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 type StepQueueOpts = { userId?: string | null; ownWorkOnly?: boolean; limit?: number };
 
-const PREP_QUEUE_WHERE = {
+// export ให้ home-overview ใช้ขอบเขต "คิวเตรียมเสื้อ" ชุดเดียวกับทีวี ไม่นิยามซ้ำ
+export const PREP_QUEUE_WHERE = {
   stepType: { in: ["GARMENT_PICK", "GARMENT_RECEIVE"] },
   status: { in: ["PENDING", "IN_PROGRESS"] },
   production: { order: { internalStatus: "PRODUCING" } },

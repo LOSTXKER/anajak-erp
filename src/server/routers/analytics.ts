@@ -4,20 +4,13 @@ import { hasPermission } from "@/lib/permissions";
 import { getStartOfMonth, getStartOfLastMonth, getMonthRange } from "@/lib/date-utils";
 import { aggToNumber } from "@/server/services/money";
 import { getOwnerPulse } from "@/server/services/owner-pulse";
+import { getHomeOverview } from "@/server/services/home-overview";
+import { printLabelOf } from "@/lib/print-labels";
 
 // PERM3: default ตรงชุดเดิมเป๊ะ + override รายคน
 const adminOnly = requirePermission("view_admin_reports");
 const ownerOrAccountant = requirePermission("see_finance");
 
-// ป้ายชนิดงานพิมพ์ (ไทย) — printType เป็น String อิสระ ไม่ใช่ enum
-const PRINT_LABELS: Record<string, string> = {
-  DTF: "DTF",
-  DTG: "DTG",
-  SILK_SCREEN: "สกรีน",
-  SUBLIMATION: "ซับ",
-  HEAT_TRANSFER: "รีดร้อน",
-  EMBROIDERY: "ปัก",
-};
 
 export const analyticsRouter = router({
   dashboard: protectedProcedure.query(async ({ ctx }) => {
@@ -168,12 +161,7 @@ export const analyticsRouter = router({
         // ชนิดงานพิมพ์ของออเดอร์ — มีหลายชนิด = "ผสม" · ไม่มีลาย = ไม่โชว์ป้าย
         const types = new Set<string>();
         for (const it of o.items) for (const p of it.prints) types.add(p.printType);
-        const printLabel =
-          types.size === 0
-            ? null
-            : types.size === 1
-              ? PRINT_LABELS[[...types][0]] ?? [...types][0]
-              : "ผสม";
+        const printLabel = printLabelOf(types);
         return {
           id: o.id,
           orderNumber: o.orderNumber,
@@ -254,4 +242,12 @@ export const analyticsRouter = router({
   // 5 ตัวเลขเจ้าของ — "จอเช้า 10 วินาที" (FLOW-REDESIGN ก้อน 2)
   // service กลางจงใจ: MCP เฟสแรก (ก้อน 5) ใช้ตัวเลขชุดเดียวกันนี้
   ownerPulse: protectedProcedure.use(adminOnly).query(({ ctx }) => getOwnerPulse(ctx.prisma)),
+
+  // หน้าแรกรื้อใหม่ 2026-09-14: ผังโรงงาน + สุขภาพ · กำหนดส่ง 7 วัน · ออเดอร์ที่กำลังเดิน · เงินที่ต้องตาม
+  // ตัวเลขผลิตเปิดทุกคนที่เข้าหน้าแรกได้ (หัวหน้า/เจ้าของ) · เงิน gate ด้วย see_finance ชุดเดียวกับ dashboard
+  homeOverview: protectedProcedure.query(({ ctx }) =>
+    getHomeOverview(ctx.prisma, {
+      canSeeFinance: hasPermission(ctx.userRole, ctx.permissionOverrides, "see_finance"),
+    }),
+  ),
 });

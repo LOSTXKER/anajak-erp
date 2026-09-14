@@ -1289,17 +1289,15 @@ check(
     navigationHelperSource.includes("INTERACTIVE_CHROME_HOVER") &&
     navigationHelperSource.includes("INTERACTIVE_HOVER") &&
     navigationHelperSource.includes("INTERACTIVE_CHROME_PRESSED") &&
-    // แบบ ก (เบสเคาะ 2026-08-26) — เมนูที่กำลังเปิดอยู่ต้องเป็น "เทากลาง + ขีดแบรนด์"
-    // ไม่ใช่พิลฟ้าแบบเดิม · สัญญานี้กลับด้านจากของเดิมทั้งสองฝั่ง จงใจ ไม่ใช่ของหลุด
-    navigationHelperSource.includes(
+    // รื้อ 2026-09-14 (ต้นแบบหน้าแรกแนว minimal ที่เบสเคาะ) — เมนูที่เปิดอยู่เป็นพื้นฟ้าอ่อน
+    // ตัวหนังสือ/ไอคอนน้ำเงิน Anajak ไม่มีขีดริมซ้าย ใช้ token selected ชุดเดียวกับของที่ถูกเลือกทั้งเว็บ
+    // (แทนแบบ ก 2026-08-26 "เทากลาง + ขีดแบรนด์" ที่ถูกเบสตัดสินใจเปลี่ยน) · น้ำเงินยังอยู่ที่ selected
+    navigationHelperSource.includes('cn("font-medium", INTERACTIVE_SELECTED)') &&
+    !navigationHelperSource.includes(
       'onChrome ? "bg-interactive-chrome-pressed" : "bg-interactive-pressed"',
     ) &&
-    !navigationHelperSource.includes("bg-interactive-selected") &&
-    navigationHelperSource.includes("font-medium text-strong") &&
-    navigationHelperSource.includes('active\n    ? "text-strong"') &&
-    // เทาล้วนอย่างเดียวไม่พอ — ถ้าขีดแบรนด์หาย แถบเมนูจะไม่เหลือ Anajak เลย
-    navigationHelperSource.includes("before:bg-blue-600") &&
-    navigationHelperSource.includes("dark:before:bg-blue-400") &&
+    navigationHelperSource.includes('active\n    ? "text-interactive-selected-text"') &&
+    !navigationHelperSource.includes("before:bg-blue-600") &&
     navigationHelperSource.includes("FOCUS_INSET") &&
     navigationHelperSource.includes("group-hover/sidebar-item:text-secondary") &&
     !navigationHelperSource.includes("hover:bg-");
@@ -2196,17 +2194,14 @@ check(
   ) {
     problems.push("shared header ต้องมี CTA mobile เต็มแถวและพา focus ไป card ใหม่");
   }
-  // บันไดความลึก — กฎที่ยังจริงทั้งสองธีมมีสองข้อ (แก้ 2026-08-26 · UI-2026 เฟส 6):
-  //   1) ผืนงาน (bg) เป็น "พื้นจม" การ์ด (surface) ต้องลอยเหนือมันเสมอ
-  //   2) Light workspace ต้องเป็น near-white แต่ยังต่างจาก chrome/card เล็กน้อย
-  //      แต่ **ไม่บังคับทิศ** เพราะสองธีมวางตัวคนละฝั่งโดยตั้งใจ:
-  //        สว่าง  chrome ขาว = การ์ดขาว ลอยเหนือ near-white (เบสสั่งให้ขาวขึ้น 2026-08-27)
-  //        มืด    chrome เกือบดำ จมใต้ผืนงาน               (ของเดิม ไม่ได้ถูกทัก)
+  // บันไดความลึก — แก้ 2026-09-14 ตามต้นแบบหน้าแรกแนว minimal ที่เบสเคาะ ("ขอพื้นหลังสีขาว"):
+  //   สว่าง: ผืนงานขาว = การ์ดขาว แยกชั้นด้วยเส้นขอบ card-edge ที่มองเห็น (ไม่มีเงา)
+  //          กรอบเว็บ (เมนูซ้าย) เทาอ่อนกว่าผืนงานเล็กน้อย 1.02–1.08 เท่า ให้อ่านเป็นราง
+  //   มืด:   chrome เกือบดำ จมใต้ผืนงาน และการ์ดยังลอยเหนือผืนงาน (ของเดิม ไม่ได้ถูกทัก)
   //
-  // ประวัติ: เฟส 1 (2026-08-25) เคยล็อกว่า chrome < bg < surface ทั้งสองธีม
-  // เพื่อให้ "อ่านทิศเดียวกัน" · เบสดูของจริงบนจอกว้างสองรอบแล้วสั่งให้ธีมสว่าง
-  // กลับไปเป็นกรอบขาว ก่อนเฟส 11 จะขยับผืน Light เป็น near-white ตามหน้าจริง
-  // การ์ดยังมี edge+shadow กลางเป็นขอบเขต จึงไม่ย้อนกลับไปเป็นขาวลอยบนขาวแบบ 2026-08-03
+  // ประวัติ: 2026-08-25 ล็อก chrome < bg < surface ทั้งสองธีม → 2026-08-26/27 ธีมสว่างกลับเป็น
+  // กรอบขาวบนผืน near-white ให้การ์ดลอยด้วย edge+shadow → 2026-09-14 เบสเคาะทิศ Notion/Vercel
+  // ผืนงานขาว การ์ดขอบบาง กรอบเว็บเทาอ่อน (records/projects/anajak-erp/mockup-home-minimal-2026-09-14.html)
   {
     const relLum = (value: string) => luminance(hexRgb(value));
     const chromeColors = colorValues("chrome");
@@ -2216,26 +2211,32 @@ check(
     // index 0/1 ยังเป็นคู่ light/dark ของ @theme ตามลำดับการประกาศในไฟล์
     const hasAll =
       chromeColors.length >= 2 && pageColors.length >= 2 && surfaceColors.length >= 2;
-    const cardFloatsAbovePage =
+    // ธีมสว่าง: ผืนงานกับการ์ดเป็นขาวเดียวกัน การ์ดต้องมีเส้นขอบที่มองเห็น (card-edge เป็น hex
+    // และต่างจากพื้นการ์ดอย่างน้อย 1.08 เท่า) ไม่ใช่ขาวลอยบนขาวแบบ 2026-08-03 ที่ไม่มีอะไรคั่น
+    const lightCardEdge = colorValues("card-edge")[0] ?? "";
+    const lightCardIsWhiteWithEdge =
       hasAll &&
-      [0, 1].every((theme) => relLum(pageColors[theme]!) < relLum(surfaceColors[theme]!));
-    // ธีมสว่างตั้งใจให้อยู่ในช่วง near-white 1.04–1.08 เทียบขาว
-    // การ์ดแยกชั้นหลักด้วย edge+shadow ซึ่งมีด่านบังคับแยกอยู่แล้วด้านบน
-    // ธีมมืดแยกด้วย "เส้นขอบ" มาตลอด — chrome กับ bg ต่างกันแค่ 1.02 เท่า
-    // บังคับ 1.1 กับธีมมืดด้วยจะเป็นการแต่งกฎให้ตรงกับธีมสว่างโดยไม่มีใครเคยตัดสินใจ
-    // จึงบังคับแค่ "ต้องไม่ใช่ค่าเดียวกัน" เพื่อไม่ให้ใครยุบสองชั้นนี้เป็นชั้นเดียว
+      pageColors[0] === surfaceColors[0] &&
+      /^#[0-9a-f]{6}$/i.test(lightCardEdge) &&
+      contrast(hexRgb(lightCardEdge), hexRgb(surfaceColors[0]!)) >= 1.08;
+    // ธีมมืด: การ์ดยังลอยเหนือผืนงาน (ของเดิม)
+    const darkCardFloatsAbovePage =
+      hasAll && relLum(pageColors[1]!) < relLum(surfaceColors[1]!);
+    // กรอบเว็บธีมสว่างเทาอ่อนกว่าผืนงานขาวเล็กน้อย — ต่ำกว่า 1.02 อ่านไม่ออกว่าเป็นราง
+    // เกิน 1.08 กลายเป็นแถบเทาทึบ · ธีมมืดบังคับแค่ "ต้องไม่ใช่ค่าเดียวกัน" เหมือนเดิม
     const chromeReadsAgainstPage =
       hasAll &&
-      contrast(hexRgb(chromeColors[0]!), hexRgb(pageColors[0]!)) >= 1.04 &&
+      contrast(hexRgb(chromeColors[0]!), hexRgb(pageColors[0]!)) >= 1.02 &&
       contrast(hexRgb(chromeColors[0]!), hexRgb(pageColors[0]!)) <= 1.08 &&
       chromeColors[1] !== pageColors[1];
     // ทิศของแต่ละธีมยังล็อกไว้ เพื่อไม่ให้ใครสลับกลับเงียบ ๆ ทีละธีม
-    const lightChromeIsRaised = hasAll && relLum(chromeColors[0]!) > relLum(pageColors[0]!);
+    const lightChromeIsSunk = hasAll && relLum(chromeColors[0]!) < relLum(pageColors[0]!);
     const darkChromeIsSunk = hasAll && relLum(chromeColors[1]!) < relLum(pageColors[1]!);
     if (
-      !cardFloatsAbovePage ||
+      !lightCardIsWhiteWithEdge ||
+      !darkCardFloatsAbovePage ||
       !chromeReadsAgainstPage ||
-      !lightChromeIsRaised ||
+      !lightChromeIsSunk ||
       !darkChromeIsSunk ||
       pageColors[1] === "#000000" ||
       !appShellSource.includes("app-workspace") ||
@@ -2243,7 +2244,7 @@ check(
       !globalsSource.includes(`--color-bg: ${pageColors[0]}`)
     ) {
       problems.push(
-        "บันไดความลึก: การ์ดต้องลอยเหนือผืนงานทั้งสองธีม · Light workspace ต้องเป็น near-white ต่างจาก chrome/card 1.04–1.08 เท่า · Dark chrome ยังจมใต้ผืนงานและต้องไม่ใช่ค่าเดียวกับผืนงาน · ห้าม Dark เป็นดำสนิท · .app-workspace ต้องผูกกับค่า --color-bg เดียวกัน",
+        "บันไดความลึก (2026-09-14): Light ผืนงานขาวเท่าการ์ดและการ์ดมีเส้นขอบ card-edge ที่มองเห็น · Light chrome เทาอ่อนกว่าผืนงาน 1.02–1.08 เท่า · Dark การ์ดลอยเหนือผืนงาน chrome จมใต้ผืนงานและไม่ใช่ค่าเดียวกัน · ห้าม Dark เป็นดำสนิท · .app-workspace ต้องผูกกับค่า --color-bg เดียวกัน",
       );
     }
   }

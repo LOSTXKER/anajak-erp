@@ -23,6 +23,9 @@
      ============================================================ */
   --radius-md: 0.625rem;
   --radius-lg: 0.75rem;
+  /* รื้อ 2026-09-14 (ต้นแบบหน้าแรกแนว minimal ที่เบสเคาะ): กล่องย่อย 16px · การ์ด/พาเนล 20px */
+  --radius-xl: 1rem;
+  --radius-2xl: 1.25rem;
 
   --font-sans: "Prompt", -apple-system, BlinkMacSystemFont, "SF Pro Text",
     "Segoe UI", "Roboto", "Helvetica Neue", ui-sans-serif, system-ui, sans-serif;
@@ -235,19 +238,21 @@
 
      น้ำเงินแบรนด์ #3973b2 คงเดิมและสงวนให้ primary/selected/focus
      ============================================================ */
-  --color-bg: #f7f7f8;
+  /* รื้อ 2026-09-14: ผืนงานเป็นขาวตามต้นแบบหน้าแรกที่เบสเคาะ ("พื้นหลังสีขาว minimal แต่ยังมีสี")
+     การ์ดแยกชั้นด้วยเส้นขอบบางแทนเงา — ดู --color-card-edge/--shadow-card ด้านล่าง */
+  --color-bg: #ffffff;
   --color-surface: #ffffff;
-  --color-surface-muted: #f4f5f6;
+  --color-surface-muted: #f3f5f8;
   --color-surface-elevated: #ffffff;
   /* field เป็นพื้นที่กรอก ไม่ใช่กล่องจม: Light ใช้ขาวและเส้น resting ที่เบา
      พอให้เห็นรูปทรงโดยไม่แข่งกับ label; focus/error ค่อยใช้ contrast สูง */
   --color-field: #ffffff;
-  --color-border: #e5e6e9;
+  --color-border: #e6e8ec;
   --color-field-border: #cfcfd4;
   --color-placeholder: #65717f;
   --color-border-strong: #818b97;
-  --color-divider: #ececee;
-  --color-skeleton: #e5e6e9;
+  --color-divider: #eef0f3;
+  --color-skeleton: #e6e8ec;
   /* วัดเทียบ --color-surface (การ์ดขาว) เพราะแถวข้อมูลกลับไปยืนบนการ์ดแล้ว
      (เฟส 6 คืนกล่องครอบตาราง · เบสเคาะ 2026-08-26) — ได้ 1.148:1 อยู่ในกรอบ
      ที่ระบบตั้งไว้ [1.1, 1.16] · เพดานห้ามเกิน เพราะ hover ที่หนักกว่านั้น
@@ -260,18 +265,21 @@
      ⚠️ ห้ามยุบสองชุดนี้เป็นชุดเดียวในโค้ด — ธีมมืดยังต้องการค่าแยก
      ทุกจุดที่ใช้ต้องมากับ INTERACTIVE_CHROME_PRESSED ซึ่งพ่วง active:text-strong ให้แล้ว
      (ห้ามเขียน active:bg-... เองมือเปล่า ไม่งั้นตัวหนังสือจะตกเกณฑ์ตอนกดค้าง) */
-  --color-interactive-chrome-hover: #efeff1;
-  --color-interactive-chrome-pressed: #e7e7e9;
+  /* รื้อ 2026-09-14: chrome เป็นเทาอ่อน (#f8f9fb) แล้ว คู่นี้จึงต้องเข้มกว่าคู่บนการ์ดหนึ่งขั้น
+     ให้ยังเห็นตอนชี้/กดบนราง (ด่าน verify:ui ล็อก hover 1.1–1.25 เท่าของ chrome) */
+  --color-interactive-chrome-hover: #ebedf0;
+  --color-interactive-chrome-pressed: #e2e4e8;
 
   /* พื้นที่สาม: ของที่กดได้แล้ว "ยืนบนผืนงาน" ตรง ๆ ไม่ได้อยู่ในการ์ดและไม่ได้อยู่บนแถบ
      เช่น ปุ่มแบ่งหน้าใต้การ์ด และปุ่มย้อนกลับบนหัวหน้า
      คู่ที่ใช้บนการ์ดขาวได้แค่ 1.03 เท่าบนผืนงานเทา = ชี้แล้วจอไม่ขยับเลย
      (ปัญหานี้โผล่ตอนผืนงานเปลี่ยนเป็นเทาจริง 2026-08-26 — ก่อนหน้านั้นผืนงานเกือบขาว
       จึงบังเอิญใช้คู่เดียวกับการ์ดได้) */
-  --color-interactive-page-hover: #e5e6ea;
-  --color-interactive-page-pressed: #dcdde2;
-  --color-interactive-selected: #d2e4f6;
-  --color-interactive-selected-text: #305f93;
+  --color-interactive-page-hover: #eef1f5;
+  --color-interactive-page-pressed: #e4e8ee;
+  /* ของที่ถูกเลือก (เมนูซ้าย · วันในแถบกำหนดส่ง): ฟ้าอ่อนจางกว่าเดิม ตามต้นแบบ 2026-09-14 */
+  --color-interactive-selected: #dfe9f5;
+  --color-interactive-selected-text: #2c5a8c;
   --color-backdrop: rgb(15 23 42 / 0.28);
 
   /* กรอบของเว็บ (แถบเมนูซ้าย · แถบบน)
@@ -287,11 +295,13 @@
      ประวัติสั้น ๆ กันคนมาแก้ย้อน: 2026-08-03 กรอบขาว → 2026-08-25 กลับทิศเป็นกรอบเทา
      (เฟส 1 · เบสเคาะจาก mockup) → 2026-08-26 เบสดูของจริงบนจอกว้างแล้วสั่งกลับมาขาว
      ตั้งแต่เฟส 11 ผืนงานเป็น near-white และการ์ดใช้ edge+shadow เป็นตัวแยกชั้นหลัก */
-  --color-chrome: #ffffff;
+  /* รื้อ 2026-09-14: กรอบเว็บ (เมนูซ้าย) เทาอ่อนกว่าผืนงานขาวหนึ่งขั้น ให้เห็นเป็นราง */
+  --color-chrome: #f8f9fb;
 
   /* ขอบ/เงาของการ์ด — แยกจาก --color-border ทั่วไป เพราะการ์ดเลิกใช้เส้นเป็นตัวหลักแล้ว */
-  --color-card-edge: rgb(15 18 24 / 0.05);
-  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 6px 18px -10px rgb(15 23 42 / 0.16);
+  /* รื้อ 2026-09-14: การ์ดใช้เส้นขอบบางเป็นตัวแยกชั้น ไม่มีเงา (Notion/Vercel) */
+  --color-card-edge: #e6e8ec;
+  --shadow-card: none;
 
   /* สีตัวหนังสือหลักของ <body> — ที่เหลือทั้งเว็บใช้ ramp slate ตรงๆ
      (สี semantic อีก 17 ตัวลบทิ้ง 2026-08-02: ไม่มีใครใช้เลย และค่าที่ตั้งไว้ขัดกับสีจริง) */
@@ -417,7 +427,7 @@
 
 /* Anajak Panel System — workspace เป็นฉาก ส่วน chrome/panel ยกด้วยสีและเส้นบาง */
 .app-workspace {
-  --color-bg: #f7f7f8;
+  --color-bg: #ffffff;
   /* แถบเลื่อนของโปรเจกต์นี้กินที่จริง 10px (ดู ::-webkit-scrollbar ท้ายไฟล์)
      ไม่ใช่แบบลอยทับ · <main> จอง gutter ไว้เสมอด้วย scrollbar-gutter: stable
      แถบบนที่อยู่เหนือคอลัมน์เดียวกันจึงต้องเผื่อระยะเท่ากัน ขอบขวาถึงจะตรงกัน

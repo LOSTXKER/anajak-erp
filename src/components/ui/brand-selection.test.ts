@@ -44,16 +44,16 @@ describe("Anajak selected-state contract", () => {
     expect(flowFilterSource).toContain("ACTIVE_UNDERLINE");
   });
 
-  /* แถบเมนูของ app shell ถอยจากพิลฟ้ามาเป็น "เทากลาง + ขีดแบรนด์" (แบบ ก · เบสเคาะ 2026-08-26)
-     เพราะพิลฟ้าเต็มแถบไปแย่งสายตากับปุ่มหลักที่ใช้น้ำเงินเหมือนกัน
-     ส่วนเมนูโมดูลในหน้าผลิตยังใช้ selected role เดิม — คนละระดับกัน จงใจให้ต่าง */
-  it("navigation ใช้เทากลาง + ขีดแบรนด์ · active filter เฉพาะหน้ายังใช้ selected role สีน้ำเงิน", () => {
-    expect(shellSource).toContain(
-      'onChrome ? "bg-interactive-chrome-pressed" : "bg-interactive-pressed"',
-    );
-    expect(shellSource).toContain("before:bg-blue-600");
-    expect(shellSource).toContain("dark:before:bg-blue-400");
-    expect(shellSource).not.toContain("text-interactive-selected-text");
+  /* แถบเมนูของ app shell: เมนูที่เปิดอยู่เป็นพื้นฟ้าอ่อน + ตัวหนังสือ/ไอคอนน้ำเงิน ไม่มีขีดริมซ้าย
+     (รื้อ 2026-09-14 ตามต้นแบบหน้าแรกแนว minimal ที่เบสเคาะ) — ใช้ token selected ชุดเดียวกับ
+     ของที่ถูกเลือกทั้งเว็บ · ก่อนหน้านี้ (2026-08-26) เคยเป็น "เทากลาง + ขีดแบรนด์" แต่ถูกแทนแล้ว
+     ส่วน active filter เฉพาะหน้ายังใช้เส้นใต้น้ำเงิน — คนละระดับกัน จงใจให้ต่าง */
+  it("navigation ที่เปิดอยู่ใช้ selected role ฟ้าอ่อน ไม่มีขีดแบรนด์ · active filter เฉพาะหน้าใช้เส้นใต้น้ำเงิน", () => {
+    expect(shellSource).toContain('cn("font-medium", INTERACTIVE_SELECTED)');
+    expect(shellSource).toContain("text-interactive-selected-text");
+    // ขีดริมซ้ายของเมนูซ้ายหายไป (แถบล่างมือถือยังมีเส้นบนของแท็บที่เปิดอยู่ — คนละชิ้น)
+    expect(shellSource).not.toContain("before:-left-3");
+    expect(shellSource).not.toContain('onChrome ? "bg-interactive-chrome-pressed" : "bg-interactive-pressed"');
     expect(ordersSource).toContain(
       "border-b-2 border-blue-600",
     );
