@@ -42,7 +42,7 @@ export function FilterChip({
         FOCUS_INSET,
         selected
           ? ACTIVE_UNDERLINE
-          : "border-transparent font-medium text-muted hover:text-secondary active:text-strong",
+          : "border-transparent font-medium text-muted active:text-strong",
         className,
       )}
     >

@@ -28,7 +28,8 @@ import type { VisualTone } from "@/lib/visual-tone";
 type PageWidth = "full" | "wide" | "content" | "form";
 
 const WIDTH_CLASS: Record<PageWidth, string> = {
-  full: "",
+  // ความกว้างเดียวกับหน้าตาชุด kit (.page 1124px · หน้าออเดอร์/หน้าแรก/ผลิต) — 2026-09-17 ให้ทุกหน้าเข้ากัน
+  full: "mx-auto w-full max-w-[1124px]",
   wide: "mx-auto max-w-5xl", // ฟอร์มเอกสาร (orders/new, quotations/new)
   content: "mx-auto max-w-4xl",
   form: "mx-auto max-w-2xl",
@@ -111,7 +112,7 @@ export function PageShell({
   const normal = !error && !loading && !denied;
 
   return (
-    <div className={cn(header ? "space-y-0" : "space-y-5 sm:space-y-7", WIDTH_CLASS[width], className)}>
+    <div className={cn(header ? "space-y-0" : "space-y-4.5", WIDTH_CLASS[width], className)}>
       {header ?? (
         <PageHeader
           title={title}
