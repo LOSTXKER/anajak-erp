@@ -56,9 +56,9 @@ describe("ใบผลิตบอกสถานะและหลักฐา�
     expect(html).toContain("ติ๊กโดย ผู้ตรวจ");
   });
 
-  it("DTF ที่ยังไม่เสร็จบอกตรง ๆ ว่าหน้าจัดรอบยังไม่พร้อม", () => {
+  it("DTF ที่ยังไม่เสร็จพาไปหน้าพิมพ์ DTF", () => {
     const step = { stepType: "DTF_PRINT", status: "PENDING", printRunItems: [], outsourceOrders: [] } as unknown as ProductionStep;
-    expect(dtfUnavailableReason(step)).toContain("ยังไม่พร้อมใช้งาน");
+    expect(dtfUnavailableReason(step)).toContain("หน้าพิมพ์ DTF");
     expect(dtfUnavailableReason({ ...step, status: "COMPLETED" })).toBeNull();
   });
 });

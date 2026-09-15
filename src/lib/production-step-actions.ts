@@ -250,7 +250,7 @@ export function selectNowSteps<S extends NowStepInput>(
           group: "current" as const,
           action: null,
           waitingOn: [],
-          note: "จัดการผ่านหน้ารอบพิมพ์ฟิล์ม DTF",
+          note: "กดพิมพ์เสร็จที่หน้าพิมพ์ DTF",
         };
       }
 
