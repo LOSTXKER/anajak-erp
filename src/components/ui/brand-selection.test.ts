@@ -7,7 +7,6 @@ const read = (relativePath: string) =>
 const tokensSource = read("./tokens.ts");
 const tabsSource = read("./tabs.tsx");
 const filterChipSource = read("./filter-chip.tsx");
-const flowFilterSource = read("./flow-filter-bar.tsx");
 const shellSource = read("../layout/app-shell.tsx");
 const ordersSource = read("../orders/orders-page.tsx");
 
@@ -20,28 +19,12 @@ describe("Anajak selected-state contract", () => {
   });
 
   it("primitive แบบเส้นใต้ไม่ย้อนกลับไปใช้เส้นดำหรือขาว", () => {
-    for (const source of [tabsSource, filterChipSource, flowFilterSource]) {
+    for (const source of [tabsSource, filterChipSource]) {
       expect(source).not.toContain("border-slate-900");
       expect(source).not.toContain("dark:border-white");
     }
     expect(tabsSource).toContain("data-[state=active]:border-blue-600");
     expect(filterChipSource).toContain("ACTIVE_UNDERLINE");
-    expect(flowFilterSource).toContain("ACTIVE_UNDERLINE");
-  });
-
-  it("status flow ใช้ hairline จัดกลุ่มและบอก affordance โดยไม่คืน progress track", () => {
-    expect(flowFilterSource).not.toContain("border-y border-divider");
-    expect(flowFilterSource).not.toContain("border-l border-slate");
-    expect(flowFilterSource).not.toContain("border-b-2 border-slate-100 pb-1");
-    expect(flowFilterSource).not.toContain("ratioMax");
-    expect(flowFilterSource).not.toContain("style={{ width:");
-    expect(flowFilterSource).toContain("border-b border-divider pb-1");
-    expect(flowFilterSource).toContain("INTERACTIVE_HOVER");
-    expect(flowFilterSource).not.toContain("กดสถานะเพื่อกรอง · กดซ้ำเพื่อล้างตัวกรอง");
-    expect(flowFilterSource).toContain('"กดเพื่อกรอง"');
-    expect(flowFilterSource).toContain("เลือกอยู่ · กดซ้ำเพื่อล้างตัวกรอง");
-    expect(flowFilterSource).toContain("item.dotClass");
-    expect(flowFilterSource).toContain("ACTIVE_UNDERLINE");
   });
 
   /* แถบเมนูของ app shell: เมนูที่เปิดอยู่เป็นพื้นฟ้าอ่อน + ตัวหนังสือ/ไอคอนน้ำเงิน ไม่มีขีดริมซ้าย

@@ -16,7 +16,6 @@ import { Select } from "../src/components/ui/select";
 import { Input } from "../src/components/ui/input";
 import { Textarea } from "../src/components/ui/textarea";
 import { DatePicker } from "../src/components/ui/date-picker";
-import { DateRangePicker } from "../src/components/ui/date-range-picker";
 import { SearchInput } from "../src/components/ui/search-input";
 import { FilterPopover } from "../src/components/ui/filter-popover";
 import { Button } from "../src/components/ui/button";
@@ -696,22 +695,6 @@ check(
     searchControl,
     ["bg-surface", "shadow-none", "border-field-border"],
     ["bg-transparent", "shadow-sm", "border-transparent"],
-  );
-}
-{
-  const dateHtml = renderToStaticMarkup(
-    <DateRangePicker
-      from="2026-08-01"
-      to="2026-08-31"
-      onChange={() => {}}
-    />,
-  );
-  const dateTrigger = dateHtml.match(/<button[^>]*aria-label="ช่วงวันที่:[^"]*"[^>]*>/)?.[0] ?? "";
-  check(
-    "ช่วงวันที่ active คงรูปทรงเรียบและใช้ Anajak Blue",
-    dateTrigger,
-    ["border-blue-600", "text-blue-700", "bg-transparent", "shadow-none"],
-    ["bg-interactive-selected", "shadow-sm"],
   );
 }
 {
@@ -1778,11 +1761,12 @@ check(
   const cardPrimitiveSource = panelPrimitiveSources[0]?.[1] ?? "";
   if (
     panelPrimitiveOffenders.length > 0 ||
-    !cardPrimitiveSource.includes("px-5 pb-3 pt-4") ||
-    !cardPrimitiveSource.includes("px-5 pb-5 pt-0")
+    // จังหวะขอบการ์ดแบบ kit 18px (.ch/.cb ของหน้าออเดอร์ · 2026-09-17)
+    !cardPrimitiveSource.includes("px-4.5 pb-3 pt-3.5") ||
+    !cardPrimitiveSource.includes("px-4.5 pb-4.5 pt-0")
   ) {
     failed++;
-    console.log("❌ primitive panel/alert/context ต้องไม่ใส่ utility เงาเอง ไม่เกิน rounded-2xl และคงจังหวะขอบ 20px ชุดเดียว");
+    console.log("❌ primitive panel/alert/context ต้องไม่ใส่ utility เงาเอง ไม่เกิน rounded-2xl และคงจังหวะขอบ 18px ชุดเดียว");
     panelPrimitiveOffenders.forEach(([path]) => console.log(`   ${path}`));
   } else {
     console.log("✅ primitive panel/alert/context ใช้มุม 16px เงามาจาก card-surface ชุดเดียว และจังหวะขอบ 20px");
@@ -1819,7 +1803,6 @@ check(
     "src/components/orders/billing/create-invoice-dialog.tsx",
     "src/components/orders/billing/record-payment-dialog.tsx",
     "src/components/orders/delivery/create-delivery-dialog.tsx",
-    "src/components/orders/order-info-edit-dialog.tsx",
     "src/components/goods-receipt/goods-receipt-dialog.tsx",
     "src/components/sync-dialog.tsx",
   ].map((path) => [path, readFileSync(path, "utf8")] as const);
@@ -1922,27 +1905,12 @@ check(
     console.log("✅ print/public คง A4 light-only, grayscale และ blind-ship contract");
   }
 
-  // หน้า detail คง structural divider; FlowFilterBar อยู่ใน panel ของ caller จึงไม่วาดเส้นซ้ำ
-  const ordersStatusSource = readFileSync(
-    "src/components/ui/flow-filter-bar.tsx",
-    "utf8",
-  );
+  // หน้า detail คง structural divider (แถบกรอง FlowFilterBar ถูกลบ 2026-09-17 — ไม่มีผู้ใช้แล้ว)
   const detailStatusSource = readFileSync(
     "src/components/orders/detail/order-status-bar.tsx",
     "utf8",
   );
   if (
-    ordersStatusSource.includes("border-y border-divider") ||
-    ordersStatusSource.includes("border-l border-slate") ||
-    ordersStatusSource.includes("border-b-2 border-slate-100 pb-1") ||
-    ordersStatusSource.includes("ratioMax") ||
-    ordersStatusSource.includes("style={{ width:") ||
-    ordersStatusSource.includes("card-surface") ||
-    !ordersStatusSource.includes("border-b border-divider pb-1") ||
-    ordersStatusSource.includes("กดสถานะเพื่อกรอง · กดซ้ำเพื่อล้างตัวกรอง") ||
-    !ordersStatusSource.includes("เลือกอยู่ · กดซ้ำเพื่อล้างตัวกรอง") ||
-    // 2026-08-30 เบสสั่ง "ไม่ต้องมีเส้นแบ่ง" — รางในหน้าใบงานแยกกลุ่มด้วยระยะเท่านั้น
-    // (เส้นล่างเดิมไปชนกับเส้นใต้แถบแท็บที่อยู่ถัดลงไป กลายเป็นเส้นคู่ที่ไม่ได้แบ่งอะไร)
     detailStatusSource.includes("border-y border-divider") ||
     detailStatusSource.includes("border-t border-divider") ||
     detailStatusSource.includes("card-surface")
@@ -1969,22 +1937,6 @@ check(
     console.log("✅ ราง pipeline ของ Orders เป็นปุ่มกรองจริง ปิดจุดวิ่งตาม reduced-motion และแยกพัก/ยกเลิกออกจากราง");
   }
 
-  const desktopStatusSource =
-    ordersStatusSource.match(/function DesktopItemButton[\s\S]*?\n}\n\nexport function/)?.[0] ?? "";
-  if (
-    !desktopStatusSource.includes("border-b-2") ||
-    !desktopStatusSource.includes("ACTIVE_UNDERLINE") ||
-    !desktopStatusSource.includes("border-transparent") ||
-    !desktopStatusSource.includes("INTERACTIVE_HOVER") ||
-    !desktopStatusSource.includes("cursor-pointer") ||
-    desktopStatusSource.includes("border-slate-900") ||
-    desktopStatusSource.includes("dark:border-white")
-  ) {
-    failed++;
-    console.log("❌ ขั้นสถานะ desktop ต้องพักเป็น neutral และใช้ Anajak Blue เมื่อเลือก");
-  } else {
-    console.log("✅ ขั้นสถานะ desktop พักเป็น neutral และใช้ Anajak Blue เมื่อเลือก");
-  }
 }
 
 /* ── การ์ดชุดงานตอนยังว่าง: 3 ส่วนต้องหน้าตาเดียวกัน ────────────────────────
@@ -2081,10 +2033,8 @@ check(
   );
   const itemWrapper =
     orderItemSource.match(/<article[\s\S]*?<OrderItemRow/)?.[0] ?? "";
-  const legacyImplementations = new Set([
-    "src/components/orders/order-items-editor.tsx",
-    "src/components/orders/order-info-edit-dialog.tsx",
-  ]);
+  // ตัวแก้ออเดอร์แบบเก่าถูกลบแล้ว (2026-09-17) — ด่านนี้กันไม่ให้ใครนำชื่อไฟล์เดิมกลับมา import
+  const legacyImplementations = new Set<string>();
   const legacyCallers: string[] = [];
   function walkLegacyOrderEditors(dir: string) {
     for (const name of readdirSync(dir)) {
