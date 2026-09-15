@@ -78,7 +78,7 @@
 
 /* ---------- การ์ด ---------- */
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-card); overflow: hidden; min-width: 0; }
-.ch { display: flex; align-items: center; gap: 12px; padding: 16px 18px 14px; flex-wrap: wrap; }
+.ch { display: flex; align-items: center; gap: 12px; padding: 14px 18px 12px; flex-wrap: wrap; }
 .ch h2 { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 600; letter-spacing: -.01em; }
 .ch h2 .ic { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 11px; background: var(--sunk); color: var(--ink-2); flex: none; }
 .ch h2 .ic.warn { background: var(--warn-bg); color: var(--warn); }
@@ -113,7 +113,7 @@ table.orders { width: 100%; border-collapse: collapse; min-width: 760px; }
 .orders th.r, .orders td.r { text-align: right; }
 .orders th:first-child, .orders td:first-child { padding-left: 18px; }
 .orders th:last-child, .orders td:last-child { padding-right: 14px; }
-.orders td { padding: 14px 14px; border-bottom: 1px solid var(--line-2); vertical-align: middle; }
+.orders td { padding: 10px 14px; border-bottom: 1px solid var(--line-2); vertical-align: middle; }
 .orders tr:last-child td { border-bottom: 0; }
 .orders tr.row { cursor: pointer; }
 .orders tr.row:active td { background: var(--pressed); }
@@ -183,7 +183,7 @@ table.orders { width: 100%; border-collapse: collapse; min-width: 760px; }
 .pager .pg button:disabled { opacity: .35; }
 .pager .pg .dots { display: grid; place-items: center; width: 20px; color: var(--ink-4); }
 .ocards { display: none; gap: 10px; padding: 0 14px 14px; }
-.ocard { display: grid; gap: 10px; padding: 14px; border: 1px solid var(--line); border-radius: 14px; text-align: left; color: inherit; width: 100%; min-width: 0; }
+.ocard { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 14px; text-align: left; color: inherit; width: 100%; min-width: 0; }
 .ocard:active { background: var(--pressed); }
 .ocard .l1 { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
 .ocard .l2 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12.5px; color: var(--ink-2); }
@@ -221,7 +221,7 @@ table.orders { width: 100%; border-collapse: collapse; min-width: 760px; }
 .psep i { display: block; width: 0; height: 26px; border-left: 2px dashed var(--line-strong); }
 
 /* ---------- แถบเครื่องมือของตาราง ---------- */
-.tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 0 18px 16px; }
+.tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 0 18px 12px; }
 .sinput { display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink-3); min-width: 250px; flex: 1; max-width: 340px; }
 .sinput input { flex: 1; min-width: 0; border: 0; background: transparent; font-size: 13px; outline: none; color: var(--ink); }
 .sinput input::placeholder { color: var(--ink-4); }
@@ -306,15 +306,15 @@ select.sel.on { border-color: var(--accent-line); background-color: var(--accent
 .tab .n { min-width: 18px; padding: 0 5px; border-radius: 999px; background: var(--sunk); font-size: 11px; line-height: 18px; text-align: center; color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .tab[aria-selected="true"] .n { background: var(--accent-tint); color: var(--accent-ink); }
 .tab .pend { width: 7px; height: 7px; border-radius: 50%; background: var(--bad); }
-.tabpanel { display: grid; gap: 18px; min-width: 0; }
-.two { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 18px; align-items: start; }
+.tabpanel { display: grid; gap: 14px; min-width: 0; }
+.two { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 14px; align-items: start; }
 .two.eq { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 .two.wide { grid-template-columns: minmax(0, 8fr) minmax(0, 4fr); }
-.stack { display: grid; gap: 18px; min-width: 0; align-content: start; }
+.stack { display: grid; gap: 14px; min-width: 0; align-content: start; }
 /* ต้นแบบ top 112 = แถบต้นแบบ 44 + แถบบน 56 + 12 · แอปจริงไม่มีแถบต้นแบบ */
 .sticky { position: sticky; top: 68px; }
-.cb { padding: 4px 18px 20px; }
-.hr { height: 1px; background: var(--line-2); margin: 18px 0; }
+.cb { padding: 2px 18px 18px; }
+.hr { height: 1px; background: var(--line-2); margin: 14px 0; }
 .tm { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 8px; background: var(--sunk); color: var(--ink-2); flex: none; }
 .tm.blue { background: var(--accent-tint); color: var(--accent); } .tm.good { background: var(--good-bg); color: var(--good); } .tm.warn { background: var(--warn-bg); color: var(--warn); } .tm.violet { background: var(--violet-bg); color: var(--violet); } .tm.bad { background: var(--bad-bg); color: var(--bad); }
 .tm :global(svg.lucide) { width: 14px; height: 14px; }
@@ -336,7 +336,7 @@ select.sel.on { border-color: var(--accent-line); background-color: var(--accent
 .fact .bar { display: block; height: 6px; border-radius: 999px; background: var(--line); overflow: hidden; }
 .fact .bar i { display: block; height: 100%; border-radius: 999px; background: var(--good); transform-origin: left; animation: growx .7s cubic-bezier(.2,.8,.2,1) both; }
 .fact .bar i.warn { background: var(--warn); } .fact .bar i.bad { background: var(--bad); }
-.props { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 20px; }
+.props { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; }
 .props.one { grid-template-columns: 1fr; }
 .prop { display: grid; gap: 3px; min-width: 0; align-content: start; }
 .prop dt { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--ink-3); }
@@ -551,10 +551,10 @@ ul.ocards { margin: 0; list-style: none; }
   .dhead h1 { font-size: 22px; }
   .dhead .thumb.lg { display: none; }
   .step.cur, .step.hold, .step.stop { min-width: 0; }
-  .tools { padding: 0 14px 16px; }
+  .tools { padding: 0 14px 12px; }
   .sinput { min-width: 0; max-width: none; width: 100%; flex-basis: 100%; }
   .tools .cnt { margin-left: 0; width: 100%; }
-  .cb { padding: 4px 14px 18px; }
+  .cb { padding: 2px 14px 14px; }
   .acts { width: 100%; }
   .acts .btn.primary { flex: 1; justify-content: center; white-space: nowrap; }
   .acts .btn .lbl { display: none; }
