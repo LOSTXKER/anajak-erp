@@ -443,6 +443,8 @@ table.tbl { width: 100%; border-collapse: collapse; }
 .callout { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 14px; border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent); border-radius: 14px; background: var(--warn-bg); color: var(--warn); font-size: 13px; }
 .callout.danger { border-color: color-mix(in srgb, var(--bad) 35%, transparent); background: var(--bad-bg); color: var(--bad); }
 .callout.info { border-color: var(--accent-line); background: var(--accent-soft); color: var(--accent-ink); }
+/* หมายเหตุใบนี้ = กล่องขาวขอบบาง ไม่แย่งสายตากับป้ายปัญหา (เบส 09-15) */
+.callout[role="note"] { border-color: var(--line); background: var(--surface); color: var(--ink-3); }
 .callout .grow { flex: 1; min-width: 200px; color: var(--ink); overflow-wrap: anywhere; }
 .callout .grow b { font-weight: 600; }
 .callout .btn.sm { background: var(--surface); color: var(--ink); }
