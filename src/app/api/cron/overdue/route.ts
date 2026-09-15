@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sweepOverdueInvoices } from "@/server/services/overdue";
+import { sweepOverdueOutsource } from "@/server/services/outsource-overdue";
 
 // cron กวาดบิลเลยกำหนด — Vercel Cron ยิง GET ทุกวันตาม vercel.json (00:05 เวลาไทย)
 // พร้อม header Authorization: Bearer <CRON_SECRET> ให้อัตโนมัติเมื่อตั้ง env CRON_SECRET
@@ -16,5 +17,7 @@ export async function GET(request: NextRequest) {
   }
 
   const result = await sweepOverdueInvoices(prisma);
-  return Response.json(result);
+  // ของร้านนอกเลยนัดรับ → กระดิ่งหัวหน้า ครั้งเดียวต่อใบ (2026-09-16)
+  const outsource = await sweepOverdueOutsource(prisma);
+  return Response.json({ ...result, outsource });
 }
