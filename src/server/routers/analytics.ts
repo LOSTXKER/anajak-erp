@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { router, protectedProcedure, requirePermission } from "../trpc";
+import { getProductionMetrics, METRIC_MONTHS } from "@/server/services/production-metrics";
 import { hasPermission } from "@/lib/permissions";
 import { getStartOfMonth, getStartOfLastMonth, getMonthRange } from "@/lib/date-utils";
 import { aggToNumber } from "@/server/services/money";
@@ -250,4 +251,9 @@ export const analyticsRouter = router({
       canSeeFinance: hasPermission(ctx.userRole, ctx.permissionOverrides, "see_finance"),
     }),
   ),
+
+  // ตัวชี้วัดการผลิต (MFG1–3 · 2026-09-16) — อ่านอย่างเดียว ไม่มีเงิน · สูตรอยู่ services/production-metrics.ts
+  productionMetrics: protectedProcedure
+    .input(z.object({ monthIndex: z.number().int().min(0).max(METRIC_MONTHS - 1) }))
+    .query(({ ctx, input }) => getProductionMetrics(ctx.prisma, { monthIndex: input.monthIndex })),
 });
