@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, FileText, ImageOff, Shirt, Upload } from "lucide-react";
-import { c, CardHead, MockupPill, SubHead } from "@/components/orders/orders-ui";
+import { ArrowRight, FileText, ImageOff, Palette, Shirt, StickyNote, Tag, Type, Upload } from "lucide-react";
+import { c, CardHead, MockupPill, Prop, SubHead } from "@/components/orders/orders-ui";
 import { MockupThumbRow } from "@/components/mockup/mockup-thumb-row";
 import { trpc } from "@/lib/trpc";
 import { layerForCategory } from "@/lib/file-layers";
@@ -28,7 +28,7 @@ export interface ArtworkBrand {
 /* ============================================================
    การ์ด "ม็อกอัพ & ไฟล์" คอลัมน์ขวาของภาพรวม — ต้นแบบ tabOverview() ส่วน right (รื้อ 2026-09-15)
 
-   รูปม็อกอัพใหญ่ + สถานะอนุมัติที่หัวการ์ด → วันที่ส่ง/อนุมัติ → จำนวนไฟล์แต่ละชั้น → รายละเอียดงาน/แบรนด์
+   รูปม็อกอัพใหญ่ + สถานะอนุมัติที่หัวการ์ด → วันที่ส่ง/อนุมัติ → จำนวนไฟล์แต่ละชั้น → รายละเอียดงาน/แบรนด์ (มีหัวข้อทุกช่อง)
    เป็น **ที่ดู ไม่ใช่ที่จัดการ** (กติกา 08-22): อัป/อนุมัติ/ลบไฟล์อยู่แท็บ "ม็อกอัพ & ไฟล์" ที่เดียว
    ปุ่มในการ์ดนี้แค่พาไปแท็บนั้น · query ใช้ key เดียวกับแท็บไฟล์ react-query จึงไม่ยิงซ้ำ
    ============================================================ */
@@ -204,22 +204,46 @@ export function OrderArtworkCardView({
           <>
             <div className={c("hr")} />
             <SubHead icon={FileText} tone="violet" title="รายละเอียดงาน" />
-            {brief ? <p className={c("brief")}>{brief}</p> : null}
-            {brand ? (
-              <div className={c("brand-row")}>
-                {brand.colorCodes.map((code) => (
-                  <span key={code} className={c("sw")} style={{ background: code }} title={code} aria-label={`สี ${code}`} role="img" />
-                ))}
-                <span>{brand.brandName}</span>
-                {brand.fonts.length > 0 ? <span className={c("soft")}>· {brand.fonts.join(", ")}</span> : null}
-                {brand.logoUrl ? (
-                  <a href={brand.logoUrl} target="_blank" rel="noopener noreferrer" className={c("chip line")}>
-                    เปิดไฟล์โลโก้
-                  </a>
-                ) : null}
-                {brand.styleNotes ? <span className={c("note")}>{brand.styleNotes}</span> : null}
-              </div>
-            ) : null}
+            {/* ทุกช่องมีหัวข้อ (เบส 09-15) — ช่องที่ไม่มีค่าไม่ขึ้น */}
+            <dl className={c("props top")}>
+              {brief ? (
+                <Prop icon={FileText} label="ชื่องาน" wide>
+                  {brief}
+                </Prop>
+              ) : null}
+              {brand ? (
+                <Prop icon={Tag} label="แบรนด์">
+                  {brand.brandName}
+                  {brand.logoUrl ? (
+                    <>
+                      {" "}
+                      <a href={brand.logoUrl} target="_blank" rel="noopener noreferrer" className={c("chip line")}>
+                        เปิดไฟล์โลโก้
+                      </a>
+                    </>
+                  ) : null}
+                </Prop>
+              ) : null}
+              {brand && brand.colorCodes.length > 0 ? (
+                <Prop icon={Palette} label="สีแบรนด์">
+                  <span className={c("sws")}>
+                    {brand.colorCodes.map((code) => (
+                      <span key={code} className={c("sw")} style={{ background: code }} title={code} aria-label={`สี ${code}`} role="img" />
+                    ))}
+                  </span>
+                </Prop>
+              ) : null}
+              {brand && brand.fonts.length > 0 ? (
+                <Prop icon={Type} label="ฟอนต์">
+                  {brand.fonts.join(", ")}
+                </Prop>
+              ) : null}
+              {brand?.styleNotes ? (
+                <Prop icon={StickyNote} label="หมายเหตุสไตล์" wide>
+                  {brand.styleNotes}
+                </Prop>
+              ) : null}
+            </dl>
           </>
         ) : null}
       </div>

@@ -9,7 +9,6 @@ import { PREVIEW_ARTWORK, PREVIEW_ORDER } from "@/app/proto/ui-reset/_order-data
 const props: ComponentProps<typeof OrderOverviewTab> = {
   order: PREVIEW_ORDER, showMoney: true, totalAmount: 5992, totalQuantity: 30,
   dueInDays: 3, paidAmount: 2996, printLabel: "DTF",
-  sizeBreakdown: [{ size: "S", quantity: 7 }, { size: "M", quantity: 12 }, { size: "L", quantity: 11 }],
   onOpenMoney: () => {}, onOpenDelivery: () => {}, onEditInfo: () => {}, onOpenCustomer: () => {},
   artwork: createElement("p", null, "แบบเสื้อที่ต้องผลิต"),
   isMarketplace: false,
@@ -28,16 +27,25 @@ describe("ภาพรวมออเดอร์ — ต้นแบบรอ�
     expect(at("summary")).toBeLessThan(at("customer"));
     expect(at("customer")).toBeLessThan(at("shipping"));
     expect(html.indexOf("แบบเสื้อที่ต้องผลิต")).toBeGreaterThan(at("shipping"));
-    for (const action of ["แก้ไขข้อมูลออเดอร์", "แก้ไขที่อยู่จัดส่ง", "เปิดหน้าลูกค้า"]) expect(html).toContain(action);
+    for (const action of ["แก้ไขข้อมูลออเดอร์", "ไปแท็บจัดส่ง", "เปิดหน้าลูกค้า"]) expect(html).toContain(action);
     expect(html).toContain("มาตรฐานลูกค้า:");
   });
 
-  it("ช่องข้อมูลหลักมีภาพช่วยอ่าน: วันที่เหลือ · ไซซ์แยก · ชำระแล้วกี่เปอร์เซ็นต์และค้างเท่าไร", () => {
+  it("กล่องตัวเลขไม่มีบรรทัดเล็กใต้ค่า (เบส 09-15) แต่แถบชำระยังอ่านออกด้วยเครื่องอ่านหน้าจอ", () => {
     const html = render();
-    expect(html).toContain("เหลือ 3 วัน");
-    expect(text(html)).toContain("S 7 · M 12 · L 11");
-    expect(html).toContain("ชำระแล้ว 50%");
-    expect(html).toContain("ค้าง ฿2,996.00");
+    expect(text(html)).not.toContain("เหลือ 3 วัน");
+    expect(text(html)).not.toContain("ใช้ไป");
+    expect(text(html)).not.toContain("ชำระแล้ว 50%");
+    expect(html).toContain('aria-label="ชำระแล้ว 50% · ค้าง ฿2,996.00"');
+    expect(render({ totalAmount: 0 })).toContain("ยอดเป็นศูนย์ — ตรวจสอบราคา");
+  });
+
+  it("ลูกค้าและการจัดส่งเป็นช่องพรีวิวที่กดไปที่ดูเต็ม ไม่มีปุ่มแก้ที่อยู่ในภาพรวม", () => {
+    const html = render();
+    expect(text(html)).toContain(PREVIEW_ORDER.customer!.phone!);
+    expect(text(html)).toContain("ดูการจัดส่ง");
+    expect(html).not.toContain("แก้ไขที่อยู่จัดส่ง");
+    expect(html).not.toContain("tel:");
   });
 
   it("ไม่ render เงินหรือปุ่มแก้เมื่อไม่ได้รับสิทธิ์ แต่ข้อมูลออกบิลยังอยู่", () => {
@@ -53,7 +61,6 @@ describe("ภาพรวมออเดอร์ — ต้นแบบรอ�
   it("เก็บที่อยู่/โทรศัพท์และลิงก์ลูกค้าเมื่อไม่ส่ง callback", () => {
     const html = render({ onOpenCustomer: undefined });
     expect(html).toContain(`href="/customers/${PREVIEW_ORDER.customer!.id}"`);
-    expect(html).toContain("tel:0800001280");
     expect(html).toContain(PREVIEW_ORDER.shippingAddress);
   });
 

@@ -1,81 +1,41 @@
 "use client";
 
 import { useEffect, useRef, type ReactNode } from "react";
-import Link from "next/link";
-import type { CustomerStatus, InternalStatus } from "@prisma/client";
+import type { InternalStatus } from "@prisma/client";
 import { c, PriorityChip, StatusPill, statusLabel, Thumb } from "@/components/orders/orders-ui";
-import { CUSTOMER_STATUS_LABELS } from "@/lib/order-status";
 import { findOffPathAnchor, type StatusRevisionLike } from "@/lib/order-status-rail";
 import { formatDateCompact } from "@/lib/utils";
 
 /* ============================================================
-   หัวใบออเดอร์ + รางสถานะ — ต้นแบบ detailPage() ส่วน .dhead และ .steps (รื้อ 2026-09-15)
+   หัวใบออเดอร์ + รางสถานะ — ต้นแบบ detailPage() ส่วน .dhead และ .steps
 
-   หัวใบยืนบนผืนหน้า ไม่มีกรอบ (เบสสั่ง 08-30): รูปม็อกอัพ · เลขที่ · สถานะ · ความเร่งด่วน · สถานะที่ลูกค้าเห็น
-   บรรทัดรอง ลูกค้า (กดไปหน้าลูกค้า) · ผู้ติดต่อ · ชื่องาน · ปุ่มทางขวามาจากหน้าแม่ (ใบสั่งงาน/ลิงก์ลูกค้า/ขั้นต่อไป/⋯)
-   รางสถานะอ่านอย่างเดียว ขั้นที่ยืนอยู่เป็นแคปซูลบอกอยู่มากี่วัน/ใครทำ · พัก/ยกเลิกยืมตำแหน่งขั้นที่ค้างจากประวัติ
+   หัวใบยืนบนผืนหน้า ไม่มีกรอบ (เบสสั่ง 08-30): รูปม็อกอัพ · เลขที่ · สถานะ · ความเร่งด่วน อยู่แนวกลางเดียวกับปุ่มขวา
+   เบสถอดบรรทัดลูกค้า/ผู้ติดต่อ/ชื่องาน และป้าย "ลูกค้าเห็น" (09-15) — ข้อมูลเหล่านั้นอยู่ในภาพรวมแล้ว
+   รางสถานะอ่านอย่างเดียว ทุกขั้นกว้างเท่ากันเต็มแถว ขั้นที่ยืนอยู่ต่างแค่ขอบวงและตัวหนา (ไม่เป็นแคปซูล · เบส 09-15)
+   พัก/ยกเลิกยืมตำแหน่งขั้นที่ค้างจากประวัติ
    ============================================================ */
-
-/** ชื่องานยาวไม่ขึ้นหัวใบ (อยู่การ์ดม็อกอัพแล้ว) */
-const HEAD_DESCRIPTION_MAX = 60;
 
 export function OrderDetailHead({
   orderNumber,
   cover,
   internalStatus,
-  customerStatus,
   priority,
-  customer,
-  description,
   actions,
 }: {
   orderNumber: string;
   cover: string | null;
   internalStatus: InternalStatus;
-  customerStatus: CustomerStatus;
   priority: string;
-  customer: { id: string; name: string; company: string | null } | null;
-  description: string | null;
   actions?: ReactNode;
 }) {
-  const shortDescription =
-    description && description.trim().length <= HEAD_DESCRIPTION_MAX ? description.trim() : null;
-  const company = customer?.company?.trim() || null;
-  const title = company || customer?.name || null;
-  const person = company && customer?.name && customer.name !== company ? customer.name : null;
-
   return (
     <div className={c("dhead")} data-order-head="">
       <div className={c("idrow")}>
         <Thumb cover={cover} alt={`ม็อกอัพ ${orderNumber}`} lg />
-        <div>
-          <div className={c("h1row")}>
-            <h1>{orderNumber}</h1>
-            <StatusPill status={internalStatus} lg />
-            <PriorityChip priority={priority} lg />
-            <span className={c("chip line")}>ลูกค้าเห็น · {CUSTOMER_STATUS_LABELS[customerStatus]}</span>
-          </div>
-          {customer || shortDescription ? (
-            <p className={c("sub")}>
-              {customer && title ? <Link href={`/customers/${customer.id}`}>{title}</Link> : null}
-              {person ? (
-                <>
-                  <span className={c("sep")} aria-hidden="true">
-                    ·
-                  </span>
-                  <span>{person}</span>
-                </>
-              ) : null}
-              {shortDescription ? (
-                <>
-                  <span className={c("sep")} aria-hidden="true">
-                    ·
-                  </span>
-                  <span>{shortDescription}</span>
-                </>
-              ) : null}
-            </p>
-          ) : null}
+        <div className={c("h1row")}>
+          <h1>{orderNumber}</h1>
+          <StatusPill status={internalStatus} lg />
+          <PriorityChip priority={priority} lg />
         </div>
       </div>
       {actions ? <div className={c("acts")}>{actions}</div> : null}
@@ -83,7 +43,7 @@ export function OrderDetailHead({
   );
 }
 
-/** รางสถานะ (ต้นแบบ .steps) — จุดเลขเรียงตามเส้นทางงาน ขั้นที่ยืนอยู่เป็นแคปซูล */
+/** รางสถานะ (ต้นแบบ .steps) — จุดเลขเรียงตามเส้นทางงาน */
 export function OrderStatusSteps({
   flowSteps,
   currentStepIndex,
@@ -91,7 +51,6 @@ export function OrderStatusSteps({
   revisions,
   cancelledAt,
   cancelledReason,
-  currentDetail,
 }: {
   flowSteps: string[];
   currentStepIndex: number;
@@ -99,8 +58,6 @@ export function OrderStatusSteps({
   revisions?: StatusRevisionLike[];
   cancelledAt?: Date | string | null;
   cancelledReason?: string | null;
-  /** บรรทัดเล็กในแคปซูลของขั้นปัจจุบัน เช่น "อยู่ขั้นนี้ 4 วัน · นนท์" */
-  currentDetail?: ReactNode;
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const isCancelled = internalStatus === "CANCELLED";
@@ -110,7 +67,8 @@ export function OrderStatusSteps({
   const index = offPath ? (anchor?.index ?? -1) : currentStepIndex;
   const mode = isCancelled ? "stop" : isOnHold ? "hold" : "cur";
 
-  const capsuleDetail =
+  // พัก/ยกเลิก: รายละเอียดไม่ขึ้นบนราง (ป้ายบนสุดของหน้าบอกแล้ว) แต่คงไว้ให้โปรแกรมอ่านหน้าจอ
+  const offPathDetail =
     mode === "hold" && anchor
       ? `พักตั้งแต่ ${formatDateCompact(anchor.at)} · ค้างที่ ${statusLabel(anchor.status)}`
       : mode === "stop"
@@ -120,7 +78,7 @@ export function OrderStatusSteps({
           ]
             .filter(Boolean)
             .join(" · ")
-        : currentDetail;
+        : null;
 
   // จอแคบรางยาวเกินจอ — เปิดมาต้องเห็นขั้นที่ยืนอยู่ ไม่ใช่ขั้นแรก ๆ ที่ผ่านไปแล้ว
   useEffect(() => {
@@ -147,7 +105,7 @@ export function OrderStatusSteps({
                 <span className={c("c")}>{position + 1}</span>
                 <span className={c("lb")}>
                   {mode === "hold" ? "พักงาน" : mode === "stop" ? "ยกเลิก" : statusLabel(step)}
-                  {capsuleDetail ? <small>{capsuleDetail}</small> : null}
+                  {offPathDetail ? <span className={c("sr")}> · {offPathDetail}</span> : null}
                 </span>
               </li>
             ) : (

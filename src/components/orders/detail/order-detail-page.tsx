@@ -71,15 +71,12 @@ import {
   resolveNextStepAction,
 } from "@/components/orders/detail/order-next-step-action";
 import { OrderDetailHead, OrderStatusSteps } from "@/components/orders/detail/order-detail-head";
-import { OrderTimelineCard } from "@/components/orders/detail/order-timeline-card";
 import { c, Callout, Empty, ProblemCallout } from "@/components/orders/orders-ui";
 import { describeOrderAttention } from "@/lib/home-orders";
 import { describeOrderProgress, isAttentionStatus } from "@/lib/order-progress";
 import { billingOverview } from "@/lib/billing-ui";
-import { differenceInBangkokDays } from "@/lib/date-utils";
 import { mockupCoverImage } from "@/lib/mockup";
 import { printLabelOf } from "@/lib/print-labels";
-import { STANDARD_SIZES } from "@/lib/size-matrix";
 import { formatDateCompact } from "@/lib/utils";
 
 /* ============================================================
@@ -577,41 +574,7 @@ function OrderDetailContent({
   const blockers = nextStepBlockers(nextStep, readiness);
   const missingChecks = new Set((readiness?.checks ?? []).filter((check) => !check.ok).map((check) => check.key));
 
-  // อยู่ขั้นนี้มากี่วัน = ประวัติเปลี่ยนสถานะล่าสุดที่เข้าสถานะนี้ (ไม่มี + ขั้นแรก = นับจากวันเปิดงาน)
-  const enteredStatusAt =
-    (order.revisions ?? []).find(
-      (revision) => revision.changeType === "STATUS" && revision.newValue === order.internalStatus,
-    )?.createdAt ?? (currentStepIndex === 0 ? order.createdAt : null);
-  const daysInStatus = enteredStatusAt ? differenceInBangkokDays(now, enteredStatusAt) : null;
-  // ไม่มีวันเข้าขั้น (ข้อมูลเก่า/นำเข้า) → บอกขั้นใบผลิตที่ทำอยู่แทน ไม่เดาจำนวนวัน
-  const currentDetail =
-    currentStepIndex < 0
-      ? undefined
-      : daysInStatus !== null
-        ? [daysInStatus <= 0 ? "เข้าขั้นนี้วันนี้" : `อยู่ขั้นนี้ ${daysInStatus} วัน`, progress.currentStep?.assigneeName]
-            .filter(Boolean)
-            .join(" · ")
-        : progress.currentStep
-          ? [progress.currentStep.label, progress.currentStep.assigneeName].filter(Boolean).join(" · ")
-          : undefined;
 
-  // จำนวนแยกไซซ์ของทั้งใบ — เรียงตามไซซ์มาตรฐาน ไซซ์พิเศษต่อท้าย
-  const sizeTotals = new Map<string, number>();
-  for (const item of order.items ?? []) {
-    for (const product of item.products ?? []) {
-      for (const variant of product.variants ?? []) {
-        sizeTotals.set(variant.size, (sizeTotals.get(variant.size) ?? 0) + variant.quantity);
-      }
-    }
-  }
-  const sizeRank = (size: string) => {
-    const index = (STANDARD_SIZES as readonly string[]).indexOf(size);
-    return index < 0 ? STANDARD_SIZES.length : index;
-  };
-  const sizeBreakdown = [...sizeTotals]
-    .filter(([, quantity]) => quantity > 0)
-    .map(([size, quantity]) => ({ size, quantity }))
-    .sort((a, b) => sizeRank(a.size) - sizeRank(b.size));
 
   const printLabel = printLabelOf((order.items ?? []).flatMap((item) => (item.prints ?? []).map((print) => print.printType)));
   // รับเงินแล้วเท่าไร — สูตรกลางเดียวกับการ์ดบิล · คิดเฉพาะคนเห็นเงิน
@@ -793,10 +756,7 @@ function OrderDetailContent({
         orderNumber={order.orderNumber}
         cover={cover}
         internalStatus={order.internalStatus}
-        customerStatus={order.customerStatus}
         priority={order.priority}
-        customer={order.customer ? { id: order.customer.id, name: order.customer.name, company: order.customer.company } : null}
-        description={order.description}
         actions={
           <>
             {/* ของที่ใช้บ่อยเป็นปุ่มจริง (เบสสั่ง 08-30) — จอแคบเหลือไอคอน ชื่ออยู่ใน aria-label */}
@@ -921,7 +881,6 @@ function OrderDetailContent({
         revisions={order.revisions ?? []}
         cancelledAt={order.cancelledAt}
         cancelledReason={order.cancelledReason}
-        currentDetail={currentDetail}
       />
       {/* คำอธิบายขั้นต่อไปผูกกับปุ่มผ่าน aria-describedby — เบสไม่เอาบรรทัดคำช่วยใต้ราง (09-13) */}
       {blockers.length === 0 ? <div className={c("sr")}>{guidance}</div> : null}
@@ -937,7 +896,6 @@ function OrderDetailContent({
             totalAmount={totalAmount}
             totalQuantity={sumOrderQuantity(order.items ?? [])}
             dueInDays={isAttentionStatus(order.internalStatus) ? progress.dueInDays : undefined}
-            sizeBreakdown={sizeBreakdown}
             paidAmount={paidAmount}
             printLabel={printLabel}
             onOpenMoney={canSeeMoney ? () => changeTab("money") : undefined}
@@ -954,7 +912,6 @@ function OrderDetailContent({
             }
             isMarketplace={isMarketplace}
           />
-          <OrderTimelineCard revisions={order.revisions ?? []} onOpenHistory={() => changeTab("history")} />
         </>,
       )}
 

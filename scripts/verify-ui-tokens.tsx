@@ -2284,7 +2284,7 @@ check(
    ล็อกข้อที่เบสสั่งซ้ำหลายรอบ และข้อมูล/สิทธิ์ที่ห้ามหลุด ไม่ผูกคลาสจัดวางรายตัว
    ① หัวใบยืนบนผืนหน้า ไม่มีการ์ด/พื้น (08-30) · ปุ่มที่ใช้บ่อยเป็นปุ่มจริง · เมนู ⋯ หายเมื่อว่าง
    ② ข้อมูลออเดอร์ซ้าย ม็อกอัพขวา (09-13) · การ์ดซ้ายเรียง สรุป → ลูกค้า → จัดส่ง
-   ③ รางสถานะคงเรขาคณิตสมมาตร (08-30) · ขั้นปัจจุบันเป็นแคปซูลใต้วง ไม่มีบรรทัดคำช่วยใต้ราง (09-13)
+   ③ รางสถานะคงเรขาคณิตสมมาตร (08-30) · ขั้นปัจจุบันเป็นวงแบบขั้นอื่น ไม่เป็นแคปซูล (09-15) ไม่มีบรรทัดคำช่วยใต้ราง (09-13)
    ④ เงินไม่อยู่ใน DOM ของผู้ไม่มีสิทธิ์ · ปุ่มแก้ตามสิทธิ์ · การ์ดม็อกอัพเป็นที่ดู ไม่ใช่ที่จัดการ */
 {
   const overviewSource = readFileSync(
@@ -2305,7 +2305,7 @@ check(
   const noop = () => {};
   const overviewProps: React.ComponentProps<typeof OrderOverviewTab> = {
     order: PREVIEW_ORDER, showMoney: true, totalAmount: 5992, totalQuantity: 30,
-    dueInDays: 3, paidAmount: 2996, printLabel: "DTF", sizeBreakdown: [{ size: "S", quantity: 7 }],
+    dueInDays: 3, paidAmount: 2996, printLabel: "DTF",
     onOpenMoney: noop, onOpenDelivery: noop, onEditInfo: noop, onOpenCustomer: noop,
     channelColor: { bg: "bg-green-50", text: "text-green-700" }, isMarketplace: false,
     artwork: <OrderArtworkCardView latest={PREVIEW_ARTWORK} versionCount={2} rawCount={2} printCount={0} description={PREVIEW_ORDER.description} onOpenFiles={noop} />,
@@ -2316,7 +2316,8 @@ check(
   const cardIndex = (card: string) => currentHtml.indexOf(`data-order-overview-card="${card}"`);
   const problems: string[] = [];
 
-  for (const label of ["แก้ไขข้อมูลออเดอร์", "แก้ไขที่อยู่จัดส่ง", "เปิดหน้าลูกค้า", "มาตรฐานลูกค้า:"]) {
+  // การจัดส่ง/ลูกค้าในภาพรวมเป็นช่องพรีวิว กดไปที่ดูเต็ม (เบส 09-15) — แก้ที่อยู่อยู่แท็บจัดส่ง
+  for (const label of ["แก้ไขข้อมูลออเดอร์", "ไปแท็บจัดส่ง", "เปิดหน้าลูกค้า", "มาตรฐานลูกค้า:"]) {
     if (!currentHtml.includes(label)) problems.push(`ภาพรวมไม่มี ${label}`);
   }
   const restrictedHtml = renderOverview({ showMoney: false, paidAmount: null, onOpenMoney: undefined, onEditInfo: undefined });
@@ -2347,11 +2348,13 @@ check(
     !headSource.includes("<h1>") ||
     !headSource.includes("<Thumb cover={cover}") ||
     /order\.title/.test(detailSource) ||
-    // ขั้นที่ยืนอยู่เป็นแคปซูลบอกอยู่มากี่วัน/ใครทำ · พัก/ยกเลิกยืมตำแหน่งขั้นที่ค้างจากประวัติ
+    // ขั้นที่ยืนอยู่เป็นวงแบบขั้นอื่น ไม่มีแคปซูล/บรรทัดเล็ก (เบส 09-15) · พัก/ยกเลิกยืมตำแหน่งขั้นที่ค้างจากประวัติ
     !railSource.includes('aria-current="step"') ||
     !railSource.includes("findOffPathAnchor") ||
-    !railSource.includes("currentDetail") ||
-    !detailSource.includes("currentDetail={currentDetail}") ||
+    railSource.includes("currentDetail") ||
+    detailSource.includes("currentDetail") ||
+    // หัวใบไม่มีบรรทัดลูกค้า/ชื่องาน และป้ายลูกค้าเห็น (เบส 09-15)
+    headSource.includes("CUSTOMER_STATUS_LABELS") ||
     // ไม่มีบรรทัดคำช่วยขั้นต่อไปใต้ราง (เบสสั่ง 2026-09-13) — อ่านได้เฉพาะเครื่องอ่านหน้าจอ
     !detailSource.includes('<div className={c("sr")}>{guidance}</div>') ||
     // ของที่ใช้บ่อยต้องเป็นปุ่มจริงบนหัว ไม่ใช่ซ่อนในเมนู ⋯
@@ -2363,7 +2366,7 @@ check(
     !detailSource.includes("hasOverflowMenu")
   ) {
     problems.push(
-      "หัวใบต้องเป็น minimal (ไม่มีพื้น/กรอบ/เส้นแบ่ง) รางคงสมมาตรพร้อมแคปซูล และ CTA ที่ใช้บ่อยต้องเป็นปุ่มจริง",
+      "หัวใบต้องเป็น minimal (ไม่มีพื้น/กรอบ/เส้นแบ่ง/บรรทัดรอง) รางคงสมมาตรไม่มีแคปซูล และ CTA ที่ใช้บ่อยต้องเป็นปุ่มจริง",
     );
   }
 

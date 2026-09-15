@@ -242,14 +242,17 @@ export function Prop({
   label,
   children,
   none = false,
+  wide = false,
 }: {
   icon?: LucideIcon;
   label: string;
   children: ReactNode;
   none?: boolean;
+  /** กินเต็มแถวในตาราง props สองคอลัมน์ */
+  wide?: boolean;
 }) {
   return (
-    <div className={c("prop")}>
+    <div className={c("prop", wide && "wide")}>
       <dt>
         {Icon ? <Icon aria-hidden="true" /> : null}
         {label}

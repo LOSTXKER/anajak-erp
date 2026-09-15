@@ -1,6 +1,5 @@
 import Link from "next/link";
 import {
-  ArrowRight,
   Banknote,
   Box,
   Calendar,
@@ -10,11 +9,9 @@ import {
   Flag,
   Hash,
   Info,
-  Mail,
   MessageCircle,
   PackageCheck,
   PenLine,
-  Phone,
   Plus,
   Repeat2,
   Tag,
@@ -23,8 +20,7 @@ import {
   Wallet,
 } from "lucide-react";
 import type { CustomerStatus, OrderType } from "@prisma/client";
-import { safeChatUrl } from "@/components/customers/chat-link";
-import { avatarLetter, c, CardHead, MiniRing, Prop, Rw, StateBox, SubHead, timeText } from "@/components/orders/orders-ui";
+import { c, CardHead, MiniRing, Prop, StateBox, SubHead, timeText } from "@/components/orders/orders-ui";
 import { differenceInBangkokDays } from "@/lib/date-utils";
 import { CHANNEL_LABELS, ORDER_TYPE_UI_LABELS, PRIORITY_LABELS } from "@/lib/order-status";
 import { PAYMENT_TERMS_LABELS } from "@/lib/payment-terms";
@@ -34,8 +30,8 @@ import { formatBaht, formatDate, formatDateCompact } from "@/lib/utils";
    แท็บ "ภาพรวม" — ต้นแบบ tabOverview() ทีละชิ้น (รื้อ 2026-09-15)
 
    ข้อมูลออเดอร์ซ้าย · ม็อกอัพ & ไฟล์ขวา (เบสเคาะ 09-13) — การ์ดซ้ายใบเดียว:
-   ช่องข้อมูลหลัก 3 ช่อง (วงเวลากำหนดส่ง / จำนวน+ไซซ์ / ยอด+แถบชำระ) → ช่องข้อมูลย่อยมีไอคอน →
-   ลูกค้าและผู้ติดต่อ (กดโทร/แชท/อีเมลได้) → การจัดส่ง → ใครเปิด/แก้ล่าสุด
+   ช่องข้อมูลหลัก 3 กล่อง (กำหนดส่ง+วงนับวัน / จำนวน / ยอด+แถบชำระ · ไม่มีบรรทัดเล็กใต้ค่า เบส 09-15) →
+   ช่องข้อมูลย่อยมีไอคอน → ลูกค้าและผู้ติดต่อ (ช่องพรีวิว กดไปหน้าลูกค้า) → การจัดส่ง (ช่องพรีวิว กดไปแท็บจัดส่ง) → ใครเปิด/แก้ล่าสุด
    ของจริงที่ต้นแบบไม่มีแต่ต้องคง: ประวัติลูกค้า (เห็นเงินเท่านั้น) · เลขภาษี/ที่อยู่ออกบิล (พับไว้) · เลขพัสดุ
 
    ⚠️ แท็บถูกคง DOM ไว้ตอนสลับ → เงินต้อง gate ด้วย {showMoney && ...} ที่ JSX เท่านั้น ห้ามซ่อนด้วยคลาส
@@ -122,7 +118,6 @@ interface OrderOverviewTabProps {
   totalQuantity: number;
   /** วันถึงกำหนดส่งตามปฏิทินไทย · ไม่ส่ง = งานจบแล้ว ไม่วาดวงเวลา */
   dueInDays?: number | null;
-  sizeBreakdown?: readonly { size: string; quantity: number }[];
   /** ยอดที่รับชำระแล้วจากสูตรกลาง billingOverview — ส่งมาเฉพาะคนเห็นเงิน */
   paidAmount?: number | null;
   /** ชนิดงานพิมพ์ของทั้งใบ เช่น DTF · สกรีน · ผสม */
@@ -150,7 +145,6 @@ export function OrderOverviewTab({
   totalAmount,
   totalQuantity,
   dueInDays,
-  sizeBreakdown,
   paidAmount,
   printLabel,
   onOpenMoney,
@@ -186,9 +180,14 @@ export function OrderOverviewTab({
   ]);
   const hasBilling = Boolean(customer?.billingAddress || billingArea);
 
-  const chatUrl = safeChatUrl(customer?.chatUrl);
-  const hasChat = Boolean(customer?.chatName || chatUrl);
-  const hasCustomerContact = Boolean(customer?.phone || hasChat || customer?.lineId || customer?.email);
+  // ช่องทางติดต่อรวมบรรทัดเดียวในช่องพรีวิว — กดโทร/แชทจริงอยู่หน้าลูกค้า
+  const contactLine = [
+    customer?.phone,
+    customer?.chatName ? `LINE ${customer.chatName}` : customer?.lineId ? `LINE ${customer.lineId}` : null,
+    customer?.email,
+  ]
+    .filter(Boolean)
+    .join(" · ");
   const hasCustomerHistory = Boolean(
     customer &&
       (customer.creditLimit != null || customer.totalSpent != null || customer.totalOrders > 0 || customer.lastOrderAt),
@@ -255,7 +254,7 @@ export function OrderOverviewTab({
         }
       />
       <div className={c("cb")}>
-        <div className={c("facts")}>
+        <div className={c("facts main")}>
           <div className={c("fact rich", dueTone)}>
             {dueInDays != null && leadDays != null ? (
               <MiniRing
@@ -274,12 +273,6 @@ export function OrderOverviewTab({
               <span className={c("v")}>
                 {order.deadline ? formatDateCompact(order.deadline) : <span className={c("soft")}>ยังไม่กำหนด</span>}
               </span>
-              {dueInDays != null ? (
-                <span className={c("sub")}>
-                  {dueInDays < 0 ? `เลยกำหนด ${-dueInDays} วัน` : dueInDays === 0 ? "ส่งวันนี้" : `เหลือ ${dueInDays} วัน`}
-                  {usedDays != null && leadDays != null ? ` · ใช้ไป ${usedDays}/${leadDays} วัน` : ""}
-                </span>
-              ) : null}
             </span>
           </div>
 
@@ -303,11 +296,6 @@ export function OrderOverviewTab({
                 <small>ยังไม่มีรายการ</small>
               )}
             </span>
-            {sizeBreakdown && sizeBreakdown.length > 0 ? (
-              <span className={c("sub")}>
-                {sizeBreakdown.map((row) => `${row.size} ${row.quantity.toLocaleString("th-TH")}`).join(" · ")}
-              </span>
-            ) : null}
           </div>
 
           {/* เงินต้อง gate ระดับ JSX เพราะแท็บคง DOM ไว้ — ห้ามซ่อนด้วย CSS */}
@@ -329,24 +317,25 @@ export function OrderOverviewTab({
                 )}
               </span>
               {paidRatio != null && paidAmount != null && !totalNeedsReview ? (
-                <span className={c("bar")} aria-hidden="true">
+                <span
+                  className={c("bar")}
+                  role="img"
+                  aria-label={
+                    paidRatio >= 1
+                      ? "ชำระครบแล้ว"
+                      : paidAmount > 0
+                        ? `ชำระแล้ว ${Math.round(paidRatio * 100)}% · ค้าง ${formatBaht(Math.max(0, totalAmount - paidAmount))}`
+                        : `ยังไม่ได้รับเงิน${termsLabel ? ` · ${termsLabel}` : ""}`
+                  }
+                >
                   <i
                     className={c(paidRatio >= 1 ? null : paidRatio > 0 ? "warn" : "bad")}
                     style={{ width: `${Math.max(2, Math.round(paidRatio * 100))}%` }}
                   />
                 </span>
               ) : null}
-              {totalNeedsReview ? (
-                <span className={c("sub")}>ยอดเป็นศูนย์ — ตรวจสอบราคา</span>
-              ) : paidRatio != null && paidAmount != null ? (
-                <span className={c("sub")}>
-                  {paidRatio >= 1
-                    ? "ชำระครบแล้ว"
-                    : paidAmount > 0
-                      ? `ชำระแล้ว ${Math.round(paidRatio * 100)}% · ค้าง ${formatBaht(Math.max(0, totalAmount - paidAmount))}`
-                      : `ยังไม่ได้รับเงิน${termsLabel ? ` · ${termsLabel}` : ""}`}
-                </span>
-              ) : null}
+              {/* ยอดศูนย์ทั้งที่มีรายการ = ต้องตรวจราคา — คำเตือนนี้คงไว้ ส่วนบรรทัดชำระแล้ว/ค้างเบสถอด (แถบบอกแทน) */}
+              {totalNeedsReview ? <span className={c("sub")}>ยอดเป็นศูนย์ — ตรวจสอบราคา</span> : null}
             </div>
           )}
           {!showMoney && (
@@ -410,26 +399,37 @@ export function OrderOverviewTab({
           <SubHead icon={User} tone="blue" title="ลูกค้าและผู้ติดต่อ" />
           {customer ? (
             <>
-              <div className={c("person")}>
-                <span className={c("av")} aria-hidden="true">
-                  {avatarLetter(companyTitle ?? customer.name)}
-                </span>
-                <span className={c("nm")}>
-                  <b>{companyTitle}</b>
-                  <small>{contactPerson ?? (customer.customerType === "CORPORATE" ? "นิติบุคคล" : "บุคคลธรรมดา")}</small>
-                </span>
-                {onOpenCustomer ? (
-                  <button type="button" className={c("btn sm")} onClick={onOpenCustomer} aria-label="เปิดหน้าลูกค้า">
-                    ข้อมูลลูกค้า
-                    <ArrowRight aria-hidden="true" />
+              {/* ช่องพรีวิวลูกค้า (เบส 09-15) — ชื่อ · ผู้ติดต่อ · ช่องทางติดต่อ กดทั้งช่องไปหน้าลูกค้า */}
+              {(() => {
+                const body = (
+                  <>
+                    <span className={c("tx")}>
+                      <b>{companyTitle}</b>
+                      <span className={c("ln")}>
+                        {contactPerson
+                          ? `ผู้ติดต่อ ${contactPerson}`
+                          : customer.customerType === "CORPORATE"
+                            ? "นิติบุคคล"
+                            : "บุคคลธรรมดา"}
+                      </span>
+                      <small>{contactLine || "ยังไม่มีช่องทางติดต่อ"}</small>
+                    </span>
+                    <span className={c("go")}>
+                      ข้อมูลลูกค้า
+                      <ChevronRight aria-hidden="true" />
+                    </span>
+                  </>
+                );
+                return onOpenCustomer ? (
+                  <button type="button" className={c("preview")} onClick={onOpenCustomer} aria-label={`เปิดหน้าลูกค้า ${companyTitle}`}>
+                    {body}
                   </button>
                 ) : (
-                  <Link href={`/customers/${customer.id}`} className={c("btn sm")} aria-label="เปิดหน้าลูกค้า">
-                    ข้อมูลลูกค้า
-                    <ArrowRight aria-hidden="true" />
+                  <Link href={`/customers/${customer.id}`} className={c("preview")} aria-label={`เปิดหน้าลูกค้า ${companyTitle}`}>
+                    {body}
                   </Link>
-                )}
-              </div>
+                );
+              })()}
 
               {/* gate เงินครอบทั้งก้อน — ช่างไม่เห็นแม้แต่หัวข้อ */}
               {showMoney && hasCustomerHistory && customerHistoryCells.length > 0 && (
@@ -446,35 +446,6 @@ export function OrderOverviewTab({
                 </dl>
               )}
 
-              <div className={c("rows")}>
-                {customer.phone ? (
-                  <Rw
-                    href={`tel:${customer.phone.replace(/[^\d+]/g, "")}`}
-                    icon={Phone}
-                    title={customer.phone}
-                    sub="โทรหาผู้ติดต่อ"
-                    arrow="external"
-                  />
-                ) : null}
-                {hasChat ? (
-                  <Rw
-                    href={chatUrl ?? undefined}
-                    icon={MessageCircle}
-                    tone="lineapp"
-                    title={customer.chatName || "เปิดแชท"}
-                    sub={`ห้องแชท LINE${customer.lineId ? ` · ${customer.lineId}` : ""}`}
-                    arrow="external"
-                  />
-                ) : customer.lineId ? (
-                  <Rw icon={MessageCircle} tone="lineapp" title={customer.lineId} sub="LINE ID" />
-                ) : null}
-                {customer.email ? (
-                  <Rw href={`mailto:${customer.email}`} icon={Mail} title={customer.email} sub="อีเมล" arrow="external" />
-                ) : null}
-                {!hasCustomerContact ? (
-                  <Rw icon={User} title={<span className={c("soft")}>ยังไม่มีช่องทางติดต่อ</span>} />
-                ) : null}
-              </div>
 
               {/* เลขภาษี/ที่อยู่ออกบิลใช้ตอนออกเอกสาร ไม่ใช่ทุกครั้งที่เปิดใบ — พับไว้ แต่ขาดเลขภาษีต้องเห็นจากหัวพับ */}
               <details className={c("more")}>
@@ -526,40 +497,34 @@ export function OrderOverviewTab({
         <div className={c("hr")} />
 
         <div data-order-overview-card="shipping">
-          <SubHead
-            icon={Truck}
-            tone="good"
-            title="การจัดส่ง"
-            right={
-              hasShipping && onEditInfo ? (
-                <button
-                  type="button"
-                  className={c("btn ghost sm")}
-                  aria-label="แก้ไขที่อยู่จัดส่ง"
-                  onClick={() => onEditInfo("shipping")}
-                >
-                  <PenLine aria-hidden="true" />
-                  แก้ไข
-                </button>
-              ) : undefined
-            }
-          />
+          <SubHead icon={Truck} tone="good" title="การจัดส่ง" />
           {hasShipping ? (
-            <address className={c("addr")}>
-              {order.shippingRecipientName ? <b>{order.shippingRecipientName}</b> : null}
-              {order.shippingAddress}
-              {order.shippingAddress && shippingArea ? <br /> : null}
-              {shippingArea}
-              {!order.shippingAddress && !shippingArea ? <span className={c("muted")}>ยังไม่มีที่อยู่จัดส่ง</span> : null}
-              {order.shippingPhone ? (
-                <>
-                  <br />
-                  <span className={c("muted")}>
-                    <a href={`tel:${order.shippingPhone.replace(/[^\d+]/g, "")}`}>{order.shippingPhone}</a>
-                  </span>
-                </>
-              ) : null}
-            </address>
+            /* ช่องพรีวิวการจัดส่ง (เบส 09-15) — กดทั้งช่องไปแท็บจัดส่ง แก้ไขที่นั่น */
+            <button
+              type="button"
+              className={c("preview")}
+              onClick={onOpenDelivery}
+              disabled={!onOpenDelivery}
+              aria-label={`ไปแท็บจัดส่ง${order.shippingRecipientName ? ` ${order.shippingRecipientName}` : ""}`}
+            >
+              <span className={c("tx")}>
+                <b>{order.shippingRecipientName || "ยังไม่ระบุผู้รับ"}</b>
+                <span className={c("ln")}>
+                  {[order.shippingAddress, shippingArea].filter(Boolean).join(" ") || "ยังไม่มีที่อยู่จัดส่ง"}
+                </span>
+                {order.shippingPhone || order.trackingNumber ? (
+                  <small>
+                    {[order.shippingPhone, order.trackingNumber ? `พัสดุ ${order.trackingNumber}` : null]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </small>
+                ) : null}
+              </span>
+              <span className={c("go")}>
+                ดูการจัดส่ง
+                <ChevronRight aria-hidden="true" />
+              </span>
+            </button>
           ) : (
             <StateBox
               icon={Truck}
@@ -580,16 +545,6 @@ export function OrderOverviewTab({
               ยังไม่ระบุที่อยู่จัดส่ง
             </StateBox>
           )}
-          {order.trackingNumber ? (
-            <div className={c("rows top")}>
-              <Rw
-                onClick={onOpenDelivery}
-                icon={Truck}
-                title={<span className={c("mono")}>{order.trackingNumber}</span>}
-                sub="เลขพัสดุในออเดอร์ · ดูการจัดส่ง"
-              />
-            </div>
-          ) : null}
         </div>
 
         <div className={c("ref")}>
