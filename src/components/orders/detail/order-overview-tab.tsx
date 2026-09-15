@@ -3,17 +3,17 @@ import {
   Banknote,
   Box,
   Calendar,
-  CalendarClock,
   ChevronRight,
-  CreditCard,
   Flag,
   Hash,
   Info,
+  MapPin,
   MessageCircle,
   PackageCheck,
   PenLine,
+  ReceiptText,
   Plus,
-  Repeat2,
+  StickyNote,
   Tag,
   Truck,
   User,
@@ -24,15 +24,15 @@ import { c, CardHead, MiniRing, Prop, StateBox, SubHead, timeText } from "@/comp
 import { differenceInBangkokDays } from "@/lib/date-utils";
 import { CHANNEL_LABELS, ORDER_TYPE_UI_LABELS, PRIORITY_LABELS } from "@/lib/order-status";
 import { PAYMENT_TERMS_LABELS } from "@/lib/payment-terms";
-import { formatBaht, formatDate, formatDateCompact } from "@/lib/utils";
+import { formatBaht, formatDateCompact } from "@/lib/utils";
 
 /* ============================================================
    แท็บ "ภาพรวม" — ต้นแบบ tabOverview() ทีละชิ้น (รื้อ 2026-09-15)
 
    ข้อมูลออเดอร์ซ้าย · ม็อกอัพ & ไฟล์ขวา (เบสเคาะ 09-13) — การ์ดซ้ายใบเดียว:
    ช่องข้อมูลหลัก 3 กล่อง (กำหนดส่ง+วงนับวัน / จำนวน / ยอด+แถบชำระ · ไม่มีบรรทัดเล็กใต้ค่า เบส 09-15) →
-   ช่องข้อมูลย่อยมีไอคอน → ลูกค้าและผู้ติดต่อ (ช่องพรีวิว กดไปหน้าลูกค้า) → การจัดส่ง (ช่องพรีวิว กดไปแท็บจัดส่ง) → ใครเปิด/แก้ล่าสุด
-   ของจริงที่ต้นแบบไม่มีแต่ต้องคง: ประวัติลูกค้า (เห็นเงินเท่านั้น) · เลขภาษี/ที่อยู่ออกบิล (พับไว้) · เลขพัสดุ
+   ช่องข้อมูลย่อยมีไอคอน → ลูกค้า (กล่องเดียว: พรีวิวกดไปหน้าลูกค้า + ข้อมูลออกบิลพับไว้ · ประวัติซื้อดูหน้าลูกค้า) → การจัดส่ง (ช่องพรีวิว กดไปแท็บจัดส่ง) → ใครเปิด/แก้ล่าสุด
+   ของจริงที่ต้องคง: เลขภาษี/ที่อยู่ออกบิล (พับไว้) · เลขพัสดุ (บรรทัดเล็กในพรีวิวจัดส่ง)
 
    ⚠️ แท็บถูกคง DOM ไว้ตอนสลับ → เงินต้อง gate ด้วย {showMoney && ...} ที่ JSX เท่านั้น ห้ามซ่อนด้วยคลาส
    ============================================================ */
@@ -179,6 +179,8 @@ export function OrderOverviewTab({
     customer?.billingPostalCode,
   ]);
   const hasBilling = Boolean(customer?.billingAddress || billingArea);
+  const billingFull = [customer?.billingAddress, billingArea].filter(Boolean).join(" ").trim();
+  const billingSameAsCustomer = hasBilling && !!customer?.address && billingFull === customer.address.trim();
 
   // ช่องทางติดต่อรวมบรรทัดเดียวในช่องพรีวิว — กดโทร/แชทจริงอยู่หน้าลูกค้า
   const contactLine = [
@@ -188,23 +190,6 @@ export function OrderOverviewTab({
   ]
     .filter(Boolean)
     .join(" · ");
-  const hasCustomerHistory = Boolean(
-    customer &&
-      (customer.creditLimit != null || customer.totalSpent != null || customer.totalOrders > 0 || customer.lastOrderAt),
-  );
-  /* ประวัติลูกค้า = สี่ค่าที่คนถามตอนเปิดใบงาน · ช่องไหนไม่มีค่าก็หายทั้งช่อง · gate เงินครอบทั้งก้อน */
-  const customerHistoryCells = customer
-    ? [
-        customer.totalSpent != null ? { key: "spent", label: "ซื้อสะสม", value: formatBaht(customer.totalSpent), icon: Wallet } : null,
-        customer.totalOrders > 0
-          ? { key: "orders", label: "สั่งมาแล้ว", value: `${customer.totalOrders.toLocaleString("th-TH")} ครั้ง`, icon: Repeat2 }
-          : null,
-        customer.lastOrderAt ? { key: "last", label: "สั่งล่าสุด", value: formatDate(customer.lastOrderAt), icon: CalendarClock } : null,
-        customer.creditLimit != null
-          ? { key: "credit", label: "วงเงินเครดิต", value: formatBaht(customer.creditLimit), icon: CreditCard }
-          : null,
-      ].filter((cell): cell is NonNullable<typeof cell> => cell !== null)
-    : [];
 
   const hasPricedWork = totalAmount !== 0 || totalQuantity > 0;
   const totalNeedsReview = totalQuantity > 0 && totalAmount === 0;
@@ -399,95 +384,102 @@ export function OrderOverviewTab({
           <SubHead icon={User} tone="blue" title="ลูกค้าและผู้ติดต่อ" />
           {customer ? (
             <>
-              {/* ช่องพรีวิวลูกค้า (เบส 09-15) — ชื่อ · ผู้ติดต่อ · ช่องทางติดต่อ กดทั้งช่องไปหน้าลูกค้า */}
-              {(() => {
-                const body = (
-                  <>
-                    <span className={c("tx")}>
-                      <b>{companyTitle}</b>
-                      <span className={c("ln")}>
-                        {contactPerson
-                          ? `ผู้ติดต่อ ${contactPerson}`
-                          : customer.customerType === "CORPORATE"
-                            ? "นิติบุคคล"
-                            : "บุคคลธรรมดา"}
+              {/* ลูกค้า = กล่องเดียว (เบส 09-15): พรีวิว (กดไปหน้าลูกค้า) + ข้อมูลออกบิลพับไว้ แบ่งด้วยเส้น
+                  ประวัติซื้อ/วงเงินไปดูที่หน้าลูกค้า ไม่แสดงในใบออเดอร์ */}
+              <div className={c("custbox")}>
+                {(() => {
+                  const body = (
+                    <>
+                      <span className={c("tx")}>
+                        <b>{companyTitle}</b>
+                        <span className={c("ln")}>
+                          {contactPerson
+                            ? `ผู้ติดต่อ ${contactPerson}`
+                            : customer.customerType === "CORPORATE"
+                              ? "นิติบุคคล"
+                              : "บุคคลธรรมดา"}
+                        </span>
+                        <small>{contactLine || "ยังไม่มีช่องทางติดต่อ"}</small>
                       </span>
-                      <small>{contactLine || "ยังไม่มีช่องทางติดต่อ"}</small>
+                      <span className={c("go")}>
+                        ข้อมูลลูกค้า
+                        <ChevronRight aria-hidden="true" />
+                      </span>
+                    </>
+                  );
+                  return onOpenCustomer ? (
+                    <button type="button" className={c("preview")} onClick={onOpenCustomer} aria-label={`เปิดหน้าลูกค้า ${companyTitle}`}>
+                      {body}
+                    </button>
+                  ) : (
+                    <Link href={`/customers/${customer.id}`} className={c("preview")} aria-label={`เปิดหน้าลูกค้า ${companyTitle}`}>
+                      {body}
+                    </Link>
+                  );
+                })()}
+
+                {/* เลขภาษี/ที่อยู่ออกบิลใช้ตอนออกเอกสาร — พับไว้ หัวพับบอกเลขภาษีหรือเตือนว่ายังไม่มี */}
+                <details className={c("billbox")}>
+                  <summary>
+                    <span className={c("t")}>
+                      <ChevronRight className={c("cv")} aria-hidden="true" />
+                      ข้อมูลออกบิลของลูกค้า
                     </span>
-                    <span className={c("go")}>
-                      ข้อมูลลูกค้า
-                      <ChevronRight aria-hidden="true" />
-                    </span>
-                  </>
-                );
-                return onOpenCustomer ? (
-                  <button type="button" className={c("preview")} onClick={onOpenCustomer} aria-label={`เปิดหน้าลูกค้า ${companyTitle}`}>
-                    {body}
-                  </button>
-                ) : (
-                  <Link href={`/customers/${customer.id}`} className={c("preview")} aria-label={`เปิดหน้าลูกค้า ${companyTitle}`}>
-                    {body}
-                  </Link>
-                );
-              })()}
-
-              {/* gate เงินครอบทั้งก้อน — ช่างไม่เห็นแม้แต่หัวข้อ */}
-              {showMoney && hasCustomerHistory && customerHistoryCells.length > 0 && (
-                <dl className={c("facts four hist")}>
-                  {customerHistoryCells.map((cell) => (
-                    <div key={cell.key} className={c("fact")}>
-                      <dt className={c("k")}>
-                        <cell.icon aria-hidden="true" />
-                        {cell.label}
-                      </dt>
-                      <dd className={c("v")}>{cell.value}</dd>
-                    </div>
-                  ))}
-                </dl>
-              )}
-
-
-              {/* เลขภาษี/ที่อยู่ออกบิลใช้ตอนออกเอกสาร ไม่ใช่ทุกครั้งที่เปิดใบ — พับไว้ แต่ขาดเลขภาษีต้องเห็นจากหัวพับ */}
-              <details className={c("more")}>
-                <summary>
-                  <ChevronRight aria-hidden="true" />
-                  ข้อมูลออกบิลของลูกค้า
-                  {!customer.taxId ? <span className={c("chip warn")}>ยังไม่มีเลขภาษี</span> : null}
-                </summary>
-                <dl className={c("props top")}>
-                  <Prop icon={Hash} label="เลขผู้เสียภาษี" none={!customer.taxId}>
                     {customer.taxId ? (
-                      <>
-                        <span className={c("mono")}>{customer.taxId}</span>
-                        {customer.branchNumber ? (
-                          <small>สาขา {customer.branchNumber === "00000" ? "สำนักงานใหญ่" : customer.branchNumber}</small>
-                        ) : null}
-                      </>
+                      <span className={c("mono sumtax")}>{customer.taxId}</span>
                     ) : (
-                      "ยังไม่มีเลขภาษี — ออกใบกำกับไม่ได้"
+                      <span className={c("chip warn")}>ยังไม่มีเลขภาษี</span>
                     )}
-                  </Prop>
-                  <Prop label="ที่อยู่ลูกค้า" none={!customer.address}>
-                    {customer.address || "ยังไม่มีที่อยู่ลูกค้า"}
-                  </Prop>
-                  {hasBilling ? (
-                    <Prop label="ที่อยู่ออกบิล">
-                      {customer.billingAddress}
-                      {billingArea ? <small>{billingArea}</small> : null}
+                  </summary>
+                  <dl className={c("props")}>
+                    <Prop icon={Hash} label="เลขผู้เสียภาษี">
+                      {customer.taxId ? (
+                        <>
+                          <span className={c("mono")}>{customer.taxId}</span>
+                          {customer.branchNumber ? (
+                            <small>{customer.branchNumber === "00000" ? "สำนักงานใหญ่" : `สาขา ${customer.branchNumber}`}</small>
+                          ) : null}
+                        </>
+                      ) : (
+                        <span className={c("warnt")}>ยังไม่มี · ออกใบกำกับไม่ได้</span>
+                      )}
                     </Prop>
-                  ) : null}
-                  {customer.tags.length > 0 ? (
-                    <Prop label="ป้ายลูกค้า">
-                      <span className={c("sizes")}>
-                        {customer.tags.map((tag) => (
-                          <span key={tag}>{tag}</span>
-                        ))}
-                      </span>
+                    <Prop icon={Tag} label="ป้ายลูกค้า" none={customer.tags.length === 0}>
+                      {customer.tags.length > 0 ? (
+                        <span className={c("tagrow")}>
+                          {customer.tags.map((tag) => (
+                            <span key={tag} className={c("chip gray")}>
+                              {tag}
+                            </span>
+                          ))}
+                        </span>
+                      ) : (
+                        "ไม่มีป้าย"
+                      )}
                     </Prop>
-                  ) : null}
-                  {customer.notes ? <Prop label="หมายเหตุลูกค้า (ทุกใบ)">{customer.notes}</Prop> : null}
-                </dl>
-              </details>
+                    <Prop icon={MapPin} label="ที่อยู่ลูกค้า" none={!customer.address} wide>
+                      {customer.address || "ยังไม่มีที่อยู่ลูกค้า"}
+                    </Prop>
+                    <Prop icon={ReceiptText} label="ที่อยู่ออกบิล" none={!hasBilling || billingSameAsCustomer} wide>
+                      {!hasBilling ? (
+                        "ยังไม่มีที่อยู่ออกบิล"
+                      ) : billingSameAsCustomer ? (
+                        "ใช้ที่อยู่เดียวกับลูกค้า"
+                      ) : (
+                        <>
+                          {customer.billingAddress}
+                          {billingArea ? <small>{billingArea}</small> : null}
+                        </>
+                      )}
+                    </Prop>
+                    {customer.notes ? (
+                      <Prop icon={StickyNote} label="หมายเหตุลูกค้า (ทุกใบ)" wide>
+                        {customer.notes}
+                      </Prop>
+                    ) : null}
+                  </dl>
+                </details>
+              </div>
             </>
           ) : (
             <StateBox icon={User}>ใบนี้ยังไม่ผูกกับลูกค้า</StateBox>

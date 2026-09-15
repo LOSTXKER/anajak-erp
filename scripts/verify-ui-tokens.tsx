@@ -2396,14 +2396,15 @@ check(
   ) {
     problems.push("การ์ดม็อกอัพต้องใช้รูปจากสูตรกลางและห้ามมี mutation ของม็อกอัพ/ไฟล์");
   }
-  /* ประวัติลูกค้า = กล่องสีประจำหมวด (เบสเคาะ 2026-08-31) · gate เงินครอบทั้งก้อน */
+  /* ประวัติซื้อ/วงเงินลูกค้าไม่อยู่ในใบออเดอร์แล้ว ไปดูที่หน้าลูกค้า (เบส 2026-09-15)
+     ลูกค้าเป็นกล่องเดียว: พรีวิวกดไปหน้าลูกค้า + ข้อมูลออกบิลพับไว้ */
   if (
-    !overviewSource.includes("customerHistoryCells") ||
-    !overviewSource.includes("showMoney && hasCustomerHistory && customerHistoryCells.length > 0") ||
-    !overviewSource.includes('c("facts four hist")') ||
-    overviewSource.includes('<Group label="ประวัติลูกค้า"')
+    overviewSource.includes("customerHistoryCells") ||
+    overviewSource.includes("ซื้อสะสม") ||
+    !overviewSource.includes('c("custbox")') ||
+    !overviewSource.includes('c("billbox")')
   ) {
-    problems.push("ประวัติลูกค้าต้องใช้สีประจำหมวดและ gate ด้วย showMoney ทั้งก้อน");
+    problems.push("ภาพรวมไม่ควรมีประวัติซื้อลูกค้า และลูกค้าต้องเป็นกล่องเดียวพร้อมข้อมูลออกบิล");
   }
   if (
     // ช่องไม่บังคับที่ว่าง (เช่นเลขที่ PO) ไม่สร้างแถว "-" — วาดเฉพาะตอนมีค่า
@@ -2416,7 +2417,6 @@ check(
   }
   if (
     !overviewSource.includes("isMarketplace && showMoney && order.platformFee != null") ||
-    !overviewSource.includes("showMoney && hasCustomerHistory") ||
     !/\{showMoney && \(\s*<div className=\{c\("fact"\)\}>[\s\S]*?ยอดรวม/.test(overviewSource) ||
     !detailSource.includes('onOpenMoney={canSeeMoney ? () => changeTab("money") : undefined}') ||
     !/onEditInfo=\{\s*canUseEditForm\s*\?/.test(detailSource) ||

@@ -404,10 +404,6 @@ function ItemBlock({
         {techs.map((tech) => (
           <TechChip key={tech} label={tech} />
         ))}
-        <span className={c("item-tot")}>
-          <span>{qty.toLocaleString("th-TH")} ตัว</span>
-          {showMoney && <b>{formatBaht(item.subtotal ?? 0)}</b>}
-        </span>
       </div>
 
       {customerProvided.map((prod) => (

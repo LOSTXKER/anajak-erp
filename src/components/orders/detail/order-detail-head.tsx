@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import type { InternalStatus } from "@prisma/client";
 import { c, PriorityChip, StatusPill, statusLabel, Thumb } from "@/components/orders/orders-ui";
 import { findOffPathAnchor, type StatusRevisionLike } from "@/lib/order-status-rail";
@@ -98,10 +98,11 @@ export function OrderStatusSteps({
         role="group"
         aria-label="เส้นทางสถานะออเดอร์"
       >
-        <ol className={c("steps")}>
+        {/* เส้นสีวิ่งเส้นเดียวจากขั้นแรกถึงขั้นที่ยืนอยู่ (เบส 09-15) — ตำแหน่งคำนวณจาก --n/--i ใน CSS */}
+        <ol className={c("steps")} style={{ "--n": flowSteps.length, "--i": Math.max(0, index) } as CSSProperties}>
           {flowSteps.map((step, position) =>
             position === index ? (
-              <li key={step} className={c("step", mode)} aria-current="step">
+              <li key={step} className={c("step", mode)} aria-current="step" style={{ "--k": position } as CSSProperties}>
                 <span className={c("c")}>{position + 1}</span>
                 <span className={c("lb")}>
                   {mode === "hold" ? "พักงาน" : mode === "stop" ? "ยกเลิก" : statusLabel(step)}
@@ -112,6 +113,7 @@ export function OrderStatusSteps({
               <li
                 key={step}
                 className={c("step", position < index && "done")}
+                style={{ "--k": position } as CSSProperties}
                 aria-label={`${statusLabel(step)}: ${position < index ? "ผ่านแล้ว" : "ยังไม่ถึง"}`}
               >
                 <span className={c("c")} aria-hidden="true">
