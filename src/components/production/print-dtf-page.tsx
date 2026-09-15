@@ -292,20 +292,18 @@ function PrintDtf() {
               />
               <div className={c("cb")}>
                 {doneToday.length > 0 ? (
-                  <div className={c("rows")}>
+                  <ol className={c("hist")}>
                     {doneToday.map((item) => (
-                      <div key={item.key} className={c("rw static")}>
-                        <span className={c("tl")} aria-hidden="true" />
-                        <span className={c("tx")}>
-                          <span className={c("mono")}>{item.orderNumber}</span>
+                      <li key={item.key}>
+                        <span className={c("d good")} aria-hidden="true" />
+                        <span className={c("tx mono")}>{item.orderNumber}</span>
+                        <span className={c("m")}>
+                          <b>{item.qty.toLocaleString("th-TH")} ชิ้น</b>
+                          {formatTime(item.at)}
                         </span>
-                        <span className={c("r")}>
-                          {item.qty.toLocaleString("th-TH")} ชิ้น · {formatTime(item.at)}
-                        </span>
-                        <span aria-hidden="true" />
-                      </div>
+                      </li>
                     ))}
-                  </div>
+                  </ol>
                 ) : (
                   <p className={c("mempty")}>ยังไม่มี</p>
                 )}
