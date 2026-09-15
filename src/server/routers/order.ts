@@ -588,6 +588,8 @@ export const orderRouter = router({
                 phone: true,
               },
             },
+            // คอลัมน์ "คนทำ" ของตาราง (2026-09-16) — งานที่ยังไม่เข้าผลิตแสดงผู้เปิดออเดอร์
+            createdBy: { select: { name: true } },
             // หน้า registry ใช้เฉพาะรูปม็อกอัพจริงล่าสุด ไม่มี approval token และไม่ถอยไปใช้รูปลาย
             // approvalStatus/createdAt = "รอลูกค้าอนุมัติแบบกี่วัน" ของคอลัมน์ต้องจัดการ
             designs: {

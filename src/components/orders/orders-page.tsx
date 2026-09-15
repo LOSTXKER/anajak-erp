@@ -2,13 +2,14 @@
 
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, Download, Filter, Plus, Search, ShoppingCart, Workflow, X } from "lucide-react";
+import { AlertTriangle, Download, Filter, Plus, Search, X } from "lucide-react";
 import type { CustomerStatus, InternalStatus, OrderType } from "@prisma/client";
 import { useListPageState, usePageClamp } from "@/hooks/use-list-page-state";
 import { trpc } from "@/lib/trpc";
 import { permAllows } from "@/lib/permissions";
 import { canCreateOrderWithPricing } from "@/lib/order-access";
-import { c, CardHead } from "@/components/kit/kit";
+import { c } from "@/components/kit/kit";
+import { KitDateRange } from "@/components/kit/date-range";
 import { OrderPipeline } from "@/components/orders/list/order-pipeline";
 import { OrderPeekPanel } from "@/components/orders/list/order-peek-panel";
 import { OrdersPager } from "@/components/orders/list/orders-pager";
@@ -20,7 +21,6 @@ import {
   ORDER_TYPE_UI_LABELS,
 } from "@/lib/order-status";
 import { hasActiveOrderListFilters } from "@/lib/order-list-ui";
-import { ordersHeadline } from "@/lib/order-list-view";
 import {
   ATTENTION_FILTERS,
   CHANNEL_FILTERS,
@@ -33,15 +33,15 @@ import {
   type SortDirection,
   type SortKey,
 } from "@/lib/order-list-contract";
-import { BANGKOK_TZ, formatDateCompact } from "@/lib/utils";
 
 /* ============================================================
    หน้ารายการออเดอร์ — ต้นแบบรอบ 2 listPage() ทีละชิ้น
    (รื้อเขียนใหม่ 2026-09-15 หลังเบสบอก "UI มันไม่เหมือนกันเลย … รื้อเขียนใหม่ refactor ไปเลย")
    ต้นแบบ: สมอง records/projects/anajak-erp/mockup-orders-minimal-2026-09-14.html
 
-   หัวหน้า (ทั้งหมด/กำลังเดิน/เลยกำหนด) → การ์ดเส้นทางงาน (ราง pipeline กรองสถานะ) → การ์ดรายการ
-   (ค้นหา / ช่วงวันที่ / ช่องทาง / ประเภท / จำนวน) → ตาราง → แบ่งหน้า · กดแถวดูย่อทางขวา ↑↓ ไล่ใบ Esc ปิด
+   รอบโล่งขึ้น 2026-09-16 (ต้นแบบ mockup-orders-list-lite-2026-09-16): หัวไม่มีบรรทัดสรุป · การ์ดเส้นสถานะไม่มีหัว
+   → การ์ดรายการ (ค้นหา / ปฏิทินช่วงวันที่ / ช่องทาง / ประเภท / ป้ายตัวกรองที่ล้างได้) → ตาราง → แบ่งหน้า
+   กดแถวดูย่อทางขวา ↑↓ ไล่ใบ Esc ปิด
    สถานะ/ตัวกรอง/หน้า/การเรียงอยู่ใน URL ชุดเดิม ลิงก์จากหน้าแรก (?status= ?attention=) ใช้ได้เหมือนเดิม
    ============================================================ */
 
@@ -110,25 +110,6 @@ function focusPeekTrigger(id: string) {
   else requestAnimationFrame(() => find()?.focus());
 }
 
-const DAY_MS = 24 * 60 * 60 * 1000;
-const bangkokYmd = new Intl.DateTimeFormat("en-CA", {
-  timeZone: BANGKOK_TZ,
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-});
-const monthLabel = new Intl.DateTimeFormat("th-TH", { month: "short", year: "2-digit", timeZone: BANGKOK_TZ });
-
-/** ช่วงวันที่เปิดออเดอร์แบบเลือกสำเร็จ (ต้นแบบ select ช่วงวันที่) — คิดเป็นวันปฏิทินไทย */
-function datePresets(now: Date) {
-  const today = bangkokYmd.format(now);
-  return [
-    { value: "7", label: "7 วันล่าสุด", from: bangkokYmd.format(new Date(now.getTime() - 6 * DAY_MS)), to: today },
-    { value: "30", label: "30 วันล่าสุด", from: bangkokYmd.format(new Date(now.getTime() - 29 * DAY_MS)), to: today },
-    { value: "m", label: `เดือนนี้ (${monthLabel.format(now)})`, from: `${today.slice(0, 8)}01`, to: today },
-  ];
-}
-
 export default function OrdersPage() {
   return (
     <Suspense fallback={<OrdersLoading />}>
@@ -168,7 +149,6 @@ function OrdersPageContent() {
   // ช่าง/กราฟิกไม่เห็นเงินฝั่งขาย — ซ่อนยอด + sort ยอด (ระหว่างโหลด me = ซ่อนไว้ก่อน ปลอดภัยกว่า)
   const canSeeMoney = permAllows(me?.permissions, "see_order_money");
   const { sortOptions, sort, sortBy, sortOrder } = resolveOrderListSort(rawSort, canSeeMoney);
-  const [now] = useState(() => new Date());
 
   const [peekId, setPeekId] = useState<string | null>(null);
   // เปลี่ยนตัวกรอง/หน้า/การเรียง = ชุดแถวเปลี่ยน · ปิดดูย่อก่อน ไม่ให้แผงค้างใบที่หายไปจากตาราง
@@ -264,37 +244,16 @@ function OrdersPageContent() {
     clearSearch({ channel: null, type: null, status: null, attention: null, from: null, to: null });
   };
 
-  const presets = datePresets(now);
-  const rangeValue =
-    !createdAfter && !createdBefore
-      ? ""
-      : (presets.find((preset) => preset.from === createdAfter && preset.to === createdBefore)?.value ?? "custom");
-
-  const headline = ordersHeadline(data?.statusCounts, data?.overdueCounts);
   const canExport = Boolean(rows && rows.length > 0);
 
   return (
     <div className={c("tokens page")}>
       <div className={c("head")}>
-        <div>
-          <h1>ออเดอร์</h1>
-          {data ? (
-            <p className={c("date")}>
-              <span className={c("num")}>{headline.total.toLocaleString("th-TH")}</span> ใบทั้งหมด · กำลังเดิน{" "}
-              <b className={c("num")}>{headline.active.toLocaleString("th-TH")}</b>
-              {headline.overdue > 0 ? (
-                <>
-                  {" · "}
-                  <span className={c("late")}>เลยกำหนด {headline.overdue.toLocaleString("th-TH")}</span>
-                </>
-              ) : null}
-            </p>
-          ) : null}
-        </div>
+        <h1>ออเดอร์</h1>
         <div className={c("acts")}>
           <button
             type="button"
-            className={c("btn")}
+            className={c("btn ghost")}
             disabled={!canExport}
             onClick={() => rows && exportOrdersCsv(rows, canSeeMoney)}
           >
@@ -311,23 +270,6 @@ function OrdersPageContent() {
       </div>
 
       <section className={c("card")} aria-label="เส้นทางงาน">
-        <CardHead
-          icon={Workflow}
-          tone="blue"
-          title="เส้นทางงาน"
-          right={
-            <span className={c("legend")}>
-              <span>
-                <i className={c("ok")} />
-                ตามกำหนด
-              </span>
-              <span>
-                <i className={c("bad")} />
-                มีงานเลยกำหนด
-              </span>
-            </span>
-          }
-        />
         <OrderPipeline
           counts={data?.statusCounts}
           overdue={data?.overdueCounts}
@@ -337,35 +279,7 @@ function OrdersPageContent() {
         />
       </section>
 
-      <section className={c("card")} aria-label="รายการออเดอร์">
-        <CardHead
-          icon={ShoppingCart}
-          title={internalStatus ? INTERNAL_STATUS_LABELS[internalStatus as InternalStatus] : "ทุกสถานะ"}
-          right={
-            hasActiveFilters ? (
-              <>
-                {attention ? (
-                  <span className={c("fchip")}>
-                    <Filter aria-hidden="true" />
-                    {ATTENTION_FILTERS.find((filter) => filter.value === attention)?.label}
-                    <button
-                      type="button"
-                      aria-label="ล้างตัวกรองความเร่งด่วน"
-                      onClick={() => updateList({ attention: null, page: null })}
-                    >
-                      <X aria-hidden="true" />
-                    </button>
-                  </span>
-                ) : null}
-                <button type="button" className={c("btn ghost sm")} onClick={clearFiltersAndSearch}>
-                  <X aria-hidden="true" />
-                  ล้างตัวกรอง
-                </button>
-              </>
-            ) : undefined
-          }
-        />
-
+      <section className={c("card lst")} aria-label="รายการออเดอร์">
         <div className={c("tools")}>
           <label className={c("sinput")}>
             <Search aria-hidden="true" />
@@ -373,7 +287,7 @@ function OrdersPageContent() {
               ref={searchInputRef}
               type="search"
               defaultValue={search}
-              placeholder="ค้นหาเลขออเดอร์ หรือลูกค้า"
+              placeholder="ค้นเลขออเดอร์หรือลูกค้า"
               aria-label="ค้นหาออเดอร์"
               onChange={(event) => {
                 setPeekId(null);
@@ -410,27 +324,12 @@ function OrdersPageContent() {
               </option>
             ))}
           </select>
-          <select
-            className={c("sel", rangeValue && "on")}
-            aria-label="ช่วงวันที่เปิดออเดอร์"
-            value={rangeValue}
-            onChange={(event) => {
-              const preset = presets.find((item) => item.value === event.target.value);
-              updateList({ from: preset?.from ?? null, to: preset?.to ?? null, page: null });
-            }}
-          >
-            <option value="">ทุกช่วงวันที่</option>
-            {presets.map((preset) => (
-              <option key={preset.value} value={preset.value}>
-                {preset.label}
-              </option>
-            ))}
-            {rangeValue === "custom" ? (
-              <option value="custom">
-                {createdAfter ? formatDateCompact(createdAfter) : "…"} – {createdBefore ? formatDateCompact(createdBefore) : "…"}
-              </option>
-            ) : null}
-          </select>
+          <KitDateRange
+            label="ช่วงวันที่เปิดออเดอร์"
+            from={createdAfter}
+            to={createdBefore}
+            onChange={(from, to) => updateList({ from: from || null, to: to || null, page: null })}
+          />
           <select
             className={c("sel", channel && "on")}
             aria-label="กรองช่องทาง"
@@ -455,7 +354,34 @@ function OrdersPageContent() {
               </option>
             ))}
           </select>
-          <span className={c("cnt")} aria-live="polite" aria-busy={isFetching}>
+          {internalStatus ? (
+            <span className={c("fchip")}>
+              {INTERNAL_STATUS_LABELS[internalStatus as InternalStatus]}
+              <button type="button" aria-label="ล้างตัวกรองสถานะ" onClick={() => updateList({ status: null, page: null })}>
+                <X aria-hidden="true" />
+              </button>
+            </span>
+          ) : null}
+          {attention ? (
+            <span className={c("fchip")}>
+              <Filter aria-hidden="true" />
+              {ATTENTION_FILTERS.find((filter) => filter.value === attention)?.label}
+              <button
+                type="button"
+                aria-label="ล้างตัวกรองความเร่งด่วน"
+                onClick={() => updateList({ attention: null, page: null })}
+              >
+                <X aria-hidden="true" />
+              </button>
+            </span>
+          ) : null}
+          <span className={c("grow")} />
+          {hasActiveFilters ? (
+            <button type="button" className={c("btn ghost sm")} onClick={clearFiltersAndSearch}>
+              ล้างตัวกรอง
+            </button>
+          ) : null}
+          <span className={c("sr")} aria-live="polite" aria-busy={isFetching}>
             {!data ? "" : isFetching ? "กำลังอัปเดต…" : `${data.total.toLocaleString("th-TH")} ออเดอร์`}
           </span>
         </div>

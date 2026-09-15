@@ -12,9 +12,10 @@ const cssSource = read("../kit/kit.module.css");
    ต้นแบบ: สมอง records/projects/anajak-erp/mockup-orders-minimal-2026-09-14.html
    ล็อกโครงที่เคาะ + ข้อที่ห้ามหลุด (เงินตามสิทธิ์ · รูปม็อกอัพกลาง · กฎต้องจัดการชุดเดียวกับหน้าแรก) */
 describe("หน้ารายการออเดอร์ — ต้นแบบรอบ 2", () => {
-  it("หัวหน้า → ราง pipeline → ตารางในการ์ด · ปุ่มหลักตัวเดียวคือสร้างออเดอร์", () => {
+  it("หัวหน้า → เส้นสถานะ → ตารางในการ์ด · ปุ่มหลักตัวเดียวคือสร้างออเดอร์ · ไม่มีบรรทัดสรุปและหัวการ์ด (รอบโล่งขึ้น 09-16)", () => {
     expect(pageSource).toContain("<h1>ออเดอร์</h1>");
-    expect(pageSource).toContain("ordersHeadline(data?.statusCounts, data?.overdueCounts)");
+    expect(pageSource).not.toContain("ordersHeadline");
+    expect(pageSource).not.toContain("CardHead");
     expect(pageSource.indexOf("<OrderPipeline")).toBeGreaterThan(-1);
     expect(pageSource.indexOf("<OrderPipeline")).toBeLessThan(pageSource.indexOf("<OrdersTable"));
     expect(pageSource.match(/className=\{c\("btn primary"\)\}/g)).toHaveLength(1);
@@ -25,12 +26,12 @@ describe("หน้ารายการออเดอร์ — ต้นแ�
     expect(pageSource).toContain("updateList({ status: status || null, page: null })");
     expect(pipelineSource).toContain("aria-pressed={selected}");
     expect(pipelineSource).toContain("overdue?.[status]");
-    expect(pipelineSource).toContain("prefers-reduced-motion");
+    expect(pipelineSource).not.toContain("useLayoutEffect");
     expect(pipelineSource).toContain("PIPELINE_EXCEPTIONS");
   });
 
   it("ตารางตอบ ใบไหน/ลูกค้า → ขั้นงาน → ต้องจัดการ ด้วยกฎเดียวกับหน้าแรกและรูปม็อกอัพกลาง", () => {
-    for (const header of ["ลูกค้า", "ขั้นงาน", "ต้องจัดการ", "การชำระ"]) {
+    for (const header of ["ลูกค้า", "จำนวน", "ขั้นงาน", "คนทำ", "ต้องจัดการ", "การชำระ"]) {
       expect(tableSource).toMatch(new RegExp(`>\\s*${header}\\s*<`));
     }
     for (const sortable of ["เลขออเดอร์", "ยอดรวม", "กำหนดส่ง"]) expect(tableSource).toContain(`label="${sortable}"`);
@@ -62,6 +63,8 @@ describe("หน้ารายการออเดอร์ — ต้นแ�
     expect(pageSource).toContain("ส่งออกหน้านี้");
     expect(pageSource).toContain('aria-label="ล้างตัวกรองความเร่งด่วน"');
     expect(pageSource).toContain('aria-label="ล้างคำค้น"');
+    expect(pageSource).toContain('aria-label="ล้างตัวกรองสถานะ"');
+    expect(pageSource).toContain("<KitDateRange");
   });
 
   it("ชิ้นที่ออกแบบใหม่ไม่มีเอฟเฟกต์ตอนชี้ (เบสสั่ง 2026-09-14) — ตอบสนองตอนกดแทน", () => {

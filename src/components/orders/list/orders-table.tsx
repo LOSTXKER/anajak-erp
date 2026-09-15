@@ -4,19 +4,19 @@ import Link from "next/link";
 import { ArrowDown, ArrowUp, ArrowUpDown, ChevronRight, MessageCircle } from "lucide-react";
 import type { RouterOutput } from "@/lib/trpc";
 import { safeChatUrl } from "@/components/customers/chat-link";
-import { c, DueTag, PriorityChip, StatusDot, StepBar, Thumb } from "@/components/kit/kit";
-import { PayTag, TechChip, WhyCell } from "@/components/orders/orders-ui";
+import { c, DueTag, StatusDot, Thumb } from "@/components/kit/kit";
+import { PayTag, WhyCell } from "@/components/orders/orders-ui";
 import { describeOrderAttention } from "@/lib/home-orders";
 import { mockupCoverImage } from "@/lib/mockup";
-import { CHANNEL_LABELS } from "@/lib/order-status";
+import { isAttentionStatus } from "@/lib/order-progress";
 import type { SortDirection, SortKey } from "@/lib/order-list-contract";
-import { formatBaht, formatDateCompact } from "@/lib/utils";
+import { formatBaht, formatDateShort } from "@/lib/utils";
 
 /* ============================================================
-   ตารางออเดอร์ — ต้นแบบ listPage() rowHTML ทีละคอลัมน์ (รื้อ 2026-09-15)
+   ตารางออเดอร์ — ต้นแบบ mockup-orders-list-lite-2026-09-16 (เบสเคาะ "ทำจริงเลย")
 
-   เลขออเดอร์ · ลูกค้า · ขั้นงาน · ต้องจัดการ · ยอดรวม · การชำระ · กำหนดส่ง · ›
-   "ต้องจัดการ" ใช้กฎกลาง lib/home-orders ชุดเดียวกับหน้าแรก · ขีดซ้าย: เลยกำหนด แดง / ส่งวันนี้ ส้ม / พักงาน เทา / ดูย่ออยู่ ฟ้า
+   ออเดอร์ · ลูกค้า · จำนวน · ขั้นงาน · คนทำ · ต้องจัดการ · ยอด·ชำระ · กำหนดส่ง · ›
+   ขั้นงานเหลือชื่อสถานะ · คนทำแยกคอลัมน์ · ต้องจัดการใช้ถ้อยคำสั้น (กฎกลาง lib/home-orders ชุดเดียวกับหน้าแรก)
    กดแถว = ดูย่อ (เลขออเดอร์เป็นปุ่มให้คีย์บอร์ดเข้าได้) · › = เปิดใบเต็ม · จอ ≤900px เป็นการ์ด (.ocards)
    ============================================================ */
 
@@ -42,10 +42,20 @@ export function customerLines(order: OrderListRow) {
   };
 }
 
-function stepsText(order: OrderListRow): string {
-  const { currentStep, stepsDone, stepsTotal } = order.progress;
-  if (currentStep) return `${Math.min(stepsDone + 1, stepsTotal)}/${stepsTotal} ${currentStep.label}`;
-  return stepsDone >= stepsTotal ? "ครบทุกขั้น" : `${stepsDone}/${stepsTotal}`;
+/** คนทำ: ขั้นผลิตที่เปิดอยู่ → ร้านนอก/ช่างที่รับขั้น · ยังไม่เข้าผลิต → ผู้เปิดออเดอร์ · จบแล้ว = ไม่มี */
+export function orderWorker(order: OrderListRow): { name: string; role: string } | null {
+  if (!isAttentionStatus(order.internalStatus)) return null;
+  const { currentStep, vendor } = order.progress;
+  if (currentStep) {
+    if (currentStep.outsource && vendor) return { name: vendor.name, role: "ร้านนอก" };
+    return currentStep.assigneeName ? { name: currentStep.assigneeName, role: `ขั้น${currentStep.label}` } : null;
+  }
+  const creator = order.createdBy?.name?.trim();
+  return creator ? { name: creator, role: "ผู้เปิดออเดอร์" } : null;
+}
+
+function initialOf(name: string) {
+  return name.replace(/^(ร้าน|คุณ)/, "").replace(/^[เแโใไ]/, "").slice(0, 1);
 }
 
 function SortTh({
@@ -85,7 +95,8 @@ function CustomerCell({ order }: { order: OrderListRow }) {
   return (
     <div className={c("who")}>
       <div className={c("t")}>
-        <span className={c("nm")}>{title}</span>
+      <span className={c("nm")}>{title}</span>
+      {chatName || person ? (
         <div className={c("cu")}>
           {chatName ? (
             chatUrl ? (
@@ -100,11 +111,43 @@ function CustomerCell({ order }: { order: OrderListRow }) {
               </span>
             )
           ) : (
-            person ?? "—"
+            person
           )}
         </div>
+      ) : null}
       </div>
     </div>
+  );
+}
+
+function WorkerCell({ order }: { order: OrderListRow }) {
+  const worker = orderWorker(order);
+  if (!worker) return <span className={c("none")}>—</span>;
+  return (
+    <span className={c("wh")}>
+      <span className={c("av")} aria-hidden="true">
+        {initialOf(worker.name)}
+      </span>
+      <span className={c("nmw")}>
+        {worker.name}
+        <span className={c("sr")}> ({worker.role})</span>
+      </span>
+    </span>
+  );
+}
+
+/** กำหนดส่ง: วันที่จริง + บรรทัดบอกความรีบ (เฉพาะงานที่ยังเดิน) */
+function DueCell({ order }: { order: OrderListRow }) {
+  const days = order.progress.dueInDays;
+  if (!order.deadline || days === null) return <span className={c("rel")}>ยังไม่กำหนด</span>;
+  const open = isAttentionStatus(order.internalStatus);
+  const [tone, text] =
+    days < 0 ? ["bad", `เลย ${-days} วัน`] : days === 0 ? ["warn", "วันนี้"] : days === 1 ? ["warn", "พรุ่งนี้"] : [null, `อีก ${days} วัน`];
+  return (
+    <>
+      <span className={c("dd")}>{formatDateShort(order.deadline)}</span>
+      {open ? <span className={c("rel", tone)}>{text}</span> : null}
+    </>
   );
 }
 
@@ -124,25 +167,29 @@ export function OrdersTable({
   return (
     <>
       <div className={c("tblw list")}>
-        <table className={c("orders fixed")}>
+        <table className={c("orders fixed olistt")}>
           <colgroup>
-            <col className={c("c-no")} />
-            <col className={c("c-cu")} />
-            <col className={c("c-st")} />
-            <col className={c("c-why")} />
-            {canSeeMoney ? <col className={c("c-amt")} /> : null}
-            <col className={c("c-pay")} />
-            <col className={c("c-due")} />
-            <col className={c("c-arr")} />
+            <col className={c("n-no")} />
+            <col className={c("n-cu")} />
+            <col className={c("n-q")} />
+            <col className={c("n-st")} />
+            <col className={c("n-who")} />
+            <col className={c("n-why")} />
+            {canSeeMoney ? <col className={c("n-amt")} /> : <col className={c("n-pay")} />}
+            <col className={c("n-due")} />
+            <col className={c("n-arr")} />
           </colgroup>
           <thead>
             <tr>
               <SortTh label="เลขออเดอร์" column={sortColumn("orderNumber")} />
               <th scope="col">ลูกค้า</th>
+              <th scope="col" className={c("r")}>
+                จำนวน
+              </th>
               <th scope="col">ขั้นงาน</th>
+              <th scope="col">คนทำ</th>
               <th scope="col">ต้องจัดการ</th>
-              {canSeeMoney ? <SortTh label="ยอดรวม" column={sortColumn("totalAmount")} right /> : null}
-              <th scope="col">การชำระ</th>
+              {canSeeMoney ? <SortTh label="ยอดรวม" column={sortColumn("totalAmount")} right /> : <th scope="col">การชำระ</th>}
               <SortTh label="กำหนดส่ง" column={sortColumn("deadline")} />
               <th scope="col">
                 <span className={c("sr")}>เปิดออเดอร์</span>
@@ -154,20 +201,12 @@ export function OrdersTable({
               const problem = describeOrderAttention(order.progress);
               const selected = peekId === order.id;
               const { title } = customerLines(order);
-              const { stepsTotal, stepsDone } = order.progress;
-              const mark =
-                problem?.group === "late"
-                  ? "hot"
-                  : problem?.group === "today"
-                    ? "warm"
-                    : order.internalStatus === "ON_HOLD"
-                      ? "hold"
-                      : null;
+              const urgent = order.priority === "URGENT";
               return (
                 <tr
                   key={order.id}
                   data-order-row={order.id}
-                  className={c("row", selected && "sel", mark)}
+                  className={c("row", selected && "sel")}
                   onClick={(event) => {
                     if ((event.target as HTMLElement).closest("a,button")) return;
                     if (window.getSelection()?.toString()) return;
@@ -189,38 +228,42 @@ export function OrdersTable({
                           >
                             <span className={c("mono")}>{order.orderNumber}</span>
                           </button>
-                          {order.printLabel ? <TechChip label={order.printLabel} /> : null}
-                          <PriorityChip priority={order.priority} />
                         </div>
-                        <div className={c("cu")}>
-                          <span className={c("chn")}>
-                            {CHANNEL_LABELS[order.channel] ?? order.channel} · เปิด {formatDateCompact(order.createdAt)}
-                          </span>
-                        </div>
+                        <span className={c("dt")}>
+                          {urgent ? <b className={c("urg")}>ด่วน · </b> : null}
+                          {order.printLabel ? `${order.printLabel} · ` : ""}เปิด {formatDateShort(order.createdAt)}
+                        </span>
                       </div>
                     </div>
                   </td>
                   <td>
                     <CustomerCell order={order} />
                   </td>
-                  <td className={c("stp")}>
+                  <td className={c("qn")}>
+                    <b>{order.quantity.toLocaleString("th-TH")}</b>
+                    <small>ตัว</small>
+                  </td>
+                  <td>
                     <StatusDot status={order.internalStatus} />
-                    {order.production && stepsTotal > 0 ? (
-                      <div className={c("stpline")}>
-                        <StepBar done={stepsDone} total={stepsTotal} label={`ขั้นใบผลิต ${stepsDone} จาก ${stepsTotal}`} />
-                        <small>{stepsText(order)}</small>
-                      </div>
-                    ) : null}
                   </td>
                   <td>
-                    <WhyCell problem={problem} progress={order.progress} />
-                  </td>
-                  {canSeeMoney ? <td className={c("amt r")}>{formatBaht(order.totalAmount ?? 0)}</td> : null}
-                  <td>
-                    <PayTag label={order.paymentLabel} status={order.internalStatus} />
+                    <WorkerCell order={order} />
                   </td>
                   <td>
-                    <DueTag status={order.internalStatus} deadline={order.deadline} dueInDays={order.progress.dueInDays} />
+                    <WhyCell problem={problem} progress={order.progress} short />
+                  </td>
+                  {canSeeMoney ? (
+                    <td className={c("amt r")}>
+                      {formatBaht(order.totalAmount ?? 0)}
+                      <PayTag label={order.paymentLabel} status={order.internalStatus} />
+                    </td>
+                  ) : (
+                    <td>
+                      <PayTag label={order.paymentLabel} status={order.internalStatus} />
+                    </td>
+                  )}
+                  <td className={c("due2")}>
+                    <DueCell order={order} />
                   </td>
                   <td className={c("arr")}>
                     <Link href={`/orders/${order.id}`} className={c("ibtn")} aria-label={`เปิดออเดอร์ ${order.orderNumber}`}>
@@ -247,9 +290,10 @@ export function OrdersTable({
                     <div className={c("t")}>
                       <div className={c("id")}>
                         <span className={c("mono")}>{order.orderNumber}</span>
-                        {order.printLabel ? <TechChip label={order.printLabel} /> : null}
                       </div>
-                      <div className={c("cu")}>{title}</div>
+                      <div className={c("cu")}>
+                        {title} · {order.quantity.toLocaleString("th-TH")} ตัว
+                      </div>
                     </div>
                   </div>
                   <ChevronRight aria-hidden="true" />
@@ -259,7 +303,7 @@ export function OrdersTable({
                   <DueTag status={order.internalStatus} deadline={order.deadline} dueInDays={order.progress.dueInDays} />
                   {canSeeMoney ? <span className={c("amt")}>{formatBaht(order.totalAmount ?? 0)}</span> : null}
                 </div>
-                {problem ? <WhyCell problem={problem} progress={order.progress} showWho={false} /> : null}
+                {problem ? <WhyCell problem={problem} progress={order.progress} short /> : null}
               </Link>
             </li>
           );
@@ -268,3 +312,4 @@ export function OrdersTable({
     </>
   );
 }
+

@@ -28,7 +28,8 @@ describe("FilterPopover visual contract", () => {
     // หน้าออเดอร์ยกแถบเครื่องมือ .tools จากต้นแบบรอบ 2 (2026-09-15): select ตรงหน้า ช่วงวันที่ ช่องทาง ประเภท
     expect(ordersSource).toContain('aria-label="กรองช่องทาง"');
     expect(ordersSource).toContain('aria-label="กรองประเภทงาน"');
-    expect(ordersSource).toContain('aria-label="ช่วงวันที่เปิดออเดอร์"');
+    // ช่วงวันที่เป็นปฏิทิน + ช่วงสำเร็จรูป (KitDateRange · รอบโล่งขึ้น 2026-09-16) ป้ายส่งผ่าน prop label
+    expect(ordersSource).toContain('label="ช่วงวันที่เปิดออเดอร์"');
     expect(ordersSource.match(/className=\{c\("sel/g)?.length).toBeGreaterThanOrEqual(3);
     expect(ordersSource).toContain("const clearFiltersAndSearch = () =>");
     expect(ordersSource).toContain("ล้างตัวกรอง");

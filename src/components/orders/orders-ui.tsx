@@ -62,6 +62,32 @@ export function orderAttentionText(problem: HomeProblem, progress: OrderProgress
   }
 }
 
+/** ถ้อยคำสั้นของตาราง (ต้นแบบ mockup-orders-list-lite-2026-09-16) — วันเลยกำหนดอยู่ช่องกำหนดส่งแล้ว ไม่พูดซ้ำ */
+export function orderAttentionShort(problem: HomeProblem, progress: OrderProgress): string {
+  const step =
+    progress.currentStep?.label ??
+    (INTERNAL_STATUS_LABELS as Record<string, string>)[progress.internalStatus] ??
+    progress.internalStatus;
+  const vendorName = progress.vendor?.name ?? "ร้านนอก";
+  const vendorLate = progress.vendor?.overdueDays ?? 0;
+  switch (problem.kind) {
+    case "overdue":
+      return `ค้างขั้น${step}`;
+    case "vendor-late":
+      return `${vendorName} เลยรับ ${vendorLate} วัน`;
+    case "ready":
+      return "แพ็กแล้ว รอขนส่ง";
+    case "in-progress":
+      return `อยู่ขั้น${step}`;
+    case "customer":
+      return `รอลูกค้าอนุมัติ ${progress.waitingCustomerDays ?? 0} วัน`;
+    case "vendor":
+      return vendorLate > 0 ? `${vendorName} เลยรับ ${vendorLate} วัน` : `${vendorName} รอรับกลับ`;
+    case "stuck":
+      return `ไม่ขยับ ${progress.stuckDays ?? 0} วัน`;
+  }
+}
+
 export const PROBLEM_ICON: Record<HomeProblemKind, LucideIcon> = {
   overdue: Flame,
   "vendor-late": Truck,
@@ -84,10 +110,13 @@ export function WhyCell({
   problem,
   progress,
   showWho = true,
+  short = false,
 }: {
   problem: HomeProblem | null;
   progress: OrderProgress;
   showWho?: boolean;
+  /** ถ้อยคำสั้นแบบตารางออเดอร์ · ไม่มีบรรทัดชื่อคนทำ (มีคอลัมน์คนทำแยก) */
+  short?: boolean;
 }) {
   if (!problem) {
     return (
@@ -102,9 +131,9 @@ export function WhyCell({
     <div className={c("why-cell")}>
       <span className={c("why", PROBLEM_TONE[problem.tone])}>
         <Icon aria-hidden="true" />
-        {text}
+        {short ? orderAttentionShort(problem, progress) : text}
       </span>
-      {showWho && who ? <span className={c("wholine")}>{who}</span> : null}
+      {showWho && !short && who ? <span className={c("wholine")}>{who}</span> : null}
     </div>
   );
 }
