@@ -73,32 +73,30 @@ export function StatCard({
     <div
       aria-busy={loading || undefined}
       className={cn(
-        "card-surface rounded-2xl p-5",
+        "card-surface rounded-2xl px-5 pb-4 pt-5",
         href && "card-surface-hover",
         !href && className
       )}
     >
-      <div className="flex items-center justify-between">
-        <p className="text-xs font-medium text-muted">
-          {title}
-        </p>
-        {Icon &&
-          (toned ? (
-            <Icon
-              className={cn("h-4 w-4 shrink-0", VISUAL_TONE_CLASSES[toned].mark)}
-              strokeWidth={1.75}
-              aria-hidden="true"
-            />
-          ) : (
-            <Icon
-              className="h-4 w-4 text-muted"
-              strokeWidth={1.75}
-            />
-          ))}
+      {/* หน้าตาช่องตัวเลขแบบ kit (.tile หน้าแรก · 2026-09-17): ไอคอนในกล่องเทาอ่อนนำหน้าชื่อ แล้วตัวเลขใหญ่ข้างล่าง */}
+      <div className="flex items-center gap-2.5">
+        {Icon ? (
+          <span
+            className={cn(
+              "grid size-9 shrink-0 place-items-center rounded-xl",
+              toned ? VISUAL_TONE_CLASSES[toned].mark : "text-secondary",
+              "bg-surface-muted",
+            )}
+            aria-hidden="true"
+          >
+            <Icon className="h-4 w-4" strokeWidth={1.75} />
+          </span>
+        ) : null}
+        <p className="text-xs font-medium text-secondary">{title}</p>
       </div>
-      {loading ? <div className="mt-2.5"><Skeleton className="h-9 w-28" /><span className="sr-only">กำลังโหลด{title}</span></div> : <p
+      {loading ? <div className="mt-3.5"><Skeleton className="h-9 w-28" /><span className="sr-only">กำลังโหลด{title}</span></div> : <p
         className={cn(
-          "mt-2.5 text-3xl font-semibold tabular-nums",
+          "mt-3.5 text-3xl font-semibold tabular-nums",
           toned ? VISUAL_TONE_CLASSES[toned].text : TONE_CLASSES[tone],
           valueClassName
         )}

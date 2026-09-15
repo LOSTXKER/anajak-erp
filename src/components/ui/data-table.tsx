@@ -7,7 +7,6 @@ import { cn } from "@/lib/utils";
 import { requestAppNavigation } from "@/lib/navigation-request";
 import {
   FOCUS_INSET,
-  INTERACTIVE_HOVER,
   INTERACTIVE_PRESSED,
   TABLE_HEAD_SURFACE,
 } from "./tokens";
@@ -37,10 +36,11 @@ interface RootProps extends React.HTMLAttributes<HTMLDivElement> {
   cellPadding?: "default" | "compact" | "responsive";
 }
 
+/* ระยะเซลล์แบบตาราง kit (หน้าออเดอร์ · 2026-09-17): เซลล์ 14px ขอบนอกซ้าย 18px */
 const CELL_PADDING = {
-  default: "[--data-table-cell-px:1.5rem]",
+  default: "[--data-table-cell-px:0.875rem] [&_tr>*:first-child]:pl-4.5",
   compact: "[--data-table-cell-px:0.75rem]",
-  responsive: "[--data-table-cell-px:1rem] xl:[--data-table-cell-px:1.5rem]",
+  responsive: "[--data-table-cell-px:0.875rem] [&_tr>*:first-child]:pl-4.5",
 } as const;
 
 // หัวธรรมดา หัวเรียงได้ และข้อมูลใช้ระยะเดียวกันเสมอ แม้ padding ของหัวเรียงจะอยู่บนปุ่ม
@@ -99,7 +99,7 @@ const Body = React.forwardRef<
       // Vercel-like dataset panel ใช้ divider บางช่วยไล่แถว โดยไม่ทำ cell grid
       // ข้อมูลทุกระดับในเซลล์ใช้ 14px; control ที่จงใจใช้ density แบบ sm/dense
       // รักษาขนาดจาก primitive ของตัวเอง ไม่ถูกกฎข้อมูลตารางทับ
-      "divide-y divide-divider [&_td]:text-sm [&_td_:not(:is(button,button_*,input,input_*,select,select_*,textarea,textarea_*,[role=combobox],[role=combobox]_*))]:text-sm",
+      "divide-y divide-divider/60 [&_td]:text-sm [&_td_:not(:is(button,button_*,input,input_*,select,select_*,textarea,textarea_*,[role=combobox],[role=combobox]_*))]:text-sm",
       className
     )}
     {...props}
@@ -136,8 +136,8 @@ const Row = React.forwardRef<HTMLTableRowElement, RowProps>(
         }
         className={cn(
           // ชี้แถวไหนต้องรู้ทันที — ตารางกว้างแล้วกดผิดแถวคือกดผิดออเดอร์
-          INTERACTIVE_HOVER,
-          "group transition-colors hover:[&_.text-muted]:text-secondary dark:hover:[&_.text-muted]:text-secondary",
+          // ไม่มีเอฟเฟกต์ตอนชี้แบบชุด kit — ตอบสนองตอนกด (active) แทน
+          "group transition-colors",
           href && cn("cursor-pointer", INTERACTIVE_PRESSED),
           className
         )}
@@ -160,7 +160,7 @@ const Th = React.forwardRef<HTMLTableCellElement, ThProps>(
       className={cn(
         // หัวคอลัมน์ไม่ตัดกลางวลี — "กำหนดส่ง" ที่ขึ้นบรรทัดใหม่กลางคำอ่านสะดุด
         // และทำให้หัวตารางสูงไม่เท่ากันทีละคอลัมน์ · ตารางมี overflow-x อยู่แล้ว
-        "whitespace-nowrap py-3 text-xs font-semibold text-secondary",
+        "whitespace-nowrap py-2.5 text-xs font-medium text-muted",
         CELL_HORIZONTAL_PADDING,
         align === "right" && "text-right",
         align === "center" && "text-center",
@@ -229,12 +229,12 @@ const SortableTh = React.forwardRef<HTMLTableCellElement, SortableThProps>(
             // ไม่ย้อมพื้นตอนเอาเมาส์ชี้ (เบสสั่ง 2026-08-02 "ไม่ชอบหัวตารางเปลี่ยนสีตอนชี้") —
             // แถบเทาโผล่เฉพาะช่องที่ชี้อยู่ ทำให้หัวตารางดูขาดเป็นท่อนๆ
             // บอกว่า "กดได้" ด้วยตัวหนังสือกับลูกศรที่เข้มขึ้นแทน — เบากว่าและไม่ทำให้แถวขาด
-            "group flex w-full cursor-pointer touch-manipulation items-center gap-1.5 whitespace-nowrap py-3 text-xs font-semibold transition-colors [@media(pointer:coarse)]:min-h-11",
+            "group flex w-full cursor-pointer touch-manipulation items-center gap-1.5 whitespace-nowrap py-2.5 text-xs font-medium transition-colors active:bg-interactive-pressed [@media(pointer:coarse)]:min-h-11",
             CELL_HORIZONTAL_PADDING,
             FOCUS_INSET,
             active
-              ? "font-semibold text-blue-700 dark:text-blue-300"
-              : "text-secondary hover:text-strong",
+              ? "text-blue-700 dark:text-blue-300"
+              : "text-muted",
             align === "right" && "justify-end",
             align === "center" && "justify-center"
           )}
@@ -246,7 +246,7 @@ const SortableTh = React.forwardRef<HTMLTableCellElement, SortableThProps>(
               "h-3 w-3 shrink-0 transition-colors",
               active
                 ? "text-blue-600 dark:text-blue-400"
-                : "text-muted group-hover:text-secondary"
+                : "text-muted opacity-60"
             )}
           />
         </button>
@@ -266,7 +266,7 @@ const Td = React.forwardRef<HTMLTableCellElement, TdProps>(
       ref={ref}
       className={cn(
         // แถวหายใจขึ้น (เฟส 10 · เบสเคาะ "นุ่มเต็มที่") — py 12 → 16px · เซลล์ 20 → 24px
-        "py-4 text-sm text-secondary",
+        "py-3 text-sm text-secondary",
         CELL_HORIZONTAL_PADDING,
         align === "right" && "text-right",
         align === "center" && "text-center",

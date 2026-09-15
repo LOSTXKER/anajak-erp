@@ -29,10 +29,10 @@ function renderTable(cellPadding?: "default" | "compact" | "responsive") {
 
 describe("DataTable horizontal spacing", () => {
   it.each([
-    [undefined, "[--data-table-cell-px:1.5rem]"],
-    ["default", "[--data-table-cell-px:1.5rem]"],
+    [undefined, "[--data-table-cell-px:0.875rem]"],
+    ["default", "[--data-table-cell-px:0.875rem]"],
     ["compact", "[--data-table-cell-px:0.75rem]"],
-    ["responsive", "[--data-table-cell-px:1rem] xl:[--data-table-cell-px:1.5rem]"],
+    ["responsive", "[--data-table-cell-px:0.875rem]"],
   ] as const)("%s keeps headers and rows aligned without changing row height", (padding, expected) => {
     const html = renderTable(padding);
 
@@ -42,9 +42,9 @@ describe("DataTable horizontal spacing", () => {
     const paddedTags = [...html.matchAll(/<(th|button|td)\b[^>]*class="([^"]*)"/g)]
       .filter(([, , className]) => className.includes("px-[var(--data-table-cell-px,1.5rem)]"));
     expect(paddedTags.map(([, tag]) => tag)).toEqual(["th", "button", "td"]);
-    expect(paddedTags[0][2]).toContain("py-3");
-    expect(paddedTags[1][2]).toContain("py-3");
-    expect(paddedTags[2][2]).toContain("py-4 text-sm");
+    expect(paddedTags[0][2]).toContain("py-2.5");
+    expect(paddedTags[1][2]).toContain("py-2.5");
+    expect(paddedTags[2][2]).toContain("py-3 text-sm");
     expect(html).not.toContain("cellPadding=");
   });
 
@@ -60,6 +60,6 @@ describe("DataTable horizontal spacing", () => {
     expect(html).not.toContain("card-surface");
     expect(html).toMatch(/<td[^>]+class="[^"]*px-0/);
     expect(html).not.toContain("px-[var(--data-table-cell-px,1.5rem)]");
-    expect(html).toContain("py-4 text-sm");
+    expect(html).toContain("py-3 text-sm");
   });
 });

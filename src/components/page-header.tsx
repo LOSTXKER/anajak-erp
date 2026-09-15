@@ -4,17 +4,9 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { PageIdentityIcon } from "@/lib/page-identity";
 import { HelpTip } from "@/components/ui/help-tip";
-import {
-  INTERACTIVE_PAGE_HOVER,
-  INTERACTIVE_PAGE_PRESSED,
-} from "@/components/ui/tokens";
-import {
-  VISUAL_TONE_CLASSES,
-  visualToneForLabel,
-  type VisualTone,
-} from "@/lib/visual-tone";
+import { INTERACTIVE_PAGE_PRESSED } from "@/components/ui/tokens";
+import type { VisualTone } from "@/lib/visual-tone";
 
 export interface BreadcrumbItem {
   label: string;
@@ -35,10 +27,11 @@ interface PageHeaderProps {
   titleBadge?: ReactNode;
   /** ปุ่มย้อนกลับหน้าหัวข้อ — หน้ารายละเอียดใช้ */
   back?: { href: string; label: string };
-  /** Visual identity ของโมดูล; ถ้าไม่ส่งจะอนุมานจากชื่อหน้า/เส้นทาง breadcrumb */
+  /** @deprecated หัวแบบ kit ไม่วาดไอคอนประจำหมวดแล้ว (2026-09-17) — คงไว้ให้ caller เดิมไม่พัง */
   icon?: LucideIcon;
+  /** @deprecated ดู icon */
   tone?: VisualTone;
-  /** บริบทสำหรับ assistive technology เท่านั้น; ไม่วาด kicker เหนือ h1 */
+  /** @deprecated ดู icon */
   eyebrow?: string;
   children?: ReactNode;
 }
@@ -56,19 +49,12 @@ export function PageHeader({
   breadcrumb,
   titleBadge,
   back,
-  icon,
-  tone,
-  eyebrow,
   children,
 }: PageHeaderProps) {
   const identityLabel =
     typeof title === "string"
       ? title
       : breadcrumb?.at(-1)?.label;
-  const descriptionSource = [identityLabel, ...(breadcrumb?.map((item) => item.label) ?? [])]
-    .filter(Boolean)
-    .join(" ");
-  const resolvedTone = tone ?? visualToneForLabel(descriptionSource);
   /* แถบ breadcrumb ("บิล/การเงิน › ลูกหนี้") ถูกถอดออกจากทุกหน้า 2026-08-26
      เบสส่งภาพมาชี้ตรงนั้นแล้วบอกว่า "ทุกหน้าไม่ต้องมีหัวข้อเล็กๆแบบนี้"
 
@@ -90,51 +76,26 @@ export function PageHeader({
   return (
     <div className="page-header space-y-4" data-page-identity={identityLabel ?? "custom"}>
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
-        <div className="flex min-w-0 items-start gap-2 sm:min-w-64 sm:flex-1">
+        <div className="flex min-w-0 items-center gap-2 sm:min-w-64 sm:flex-1">
           {/* ปุ่มย้อนกลับยืนบนผืนงานเทา ไม่ใช่ในการ์ด — ใช้คู่ interaction ของผืนงาน */}
           {resolvedBack && (
             <Button
               asChild
               variant="ghost"
               size="icon"
-              className={cn(INTERACTIVE_PAGE_HOVER, INTERACTIVE_PAGE_PRESSED, "mt-0.5 shrink-0")}
+              className={cn(INTERACTIVE_PAGE_PRESSED, "shrink-0")}
             >
               <Link href={resolvedBack.href} aria-label={resolvedBack.label}>
                 <ArrowLeft />
               </Link>
             </Button>
           )}
-          {/* เครื่องหมายประจำหมวดของหน้า — กลับมามีสีอีกครั้ง 2026-08-31 (แบบ B "สีบอกหมวด")
-              สีอนุมานจากชื่อหน้า/breadcrumb ด้วย visualToneForLabel ทุกหน้าจึงได้สีเองโดย
-              ไม่ต้องไล่แก้ทีละหน้า · หน้าไหนอยากกำหนดเองส่ง prop `tone` มาทับได้
-
-              ประวัติกันคนมาแก้ย้อน: 23 ส.ค. เคยเป็นกล่องสีทึบ 48px มีเงา → ถูกลดเหลือ
-              ไอคอนเส้นสีหมวด → แล้วถูกลดอีกเป็นเทาล้วนตอน "white canvas" วันเดียวกัน
-              รอบนี้กลับมาที่ "กล่องสีอ่อน + ไอคอนเส้น" ซึ่งอยู่ระหว่างสองอันนั้น
-              **ห้ามกลับไปเป็นสีทึบ** — ด่าน verify:ui ล็อกไว้แล้ว */}
-          <span
-            className={cn(
-              "page-module-mark mt-1.5 flex shrink-0 items-center justify-center",
-              VISUAL_TONE_CLASSES[resolvedTone].mark,
-            )}
-            role={eyebrow ? "img" : undefined}
-            aria-label={eyebrow}
-            aria-hidden={eyebrow ? undefined : "true"}
-          >
-            {icon ? (
-              <>{/* component จาก caller เป็น contract คงที่ ไม่ได้สร้างจาก resolver ระหว่าง render */}
-                {(() => {
-                  const Icon = icon;
-                  return <Icon className="h-6 w-6" strokeWidth={1.8} />;
-                })()}
-              </>
-            ) : (
-              <PageIdentityIcon label={identityLabel} className="h-6 w-6" strokeWidth={1.8} />
-            )}
-          </span>
-          <div className="min-w-0 space-y-1 pt-0.5">
+          {/* หัวหน้าแบบชุดกลาง kit (2026-09-17 เบสสั่ง "ทุกหน้าให้เข้ากัน ใช้ component เดียวกัน"):
+              ชื่อหน้าใหญ่ + ปุ่มขวา ไม่มีกล่องไอคอนประจำหมวด — ตรงหัวหน้าออเดอร์/หน้าแรกที่เบสเคาะ
+              (ไอคอนสีบอกหมวดแบบ B 2026-08-31 ถูกแทนด้วยหัวแบบนี้) · data-page-identity ยังอยู่ให้ด่านตรวจ */}
+          <div className="min-w-0 space-y-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="break-words text-2xl font-semibold text-strong [overflow-wrap:anywhere]">
+              <h1 className="break-words text-3xl font-semibold text-strong [overflow-wrap:anywhere]">
                 {title}
               </h1>
               {titleBadge}
@@ -142,7 +103,7 @@ export function PageHeader({
             </div>
             {description && (
               <p
-                className="max-w-[72ch] text-sm leading-relaxed text-secondary"
+                className="max-w-[72ch] text-sm leading-relaxed text-muted"
                 data-page-description=""
               >
                 {description}

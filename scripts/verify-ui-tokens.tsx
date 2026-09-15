@@ -234,11 +234,11 @@ const hSm = CONTROL_H_SM.split(" ");
     ) &&
     layoutSource.includes('weight: ["400", "500", "600", "700"]') &&
     !layoutSource.includes('"300"') &&
-    pageHeaderSource.includes("text-2xl font-semibold text-strong") &&
+    pageHeaderSource.includes("text-3xl font-semibold text-strong") &&
     dialogSource.includes("text-lg font-semibold text-strong") &&
     labelSource.includes("text-sm font-medium text-secondary") &&
     dataTableSource.includes('table className="w-full text-sm"') &&
-    buttonSource.includes("text-sm font-semibold");
+    buttonSource.includes("text-sm font-medium");
 
   const compressedType: string[] = [];
   const primitiveOverrides: string[] = [];
@@ -328,11 +328,10 @@ const hSm = CONTROL_H_SM.split(" ");
     <HelpTip label="อายุหนี้">นับจากวันครบกำหนด</HelpTip>,
   );
   if (
-    !headerHtml.includes("page-module-mark") ||
-    /* สีประจำหมวดยังอยู่ แต่ตั้งแต่ 2026-08-31 เป็น "ไอคอนสี ไม่มีพื้นกล่อง"
-       (เบสเคาะแบบ B จากหน้าลอง /proto/quiet — ก่อนหน้านั้นเป็นพื้นอ่อน)
-       ห้ามกลับไปมีพื้น ไม่ว่าจะพื้นอ่อน (.soft) หรือพื้นทึบ (.solid ที่ถูกปฏิเสธ 23 ส.ค.) */
-    !headerHtml.includes("text-module-production-text") ||
+    /* หัวหน้าแบบ kit (2026-09-17 เบสสั่งให้ทุกหน้าเข้ากับหน้าออเดอร์/หน้าแรก):
+       ชื่อหน้าใหญ่ไม่มีกล่อง/ไอคอนประจำหมวด · ห้ามพื้นทึบ/เงากลับมา */
+    headerHtml.includes("page-module-mark") ||
+    !headerHtml.includes("text-3xl font-semibold text-strong") ||
     headerHtml.includes("bg-module-production-surface") ||
     headerHtml.includes('data-page-description=""') ||
     headerHtml.includes("bg-module-production-solid") ||
@@ -764,7 +763,8 @@ check("สั่งความสูงทับเองได้", renderToSt
 // ⑤ ปุ่ม = วงแหวนโฟกัสคนละสูตรกับช่องกรอก (ชัดกว่า + เว้นขอบ)
 check("ปุ่ม", renderToStaticMarkup(<Button>ก</Button>), [
   ...h,
-  "rounded-md",
+  // ปุ่มแบบ kit มุม 12px (2026-09-17)
+  "rounded-lg",
   "focus-visible:ring-2",
   "focus-visible:ring-blue-500",
   "focus-visible:ring-offset-2",
@@ -780,13 +780,13 @@ check("ปุ่มขนาดเล็ก", renderToStaticMarkup(<Button size=
 check(
   "ปุ่มรองตอบสนองด้วย interaction semantic",
   renderToStaticMarkup(<Button variant="ghost">ก</Button>),
+  // ชุด kit ไม่มีเอฟเฟกต์ตอนชี้ (เบสสั่ง 2026-09-14 · ขยายทั้งเว็บ 2026-09-17) — ตอบสนองตอนกดเท่านั้น
   [
-    "hover:bg-interactive-hover",
-    "hover:text-strong",
     "active:bg-interactive-pressed",
+    "active:text-strong",
     "dark:focus-visible:ring-blue-400",
   ],
-  ["hover:bg-slate-50", "hover:bg-slate-100"],
+  ["hover:bg-slate-50", "hover:bg-slate-100", "hover:bg-interactive-hover"],
 );
 for (const variant of ["outline", "secondary", "subtle"] as const) {
   check(
@@ -811,8 +811,8 @@ check(
 check(
   "ปุ่มอันตรายโหมดมืดไม่ย้อนเป็นแดงอ่อน",
   renderToStaticMarkup(<Button variant="destructive">ลบ</Button>),
-  ["dark:bg-red-700", "dark:hover:bg-red-800", "dark:active:bg-red-900"],
-  ["dark:bg-red-600", "dark:hover:bg-red-500"],
+  ["dark:bg-red-700", "dark:active:bg-red-800"],
+  ["dark:bg-red-600", "dark:hover:bg-red-500", "dark:active:bg-red-500"],
 );
 
 // ตัวกรองพักเป็น neutral; สถานะเลือกใช้เส้น+ข้อความ Anajak Blue โดยไม่วาดพื้น/กล่อง/เงา
@@ -994,7 +994,7 @@ check(
   ),
   [
     "divide-y",
-    "divide-divider",
+    "divide-divider/60",
     "[&amp;_td]:text-sm",
     "[&amp;_td_:not(:is(button,button_*,input,input_*,select,select_*,textarea,textarea_*,[role=combobox],[role=combobox]_*))]:text-sm",
   ],
@@ -1278,10 +1278,11 @@ check(
   const defaultCellHtml = renderToStaticMarkup(<DataTable.Td>ตัวอย่าง</DataTable.Td>);
   const defaultTableHtml = renderToStaticMarkup(<DataTable.Root />);
   const cellPaddingMatchesSkeleton =
-    skeletonSource.includes("h-[75px]") &&
-    defaultCellHtml.includes("py-4 text-sm text-secondary") &&
+    // แถวแบบตาราง kit (2026-09-17): เซลล์ py-3 · ระยะข้าง 14px ขอบนอก 18px — โครงร่างโหลดสูงเท่าแถวจริง
+    skeletonSource.includes("h-[67px]") &&
+    defaultCellHtml.includes("py-3 text-sm text-secondary") &&
     defaultCellHtml.includes("px-[var(--data-table-cell-px,1.5rem)]") &&
-    defaultTableHtml.includes("[--data-table-cell-px:1.5rem]");
+    defaultTableHtml.includes("[--data-table-cell-px:0.875rem]");
 
   const pageTokensAreWired =
     INTERACTIVE_PAGE_HOVER.includes("bg-interactive-page-hover") &&
@@ -1292,15 +1293,11 @@ check(
     pageHover[0] !== hover[0] &&
     pageHover[0] !== chromeHover[0] &&
     pageHover[1] !== hover[1] &&
-    // ของที่ยืนบนผืนงานจริง ๆ ต้องประกาศตัวว่าใช้คู่นี้ (กันคนลบทิ้งแล้วลืม)
-    // เช็คการ "ใช้งานจริง" ไม่ใช่แค่บรรทัด import — ไม่งั้นลบออกจาก className แล้วด่านยังเขียว
-    // ปุ่มก่อนหน้า/ถัดไป ต้องได้ครบทั้งสองปุ่ม — นับจำนวน ไม่ใช่แค่ includes
-    // (includes เฉย ๆ ปล่อยให้ลบออกจากปุ่มเดียวแล้วด่านยังเขียว ทดสอบแล้วเป็นอย่างนั้นจริง)
-    (readFileSync("src/components/ui/table-pagination.tsx", "utf8").match(
-      /cn\(INTERACTIVE_PAGE_HOVER, INTERACTIVE_PAGE_PRESSED\)/g,
-    )?.length ?? 0) === 2 &&
+    // ของที่ยืนบนผืนงานต้องตอบสนองตอนกด (ชุด kit ไม่มีเอฟเฟกต์ตอนชี้ · 2026-09-17):
+    // ปุ่มย้อนกลับของหัวหน้าใช้คู่ pressed ของผืนงาน · แถบแบ่งหน้าใช้ pressed กลางทุกปุ่ม
+    readFileSync("src/components/ui/table-pagination.tsx", "utf8").includes("active:bg-interactive-pressed") &&
     readFileSync("src/components/page-header.tsx", "utf8")
-      .includes("cn(INTERACTIVE_PAGE_HOVER, INTERACTIVE_PAGE_PRESSED,");
+      .includes("cn(INTERACTIVE_PAGE_PRESSED,");
   const chromeTokensAreWired =
     INTERACTIVE_CHROME_HOVER.includes("bg-interactive-chrome-hover") &&
     INTERACTIVE_CHROME_PRESSED.includes("bg-interactive-chrome-pressed");

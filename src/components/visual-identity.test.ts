@@ -12,10 +12,11 @@ import { HelpTip } from "./ui/help-tip";
 import { visualToneForLabel } from "@/lib/visual-tone";
 
 describe("system visual identity", () => {
-  it("วาด module marker แบบเส้นเรียบโดย h1 ยังมีข้อความหัวข้อชุดเดียว", () => {
+  it("หัวหน้าแบบ kit: ชื่อหน้าใหญ่ ไม่มีกล่องไอคอนประจำหมวด และมี h1 ชุดเดียว (2026-09-17)", () => {
     const html = renderToStaticMarkup(createElement(PageHeader, { title: "ควบคุมการผลิต" }));
     expect(html).toContain('data-page-identity="ควบคุมการผลิต"');
-    expect(html).toContain("page-module-mark");
+    expect(html).not.toContain("page-module-mark");
+    expect(html).toContain("text-3xl font-semibold text-strong");
     expect(html.match(/<h1/g)).toHaveLength(1);
     expect(html).toContain("ควบคุมการผลิต");
     expect(html).not.toContain("bg-module-production-solid");

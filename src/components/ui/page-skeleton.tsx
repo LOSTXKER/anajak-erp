@@ -19,7 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
  *  px-6 = ระยะขอบเดียวกับเซลล์จริงของ DataTable ไม่งั้นพอข้อมูลมาถึงเนื้อหาจะเลื่อนข้าง */
 function SkeletonRow() {
   return (
-    <div className="flex h-[75px] items-center gap-4 border-b border-divider px-6 last:border-b-0">
+    <div className="flex h-[67px] items-center gap-4 border-b border-divider px-6 last:border-b-0">
       <Skeleton className="h-9 w-9 shrink-0" />
       <div className="min-w-0 flex-1 space-y-2">
         <Skeleton className="h-4 w-1/3" />
