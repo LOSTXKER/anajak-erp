@@ -1,29 +1,39 @@
 import type { LucideIcon } from "lucide-react";
 import { CheckCircle2, Factory, ReceiptText, ShoppingCart, Users } from "lucide-react";
+import { c, type Tone } from "@/components/kit/kit";
 import { formatBaht } from "@/lib/utils";
-import { HomeChip, HomeIconTile, type HomeTone } from "./home-card";
 
-interface MetricTileProps {
+/** ช่องตัวเลข (.tile ของต้นแบบ metricsHTML) */
+function Tile({
+  label,
+  icon: Icon,
+  tone = "",
+  value,
+  unit,
+  chip,
+  mono = false,
+}: {
   label: string;
   icon: LucideIcon;
-  tone?: HomeTone;
+  tone?: Tone;
   value: string;
   unit?: string;
   chip?: string;
-}
-
-function MetricTile({ label, icon, tone = "neutral", value, unit, chip }: MetricTileProps) {
+  mono?: boolean;
+}) {
   return (
-    <div className="card-surface flex min-w-0 flex-col gap-3 rounded-2xl p-4 sm:p-5">
-      <p className="flex items-center gap-2.5 text-xs font-medium text-secondary">
-        <HomeIconTile icon={icon} tone={tone} />
-        <span className="truncate">{label}</span>
-      </p>
-      <p className="flex flex-wrap items-baseline gap-2">
-        <span className="text-3xl font-semibold tabular-nums text-strong">{value}</span>
-        {unit ? <span className="text-xs text-muted">{unit}</span> : null}
-        {chip ? <HomeChip tone="success">{chip}</HomeChip> : null}
-      </p>
+    <div className={c("tile")}>
+      <div className={c("lab")}>
+        <span className={c("ic", tone)} aria-hidden="true">
+          <Icon />
+        </span>
+        {label}
+      </div>
+      <div className={c("val")}>
+        <b className={c("num", mono && "mono")}>{value}</b>
+        {unit ? <small>{unit}</small> : null}
+        {chip ? <span className={c("chip good")}>{chip}</span> : null}
+      </div>
     </div>
   );
 }
@@ -41,20 +51,20 @@ export interface HomeMetricsData {
 export function HomeMetrics({ data }: { data: HomeMetricsData }) {
   const count = (value: number) => value.toLocaleString("th-TH");
   return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label="ภาพรวม">
-      <MetricTile label="ออเดอร์กำลังเดิน" icon={ShoppingCart} tone="brand" value={count(data.activeOrders)} unit="ออเดอร์" />
-      <MetricTile label="ปิดงานเดือนนี้" icon={CheckCircle2} tone="success" value={count(data.completedThisMonth)} unit="ออเดอร์" />
-      <MetricTile
+    <section className={c("metrics")} aria-label="ภาพรวม">
+      <Tile label="ออเดอร์กำลังเดิน" icon={ShoppingCart} tone="blue" value={count(data.activeOrders)} unit="ออเดอร์" />
+      <Tile label="ปิดงานเดือนนี้" icon={CheckCircle2} tone="good" value={count(data.completedThisMonth)} unit="ออเดอร์" />
+      <Tile
         label="ลูกค้าทั้งหมด"
         icon={Users}
         value={count(data.totalCustomers)}
         chip={data.newCustomersThisMonth > 0 ? `+${count(data.newCustomersThisMonth)} เดือนนี้` : undefined}
       />
       {data.revenueThisMonth !== null ? (
-        <MetricTile label="มูลค่าออเดอร์ที่เปิดเดือนนี้" icon={ReceiptText} tone="finance" value={formatBaht(data.revenueThisMonth)} />
+        <Tile label="มูลค่าออเดอร์ที่เปิดเดือนนี้" icon={ReceiptText} tone="violet" value={formatBaht(data.revenueThisMonth)} mono />
       ) : (
-        <MetricTile label="ขั้นผลิตค้างทั้งหมด" icon={Factory} tone="brand" value={count(data.openSteps)} unit="ขั้น" />
+        <Tile label="ขั้นผลิตค้างทั้งหมด" icon={Factory} tone="blue" value={count(data.openSteps)} unit="ขั้น" />
       )}
-    </div>
+    </section>
   );
 }

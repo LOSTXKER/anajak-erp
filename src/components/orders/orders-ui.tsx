@@ -2,10 +2,10 @@ import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import { Activity, Flame, PackageCheck, Pause, Truck, User } from "lucide-react";
 import { c, Callout, type Tone } from "@/components/kit/kit";
-import { orderAttentionText } from "@/components/orders/order-problem";
 import type { HomeProblem, HomeProblemKind } from "@/lib/home-orders";
 import type { OrderProgress } from "@/lib/order-progress";
 import { differenceInBangkokDays } from "@/lib/date-utils";
+import { INTERNAL_STATUS_LABELS } from "@/lib/order-status";
 
 /* ============================================================
    ชิ้นเฉพาะหน้าออเดอร์บนชุดหน้าตากลาง (components/kit)
@@ -32,6 +32,35 @@ export function PayTag({ label, status }: { label: string; status: string }) {
   );
 }
 
+
+/** ถ้อยคำ "ต้องจัดการ" ของหน้าออเดอร์ — เหตุ/โทน/ลำดับมาจาก lib/home-orders ชุดเดียวกับหน้าแรก ต่างแค่ถ้อยคำ */
+export function orderAttentionText(problem: HomeProblem, progress: OrderProgress): { text: string; who: string | null } {
+  const step =
+    progress.currentStep?.label ??
+    (INTERNAL_STATUS_LABELS as Record<string, string>)[progress.internalStatus] ??
+    progress.internalStatus;
+  const lateDays = progress.dueInDays !== null && progress.dueInDays < 0 ? -progress.dueInDays : 0;
+  const vendorName = progress.vendor?.name ?? "ร้านนอก";
+  const vendorLate = progress.vendor?.overdueDays ?? 0;
+  switch (problem.kind) {
+    case "overdue":
+      return { text: `เลยกำหนดส่ง ${lateDays} วัน · ค้างขั้น ${step}`, who: problem.who };
+    case "vendor-late":
+      return { text: `เลยกำหนดส่ง ${lateDays} วัน · ${vendorName} เลยรับ ${vendorLate} วัน`, who: null };
+    case "ready":
+      return { text: "ส่งวันนี้ · แพ็กแล้ว รอขนส่ง", who: problem.who };
+    case "in-progress":
+      return { text: `ส่งวันนี้ · อยู่ขั้น ${step}`, who: problem.who };
+    case "customer":
+      return { text: `รอลูกค้าอนุมัติแบบ · ${progress.waitingCustomerDays ?? 0} วัน`, who: problem.who };
+    case "vendor":
+      return vendorLate > 0
+        ? { text: `${vendorName} · เลยกำหนดรับ ${vendorLate} วัน`, who: null }
+        : { text: `${vendorName} · รอรับกลับ`, who: null };
+    case "stuck":
+      return { text: `ไม่มีความเคลื่อนไหว ${progress.stuckDays ?? 0} วัน`, who: null };
+  }
+}
 
 export const PROBLEM_ICON: Record<HomeProblemKind, LucideIcon> = {
   overdue: Flame,

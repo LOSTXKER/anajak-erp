@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
+import type { LucideIcon } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import type { RouterOutput } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -28,9 +29,34 @@ import type { PricingType } from "@/types/order-form";
 import { sumOrderQuantity } from "@/lib/pricing";
 import { getProductSourcePresentation } from "@/lib/order-item-composer";
 import { Package, Receipt, PlusCircle, Pencil, Edit3, Check, ImageIcon } from "lucide-react";
-import { HomeChip, HomeIconTile } from "@/components/dashboard/home/home-card";
 import { FOCUS_BUTTON, RADIUS, TABLE_HEAD_SURFACE, TINT } from "@/components/ui/tokens";
 import { Alert } from "@/components/ui/alert";
+
+/* หัวการ์ดแบบชุดเก่า (หน้าใบผลิตยังไม่ย้ายไปชุดกลาง components/kit) — คงหน้าตาเดิมไว้จนเบสเคาะหน้านั้น */
+function TitleTile({ icon: Icon, tone }: { icon: LucideIcon; tone: "brand" | "success" }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
+        tone === "brand"
+          ? "bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300"
+          : "bg-green-50 text-green-700 dark:bg-green-950/50 dark:text-green-300",
+      )}
+    >
+      <Icon className="h-4 w-4" strokeWidth={1.75} />
+    </span>
+  );
+}
+
+function TitleChip({ children }: { children: ReactNode }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-surface-muted px-2.5 py-0.5 text-xs font-medium tabular-nums text-secondary">
+      {children}
+    </span>
+  );
+}
+
 
 type OrderData = RouterOutput["order"]["getById"];
 type OrderItem = OrderData["items"][number];
@@ -573,11 +599,11 @@ function OrderPriceSummaryPanel({ items, fees, totals }: { items: OrderItem[]; f
     <Section
       title={
         <span className="flex items-center gap-2.5">
-          <HomeIconTile icon={Receipt} tone="success" />
+          <TitleTile icon={Receipt} tone="success" />
           สรุปราคา
         </span>
       }
-      action={<HomeChip>{taxRate > 0 ? `รวม VAT ${taxRate}%` : "ไม่มี VAT"}</HomeChip>}
+      action={<TitleChip>{taxRate > 0 ? `รวม VAT ${taxRate}%` : "ไม่มี VAT"}</TitleChip>}
     >
       <p className={cn("font-mono text-3xl font-semibold text-strong", NUM)}>{formatBaht(grandTotal)}</p>
       <div className="mt-3 space-y-3">
@@ -722,12 +748,12 @@ export function OrderItemsDisplay({
   // หัวการ์ด "รายการสินค้า" + ชิปจำนวน + ปุ่มแก้ไขรายการ (ต้นแบบหน้าออเดอร์รอบ 2 — การ์ดเดียวครอบทุกชุดงาน)
   const title = (
     <span className="flex flex-wrap items-center gap-2.5">
-      <HomeIconTile icon={Package} tone="brand" />
+      <TitleTile icon={Package} tone="brand" />
       <span className="[overflow-wrap:anywhere]">
         รายการสินค้า
         {!isSingleItem && !isEmpty ? ` (${items.length})` : ""}
       </span>
-      {orderTotalQty > 0 ? <HomeChip className="tabular-nums">{orderTotalQty} ตัว</HomeChip> : null}
+      {orderTotalQty > 0 ? <TitleChip>{orderTotalQty} ตัว</TitleChip> : null}
     </span>
   );
   const editAction =

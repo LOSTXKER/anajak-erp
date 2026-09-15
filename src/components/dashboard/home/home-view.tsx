@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { c } from "@/components/kit/kit";
 import { BANGKOK_TZ } from "@/lib/utils";
 import type { HomeOverview } from "@/server/services/home-overview";
 import { ActiveOrdersCard } from "./active-orders-card";
@@ -29,26 +29,28 @@ export interface HomeViewProps {
   canCreateOrder: boolean;
 }
 
-/** หน้าแรกตามต้นแบบ 2026-09-14: หัวไม่มีกรอบ → ตัวเลข 4 ช่อง → ผังโรงงาน+สุขภาพ → ออเดอร์ | กำหนดส่ง/เงิน */
+/* ============================================================
+   หน้าแรก — ต้นแบบ newViewHTML() ของ mockup-home-minimal-2026-09-14.html รอบ 4 บนชุดหน้าตากลาง (components/kit)
+   หัวไม่มีกรอบ → ตัวเลข 4 ช่อง → ผังโรงงาน+สุขภาพ → ออเดอร์ที่กำลังเดิน | กำหนดส่ง 7 วัน + เงินที่ต้องตาม
+   ตัวเลขทั้งหมดมาจาก analytics.dashboard + analytics.homeOverview · ตัววาดรับ props ล้วน
+   ============================================================ */
 export function HomeView({ metrics, overview, canSeeMoney, canCreateOrder }: HomeViewProps) {
   const [day, setDay] = useState<number | null>(null);
   const now = new Date(overview.generatedAt);
   const dayLabel = day === null ? null : day === 0 ? "วันนี้" : shortDate.format(new Date(now.getTime() + day * DAY_MS));
 
   return (
-    <div className="space-y-4 sm:space-y-5">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+    <div className={c("tokens page home")}>
+      <div className={c("head")}>
         <div>
-          <h1 className="text-2xl font-semibold text-strong">ภาพรวมวันนี้</h1>
-          <p className="mt-1 text-sm text-muted">{longDate.format(now)}</p>
+          <h1>ภาพรวมวันนี้</h1>
+          <p className={c("date")}>{longDate.format(now)}</p>
         </div>
         {canCreateOrder ? (
-          <Button asChild>
-            <Link href="/orders/new">
-              <Plus />
-              เปิดงานใหม่
-            </Link>
-          </Button>
+          <Link href="/orders/new" className={c("btn primary")}>
+            <Plus aria-hidden="true" />
+            เปิดงานใหม่
+          </Link>
         ) : null}
       </div>
 
@@ -56,7 +58,7 @@ export function HomeView({ metrics, overview, canSeeMoney, canCreateOrder }: Hom
 
       <FactoryFlowCard counts={overview.nodes} facts={overview.facts} />
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,5fr)_minmax(0,2fr)]">
+      <div className={c("split")}>
         <ActiveOrdersCard
           orders={overview.orders}
           canSeeMoney={canSeeMoney}
@@ -65,9 +67,9 @@ export function HomeView({ metrics, overview, canSeeMoney, canCreateOrder }: Hom
           dayLabel={dayLabel}
           onClearDay={() => setDay(null)}
         />
-        <div className="grid content-start gap-4">
+        <div className={c("col")}>
           <WeekCard week={overview.week} now={now} selected={day} onSelect={setDay} />
-          {overview.money ? <MoneyCard money={overview.money} /> : null}
+          {canSeeMoney && overview.money ? <MoneyCard money={overview.money} /> : null}
         </div>
       </div>
     </div>

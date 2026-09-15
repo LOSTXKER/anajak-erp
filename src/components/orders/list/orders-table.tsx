@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ArrowDown, ArrowUp, ArrowUpDown, ChevronRight, MessageCircle } from "lucide-react";
 import type { RouterOutput } from "@/lib/trpc";
 import { safeChatUrl } from "@/components/customers/chat-link";
-import { c, DueTag, PriorityChip, StatusDot, Thumb } from "@/components/kit/kit";
+import { c, DueTag, PriorityChip, StatusDot, StepBar, Thumb } from "@/components/kit/kit";
 import { PayTag, TechChip, WhyCell } from "@/components/orders/orders-ui";
 import { describeOrderAttention } from "@/lib/home-orders";
 import { mockupCoverImage } from "@/lib/mockup";
@@ -207,11 +207,7 @@ export function OrdersTable({
                     <StatusDot status={order.internalStatus} />
                     {order.production && stepsTotal > 0 ? (
                       <div className={c("stpline")}>
-                        <span className={c("prog")} role="img" aria-label={`ขั้นใบผลิต ${stepsDone} จาก ${stepsTotal}`}>
-                          {Array.from({ length: stepsTotal }, (_, index) => (
-                            <i key={index} className={c(index < stepsDone ? "d" : index === stepsDone ? "c" : null)} />
-                          ))}
-                        </span>
+                        <StepBar done={stepsDone} total={stepsTotal} label={`ขั้นใบผลิต ${stepsDone} จาก ${stepsTotal}`} />
                         <small>{stepsText(order)}</small>
                       </div>
                     ) : null}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   AlertTriangle,
@@ -31,6 +31,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { MockupThumbRow } from "@/components/mockup/mockup-thumb-row";
 import { MockupDecisionDialog, MockupUploadDialog } from "@/components/mockup/mockup-dialogs";
 import { c, Callout, CardHead, Empty, StateBox, timeText } from "@/components/kit/kit";
+import { Seg } from "@/components/kit/seg";
 import { MockupPill } from "@/components/orders/orders-ui";
 import { layerForCategory, type AttachmentCategory } from "@/lib/file-layers";
 import { safeFileExt } from "@/lib/file-urls";
@@ -504,8 +505,6 @@ function FilesCard({
   const [showLink, setShowLink] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const segRef = useRef<HTMLDivElement>(null);
-  const indRef = useRef<HTMLSpanElement>(null);
 
   // ลิงก์ลูกค้าอัปไฟล์เอง — เฉพาะคนถือความสัมพันธ์ลูกค้า (server gate create_sales_docs ซ้ำ)
   const canManageLink = ["OWNER", "MANAGER", "SALES"].includes(userRole);
@@ -537,25 +536,7 @@ function FilesCard({
   const list = byGroup[group.key];
   const canAttach = group.key !== "print" || canAttachPrint;
   const hasData = Boolean(attachments.data);
-  const countKey = `${byGroup.raw.length}-${byGroup.print.length}-${byGroup.general.length}`;
 
-  // ตัวเลื่อนใต้กลุ่มที่เลือก — วัดปุ่มจริงแล้วเขียน style ตรง (placeInd ของต้นแบบ) ไม่ setState ใน effect
-  useLayoutEffect(() => {
-    const seg = segRef.current;
-    const ind = indRef.current;
-    if (!seg || !ind) return;
-    const place = () => {
-      const on = seg.querySelector<HTMLElement>('[aria-pressed="true"]');
-      if (!on) return;
-      ind.style.left = `${on.offsetLeft}px`;
-      ind.style.width = `${on.offsetWidth}px`;
-    };
-    place();
-    const observer = new ResizeObserver(place);
-    observer.observe(seg);
-    void document.fonts.ready.then(place);
-    return () => observer.disconnect();
-  }, [groupKey, countKey, hasData]);
 
   async function uploadFiles(picked: FileList | null) {
     const target = group; // กลุ่มตอนเริ่ม — สลับกลุ่มระหว่างอัปก็ยังลงกลุ่มเดิม
@@ -722,20 +703,13 @@ function FilesCard({
           </StateBox>
         ) : (
           <>
-            <div ref={segRef} className={c("seg")} role="group" aria-label="ชนิดไฟล์" style={{ marginBottom: 12 }}>
-              <span ref={indRef} className={c("ind")} aria-hidden="true" />
-              {FILE_GROUPS.map((item) => (
-                <button
-                  key={item.key}
-                  type="button"
-                  aria-pressed={item.key === group.key}
-                  onClick={() => setGroupKey(item.key)}
-                >
-                  {item.label}
-                  <span className={c("n")}>{byGroup[item.key].length}</span>
-                </button>
-              ))}
-            </div>
+            <Seg
+              label="ชนิดไฟล์"
+              options={FILE_GROUPS.map((item) => ({ key: item.key, label: item.label, count: byGroup[item.key].length }))}
+              value={group.key}
+              onChange={setGroupKey}
+              style={{ marginBottom: 12 }}
+            />
 
             {list.length > 0 ? (
               <div className={c("files")}>

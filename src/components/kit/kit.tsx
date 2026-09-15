@@ -140,6 +140,18 @@ export function PriorityChip({ priority, lg = false }: { priority: string; lg?: 
   return null;
 }
 
+/** แถบขั้นงาน (.prog) — ขั้นที่เสร็จทึบ ขั้นที่ทำอยู่จาง */
+export function StepBar({ done, total, label }: { done: number; total: number; label: string }) {
+  if (total <= 0) return null;
+  return (
+    <span className={c("prog")} role="img" aria-label={label}>
+      {Array.from({ length: total }, (_, index) => (
+        <i key={index} className={c(index < done ? "d" : index === done ? "c" : null)} />
+      ))}
+    </span>
+  );
+}
+
 /** รูปม็อกอัพเล็ก (.thumb) — รูปจริงจากสูตรกลาง mockupCoverImage · ไม่มีรูป = ช่องว่างมีไอคอน */
 export function Thumb({ cover, alt, lg = false }: { cover: string | null; alt: string; lg?: boolean }) {
   return (
@@ -160,12 +172,15 @@ export function CardHead({
   tone = "",
   title,
   id,
+  after,
   right,
 }: {
   icon: LucideIcon;
   tone?: Tone;
   title: ReactNode;
   id?: string;
+  /** ของที่ต่อท้ายชื่อการ์ดทางซ้าย เช่น คำอธิบายสี (legend) */
+  after?: ReactNode;
   right?: ReactNode;
 }) {
   return (
@@ -176,6 +191,7 @@ export function CardHead({
         </span>
         {title}
       </h2>
+      {after}
       {right ? <div className={c("r")}>{right}</div> : null}
     </div>
   );

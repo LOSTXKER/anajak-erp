@@ -4,6 +4,7 @@ import { differenceInBangkokDays, startOfBangkokDay } from "@/lib/date-utils";
 import { DESIGN_WAIT_STATUSES, describeOrderProgress } from "@/lib/order-progress";
 import { evaluateHeatPressGate, type GateStepLite } from "@/lib/production-steps";
 import { printLabelOf } from "@/lib/print-labels";
+import { mockupCoverImage } from "@/lib/mockup";
 import { aggToNumber } from "@/server/services/money";
 import { getOwnerPulse } from "@/server/services/owner-pulse";
 import { PREP_QUEUE_WHERE } from "@/server/services/factory-board";
@@ -64,7 +65,14 @@ const HOME_ORDER_SELECT = {
   designs: {
     orderBy: { versionNumber: "desc" },
     take: 1,
-    select: { approvalStatus: true, createdAt: true },
+    // รูปปกแถว = สูตรกลาง mockupCoverImage ชุดเดียวกับรายการออเดอร์
+    select: {
+      approvalStatus: true,
+      createdAt: true,
+      fileUrl: true,
+      thumbnailUrl: true,
+      files: { orderBy: { sortOrder: "asc" }, select: { fileUrl: true, thumbnailUrl: true, position: true } },
+    },
   },
   revisions: { orderBy: { createdAt: "desc" }, take: 1, select: { createdAt: true } },
   productions: {
@@ -133,6 +141,8 @@ export interface HomeOrder {
   orderNumber: string;
   customerName: string;
   title: string | null;
+  /** รูปม็อกอัพล่าสุดที่แสดงได้ · null = ยังไม่มีรูป */
+  cover: string | null;
   printLabel: string | null;
   quantity: number;
   /** null เมื่อผู้เรียกไม่มีสิทธิ์เห็นเงิน */
@@ -234,6 +244,7 @@ export function describeHomeOrderRow(
     id: row.id,
     customerName: row.customer.company || row.customer.name,
     title,
+    cover: row.designs[0] ? mockupCoverImage(row.designs[0]) : null,
     printLabel: printLabelOf(row.items.flatMap((item) => item.prints.map((print) => print.printType))),
     quantity: row.items.reduce((sum, item) => sum + item.totalQuantity, 0),
     totalAmount: canSeeFinance ? row.totalAmount : null,

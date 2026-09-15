@@ -4,11 +4,12 @@ import { trpc } from "@/lib/trpc";
 import { canCreateOrderWithPricing } from "@/lib/order-access";
 import { permAllows } from "@/lib/permissions";
 import { PageShell } from "@/components/page-shell";
-import { Skeleton } from "@/components/ui/skeleton";
+import { c } from "@/components/kit/kit";
 import { HomeView } from "@/components/dashboard/home/home-view";
 
 /* ============================================================
-   หน้าแรก (รื้อ 2026-09-14 ตามต้นแบบที่เบสเคาะ · records/projects/anajak-erp/mockup-home-minimal-2026-09-14.html)
+   หน้าแรก (ต้นแบบที่เบสเคาะ · records/projects/anajak-erp/mockup-home-minimal-2026-09-14.html)
+   หน้าตาอยู่ชุดกลาง components/kit เหมือนหน้าออเดอร์ (refactor 2026-09-15)
 
    ตัวเลขทั้งหมดมาจาก analytics.dashboard (ของเดิม) + analytics.homeOverview (ใหม่)
    เงินเห็นเฉพาะ see_finance เหมือน dashboard เดิม · ตัววาด (HomeView) รับ props ล้วน
@@ -17,18 +18,19 @@ import { HomeView } from "@/components/dashboard/home/home-view";
 
 function HomeSkeleton() {
   return (
-    <div className="space-y-4 sm:space-y-5">
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <div className={c("tokens page home")} role="status" aria-label="กำลังโหลดหน้าแรก">
+      <span className={c("sk")} style={{ height: 56, width: "40%" }} />
+      <div className={c("metrics")}>
         {[0, 1, 2, 3].map((index) => (
-          <Skeleton key={index} className="h-28 rounded-2xl" />
+          <span key={index} className={c("sk")} style={{ height: 112 }} />
         ))}
       </div>
-      <Skeleton className="h-96 rounded-2xl" />
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,5fr)_minmax(0,2fr)]">
-        <Skeleton className="h-96 rounded-2xl" />
-        <div className="grid content-start gap-4">
-          <Skeleton className="h-48 rounded-2xl" />
-          <Skeleton className="h-40 rounded-2xl" />
+      <span className={c("sk")} style={{ height: 360 }} />
+      <div className={c("split")}>
+        <span className={c("sk")} style={{ height: 380 }} />
+        <div className={c("col")}>
+          <span className={c("sk")} style={{ height: 180 }} />
+          <span className={c("sk")} style={{ height: 150 }} />
         </div>
       </div>
     </div>
@@ -58,7 +60,6 @@ export function DashboardHome() {
 
   return (
     <PageShell
-      className="mx-auto max-w-7xl"
       title="ภาพรวมวันนี้"
       header={<div className="sr-only">ภาพรวมวันนี้</div>}
       loading={loading}

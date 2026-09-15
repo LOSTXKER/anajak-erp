@@ -3,15 +3,10 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, CalendarDays, ChevronRight, Plus, ShoppingCart, X } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { DueTag } from "@/components/ui/due-tag";
-import { EmptyState } from "@/components/ui/empty-state";
-import { EntityMark } from "@/components/ui/entity-mark";
-import { FilterChip } from "@/components/ui/filter-chip";
-import { FOCUS_INSET, INTERACTIVE_PRESSED, TABLE_HEAD_SURFACE } from "@/components/ui/tokens";
-import { OrderStatusBadge } from "@/components/order-status-badge";
+import { ArrowRight, CalendarDays, ChevronRight, Plus, Search, ShoppingCart, X } from "lucide-react";
+import { c, CardHead, DueTag, Empty, StatusDot, StepBar, Thumb } from "@/components/kit/kit";
+import { Seg } from "@/components/kit/seg";
+import { PROBLEM_ICON, PROBLEM_TONE, TechChip } from "@/components/orders/orders-ui";
 import {
   describeHomeOrder,
   HOME_ORDER_FILTERS,
@@ -19,10 +14,14 @@ import {
   sortHomeOrders,
   type HomeOrderFilter,
 } from "@/lib/home-orders";
-import { ORDER_PROBLEM_ICON, ORDER_PROBLEM_TEXT, StepProgress } from "@/components/orders/order-problem";
-import { cn, formatBaht, formatDateShort } from "@/lib/utils";
+import { formatBaht } from "@/lib/utils";
 import type { HomeOrder } from "@/server/services/home-overview";
-import { HomeCard, HomeChip } from "./home-card";
+
+/* ============================================================
+   ออเดอร์ที่กำลังเดิน — ต้นแบบ ordersHTML() รอบ 4
+   เรื่องด่วนขึ้นบน · ตัวกรองแบบเลื่อน · คอลัมน์ ออเดอร์ / กำหนดส่ง / ต้องจัดการ / ขั้นงาน / จำนวน / ยอดรวม
+   กฎ "ต้องจัดการ" มาจาก lib/home-orders ชุดเดียวกับหน้ารายการออเดอร์
+   ============================================================ */
 
 export function ActiveOrdersCard({
   orders,
@@ -45,184 +44,175 @@ export function ActiveOrdersCard({
   const sorted = useMemo(() => sortHomeOrders(orders), [orders]);
   const rows = useMemo(
     () =>
-      sorted.filter((order) =>
-        dayFilter !== null ? order.dueInDays === dayFilter : matchesHomeFilter(order, filter),
-      ),
+      sorted.filter((order) => (dayFilter !== null ? order.dueInDays === dayFilter : matchesHomeFilter(order, filter))),
     [sorted, filter, dayFilter],
   );
   const quantity = rows.reduce((sum, order) => sum + order.quantity, 0);
   const amount = rows.reduce((sum, order) => sum + (order.totalAmount ?? 0), 0);
 
+  const selectFilter = (key: HomeOrderFilter) => {
+    setFilter(key);
+    if (dayFilter !== null) onClearDay();
+  };
+
   return (
-    <HomeCard
-      id="home-orders"
-      title="ออเดอร์ที่กำลังเดิน"
-      icon={ShoppingCart}
-      action={
-        <>
-          {dayFilter !== null ? (
-            <button
-              type="button"
-              onClick={onClearDay}
-              aria-label="ยกเลิกกรองตามวันส่ง"
-              className={cn(FOCUS_INSET, "rounded-full")}
-            >
-              <HomeChip tone="brand">
-                <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
+    <section className={c("card")} aria-labelledby="home-orders">
+      <CardHead
+        icon={ShoppingCart}
+        id="home-orders"
+        title="ออเดอร์ที่กำลังเดิน"
+        right={
+          <>
+            {dayFilter !== null ? (
+              <button type="button" className={c("chip blue chipbtn")} onClick={onClearDay} aria-label="ยกเลิกกรองตามวันส่ง">
+                <CalendarDays aria-hidden="true" />
                 ส่ง {dayLabel}
-                <X className="h-3.5 w-3.5" aria-hidden="true" />
-              </HomeChip>
-            </button>
-          ) : (
-            <div className="flex flex-wrap gap-1" role="group" aria-label="กรองออเดอร์">
-              {HOME_ORDER_FILTERS.map((option) => {
-                const count = orders.filter((order) => matchesHomeFilter(order, option.key)).length;
-                return (
-                  <FilterChip key={option.key} selected={filter === option.key} onClick={() => setFilter(option.key)}>
-                    {option.label}
-                    <span className="ml-1 tabular-nums text-muted">{count}</span>
-                  </FilterChip>
-                );
-              })}
-            </div>
-          )}
-          <Button asChild variant="ghost" size="sm">
-            <Link href="/orders">
+                <X aria-hidden="true" />
+              </button>
+            ) : null}
+            <Seg
+              label="กรองออเดอร์"
+              options={HOME_ORDER_FILTERS.map((option) => ({
+                key: option.key,
+                label: option.label,
+                count: orders.filter((order) => matchesHomeFilter(order, option.key)).length,
+              }))}
+              value={dayFilter !== null ? null : filter}
+              onChange={selectFilter}
+            />
+            <Link href="/orders" className={c("btn ghost sm")}>
               ดูทั้งหมด
-              <ArrowRight />
+              <ArrowRight aria-hidden="true" />
             </Link>
-          </Button>
-        </>
-      }
-    >
+          </>
+        }
+      />
+
       {orders.length === 0 ? (
-        <EmptyState
+        <Empty
           icon={ShoppingCart}
           title="ยังไม่มีออเดอร์ที่กำลังเดิน"
           action={
             canCreateOrder ? (
-              <Button asChild>
-                <Link href="/orders/new">
-                  <Plus />
-                  เปิดงานใหม่
-                </Link>
-              </Button>
+              <Link href="/orders/new" className={c("btn primary sm")}>
+                <Plus aria-hidden="true" />
+                เปิดงานใหม่
+              </Link>
             ) : undefined
           }
         />
       ) : rows.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 border-t border-divider px-5 py-8 text-sm text-muted">
-          ไม่มีออเดอร์ตามตัวกรองนี้
-          <Button
-            variant="outline"
-            size="sm"
+        <div className={c("noresult")}>
+          <Search aria-hidden="true" />
+          <span>ไม่มีออเดอร์ตามตัวกรองนี้</span>
+          <button
+            type="button"
+            className={c("btn sm")}
             onClick={() => {
               setFilter("all");
               onClearDay();
             }}
           >
             ล้างตัวกรอง
-          </Button>
+          </button>
         </div>
       ) : (
         <>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[40rem] table-fixed text-sm">
-              <thead className={cn(TABLE_HEAD_SURFACE, "text-xs")}>
-                <tr className="border-t border-divider">
-                  <th className="w-[30%] px-4 py-2 text-left font-medium sm:px-5">ออเดอร์</th>
-                  <th className="w-[17%] px-3 py-2 text-left font-medium">กำหนดส่ง</th>
-                  <th className="px-3 py-2 text-left font-medium">ต้องจัดการ / ขั้นงาน</th>
-                  <th className="w-[9%] px-3 py-2 text-right font-medium">จำนวน</th>
-                  {canSeeMoney ? <th className="w-[14%] px-3 py-2 text-right font-medium">ยอดรวม</th> : null}
-                  <th className="w-9 px-2 py-2">
-                    <span className="sr-only">เปิดออเดอร์</span>
+          <div className={c("tblw")}>
+            <table className={c("orders")}>
+              <thead>
+                <tr>
+                  <th>ออเดอร์</th>
+                  <th>กำหนดส่ง</th>
+                  <th>ต้องจัดการ</th>
+                  <th>ขั้นงาน</th>
+                  <th className={c("r")}>จำนวน</th>
+                  {canSeeMoney ? <th className={c("r")}>ยอดรวม</th> : null}
+                  <th>
+                    <span className={c("sr")}>เปิดออเดอร์</span>
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-divider">
+              <tbody>
                 {rows.map((order) => {
                   const problem = describeHomeOrder(order);
-                  const ProblemIcon = problem ? ORDER_PROBLEM_ICON[problem.kind] : null;
+                  const ProblemIcon = problem ? PROBLEM_ICON[problem.kind] : null;
                   const href = `/orders/${order.id}`;
+                  const stepNow = Math.min(order.stepsDone + 1, order.stepsTotal);
                   return (
                     <tr
                       key={order.id}
+                      className={c("row", problem?.group === "late" && "hot", problem?.group === "today" && "warm")}
                       onClick={() => router.push(href)}
-                      className={cn(INTERACTIVE_PRESSED, "cursor-pointer transition-colors")}
                     >
-                      <td className="relative px-4 py-2.5 sm:px-5">
-                        {problem?.group === "late" || problem?.group === "today" ? (
-                          <span
-                            aria-hidden="true"
-                            className={cn(
-                              "absolute inset-y-0 left-0 w-1",
-                              problem.group === "late" ? "bg-red-600 dark:bg-red-400" : "bg-amber-500 dark:bg-amber-400",
-                            )}
-                          />
-                        ) : null}
-                        <span className="flex min-w-0 items-center gap-3">
-                          <EntityMark label={order.customerName} tone="brand" />
-                          <span className="min-w-0 max-w-56">
-                            <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                      <td>
+                        <div className={c("who")}>
+                          <Thumb cover={order.cover} alt={`ม็อกอัพ ${order.orderNumber}`} />
+                          <div className={c("t")}>
+                            <div className={c("id")}>
                               <Link
                                 href={href}
+                                className={c("mono idbtn")}
                                 onClick={(event) => event.stopPropagation()}
-                                className={cn(FOCUS_INSET, "whitespace-nowrap rounded font-mono text-sm font-medium tabular-nums text-strong")}
                               >
                                 {order.orderNumber}
                               </Link>
-                              {order.printLabel ? (
-                                <Badge variant="default" size="sm">
-                                  {order.printLabel}
-                                </Badge>
-                              ) : null}
-                            </span>
-                            <span className="block truncate text-xs text-secondary">
+                              {order.printLabel ? <TechChip label={order.printLabel} /> : null}
+                            </div>
+                            <div className={c("cu")}>
                               {order.customerName}
-                              {order.title ? <span className="text-muted"> · {order.title}</span> : null}
-                            </span>
-                          </span>
-                        </span>
+                              {order.title ? <span className={c("ttl")}> · {order.title}</span> : null}
+                            </div>
+                          </div>
+                        </div>
                       </td>
-                      <td className="px-3 py-2.5">
+                      <td>
                         <DueTag
+                          status={order.internalStatus}
+                          deadline={order.deadline}
                           dueInDays={order.dueInDays}
-                          dateLabel={order.deadline && order.dueInDays !== null && order.dueInDays > 1 ? formatDateShort(order.deadline) : null}
-                          size="sm"
+                          small={false}
                         />
                       </td>
-                      <td className="px-3 py-2.5">
-                        <span className="flex min-w-0 flex-col gap-1">
+                      <td>
+                        <div className={c("why-cell")}>
                           {problem && ProblemIcon ? (
-                            <span className={cn("flex items-start gap-1.5 text-xs", ORDER_PROBLEM_TEXT[problem.tone])}>
-                              <ProblemIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" strokeWidth={1.75} aria-hidden="true" />
-                              {problem.label}
-                              {problem.who ? <span className="font-normal text-muted">· {problem.who}</span> : null}
-                            </span>
-                          ) : null}
-                          <span className="flex flex-wrap items-center gap-2">
-                            <StepProgress done={order.stepsDone} total={order.stepsTotal} />
-                            {order.currentStep ? (
-                              <span className="text-xs text-secondary">
-                                {`${Math.min(order.stepsDone + 1, order.stepsTotal)}/${order.stepsTotal} ${order.currentStep.label}`}
+                            <>
+                              <span className={c("why", PROBLEM_TONE[problem.tone])}>
+                                <ProblemIcon aria-hidden="true" />
+                                {problem.label}
                               </span>
-                            ) : (
-                              <OrderStatusBadge customerStatus={order.customerStatus} internalStatus={order.internalStatus} compact />
-                            )}
-                          </span>
-                        </span>
+                              {problem.who ? <span className={c("wholine")}>{problem.who}</span> : null}
+                            </>
+                          ) : (
+                            <span className={c("none")}>—</span>
+                          )}
+                        </div>
                       </td>
-                      <td className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums text-secondary">
-                        <span className="font-medium text-strong">{order.quantity.toLocaleString("th-TH")}</span> ตัว
+                      <td className={c("stp")}>
+                        {order.currentStep && order.stepsTotal > 0 ? (
+                          <>
+                            <StepBar
+                              done={order.stepsDone}
+                              total={order.stepsTotal}
+                              label={`ขั้น ${order.stepsDone} จาก ${order.stepsTotal}`}
+                            />
+                            <small>
+                              {stepNow}/{order.stepsTotal} {order.currentStep.label}
+                            </small>
+                          </>
+                        ) : (
+                          <StatusDot status={order.internalStatus} />
+                        )}
+                      </td>
+                      <td className={c("r q")}>
+                        <b>{order.quantity.toLocaleString("th-TH")}</b> ตัว
                       </td>
                       {canSeeMoney ? (
-                        <td className="whitespace-nowrap px-3 py-2.5 text-right font-mono text-sm tabular-nums text-strong">
-                          {order.totalAmount !== null ? formatBaht(order.totalAmount) : "—"}
-                        </td>
+                        <td className={c("r amt")}>{order.totalAmount !== null ? formatBaht(order.totalAmount) : "—"}</td>
                       ) : null}
-                      <td className="px-2 py-2.5 text-muted">
-                        <ChevronRight className="h-4 w-4" aria-hidden="true" />
+                      <td className={c("arr")}>
+                        <ChevronRight aria-hidden="true" />
                       </td>
                     </tr>
                   );
@@ -230,17 +220,17 @@ export function ActiveOrdersCard({
               </tbody>
             </table>
           </div>
-          <div className="flex flex-wrap items-center gap-4 border-t border-divider bg-surface-muted px-4 py-2.5 text-xs tabular-nums text-secondary sm:px-5">
+          <div className={c("tfoot")}>
             <span>
-              <span className="font-medium text-strong">{rows.length}</span> ออเดอร์
+              <b>{rows.length}</b> ออเดอร์
             </span>
             <span>
-              <span className="font-medium text-strong">{quantity.toLocaleString("th-TH")}</span> ตัว
+              <b>{quantity.toLocaleString("th-TH")}</b> ตัว
             </span>
-            {canSeeMoney ? <span className="ml-auto font-mono text-sm font-medium text-strong">{formatBaht(amount)}</span> : null}
+            {canSeeMoney ? <span className={c("amt")}>{formatBaht(amount)}</span> : null}
           </div>
         </>
       )}
-    </HomeCard>
+    </section>
   );
 }

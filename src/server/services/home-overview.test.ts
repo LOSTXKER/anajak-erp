@@ -158,7 +158,7 @@ describe("describeHomeOrderRow — แปลงออเดอร์เป็น
     const order = describeHomeOrderRow(
       orderRow({
         internalStatus: "DESIGNING",
-        designs: [{ approvalStatus: "PENDING", createdAt: bkk("2026-09-12T09:00:00") }],
+        designs: [{ approvalStatus: "PENDING", createdAt: bkk("2026-09-12T09:00:00"), fileUrl: "https://example.com/mock.png", thumbnailUrl: null, files: [] }],
         updatedAt: bkk("2026-09-01T09:00:00"),
         revisions: [{ createdAt: bkk("2026-09-10T09:00:00") }],
         productions: [],
@@ -170,6 +170,7 @@ describe("describeHomeOrderRow — แปลงออเดอร์เป็น
     expect(order.stuckDays).toBe(4);
     expect(order.currentStep).toBeNull();
     expect(order.vendor).toBeNull();
+    expect(order.cover).toBe("https://example.com/mock.png");
   });
 
   it("ร้านนอกที่ยังไม่ถึงกำหนดรับ = overdueDays 0", () => {
