@@ -1,10 +1,10 @@
 /* =====================================================================
-   หน้าออเดอร์ (รายการ + ใบออเดอร์) — ยกจากต้นแบบรอบ 2 ที่เบสเคาะ 2026-09-14
-   ต้นแบบ: สมอง records/projects/anajak-erp/mockup-orders-minimal-2026-09-14.html
+   ชุดหน้าตากลางของ ERP (kit) — ยกจากต้นแบบที่เบสเคาะ ใช้ผ่าน c("chip warn") ใน components/kit/kit.tsx
+   ต้นแบบ: สมอง records/projects/anajak-erp/mockup-orders-minimal-2026-09-14.html (+ mockup-orders-calm-2026-09-15)
+            และ mockup-home-minimal-2026-09-14.html สำหรับหน้าแรก
 
-   2026-09-15 เบสเปิดของจริงสองรอบแล้วบอก "ไม่เห็นเหมือนเลย" → "รื้อเขียนใหม่ refactor ไปเลย"
-   รอบนี้จึงย้าย CSS ของต้นแบบมาทั้งชุด: ชื่อคลาส/ค่า px/สี ตรงต้นแบบบรรทัดต่อบรรทัด
-   ใช้ผ่าน c("chip warn") ใน orders-ui.tsx · ขอบเขตอยู่ใต้ .tokens เท่านั้น ไม่รั่วไปหน้าอื่น
+   ไฟล์เดียวทั้งเว็บเพื่อไม่ให้หน้าตาชิ้นเดียวกันถูกเขียนซ้ำ (เบสสั่ง refactor 2026-09-15)
+   ขอบเขตอยู่ใต้ .tokens เท่านั้น ไม่รั่วไปหน้าที่ยังใช้ชุดเก่า · ส่วนเฉพาะหน้าแบ่งหมวดด้วยหัวคอมเมนต์
    ต่างจากต้นแบบโดยตั้งใจ: ไม่มี stagger แถวตาราง (กติกา globals) · dd ว่างใช้ .none แทน .empty
    ===================================================================== */
 
@@ -353,7 +353,6 @@ select.sel.on { border-color: var(--accent-line); background-color: var(--accent
 .rw .arrow { color: var(--ink-4); }
 .rw.static { cursor: default; }
 .rw.static:active { background: var(--surface); }
-.av { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 14px; background: var(--accent-tint); color: var(--accent-ink); font-weight: 600; font-size: 15px; flex: none; }
 .addr { font-size: 13.5px; line-height: 1.55; color: var(--ink); font-style: normal; overflow-wrap: anywhere; }
 .addr b { display: block; font-weight: 500; }
 .addr .muted { color: var(--ink-3); }

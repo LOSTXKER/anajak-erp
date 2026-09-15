@@ -55,7 +55,7 @@ describe("Anajak selected-state contract", () => {
     // ขีดริมซ้ายของเมนูซ้ายหายไป (แถบล่างมือถือยังมีเส้นบนของแท็บที่เปิดอยู่ — คนละชิ้น)
     expect(shellSource).not.toContain("before:-left-3");
     expect(shellSource).not.toContain('onChrome ? "bg-interactive-chrome-pressed" : "bg-interactive-pressed"');
-    // หน้าออเดอร์ยกจากต้นแบบ .fchip (2026-09-15) — ชิปพื้นฟ้าอ่อนอยู่ orders.module.css
+    // หน้าออเดอร์ยกจากต้นแบบ .fchip (2026-09-15) — ชิปพื้นฟ้าอ่อนอยู่ kit/kit.module.css
     expect(ordersSource).toContain('className={c("fchip")}');
     expect(ordersSource).toContain('<Filter aria-hidden="true" />');
     expect(ordersSource).toContain('aria-label="ล้างตัวกรองความเร่งด่วน"');

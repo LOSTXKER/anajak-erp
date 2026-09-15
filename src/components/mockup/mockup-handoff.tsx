@@ -1,7 +1,7 @@
 "use client";
 
 import { ImageIcon } from "lucide-react";
-import { c, Rw } from "@/components/orders/orders-ui";
+import { c, Rw } from "@/components/kit/kit";
 import { mockupImageCount } from "@/lib/mockup";
 import { trpc } from "@/lib/trpc";
 

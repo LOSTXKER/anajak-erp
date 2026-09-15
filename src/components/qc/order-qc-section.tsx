@@ -40,7 +40,7 @@ import { toast } from "sonner";
 import { ImageRemoveButton } from "@/components/ui/image-remove-button";
 import { Alert } from "@/components/ui/alert";
 import { DASHED_INTERACTIVE, TINT } from "@/components/ui/tokens";
-import { c, Rw, StateBox, SubHead } from "@/components/orders/orders-ui";
+import { c, Rw, StateBox, SubHead } from "@/components/kit/kit";
 
 // ส่วน "ตรวจนับ QC" ท้ายการ์ด "ของที่ต้องพร้อมก่อนผลิต" ในแท็บงานผลิต — นับของจุดที่ 2 ก่อนแพ็ค (FLOW-REDESIGN ก้อน 3)
 // นับจริง "ดีกี่ตัว เสียกี่ตัว" · ของดีสะสมครบยอด→เข้าแพ็ก (ของเสียจากเสื้อเผื่อ

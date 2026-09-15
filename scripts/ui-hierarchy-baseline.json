@@ -199,10 +199,6 @@
     "dots": 1,
     "muted": 0
   },
-  "src/components/orders/detail/order-files-card.tsx": {
-    "dots": 0,
-    "muted": 8
-  },
   "src/components/orders/detail/order-items-display.tsx": {
     "dots": 0,
     "muted": 8
@@ -274,10 +270,6 @@
   "src/components/orders/order-billing-section.tsx": {
     "dots": 0,
     "muted": 6
-  },
-  "src/components/orders/order-delivery-section.tsx": {
-    "dots": 0,
-    "muted": 5
   },
   "src/components/orders/order-info-edit-dialog.tsx": {
     "dots": 0,

@@ -8,7 +8,7 @@ import { useListPageState, usePageClamp } from "@/hooks/use-list-page-state";
 import { trpc } from "@/lib/trpc";
 import { permAllows } from "@/lib/permissions";
 import { canCreateOrderWithPricing } from "@/lib/order-access";
-import { c, CardHead } from "@/components/orders/orders-ui";
+import { c, CardHead } from "@/components/kit/kit";
 import { OrderPipeline } from "@/components/orders/list/order-pipeline";
 import { OrderPeekPanel } from "@/components/orders/list/order-peek-panel";
 import { OrdersPager } from "@/components/orders/list/orders-pager";

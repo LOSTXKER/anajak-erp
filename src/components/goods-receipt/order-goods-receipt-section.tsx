@@ -5,7 +5,7 @@ import { AlertTriangle, PackageCheck, PackageOpen, Undo2 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { formatDate } from "@/lib/utils";
 import { RECEIPT_TYPE_LABELS, type ReceiptType } from "@/lib/goods-receipt";
-import { c, CardHead, Rw, StateBox } from "@/components/orders/orders-ui";
+import { c, CardHead, Rw, StateBox } from "@/components/kit/kit";
 import { GoodsReceiptDialog } from "./goods-receipt-dialog";
 
 // การ์ด "ของเข้า / ตรวจรับ" ในแท็บงานผลิตของหน้าออเดอร์ — จุดเดียวที่แอดมินบันทึกของเข้าโรงงาน

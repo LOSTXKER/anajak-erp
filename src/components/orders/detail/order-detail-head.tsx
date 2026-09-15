@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import type { InternalStatus } from "@prisma/client";
-import { c, PriorityChip, StatusPill, statusLabel, Thumb } from "@/components/orders/orders-ui";
+import { c, PriorityChip, StatusPill, statusLabel, Thumb } from "@/components/kit/kit";
 import { findOffPathAnchor, type StatusRevisionLike } from "@/lib/order-status-rail";
 import { formatDateCompact } from "@/lib/utils";
 

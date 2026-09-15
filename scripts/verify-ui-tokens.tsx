@@ -47,7 +47,7 @@ import { ContextPanel } from "../src/components/ui/context-panel";
 import { HelpTip } from "../src/components/ui/help-tip";
 import { VISUAL_TONE_CLASSES } from "../src/lib/visual-tone";
 
-/* หน้าออเดอร์ใช้ CSS Module ที่ยกจากต้นแบบรอบ 2 (orders.module.css · 2026-09-15)
+/* หน้าที่ใช้ชุดหน้าตากลาง (components/kit/kit.module.css · ยกจากต้นแบบที่เบสเคาะ 2026-09-15)
    node โหลดไฟล์ .css ไม่ได้ — ด่านที่ render คอมโพเนนต์จริงให้ชื่อคลาสออกมาตามที่เขียนใน c("…") */
 require.extensions[".css"] = (module) => {
   const classes: object = new Proxy(
@@ -1034,8 +1034,8 @@ check(
       !path.includes(`${sep}app${sep}(print)${sep}`) &&
       !path.includes(`${sep}app${sep}(public)${sep}`) &&
       !path.endsWith(`${sep}components${sep}ui${sep}data-table.tsx`) &&
-      // หน้าออเดอร์ยกหัวตาราง .orders th / .tbl th (พื้นจม) จากต้นแบบรอบ 2 ที่เบสเคาะ — สีหัวอยู่ orders.module.css
-      !source.includes('from "@/components/orders/orders-ui"');
+      // หน้าที่ใช้ชุดหน้าตากลาง (.orders th / .tbl th จากต้นแบบที่เบสเคาะ) — สีหัวอยู่ kit.module.css
+      !source.includes('from "@/components/kit/kit"');
     if (isDashboardRawTable) {
       for (const match of source.matchAll(/<thead\b([^>]*)>/g)) {
         if (!(match[1] ?? "").includes("TABLE_HEAD_SURFACE")) {
@@ -1842,10 +1842,6 @@ check(
   }
 
   const productPickerSource = readFileSync("src/components/product-picker.tsx", "utf8");
-  const orderFilesSource = readFileSync(
-    "src/components/orders/detail/order-files-card.tsx",
-    "utf8",
-  );
   const dialogPrimitiveSource = readFileSync("src/components/ui/dialog.tsx", "utf8");
   if (
     !productPickerSource.includes("<FilterChip") ||
@@ -1858,7 +1854,6 @@ check(
     !productPickerSource.includes("aria-controls={`product-variants-${product.id}`}") ||
     !productPickerSource.includes("max-h-[90dvh]") ||
     !productPickerSource.includes("motion-reduce:animate-none") ||
-    /hover:shadow-md/.test(orderFilesSource) ||
     !dialogPrimitiveSource.includes("returnFocusElement") ||
     !dialogPrimitiveSource.includes("onCloseAutoFocus={handleCloseAutoFocus}")
   ) {

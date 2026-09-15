@@ -18,7 +18,8 @@ import {
   Wallet,
 } from "lucide-react";
 import { OrderChangeOrders } from "@/components/orders/detail/order-change-orders";
-import { c, CardHead, Empty, Prop, SubHead, TechChip, Thumb } from "@/components/orders/orders-ui";
+import { c, CardHead, Empty, Prop, SubHead, Thumb } from "@/components/kit/kit";
+import { TechChip } from "@/components/orders/orders-ui";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { getProductSourcePresentation } from "@/lib/order-item-composer";

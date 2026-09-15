@@ -36,7 +36,7 @@ import {
 import { formatBaht, formatDateShort } from "@/lib/utils";
 import { QueryError } from "@/components/ui/query-error";
 import { Spinner } from "@/components/ui/spinner";
-import { c, Callout, CardHead, Rw, StateBox, SubHead, timeText } from "@/components/orders/orders-ui";
+import { c, Callout, CardHead, Rw, StateBox, SubHead, timeText } from "@/components/kit/kit";
 import { VoidInvoiceDialog } from "./billing/void-invoice-dialog";
 import { RecordRefundDialog } from "./billing/record-refund-dialog";
 import { RecordPaymentDialog } from "./billing/record-payment-dialog";

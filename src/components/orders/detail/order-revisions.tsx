@@ -1,5 +1,5 @@
 import { History } from "lucide-react";
-import { c, CardHead, Empty, statusLabel, timeText } from "@/components/orders/orders-ui";
+import { c, CardHead, Empty, statusLabel, timeText } from "@/components/kit/kit";
 import { revisionKind, revisionTitle, type TimelineRevision } from "@/components/orders/detail/order-timeline-card";
 import { BANGKOK_TZ } from "@/lib/utils";
 

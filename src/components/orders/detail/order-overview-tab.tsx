@@ -20,7 +20,7 @@ import {
   Wallet,
 } from "lucide-react";
 import type { CustomerStatus, OrderType } from "@prisma/client";
-import { c, CardHead, MiniRing, Prop, StateBox, SubHead, timeText } from "@/components/orders/orders-ui";
+import { c, CardHead, MiniRing, Prop, StateBox, SubHead, timeText } from "@/components/kit/kit";
 import { differenceInBangkokDays } from "@/lib/date-utils";
 import { CHANNEL_LABELS, ORDER_TYPE_UI_LABELS, PRIORITY_LABELS } from "@/lib/order-status";
 import { PAYMENT_TERMS_LABELS } from "@/lib/payment-terms";

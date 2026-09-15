@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { ArrowRight, FileText, ImageOff, Palette, Shirt, StickyNote, Tag, Type, Upload } from "lucide-react";
-import { c, CardHead, MockupPill, Prop, SubHead } from "@/components/orders/orders-ui";
+import { c, CardHead, Prop, SubHead } from "@/components/kit/kit";
+import { MockupPill } from "@/components/orders/orders-ui";
 import { MockupThumbRow } from "@/components/mockup/mockup-thumb-row";
 import { trpc } from "@/lib/trpc";
 import { layerForCategory } from "@/lib/file-layers";

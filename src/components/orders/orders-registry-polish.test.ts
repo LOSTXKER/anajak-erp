@@ -6,7 +6,7 @@ const pageSource = read("./orders-page.tsx");
 const tableSource = read("./list/orders-table.tsx");
 const pipelineSource = read("./list/order-pipeline.tsx");
 const peekSource = read("./list/order-peek-panel.tsx");
-const cssSource = read("./orders.module.css");
+const cssSource = read("../kit/kit.module.css");
 
 /* หน้ารายการออเดอร์ — ต้นแบบรอบ 2 (เบสเคาะ 2026-09-14 · รื้อเขียนใหม่ทีละชิ้น 2026-09-15)
    ต้นแบบ: สมอง records/projects/anajak-erp/mockup-orders-minimal-2026-09-14.html

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Calendar, Layers, Printer, Shirt } from "lucide-react";
 import { OrderGoodsReceiptSection } from "@/components/goods-receipt/order-goods-receipt-section";
 import { OrderMockupHandoff } from "@/components/mockup/mockup-handoff";
-import { c, CardHead, DueTag, Rw } from "@/components/orders/orders-ui";
+import { c, CardHead, DueTag, Rw } from "@/components/kit/kit";
 import { ProductionSummaryCard } from "@/components/orders/production-summary-card";
 import { OrderQcSection } from "@/components/qc/order-qc-section";
 import { differenceInBangkokDays } from "@/lib/date-utils";

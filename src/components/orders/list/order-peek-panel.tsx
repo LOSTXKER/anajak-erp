@@ -17,7 +17,8 @@ import {
   X,
 } from "lucide-react";
 import { safeChatUrl } from "@/components/customers/chat-link";
-import { c, DueTag, MockupPill, ProblemCallout, Rw, StatusPill, statusLabel } from "@/components/orders/orders-ui";
+import { c, DueTag, Rw, StatusPill, statusLabel } from "@/components/kit/kit";
+import { MockupPill, ProblemCallout } from "@/components/orders/orders-ui";
 import { customerLines, orderListCover, type OrderListRow } from "@/components/orders/list/orders-table";
 import { describeOrderAttention } from "@/lib/home-orders";
 import { isAttentionStatus } from "@/lib/order-progress";

@@ -71,7 +71,8 @@ import {
   resolveNextStepAction,
 } from "@/components/orders/detail/order-next-step-action";
 import { OrderDetailHead, OrderStatusSteps } from "@/components/orders/detail/order-detail-head";
-import { c, Callout, Empty, ProblemCallout } from "@/components/orders/orders-ui";
+import { c, Callout, Empty } from "@/components/kit/kit";
+import { ProblemCallout } from "@/components/orders/orders-ui";
 import { describeOrderAttention } from "@/lib/home-orders";
 import { describeOrderProgress, isAttentionStatus } from "@/lib/order-progress";
 import { billingOverview } from "@/lib/billing-ui";

@@ -2,7 +2,7 @@
 
 import { useLayoutEffect, useRef, useSyncExternalStore } from "react";
 import type { InternalStatus } from "@prisma/client";
-import { c, STATUS_TONE } from "@/components/orders/orders-ui";
+import { c, STATUS_TONE } from "@/components/kit/kit";
 import { INTERNAL_STATUS_LABELS } from "@/lib/order-status";
 import { PIPELINE_EXCEPTIONS, PIPELINE_SHORT_LABELS, pipelineStages } from "@/lib/order-list-view";
 

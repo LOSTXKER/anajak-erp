@@ -30,7 +30,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Spinner } from "@/components/ui/spinner";
 import { MockupThumbRow } from "@/components/mockup/mockup-thumb-row";
 import { MockupDecisionDialog, MockupUploadDialog } from "@/components/mockup/mockup-dialogs";
-import { c, Callout, CardHead, Empty, MockupPill, StateBox, timeText } from "@/components/orders/orders-ui";
+import { c, Callout, CardHead, Empty, StateBox, timeText } from "@/components/kit/kit";
+import { MockupPill } from "@/components/orders/orders-ui";
 import { layerForCategory, type AttachmentCategory } from "@/lib/file-layers";
 import { safeFileExt } from "@/lib/file-urls";
 import { mockupCoverImage, mockupImageCount, mockupPositionLabel } from "@/lib/mockup";

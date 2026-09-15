@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ArrowUpRight, Check, CheckCircle2, Factory, ListTodo, Pause, Plus, Printer } from "lucide-react";
-import { c, CardHead, StateBox, SubHead } from "@/components/orders/orders-ui";
+import { c, CardHead, StateBox, SubHead } from "@/components/kit/kit";
 import { OUTSOURCE_ACTIVE_STATUSES, productionWorkflowSteps } from "@/lib/production-steps";
 import { productionStepLabel } from "@/lib/order-progress";
 import { differenceInBangkokDays } from "@/lib/date-utils";

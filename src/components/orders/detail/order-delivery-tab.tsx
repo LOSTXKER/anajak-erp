@@ -37,7 +37,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { BlindShipDialog } from "@/components/orders/delivery/blind-ship-dialog";
 import { CreateDeliveryDialog, sizeColorLabel } from "@/components/orders/delivery/create-delivery-dialog";
 import { DeliveryStatusDialog } from "@/components/orders/delivery/delivery-status-dialog";
-import { c, Callout, CardHead, DueTag, Empty, Prop, Rw, StateBox, SubHead, timeText } from "@/components/orders/orders-ui";
+import { c, Callout, CardHead, DueTag, Empty, Prop, Rw, StateBox, SubHead, timeText } from "@/components/kit/kit";
 
 /* ============================================================
    แท็บ "จัดส่ง" — ต้นแบบ tabDelivery() ทีละชิ้น (รื้อ 2026-09-15)

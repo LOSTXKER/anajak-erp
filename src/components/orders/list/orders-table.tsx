@@ -4,16 +4,8 @@ import Link from "next/link";
 import { ArrowDown, ArrowUp, ArrowUpDown, ChevronRight, MessageCircle } from "lucide-react";
 import type { RouterOutput } from "@/lib/trpc";
 import { safeChatUrl } from "@/components/customers/chat-link";
-import {
-  c,
-  DueTag,
-  PayTag,
-  PriorityChip,
-  StatusDot,
-  TechChip,
-  Thumb,
-  WhyCell,
-} from "@/components/orders/orders-ui";
+import { c, DueTag, PriorityChip, StatusDot, Thumb } from "@/components/kit/kit";
+import { PayTag, TechChip, WhyCell } from "@/components/orders/orders-ui";
 import { describeOrderAttention } from "@/lib/home-orders";
 import { mockupCoverImage } from "@/lib/mockup";
 import { CHANNEL_LABELS } from "@/lib/order-status";

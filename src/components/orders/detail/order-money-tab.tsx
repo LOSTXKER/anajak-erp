@@ -1,5 +1,5 @@
 import { BarChart3, Receipt, User, Wallet } from "lucide-react";
-import { c, CardHead, Prop, StateBox, SubHead } from "@/components/orders/orders-ui";
+import { c, CardHead, Prop, StateBox, SubHead } from "@/components/kit/kit";
 import { OrderBillingSection } from "@/components/orders/order-billing-section";
 import { PAYMENT_TERMS_LABELS } from "@/lib/payment-terms";
 import { formatBaht } from "@/lib/utils";

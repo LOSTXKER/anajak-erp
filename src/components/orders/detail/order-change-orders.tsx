@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowRight, FileText, History } from "lucide-react";
-import { c, CardHead, Empty } from "@/components/orders/orders-ui";
+import { c, CardHead, Empty } from "@/components/kit/kit";
 import { QueryError } from "@/components/ui/query-error";
 import { trpc } from "@/lib/trpc";
 import { formatBaht, formatDateTime } from "@/lib/utils";

@@ -11,7 +11,7 @@ import {
   ImageIcon,
   Package,
 } from "lucide-react";
-import { c, CardHead, statusLabel, timeText } from "@/components/orders/orders-ui";
+import { c, CardHead, statusLabel, timeText } from "@/components/kit/kit";
 import { formatDateCompact } from "@/lib/utils";
 
 /* ============================================================

@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { c } from "@/components/orders/orders-ui";
+import { c } from "@/components/kit/kit";
 
 /* ============================================================
    แถบแบ่งหน้าท้ายตาราง — ต้นแบบ .pager (รื้อ 2026-09-15)
