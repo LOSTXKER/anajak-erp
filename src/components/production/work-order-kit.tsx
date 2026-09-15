@@ -4,7 +4,7 @@
  * /production/[id] บนชุดหน้าตากลาง — ต้นแบบ mockup-production-calm-2026-09-15 (เบสสั่งลงจริง 2026-09-16)
  *
  * แถบแจ้งเตือนทุกชนิดอยู่บนสุด · หัวใบ (รูปม็อกอัพ เลขใบ ความสำคัญ | ใบสั่งงาน · ถัดไป · ⋯) · เส้นงานไม่มีกรอบ/คำใต้ขั้น
- * แท็บ ขั้นตอน = การ์ดขั้น (ลายคู่ตำแหน่ง + ยอดต่อไซซ์ + ปุ่มของขั้นท้ายการ์ด) | เช็คลิสต์ · ข้อมูลออเดอร์ · ประวัติขั้นงาน
+ * แท็บ ขั้นตอน = การ์ดขั้น (ลายคู่ตำแหน่ง + ยอดต่อไซซ์ + ปุ่มของขั้นท้ายการ์ด) | เช็คลิสต์ · ข้อมูลออเดอร์ · แท็บ ประวัติขั้นงาน (เบสขอแยกแท็บ 09-16)
  * แท็บ สินค้า = สินค้า/ไซซ์ + ลายพร้อมรูป · ม็อกอัพอนุมัติ · วัตถุดิบ (ของเดิม)
  *
  * กติกาทั้งหมดมาจาก useWorkOrderController ชุดเดิม (ปุ่มลงมือ ติ๊ก ยอด ย้อนขั้น พัก ส่ง QC) — ไม่มีทางลัดสถานะใหม่
@@ -45,6 +45,7 @@ import { PageShell } from "@/components/page-shell";
 import { RecordNotFound } from "@/components/ui/record-not-found";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { c, CardHead, Callout, DueTag, PriorityChip, Prop, Thumb } from "@/components/kit/kit";
+import { KitTabs } from "@/components/kit/tabs";
 import { MaterialUsage } from "@/components/material-usage";
 import { GarmentPickCard } from "@/components/production/garment-pick-card";
 import { GarmentReceiveInline } from "@/components/production/garment-receive-inline";
@@ -505,16 +506,16 @@ function historyOf(steps: readonly ProductionStep[]): HistoryEvent[] {
       });
     }
   }
-  return events.sort((a, b) => b.at.getTime() - a.at.getTime()).slice(0, 8);
+  return events.sort((a, b) => b.at.getTime() - a.at.getTime());
 }
 
 function HistoryCard({ steps }: { steps: readonly ProductionStep[] }) {
   const events = historyOf(steps);
-  if (events.length === 0) return null;
   return (
     <section className={c("card")} aria-labelledby="wo-hist-h">
       <CardHead icon={History} id="wo-hist-h" title="ประวัติขั้นงาน" />
       <div className={c("cb")}>
+        {events.length === 0 ? <p className={c("mempty")}>ยังไม่มีขั้นที่เริ่มทำ</p> : null}
         <ol className={c("hist")}>
           {events.map((event) => (
             <li key={event.key}>
@@ -623,7 +624,7 @@ export function WorkOrderKitView({ c: ctl, scannedMockup = Number.NaN }: { c: Wo
   const { production, order, me, productionQuery, meQuery, workflowSteps, nowById } = ctl;
   const [problemStep, setProblemStep] = useState<ProductionStep | null>(null);
   const [fixReceiveOpen, setFixReceiveOpen] = useState(false);
-  const [tab, setTab] = useState<"steps" | "items">("steps");
+  const [tab, setTab] = useState<"steps" | "items" | "history">("steps");
 
   const approvedMockup = order?.designs[0]?.versionNumber ?? null;
   const stalePaper = Number.isFinite(scannedMockup) && scannedMockup > 0 && approvedMockup !== null && scannedMockup < approvedMockup;
@@ -1002,31 +1003,22 @@ export function WorkOrderKitView({ c: ctl, scannedMockup = Number.NaN }: { c: Wo
               <WorkRail labels={railLabels} currentIndex={currentNodeIndex} allDone={allDone} stopped={stopped} />
             ) : null}
 
-            <div className={c("tabs")} role="tablist" aria-label="ส่วนของใบผลิต">
-              {(
-                [
-                  ["steps", "ขั้นตอน"],
-                  ["items", "สินค้า"],
-                ] as const
-              ).map(([key, label]) => (
-                <button
-                  key={key}
-                  type="button"
-                  role="tab"
-                  id={`wo-tab-${key}`}
-                  aria-selected={tab === key}
-                  aria-controls={`wo-panel-${key}`}
-                  className={c("tab")}
-                  onClick={() => setTab(key)}
-                >
-                  {label}
-                  {key === "steps" && ctl.problemSteps.length > 0 && tab !== "steps" ? <span className={c("pend")} aria-hidden="true" /> : null}
-                </button>
-              ))}
-            </div>
+            <KitTabs
+              label="ส่วนของใบผลิต"
+              idPrefix="wo"
+              value={tab}
+              onChange={setTab}
+              tabs={[
+                { key: "steps", label: "ขั้นตอน", pending: ctl.problemSteps.length > 0 },
+                { key: "items", label: "สินค้า" },
+                { key: "history", label: "ประวัติขั้นงาน" },
+              ]}
+            />
 
             <div className={c("tabpanel")} role="tabpanel" id={`wo-panel-${tab}`} aria-labelledby={`wo-tab-${tab}`}>
-              {tab === "items" ? (
+              {tab === "history" ? (
+                <HistoryCard steps={workflowSteps} />
+              ) : tab === "items" ? (
                 <ItemsTab order={order} production={production} c={ctl} />
               ) : workflowSteps.length === 0 ? (
                 <section className={c("card")}>
@@ -1085,7 +1077,6 @@ export function WorkOrderKitView({ c: ctl, scannedMockup = Number.NaN }: { c: Wo
                         ))
                       : null}
                     <OrderInfoCard order={order} production={production} c={ctl} />
-                    <HistoryCard steps={workflowSteps} />
                   </div>
                 </div>
               )}

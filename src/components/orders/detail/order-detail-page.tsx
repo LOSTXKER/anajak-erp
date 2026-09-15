@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, use, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Suspense, use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
@@ -55,7 +55,6 @@ import {
   tabForAnchor,
   ORDER_TAB_DEFS,
   ORDER_DEFAULT_TAB,
-  type OrderTabDef,
   type TabKey,
 } from "@/lib/order-tabs";
 import {
@@ -72,6 +71,7 @@ import {
 } from "@/components/orders/detail/order-next-step-action";
 import { OrderDetailHead, OrderStatusSteps } from "@/components/orders/detail/order-detail-head";
 import { c, Callout, Empty } from "@/components/kit/kit";
+import { KitTabs } from "@/components/kit/tabs";
 import { ProblemCallout } from "@/components/orders/orders-ui";
 import { describeOrderAttention } from "@/lib/home-orders";
 import { describeOrderProgress, isAttentionStatus } from "@/lib/order-progress";
@@ -100,85 +100,6 @@ function OrderDetailSkeleton() {
         <span className={c("sk")} style={{ height: 320 }} />
         <span className={c("sk")} style={{ height: 320 }} />
       </div>
-    </div>
-  );
-}
-
-/** แถบแท็บ (ต้นแบบ .tabs) — เส้นใต้แท็บเลื่อนตามแท็บที่เลือก · ←→ Home End เลื่อนแท็บด้วยคีย์บอร์ด */
-function OrderTabsBar({
-  tabs,
-  active,
-  counts,
-  pending,
-  onChange,
-}: {
-  tabs: OrderTabDef[];
-  active: TabKey;
-  counts: Partial<Record<TabKey, number>>;
-  pending: TabKey | null;
-  onChange: (key: TabKey) => void;
-}) {
-  const listRef = useRef<HTMLDivElement>(null);
-  const indRef = useRef<HTMLSpanElement>(null);
-
-  useLayoutEffect(() => {
-    const list = listRef.current;
-    const ind = indRef.current;
-    if (!list || !ind) return;
-    const place = () => {
-      const on = list.querySelector<HTMLElement>('[aria-selected="true"]');
-      if (!on) return;
-      ind.style.left = `${on.offsetLeft}px`;
-      ind.style.width = `${on.offsetWidth}px`;
-    };
-    place();
-    const observer = new ResizeObserver(place);
-    observer.observe(list);
-    void document.fonts.ready.then(place);
-    return () => observer.disconnect();
-  }, [active, tabs.length, counts]);
-
-  const move = (event: React.KeyboardEvent<HTMLButtonElement>) => {
-    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
-    event.preventDefault();
-    const index = tabs.findIndex((tab) => tab.key === active);
-    const nextIndex =
-      event.key === "Home"
-        ? 0
-        : event.key === "End"
-          ? tabs.length - 1
-          : (index + (event.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length;
-    const next = tabs[nextIndex]!;
-    onChange(next.key);
-    document.getElementById(`order-tab-${next.key}`)?.focus();
-  };
-
-  return (
-    <div ref={listRef} role="tablist" aria-label="ส่วนของออเดอร์" className={c("tabs")}>
-      {tabs.map((tab) => {
-        const selected = tab.key === active;
-        const hasPending = pending === tab.key && !selected;
-        return (
-          <button
-            key={tab.key}
-            id={`order-tab-${tab.key}`}
-            type="button"
-            role="tab"
-            aria-selected={selected}
-            aria-controls={`order-panel-${tab.key}`}
-            aria-label={hasPending ? `${tab.label} — มีงานค้าง` : undefined}
-            tabIndex={selected ? 0 : -1}
-            onClick={() => onChange(tab.key)}
-            onKeyDown={move}
-            className={c("tab")}
-          >
-            {tab.label}
-            {counts[tab.key] ? <span className={c("n")}>{counts[tab.key]}</span> : null}
-            {hasPending ? <span className={c("pend")} aria-hidden="true" /> : null}
-          </button>
-        );
-      })}
-      <span ref={indRef} className={c("ind")} aria-hidden="true" />
     </div>
   );
 }
@@ -886,7 +807,13 @@ function OrderDetailContent({
       {/* คำอธิบายขั้นต่อไปผูกกับปุ่มผ่าน aria-describedby — เบสไม่เอาบรรทัดคำช่วยใต้ราง (09-13) */}
       {blockers.length === 0 ? <div className={c("sr")}>{guidance}</div> : null}
 
-      <OrderTabsBar tabs={visibleTabs} active={activeTab} counts={tabCounts} pending={pendingTab} onChange={changeTab} />
+      <KitTabs
+        label="ส่วนของออเดอร์"
+        idPrefix="order"
+        value={activeTab}
+        onChange={changeTab}
+        tabs={visibleTabs.map((tab) => ({ key: tab.key, label: tab.label, count: tabCounts[tab.key], pending: pendingTab === tab.key }))}
+      />
 
       {panel(
         "overview",
