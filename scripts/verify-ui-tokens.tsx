@@ -1710,14 +1710,13 @@ check(
   const cardActiveBlock =
     globalsSource.match(/\.card-surface-hover:active\s*\{([^}]*)\}/)?.[1] ?? "";
   if (
-    !cardHoverBlock.includes("background-color: var(--color-interactive-hover)") ||
-    !cardHoverBlock.includes("border-color: var(--color-border-strong)") ||
-    cardHoverBlock.includes("transform:") ||
+    // ชุด kit ไม่มีเอฟเฟกต์ตอนชี้ (2026-09-17): ห้ามมีบล็อก :hover · ตอบสนองด้วย :active เท่านั้น
+    cardHoverBlock !== "" ||
     !cardActiveBlock.includes("background-color: var(--color-interactive-pressed)") ||
     !cardActiveBlock.includes("box-shadow: none")
   ) {
     failed++;
-    console.log("❌ card-surface-hover ต้องเปลี่ยน fill/border โดยไม่ยกหรือใส่เงา");
+    console.log("❌ card-surface-hover ต้องไม่มี :hover และเปลี่ยน fill ตอนกดโดยไม่ใส่เงา");
   } else {
     console.log("✅ card-surface-hover เปลี่ยน fill/border โดยไม่ยกหรือใส่เงา");
   }

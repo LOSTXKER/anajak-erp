@@ -581,16 +581,9 @@ input[type="number"] {
     background-color var(--duration-base) var(--ease-out),
     border-color var(--duration-base) var(--ease-out);
 }
-.card-surface-hover:hover {
-  background-color: var(--color-interactive-hover);
-  border-color: var(--color-border-strong);
-  box-shadow: none;
-}
+/* ชุด kit ไม่มีเอฟเฟกต์ตอนชี้ (2026-09-17) — การ์ดที่กดได้เปลี่ยนเฉพาะตอนกด (:active ด้านล่าง) */
 .card-surface-hover:active {
   background-color: var(--color-interactive-pressed);
-  box-shadow: none;
-}
-.dark .card-surface-hover:hover {
   box-shadow: none;
 }
 .dark .card-surface-hover:active {
