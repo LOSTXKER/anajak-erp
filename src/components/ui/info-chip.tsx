@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { RADIUS, TINT } from "./tokens";
+
 
 /* ============================================================
    InfoChip — ข้อมูลสั้นหนึ่งชิ้นที่ต้องสะดุดตา (เพิ่ม 2026-09-02)
@@ -17,12 +17,13 @@ import { RADIUS, TINT } from "./tokens";
 
 export type InfoChipTone = "neutral" | "info" | "warning" | "error" | "success";
 
+/* หน้าตาชิปแบบ kit (.chip/.due ของหน้าออเดอร์ · 2026-09-17): แคปซูลพื้นสีอ่อน ไม่มีเส้นขอบ */
 const TONE: Record<InfoChipTone, string> = {
   neutral: "border-transparent bg-surface-muted text-secondary",
-  info: TINT.info,
-  warning: TINT.warning,
-  error: TINT.error,
-  success: TINT.success,
+  info: "border-transparent bg-blue-50 text-blue-700 dark:bg-blue-400/15 dark:text-blue-300",
+  warning: "border-transparent bg-amber-50 text-amber-700 dark:bg-amber-400/15 dark:text-amber-300",
+  error: "border-transparent bg-red-50 text-red-700 dark:bg-red-400/15 dark:text-red-300",
+  success: "border-transparent bg-green-50 text-green-700 dark:bg-green-400/15 dark:text-green-300",
 };
 
 const SIZE = {
@@ -56,8 +57,7 @@ export function InfoChip({
     <span
       title={title}
       className={cn(
-        "inline-flex max-w-full items-center gap-1.5 whitespace-nowrap border py-0.5",
-        RADIUS.inner,
+        "inline-flex max-w-full items-center gap-1.5 whitespace-nowrap rounded-full border py-0.5 tabular-nums",
         SIZE[size],
         TONE[tone],
         strong ? "font-semibold" : "font-medium",

@@ -8,7 +8,7 @@
 - [PageShell](src/components/page-shell.tsx) / [PageHeader](src/components/page-header.tsx): โครงและบริบท; [Section](src/components/ui/section.tsx) / [Field](src/components/ui/field.tsx) / [ActionZone](src/components/ui/action-zone.tsx): ข้อมูล คำช่วย และคำสั่งใกล้จุดใช้
 - [UI primitives](src/components/ui/), [สถานะ](src/lib/status-config.ts), [สิทธิ์](src/lib/permissions.ts), [รายการใน URL](src/hooks/use-list-page-state.ts): ค้นของเดิมก่อนขยาย; component ไม่สร้างกฎธุรกิจซ้ำ
 - [Mockup](src/components/mockup/), [Public](src/components/public/public-page.tsx), [Print](src/components/print/print-document.tsx): ใช้ส่วนกลางของแต่ละงาน; กระดาษมีข้อจำกัดต่างจากหน้าจอ
-- ชุดหน้าตากลาง: [kit.module.css](src/components/kit/kit.module.css) + [kit.tsx](src/components/kit/kit.tsx) = CSS/ชิ้นส่วนจากต้นแบบที่เบสเคาะแบบตรงตัว ใช้ผ่าน `c()`; หน้าที่ย้ายแล้ว (ออเดอร์ หน้าแรก) ใช้ชุดนี้; แก้หน้าตาที่นี่ ไม่แปลงกลับเป็น token
+- ชุดหน้าตากลาง: [kit.module.css](src/components/kit/kit.module.css) + [kit.tsx](src/components/kit/kit.tsx) = ต้นแบบที่เบสเคาะ ใช้ผ่าน `c()`; `ui/` หน้าตาเท่า kit ตั้งแต่ 09-17 ทุกหน้ากว้าง 1124px ไม่มี hover
 
 ## ใช้และปรับทิศ
 คงคำช่วยที่ใช้ตัดสินใจ ลงมือ หรือแก้ผิดตรงจุดใช้ ลดข้อความซ้ำและกรอบที่แย่งสายตา. ความกว้าง/ความแน่น/ตารางหรือการ์ดเลือกตามภารกิจ; จำนวนปุ่ม สี ชิป หรือความยาวข้อความไม่พิสูจน์ UX
