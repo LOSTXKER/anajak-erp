@@ -8,7 +8,7 @@
  * ปุ่มไหนกดได้มาจาก selectNowSteps + evaluateHeatPressGate ชุดเดิม — ไม่มีทางลัดสถานะใหม่
  */
 
-import { useState, type ReactNode } from "react";
+import { useState, type ComponentProps, type ReactNode } from "react";
 import { Truck } from "lucide-react";
 import { toast } from "sonner";
 
@@ -16,7 +16,8 @@ import { trpc } from "@/lib/trpc";
 import { permAllows } from "@/lib/permissions";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { useConfirm } from "@/components/ui/confirm-dialog";
-import { Button } from "@/components/ui/button";
+import { Button as UiButton } from "@/components/ui/button";
+import { c as kitClass } from "@/components/kit/kit";
 import { GoodsReceiptDialog } from "@/components/goods-receipt/goods-receipt-dialog";
 import { StepOutsourceDialog } from "@/components/production/step-outsource-dialog";
 import { StepQtySheet } from "@/components/production/step-qty-sheet";
@@ -32,6 +33,8 @@ import { outsourceQueueForStatus } from "@/lib/outsource-ui";
 export type WorkOrderButtonOptions = {
   /** จอทัช: ปุ่มสูง 64px ตัวหนังสือใหญ่ */
   touch?: boolean;
+  /** วาดด้วยปุ่มชุดหน้าตากลาง (ใบผลิตแบบใหม่) */
+  kit?: boolean;
 };
 
 export function useWorkOrderController(id: string) {
@@ -328,6 +331,16 @@ export function OutsourceReturnReceipt({ orderId, step, outsourceOrderId, onClos
 /* ───────────────────────── ปุ่มหลักของขั้น (pure — ไม่มี hook/tRPC) ─────────────────────────
  * ใช้ทั้งใบผลิตจริง (ผ่าน useWorkOrderController) และหน้าลอง /proto/work-order-states (controller ปลอม)
  * เพื่อให้ปุ่มที่เบสเห็นในหน้าลองเป็นตัวเดียวกับของจริงทุกกติกา */
+/** ปุ่มชุดกลางที่รับ props แบบเดียวกับปุ่มเดิมที่ใช้ในไฟล์นี้ (variant/className/onClick/disabled) */
+function KitButton({ variant, className, children, ...props }: ComponentProps<"button"> & { variant?: string }) {
+  const tone = variant === "destructive" ? "danger" : variant === "outline" ? null : "primary";
+  return (
+    <button type="button" className={cn(kitClass("btn", tone), className)} {...props}>
+      {children}
+    </button>
+  );
+}
+
 export type WorkOrderPrimaryButtonProps = {
   step: ProductionStep;
   now: NowStep<ProductionStep> | undefined;
@@ -347,6 +360,8 @@ export type WorkOrderPrimaryButtonProps = {
 
 export function WorkOrderPrimaryButton({ step, now, options = {}, busy, canUpdateStep, canSuperviseStep, hasProductionPermission, canOwnOrSupervise, onStart, onComplete, onQuickPass, onManage, onGoodsReceipt, onOutsource }: WorkOrderPrimaryButtonProps) {
   const size = cn(options.touch && "h-16 text-lg");
+  // ใบผลิตชุดกลาง (kit) ใช้กติกาปุ่มชุดเดียวกัน แค่วาดเป็นปุ่มของชุดหน้าตากลาง
+  const Button = options.kit ? KitButton : UiButton;
   if (step.status === "COMPLETED") {
     return (
       <Button variant="outline" className={size} disabled>
