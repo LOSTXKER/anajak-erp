@@ -162,45 +162,47 @@ function BillingPageContent() {
 
       {/* แถบเครื่องมือใช้โครงกลาง — จุดตัดวัดจากพื้นที่เนื้อหาจริง (@container)
           ไม่ใช่ความกว้างหน้าต่าง จะได้แตกแถวจังหวะเดียวกับหน้ารายการอื่น */}
-      <Toolbar>
-        <SearchInput
-          surface="raised"
-          ref={searchInputRef}
-          containerClassName="@2xl:max-w-sm @2xl:flex-1"
-          placeholder="ค้นหาเลขบิล, ชื่อลูกค้า..."
-          defaultValue={search}
-          onChange={(e) => onSearchChange(e.target.value)}
-        />
-
-        {/* flex-wrap: จอแคบให้ตัวกรองเต็มความกว้างคนละบรรทัดเหมือนเดิม — ถ้าบีบสองช่องลงแถวเดียว
-            ป้ายยาวอย่าง "ใบแจ้งหนี้ส่วนที่เหลือ" จะถูกตัดกลางคำ · จอกว้างค่อยยืนเรียงกัน */}
-        <ToolbarGroup className="flex-wrap">
-          <Select value={statusFilter} surface="raised"
-            onChange={(e) => {
-              replaceListState({ status: e.target.value === ALL ? null : e.target.value, page: null });
-            }} shape="pill" className="w-full @2xl:w-40" aria-label="กรองตามสถานะ">
-              <option value={ALL}>ทุกสถานะ</option>
-              {Object.entries(PAYMENT_STATUS_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </Select>
-          <Select value={typeFilter} surface="raised"
-            onChange={(e) => {
-              replaceListState({ type: e.target.value === ALL ? null : e.target.value, page: null });
-            }} shape="pill" className="w-full @2xl:w-48" aria-label="กรองตามประเภท">
-              <option value={ALL}>ทุกประเภท</option>
-              {TYPE_FILTER_OPTIONS.map((value) => (
-                <option key={value} value={value}>
-                  {INVOICE_TYPE_LABELS[value]}
-                </option>
-              ))}
-            </Select>
-        </ToolbarGroup>
-      </Toolbar>
 
       <ResponsiveList
+        toolbar={
+          <Toolbar>
+            <SearchInput
+              surface="raised"
+              ref={searchInputRef}
+              containerClassName="@2xl:max-w-sm @2xl:flex-1"
+              placeholder="ค้นหาเลขบิล, ชื่อลูกค้า..."
+              defaultValue={search}
+              onChange={(e) => onSearchChange(e.target.value)}
+            />
+
+            {/* flex-wrap: จอแคบให้ตัวกรองเต็มความกว้างคนละบรรทัดเหมือนเดิม — ถ้าบีบสองช่องลงแถวเดียว
+                ป้ายยาวอย่าง "ใบแจ้งหนี้ส่วนที่เหลือ" จะถูกตัดกลางคำ · จอกว้างค่อยยืนเรียงกัน */}
+            <ToolbarGroup className="flex-wrap">
+              <Select value={statusFilter} surface="raised"
+                onChange={(e) => {
+                  replaceListState({ status: e.target.value === ALL ? null : e.target.value, page: null });
+                }} shape="pill" className="w-full @2xl:w-40" aria-label="กรองตามสถานะ">
+                  <option value={ALL}>ทุกสถานะ</option>
+                  {Object.entries(PAYMENT_STATUS_LABELS).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </Select>
+              <Select value={typeFilter} surface="raised"
+                onChange={(e) => {
+                  replaceListState({ type: e.target.value === ALL ? null : e.target.value, page: null });
+                }} shape="pill" className="w-full @2xl:w-48" aria-label="กรองตามประเภท">
+                  <option value={ALL}>ทุกประเภท</option>
+                  {TYPE_FILTER_OPTIONS.map((value) => (
+                    <option key={value} value={value}>
+                      {INVOICE_TYPE_LABELS[value]}
+                    </option>
+                  ))}
+                </Select>
+            </ToolbarGroup>
+          </Toolbar>
+        }
         items={data?.invoices}
         isLoading={isLoading || isFetching}
         isError={isError}

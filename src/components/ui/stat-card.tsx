@@ -84,8 +84,7 @@ export function StatCard({
           <span
             className={cn(
               "grid size-9 shrink-0 place-items-center rounded-xl",
-              toned ? VISUAL_TONE_CLASSES[toned].mark : "text-secondary",
-              "bg-surface-muted",
+              toned ? VISUAL_TONE_CLASSES[toned].soft : "bg-surface-muted text-secondary",
             )}
             aria-hidden="true"
           >
@@ -97,7 +96,8 @@ export function StatCard({
       {loading ? <div className="mt-3.5"><Skeleton className="h-9 w-28" /><span className="sr-only">กำลังโหลด{title}</span></div> : <p
         className={cn(
           "mt-3.5 text-3xl font-semibold tabular-nums",
-          toned ? VISUAL_TONE_CLASSES[toned].text : TONE_CLASSES[tone],
+          // ตัวเลขสีเข้มแบบ tile หน้าแรก — สีเก็บไว้ให้ความหมาย (ค้าง/เตือน/ดี) · สีหมวดอยู่ที่กล่องไอคอน
+          TONE_CLASSES[tone],
           valueClassName
         )}
       >

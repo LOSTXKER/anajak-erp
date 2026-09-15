@@ -1,4 +1,4 @@
-import type { HTMLAttributes, ReactNode } from "react";
+import { createContext, useContext, type HTMLAttributes, type ReactNode } from "react";
 import { Inbox } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { QueryError } from "@/components/ui/query-error";
@@ -24,15 +24,27 @@ export interface ResponsiveListProps<T>
   loadingState?: ReactNode;
   pagination?: ReactNode;
   label?: string;
+  /** แถบค้นหา/ตัวกรองของรายการนี้ — ส่งมาแล้ววางไว้ "ในการ์ดเดียวกับตาราง" แบบหน้าออเดอร์ (ชุด kit · 2026-09-17)
+   *  ทุกสถานะ (โหลด/ว่าง/พัง/มีข้อมูล) ยังเห็นแถบนี้ในการ์ดเดิม จอไม่กระโดด */
+  toolbar?: ReactNode;
 }
+
+/** ตาราง/การ์ดที่อยู่ในการ์ดของ ResponsiveList แล้ว ไม่ต้องวาดกรอบซ้อน (DataTable.Root อ่านค่านี้) */
+const InListCard = createContext(false);
+export const useInListCard = () => useContext(InListCard);
 
 /* ทุกสถานะของหน้ารายการต้องมีกรอบเดียวกัน (แก้ 2026-08-26 หลังคืนกล่องครอบตาราง)
    ก่อนหน้านี้ตอนมีข้อมูล = ตารางในการ์ด · ตอนโหลด/ว่าง/พัง = เนื้อหาลอยบนผืนหน้า
    พอข้อมูลมาถึง กล่องโผล่ขึ้นมาพร้อมกัน จอจึงกระโดดทุกครั้งที่เปิดหน้ารายการ
    โครงร่างตอนโหลดใช้ ListSkeleton ตัวเดียวกับ loading.tsx แล้ว (เดิมมีสองสูตร
    ที่ความสูงแถวไม่ตรงกัน ซึ่งเป็นปัญหาเดียวกับที่เฟส 4 ตั้งใจแก้) */
-function ListStateFrame({ children }: { children: ReactNode }) {
-  return <div className="card-surface overflow-hidden rounded-2xl">{children}</div>;
+function ListStateFrame({ children, toolbar }: { children: ReactNode; toolbar?: ReactNode }) {
+  return (
+    <div className="card-surface overflow-hidden rounded-2xl">
+      {toolbar ? <div className="px-4.5 pb-2.5 pt-3.5">{toolbar}</div> : null}
+      <div className={toolbar ? "border-t border-divider/60" : undefined}>{children}</div>
+    </div>
+  );
 }
 
 export function ResponsiveList<T>({
@@ -48,12 +60,13 @@ export function ResponsiveList<T>({
   loadingState,
   pagination,
   label = "รายการ",
+  toolbar,
   className,
   ...props
 }: ResponsiveListProps<T>) {
   if (isError && (!items || items.length === 0)) {
     return (
-      <ListStateFrame>
+      <ListStateFrame toolbar={toolbar}>
         <QueryError message={errorMessage} onRetry={onRetry} />
       </ListStateFrame>
     );
@@ -61,13 +74,20 @@ export function ResponsiveList<T>({
 
   // ListSkeleton ห่อการ์ดมาให้แล้ว จึงไม่ต้องซ้อน ListStateFrame อีกชั้น
   if (isLoading && (!items || items.length === 0)) {
+    if (toolbar) {
+      return (
+        <ListStateFrame toolbar={toolbar}>
+          <div className="[&_.card-surface]:rounded-none [&_.card-surface]:border-0">{loadingState ?? <ListSkeleton />}</div>
+        </ListStateFrame>
+      );
+    }
     return loadingState ?? <ListSkeleton />;
   }
 
   const resolvedItems = items ?? [];
   if (resolvedItems.length === 0) {
     return (
-      <ListStateFrame>
+      <ListStateFrame toolbar={toolbar}>
         {emptyState ?? (
           <EmptyState
             icon={Inbox}
@@ -97,11 +117,24 @@ export function ResponsiveList<T>({
           <p>กำลังแสดงข้อมูลที่โหลดไว้ก่อนหน้า รายการอาจไม่ตรงกับตัวกรองหรือหน้าที่เลือก</p>
         </Alert>
       )}
+      {toolbar ? (
+        <div className="card-surface overflow-hidden rounded-2xl">
+          <div className="px-4.5 pb-2.5 pt-3.5">{toolbar}</div>
+          <InListCard.Provider value>
+            <div className="hidden border-t border-divider/60 lg:block">{renderDesktop(resolvedItems)}</div>
+            <div className="px-3.5 pb-3.5 lg:hidden">{renderMobile(resolvedItems)}</div>
+          </InListCard.Provider>
+          {pagination ? <div className="border-t border-divider/60 px-4.5 pb-2.5 [&>nav]:pt-2.5">{pagination}</div> : null}
+        </div>
+      ) : (
+        <>
       {/* ที่ md sidebar กิน 256px ทำให้พื้นที่เนื้อหาจริงแคบกว่ามือถือแนวนอน
           จึงคง card ถึงก่อน lg แล้วค่อยสลับเป็น table */}
       <div className="hidden lg:block">{renderDesktop(resolvedItems)}</div>
       <div className="lg:hidden">{renderMobile(resolvedItems)}</div>
-      {pagination}
+          {pagination}
+        </>
+      )}
     </div>
   );
 }

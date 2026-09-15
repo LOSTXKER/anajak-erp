@@ -149,7 +149,8 @@ const alert = render(
 ok("Alert: มี role=alert และไอคอนโดยไม่ต้องส่ง", alert.includes('role="alert"') && alert.includes("<svg"));
 ok("Alert: meta เป็นชิป (ป้าย + ค่า) ไม่ใช่บรรทัดจุด", alert.includes(">ขั้น<") && alert.includes(">เตรียมเสื้อ<") && !alert.includes("ขั้น เตรียมเสื้อ ·"));
 ok("Alert: หัวเรื่อง + เนื้อความ + ปุ่ม ครบ", alert.includes("เสื้อไม่พอ") && alert.includes("ไซซ์ L ขาด 60 ตัว") && alert.includes(">แก้ให้<"));
-ok("Alert: พื้นเรียบ ไม่ใช่กล่องสีเต็ม (ไม่มี bg-red-50)", !alert.includes("bg-red-50 ") && alert.includes("bg-surface"));
+// กล่องแจ้งเตือนแบบ callout ของชุด kit (2026-09-17 เบสสั่งให้ทุกหน้าเข้ากัน): พื้นสีอ่อนตามความหมาย ขอบจาง ไม่มีแถบข้าง
+ok("Alert: พื้นสีอ่อนแบบ callout ขอบจาง ไม่มีแถบสีข้าง", alert.includes("bg-red-50") && alert.includes("border-red-600/25") && !alert.includes("border-l-"));
 
 const card = render(<ProblemCard step={{ ...base, id: "p", stepType: "GARMENT_PICK", status: "FAILED", notes: "ขาด 60", assignedTo: { id: "u", name: "เนส" } } as never} />);
 ok("การ์ดปัญหาในใบผลิต: ขั้น + ผู้รับผิดชอบ เป็นชิป", card.includes(">ขั้น<") && card.includes(">ผู้รับผิดชอบ<") && card.includes(">เนส<"));

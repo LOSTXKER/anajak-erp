@@ -185,18 +185,20 @@ function BillingNotesPageContent() {
           เปิดตรวจเอกสารก่อนส่งให้ลูกค้า
         </Alert>
       )}
-      <Toolbar>
-        <SearchInput
-          surface="raised"
-          ref={searchInputRef}
-          containerClassName="@2xl:max-w-sm @2xl:flex-1"
-          placeholder="ค้นหาเลขใบวางบิล, ชื่อลูกค้า..."
-          defaultValue={search}
-          onChange={(event) => onSearchChange(event.target.value)}
-        />
-      </Toolbar>
 
       <ResponsiveList
+        toolbar={
+          <Toolbar>
+            <SearchInput
+              surface="raised"
+              ref={searchInputRef}
+              containerClassName="@2xl:max-w-sm @2xl:flex-1"
+              placeholder="ค้นหาเลขใบวางบิล, ชื่อลูกค้า..."
+              defaultValue={search}
+              onChange={(event) => onSearchChange(event.target.value)}
+            />
+          </Toolbar>
+        }
         items={data?.notes}
         isLoading={isLoading || isFetching}
         isError={isError}

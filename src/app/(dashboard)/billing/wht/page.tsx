@@ -250,34 +250,36 @@ function WhtRegisterPageContent() {
       )}
 
       {/* ── filter แท็บ + ค้นหา ── */}
-      <Toolbar>
-        <SearchInput
-          surface="raised"
-          ref={searchInputRef}
-          placeholder="ค้นหาลูกค้า / เลขบิล / เลขใบรับรอง..."
-          defaultValue={search}
-          onChange={(e) => onSearchChange(e.target.value)}
-          containerClassName="@2xl:max-w-sm @2xl:flex-1"
-        />
-        <ToolbarGroup>
-          {FILTER_TABS.map((t) => (
-            <FilterChip
-              key={t.key}
-              surface="raised"
-              selected={tab === t.key}
-              // "pending" = ค่า default → ส่ง null ให้ลบ param (URL สะอาด)
-              onClick={() =>
-                replaceListState({ status: t.key === "pending" ? null : t.key, page: null })
-              }
-            >
-              {t.label}
-            </FilterChip>
-          ))}
-        </ToolbarGroup>
-      </Toolbar>
 
       {/* โหลด/ว่าง/สลับตาราง↔การ์ดที่ lg — ResponsiveList จัดการ (error หลักอยู่ที่ PageShell แล้ว) */}
       <ResponsiveList
+        toolbar={
+          <Toolbar>
+            <SearchInput
+              surface="raised"
+              ref={searchInputRef}
+              placeholder="ค้นหาลูกค้า / เลขบิล / เลขใบรับรอง..."
+              defaultValue={search}
+              onChange={(e) => onSearchChange(e.target.value)}
+              containerClassName="@2xl:max-w-sm @2xl:flex-1"
+            />
+            <ToolbarGroup>
+              {FILTER_TABS.map((t) => (
+                <FilterChip
+                  key={t.key}
+                  surface="raised"
+                  selected={tab === t.key}
+                  // "pending" = ค่า default → ส่ง null ให้ลบ param (URL สะอาด)
+                  onClick={() =>
+                    replaceListState({ status: t.key === "pending" ? null : t.key, page: null })
+                  }
+                >
+                  {t.label}
+                </FilterChip>
+              ))}
+            </ToolbarGroup>
+          </Toolbar>
+        }
         items={rows}
         isLoading={isLoading}
         emptyState={

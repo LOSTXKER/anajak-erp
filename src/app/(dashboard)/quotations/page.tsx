@@ -113,41 +113,41 @@ function QuotationsPageContent() {
             'ต้องมีสิทธิ์ "เห็นเงินฝั่งขาย" — เช็คสิทธิ์ที่ ตั้งค่า → ผู้ใช้',
         }
       }
-      headerChildren={
-        <Toolbar>
-          <SearchInput
-            surface="raised"
-            ref={searchInputRef}
-            containerClassName="@2xl:max-w-sm @2xl:flex-1"
-            placeholder="ค้นหาเลขใบเสนอราคา, ชื่อ, ลูกค้า..."
-            aria-label="ค้นหาใบเสนอราคาหรือลูกค้า"
-            defaultValue={search}
-            onChange={(e) => onSearchChange(e.target.value)}
-          />
-          <ToolbarGroup>
-            {/* 7 ตัวเลือก = เกิน 5 → ดรอปดาวน์ (ชิป 7 ตัวล้นแถวบนมือถือ) · กติกาใน tokens.ts */}
-            <Select
-              shape="pill"
-              surface="raised"
-              className="@2xl:w-52"
-              aria-label="กรองตามสถานะใบเสนอราคา"
-              value={status}
-              onChange={(e) =>
-                replaceListState({ status: e.target.value || null, page: null })
-              }
-            >
-              {QUOTATION_STATUSES.map((f) => (
-                <option key={f.value} value={f.value}>
-                  {f.label}
-                </option>
-              ))}
-            </Select>
-            {filtered ? <Button variant="ghost" size="sm" onClick={clearFilters}>ล้างตัวกรอง</Button> : null}
-          </ToolbarGroup>
-        </Toolbar>
-      }
     >
       <ResponsiveList
+        toolbar={
+          <Toolbar>
+            <SearchInput
+              surface="raised"
+              ref={searchInputRef}
+              containerClassName="@2xl:max-w-sm @2xl:flex-1"
+              placeholder="ค้นหาเลขใบเสนอราคา, ชื่อ, ลูกค้า..."
+              aria-label="ค้นหาใบเสนอราคาหรือลูกค้า"
+              defaultValue={search}
+              onChange={(e) => onSearchChange(e.target.value)}
+            />
+            <ToolbarGroup>
+              {/* 7 ตัวเลือก = เกิน 5 → ดรอปดาวน์ (ชิป 7 ตัวล้นแถวบนมือถือ) · กติกาใน tokens.ts */}
+              <Select
+                shape="pill"
+                surface="raised"
+                className="@2xl:w-52"
+                aria-label="กรองตามสถานะใบเสนอราคา"
+                value={status}
+                onChange={(e) =>
+                  replaceListState({ status: e.target.value || null, page: null })
+                }
+              >
+                {QUOTATION_STATUSES.map((f) => (
+                  <option key={f.value} value={f.value}>
+                    {f.label}
+                  </option>
+                ))}
+              </Select>
+              {filtered ? <Button variant="ghost" size="sm" onClick={clearFilters}>ล้างตัวกรอง</Button> : null}
+            </ToolbarGroup>
+          </Toolbar>
+        }
         items={data?.quotations}
         isLoading={isLoading || isFetching}
         isError={isError}

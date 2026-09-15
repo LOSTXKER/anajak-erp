@@ -73,23 +73,21 @@ export const Section = React.forwardRef<HTMLDivElement, SectionProps>(
               // ขอบ 28px (เบสเคาะ 2026-08-03 รอบ "ปรับสัดส่วน") — การ์ดกว้าง 1,024px
               // ขอบ 24px แน่นเกินสัดส่วน · หัวข้อ→เนื้อหา 20px ให้เป็นบันได 8/16/20/28
               isCard
-                ? cn("px-5 pt-4", compact ? "pb-3" : "pb-4", flush && "border-b border-divider")
+                ? cn("px-4.5 pt-3.5", compact ? "pb-2.5" : "pb-3", flush && "border-b border-divider")
                 : compact ? "pb-3" : "pb-4"
             )}
           >
-            <div className="flex min-w-0 items-start gap-3">
+            <div className="flex min-w-0 items-center gap-2.5">
+              {/* หัวการ์ดแบบ kit (CardHead · 2026-09-17): ไอคอนในกล่องมุมมน พื้นสีอ่อนตามหมวด ไม่ส่ง tone = เทา */}
               {Icon && !compact && (
                 <span
                   className={cn(
-                    // mt ให้ไอคอนอยู่กึ่งกลางบรรทัดแรกของหัวข้อ ไม่ใช่ชิดขอบบนสุด
-                    "mt-0.5 flex shrink-0 items-center justify-center",
-                    // สีประจำหมวด = ป้ายบอกทาง ไม่ใช่การประดับ (แบบ B · เบสเคาะ 2026-08-31)
-                    // ไม่ส่ง tone มา = เทาเหมือนเดิมทุกประการ ของเก่าจึงไม่ขยับ
-                    tone ? VISUAL_TONE_CLASSES[tone].mark : "text-muted",
+                    "grid size-8 shrink-0 place-items-center rounded-[11px]",
+                    tone ? VISUAL_TONE_CLASSES[tone].soft : "bg-surface-muted text-secondary",
                   )}
                   aria-hidden="true"
                 >
-                  <Icon className="h-4.5 w-4.5" strokeWidth={1.8} />
+                  <Icon className="h-4 w-4" strokeWidth={1.8} />
                 </span>
               )}
               <div className="min-w-0 space-y-0.5">
@@ -118,8 +116,8 @@ export const Section = React.forwardRef<HTMLDivElement, SectionProps>(
         )}
         <div
           className={cn(
-            !flush && isCard && "px-5 pb-5",
-            !flush && isCard && !hasHeader && "pt-5"
+            !flush && isCard && "px-4.5 pb-4.5",
+            !flush && isCard && !hasHeader && "pt-4.5"
           )}
         >
           {children}
@@ -169,12 +167,12 @@ export function ToneMark({
   return (
     <span
       className={cn(
-        "flex shrink-0 items-center justify-center",
-        tone ? VISUAL_TONE_CLASSES[tone].mark : "text-muted",
+        "grid size-7 shrink-0 place-items-center rounded-[9px]",
+        tone ? VISUAL_TONE_CLASSES[tone].soft : "bg-surface-muted text-secondary",
       )}
       aria-hidden="true"
     >
-      <Icon className="h-4.5 w-4.5" />
+      <Icon className="h-3.5 w-3.5" />
     </span>
   );
 }

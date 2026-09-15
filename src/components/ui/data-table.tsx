@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { requestAppNavigation } from "@/lib/navigation-request";
+import { useInListCard } from "./responsive-list";
 import {
   FOCUS_INSET,
   INTERACTIVE_PRESSED,
@@ -56,11 +57,15 @@ const CELL_HORIZONTAL_PADDING = "px-[var(--data-table-cell-px,1.5rem)]";
    ตอนนี้ตารางระดับบนสุดใช้ `bordered` ปริยาย = การ์ดครอบ; ตั้งแต่ 2026-08-27
    ผืน Light เป็น near-white และการ์ดแยกขอบเขตหลักด้วย edge+shadow กลาง */
 const Root = React.forwardRef<HTMLDivElement, RootProps>(
-  ({ className, bordered = true, cellPadding = "default", children, ...props }, ref) => (
+  ({ className, bordered = true, cellPadding = "default", children, ...props }, ref) => {
+    // อยู่ในการ์ดของ ResponsiveList ที่มีแถบเครื่องมือแล้ว = ไม่วาดกรอบซ้อน
+    const inListCard = useInListCard();
+    const framed = bordered && !inListCard;
+    return (
     <div
       ref={ref}
       className={cn(
-        bordered && "card-surface overflow-hidden rounded-2xl",
+        framed && "card-surface overflow-hidden rounded-2xl",
         CELL_PADDING[cellPadding],
         className
       )}
@@ -70,7 +75,8 @@ const Root = React.forwardRef<HTMLDivElement, RootProps>(
         <table className="w-full text-sm">{children}</table>
       </div>
     </div>
-  )
+    );
+  }
 );
 Root.displayName = "DataTable.Root";
 

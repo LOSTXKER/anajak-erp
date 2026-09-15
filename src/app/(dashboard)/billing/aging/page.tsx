@@ -218,59 +218,61 @@ function AgingPageContent() {
       {/* แถบเครื่องมือของกลาง — จุดตัดวัดจากความกว้างพื้นที่เนื้อหาจริง (@container)
           ไม่ใช่ความกว้างหน้าต่าง เลยใช้ @2xl: แทน sm: ที่เขียนไว้เดิม
           ตัวกรองช่วงอายุหนี้ + การเรียง อยู่กลุ่มเดียวกัน ห้ามแตกแถวคั่นกลาง */}
-      <Toolbar>
-        <SearchInput
-          surface="raised"
-          ref={searchInputRef}
-          containerClassName="@2xl:max-w-sm @2xl:flex-1"
-          placeholder="ค้นหาชื่อลูกค้าหรือบริษัท..."
-          defaultValue={search}
-          onChange={(event) => onSearchChange(event.target.value)}
-        />
-
-        {/* flex-wrap: จอมือถือให้ช่องเลือกซ้อนกันเต็มความกว้างเหมือนเดิม —
-            ถ้าปล่อยเรียงคู่กัน ป้ายยาวอย่าง "ยอดเลยกำหนดมากสุด" จะโดนตัดจนอ่านไม่ออก */}
-        <ToolbarGroup className="flex-wrap">
-          <Select
-            shape="pill"
-            surface="raised"
-            aria-label="กรองช่วงอายุหนี้"
-            value={status}
-            onChange={(event) =>
-              replaceListState({ status: event.target.value || null, page: null })
-            }
-            className="@2xl:w-48"
-          >
-            {AGING_STATUS_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </Select>
-          <Select
-            shape="pill"
-            surface="raised"
-            aria-label="เรียงรายการลูกหนี้"
-            value={sort}
-            onChange={(event) =>
-              // sort ค่า default ไม่เก็บใน URL (ให้ URL สะอาด) — hook ลบ param เมื่อได้ null
-              replaceListState({
-                sort: event.target.value === "total:desc" ? null : event.target.value,
-                page: null,
-              })
-            }
-            className="@2xl:w-48"
-          >
-            {AGING_SORT_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </Select>
-        </ToolbarGroup>
-      </Toolbar>
 
       <ResponsiveList
+        toolbar={
+          <Toolbar>
+            <SearchInput
+              surface="raised"
+              ref={searchInputRef}
+              containerClassName="@2xl:max-w-sm @2xl:flex-1"
+              placeholder="ค้นหาชื่อลูกค้าหรือบริษัท..."
+              defaultValue={search}
+              onChange={(event) => onSearchChange(event.target.value)}
+            />
+
+            {/* flex-wrap: จอมือถือให้ช่องเลือกซ้อนกันเต็มความกว้างเหมือนเดิม —
+                ถ้าปล่อยเรียงคู่กัน ป้ายยาวอย่าง "ยอดเลยกำหนดมากสุด" จะโดนตัดจนอ่านไม่ออก */}
+            <ToolbarGroup className="flex-wrap">
+              <Select
+                shape="pill"
+                surface="raised"
+                aria-label="กรองช่วงอายุหนี้"
+                value={status}
+                onChange={(event) =>
+                  replaceListState({ status: event.target.value || null, page: null })
+                }
+                className="@2xl:w-48"
+              >
+                {AGING_STATUS_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </Select>
+              <Select
+                shape="pill"
+                surface="raised"
+                aria-label="เรียงรายการลูกหนี้"
+                value={sort}
+                onChange={(event) =>
+                  // sort ค่า default ไม่เก็บใน URL (ให้ URL สะอาด) — hook ลบ param เมื่อได้ null
+                  replaceListState({
+                    sort: event.target.value === "total:desc" ? null : event.target.value,
+                    page: null,
+                  })
+                }
+                className="@2xl:w-48"
+              >
+                {AGING_SORT_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </Select>
+            </ToolbarGroup>
+          </Toolbar>
+        }
         items={visibleRows}
         isLoading={isLoading || isFetching}
         isError={isError}

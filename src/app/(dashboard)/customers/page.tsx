@@ -184,37 +184,6 @@ function CustomersPageContent() {
         </Section>
       )}
 
-      <Toolbar>
-        <SearchInput
-          surface="raised"
-          ref={searchInputRef}
-          containerClassName="@2xl:max-w-sm @2xl:flex-1"
-          placeholder="ค้นหาชื่อ, บริษัท, โทร, อีเมล..."
-          aria-label="ค้นหาลูกค้าจากชื่อ บริษัท โทรศัพท์ หรืออีเมล"
-          defaultValue={search}
-          onChange={(event) => onSearchChange(event.target.value)}
-        />
-
-        <ToolbarGroup>
-          <Select
-            shape="pill"
-            surface="raised"
-            aria-label="กรองกลุ่มลูกค้า"
-            value={segment}
-            onChange={(event) =>
-              replaceListState({ status: event.target.value || null, page: null })
-            }
-            className="@2xl:w-44"
-          >
-            {SEGMENT_FILTERS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </Select>
-          {filtered ? <Button variant="ghost" size="sm" onClick={clearFilters}>ล้างตัวกรอง</Button> : null}
-        </ToolbarGroup>
-      </Toolbar>
 
       <ResponsiveList
         items={customerItems}
@@ -223,6 +192,39 @@ function CustomersPageContent() {
         errorMessage="โหลดรายชื่อลูกค้าไม่สำเร็จ"
         onRetry={() => refetch()}
         label="ลูกค้า"
+        toolbar={
+        <Toolbar>
+          <SearchInput
+            surface="raised"
+            ref={searchInputRef}
+            containerClassName="@2xl:max-w-sm @2xl:flex-1"
+            placeholder="ค้นหาชื่อ, บริษัท, โทร, อีเมล..."
+            aria-label="ค้นหาลูกค้าจากชื่อ บริษัท โทรศัพท์ หรืออีเมล"
+            defaultValue={search}
+            onChange={(event) => onSearchChange(event.target.value)}
+          />
+
+          <ToolbarGroup>
+            <Select
+              shape="pill"
+              surface="raised"
+              aria-label="กรองกลุ่มลูกค้า"
+              value={segment}
+              onChange={(event) =>
+                replaceListState({ status: event.target.value || null, page: null })
+              }
+              className="@2xl:w-44"
+            >
+              {SEGMENT_FILTERS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </Select>
+            {filtered ? <Button variant="ghost" size="sm" onClick={clearFilters}>ล้างตัวกรอง</Button> : null}
+          </ToolbarGroup>
+        </Toolbar>
+        }
         renderDesktop={(customers) => (
           <DataTable.Root>
             <DataTable.Head>

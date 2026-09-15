@@ -36,6 +36,16 @@ const INK: Record<AlertVariant, string> = {
   neutral: "text-muted",
 };
 
+/* พื้นกล่องแบบ callout ของชุด kit (2026-09-17 เบสสั่งให้ทุกหน้าเข้ากัน): พื้นสีอ่อนตามความหมาย ขอบจาง
+   ตรงกล่องแจ้งเตือนบนหน้าออเดอร์/ใบผลิต · กลางๆ = การ์ดขาวขอบเทา */
+const SURFACE: Record<AlertVariant, string> = {
+  error: "border-red-600/25 bg-red-50 dark:border-red-400/30 dark:bg-red-950/40",
+  warning: "border-amber-600/30 bg-amber-50 dark:border-amber-400/30 dark:bg-amber-950/40",
+  success: "border-green-600/25 bg-green-50 dark:border-green-400/30 dark:bg-green-950/40",
+  info: "border-blue-200 bg-blue-50/60 dark:border-blue-900 dark:bg-blue-950/40",
+  neutral: "border-border bg-surface",
+};
+
 export interface AlertProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "title"> {
   variant?: AlertVariant | null;
   /** ไม่ส่ง = ไอคอนตามชนิด (ผิดพลาด/เตือน/สำเร็จ/ข้อมูล) */
@@ -57,7 +67,7 @@ export const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
       <div
         ref={ref}
         role="alert"
-        className={cn("flex gap-3 rounded-lg border border-border bg-surface py-3 pl-4 pr-3 text-sm leading-relaxed text-secondary", className)}
+        className={cn("flex gap-2.5 rounded-[14px] border px-3.5 py-2.5 text-sm leading-relaxed text-strong", SURFACE[tone], className)}
         {...props}
       >
         <Icon className={cn("mt-0.5 h-4.5 w-4.5 shrink-0", INK[tone])} strokeWidth={2} aria-hidden="true" />
