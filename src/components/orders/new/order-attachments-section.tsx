@@ -85,7 +85,7 @@ export function OrderAttachmentsSection({
     <label
       className={cn(
         DASHED_INTERACTIVE,
-        "flex min-h-11 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-lg bg-surface-muted px-3 py-2 text-sm text-secondary transition-colors hover:bg-interactive-hover hover:text-strong focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/30 dark:hover:text-strong dark:focus-within:border-blue-300 dark:focus-within:ring-blue-300/25",
+        "flex min-h-11 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-lg bg-surface-muted px-3 py-2 text-sm text-secondary transition-colors focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/30 dark:focus-within:border-blue-300 dark:focus-within:ring-blue-300/25",
         !embedded && "w-full px-4 py-3.5"
       )}
     >
@@ -150,7 +150,7 @@ export function OrderAttachmentsSection({
                     size="icon"
                     onClick={() => onImagesChange((prev) => prev.filter((_, i) => i !== idx))}
                     aria-label={`ลบไฟล์ ${img.fileName}`}
-                    className="absolute -right-2 -top-2 rounded-full opacity-100 shadow-sm transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+                    className="absolute -right-2 -top-2 rounded-full opacity-100 shadow-sm"
                   >
                     <X />
                   </Button>

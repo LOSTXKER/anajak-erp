@@ -28,7 +28,7 @@ export function AddCard({
       className={cn(
         DASHED_INTERACTIVE,
         FOCUS_BUTTON,
-        "flex w-full flex-col items-center gap-1.5 rounded-lg p-4 text-center transition-colors hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed"
+        "flex w-full flex-col items-center gap-1.5 rounded-lg p-4 text-center transition-colors active:bg-interactive-pressed"
       )}
     >
       <Icon className="h-6 w-6 shrink-0 text-muted" strokeWidth={1.75} />

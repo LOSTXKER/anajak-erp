@@ -79,7 +79,7 @@ export function DeskTiles({
             className={cn(
               variant === "current"
                 ? "card-surface card-surface-hover rounded-2xl flex min-h-12 min-w-40 shrink-0 items-center justify-between gap-3 px-4 py-3 text-left transition-colors sm:min-h-20 lg:min-w-0"
-                : cn("inline-flex min-h-11 items-center gap-3 border-b-2 bg-transparent px-1 py-2 text-left hover:text-strong", FOCUS_BUTTON, on ? ACTIVE_UNDERLINE : "border-transparent"),
+                : cn("inline-flex min-h-11 items-center gap-3 border-b-2 bg-transparent px-1 py-2 text-left", FOCUS_BUTTON, on ? ACTIVE_UNDERLINE : "border-transparent"),
               variant === "current" && on && "ring-2 ring-inset ring-blue-600 dark:ring-blue-400",
             )}
           >
@@ -273,7 +273,7 @@ export function DeskTable<S extends DeskStepLike, O extends BoardOrderLike<S>>({
                           {order.orderNumber}
                         </Button>
                       ) : (
-                        <Link href={hrefFor(row)} className="rounded-sm font-semibold tabular-nums text-strong underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring">
+                        <Link href={hrefFor(row)} className="rounded-sm font-semibold tabular-nums text-strong underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring">
                           {order.orderNumber}
                         </Link>
                       )}

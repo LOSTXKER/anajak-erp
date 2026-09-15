@@ -50,7 +50,7 @@ export function ProblemDialog({ open, onClose, step, c }: { open: boolean; onClo
                 className={cn(
                   "min-h-14 px-4 text-left text-base font-medium transition-colors",
                   RADIUS.inner,
-                  on ? "bg-interactive-selected text-strong ring-2 ring-inset ring-blue-600 dark:ring-blue-400" : cn(SUNK_PANEL, "text-strong hover:bg-interactive-hover"),
+                  on ? "bg-interactive-selected text-strong ring-2 ring-inset ring-blue-600 dark:ring-blue-400" : cn(SUNK_PANEL, "text-strong"),
                 )}
               >
                 {label}
@@ -110,7 +110,7 @@ export function FixDialog({ open, onClose, step, c }: { open: boolean; onClose: 
                   onClose();
                   row.run();
                 }}
-                className="flex w-full items-start gap-3 px-2 py-3 text-left transition-colors hover:bg-interactive-hover disabled:opacity-60 disabled:hover:bg-transparent"
+                className="flex w-full items-start gap-3 px-2 py-3 text-left transition-colors disabled:opacity-60 disabled:hover:bg-transparent"
               >
                 <Wrench className={cn("mt-0.5 h-5 w-5 shrink-0", row.danger ? "text-red-600 dark:text-red-400" : "text-muted")} aria-hidden="true" />
                 <span className="min-w-0 flex-1">

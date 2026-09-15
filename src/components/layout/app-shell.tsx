@@ -202,7 +202,7 @@ function SidebarCollapseButton({
 function sidebarNavIconClass(active: boolean) {
   return active
     ? "text-interactive-selected-text"
-    : "text-muted group-hover/sidebar-item:text-secondary group-active/sidebar-item:text-strong";
+    : "text-muted group-active/sidebar-item:text-strong";
 }
 
 function MoreMenu({
@@ -272,7 +272,7 @@ function MoreMenu({
                       <span className="flex-1">{item.label}</span>
                       <ChevronRight
                         className={cn(
-                          "h-4 w-4 transition-transform group-hover/sidebar-item:translate-x-0.5",
+                          "h-4 w-4",
                           sidebarNavIconClass(activeNavigationId === item.id),
                         )}
                       />

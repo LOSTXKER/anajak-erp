@@ -85,7 +85,7 @@ function MobileItemButton({
         "flex min-h-11 cursor-pointer items-center justify-between gap-2 border-b-2 bg-transparent px-1 py-2 text-left transition-colors",
         FOCUS_BUTTON,
         isOn
-          ? cn(ACTIVE_UNDERLINE, "hover:bg-interactive-hover active:bg-interactive-pressed")
+          ? cn(ACTIVE_UNDERLINE, "active:bg-interactive-pressed")
           : cn("border-transparent", INTERACTIVE_HOVER, INTERACTIVE_PRESSED),
       )}
     >
@@ -160,7 +160,7 @@ function DesktopItemButton({
         "group cursor-pointer border-b-2 px-1 py-1.5 text-center transition-colors",
         FOCUS_BUTTON,
         isOn
-          ? cn(ACTIVE_UNDERLINE, "hover:bg-interactive-hover active:bg-interactive-pressed")
+          ? cn(ACTIVE_UNDERLINE, "active:bg-interactive-pressed")
           : cn("border-transparent", INTERACTIVE_HOVER, INTERACTIVE_PRESSED),
       )}
     >
@@ -171,7 +171,7 @@ function DesktopItemButton({
             ? cn(
                 "font-normal text-muted",
                 !isOn &&
-                  "group-hover:text-secondary group-active:text-secondary dark:group-hover:text-secondary dark:group-active:text-secondary",
+                  "group-active:text-secondary dark:group-active:text-secondary",
               )
             : isOn
               ? "text-blue-700 dark:text-blue-400"
@@ -185,7 +185,7 @@ function DesktopItemButton({
           "mt-1 inline-flex max-w-full items-center justify-center gap-1.5 text-xs",
           isOn
             ? "font-semibold text-blue-700 dark:text-blue-400"
-            : "text-muted group-hover:text-secondary group-active:text-secondary dark:group-hover:text-secondary dark:group-active:text-secondary",
+            : "text-muted group-active:text-secondary dark:group-active:text-secondary",
         )}
       >
         <span aria-hidden className={cn("h-1.5 w-1.5 shrink-0 rounded-full", item.dotClass)} />

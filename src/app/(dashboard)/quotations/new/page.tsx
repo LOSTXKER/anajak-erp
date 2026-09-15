@@ -442,7 +442,7 @@ function QuotationFormPage() {
                           variant="ghost"
                           size="sm"
                           onClick={() => removeItem(idx)}
-                          className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                          className="text-red-500 dark:text-red-400"
                           aria-label={`ลบรายการ ${idx + 1}`}
                         >
                           <Trash2 />

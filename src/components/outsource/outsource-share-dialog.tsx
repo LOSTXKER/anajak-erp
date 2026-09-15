@@ -189,14 +189,14 @@ export function OutsourceShareDialog({ job, onClose }: OutsourceShareDialogProps
                       href={a.fileUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="min-w-0 flex-1 truncate text-blue-600 hover:underline dark:text-blue-400"
+                      className="min-w-0 flex-1 truncate text-blue-600 dark:text-blue-400"
                     >
                       {a.fileName}
                     </a>
                     <Button
                       variant="ghost"
                       size="icon-sm"
-                      className="shrink-0 text-muted hover:text-red-500 dark:hover:text-red-400"
+                      className="shrink-0 text-muted"
                       disabled={deleteAttachment.isPending}
                       onClick={() => deleteAttachment.mutate({ id: a.id })}
                       title="ลบไฟล์"

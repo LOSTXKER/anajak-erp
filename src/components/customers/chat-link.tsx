@@ -52,7 +52,7 @@ export function ChatLink({
       rel="noopener noreferrer"
       onClick={stopPropagation ? (e) => e.stopPropagation() : undefined}
       className={cn(
-        "inline-flex max-w-full items-center gap-1.5 text-xs text-blue-600 hover:underline dark:text-blue-400",
+        "inline-flex max-w-full items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400",
         wrap ? "items-start" : "truncate",
         className,
       )}

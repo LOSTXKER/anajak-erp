@@ -109,7 +109,7 @@ export function StationTile({ count, doingBy, onPick, boss = false }: { count: S
       type="button"
       onClick={onPick}
       className={cn(
-        "card-surface flex min-h-[9.5rem] flex-col gap-3 p-4 text-left transition-colors hover:bg-interactive-hover",
+        "card-surface flex min-h-[9.5rem] flex-col gap-3 p-4 text-left transition-colors",
         RADIUS.surface,
         count.blocked > 0 && "ring-1 ring-inset ring-red-600/40 dark:ring-red-400/40",
       )}
@@ -183,7 +183,7 @@ export function QueueCard<O extends CardOrder, S extends StationStepLike>({
   const problem = card.state === "blocked";
   return (
     <li className={cn("card-surface relative", RADIUS.surface, problem && "ring-1 ring-inset ring-red-600/40 dark:ring-red-400/40")}>
-      <button type="button" onClick={onOpen} aria-label={`เปิดงาน ${order.orderNumber}`} className={cn("absolute inset-0 z-0 transition-colors hover:bg-interactive-hover", RADIUS.surface)} />
+      <button type="button" onClick={onOpen} aria-label={`เปิดงาน ${order.orderNumber}`} className={cn("absolute inset-0 z-0 transition-colors", RADIUS.surface)} />
       <div className="pointer-events-none relative z-10 flex gap-4 p-4">
         <MockupThumbnail cover={order.mockupCover ?? null} alt={`ม็อกอัพ ${order.orderNumber}`} size="lg" className="shrink-0" />
         <div className="min-w-0 flex-1 space-y-2.5">

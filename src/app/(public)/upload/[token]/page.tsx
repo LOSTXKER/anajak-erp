@@ -155,7 +155,7 @@ export default function CustomerUploadPage({
               type="button"
               onClick={() => inputRef.current?.click()}
               disabled={busy}
-              className={cn(DASHED_INTERACTIVE, FOCUS_BUTTON, "flex w-full touch-manipulation flex-col items-center justify-center gap-2 rounded-lg px-4 py-8 text-sm text-muted transition-colors hover:text-strong disabled:pointer-events-none disabled:border-border disabled:bg-surface-muted disabled:text-muted")}
+              className={cn(DASHED_INTERACTIVE, FOCUS_BUTTON, "flex w-full touch-manipulation flex-col items-center justify-center gap-2 rounded-lg px-4 py-8 text-sm text-muted transition-colors disabled:pointer-events-none disabled:border-border disabled:bg-surface-muted disabled:text-muted")}
             >
               {busy ? (
                 <>

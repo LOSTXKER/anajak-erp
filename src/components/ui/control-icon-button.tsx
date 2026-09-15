@@ -20,7 +20,7 @@ export const ControlIconButton = React.forwardRef<
     className={cn(
       CONTROL_H,
       FOCUS_BUTTON,
-      "inline-flex w-11 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-interactive-hover hover:text-secondary disabled:pointer-events-none disabled:opacity-50 sm:w-9 dark:hover:bg-interactive-hover dark:hover:text-secondary",
+      "inline-flex w-11 shrink-0 items-center justify-center rounded-full text-muted transition-colors disabled:pointer-events-none disabled:opacity-50 sm:w-9",
       className,
     )}
     {...props}

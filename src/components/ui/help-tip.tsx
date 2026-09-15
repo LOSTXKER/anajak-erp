@@ -25,7 +25,7 @@ export function HelpTip({
           aria-label={`ดูคำอธิบาย: ${label}`}
           className={cn(
             FOCUS_BUTTON,
-            "inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-interactive-hover hover:text-strong [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11",
+            "inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted transition-colors [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11",
             className,
           )}
         >

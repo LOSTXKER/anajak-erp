@@ -324,7 +324,7 @@ function BillingPageContent() {
                 return (
                   <DataTable.Row key={inv.id} href={moneyHref}>
                     <DataTable.Td className="whitespace-nowrap font-medium text-strong">
-                      <Link href={moneyHref} className={cn("rounded font-medium text-strong hover:underline", FOCUS_BUTTON)}>
+                      <Link href={moneyHref} className={cn("rounded font-medium text-strong", FOCUS_BUTTON)}>
                         {inv.invoiceNumber}
                       </Link>
                     </DataTable.Td>

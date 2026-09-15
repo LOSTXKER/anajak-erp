@@ -269,7 +269,7 @@ function ApprovedDesignReference({
             loading="lazy"
             decoding="async"
             onError={() => setImageFailed(true)}
-            className="max-h-56 w-full object-contain transition-opacity group-hover:opacity-90"
+            className="max-h-56 w-full object-contain transition-opacity"
           />
         </button>
       ) : (

@@ -97,7 +97,7 @@ function ReceiveTrackingInline({ product, onSuccess, readOnly }: {
           <span className="text-muted">ยังไม่มีหลักฐานใบตรวจรับ</span>
         )}
         {!readOnly ? (
-          <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(true)} className="ml-auto gap-1.5 text-yellow-700 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-300">
+          <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(true)} className="ml-auto gap-1.5 text-yellow-700 dark:text-yellow-400">
             <Edit3 />แก้สภาพ/หมายเหตุ
           </Button>
         ) : null}
@@ -124,7 +124,7 @@ function ReceiveTrackingInline({ product, onSuccess, readOnly }: {
           <Input size="sm" id={`garment-note-${product.id}`} value={note} onChange={(e) => setNote(e.target.value)} placeholder="เช่น เสื้อสภาพดี มีถุงครบ" />
         </div>
         <div className="flex gap-1.5">
-          <Button type="button" size="sm" onClick={() => mutation.mutate({ orderItemProductId: product.id, garmentCondition: condition || undefined, receiveNote: note || undefined })} disabled={mutation.isPending} className="h-8 gap-1.5 bg-yellow-700 text-white hover:bg-yellow-800">
+          <Button type="button" size="sm" onClick={() => mutation.mutate({ orderItemProductId: product.id, garmentCondition: condition || undefined, receiveNote: note || undefined })} disabled={mutation.isPending} className="h-8 gap-1.5 bg-yellow-700 text-white">
             <Check />{mutation.isPending ? "กำลังบันทึก..." : "บันทึก"}
           </Button>
           <Button type="button" variant="ghost" size="sm" onClick={() => { setEditing(false); setCondition(product.garmentCondition ?? ""); setNote(product.receiveNote ?? ""); }} className="h-8">
@@ -259,7 +259,7 @@ function PrintThumb({ print, size = "h-11 w-11" }: { print: OrderItemPrint; size
         href={print.designImageUrl}
         target="_blank"
         rel="noreferrer"
-        className={cn("inline-flex min-h-11 items-center rounded-lg text-xs text-blue-600 hover:underline dark:text-blue-400", FOCUS_BUTTON)}
+        className={cn("inline-flex min-h-11 items-center rounded-lg text-xs text-blue-600 dark:text-blue-400", FOCUS_BUTTON)}
       >
         เปิดไฟล์แบบ
       </a>

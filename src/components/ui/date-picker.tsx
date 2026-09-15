@@ -173,7 +173,7 @@ export function DatePicker({
               type="button"
               aria-label="เดือนก่อนหน้า"
               onClick={() => setCursor((c) => subMonths(c, 1))}
-              className={cn(CONTROL_H_SM, "inline-flex w-11 items-center justify-center rounded-full text-muted transition-colors hover:bg-interactive-hover hover:text-secondary sm:w-8 dark:hover:bg-interactive-hover dark:hover:text-secondary")}
+              className={cn(CONTROL_H_SM, "inline-flex w-11 items-center justify-center rounded-full text-muted transition-colors sm:w-8")}
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -184,7 +184,7 @@ export function DatePicker({
               type="button"
               aria-label="เดือนถัดไป"
               onClick={() => setCursor((c) => addMonths(c, 1))}
-              className={cn(CONTROL_H_SM, "inline-flex w-11 items-center justify-center rounded-full text-muted transition-colors hover:bg-interactive-hover hover:text-secondary sm:w-8 dark:hover:bg-interactive-hover dark:hover:text-secondary")}
+              className={cn(CONTROL_H_SM, "inline-flex w-11 items-center justify-center rounded-full text-muted transition-colors sm:w-8")}
             >
               <ChevronRight className="h-4 w-4" />
             </button>
@@ -219,12 +219,12 @@ export function DatePicker({
                     FOCUS_BUTTON,
                     !inMonth && "text-muted",
                     inMonth && "text-secondary",
-                    !isSelected && "hover:bg-interactive-hover hover:text-secondary dark:hover:bg-interactive-hover dark:hover:text-secondary",
+                    !isSelected && "   ",
                     isToday &&
                       !isSelected &&
-                      "font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300",
+                      "font-semibold text-blue-600 dark:text-blue-400",
                     isSelected &&
-                      "bg-blue-600 font-semibold text-white hover:bg-blue-700",
+                      "bg-blue-600 font-semibold text-white",
                   )}
                 >
                   {day.getDate()}
@@ -240,7 +240,7 @@ export function DatePicker({
                 onChange(format(new Date(), "yyyy-MM-dd"));
                 setOpen(false);
               }}
-              className={cn(CONTROL_MIN_H, "flex-1 rounded-full text-xs font-medium text-blue-600 transition-colors hover:bg-interactive-hover active:bg-interactive-pressed dark:text-blue-400 dark:hover:bg-interactive-hover")}
+              className={cn(CONTROL_MIN_H, "flex-1 rounded-full text-xs font-medium text-blue-600 transition-colors active:bg-interactive-pressed dark:text-blue-400")}
             >
               วันนี้
             </button>
@@ -251,7 +251,7 @@ export function DatePicker({
                   onChange("");
                   setOpen(false);
                 }}
-                className={cn(CONTROL_MIN_H, "flex-1 rounded-full text-xs font-medium text-muted transition-colors hover:bg-interactive-hover hover:text-secondary dark:hover:bg-interactive-hover dark:hover:text-secondary")}
+                className={cn(CONTROL_MIN_H, "flex-1 rounded-full text-xs font-medium text-muted transition-colors")}
               >
                 ล้าง
               </button>

@@ -24,7 +24,7 @@ export function UseAddressButton({
       size="sm"
       onClick={onClick}
       className={cn(
-        "w-full gap-1.5 border-dashed text-blue-700 hover:text-blue-800 dark:text-blue-300 dark:hover:text-blue-200",
+        "w-full gap-1.5 border-dashed text-blue-700 dark:text-blue-300",
         className,
       )}
     >

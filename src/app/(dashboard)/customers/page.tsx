@@ -249,7 +249,7 @@ function CustomersPageContent() {
                       <div className="min-w-0">
                         <Link
                           href={`/customers/${customer.id}`}
-                          className="font-medium text-strong hover:underline"
+                          className="font-medium text-strong"
                         >
                           {customer.name}
                         </Link>

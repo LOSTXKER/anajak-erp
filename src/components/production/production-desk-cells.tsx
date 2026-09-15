@@ -78,7 +78,7 @@ export function CurrentCell<S extends DeskStepLike, O extends BoardOrderLike<S>>
         <p key={`${current.label}-${index}`} className="text-xs text-red-700 dark:text-red-400">{current.label}{current.reason ? ` — ${current.reason}` : ""}</p>
       ))}
       {mode === "disclosure" && <details className="text-xs text-secondary">
-        <summary className={cn("cursor-pointer py-1 underline-offset-4 hover:underline", FOCUS_INSET)}>เส้นทางงาน {completed}/{total} ช่วง</summary>
+        <summary className={cn("cursor-pointer py-1 underline-offset-4", FOCUS_INSET)}>เส้นทางงาน {completed}/{total} ช่วง</summary>
         <div className="space-y-3 py-2">
           {secondary}
           <RouteRail rail={row.job.rail} />

@@ -379,7 +379,7 @@ export default function QuotationDetailPage({
         <Alert variant="info" icon={RefreshCw}>
           <Link
             href={`/orders/${quotation.order.id}`}
-            className="inline-flex items-center gap-1.5 text-sm text-blue-700 hover:underline dark:text-blue-300"
+            className="inline-flex items-center gap-1.5 text-sm text-blue-700 dark:text-blue-300"
           >
             <ExternalLink className="h-3.5 w-3.5" />
             ดูออเดอร์ {quotation.order.orderNumber}
@@ -574,7 +574,7 @@ export default function QuotationDetailPage({
                 <>
                   <Link
                     href={`/customers/${quotation.customer.id}`}
-                    className="text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
+                    className="text-sm font-medium text-blue-600 dark:text-blue-400"
                   >
                     {quotation.customer.name}
                   </Link>

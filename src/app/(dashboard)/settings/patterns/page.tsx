@@ -268,7 +268,7 @@ export default function PatternsPage() {
                 </div>
                 <div>
                   <label htmlFor="pattern-file" className={labelClass}>ไฟล์แพทเทิร์น</label>
-                  <label className={cn(CONTROL_MIN_H, DASHED_INTERACTIVE, "flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-xs text-muted transition-colors hover:border-amber-600 hover:text-amber-700 focus-within:ring-2 focus-within:ring-blue-500 dark:hover:border-amber-400 dark:hover:text-amber-300 dark:focus-within:ring-blue-400")}>
+                  <label className={cn(CONTROL_MIN_H, DASHED_INTERACTIVE, "flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-xs text-muted transition-colors focus-within:ring-2 focus-within:ring-blue-500 dark:focus-within:ring-blue-400")}>
                     <input
                       id="pattern-file"
                       type="file"
@@ -355,7 +355,7 @@ export default function PatternsPage() {
                                 href={p.fileUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className={cn(CONTROL_MIN_H, "ml-2 inline-flex items-center text-xs text-blue-600 hover:underline dark:text-blue-400")}
+                                className={cn(CONTROL_MIN_H, "ml-2 inline-flex items-center text-xs text-blue-600 dark:text-blue-400")}
                               >
                                 ดูไฟล์
                               </a>
@@ -445,7 +445,7 @@ export default function PatternsPage() {
                               size="icon-sm"
                               onClick={handleSaveEdit}
                               disabled={updatePattern.isPending}
-                              className="text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
+                              className="text-green-600 dark:text-green-400"
                               aria-label={`บันทึกการแก้ไข ${p.name}`}
                             >
                               <Check />
@@ -467,7 +467,7 @@ export default function PatternsPage() {
                                 variant="ghost"
                                 size="icon-sm"
                                 onClick={() => { setEditingId(p.id); setEditData({}); }}
-                                className="text-muted hover:text-strong dark:hover:text-strong"
+                                className="text-muted"
                                 disabled={updatePattern.isPending}
                                 aria-label={`แก้ไขแพทเทิร์น ${p.name}`}
                               >
@@ -480,7 +480,7 @@ export default function PatternsPage() {
                                 size="icon-sm"
                                 onClick={() => handleDelete(p.id, p.name)}
                                 disabled={deletePattern.isPending}
-                                className="text-muted hover:text-red-600 dark:hover:text-red-400"
+                                className="text-muted"
                                 aria-label={`ลบแพทเทิร์น ${p.name}`}
                               >
                                 <Trash2 />

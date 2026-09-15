@@ -325,7 +325,7 @@ export function StationStepChecklist({ step, c }: {
                   "flex min-h-14 w-full items-center gap-3 px-3 text-left text-base transition-colors disabled:cursor-default",
                   RADIUS.inner,
                   SUNK_PANEL,
-                  canTick && "hover:bg-interactive-hover",
+                  canTick && "",
                   on ? "text-secondary" : "font-medium text-strong",
                 )}
               >

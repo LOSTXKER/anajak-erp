@@ -588,10 +588,11 @@ check(
   ["border-border-strong"],
 );
 check(
-  "ขอบประที่กดได้ยกเส้นขึ้นทั้ง Light/Dark",
+  // ชุด kit ไม่มีเอฟเฟกต์ตอนชี้ (2026-09-17) — ขอบประที่กดได้หน้าตาเดียวกับตอนพัก ตอบสนองด้วย active ที่ caller
+  "ขอบประที่กดได้คงเส้นเบาทั้ง Light/Dark ไม่มี hover",
   `<button class="${DASHED_INTERACTIVE}"></button>`,
-  ["border-slate-300", "dark:border-slate-700", "hover:border-border-strong", "dark:hover:border-border-strong"],
-  ["border-border-strong"],
+  ["border-slate-300", "dark:border-slate-700"],
+  ["border-border-strong", "hover:border-border-strong"],
 );
 checkContrastWindow(
   "light ขอบประ resting บน surface",
@@ -1285,7 +1286,7 @@ check(
     defaultTableHtml.includes("[--data-table-cell-px:0.875rem]");
 
   const pageTokensAreWired =
-    INTERACTIVE_PAGE_HOVER.includes("bg-interactive-page-hover") &&
+    !INTERACTIVE_PAGE_HOVER.includes("hover:") &&
     INTERACTIVE_PAGE_PRESSED.includes("bg-interactive-page-pressed") &&
     // คู่ของผืนงานต้องไม่ใช่ค่าเดียวกับอีกสองคู่ ไม่งั้นการแยกคู่ก็ไม่มีความหมาย
     // (ส่วน chrome กับ surface "เท่ากันได้" ในธีมสว่าง เพราะทั้งคู่เป็นพื้นขาวจริง ๆ
@@ -1299,14 +1300,12 @@ check(
     readFileSync("src/components/page-header.tsx", "utf8")
       .includes("cn(INTERACTIVE_PAGE_PRESSED,");
   const chromeTokensAreWired =
-    INTERACTIVE_CHROME_HOVER.includes("bg-interactive-chrome-hover") &&
+    !INTERACTIVE_CHROME_HOVER.includes("hover:") &&
     INTERACTIVE_CHROME_PRESSED.includes("bg-interactive-chrome-pressed");
   const shellSource = readFileSync("src/components/layout/app-shell.tsx", "utf8");
   const navigationHelperSource =
     shellSource.match(/function sidebarNavItemClass[\s\S]*?function MoreMenu/)?.[0] ?? "";
   const navigationContractIsWired =
-    navigationHelperSource.includes("INTERACTIVE_CHROME_HOVER") &&
-    navigationHelperSource.includes("INTERACTIVE_HOVER") &&
     navigationHelperSource.includes("INTERACTIVE_CHROME_PRESSED") &&
     // รื้อ 2026-09-14 (ต้นแบบหน้าแรกแนว minimal ที่เบสเคาะ) — เมนูที่เปิดอยู่เป็นพื้นฟ้าอ่อน
     // ตัวหนังสือ/ไอคอนน้ำเงิน Anajak ไม่มีขีดริมซ้าย ใช้ token selected ชุดเดียวกับของที่ถูกเลือกทั้งเว็บ
@@ -1318,8 +1317,9 @@ check(
     navigationHelperSource.includes('active\n    ? "text-interactive-selected-text"') &&
     !navigationHelperSource.includes("before:bg-blue-600") &&
     navigationHelperSource.includes("FOCUS_INSET") &&
-    navigationHelperSource.includes("group-hover/sidebar-item:text-secondary") &&
-    !navigationHelperSource.includes("hover:bg-");
+    // เมนูข้างไม่มีเอฟเฟกต์ตอนชี้แบบชุด kit (2026-09-17) — ตอบสนองตอนกด
+    navigationHelperSource.includes("group-active/sidebar-item:text-strong") &&
+    !navigationHelperSource.includes("hover:");
   const darkSurfacesAreNeutral = [
     "bg",
     "chrome",
@@ -1365,7 +1365,7 @@ check(
     ACTIVE_FILTER.includes("dark:border-blue-400") &&
     ACTIVE_FILTER.includes("dark:text-blue-400") &&
     ACTIVE_FILTER.includes("bg-transparent") &&
-    ACTIVE_FILTER.includes("hover:bg-interactive-hover") &&
+    !ACTIVE_FILTER.includes("hover:") &&
     ACTIVE_FILTER.includes("active:bg-interactive-pressed") &&
     !ACTIVE_FILTER.includes("bg-interactive-selected") &&
     ACTIVE_UNDERLINE.includes("border-blue-600") &&
@@ -2032,8 +2032,6 @@ check(
     for (const expected of [
       "border-slate-300",
       "dark:border-slate-700",
-      "hover:border-border-strong",
-      "dark:hover:border-border-strong",
     ]) {
       if (!classes.has(expected)) problems.push(`การ์ดขอบประขาด state ${expected}`);
     }

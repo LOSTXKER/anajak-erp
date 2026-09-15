@@ -47,7 +47,7 @@ export function ProductRowActions({
       size="icon-sm"
       onClick={onRemove}
       aria-label={`ลบสินค้า ${productNumber}`}
-      className="text-muted hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950/40 dark:hover:text-red-300"
+      className="text-muted"
     >
       <Trash2 />
     </Button>

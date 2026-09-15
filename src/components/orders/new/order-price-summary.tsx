@@ -99,7 +99,7 @@ export function MarginEstimateBlock({ estimate }: { estimate: MarginEstimate }) 
       <p className="text-xs text-muted">
         <Link
           href="/settings/cost-rates"
-          className="underline underline-offset-2 hover:text-strong"
+          className="underline underline-offset-2"
         >
           ตั้งเรตต้นทุนกลาง
         </Link>

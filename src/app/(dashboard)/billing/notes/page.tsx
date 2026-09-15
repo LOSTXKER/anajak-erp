@@ -268,7 +268,7 @@ function BillingNotesPageContent() {
                         <Button
                           variant="ghost"
                           size="icon-sm"
-                          className="text-muted hover:text-red-700 dark:hover:text-red-400"
+                          className="text-muted"
                           aria-label={`ยกเลิกใบวางบิล ${note.billingNoteNumber}`}
                           onClick={() => {
                             setVoidReason("");
@@ -459,7 +459,7 @@ function BillingNotesPageContent() {
                     {eligibleList.map((inv) => (
                       <label
                         key={inv.id}
-                        className="group flex cursor-pointer items-center justify-between gap-2 rounded-lg px-2 py-1.5 hover:bg-interactive-hover active:bg-interactive-pressed dark:hover:bg-interactive-hover dark:active:bg-interactive-pressed"
+                        className="group flex cursor-pointer items-center justify-between gap-2 rounded-lg px-2 py-1.5 active:bg-interactive-pressed dark:active:bg-interactive-pressed"
                       >
                         <span className="flex min-w-0 items-start gap-3 text-sm">
                           <Checkbox

@@ -68,7 +68,7 @@ export function MockupGallery({
                       className="h-full w-full object-contain"
                     />
                   </span>
-                  <span className="pointer-events-none absolute right-1.5 top-1.5 rounded-full bg-black/55 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+                  <span className="pointer-events-none absolute right-1.5 top-1.5 rounded-full bg-black/55 p-1 text-white opacity-0 transition-opacity group-focus-visible:opacity-100">
                     <ZoomIn className="h-3.5 w-3.5" />
                   </span>
                   {image.positionLabel ? (

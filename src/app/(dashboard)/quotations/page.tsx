@@ -202,7 +202,7 @@ function QuotationsPageContent() {
                           {q.customer.company}
                         </p>
                       )}
-                      <p className="mt-0.5 text-xs text-muted group-hover:text-secondary group-active:text-secondary dark:group-hover:text-secondary dark:group-active:text-secondary">
+                      <p className="mt-0.5 text-xs text-muted group-active:text-secondary dark:group-active:text-secondary">
                         {formatDate(q.createdAt)}
                       </p>
                     </div>
@@ -235,7 +235,7 @@ function QuotationsPageContent() {
                   <DataTable.Td>
                     <Link
                       href={`/quotations/${q.id}`}
-                      className="text-sm font-medium tabular-nums text-strong hover:underline"
+                      className="text-sm font-medium tabular-nums text-strong"
                     >
                       {q.quotationNumber}
                     </Link>

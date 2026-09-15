@@ -172,7 +172,7 @@ export default function OrderStatusPage({
                     href={d.approvedDesign.imageUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex min-h-11 touch-manipulation items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm text-secondary hover:bg-interactive-hover hover:text-strong hover:underline"
+                    className="inline-flex min-h-11 touch-manipulation items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm text-secondary"
                   >
                     <ExternalLink className="h-4 w-4" />
                     เปิดไฟล์แบบที่อนุมัติ
@@ -261,7 +261,7 @@ export default function OrderStatusPage({
                         href={q.pdfUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex min-h-11 touch-manipulation items-center gap-1.5 px-2 text-xs text-secondary hover:text-strong hover:underline"
+                        className="inline-flex min-h-11 touch-manipulation items-center gap-1.5 px-2 text-xs text-secondary"
                       >
                         <ExternalLink className="h-3.5 w-3.5" />
                         PDF

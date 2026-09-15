@@ -339,7 +339,7 @@ function WhtRegisterPageContent() {
                     <div className="flex items-center gap-2">
                       <Link
                         href={`/orders/${row.invoice.orderId}`}
-                        className="text-strong hover:underline"
+                        className="text-strong"
                       >
                         {row.invoice.invoiceNumber}
                       </Link>
@@ -381,7 +381,7 @@ function WhtRegisterPageContent() {
                           asChild
                           variant="ghost"
                           size="icon-sm"
-                          className="text-muted hover:text-strong dark:hover:text-strong"
+                          className="text-muted"
                         >
                           <a
                             href={row.fileUrl}
@@ -448,7 +448,7 @@ function WhtRegisterPageContent() {
                   <div className="flex min-w-0 items-center gap-2">
                     <Link
                       href={`/orders/${row.invoice.orderId}`}
-                      className="text-strong hover:underline"
+                      className="text-strong"
                     >
                       {row.invoice.invoiceNumber}
                     </Link>
@@ -545,7 +545,7 @@ function WhtRegisterPageContent() {
                     href={fileUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex min-h-11 min-w-0 items-center gap-1.5 text-blue-600 hover:underline dark:text-blue-400"
+                    className="flex min-h-11 min-w-0 items-center gap-1.5 text-blue-600 dark:text-blue-400"
                   >
                     <Paperclip className="h-4 w-4 shrink-0" />
                     <span className="truncate">เปิดไฟล์ที่แนบ</span>
@@ -555,7 +555,7 @@ function WhtRegisterPageContent() {
                     variant="ghost"
                     size="icon-sm"
                     onClick={() => setFileUrl("")}
-                    className="shrink-0 text-muted hover:text-red-600 dark:hover:text-red-400"
+                    className="shrink-0 text-muted"
                     title="เอาไฟล์ออก"
                   >
                     <X />

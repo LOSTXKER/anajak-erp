@@ -82,7 +82,7 @@ export function PrintTableRow({
               DASHED_INTERACTIVE,
               RADIUS.item,
               FOCUS_BUTTON,
-              "mx-auto flex h-11 w-11 shrink-0 items-center justify-center text-muted transition-colors hover:text-strong dark:hover:text-strong"
+              "mx-auto flex h-11 w-11 shrink-0 items-center justify-center text-muted transition-colors"
             )}
           >
             {uploading ? <Spinner size="md" /> : <Plus />}
@@ -227,7 +227,7 @@ export function PrintTableRow({
           size="icon-sm"
           aria-label={`ลบจุดพิมพ์ ${printIdx + 1}`}
           onClick={onRemove}
-          className="text-muted hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
+          className="text-muted"
         >
           <Trash2 />
         </Button>

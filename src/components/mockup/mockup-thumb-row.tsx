@@ -66,7 +66,7 @@ export function MockupThumbRow({
                     decoding="async"
                     className="h-full w-full object-cover"
                   />
-                  <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/40 text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+                  <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/40 text-white opacity-0 transition-opacity group-focus-visible:opacity-100">
                     <ZoomIn className="h-4 w-4" />
                   </span>
                 </button>

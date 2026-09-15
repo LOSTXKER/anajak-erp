@@ -313,7 +313,7 @@ export default function StockSettingsPage() {
                             aria-label={
                               showApiKey ? "ซ่อน API Key" : "แสดง API Key"
                             }
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted hover:text-strong"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted"
                       >
                             {showApiKey ? <EyeOff /> : <Eye />}
                       </Button>

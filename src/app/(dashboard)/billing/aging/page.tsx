@@ -299,14 +299,14 @@ function AgingPageContent() {
                     <div className="flex items-center gap-2">
                       <Link
                         href={`/customers/${row.customerId}`}
-                        className="font-medium text-strong hover:underline"
+                        className="font-medium text-strong"
                       >
                         {row.company ? `${row.company} (${row.name})` : row.name}
                       </Link>
                       <Button
                         variant="ghost"
                         size="icon-sm"
-                        className="shrink-0 text-muted hover:text-strong dark:hover:text-strong"
+                        className="shrink-0 text-muted"
                         aria-label={`ร่างข้อความทวง ${row.company || row.name}`}
                         onClick={() => {
                           setTone("gentle");
@@ -374,7 +374,7 @@ function AgingPageContent() {
                   <div className="min-w-0">
                     <Link
                       href={`/customers/${row.customerId}`}
-                      className="font-semibold text-strong hover:underline"
+                      className="font-semibold text-strong"
                     >
                       {row.company || row.name}
                     </Link>

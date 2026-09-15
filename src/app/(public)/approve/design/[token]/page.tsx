@@ -186,7 +186,7 @@ export default function DesignApprovalPage({
                     href={image.fileUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex min-h-11 touch-manipulation items-center gap-1.5 px-2 text-sm text-secondary hover:text-strong hover:underline"
+                    className="inline-flex min-h-11 touch-manipulation items-center gap-1.5 px-2 text-sm text-secondary"
                   >
                     <ExternalLink className="h-3.5 w-3.5" />
                     {image.previewUrl ? "เปิดภาพเต็ม" : "เปิดไฟล์"}

@@ -215,7 +215,7 @@ function NotificationsContent() {
                           }}
                           className={cn(
                             FOCUS_INSET,
-                            "group flex w-full gap-3 px-5 py-3.5 text-left transition-colors hover:bg-interactive-hover active:bg-interactive-pressed dark:hover:bg-interactive-hover dark:active:bg-interactive-pressed",
+                            "group flex w-full gap-3 px-5 py-3.5 text-left transition-colors active:bg-interactive-pressed dark:active:bg-interactive-pressed",
                             !notif.isRead && "bg-surface-muted"
                           )}
                           aria-label={`${notif.isRead ? "" : "ยังไม่อ่าน: "}${notif.title}`}
@@ -242,11 +242,11 @@ function NotificationsContent() {
                               )}
                             </div>
                             {notif.message && (
-                              <p className="mt-0.5 line-clamp-2 text-sm text-muted group-hover:text-secondary group-active:text-secondary dark:group-hover:text-secondary dark:group-active:text-secondary">
+                              <p className="mt-0.5 line-clamp-2 text-sm text-muted group-active:text-secondary dark:group-active:text-secondary">
                                 {notif.message}
                               </p>
                             )}
-                            <time dateTime={new Date(notif.createdAt).toISOString()} title={formatDateTime(notif.createdAt)} className="mt-1 block text-xs text-muted group-hover:text-secondary group-active:text-secondary dark:group-hover:text-secondary dark:group-active:text-secondary">
+                            <time dateTime={new Date(notif.createdAt).toISOString()} title={formatDateTime(notif.createdAt)} className="mt-1 block text-xs text-muted group-active:text-secondary dark:group-active:text-secondary">
                               {timeAgo(notif.createdAt, dataUpdatedAt)}
                             </time>
                           </div>

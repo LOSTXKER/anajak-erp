@@ -255,13 +255,13 @@ export function MaterialUsage({
                     type="button"
                     key={product.id}
                     onClick={() => addMaterial(product as never)}
-                    className="group flex min-h-11 w-full items-center justify-between rounded-lg px-2 py-1.5 text-left text-xs transition-colors hover:bg-interactive-hover active:bg-interactive-pressed dark:hover:bg-interactive-hover dark:active:bg-interactive-pressed"
+                    className="group flex min-h-11 w-full items-center justify-between rounded-lg px-2 py-1.5 text-left text-xs transition-colors active:bg-interactive-pressed dark:active:bg-interactive-pressed"
                   >
                     <div>
                       <span className="font-medium text-strong">
                         {product.name}
                       </span>
-                      <span className="ml-2 text-muted group-hover:text-secondary group-active:text-secondary">{product.sku}</span>
+                      <span className="ml-2 text-muted group-active:text-secondary">{product.sku}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span
@@ -269,7 +269,7 @@ export function MaterialUsage({
                           "tabular-nums",
                           (product.totalStock ?? 0) <= 0
                             ? "text-red-700 dark:text-red-300"
-                            : "text-muted group-hover:text-secondary group-active:text-secondary"
+                            : "text-muted group-active:text-secondary"
                         )}
                       >
                         คงเหลือ: {product.totalStock ?? 0}
@@ -467,7 +467,7 @@ export function MaterialUsage({
                   size="icon-sm"
                   onClick={() => removeMaterial(m.id)}
                   aria-label={`ลบ ${m.name} ออกจากรายการ`}
-                  className="ml-1 text-muted hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950 dark:hover:text-red-400"
+                  className="ml-1 text-muted"
                 >
                   <X />
                 </Button>

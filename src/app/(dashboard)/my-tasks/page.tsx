@@ -281,7 +281,7 @@ function TaskRow({ item }: { item: TaskListItem }) {
         href={item.href}
         className={cn(
           FOCUS_INSET,
-          "flex min-h-14 items-center gap-3 px-4 py-3 transition-colors hover:bg-interactive-hover active:bg-interactive-pressed"
+          "flex min-h-14 items-center gap-3 px-4 py-3 transition-colors active:bg-interactive-pressed"
         )}
       >
         <div className="min-w-0 flex-1">
@@ -388,7 +388,7 @@ function TaskGroupCard({ group }: { group: TaskGroup }) {
           >
             {expanded ? "ย่อรายการ" : `ดูทั้งหมดอีก ${remaining} งาน`}
             <ChevronDown
-              className={cn(" transition-transform", expanded && "rotate-180")}
+              className={cn("transition-transform", expanded && "rotate-180")}
               aria-hidden="true"
             />
           </Button>

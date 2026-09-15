@@ -129,7 +129,8 @@ export const SUNK_PANEL = "bg-surface-muted";
 /** ของที่กดได้ตอนชี้ — คนละชั้นกับ SUNK_PANEL เสมอ
  * แยก hover/pressed คนละ token เพื่อให้แถวที่ใช้แค่ช่วยไล่สายตาไม่หลอกว่ากดได้ */
 export const INTERACTIVE_HOVER =
-  "hover:bg-interactive-hover hover:text-strong dark:hover:bg-interactive-hover dark:hover:text-strong";
+  /* ชุด kit ไม่มีเอฟเฟกต์ตอนชี้ทั้งเว็บ (เบสสั่ง 2026-09-14 · ขยายทุกหน้า 2026-09-17) — คงชื่อไว้ให้ caller เดิม ตอบสนองด้วยคู่ PRESSED */
+  "";
 
 /** feedback ตอนกำลังกด — compose เฉพาะ element ที่มี action จริง */
 export const INTERACTIVE_PRESSED =
@@ -143,7 +144,8 @@ export const INTERACTIVE_PRESSED =
  *  active:bg-interactive-chrome-pressed เองมือเปล่า เพราะจะไม่ได้ active:text-strong
  *  ที่พ่วงมาด้วย แล้วตัวหนังสือจะตกเกณฑ์ตอนกดค้าง */
 export const INTERACTIVE_CHROME_HOVER =
-  "hover:bg-interactive-chrome-hover hover:text-strong dark:hover:bg-interactive-chrome-hover dark:hover:text-strong";
+  /* ชุด kit ไม่มีเอฟเฟกต์ตอนชี้ทั้งเว็บ (เบสสั่ง 2026-09-14 · ขยายทุกหน้า 2026-09-17) — คงชื่อไว้ให้ caller เดิม ตอบสนองด้วยคู่ PRESSED */
+  "";
 
 export const INTERACTIVE_CHROME_PRESSED =
   "active:bg-interactive-chrome-pressed active:text-strong dark:active:bg-interactive-chrome-pressed dark:active:text-strong";
@@ -157,7 +159,8 @@ export const INTERACTIVE_CHROME_PRESSED =
  *    ผืนงานเทา   → คู่นี้
  *  ใช้ผิดคู่ = ชี้แล้วจอไม่ขยับ (เคยเกิดจริงตอนผืนงานเปลี่ยนเป็นเทา 2026-08-26) */
 export const INTERACTIVE_PAGE_HOVER =
-  "hover:bg-interactive-page-hover hover:text-strong dark:hover:bg-interactive-page-hover dark:hover:text-strong";
+  /* ชุด kit ไม่มีเอฟเฟกต์ตอนชี้ทั้งเว็บ (เบสสั่ง 2026-09-14 · ขยายทุกหน้า 2026-09-17) — คงชื่อไว้ให้ caller เดิม ตอบสนองด้วยคู่ PRESSED */
+  "";
 
 export const INTERACTIVE_PAGE_PRESSED =
   "active:bg-interactive-page-pressed active:text-strong dark:active:bg-interactive-page-pressed dark:active:text-strong";
@@ -190,7 +193,7 @@ export const DASHED = "border border-dashed border-slate-300 dark:border-slate-7
 /** ขอบประที่กดได้ — resting ใช้ DASHED อ่อน แต่ pointer ต้องยกเส้นขึ้นทั้ง Light/Dark
  *  แยกจาก DASHED เพราะกล่องว่าง/placeholder ที่อ่านอย่างเดียวไม่ควรตอบสนองตอนชี้ */
 export const DASHED_INTERACTIVE =
-  `${DASHED} hover:border-border-strong dark:hover:border-border-strong`;
+  DASHED;
 
 /** ตัวเลือกหนึ่งบรรทัดในเมนูที่กางออกมา — สถานะชี้/ถูกเลือก/กดไม่ได้ ชุดเดียวกันทุกเมนู */
 export const MENU_ITEM =
@@ -262,4 +265,4 @@ export const FIELD_LABEL =
  *  (blue-400/blue-900) ทั้งที่หมายถึงเรื่องเดียวกัน — คนอ่านหน้าจอเห็นว่า
  *  "กรองอยู่" ด้วยสีที่ไม่เท่ากันในแต่ละหน้า */
 export const ACTIVE_FILTER =
-  "border-blue-600 bg-transparent text-blue-700 hover:bg-interactive-hover hover:text-blue-700 active:bg-interactive-pressed active:text-blue-700 dark:border-blue-400 dark:text-blue-400 dark:hover:text-blue-400 dark:active:text-blue-400";
+  "border-blue-600 bg-transparent text-blue-700 active:bg-interactive-pressed active:text-blue-700 dark:border-blue-400 dark:text-blue-400 dark:active:text-blue-400";

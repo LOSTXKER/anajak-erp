@@ -282,7 +282,7 @@ export function ProductPickerDialog({
                         aria-controls={`product-variants-${product.id}`}
                         className={cn(
                           FOCUS_BUTTON,
-                          "group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-interactive-hover active:bg-interactive-pressed",
+                          "group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors active:bg-interactive-pressed",
                         )}
                       >
                         {isExpanded ? (
@@ -436,7 +436,7 @@ export function ProductPickerDialog({
                                             CONTROL_H_SM,
                                             FOCUS_BUTTON,
                                             RADIUS.item,
-                                            "flex w-11 items-center justify-center text-muted hover:bg-interactive-hover hover:text-secondary active:bg-interactive-pressed sm:w-8",
+                                            "flex w-11 items-center justify-center text-muted active:bg-interactive-pressed sm:w-8",
                                           )}
                                         >
                                           <Minus className="h-3 w-3" />
@@ -469,7 +469,7 @@ export function ProductPickerDialog({
                                             CONTROL_H_SM,
                                             FOCUS_BUTTON,
                                             RADIUS.item,
-                                            "flex w-11 items-center justify-center text-muted hover:bg-interactive-hover hover:text-secondary active:bg-interactive-pressed sm:w-8",
+                                            "flex w-11 items-center justify-center text-muted active:bg-interactive-pressed sm:w-8",
                                           )}
                                         >
                                           <Plus className="h-3 w-3" />
@@ -512,7 +512,7 @@ export function ProductPickerDialog({
               onClick={handleManualEntry}
               className={cn(
                 FOCUS_BUTTON,
-                "min-h-11 text-center text-sm text-muted underline-offset-2 transition-colors hover:text-secondary hover:underline sm:min-h-0 sm:text-left",
+                "min-h-11 text-center text-sm text-muted underline-offset-2 transition-colors sm:min-h-0 sm:text-left",
               )}
             >
               เพิ่มรายการด้วยตนเอง

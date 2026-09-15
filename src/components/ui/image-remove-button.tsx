@@ -36,7 +36,7 @@ export function ImageRemoveButton({
       onClick={onClick}
       aria-label={label}
       className={cn(
-        "absolute -right-2 -top-2 items-start justify-end p-1 text-white hover:bg-transparent",
+        "absolute -right-2 -top-2 items-start justify-end p-1 text-white",
         className,
       )}
     >

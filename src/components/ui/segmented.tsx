@@ -96,7 +96,7 @@ export function SegmentedControl<T extends string = string>({
               size === "sm" ? "px-2.5 py-1 text-xs" : "px-3 py-1.5 text-xs",
               active
                 ? "bg-interactive-selected text-interactive-selected-text"
-                : "text-muted hover:bg-interactive-hover hover:text-strong",
+                : "text-muted",
             )}
           >
             {Icon && <Icon className={size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4"} />}

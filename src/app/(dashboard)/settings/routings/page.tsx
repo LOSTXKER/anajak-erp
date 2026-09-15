@@ -213,7 +213,7 @@ function DraftRow({
                     "inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors",
                     checked
                       ? "border-blue-600 text-strong dark:border-blue-400"
-                      : "border-border text-secondary hover:text-strong",
+                      : "border-border text-secondary",
                   )}
                 >
                   <input
@@ -476,7 +476,7 @@ export default function RoutingSettingsPage() {
                           "flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-xs transition-colors",
                           selected
                             ? "bg-interactive-pressed text-strong"
-                            : "text-secondary hover:text-strong",
+                            : "text-secondary",
                         )}
                       >
                         <span className="font-medium">เวอร์ชัน {item.versionNumber}</span>

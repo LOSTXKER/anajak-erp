@@ -120,7 +120,7 @@ export default function AnalyticsPage() {
         <Section title="ลูกค้ายอดสูงสุด" icon={Users} tone="brand" bordered>
           <div className="space-y-3">
             {dashboard?.topCustomers?.map((c, i) => (
-              <Link key={c.id} href={`/customers/${c.id}`} className={cn("flex min-h-11 items-center justify-between gap-4 rounded-lg hover:bg-interactive-hover", FOCUS_BUTTON)}>
+              <Link key={c.id} href={`/customers/${c.id}`} className={cn("flex min-h-11 items-center justify-between gap-4 rounded-lg", FOCUS_BUTTON)}>
                 <div className="flex items-center gap-3 min-w-0">
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-medium dark:bg-slate-800">
                     {i + 1}

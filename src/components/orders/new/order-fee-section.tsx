@@ -163,7 +163,7 @@ export function OrderFeeSection({
                         variant="ghost"
                         size="icon"
                         aria-label={`ลบค่าใช้จ่าย ${fIdx + 1}`}
-                        className="text-muted hover:text-red-600 dark:hover:text-red-400"
+                        className="text-muted"
                         onClick={() => onRemoveFee(fIdx)}
                       >
                         <Trash2 />
@@ -213,7 +213,7 @@ export function OrderFeeSection({
                     variant="ghost"
                     size="icon"
                     aria-label={`ลบค่าใช้จ่าย ${fIdx + 1}`}
-                    className="text-muted hover:text-red-600 dark:hover:text-red-400"
+                    className="text-muted"
                     onClick={() => onRemoveFee(fIdx)}
                   >
                     <Trash2 />

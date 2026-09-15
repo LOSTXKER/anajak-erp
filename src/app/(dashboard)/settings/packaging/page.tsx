@@ -232,7 +232,7 @@ export default function PackagingSettingsPage() {
                               aria-label={`บันทึกการแก้ไข ${opt.name}`}
                               onClick={handleSaveEdit}
                               disabled={updateMutation.isPending}
-                              className="text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
+                              className="text-green-600 dark:text-green-400"
                             >
                               <Check />
                             </Button>
@@ -254,7 +254,7 @@ export default function PackagingSettingsPage() {
                               aria-label={`แก้ไข ${opt.name}`}
                               onClick={() => { setEditingId(opt.id); setEditName(opt.name); }}
                               disabled={updateMutation.isPending}
-                              className="text-muted hover:text-strong dark:hover:text-strong"
+                              className="text-muted"
                             >
                               <Pencil />
                             </Button>
@@ -264,7 +264,7 @@ export default function PackagingSettingsPage() {
                               aria-label={`ปิดการใช้งาน ${opt.name}`}
                               onClick={() => handleDelete(opt.id, opt.name)}
                               disabled={deleteMutation.isPending}
-                              className="text-muted hover:text-red-600 dark:hover:text-red-400"
+                              className="text-muted"
                             >
                               <Trash2 />
                             </Button>

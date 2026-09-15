@@ -494,7 +494,7 @@ function SyncDialogSession({ onClose }: Pick<SyncDialogProps, "onClose">) {
                   <button
                     type="button"
                     onClick={() => dispatch({ type: "TOGGLE_ERRORS" })}
-                    className={cn(TINT.warning, "flex min-h-11 w-full items-center justify-between rounded-lg border px-3 py-2 text-left transition-colors hover:bg-amber-100 dark:hover:bg-amber-950")}
+                    className={cn(TINT.warning, "flex min-h-11 w-full items-center justify-between rounded-lg border px-3 py-2 text-left transition-colors")}
                     aria-expanded={showErrors}
                     aria-controls="sync-error-list"
                   >

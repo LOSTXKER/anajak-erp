@@ -102,7 +102,7 @@ export function FileUpload({
             type="button"
             onClick={clearFile}
             aria-label="ลบไฟล์ที่เลือก"
-            className={cn(CONTROL_H, "absolute -right-3 -top-3 inline-flex w-11 touch-manipulation items-center justify-center rounded-full bg-red-700 text-white shadow-sm hover:bg-red-800", FOCUS_BUTTON, "sm:w-9")}
+            className={cn(CONTROL_H, "absolute -right-3 -top-3 inline-flex w-11 touch-manipulation items-center justify-center rounded-full bg-red-700 text-white shadow-sm", FOCUS_BUTTON, "sm:w-9")}
           >
             <X className="h-4 w-4" />
           </button>
@@ -113,7 +113,7 @@ export function FileUpload({
           onClick={() => inputRef.current?.click()}
           disabled={disabled || uploading}
           className={cn(
-            DASHED_INTERACTIVE, FOCUS_BUTTON, "flex w-full items-center justify-center gap-2 rounded-lg px-4 py-6 text-sm text-muted transition-colors hover:text-strong dark:hover:text-strong",
+            DASHED_INTERACTIVE, FOCUS_BUTTON, "flex w-full items-center justify-center gap-2 rounded-lg px-4 py-6 text-sm text-muted transition-colors",
             (disabled || uploading) && "pointer-events-none opacity-50"
           )}
         >

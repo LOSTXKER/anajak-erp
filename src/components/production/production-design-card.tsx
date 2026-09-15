@@ -212,7 +212,7 @@ export function ProductionDesignCard({
               className={cn(
                 RADIUS.inner,
                 FOCUS_BUTTON,
-                "shrink-0 overflow-hidden border border-border transition-opacity hover:opacity-90",
+                "shrink-0 overflow-hidden border border-border transition-opacity",
               )}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -305,7 +305,7 @@ export function ProductionDesignCard({
                     className={cn(
                       RADIUS.item,
                       FOCUS_BUTTON,
-                      "shrink-0 overflow-hidden border border-border transition-opacity hover:opacity-90",
+                      "shrink-0 overflow-hidden border border-border transition-opacity",
                     )}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}

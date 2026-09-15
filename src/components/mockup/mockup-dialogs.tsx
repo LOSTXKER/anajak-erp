@@ -188,7 +188,7 @@ export function MockupUploadDialog({
                       type="button"
                       variant="ghost"
                       size="icon-sm"
-                      className="shrink-0 text-muted hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
+                      className="shrink-0 text-muted"
                       onClick={() => removeDraftFile(index)}
                       aria-label={`เอารูปที่ ${index + 1} ออก`}
                     >

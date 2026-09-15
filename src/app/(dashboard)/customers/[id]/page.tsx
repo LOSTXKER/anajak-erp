@@ -134,12 +134,12 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
             <CardHeader><CardTitle className="text-base">ข้อมูลติดต่อ</CardTitle></CardHeader>
             <CardContent className="space-y-3 text-sm">
               {customer.phone && (
-                <a href={`tel:${customer.phone}`} className="flex min-h-11 items-center gap-2 rounded-lg text-secondary hover:text-strong dark:hover:text-strong">
+                <a href={`tel:${customer.phone}`} className="flex min-h-11 items-center gap-2 rounded-lg text-secondary">
                   <Phone className="h-4 w-4" /> {customer.phone}
                 </a>
               )}
               {customer.email && (
-                <a href={`mailto:${customer.email}`} className="flex min-h-11 items-center gap-2 rounded-lg text-secondary hover:text-strong dark:hover:text-strong">
+                <a href={`mailto:${customer.email}`} className="flex min-h-11 items-center gap-2 rounded-lg text-secondary">
                   <Mail className="h-4 w-4" /> {customer.email}
                 </a>
               )}
@@ -148,7 +148,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                   href={`https://line.me/R/ti/p/~${encodeURIComponent(customer.lineId)}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex min-h-11 items-center gap-2 rounded-lg text-secondary hover:text-strong dark:hover:text-strong"
+                  className="flex min-h-11 items-center gap-2 rounded-lg text-secondary"
                 >
                   <MessageCircle className="h-4 w-4" /> {customer.lineId}
                 </a>
@@ -346,13 +346,13 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                     <Link
                       key={order.id}
                       href={`/orders/${order.id}`}
-                      className="group flex items-center justify-between rounded-lg border border-border p-3 transition-colors hover:bg-interactive-hover active:bg-interactive-pressed"
+                      className="group flex items-center justify-between rounded-lg border border-border p-3 transition-colors active:bg-interactive-pressed"
                     >
                       <div>
                         <p className="text-sm font-medium text-blue-600 dark:text-blue-400">{order.orderNumber}</p>
                         {/* ไม่มีชื่องานแล้ว (เบสสั่ง 2026-08-30) — บรรทัดรองใช้วันที่เปิดงาน
                             ซึ่งเป็นสิ่งที่ช่วยแยกใบของลูกค้ารายเดียวกันได้จริง */}
-                        <p className="text-xs text-muted group-hover:text-secondary group-active:text-secondary">
+                        <p className="text-xs text-muted group-active:text-secondary">
                           เปิด {formatDate(order.createdAt)}
                         </p>
                       </div>
