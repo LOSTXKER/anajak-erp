@@ -9,6 +9,7 @@
 - [UI primitives](src/components/ui/), [สถานะ](src/lib/status-config.ts), [สิทธิ์](src/lib/permissions.ts), [รายการใน URL](src/hooks/use-list-page-state.ts): ค้นของเดิมก่อนขยาย; component ไม่สร้างกฎธุรกิจซ้ำ
 - [Mockup](src/components/mockup/), [Public](src/components/public/public-page.tsx), [Print](src/components/print/print-document.tsx): ใช้ส่วนกลางของแต่ละงาน; กระดาษมีข้อจำกัดต่างจากหน้าจอ
 - หน้าออเดอร์: [orders.module.css](src/components/orders/orders.module.css) = CSS ต้นแบบที่เบสเคาะแบบตรงตัว ใช้ผ่าน `c()`; แก้หน้าตาที่นี่ ไม่แปลงกลับเป็น token
+- [Home CSS](src/components/dashboard/home/home.module.css): ต้นแบบหน้าแรก; [Shell CSS](src/components/layout/app-shell.module.css): เมนู/หัวเว็บร่วม สิทธิ์เดิม
 
 ## ใช้และปรับทิศ
 คงคำช่วยที่ใช้ตัดสินใจ ลงมือ หรือแก้ผิดตรงจุดใช้ ลดข้อความซ้ำและกรอบที่แย่งสายตา. ความกว้าง/ความแน่น/ตารางหรือการ์ดเลือกตามภารกิจ; จำนวนปุ่ม สี ชิป หรือความยาวข้อความไม่พิสูจน์ UX

@@ -4,12 +4,10 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, CalendarDays, ChevronRight, Plus, ShoppingCart, X } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DueTag } from "@/components/ui/due-tag";
 import { EmptyState } from "@/components/ui/empty-state";
 import { EntityMark } from "@/components/ui/entity-mark";
-import { FilterChip } from "@/components/ui/filter-chip";
 import { FOCUS_INSET, INTERACTIVE_PRESSED, TABLE_HEAD_SURFACE } from "@/components/ui/tokens";
 import { OrderStatusBadge } from "@/components/order-status-badge";
 import {
@@ -23,6 +21,7 @@ import { ORDER_PROBLEM_ICON, ORDER_PROBLEM_TEXT, StepProgress } from "@/componen
 import { cn, formatBaht, formatDateShort } from "@/lib/utils";
 import type { HomeOrder } from "@/server/services/home-overview";
 import { HomeCard, HomeChip } from "./home-card";
+import styles from "./home.module.css";
 
 export function ActiveOrdersCard({
   orders,
@@ -74,19 +73,19 @@ export function ActiveOrdersCard({
               </HomeChip>
             </button>
           ) : (
-            <div className="flex flex-wrap gap-1" role="group" aria-label="กรองออเดอร์">
+            <div className={styles.filters} role="group" aria-label="กรองออเดอร์">
               {HOME_ORDER_FILTERS.map((option) => {
                 const count = orders.filter((order) => matchesHomeFilter(order, option.key)).length;
                 return (
-                  <FilterChip key={option.key} selected={filter === option.key} onClick={() => setFilter(option.key)}>
+                  <button type="button" className={cn(FOCUS_INSET, INTERACTIVE_PRESSED, styles.filter)} key={option.key} aria-pressed={filter === option.key} onClick={() => setFilter(option.key)}>
                     {option.label}
-                    <span className="ml-1 tabular-nums text-muted">{count}</span>
-                  </FilterChip>
+                    <span>{count}</span>
+                  </button>
                 );
               })}
             </div>
           )}
-          <Button asChild variant="ghost" size="sm">
+          <Button asChild variant="ghost" size="sm" className={styles.ghost}>
             <Link href="/orders">
               ดูทั้งหมด
               <ArrowRight />
@@ -126,21 +125,22 @@ export function ActiveOrdersCard({
         </div>
       ) : (
         <>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[40rem] table-fixed text-sm">
-              <thead className={cn(TABLE_HEAD_SURFACE, "text-xs")}>
+          <div className="relative overflow-x-auto">
+            <table className={styles.orders}>
+              <thead className={TABLE_HEAD_SURFACE}>
                 <tr className="border-t border-divider">
-                  <th className="w-[30%] px-4 py-2 text-left font-medium sm:px-5">ออเดอร์</th>
-                  <th className="w-[17%] px-3 py-2 text-left font-medium">กำหนดส่ง</th>
-                  <th className="px-3 py-2 text-left font-medium">ต้องจัดการ / ขั้นงาน</th>
-                  <th className="w-[9%] px-3 py-2 text-right font-medium">จำนวน</th>
-                  {canSeeMoney ? <th className="w-[14%] px-3 py-2 text-right font-medium">ยอดรวม</th> : null}
-                  <th className="w-9 px-2 py-2">
+                  <th>ออเดอร์</th>
+                  <th>กำหนดส่ง</th>
+                  <th>ต้องจัดการ</th>
+                  <th>ขั้นงาน</th>
+                  <th className={styles.right}>จำนวน</th>
+                  {canSeeMoney ? <th className={styles.right}>ยอดรวม</th> : null}
+                  <th className={styles.arrow}>
                     <span className="sr-only">เปิดออเดอร์</span>
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-divider">
+              <tbody>
                 {rows.map((order) => {
                   const problem = describeHomeOrder(order);
                   const ProblemIcon = problem ? ORDER_PROBLEM_ICON[problem.kind] : null;
@@ -151,20 +151,20 @@ export function ActiveOrdersCard({
                       onClick={() => router.push(href)}
                       className={cn(INTERACTIVE_PRESSED, "cursor-pointer transition-colors")}
                     >
-                      <td className="relative px-4 py-2.5 sm:px-5">
+                      <td className="relative">
                         {problem?.group === "late" || problem?.group === "today" ? (
                           <span
                             aria-hidden="true"
                             className={cn(
-                              "absolute inset-y-0 left-0 w-1",
+                              "absolute inset-y-0 left-0 w-[3px]",
                               problem.group === "late" ? "bg-red-600 dark:bg-red-400" : "bg-amber-500 dark:bg-amber-400",
                             )}
                           />
                         ) : null}
-                        <span className="flex min-w-0 items-center gap-3">
+                        <span className={styles.orderIdentity}>
                           <EntityMark label={order.customerName} tone="brand" />
-                          <span className="min-w-0 max-w-56">
-                            <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                          <span className={styles.orderName}>
+                            <span className={styles.orderNumber}>
                               <Link
                                 href={href}
                                 onClick={(event) => event.stopPropagation()}
@@ -173,55 +173,57 @@ export function ActiveOrdersCard({
                                 {order.orderNumber}
                               </Link>
                               {order.printLabel ? (
-                                <Badge variant="default" size="sm">
+                                <HomeChip tone={order.printLabel === "DTF" ? "brand" : "neutral"}>
                                   {order.printLabel}
-                                </Badge>
+                                </HomeChip>
                               ) : null}
                             </span>
-                            <span className="block truncate text-xs text-secondary">
+                            <span className={styles.orderCustomer}>
                               {order.customerName}
                               {order.title ? <span className="text-muted"> · {order.title}</span> : null}
                             </span>
                           </span>
                         </span>
                       </td>
-                      <td className="px-3 py-2.5">
+                      <td>
                         <DueTag
                           dueInDays={order.dueInDays}
                           dateLabel={order.deadline && order.dueInDays !== null && order.dueInDays > 1 ? formatDateShort(order.deadline) : null}
                           size="sm"
                         />
                       </td>
-                      <td className="px-3 py-2.5">
-                        <span className="flex min-w-0 flex-col gap-1">
+                      <td>
+                        <span className={styles.problem}>
                           {problem && ProblemIcon ? (
-                            <span className={cn("flex items-start gap-1.5 text-xs", ORDER_PROBLEM_TEXT[problem.tone])}>
-                              <ProblemIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" strokeWidth={1.75} aria-hidden="true" />
-                              {problem.label}
-                              {problem.who ? <span className="font-normal text-muted">· {problem.who}</span> : null}
-                            </span>
-                          ) : null}
-                          <span className="flex flex-wrap items-center gap-2">
-                            <StepProgress done={order.stepsDone} total={order.stepsTotal} />
-                            {order.currentStep ? (
-                              <span className="text-xs text-secondary">
-                                {`${Math.min(order.stepsDone + 1, order.stepsTotal)}/${order.stepsTotal} ${order.currentStep.label}`}
+                            <>
+                              <span className={cn(styles.problemLine, ORDER_PROBLEM_TEXT[problem.tone])}>
+                                <ProblemIcon className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} aria-hidden="true" />
+                                {problem.label}
                               </span>
-                            ) : (
-                              <OrderStatusBadge customerStatus={order.customerStatus} internalStatus={order.internalStatus} compact />
-                            )}
-                          </span>
+                              {problem.who ? <span className={styles.problemWho}>{problem.who}</span> : null}
+                            </>
+                          ) : <span className="text-xs text-muted">—</span>}
                         </span>
                       </td>
-                      <td className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums text-secondary">
+                      <td>
+                        <span className={styles.step}>
+                          <StepProgress done={order.stepsDone} total={order.stepsTotal} className={styles.stepProgress} />
+                          {order.currentStep ? (
+                            <span>{`${Math.min(order.stepsDone + 1, order.stepsTotal)}/${order.stepsTotal} ${order.currentStep.label}`}</span>
+                          ) : (
+                            <OrderStatusBadge customerStatus={order.customerStatus} internalStatus={order.internalStatus} compact />
+                          )}
+                        </span>
+                      </td>
+                      <td className={cn(styles.right, "text-secondary")}>
                         <span className="font-medium text-strong">{order.quantity.toLocaleString("th-TH")}</span> ตัว
                       </td>
                       {canSeeMoney ? (
-                        <td className="whitespace-nowrap px-3 py-2.5 text-right font-mono text-sm tabular-nums text-strong">
+                        <td className={cn(styles.right, styles.orderAmount)}>
                           {order.totalAmount !== null ? formatBaht(order.totalAmount) : "—"}
                         </td>
                       ) : null}
-                      <td className="px-2 py-2.5 text-muted">
+                      <td className={styles.arrow}>
                         <ChevronRight className="h-4 w-4" aria-hidden="true" />
                       </td>
                     </tr>
@@ -230,14 +232,14 @@ export function ActiveOrdersCard({
               </tbody>
             </table>
           </div>
-          <div className="flex flex-wrap items-center gap-4 border-t border-divider bg-surface-muted px-4 py-2.5 text-xs tabular-nums text-secondary sm:px-5">
+          <div className={styles.tableFooter}>
             <span>
               <span className="font-medium text-strong">{rows.length}</span> ออเดอร์
             </span>
             <span>
               <span className="font-medium text-strong">{quantity.toLocaleString("th-TH")}</span> ตัว
             </span>
-            {canSeeMoney ? <span className="ml-auto font-mono text-sm font-medium text-strong">{formatBaht(amount)}</span> : null}
+            {canSeeMoney ? <span className={styles.total}>{formatBaht(amount)}</span> : null}
           </div>
         </>
       )}

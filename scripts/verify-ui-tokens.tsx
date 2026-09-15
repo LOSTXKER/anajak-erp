@@ -385,6 +385,7 @@ const hSm = CONTROL_H_SM.split(" ");
 
 {
   const appShellSource = readFileSync("src/components/layout/app-shell.tsx", "utf8");
+  const appShellCss = readFileSync("src/components/layout/app-shell.module.css", "utf8");
   const sidebarBrandHeaderSource =
     appShellSource.match(
       /<div\s+data-sidebar-brand-header[\s\S]*?<\/div>/,
@@ -401,15 +402,15 @@ const hSm = CONTROL_H_SM.split(" ");
     // ความกว้างเมนูซ้ายมาจากตัวแปร ไม่ใช่ค่าคงที่ ตั้งแต่มีโหมดหุบ/กาง (2026-08-26)
     // ยังล็อกไว้ว่าคอลัมน์ขวาต้อง minmax(0,1fr) และค่าทั้งสองสถานะต้องประกาศจริง
     !appShellSource.includes('lg:grid-cols-[var(--app-sidebar-w)_minmax(0,1fr)]') ||
-    !appShellSource.includes('"--app-sidebar-w": sidebarCollapsed ? "4rem" : "15rem"') ||
+    !appShellSource.includes('"--app-sidebar-w": sidebarCollapsed ? "4rem" : "244px"') ||
     // สถานะหุบต้องมาจาก store ภายนอก ไม่ใช่ useState+useEffect (กัน SSR/client ต่างกัน)
     !appShellSource.includes("useSyncExternalStore") ||
     // หุบแล้วชื่อเมนูหายจากจอ ต้องเหลือชื่อไว้ให้เมาส์และเครื่องอ่านหน้าจอ
     !appShellSource.includes("title={sidebarCollapsed ? item.label : undefined}") ||
-    // แถบบน หัวเมนูซ้าย และแถวแรกของกริด ต้องสูงเท่ากันทั้งสามที่เสมอ
-    // ไม่งั้นเส้นล่างของตรากับของแถบบนจะไม่ต่อกันเป็นเส้นเดียวข้ามจอ (เคยพลาดมาแล้ว)
+    // ต้นแบบ 14 ก.ย.: แถบบน 56px แต่หัวตราโปร่ง 68px ไม่มีเส้นแบ่งใต้ตรา
     !appShellSource.includes("grid-rows-[3.5rem_minmax(0,1fr)]") ||
-    (appShellSource.match(/flex h-14 /g)?.length ?? 0) !== 2 ||
+    !appShellCss.includes('[data-sidebar-brand-header] { height: 68px;') ||
+    !appShellCss.includes('border-bottom: 0;') ||
     // ตอนหุบต้องจองรางแถบเลื่อนสองข้าง ไม่งั้นแถบเลื่อน 10px ดันไอคอนไปทางซ้าย 5px
     // และต้องถอดระยะขอบข้างของ nav ออกด้วย ไม่งั้นเนื้อที่จริงเหลือ 19px
     // จนปุ่มเมนูถูกบีบเหลือกว้าง 24px สูง 36px = อ่านเป็นเม็ดยา (วัดจริง 2026-08-26)

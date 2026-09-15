@@ -4,6 +4,7 @@ import { FOCUS_INSET, INTERACTIVE_PRESSED } from "@/components/ui/tokens";
 import { cn, formatBaht } from "@/lib/utils";
 import type { HomeMoney } from "@/server/services/home-overview";
 import { HomeCard, HomeChip, HomeIconTile } from "./home-card";
+import styles from "./home.module.css";
 
 /** เงินที่ต้องตาม — แยกจากงานผลิต เห็นเฉพาะคนมีสิทธิ์ see_finance (service คืน null ให้คนอื่น) */
 export function MoneyCard({ money }: { money: HomeMoney }) {
@@ -41,7 +42,7 @@ export function MoneyCard({ money }: { money: HomeMoney }) {
       action={rows.length === 0 ? <HomeChip tone="success">เรียบร้อย</HomeChip> : undefined}
     >
       {rows.length === 0 ? (
-        <p className="px-5 pb-5 pt-1 text-sm text-muted">ไม่มีบิลค้างและใบเสนอราคาที่รอตอบ</p>
+        <p className={styles.moneyEmpty}>ไม่มีบิลค้างและใบเสนอราคาที่รอตอบ</p>
       ) : (
         <ul className="divide-y divide-divider border-t border-divider">
           {rows.map((row) => (
@@ -51,17 +52,17 @@ export function MoneyCard({ money }: { money: HomeMoney }) {
                 className={cn(
                   FOCUS_INSET,
                   INTERACTIVE_PRESSED,
-                  "flex min-h-14 items-center gap-3 px-4 py-2.5 transition-colors sm:px-5",
+                  styles.moneyRow,
                 )}
               >
                 <HomeIconTile icon={row.icon} tone={row.tone} />
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium text-strong">{row.title}</span>
+                  <span className={styles.moneyLabel}>{row.title}</span>
                   <span className="block text-xs text-muted">{row.count}</span>
                 </span>
                 <span
                   className={cn(
-                    "font-mono text-sm font-medium tabular-nums",
+                    styles.moneyAmount,
                     row.tone === "danger" ? "text-red-700 dark:text-red-300" : "text-strong",
                   )}
                 >

@@ -11,6 +11,7 @@ import { FactoryFlowCard } from "./factory-flow-card";
 import { HomeMetrics, type HomeMetricsData } from "./home-metrics";
 import { MoneyCard } from "./money-card";
 import { WeekCard } from "./week-card";
+import styles from "./home.module.css";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const longDate = new Intl.DateTimeFormat("th-TH-u-ca-buddhist", {
@@ -36,14 +37,14 @@ export function HomeView({ metrics, overview, canSeeMoney, canCreateOrder }: Hom
   const dayLabel = day === null ? null : day === 0 ? "วันนี้" : shortDate.format(new Date(now.getTime() + day * DAY_MS));
 
   return (
-    <div className="space-y-4 sm:space-y-5">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+    <div className={styles.page}>
+      <div className={styles.heading}>
         <div>
           <h1 className="text-2xl font-semibold text-strong">ภาพรวมวันนี้</h1>
           <p className="mt-1 text-sm text-muted">{longDate.format(now)}</p>
         </div>
         {canCreateOrder ? (
-          <Button asChild>
+          <Button asChild className={styles.primary}>
             <Link href="/orders/new">
               <Plus />
               เปิดงานใหม่
@@ -56,7 +57,7 @@ export function HomeView({ metrics, overview, canSeeMoney, canCreateOrder }: Hom
 
       <FactoryFlowCard counts={overview.nodes} facts={overview.facts} />
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,5fr)_minmax(0,2fr)]">
+      <div className={styles.split}>
         <ActiveOrdersCard
           orders={overview.orders}
           canSeeMoney={canSeeMoney}
@@ -65,7 +66,7 @@ export function HomeView({ metrics, overview, canSeeMoney, canCreateOrder }: Hom
           dayLabel={dayLabel}
           onClearDay={() => setDay(null)}
         />
-        <div className="grid content-start gap-4">
+        <div className={styles.column}>
           <WeekCard week={overview.week} now={now} selected={day} onSelect={setDay} />
           {overview.money ? <MoneyCard money={overview.money} /> : null}
         </div>

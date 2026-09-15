@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import styles from "./home.module.css";
 
 /* ============================================================
    การ์ดของหน้าแรก (รื้อ 2026-09-14) — หัวการ์ดทุกใบมีไอคอนในกล่องสี (เบสสั่ง)
@@ -8,6 +9,11 @@ import { cn } from "@/lib/utils";
    ============================================================ */
 
 export type HomeTone = "neutral" | "brand" | "success" | "warning" | "danger" | "finance";
+
+const SCOPED_TONE: Record<HomeTone, string> = {
+  neutral: styles.toneNeutral, brand: styles.toneBrand, success: styles.toneSuccess,
+  warning: styles.toneWarning, danger: styles.toneDanger, finance: styles.toneFinance,
+};
 
 const ICON_TONE: Record<HomeTone, string> = {
   neutral: "bg-surface-muted text-secondary",
@@ -36,6 +42,9 @@ export function HomeIconTile({
         "flex shrink-0 items-center justify-center rounded-lg",
         size === "sm" ? "h-7 w-7" : "h-8 w-8",
         ICON_TONE[tone],
+        styles.icon,
+        size === "sm" && styles.iconSmall,
+        SCOPED_TONE[tone],
         className,
       )}
     >
@@ -50,6 +59,7 @@ export function HomeCard({
   icon,
   tone = "neutral",
   action,
+  legend,
   children,
   className,
 }: {
@@ -59,17 +69,19 @@ export function HomeCard({
   tone?: HomeTone;
   /** ของด้านขวาของหัวการ์ด — ชิปสถานะ/ตัวกรอง/ลิงก์ไปหน้าเต็ม */
   action?: ReactNode;
+  legend?: ReactNode;
   children: ReactNode;
   className?: string;
 }) {
   return (
-    <section aria-labelledby={`${id}-title`} className={cn("card-surface overflow-hidden rounded-2xl", className)}>
-      <header className="flex flex-wrap items-center gap-3 px-4 pb-3 pt-4 sm:px-5">
-        <h2 id={`${id}-title`} className="flex min-w-0 items-center gap-2.5 text-base font-semibold text-strong">
+    <section aria-labelledby={`${id}-title`} className={cn("card-surface overflow-hidden rounded-2xl", styles.card, className)}>
+      <header className={cn("flex flex-wrap items-center gap-3 px-4 pb-3 pt-4 sm:px-5", styles.cardHeader)}>
+        <h2 id={`${id}-title`} className={cn("flex min-w-0 items-center gap-2.5 text-base font-semibold text-strong", styles.cardTitle)}>
           <HomeIconTile icon={icon} tone={tone} />
           <span className="truncate">{title}</span>
         </h2>
-        {action ? <div className="ml-auto flex flex-wrap items-center gap-2">{action}</div> : null}
+        {legend}
+        {action ? <div className={cn("ml-auto flex flex-wrap items-center gap-2", styles.cardActions)}>{action}</div> : null}
       </header>
       {children}
     </section>
@@ -101,6 +113,8 @@ export function HomeChip({
       className={cn(
         "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium tabular-nums",
         TONE[tone],
+        styles.chip,
+        SCOPED_TONE[tone],
         className,
       )}
     >

@@ -5,6 +5,7 @@ import { FOCUS_BUTTON, INTERACTIVE_PRESSED } from "@/components/ui/tokens";
 import { BANGKOK_TZ, cn } from "@/lib/utils";
 import type { HomeWeek } from "@/server/services/home-overview";
 import { HomeCard, HomeChip } from "./home-card";
+import styles from "./home.module.css";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 // ชื่อวันแบบย่อสุด (จ อ พ พฤ ศ ส อา) — ชื่อย่อของ Intl ภาษาไทยยังยาวเกินช่องกว้าง 40px
@@ -34,7 +35,7 @@ export function WeekCard({
       tone="brand"
       action={week.overdue > 0 ? <HomeChip tone="danger">เลยกำหนด {week.overdue}</HomeChip> : undefined}
     >
-      <div className="grid grid-cols-7 gap-1 px-3 pb-4 pt-1 sm:px-4" role="group" aria-label="จำนวนออเดอร์ที่ครบกำหนดแต่ละวัน">
+      <div className={styles.week} role="group" aria-label="จำนวนออเดอร์ที่ครบกำหนดแต่ละวัน">
         {week.days.map((day) => {
           const date = new Date(now.getTime() + day.offset * DAY_MS);
           const isToday = day.offset === 0;
@@ -49,21 +50,20 @@ export function WeekCard({
               className={cn(
                 FOCUS_BUTTON,
                 INTERACTIVE_PRESSED,
-                "flex flex-col items-center gap-1.5 rounded-xl px-1 pb-1 pt-2 text-xs transition-colors",
-                active ? "bg-interactive-selected text-interactive-selected-text" : "text-muted",
+                styles.day,
               )}
             >
               <span className="flex h-14 w-full items-end justify-center" aria-hidden="true">
                 <span
                   className={cn(
                     "block w-4 rounded-t-md rounded-b-sm",
-                    day.count === 0 ? "bg-border" : isToday ? "bg-blue-600 dark:bg-blue-400" : "bg-border-strong",
+                    day.count === 0 ? "bg-border" : isToday ? styles.dayBarToday : styles.dayBar,
                   )}
                   style={{ height: day.count === 0 ? 3 : Math.max(6, Math.round((day.count / max) * 52)) }}
                 />
               </span>
-              <span className={cn("text-sm font-semibold tabular-nums", day.count === 0 ? "text-muted" : "text-strong")}>{day.count}</span>
-              <span className={cn("leading-4", isToday && "font-medium text-blue-700 dark:text-blue-300")}>
+              <span className={cn(styles.dayNumber, day.count === 0 && styles.dayZero)}>{day.count}</span>
+              <span className={cn(styles.dayLabel, isToday && styles.dayToday)}>
                 <span className="block">{isToday ? "วันนี้" : weekday.format(date)}</span>
                 <span className="block tabular-nums">{dayOfMonth.format(date)}</span>
               </span>

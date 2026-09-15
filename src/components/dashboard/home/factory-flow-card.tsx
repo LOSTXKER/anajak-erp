@@ -33,6 +33,7 @@ import {
 } from "@/lib/home-factory";
 import type { HomeFacts } from "@/server/services/home-overview";
 import { HomeCard, HomeChip, HomeIconTile, type HomeTone } from "./home-card";
+import styles from "./home.module.css";
 
 /* ============================================================
    ผังงานในโรงงาน + สุขภาพ (เบสเคาะ 2026-09-14 รอบ 4)
@@ -69,19 +70,14 @@ const PLACEMENT: Record<FactoryNodeKey, { col: number; row: number; span?: numbe
 const TONE_TO_HOME: Record<FactoryTone, HomeTone> = { ok: "success", warn: "warning", bad: "danger" };
 
 const NODE_TONE: Record<FactoryTone, string> = {
-  ok: "border-border",
-  warn: "border-amber-300 dark:border-amber-700",
-  bad: "border-red-300 ring-2 ring-red-100 dark:border-red-700 dark:ring-red-950",
+  ok: "",
+  warn: styles.nodeWarning,
+  bad: styles.nodeDanger,
 };
 const DOT_TONE: Record<FactoryTone, string> = {
-  ok: "bg-green-600 dark:bg-green-400",
-  warn: "bg-amber-500 dark:bg-amber-400",
-  bad: "bg-red-600 dark:bg-red-400",
-};
-const DETAIL_TONE: Record<FactoryTone, string> = {
-  ok: "text-muted",
-  warn: "font-medium text-amber-700 dark:text-amber-300",
-  bad: "font-medium text-red-700 dark:text-red-300",
+  ok: styles.dotOk,
+  warn: styles.dotWarning,
+  bad: styles.dotDanger,
 };
 
 type Edge = { d: string; gate: boolean; label?: { text: string; x: number; y: number } };
@@ -111,7 +107,7 @@ function MiniRing({ done, total }: { done: number; total: number }) {
   return (
     <span className="relative h-10 w-10 shrink-0" role="img" aria-label={`ขั้นงานวันนี้เสร็จ ${done} จาก ${total}`}>
       <svg viewBox="0 0 40 40" className="h-10 w-10 -rotate-90">
-        <circle cx="20" cy="20" r="16" className="fill-none stroke-surface-muted" strokeWidth="5" />
+        <circle cx="20" cy="20" r="16" className={styles.ringTrack} strokeWidth="5" />
         <circle
           cx="20"
           cy="20"
@@ -144,11 +140,11 @@ function Fact({
   ring?: { done: number; total: number };
 }) {
   return (
-    <div className="flex items-center gap-2.5 rounded-xl bg-surface-muted px-3 py-2">
+    <div className={styles.fact}>
       {ring ? <MiniRing done={ring.done} total={ring.total} /> : icon ? <HomeIconTile icon={icon} tone={tone} className="bg-surface" /> : null}
-      <span className="min-w-0">
-        <span className="block truncate text-xs text-muted">{label}</span>
-        <span className="block text-base font-semibold tabular-nums text-strong">{value}</span>
+      <span className={styles.factText}>
+        {label}
+        <strong>{value}</strong>
       </span>
     </div>
   );
@@ -238,13 +234,20 @@ export function FactoryFlowCard({ counts, facts }: { counts: FactoryNodeCounts; 
       title="ผังงานในโรงงาน"
       icon={Workflow}
       tone={TONE_TO_HOME[health.tone]}
+      legend={
+        <div className={styles.legend}>
+          {(["ok", "warn", "bad"] as const).map((tone) => (
+            <span key={tone}><i className={DOT_TONE[tone]} aria-hidden="true" />{FACTORY_TONE_LABELS[tone]}</span>
+          ))}
+        </div>
+      }
       action={
         <>
+          {headerStatus}
           {health.tone !== "ok" && health.warn > 0 && health.bad > 0 ? (
             <HomeChip tone="warning" dot>ต้องดู {health.warn} จุด</HomeChip>
           ) : null}
-          {headerStatus}
-          <Button asChild variant="ghost" size="sm">
+          <Button asChild variant="ghost" size="sm" className={styles.ghost}>
             <Link href="/production">
               คิวผลิต
               <ArrowRight />
@@ -253,7 +256,7 @@ export function FactoryFlowCard({ counts, facts }: { counts: FactoryNodeCounts; 
         </>
       }
     >
-      <div className="grid grid-cols-2 gap-2 px-4 pb-2 sm:px-5 lg:grid-cols-4" aria-label="สุขภาพโรงงานวันนี้">
+      <div className={styles.facts} aria-label="สุขภาพโรงงานวันนี้">
         <Fact
           label="ขั้นงานวันนี้"
           value={`${facts.todayQueue.done}/${facts.todayQueue.done + facts.todayQueue.open}`}
@@ -269,10 +272,10 @@ export function FactoryFlowCard({ counts, facts }: { counts: FactoryNodeCounts; 
         <Fact icon={Cpu} tone="brand" label="รอบพิมพ์ DTF วันนี้" value={facts.printRunsToday.toLocaleString("th-TH")} />
       </div>
 
-      <div className="overflow-x-auto px-4 pb-5 pt-3 sm:px-5">
+      <div className={styles.flow}>
         <div
           ref={gridRef}
-          className="relative grid min-w-[64rem] grid-cols-[repeat(3,minmax(7.5rem,1fr))_4rem_repeat(4,minmax(7.5rem,1fr))] grid-rows-[auto_auto] gap-x-6 gap-y-8 py-2"
+          className={styles.flowGrid}
         >
           <svg
             aria-hidden="true"
@@ -286,12 +289,12 @@ export function FactoryFlowCard({ counts, facts }: { counts: FactoryNodeCounts; 
                 d={edge.d}
                 strokeWidth={2}
                 strokeLinecap="round"
-                className={cn("fill-none", edge.gate ? "stroke-amber-500" : "stroke-border-strong")}
+                className={cn(styles.edge, edge.gate && styles.edgeGate)}
               />
             ))}
             {!reducedMotion
               ? edges.map((edge, index) => (
-                  <circle key={`dot-${index}`} r={3} className={edge.gate ? "fill-amber-500" : "fill-blue-600 dark:fill-blue-400"}>
+                  <circle key={`dot-${index}`} r={3} className={edge.gate ? styles.edgeDotGate : styles.edgeDot}>
                     <animateMotion
                       dur={`${(2.4 + (index % 3) * 0.5).toFixed(1)}s`}
                       begin={`-${((index * 0.9) % 2.4).toFixed(1)}s`}
@@ -307,7 +310,7 @@ export function FactoryFlowCard({ counts, facts }: { counts: FactoryNodeCounts; 
                 cy={join.y}
                 r={5}
                 strokeWidth={2}
-                className={cn("fill-surface", join.gate ? "stroke-amber-500" : "stroke-border-strong")}
+                className={cn(styles.edge, styles.join, join.gate && styles.edgeGate)}
               />
             ) : null}
           </svg>
@@ -318,8 +321,8 @@ export function FactoryFlowCard({ counts, facts }: { counts: FactoryNodeCounts; 
                 key={`label-${index}`}
                 aria-hidden="true"
                 className={cn(
-                  "pointer-events-none absolute z-[2] -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full border bg-surface px-2 py-0.5 text-xs font-medium",
-                  edge.gate ? "border-amber-500 text-amber-700 dark:text-amber-300" : "border-border-strong text-secondary",
+                  styles.edgeLabel,
+                  edge.gate && styles.edgeLabelGate,
                 )}
                 style={{ left: edge.label.x, top: edge.label.y }}
               >
@@ -348,9 +351,9 @@ function FlowNode({ node, bottleneck, load }: { node: FactoryNode; bottleneck: b
       className={cn(
         FOCUS_BUTTON,
         INTERACTIVE_PRESSED,
-        "relative z-[1] flex min-h-32 min-w-0 flex-col gap-1.5 rounded-xl border bg-surface p-3 text-left transition-colors",
+        styles.node,
         NODE_TONE[node.tone],
-        node.external && "border-dashed",
+        node.external && styles.nodeExternal,
       )}
       style={{
         gridColumn: place.span ? `${place.col} / span ${place.span}` : String(place.col),
@@ -358,23 +361,23 @@ function FlowNode({ node, bottleneck, load }: { node: FactoryNode; bottleneck: b
       }}
     >
       {bottleneck ? (
-        <span className="absolute -top-2.5 right-2.5 rounded-full bg-red-600 px-2 py-0.5 text-xs font-medium text-white">คอขวด</span>
+        <span className={styles.bottleneck}>คอขวด</span>
       ) : null}
       <span className="flex items-center justify-between">
         <HomeIconTile icon={Icon} tone={TONE_TO_HOME[node.tone]} size="sm" />
         <span aria-hidden="true" className={cn("h-2 w-2 rounded-full", DOT_TONE[node.tone])} />
       </span>
-      <span className="truncate text-xs font-medium text-secondary">{node.name}</span>
-      <span className="text-xl font-semibold tabular-nums text-strong">
+      <span className={styles.nodeName}>{node.name}</span>
+      <span className={styles.nodeCount}>
         {node.count.toLocaleString("th-TH")}
-        <span className="ml-1 text-xs font-normal text-muted">{node.unit}</span>
+        <span>{node.unit}</span>
       </span>
-      <span className={cn("line-clamp-2 text-xs", DETAIL_TONE[node.tone])}>{node.detail}</span>
+      <span className={styles.nodeDetail}>{node.detail}</span>
       {load !== undefined ? (
-        <span className="mt-auto block h-1 overflow-hidden rounded-full bg-surface-muted" aria-hidden="true">
-          <span className="block h-full rounded-full bg-blue-600 dark:bg-blue-400" style={{ width: `${Math.round(load * 100)}%` }} />
+        <span className={styles.nodeLoad} aria-hidden="true">
+          <span style={{ width: `${Math.round(load * 100)}%` }} />
         </span>
-      ) : null}
+      ) : <span className={cn(styles.nodeLoad, styles.nodeLoadEmpty)} aria-hidden="true" />}
     </Link>
   );
 }

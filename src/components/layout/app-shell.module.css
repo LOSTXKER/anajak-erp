@@ -1,0 +1,77 @@
+/* กรอบร่วมจากต้นแบบหน้าแรก/ออเดอร์ 14 ก.ย. — ข้อมูลและทางนำทางใช้ของระบบเดิม */
+.shell {
+  --shell-ink: #14181d;
+  --shell-secondary: #525c69;
+  --shell-muted: #8a93a1;
+  --shell-caption: #b6bdc7;
+  --shell-line: #e6e8ec;
+  --shell-divider: #eef0f3;
+  --shell-rail: #f8f9fb;
+  --shell-sunk: #f3f5f8;
+  --shell-selected: #e9f0f8;
+  --shell-accent: #2c5a8c;
+}
+
+:global(.dark) .shell {
+  --shell-ink: #ebedf0;
+  --shell-secondary: #aab2bd;
+  --shell-muted: #7d8794;
+  --shell-caption: #7d8794;
+  --shell-line: #262b32;
+  --shell-divider: #20252b;
+  --shell-rail: #131519;
+  --shell-sunk: #1d2127;
+  --shell-selected: #18304a;
+  --shell-accent: #a9c8ec;
+}
+
+.shell > aside { background: var(--shell-rail); border-color: var(--shell-line); }
+.shell [data-sidebar-brand-header] { height: 68px; padding: 0 18px; border-bottom: 0; }
+.shell [data-sidebar-brand-header] > a { gap: 10px; }
+.shell [data-sidebar-brand-header] > a > span:first-child { width: 32px; height: 32px; border-radius: 11px; }
+.shell [data-sidebar-brand-header] > a > span:first-child svg { width: 17px !important; height: 17px !important; }
+.shell [data-sidebar-brand-header] > a > span:last-child > span:first-child { font-size: 15px; line-height: 22.5px; color: var(--shell-ink); }
+.shell [data-sidebar-brand-header] > a > span:last-child > span:last-child { font-size: 11px; line-height: 16.5px; color: var(--shell-muted); }
+.shell [data-sidebar-collapse-toggle] { width: 32px; height: 32px; color: var(--shell-muted); }
+.shell nav[id="app-sidebar-navigation"] { padding: 0 12px 12px; scrollbar-width: thin; }
+.shell nav[id="app-sidebar-navigation"] > div { display: grid; gap: 14px; }
+.shell nav[id="app-sidebar-navigation"] > div > div { margin: 0; }
+.shell nav[id="app-sidebar-navigation"] > div > div:first-child { margin-top: 12px; }
+.shell nav[id="app-sidebar-navigation"] p { margin: 0 10px 6px; padding: 0; font-size: 11px; line-height: 16.5px; color: var(--shell-caption); }
+.shell nav[id="app-sidebar-navigation"] ul { display: grid; gap: 2px; }
+.shell nav[id="app-sidebar-navigation"] li { margin: 0; }
+.shell nav[id="app-sidebar-navigation"] a { min-height: 36px; padding: 6px 10px; gap: 10px; border-radius: 11px; font-size: 13.5px; line-height: 20.25px; color: var(--shell-secondary); }
+.shell nav[id="app-sidebar-navigation"] a svg { color: var(--shell-muted); }
+.shell nav[id="app-sidebar-navigation"] a[aria-current="page"] { background: var(--shell-selected); color: var(--shell-accent); }
+.shell nav[id="app-sidebar-navigation"] a[aria-current="page"] svg { color: var(--shell-accent); }
+.shell nav[id="app-sidebar-navigation"] [data-unlabeled-group="true"] { padding-top: 6px; border-top: 1px solid var(--shell-divider); }
+
+.identity { display: flex; flex: none; align-items: center; gap: 10px; margin: 0 12px; padding: 12px 6px; border-top: 1px solid var(--shell-divider); }
+.avatar { display: grid; flex: none; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--shell-selected); color: var(--shell-accent); font-size: 13px; font-weight: 600; }
+.who { min-width: 0; color: var(--shell-ink); font-size: 13px; line-height: 19.5px; font-weight: 500; }
+.who > span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.who > small { display: block; color: var(--shell-muted); font-size: 11.5px; font-weight: 400; }
+
+.shell[data-sidebar-collapsed="true"] [data-sidebar-brand-header] { padding: 0; }
+.shell[data-sidebar-collapsed="true"] nav[id="app-sidebar-navigation"] { padding-inline: 0; }
+.shell[data-sidebar-collapsed="true"] nav[id="app-sidebar-navigation"] a { width: 40px; height: 40px; padding: 0; gap: 0; }
+.shell[data-sidebar-collapsed="true"] .identity { justify-content: center; margin-inline: 6px; padding-inline: 0; }
+.shell[data-sidebar-collapsed="true"] .who { display: none; }
+
+.shell > header { border-color: var(--shell-divider); }
+.shell > header > div { max-width: none; padding-inline: 28px; }
+.shell > header button[aria-haspopup="dialog"] { width: 300px; max-width: 300px; padding-inline: 12px; border-radius: 12px; background: var(--shell-sunk); border-color: var(--shell-line); color: var(--shell-muted); font-size: 13px; }
+.shell > header kbd { padding: 3px 5px; border: 1px solid var(--shell-line); border-bottom-width: 2px; border-radius: 6px; background: var(--color-surface); font: 500 11px/1 var(--font-mono), monospace; }
+.shell > header button[aria-label="เมนูผู้ใช้"] { background: var(--shell-selected); color: var(--shell-accent); box-shadow: none; }
+.shell[data-reference-page="true"] > main > div { padding: 28px 28px 88px; }
+
+@media (max-width: 1023px) {
+  .shell > header > div { padding-inline: 0 14px; }
+  .shell > header button[aria-haspopup="dialog"] { width: auto; max-width: none; }
+  .shell[data-reference-page="true"] > main > div { padding: 18px 14px calc(var(--app-bottom-nav-offset) + 24px); }
+}
+@media (pointer: coarse) {
+  .shell [data-sidebar-collapse-toggle], .shell nav[id="app-sidebar-navigation"] a { min-height: 44px; }
+  .shell [data-sidebar-collapse-toggle] { min-width: 44px; }
+  .shell[data-sidebar-collapsed="true"] nav[id="app-sidebar-navigation"] a { width: 44px; height: 44px; }
+}

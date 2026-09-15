@@ -49,6 +49,7 @@ import {
 import { ListPageSkeleton } from "@/components/ui/page-skeleton";
 import { CommandPalette } from "@/components/layout/command-palette";
 import { UserMenu } from "@/components/layout/user-menu";
+import styles from "./app-shell.module.css";
 
 const MOBILE_NAV_IDS = ["dashboard", "my-tasks", "orders", "production"] as const;
 const MOBILE_EXCLUDED_IDS = new Set<string>(MOBILE_NAV_IDS);
@@ -364,13 +365,15 @@ function AppShellContent({ children }: { children: ReactNode }) {
 
   return (
     <div
-      className="app-workspace grid h-dvh grid-cols-1 grid-rows-[3.5rem_minmax(0,1fr)] overflow-hidden bg-bg lg:grid-cols-[var(--app-sidebar-w)_minmax(0,1fr)]"
+      className={cn(styles.shell, "app-workspace grid h-dvh grid-cols-1 grid-rows-[3.5rem_minmax(0,1fr)] overflow-hidden bg-bg lg:grid-cols-[var(--app-sidebar-w)_minmax(0,1fr)]")}
+      data-sidebar-collapsed={sidebarCollapsed}
+      data-reference-page={pathname === "/" || pathname === "/home" || pathname === "/orders" || (pathname !== "/orders/new" && /^\/orders\/[^/]+$/.test(pathname))}
       style={
         {
           "--app-bottom-nav-offset":
             "calc(5rem + env(safe-area-inset-bottom))",
-          // หุบ = พอให้ไอคอน 16px ยืนกลางช่องที่หัก px-3 ออกแล้ว · กาง = 240px เท่าเดิม
-          "--app-sidebar-w": sidebarCollapsed ? "4rem" : "15rem",
+          // กาง 244px ตามต้นแบบ · หุบคงรางปุ่ม 64px ที่ใช้งานอยู่
+          "--app-sidebar-w": sidebarCollapsed ? "4rem" : "244px",
         } as CSSProperties
       }
     >
@@ -391,9 +394,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
           ถ้า header มาก่อนใน DOM คนกด Tab จะได้ ค้นหา → กระดิ่ง → บัญชี (มุมขวาบน)
           แล้วเด้งข้ามจอกลับมาที่ตรา (มุมซ้ายบน) = ลำดับโฟกัสเดินขวาไปซ้าย (WCAG 2.4.3) */}
       <aside className="hidden min-h-0 border-r border-divider bg-chrome lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:flex lg:flex-col">
-        {/* ตราย้ายลงมาอยู่หัวเมนูซ้าย เพราะแถบบนไม่พาดทับคอลัมน์นี้แล้ว
-            ความสูง 3rem เท่าแถบบน เส้นล่างจึงต่อกันเป็นเส้นเดียวข้ามทั้งจอ
-            (เดิมช่องตรากว้าง 240px แต่มีของจริงแค่ ~126px และเส้นแนวตั้งหักกลางคัน) */}
+        {/* หัวตราโปร่ง 68px ตามต้นแบบ; app-shell.module.css คุมระยะของกรอบร่วม */}
         {/* ตอนกาง: ตราซ้าย + ปุ่มหุบชิดขอบขวา (pr-1 = ห่างเส้นแบ่ง 4px)
             ตอนหุบ: ตราหายทั้งก้อน เหลือปุ่มยืนกลางราง 64px — ดูเหตุผลที่ SidebarCollapseButton
             ⚠️ ตอนหุบจึงไม่มีลิงก์กลับหน้าหลักในเมนูซ้าย (เบสรับข้อนี้แล้ว 2026-08-28)
@@ -402,8 +403,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
         <div
           data-sidebar-brand-header
           className={cn(
-            // ⚠️ ความสูงต้องเท่าแถบบนเสมอ (h-14 = 56px = แถวแรกของกริด 3.5rem)
-            // ไม่งั้นเส้นล่างของหัวเมนูกับของแถบบนจะไม่ต่อกันเป็นเส้นเดียวข้ามจอ
+            // CSS module กำหนดความสูง 68px และถอดเส้นล่างตามต้นแบบ
             "relative flex h-14 shrink-0 items-center border-b border-divider",
             sidebarCollapsed ? "justify-center px-0" : "pl-6 pr-1",
           )}
@@ -451,7 +451,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
               แต่ไม่ห่างจนดูเหมือนลืมใส่อะไร */}
           <div className={cn(sidebarCollapsed ? "space-y-3" : "space-y-4")}>
             {sidebarGroups.map((group) => (
-              <div key={group.id}>
+              <div key={group.id} data-unlabeled-group={!group.label}>
                 <SidebarGroupLabel label={sidebarCollapsed ? null : group.label} />
                 <ul aria-label={group.label ?? undefined} className="space-y-1">
                   {group.items.map((item) => {
@@ -486,7 +486,15 @@ function AppShellContent({ children }: { children: ReactNode }) {
             ))}
           </div>
         </nav>
-
+        {me && (
+          <div className={styles.identity}>
+            <span aria-hidden="true" className={styles.avatar}>{me.name.charAt(0)}</span>
+            <div className={styles.who}>
+              <span>{me.name}</span>
+              <small>{ROLE_LABELS[me.role] ?? me.role}</small>
+            </div>
+          </div>
+        )}
       </aside>
 
       {/* แถบบนอยู่เหนือ "เฉพาะฝั่งเนื้อหา" บนจอกว้าง ไม่พาดทับเมนูซ้ายอีกแล้ว
