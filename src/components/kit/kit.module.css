@@ -763,7 +763,6 @@ ul.ocards { margin: 0; list-style: none; }
 .mfg .item .tbl td.inp { padding: 6px 16px 6px 12px; }
 .mfg .item .tbl td.inp:last-child { padding-right: 0; }
 .mfg .qin { display: block; width: 100%; max-width: 124px; margin-left: auto; height: 42px; padding: 0 12px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface); color: var(--ink); text-align: right; font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; transition: border-color .15s, box-shadow .15s; }
-.mfg .qin:hover { border-color: var(--line-strong); }
 .mfg .qin:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-tint); }
 .mfg .qin:disabled { border-color: transparent; background: transparent; color: var(--ink-2); -webkit-text-fill-color: currentColor; opacity: 1; }
 .mfg .qin.full:disabled { background: transparent; color: var(--good); }

@@ -174,7 +174,6 @@ function ProductionDesk() {
           <ProductionModuleHead
             active="desk"
             title="การผลิต"
-            badges={{ desk: summary.late + summary.blocked }}
             actions={
               <>
                 <Link href={FLOOR_HREF} className={c("btn")}>

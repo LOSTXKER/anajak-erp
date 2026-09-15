@@ -232,7 +232,7 @@ function OutsourceList() {
           </div>
         ) : null}
 
-        <ProductionModuleHead active="outsource" title="ร้านนอก" badges={{ outsource: orders.filter(isLate).length }} />
+        <ProductionModuleHead active="outsource" title="ร้านนอก" />
 
         <section className={c("card")} aria-label="ใบส่งร้าน">
           <div className={c("tools top")}>

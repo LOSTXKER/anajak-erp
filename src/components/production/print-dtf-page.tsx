@@ -156,7 +156,7 @@ function PrintDtf() {
           </div>
         ) : null}
 
-        <ProductionModuleHead active="dtf" title="พิมพ์ DTF" badges={{ dtf: queue.length }} />
+        <ProductionModuleHead active="dtf" title="พิมพ์ DTF" />
 
         <div className={c("two")}>
           <section className={c("card")} aria-label="คิวพิมพ์ฟิล์ม">
