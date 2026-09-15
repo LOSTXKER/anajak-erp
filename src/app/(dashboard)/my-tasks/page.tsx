@@ -270,7 +270,7 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
   return items;
 }
 
-function TaskRow({ item, urgent }: { item: TaskListItem; urgent?: boolean }) {
+function TaskRow({ item }: { item: TaskListItem }) {
   const attention = attentionLabel(item.attention);
   // ติดปัญหา/เลยกำหนด = ปลายทางของแถวนี้ (ไม่เดินต่อเองจนกว่าจะมีคนแตะ) → ย้อมข้อความ
   // ส่วน "ใกล้กำหนด" ยังเป็นระหว่างทาง ปล่อยให้จุดสีอำพันเป็นตัวบอกพอ
@@ -281,9 +281,7 @@ function TaskRow({ item, urgent }: { item: TaskListItem; urgent?: boolean }) {
         href={item.href}
         className={cn(
           FOCUS_INSET,
-          "flex min-h-14 items-center gap-3 px-4 py-3 transition-colors hover:bg-interactive-hover active:bg-interactive-pressed",
-          // rail ซ้ายเฉพาะกลุ่ม "ต้องทำก่อน" — สัญญาณแยกจากแถวคิวทีมโดยไม่เปลี่ยนโครง
-          urgent && "border-l-2 border-red-400"
+          "flex min-h-14 items-center gap-3 px-4 py-3 transition-colors hover:bg-interactive-hover active:bg-interactive-pressed"
         )}
       >
         <div className="min-w-0 flex-1">
@@ -375,7 +373,7 @@ function TaskGroupCard({ group }: { group: TaskGroup }) {
       </div>
       <ul id={`tasks-${group.id}`} className="divide-y divide-divider" aria-label={group.title}>
         {visible.map((item) => (
-          <TaskRow key={item.key} item={item} urgent={group.id === "attention"} />
+          <TaskRow key={item.key} item={item} />
         ))}
       </ul>
       {group.items.length > 5 && (

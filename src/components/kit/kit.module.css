@@ -118,11 +118,7 @@ table.orders { width: 100%; border-collapse: collapse; min-width: 760px; }
 .orders tr.row { cursor: pointer; }
 .orders tr.row:active td { background: var(--pressed); }
 .orders tr.row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
-.orders tr.row.hot td:first-child { box-shadow: inset 3px 0 0 var(--bad); }
-.orders tr.row.warm td:first-child { box-shadow: inset 3px 0 0 var(--warn); }
-.orders tr.row.hold td:first-child { box-shadow: inset 3px 0 0 var(--line-strong); }
 .orders tr.row.sel td { background: var(--accent-soft); }
-.orders tr.row.sel td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
 .orders.fixed { table-layout: fixed; min-width: 1040px; }
 .orders col.c-no { width: 236px; } .orders col.c-cu { width: 176px; } .orders col.c-st { width: 164px; } .orders col.c-why { width: 196px; } .orders col.c-amt { width: 104px; } .orders col.c-pay { width: 84px; } .orders col.c-due { width: 118px; } .orders col.c-arr { width: 40px; }
 .orders th .sort { display: inline-flex; align-items: center; gap: 4px; color: inherit; font: inherit; border-radius: 6px; padding: 2px 4px; margin: -2px -4px; }

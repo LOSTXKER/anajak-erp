@@ -502,7 +502,7 @@ function ProductSpecBox({
   if (!isCustomerProvided && specs.length === 0) return null;
 
   return (
-    <div className="space-y-3 border-l-2 border-border pl-4">
+    <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
         <h4 className="text-sm font-semibold text-strong">{prod.description || prod.product?.name || "สินค้า"}</h4>
         {source && <Badge variant={source.variant} size="sm">{source.label}</Badge>}

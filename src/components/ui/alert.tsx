@@ -27,13 +27,6 @@ const DEFAULT_ICON: Record<AlertVariant, LucideIcon> = {
   neutral: Info,
 };
 
-const BAR: Record<AlertVariant, string> = {
-  error: "bg-red-500",
-  warning: "bg-amber-500",
-  success: "bg-green-500",
-  info: "bg-blue-600",
-  neutral: "bg-border",
-};
 
 const INK: Record<AlertVariant, string> = {
   error: "text-red-600 dark:text-red-400",
@@ -64,10 +57,9 @@ export const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
       <div
         ref={ref}
         role="alert"
-        className={cn("relative flex gap-3 overflow-hidden rounded-lg border border-border bg-surface py-3 pl-4 pr-3 text-sm leading-relaxed text-secondary", className)}
+        className={cn("flex gap-3 rounded-lg border border-border bg-surface py-3 pl-4 pr-3 text-sm leading-relaxed text-secondary", className)}
         {...props}
       >
-        <span className={cn("absolute inset-y-0 left-0 w-1", BAR[tone])} aria-hidden="true" />
         <Icon className={cn("mt-0.5 h-4.5 w-4.5 shrink-0", INK[tone])} strokeWidth={2} aria-hidden="true" />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">

@@ -392,7 +392,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
               ) : (
                 <div className="space-y-3">
                   {customer.communicationLogs.map((log) => (
-                    <div key={log.id} className="border-l-2 border-border pl-4">
+                    <div key={log.id}>
                       <div className="flex items-center gap-2">
                         <Badge variant="secondary">{commChannelLabel(log.channel)}</Badge>
                         <span className="text-xs text-muted">{formatDateTime(log.createdAt)}</span>

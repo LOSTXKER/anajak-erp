@@ -118,7 +118,7 @@ export default function WorkOrderFormProtoPage() {
         </div>
 
         <section className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_400px]">
-          <div className="border-l-2 border-blue-600 pl-4 dark:border-blue-400">
+          <div>
             <p className="text-2xs font-medium uppercase tracking-wide text-muted">วิธีคิด: {copy.idea}</p>
             <h2 className="mt-1 text-lg font-semibold">{copy.name}</h2>
             <p className="mt-1.5 text-sm text-secondary">{copy.summary}</p>
