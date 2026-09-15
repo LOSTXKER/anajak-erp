@@ -3,28 +3,25 @@
 /**
  * `/production` — ตารางผลิตต่อเนื่อง (A10 · เบสสั่ง 2026-09-09) ฝั่งข้อมูล
  * อ่าน `production.kanban` + `user.me` ชุดเดิม → `buildProductionBoard` (สูตรเดิม) → `production-desk`
- * ตัววาดอยู่ production-desk-view.tsx (รับ props ล้วน เพื่อ probe/ทดสอบได้โดยไม่ต้องล็อกอิน)
+ * ตัววาดอยู่ production-desk-kit.tsx บนชุดหน้าตากลาง (ต้นแบบ mockup-production-calm-2026-09-15 · ลงจริง 2026-09-16)
  * ตัวกรองเก็บใน URL: `?view=late|blocked|outsource|ready` · `?station=` · `?q=` · `?create=<orderId>`
  */
 
 import { Suspense, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Factory, MonitorSmartphone, Plus, RefreshCw } from "lucide-react";
+import { MonitorSmartphone, Plus, RefreshCw, TriangleAlert } from "lucide-react";
 
 import { trpc, type RouterOutput } from "@/lib/trpc";
 import { permAllows } from "@/lib/permissions";
 import { FLOOR_HREF } from "@/lib/production-surface";
 import { formatTime } from "@/lib/utils";
 import { useListPageState } from "@/hooks/use-list-page-state";
-import { Alert } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import { Select } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
+import { c, Callout } from "@/components/kit/kit";
 import { ListPageSkeleton } from "@/components/ui/page-skeleton";
 import { PageShell } from "@/components/page-shell";
 import { CreateProductionDialog } from "@/components/production/create-production-dialog";
-import { ProductionFreshness } from "@/components/production/production-freshness";
+import { ProductionModuleHead } from "@/components/production/production-module-head";
 import { STATION_QUEUE, buildProductionBoard, filterBoardJobs } from "@/lib/production-board";
 import {
   buildDeskRows,
@@ -40,7 +37,8 @@ import {
   resolveWorklistStation,
   worklistStationChips,
 } from "@/lib/production-worklist";
-import { DeskTable, DeskTiles, DeskToolbar, STATION_OUTSOURCE_ALL } from "./production-desk-view";
+import { STATION_OUTSOURCE_ALL } from "./production-desk-view";
+import { DeskLensBoxes, DeskWorkCard, type DeskStationOption } from "./production-desk-kit";
 
 type KanbanOrder = RouterOutput["production"]["kanban"][number];
 type KanbanStep = KanbanOrder["productions"][number]["steps"][number];
@@ -59,7 +57,6 @@ function ProductionDesk() {
     data: orders,
     isLoading,
     isError,
-    isFetching,
     refetch,
     dataUpdatedAt,
   } = trpc.production.kanban.useQuery(undefined, {
@@ -116,44 +113,37 @@ function ProductionDesk() {
   const canCreateProduction = canSupervise && orders !== undefined && !isError && !meQuery.isError;
   const awaiting = rows.filter((row) => row.pile === "queue").length;
 
+  const stationOptions: DeskStationOption[] = [
+    { key: "", label: "ทุกขั้น", count: lensRows.length },
+    ...stationChips.filter((chip) => !chip.isOutsource).map((chip) => ({ key: chip.key, label: chip.label, count: chip.count })),
+    ...(stationChips.some((chip) => chip.isOutsource)
+      ? [{ key: STATION_OUTSOURCE_ALL, label: "ร้านนอก", count: outsourceRows.length }]
+      : []),
+  ];
+  const stationValue = station === STATION_OUTSOURCE_ALL || stationOptions.some((option) => option.key === station)
+    ? station
+    : STATION_OUTSOURCE_ALL;
+  const refreshAll = () => {
+    void refetch();
+    void meQuery.refetch();
+  };
+
   return (
     <>
       <PageShell
         title="การผลิต"
-        icon={Factory}
-        tone="production"
-        description={
-          orders
-            ? `งานในโรงงาน ${board.totalJobs.toLocaleString("th-TH")} ใบ · รอเปิดใบผลิต ${awaiting.toLocaleString("th-TH")} ใบ`
-            : "ดูว่างานไหนต้องจัดการก่อน อยู่ขั้นไหน และของร้านนอกกลับเมื่อไร"
-        }
-        action={
-          <>
-            {/* โหมดหน้างาน (หนึ่งโมดูล สองสายตา · 2026-09-03) — จอทัชหน้าเครื่อง: ช่างเห็นคิวของตน · หัวหน้าเห็นแผงสถานี */}
-            <Button variant="outline" asChild>
-              <Link href={FLOOR_HREF}>
-                <MonitorSmartphone /> โหมดหน้างาน
-              </Link>
-            </Button>
-            {canCreateProduction ? (
-              // กรองไปกอง "รอเปิดใบผลิต" — แถวในกองนั้นกดแล้วเปิด dialog สร้างใบ (ทางเดิม ?create=)
-              <Button onClick={() => list.replaceListState({ view: null, station: STATION_QUEUE, page: null })}>
-                <Plus /> เปิดใบผลิต{awaiting > 0 ? ` (${awaiting.toLocaleString("th-TH")})` : ""}
-              </Button>
-            ) : null}
-          </>
-        }
+        header={<div className="sr-only">การผลิต</div>}
         loading={isLoading || meQuery.isLoading}
         skeleton={
-          <>
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              {Array.from({ length: 4 }, (_, index) => (
-              <Skeleton key={index} className="h-16 rounded-2xl" />
+          <div className={c("tokens page mfg")} role="status" aria-label="กำลังโหลดงานในโรงงาน">
+            <span className={c("sk")} style={{ height: 112 }} />
+            <div className={c("lenses")}>
+              {[0, 1, 2, 3].map((index) => (
+                <span key={index} className={c("sk")} style={{ height: 104 }} />
               ))}
             </div>
-            <Skeleton className="h-11 rounded-lg" />
-            <ListPageSkeleton />
-          </>
+            <span className={c("sk")} style={{ height: 420 }} />
+          </div>
         }
         error={
           meQuery.isError && !me
@@ -163,88 +153,71 @@ function ProductionDesk() {
               : null
         }
       >
-        {hasStaleData ? (
-          <Alert
-            variant="warning"
-            title="ข้อมูลล่าสุดอาจยังไม่ครบ"
-            action={
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  void refetch();
-                  void meQuery.refetch();
-                }}
+        <div className={c("tokens page mfg")}>
+          {hasStaleData ? (
+            <div className={c("alerts")}>
+              <Callout
+                icon={TriangleAlert}
+                role="alert"
+                action={
+                  <button type="button" className={c("btn sm")} onClick={refreshAll}>
+                    <RefreshCw aria-hidden="true" />
+                    ลองใหม่
+                  </button>
+                }
               >
-                <RefreshCw />
-                ลองใหม่
-              </Button>
-            }
-          >
-            <span>กำลังแสดงข้อมูลเดิมที่โหลดไว้ คุณยังเปิดดูงานได้ตามปกติ</span>
-          </Alert>
-        ) : null}
+                <b>ข้อมูลล่าสุดอาจยังไม่ครบ</b> กำลังแสดงข้อมูลเดิมที่โหลดไว้
+              </Callout>
+            </div>
+          ) : null}
 
-        <div className="space-y-3 sm:space-y-5">
-          <DeskTiles
+          <ProductionModuleHead
+            active="desk"
+            title="การผลิต"
+            badges={{ desk: summary.late + summary.blocked }}
+            actions={
+              <>
+                <Link href={FLOOR_HREF} className={c("btn")}>
+                  <MonitorSmartphone aria-hidden="true" />
+                  <span className={c("lbl")}>โหมดหน้างาน</span>
+                </Link>
+                {canCreateProduction ? (
+                  <button
+                    type="button"
+                    className={c("btn primary")}
+                    onClick={() => list.replaceListState({ view: null, station: STATION_QUEUE, page: null })}
+                  >
+                    <Plus aria-hidden="true" />
+                    เปิดใบผลิต{awaiting > 0 ? ` (${awaiting.toLocaleString("th-TH")})` : ""}
+                  </button>
+                ) : null}
+              </>
+            }
+          />
+
+          <DeskLensBoxes
             summary={summary}
             lens={lens}
-            onSelectLens={(value) => list.replaceListState({ view: value === "all" ? null : value, page: null })}
+            onSelect={(value) => list.replaceListState({ view: value === "all" ? null : value, page: null })}
           />
-          <DeskToolbar
+
+          <DeskWorkCard
+            rows={sortedRows}
+            station={stationValue}
+            stations={stationOptions}
+            onSelectStation={(value) => list.replaceListState({ station: value || null, page: null })}
             searchDefault={list.search}
             searchInputRef={list.searchInputRef}
             onSearchChange={list.onSearchChange}
-            station={station}
-            stations={stationChips}
-            outsourceTotal={outsourceRows.length}
-            outsourceOverdue={outsourceRows.filter((row) => row.job.overdue).length}
-            onSelectStation={(value) => list.replaceListState({ station: value || null, page: null })}
-            total={lensRows.length}
-            freshness={
-              <ProductionFreshness
-                updatedAt={dataUpdatedAt}
-                isFetching={isFetching && !isLoading}
-                stale={hasStaleData}
-                className="hidden text-xs sm:inline-grid"
-              />
-            }
-          />
-          <div className="flex min-h-9 flex-wrap items-center justify-between gap-2">
-            <p className="text-sm text-secondary" aria-live="polite" aria-atomic="true">
-              <span className="font-semibold tabular-nums text-strong">{visibleRows.length.toLocaleString("th-TH")}</span>
-              {filtered ? ` จาก ${rows.length.toLocaleString("th-TH")}` : ""} ใบงาน
-            </p>
-            <div className="ml-auto w-40 sm:hidden">
-              <Select aria-label="เรียงรายการผลิต" surface="raised" value={`${sort.key}:${sort.direction}`} onChange={(event) => {
-                const [key, direction] = event.target.value.split(":");
-                list.replaceListState({ sort: key === "deadline" ? null : key, dir: direction === "asc" ? null : direction, page: null });
-              }}>
-                <option value="deadline:asc">ส่งใกล้ก่อน</option>
-                <option value="deadline:desc">ส่งไกลก่อน</option>
-                <option value="order:asc">เลขใบ น้อย–มาก</option>
-                <option value="order:desc">เลขใบ มาก–น้อย</option>
-                <option value="quantity:asc">จำนวน น้อย–มาก</option>
-                <option value="quantity:desc">จำนวน มาก–น้อย</option>
-              </Select>
-            </div>
-            {filtered ? (
-              <Button size="sm" variant="ghost" aria-label="ล้างตัวกรอง" onClick={() => list.clearSearch({ view: null, station: null })}>
-                <span className="sm:hidden">ล้าง</span><span className="hidden sm:inline">ล้างตัวกรอง</span>
-              </Button>
-            ) : dataUpdatedAt > 0 ? <span className="sr-only">อัปเดต {formatTime(dataUpdatedAt)}</span> : null}
-          </div>
-          <DeskTable
-            rows={sortedRows}
             sort={sort}
-            onSort={(key, direction) => list.replaceListState({ sort: key === "deadline" ? null : key, dir: direction === "asc" ? null : direction, page: null })}
-            hrefFor={(row) => productionWorklistHref(row.job, canCreateProduction)}
-            emptyLabel={
-              lens === "all" && !station && !list.search
-                ? "ยังไม่มีงานในโรงงาน — เปิดใบผลิตจากหน้าออเดอร์ที่พร้อมผลิต"
-                : "ไม่พบงานที่ตรงกับตัวกรอง ลองค้นหาใหม่หรือล้างตัวกรอง"
+            onSort={(key, direction) =>
+              list.replaceListState({ sort: key === "deadline" ? null : key, dir: direction === "asc" ? null : direction, page: null })
             }
+            hrefFor={(row) => productionWorklistHref(row.job, canCreateProduction)}
+            filtered={filtered}
+            onClear={() => list.clearSearch({ view: null, station: null })}
           />
+          {dataUpdatedAt > 0 ? <span className="sr-only" aria-live="polite">อัปเดต {formatTime(dataUpdatedAt)}</span> : null}
         </div>
       </PageShell>
 
