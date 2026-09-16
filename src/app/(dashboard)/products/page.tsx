@@ -20,7 +20,36 @@ import { permAllows } from "@/lib/permissions";
 
 import { SyncDialog } from "@/components/sync-dialog";
 import { FilterChip } from "@/components/ui/filter-chip";
+import { DataTable } from "@/components/ui/data-table";
+import { ResponsiveList } from "@/components/ui/responsive-list";
+import { Badge } from "@/components/ui/badge";
 import { FOCUS_BUTTON } from "@/components/ui/tokens";
+
+
+/** รูปสินค้าในตาราง — ไม่มีรูปใช้ไอคอนกล่อง ให้แถวสูงเท่ากันทุกแถว */
+function ProductThumb({ url, name, size = "sm" }: { url?: string | null; name: string; size?: "sm" | "lg" }) {
+  const box = size === "lg" ? "size-14" : "size-9";
+  return (
+    <span className={cn("grid shrink-0 place-items-center overflow-hidden rounded-lg bg-surface-muted", box)}>
+      {url ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={url} alt="" className="h-full w-full object-cover" />
+      ) : (
+        <Package className="h-4 w-4 text-muted" strokeWidth={1.5} aria-hidden="true" />
+      )}
+      <span className="sr-only">{name}</span>
+    </span>
+  );
+}
+
+/** ราคาขาย: มีหลายตัวเลือกให้บอกเป็นช่วง ไม่มีก็ใช้ราคาตั้งต้น */
+function priceLabel(product: { variants?: { sellingPrice: number }[] | null; basePrice: number }) {
+  const prices = (product.variants ?? []).map((v) => v.sellingPrice).filter((price) => price > 0);
+  if (prices.length === 0) return formatCurrency(product.basePrice);
+  const min = Math.min(...prices);
+  const max = Math.max(...prices);
+  return min === max ? formatCurrency(min) : `${formatCurrency(min)} - ${formatCurrency(max)}`;
+}
 
 // ─── Product Group Tabs ─────────────────────────────────────
 const itemTypes = [
@@ -75,7 +104,7 @@ function ProductsPageContent() {
   const canManageStock = permAllows(me?.permissions, "manage_settings");
 
   // ─── Queries ──────────────────────────────────────────────
-  const { data, isLoading, isError, refetch } = trpc.product.list.useQuery({
+  const { data, isLoading, isFetching, isError, refetch } = trpc.product.list.useQuery({
     search: search.trim() || undefined,
     productType: productType || undefined,
     itemType: itemType || undefined,
@@ -141,72 +170,55 @@ function ProductsPageContent() {
         </div>
       ) : null}
 
-      {/* ≤5 ตัวเลือก → ชิป (กติกาเดียวกับ /quotations, /notifications · ดู tokens.ts) */}
-      <div className="flex flex-wrap gap-2">
-        {itemTypes.map((g) => (
-          <FilterChip
-            key={g.value}
-            surface="raised"
-            selected={itemType === g.value}
-            onClick={() => handleItemTypeChange(g.value)}
-          >
-            {g.label}
-          </FilterChip>
-        ))}
-      </div>
-
-      {/* แถบเครื่องมือของกลาง — จุดตัดวัดจากความกว้างพื้นที่เนื้อหาจริง (@container)
-          ไม่ใช่ความกว้างหน้าต่าง เลยใช้ @2xl: แทน sm: ที่เขียนไว้เดิม */}
-      <Toolbar>
-        <SearchInput
-          surface="raised"
-          containerClassName="@2xl:max-w-sm @2xl:flex-1"
-          placeholder="ค้นหาชื่อสินค้า, SKU..."
-          aria-label="ค้นหาสินค้าจากชื่อหรือ SKU"
-          ref={searchInputRef}
-          defaultValue={search}
-          onChange={(e) => onSearchChange(e.target.value)}
-        />
-
-        <ToolbarGroup>
-          <Select
-            shape="pill"
-            surface="raised"
-            aria-label="กรองประเภทสินค้า"
-            value={productType}
-            onChange={(e) =>
-              replaceListState({ type: e.target.value || null, page: null })
-            }
-            className="@2xl:w-44"
-          >
-            {productTypes.map((t) => (
-              <option key={t.value} value={t.value}>
-                {t.label}
-              </option>
-            ))}
-          </Select>
-          {filtered ? <Button variant="ghost" size="sm" onClick={clearFilters}>ล้างตัวกรอง</Button> : null}
-        </ToolbarGroup>
-      </Toolbar>
-
-      {/* ─── Product Grid ────────────────────────────────────── */}
-      {isError ? (
-        <QueryError onRetry={() => refetch()} />
-      ) : isLoading ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {[...Array(8)].map((_, i) => (
-            <div key={i} className="card-surface overflow-hidden rounded-2xl">
-              <Skeleton className="h-44 w-full rounded-none" />
-              <div className="space-y-2 p-3">
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-3 w-1/2" />
-                <Skeleton className="h-4 w-1/3" />
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : data?.products?.length === 0 ? (
-        <div className="card-surface rounded-2xl">
+      <ResponsiveList
+        items={data?.products}
+        isLoading={isLoading || isFetching}
+        isError={isError}
+        errorMessage="โหลดรายการสินค้าไม่สำเร็จ"
+        onRetry={() => refetch()}
+        label="สินค้า"
+        toolbar={
+          <Toolbar>
+            <SearchInput
+              surface="raised"
+              containerClassName="@2xl:max-w-sm @2xl:flex-1"
+              placeholder="ค้นหาชื่อสินค้า, SKU..."
+              aria-label="ค้นหาสินค้าจากชื่อหรือ SKU"
+              ref={searchInputRef}
+              defaultValue={search}
+              onChange={(e) => onSearchChange(e.target.value)}
+            />
+            <ToolbarGroup className="flex-wrap">
+              {/* ≤5 ตัวเลือก → ชิป (กติกาเดียวกับ /quotations, /notifications · ดู tokens.ts) */}
+              {itemTypes.map((g) => (
+                <FilterChip
+                  key={g.value}
+                  surface="raised"
+                  selected={itemType === g.value}
+                  onClick={() => handleItemTypeChange(g.value)}
+                >
+                  {g.label}
+                </FilterChip>
+              ))}
+              <Select
+                shape="pill"
+                surface="raised"
+                aria-label="กรองประเภทสินค้า"
+                value={productType}
+                onChange={(e) => replaceListState({ type: e.target.value || null, page: null })}
+                className="@2xl:w-44"
+              >
+                {productTypes.map((t) => (
+                  <option key={t.value} value={t.value}>
+                    {t.label}
+                  </option>
+                ))}
+              </Select>
+              {filtered ? <Button variant="ghost" size="sm" onClick={clearFilters}>ล้างตัวกรอง</Button> : null}
+            </ToolbarGroup>
+          </Toolbar>
+        }
+        emptyState={
           <EmptyState
             icon={Package}
             title={filtered ? "ไม่พบสินค้าตรงตัวกรอง" : "ยังไม่มีสินค้า"}
@@ -214,115 +226,125 @@ function ProductsPageContent() {
               filtered
                 ? "ลองเปลี่ยนคำค้นหรือดูสินค้าทั้งหมด"
                 : demoMode
-                ? "ยังไม่มีสินค้าในสต๊อกทดสอบ"
-                : "สินค้าจะถูกดึงมาจาก Anajak Stock อัตโนมัติ"
+                  ? "ยังไม่มีสินค้าในสต๊อกทดสอบ"
+                  : "สินค้าจะถูกดึงมาจาก Anajak Stock อัตโนมัติ"
             }
             action={
               filtered ? (
                 <Button variant="outline" size="sm" onClick={clearFilters}>ล้างตัวกรองและคำค้น</Button>
               ) : canManageStock ? (
-              <div className="flex gap-2">
+                <div className="flex gap-2">
                   {!syncStatusLoading && !demoMode ? (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setSyncDialogOpen(true)}
-                    >
-                  <RefreshCw />
-                  Sync ตอนนี้
-                </Button>
+                    <Button variant="outline" size="sm" onClick={() => setSyncDialogOpen(true)}>
+                      <RefreshCw />
+                      Sync ตอนนี้
+                    </Button>
                   ) : null}
-                <Button asChild variant="ghost" size="sm">
-                  <Link href="/settings/stock">
-                    <Settings />
-                    ตั้งค่า
-                  </Link>
-                </Button>
-              </div>
+                  <Button asChild variant="ghost" size="sm">
+                    <Link href="/settings/stock">
+                      <Settings />
+                      ตั้งค่า
+                    </Link>
+                  </Button>
+                </div>
               ) : undefined
             }
           />
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {data?.products?.map((product) => {
-            const typ = typeConfig[product.productType] ?? {
-              label: product.productType,
-            };
-
-            return (
-              <Link
-                key={product.id}
-                href={`/products/${product.id}`}
-                className={cn("block rounded-lg", FOCUS_BUTTON)}
-              >
-                <div className="card-surface card-surface-hover group h-full overflow-hidden rounded-2xl">
-                  <div className="relative flex h-44 items-center justify-center bg-slate-100 dark:bg-slate-800">
-                    {product.imageUrl ? (
-                      <img
-                        src={product.imageUrl}
-                        alt={product.name}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <Package
-                        className="h-10 w-10 text-muted"
-                        strokeWidth={1.25}
-                      />
-                    )}
-
-                    <span
-                      className={`absolute right-2 top-2 h-2 w-2 rounded-full ring-2 ring-white dark:ring-slate-900 ${
-                        product.isActive
-                          ? "bg-green-500"
-                          : "bg-slate-300 dark:bg-slate-600"
-                      }`}
-                      title={product.isActive ? "ใช้งาน" : "ไม่ใช้งาน"}
-                    />
-                  </div>
-
-                  <div className="space-y-1.5 p-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0 flex-1">
-                        <h3 className="truncate text-sm font-medium text-strong">
+        }
+        renderDesktop={(products) => (
+          <DataTable.Root>
+            <DataTable.Head>
+              <tr>
+                <DataTable.Th>สินค้า</DataTable.Th>
+                <DataTable.Th>SKU</DataTable.Th>
+                <DataTable.Th>ประเภท</DataTable.Th>
+                <DataTable.Th align="right">คงเหลือ</DataTable.Th>
+                <DataTable.Th align="right">ราคาขาย</DataTable.Th>
+                <DataTable.Th>สถานะ</DataTable.Th>
+              </tr>
+            </DataTable.Head>
+            <DataTable.Body>
+              {products.map((product) => {
+                const typ = typeConfig[product.productType] ?? { label: product.productType };
+                const stock = product.totalStock ?? 0;
+                return (
+                  <DataTable.Row
+                    key={product.id}
+                    href={`/products/${product.id}`}
+                    tone={product.isActive && stock === 0 ? "danger" : null}
+                  >
+                    <DataTable.Td>
+                      <div className="flex items-center gap-3">
+                        <ProductThumb url={product.imageUrl} name={product.name} />
+                        <Link href={`/products/${product.id}`} className="min-w-0 font-medium text-strong">
                           {product.name}
-                        </h3>
-                        <p className="truncate text-xs text-muted">
-                          {product.sku} · {typ.label}
-                        </p>
+                        </Link>
                       </div>
+                    </DataTable.Td>
+                    <DataTable.Td className="whitespace-nowrap tabular-nums text-muted">{product.sku}</DataTable.Td>
+                    <DataTable.Td className="whitespace-nowrap text-secondary">{typ.label}</DataTable.Td>
+                    <DataTable.Td align="right" className="whitespace-nowrap tabular-nums">
+                      {stock === 0 ? (
+                        <span className="font-medium text-red-700 dark:text-red-400">ของหมด</span>
+                      ) : (
+                        <span className="font-medium text-strong">{stock.toLocaleString("th-TH")}</span>
+                      )}
+                    </DataTable.Td>
+                    <DataTable.Td align="right" className="whitespace-nowrap tabular-nums text-strong">
+                      {priceLabel(product)}
+                    </DataTable.Td>
+                    <DataTable.Td>
+                      <Badge variant={product.isActive ? "success" : "default"} size="sm">
+                        {product.isActive ? "ใช้งาน" : "ปิดอยู่"}
+                      </Badge>
+                    </DataTable.Td>
+                  </DataTable.Row>
+                );
+              })}
+            </DataTable.Body>
+          </DataTable.Root>
+        )}
+        renderMobile={(products) => (
+          <div className="grid grid-cols-1 gap-3 px-4.5 pb-4.5 sm:grid-cols-2">
+            {products.map((product) => {
+              const typ = typeConfig[product.productType] ?? { label: product.productType };
+              return (
+                <Link
+                  key={product.id}
+                  href={`/products/${product.id}`}
+                  className={cn("card-surface block overflow-hidden rounded-2xl", FOCUS_BUTTON)}
+                >
+                  <div className="flex items-center gap-3 p-3">
+                    <ProductThumb url={product.imageUrl} name={product.name} size="lg" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-strong">{product.name}</p>
+                      <p className="truncate text-xs text-muted">{product.sku} · {typ.label}</p>
+                      <p className="mt-1 text-sm font-semibold tabular-nums text-strong">{priceLabel(product)}</p>
                     </div>
-
-                    <div className="flex items-center justify-between pt-0.5">
-                      <span className="text-sm font-semibold tabular-nums text-strong">
-                        {(() => {
-                          const prices = product.variants
-                            ?.map((v) => v.sellingPrice)
-                            .filter((p) => p > 0);
-                          if (prices && prices.length > 0) {
-                            const min = Math.min(...prices);
-                            const max = Math.max(...prices);
-                            return min === max
-                              ? formatCurrency(min)
-                              : `${formatCurrency(min)} - ${formatCurrency(max)}`;
-                          }
-                          return formatCurrency(product.basePrice);
-                        })()}
-                      </span>
-                      <span className="text-xs text-muted">
-                        สต็อก{" "}
-                        <span className="tabular-nums font-medium text-secondary">
-                          {product.totalStock ?? 0}
-                        </span>
-                      </span>
-                    </div>
+                    <span className="shrink-0 text-xs tabular-nums text-muted">
+                      สต็อก {(product.totalStock ?? 0).toLocaleString("th-TH")}
+                    </span>
                   </div>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-      )}
+                </Link>
+              );
+            })}
+          </div>
+        )}
+        pagination={
+          data && data.total > 0 && totalPages <= 1 ? (
+            <p className="px-4.5 py-3 text-xs tabular-nums text-muted">ทั้งหมด {data.total} รายการ</p>
+          ) : data && data.total > 0 ? (
+            <TablePagination
+              page={page}
+              totalPages={totalPages}
+              total={data.total}
+              limit={limit}
+              onPageChange={(nextPage) => replaceListState({ page: String(nextPage) })}
+              label="รายการ"
+            />
+          ) : null
+        }
+      />
 
       {/* ─── Sync Dialog ─────────────────────────────────────── */}
       {canManageStock && !demoMode && (
@@ -332,18 +354,6 @@ function ProductsPageContent() {
         />
       )}
 
-      {/* ─── Pagination ──────────────────────────────────────── */}
-      {data && data.total > 0 && (
-        totalPages > 1 ? (
-          <TablePagination
-            page={page}
-            totalPages={totalPages}
-            total={data.total}
-            limit={limit}
-            onPageChange={(nextPage) => replaceListState({ page: String(nextPage) })}
-          />
-        ) : <p className="text-xs tabular-nums text-muted">ทั้งหมด {data.total} รายการ</p>
-      )}
     </PageShell>
   );
 }
