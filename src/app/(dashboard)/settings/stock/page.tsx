@@ -197,7 +197,6 @@ export default function StockSettingsPage() {
 
   return (
     <PageShell
-      back={{ href: "/settings", label: "ย้อนกลับ" }}
       title={demoMode ? "สต๊อกทดสอบ" : "เชื่อมต่อ Anajak Stock"}
       loading={meQuery.isLoading || (canManage && statusLoading)}
       error={

@@ -45,7 +45,6 @@ export default function CompanySettingsPage() {
   return (
     <PageShell
       width="form"
-      back={{ href: "/settings", label: "ย้อนกลับ" }}
       title="ข้อมูลกิจการ"
       error={
         meQuery.isError

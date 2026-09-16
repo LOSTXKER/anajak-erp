@@ -68,7 +68,6 @@ export default function BackupSettingsPage() {
   return (
     <PageShell
       width="form"
-      back={{ href: "/settings", label: "ย้อนกลับ" }}
       title="สำรองข้อมูล"
       loading={meQuery.isLoading}
       error={

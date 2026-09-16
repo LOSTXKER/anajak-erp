@@ -159,7 +159,6 @@ export default function ServicesPage() {
 
   return (
     <PageShell
-      back={{ href: "/settings", label: "ย้อนกลับ" }}
       title="จัดการบริการ"
       loading={meQuery.isLoading}
       error={

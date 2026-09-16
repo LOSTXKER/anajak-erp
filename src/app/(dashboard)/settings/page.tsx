@@ -1,211 +1,82 @@
 "use client";
 
-import { Section } from "@/components/ui/section";
-import { PageShell } from "@/components/page-shell";
-import {
-  Building,
-  Calculator,
-  Cloud,
-  Scissors,
-  ChevronRight,
-  Wrench,
-  Package,
-  Users,
-  HardDriveDownload,
-  Store,
-  History,
-  Workflow,
-} from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
-import { trpc } from "@/lib/trpc";
-import { permAllows, type Permission } from "@/lib/permissions";
+import { ChevronRight } from "lucide-react";
+import { PageShell } from "@/components/page-shell";
 import { Skeleton } from "@/components/ui/skeleton";
-import { FOCUS_BUTTON } from "@/components/ui/tokens";
+import { FOCUS_BUTTON, INTERACTIVE_PAGE_PRESSED } from "@/components/ui/tokens";
+import { trpc } from "@/lib/trpc";
+import { permAllows } from "@/lib/permissions";
+import { SETTING_GROUPS, SETTING_LINKS } from "@/lib/settings-nav";
 import { cn } from "@/lib/utils";
-import { VISUAL_TONE_CLASSES, type VisualTone } from "@/lib/visual-tone";
+import { VISUAL_TONE_CLASSES } from "@/lib/visual-tone";
 
-// หน้าตั้งค่า = hub ลิงก์ไปหน้าตั้งค่าจริงเท่านั้น (Gate B8) — ฟอร์มปลอม 4 section เดิม
+// หน้าตั้งค่า = ทางเข้าหน้าตั้งค่าจริงเท่านั้น (Gate B8) — ฟอร์มปลอม 4 section เดิม
 // (ข้อมูลโรงงาน/การผลิต/ความปลอดภัย/เชื่อมต่อภายนอก) ถูกถอดทิ้ง: input ไม่ผูกอะไร
 // ปุ่ม "บันทึก" แค่ปิดแถบ = ระบบโกหกผู้ใช้ (audit 2026-07-02 จัด BLOCKER ความเชื่อใจ)
-// ตั้งค่าที่จำเป็นจริง (% มัดจำ/เพดานส่วนลด/ฟรีแก้แบบ) ค่อยทำเป็นชิ้นๆ เมื่อมี use case
-// พร้อมท่อจริงถึง logic — ห้ามขึ้นฟอร์มก่อนมีของ
-
-interface SettingLink {
-  href: string;
-  icon: LucideIcon;
-  title: string;
-  meta: string;
-  tone: VisualTone;
-  permissionsAny?: readonly Permission[];
-  // จัดกลุ่ม hub ให้สแกนเจอเร็ว (UX4) — เดิม 10 ลิงก์แบนเรียงติดกันไม่มีหมวด
-  group: "กิจการและทีม" | "การผลิตและบริการ" | "ระบบและข้อมูล";
-}
-
-const SETTING_GROUPS = ["กิจการและทีม", "การผลิตและบริการ", "ระบบและข้อมูล"] as const;
-
-const SETTING_LINKS: readonly SettingLink[] = [
-  {
-    href: "/settings/company",
-    group: "กิจการและทีม",
-    icon: Building,
-    title: "ข้อมูลกิจการ",
-    meta: "ชื่อ · ที่อยู่ · เลขผู้เสียภาษี",
-    tone: "system",
-    permissionsAny: ["manage_settings"],
-  },
-  {
-    href: "/settings/users",
-    group: "กิจการและทีม",
-    icon: Users,
-    title: "จัดการผู้ใช้",
-    meta: "บัญชี · สิทธิ์ · รหัสผ่าน",
-    tone: "system",
-    permissionsAny: ["manage_users"],
-  },
-  {
-    href: "/settings/stock",
-    group: "ระบบและข้อมูล",
-    icon: Cloud,
-    title: "สต๊อกเสื้อ",
-    meta: "จอง · เบิก · คืนเสื้อ",
-    tone: "product",
-    permissionsAny: ["manage_settings"],
-  },
-  {
-    href: "/settings/vendors",
-    group: "การผลิตและบริการ",
-    icon: Store,
-    title: "ร้านรับจ้างภายนอก",
-    meta: "DTG · สกรีน · ปัก · ตัดเย็บ",
-    tone: "production",
-    permissionsAny: ["manage_settings"],
-  },
-  {
-    href: "/settings/cost-rates",
-    group: "การผลิตและบริการ",
-    icon: Calculator,
-    title: "เรตต้นทุนกลาง",
-    meta: "ฟิล์ม · ค่าแรง · กำไรประมาณการ",
-    tone: "finance",
-    permissionsAny: ["see_finance"],
-  },
-  {
-    href: "/settings/services",
-    group: "การผลิตและบริการ",
-    icon: Wrench,
-    title: "จัดการบริการ",
-    meta: "Add-ons · สกรีน · ค่าบริการ",
-    tone: "product",
-    permissionsAny: ["manage_settings"],
-  },
-  {
-    href: "/settings/patterns",
-    group: "การผลิตและบริการ",
-    icon: Scissors,
-    title: "จัดการแพทเทิร์น",
-    meta: "แพทเทิร์นงานตัดเย็บ",
-    tone: "product",
-    permissionsAny: ["create_design_assets", "manage_design_files", "manage_settings"],
-  },
-  {
-    href: "/settings/routings",
-    group: "การผลิตและบริการ",
-    icon: Workflow,
-    title: "สูตรขั้นงาน",
-    meta: "ขั้นตอนผลิต · ทำเอง/ส่งร้าน · ขั้นที่ต้องเสร็จก่อน",
-    tone: "production",
-    permissionsAny: ["manage_settings"],
-  },
-  {
-    href: "/settings/packaging",
-    group: "การผลิตและบริการ",
-    icon: Package,
-    title: "จัดการแพ็คเกจ",
-    meta: "ตัวเลือกสำหรับจัดส่ง",
-    tone: "product",
-    permissionsAny: ["manage_settings"],
-  },
-  {
-    href: "/settings/backup",
-    group: "ระบบและข้อมูล",
-    icon: HardDriveDownload,
-    title: "สำรองข้อมูล",
-    meta: "ดาวน์โหลดข้อมูล · เจ้าของเท่านั้น",
-    tone: "system",
-    permissionsAny: ["manage_users"],
-  },
-  {
-    href: "/settings/audit",
-    group: "ระบบและข้อมูล",
-    icon: History,
-    title: "ประวัติระบบ",
-    meta: "ผู้แก้ไข · รายการ · เวลา",
-    tone: "system",
-    permissionsAny: ["view_admin_reports"],
-  },
-];
-
+// 2026-09-16: เมนูข้างย้ายไป layout แล้ว หน้านี้จึงเหลือรายการพร้อมคำอธิบายว่าแต่ละหัวข้อตั้งอะไร
 export default function SettingsPage() {
   const meQuery = trpc.user.me.useQuery();
   const me = meQuery.data;
-  const visibleLinks = SETTING_LINKS.filter((link) =>
-    !link.permissionsAny || link.permissionsAny.some((permission) =>
-      permAllows(me?.permissions, permission)
-    )
+  const visibleLinks = SETTING_LINKS.filter(
+    (link) =>
+      !link.permissionsAny ||
+      link.permissionsAny.some((permission) => permAllows(me?.permissions, permission)),
   );
+  const grouped = SETTING_GROUPS.map(
+    (group) => [group, visibleLinks.filter((link) => link.group === group)] as const,
+  ).filter(([, links]) => links.length > 0);
 
   return (
     <PageShell
       title="ตั้งค่า"
       meta="การเปลี่ยนค่ามีผลกับงานจริงทันที"
       loading={meQuery.isLoading}
-      error={meQuery.isError ? {
-        message: "โหลดสิทธิ์สำหรับหน้าตั้งค่าไม่สำเร็จ",
-        onRetry: () => void meQuery.refetch(),
-      } : null}
-      skeleton={SETTING_GROUPS.map((group) => (
-          <div key={group} className="space-y-2">
-            <Skeleton className="h-4 w-32" />
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              <Skeleton className="h-20 rounded-lg" />
-              <Skeleton className="h-20 rounded-lg" />
-            </div>
-          </div>
-        ))}
+      error={
+        meQuery.isError
+          ? { message: "โหลดสิทธิ์สำหรับหน้าตั้งค่าไม่สำเร็จ", onRetry: () => void meQuery.refetch() }
+          : null
+      }
+      skeleton={<Skeleton className="h-[420px] rounded-2xl" />}
     >
-      {SETTING_GROUPS.map((group) => {
-        const links = visibleLinks.filter((link) => link.group === group);
-        if (links.length === 0) return null;
-        return (
-          <Section key={group} title={group} bordered={false} compact>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {links.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={cn("group card-surface card-surface-hover flex items-center gap-3 rounded-2xl p-4 transition-colors", FOCUS_BUTTON)}
+      <div className="card-surface overflow-hidden rounded-2xl">
+        {grouped.map(([group, links]) => (
+          <div key={group}>
+            <p className="border-b border-divider/60 bg-surface-muted px-4.5 py-2 text-xs font-medium text-muted">
+              {group}
+            </p>
+            {links.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={cn(
+                  "flex items-center gap-3 border-b border-divider/60 px-4.5 py-3 last:border-b-0",
+                  FOCUS_BUTTON,
+                  INTERACTIVE_PAGE_PRESSED,
+                )}
+              >
+                <span
+                  className={cn(
+                    "grid size-8 shrink-0 place-items-center rounded-[11px]",
+                    VISUAL_TONE_CLASSES[link.tone].soft,
+                  )}
                 >
                   <link.icon
-                    className={cn("h-5 w-5 shrink-0", VISUAL_TONE_CLASSES[link.tone].mark)}
+                    className={"h-4 w-4"}
                     strokeWidth={1.75}
                     aria-hidden="true"
                   />
-                  <div className="min-w-0 flex-1">
-                    <p className="break-words text-sm font-medium text-strong">
-                      {link.title}
-                    </p>
-                    <p className="mt-1 text-xs leading-relaxed text-secondary">
-                      {link.meta}
-                    </p>
-                  </div>
-                  <ChevronRight className="h-4 w-4 shrink-0 text-muted transition-transform" />
-                </Link>
-              ))}
-            </div>
-          </Section>
-        );
-      })}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-medium text-strong">{link.title}</span>
+                  <span className="mt-0.5 block text-xs text-secondary">{link.meta}</span>
+                </span>
+                <ChevronRight className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
+              </Link>
+            ))}
+          </div>
+        ))}
+      </div>
     </PageShell>
   );
 }

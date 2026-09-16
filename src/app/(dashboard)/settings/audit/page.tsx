@@ -40,7 +40,6 @@ function AuditLogContent() {
 
   return (
     <PageShell
-      back={{ href: "/settings", label: "ย้อนกลับ" }}
       title="ประวัติระบบ"
       error={
         meQuery.isError

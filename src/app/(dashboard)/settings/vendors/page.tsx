@@ -137,7 +137,6 @@ export default function VendorsSettingsPage() {
 
   return (
     <PageShell
-      back={{ href: "/settings", label: "ย้อนกลับ" }}
       title="ร้านรับจ้างภายนอก"
       error={
         meQuery.isError

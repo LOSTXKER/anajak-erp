@@ -91,7 +91,6 @@ export default function CostRatesSettingsPage() {
   return (
     <PageShell
       width="form"
-      back={{ href: "/settings", label: "ย้อนกลับ" }}
       title="เรตต้นทุนกลาง"
       meta="ใช้ประเมินกำไรขั้นต้น ไม่ใช่ตัวเลขบัญชีจริง"
       help="ทุนตัวเสื้อมาจากราคาทุนจริงในแอป Stock อัตโนมัติ · ค่าจ้างร้านนอกตามบิลร้าน ไม่อยู่ในเรตนี้"

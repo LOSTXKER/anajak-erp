@@ -128,7 +128,6 @@ export default function UsersSettingsPage() {
 
   return (
     <PageShell
-      back={{ href: "/settings", label: "ย้อนกลับ" }}
       title="จัดการผู้ใช้"
       loading={meQuery.isLoading}
       error={
