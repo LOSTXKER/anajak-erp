@@ -14,6 +14,8 @@ import { QueryError } from "@/components/ui/query-error";
 import { DataTable } from "@/components/ui/data-table";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { EmptyState } from "@/components/ui/empty-state";
+import { validDateParam } from "@/lib/order-list-contract";
+import { KitDateRange } from "@/components/kit/date-range";
 import { dueRowTone } from "@/lib/row-tone";
 import { ResponsiveList } from "@/components/ui/responsive-list";
 import { Select } from "@/components/ui/select";
@@ -84,6 +86,8 @@ function BillingPageContent() {
   const { search, page, searchParams, replaceListState, onSearchChange, searchInputRef } =
     useListPageState();
   const rawStatus = searchParams.get("status");
+  const dateFrom = validDateParam(searchParams.get("from"));
+  const dateTo = validDateParam(searchParams.get("to"));
   const statusFilter = rawStatus && rawStatus in PAYMENT_STATUS_LABELS ? rawStatus : ALL;
   const rawType = searchParams.get("type");
   const typeFilter = rawType && TYPE_FILTER_OPTIONS.some((type) => type === rawType)
@@ -101,6 +105,8 @@ function BillingPageContent() {
       search: search.trim() || undefined,
       status: statusFilter === ALL ? undefined : statusFilter,
       type: typeFilter === ALL ? undefined : typeFilter,
+      from: dateFrom || undefined,
+      to: dateTo || undefined,
       page,
       limit: 50,
     },
@@ -174,6 +180,13 @@ function BillingPageContent() {
               placeholder="ค้นหาเลขบิล, ชื่อลูกค้า..."
               defaultValue={search}
               onChange={(e) => onSearchChange(e.target.value)}
+            />
+
+            <KitDateRange
+              label="ช่วงวันที่ออกบิล"
+              from={dateFrom}
+              to={dateTo}
+              onChange={(from, to) => replaceListState({ from: from || null, to: to || null, page: null })}
             />
 
             {/* flex-wrap: จอแคบให้ตัวกรองเต็มความกว้างคนละบรรทัดเหมือนเดิม — ถ้าบีบสองช่องลงแถวเดียว

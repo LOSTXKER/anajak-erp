@@ -52,3 +52,18 @@ export function startOfBangkokDay(reference: DateInput = new Date()): Date {
     new Intl.DateTimeFormat("en-CA", { timeZone: BANGKOK_TZ }).format(new Date(reference)) + "T00:00:00+07:00",
   );
 }
+
+/**
+ * ช่วงวันที่จากตัวกรองปฏิทิน (YYYY-MM-DD ตามปฏิทินไทย) → เงื่อนไขวันที่ของ Prisma
+ * ครอบทั้งวันสุดท้าย (ถึง 23:59:59.999 เวลาไทย) — เลือกวันเดียวต้องเห็นของวันนั้นครบ
+ */
+export function dateRangeFilter(
+  from?: string | null,
+  to?: string | null,
+): { gte?: Date; lte?: Date } | undefined {
+  if (!from && !to) return undefined;
+  const range: { gte?: Date; lte?: Date } = {};
+  if (from) range.gte = new Date(`${from}T00:00:00.000+07:00`);
+  if (to) range.lte = new Date(`${to}T23:59:59.999+07:00`);
+  return range;
+}

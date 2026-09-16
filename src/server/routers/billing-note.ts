@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { dateRangeFilter } from "@/lib/date-utils";
 import { Prisma } from "@prisma/client";
 import { router, protectedProcedure, requirePermission } from "../trpc";
 import { createAuditLog } from "@/server/helpers";
@@ -185,6 +186,8 @@ export const billingNoteRouter = router({
     .input(
       z.object({
         search: z.string().optional(),
+        from: z.string().optional(),
+        to: z.string().optional(),
         page: z.number().default(1),
         limit: z.number().default(20),
       })
@@ -199,6 +202,8 @@ export const billingNoteRouter = router({
             ],
           }
         : {};
+      const createdAt = dateRangeFilter(input.from, input.to);
+      if (createdAt) where.createdAt = createdAt;
 
       const [notes, total] = await Promise.all([
         ctx.prisma.billingNote.findMany({

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { dateRangeFilter } from "@/lib/date-utils";
 import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure, requirePermission } from "../trpc";
 import { getCustomerStatus } from "@/lib/order-status";
@@ -57,6 +58,8 @@ export const quotationRouter = router({
         search: z.string().optional(),
         status: z.string().optional(),
         customerId: z.string().optional(),
+        from: z.string().optional(),
+        to: z.string().optional(),
         page: z.number().default(1),
         limit: z.number().default(20),
       })
@@ -81,6 +84,8 @@ export const quotationRouter = router({
       }
       if (input.status) where.status = input.status;
       if (input.customerId) where.customerId = input.customerId;
+      const createdAt = dateRangeFilter(input.from, input.to);
+      if (createdAt) where.createdAt = createdAt;
 
       const [quotations, total] = await Promise.all([
         ctx.prisma.quotation.findMany({

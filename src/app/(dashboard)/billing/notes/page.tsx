@@ -10,6 +10,8 @@ import { Alert } from "@/components/ui/alert";
 import { StatusLabel } from "@/components/ui/status-label";
 import { SearchInput } from "@/components/ui/search-input";
 import { Toolbar } from "@/components/ui/toolbar";
+import { KitDateRange } from "@/components/kit/date-range";
+import { validDateParam } from "@/lib/order-list-contract";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ListPageSkeleton } from "@/components/ui/page-skeleton";
 import { QueryError } from "@/components/ui/query-error";
@@ -70,8 +72,10 @@ function NoteStatus({
 }
 
 function BillingNotesPageContent() {
-  const { search, page, replaceListState, onSearchChange, searchInputRef } =
+  const { search, page, searchParams, replaceListState, onSearchChange, searchInputRef } =
     useListPageState();
+  const dateFrom = validDateParam(searchParams.get("from"));
+  const dateTo = validDateParam(searchParams.get("to"));
   const [showCreate, setShowCreate] = useState(false);
   const [voidTarget, setVoidTarget] = useState<string | null>(null);
   const [voidReason, setVoidReason] = useState("");
@@ -89,7 +93,7 @@ function BillingNotesPageContent() {
 
   const utils = trpc.useUtils();
   const { data, isLoading, isFetching, isError, refetch } = trpc.billingNote.list.useQuery(
-    { search: search.trim() || undefined, page, limit: 50 },
+    { search: search.trim() || undefined, from: dateFrom || undefined, to: dateTo || undefined, page, limit: 50 },
     { enabled: canView, placeholderData: (previous) => previous }
   );
 
@@ -196,6 +200,12 @@ function BillingNotesPageContent() {
               placeholder="ค้นหาเลขใบวางบิล, ชื่อลูกค้า..."
               defaultValue={search}
               onChange={(event) => onSearchChange(event.target.value)}
+            />
+            <KitDateRange
+              label="ช่วงวันที่วางบิล"
+              from={dateFrom}
+              to={dateTo}
+              onChange={(from, to) => replaceListState({ from: from || null, to: to || null, page: null })}
             />
           </Toolbar>
         }

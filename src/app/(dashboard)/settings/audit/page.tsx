@@ -9,6 +9,9 @@ import { formatDateTime } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Toolbar } from "@/components/ui/toolbar";
+import { KitDateRange } from "@/components/kit/date-range";
+import { validDateParam } from "@/lib/order-list-contract";
 import { ResponsiveList } from "@/components/ui/responsive-list";
 import { ListPageSkeleton } from "@/components/ui/page-skeleton";
 import { TablePagination } from "@/components/ui/table-pagination";
@@ -23,13 +26,15 @@ export default function AuditLogPage() {
 }
 
 function AuditLogContent() {
-  const { page, replaceListState } = useListPageState();
+  const { page, searchParams, replaceListState } = useListPageState();
+  const dateFrom = validDateParam(searchParams.get("from"));
+  const dateTo = validDateParam(searchParams.get("to"));
   const meQuery = trpc.user.me.useQuery();
   const me = meQuery.data;
   const meLoading = meQuery.isLoading;
   const canView = permAllows(me?.permissions, "view_admin_reports");
   const query = trpc.analytics.auditLog.useQuery(
-    { page, limit: 30 },
+    { from: dateFrom || undefined, to: dateTo || undefined, page, limit: 30 },
     { enabled: canView }
   );
   usePageClamp(page, query.data?.pages, replaceListState);
@@ -54,6 +59,16 @@ function AuditLogContent() {
       denied={!meLoading && !canView && { title: "คุณไม่มีสิทธิ์ดูประวัติระบบ" }}
     >
       <ResponsiveList
+        toolbar={
+          <Toolbar>
+            <KitDateRange
+              label="ช่วงวันที่ของประวัติ"
+              from={dateFrom}
+              to={dateTo}
+              onChange={(from, to) => replaceListState({ from: from || null, to: to || null, page: null })}
+            />
+          </Toolbar>
+        }
         items={query.data?.logs}
         isLoading={meLoading || query.isLoading || query.isFetching}
         isError={query.isError}

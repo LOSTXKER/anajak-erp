@@ -15,6 +15,8 @@ import { ListPageSkeleton } from "@/components/ui/page-skeleton";
 import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { dueRowTone } from "@/lib/row-tone";
+import { KitDateRange } from "@/components/kit/date-range";
+import { validDateParam } from "@/lib/order-list-contract";
 import { ResponsiveList } from "@/components/ui/responsive-list";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { QUOTATION_STATUS_LABELS, QUOTATION_STATUS_VARIANTS } from "@/lib/status-config";
@@ -73,8 +75,10 @@ function QuotationsPageContent() {
   const status = QUOTATION_STATUSES.some((option) => option.value === rawStatus)
     ? rawStatus
     : "";
-  const filtered = Boolean(search || status);
-  const clearFilters = () => clearSearch({ status: null });
+  const dateFrom = validDateParam(searchParams.get("from"));
+  const dateTo = validDateParam(searchParams.get("to"));
+  const filtered = Boolean(search || status || dateFrom || dateTo);
+  const clearFilters = () => clearSearch({ status: null, from: null, to: null });
 
   const { data: me } = trpc.user.me.useQuery();
   // เริ่มใบเสนอผ่านฟอร์มเปิดงานที่มีราคา — ใช้ด่านเดียวกับปลายทาง ไม่ให้ CTA ชน AccessDenied
@@ -86,6 +90,8 @@ function QuotationsPageContent() {
     {
       search: search.trim() || undefined,
       status: status || undefined,
+      from: dateFrom || undefined,
+      to: dateTo || undefined,
       page,
       limit: 20,
     },
@@ -126,6 +132,12 @@ function QuotationsPageContent() {
               aria-label="ค้นหาใบเสนอราคาหรือลูกค้า"
               defaultValue={search}
               onChange={(e) => onSearchChange(e.target.value)}
+            />
+            <KitDateRange
+              label="ช่วงวันที่เสนอราคา"
+              from={dateFrom}
+              to={dateTo}
+              onChange={(from, to) => replaceListState({ from: from || null, to: to || null, page: null })}
             />
             <ToolbarGroup>
               {/* 7 ตัวเลือก = เกิน 5 → ดรอปดาวน์ (ชิป 7 ตัวล้นแถวบนมือถือ) · กติกาใน tokens.ts */}

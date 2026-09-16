@@ -2,7 +2,7 @@ import { z } from "zod";
 import { router, protectedProcedure, requirePermission } from "../trpc";
 import { getProductionMetrics, METRIC_MONTHS } from "@/server/services/production-metrics";
 import { hasPermission } from "@/lib/permissions";
-import { getStartOfMonth, getStartOfLastMonth, getMonthRange } from "@/lib/date-utils";
+import { getStartOfMonth, getStartOfLastMonth, getMonthRange, dateRangeFilter } from "@/lib/date-utils";
 import { aggToNumber } from "@/server/services/money";
 import { getOwnerPulse } from "@/server/services/owner-pulse";
 import { getHomeOverview } from "@/server/services/home-overview";
@@ -217,6 +217,8 @@ export const analyticsRouter = router({
       z.object({
         entityType: z.string().optional(),
         userId: z.string().optional(),
+        from: z.string().optional(),
+        to: z.string().optional(),
         page: z.number().default(1),
         limit: z.number().default(50),
       })
@@ -225,6 +227,8 @@ export const analyticsRouter = router({
       const where: Record<string, unknown> = {};
       if (input.entityType) where.entityType = input.entityType;
       if (input.userId) where.userId = input.userId;
+      const createdAt = dateRangeFilter(input.from, input.to);
+      if (createdAt) where.createdAt = createdAt;
 
       const [logs, total] = await Promise.all([
         ctx.prisma.auditLog.findMany({
