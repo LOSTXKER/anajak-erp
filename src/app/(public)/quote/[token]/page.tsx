@@ -3,16 +3,17 @@
 import { use, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { formatDate, formatBaht } from "@/lib/utils";
-import { Card, CardContent } from "@/components/ui/card";
+import { c } from "@/components/kit/kit";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
 import { Textarea } from "@/components/ui/textarea";
 import { Field } from "@/components/ui/field";
+import { ActionZone } from "@/components/ui/action-zone";
 import { PublicLinkError } from "@/components/public-link-error";
 import {
   PublicPageShell,
   FullScreenLoading,
-  InfoRow,
 } from "@/components/public/public-page";
 import {
   Loader2,
@@ -20,6 +21,7 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
+  ClipboardList,
 } from "lucide-react";
 
 // หน้ายืนยันใบเสนอราคาสำหรับลูกค้า (FLOW-REDESIGN ก้อน 4 — ขอบลูกค้า)
@@ -70,72 +72,85 @@ export default function QuoteConfirmPage({
   return (
     <PublicPageShell
       icon={<FileText />}
-      subtitle={`ใบเสนอราคา ${q.quotationNumber}`}
+      pageLabel="ใบเสนอราคา"
+      brandNote="กดรับหรือขอแก้ได้จากหน้านี้เลย"
+      title={<>ใบเสนอราคา <span className="tabular-nums">{q.quotationNumber}</span></>}
+      subtitle={`${q.customerName} · ยืนราคาถึง ${formatDate(q.validUntil)}`}
     >
-      {/* Quote header card */}
+      {/* รายการ + ยอด (ต้นแบบ: ตาราง 4 คอลัมน์ เลขชิดขวา แล้วต่อด้วยกล่องยอด) */}
       <Card>
-        <CardContent className="space-y-4 p-5">
+        <CardContent className="p-0">
           {q.description && (
-            <p className="whitespace-pre-wrap text-sm text-muted">{q.description}</p>
+            <p className="whitespace-pre-wrap px-4.5 pt-3.5 text-sm text-muted">{q.description}</p>
           )}
-          <div className="grid gap-1.5 text-sm">
-            <InfoRow label="ลูกค้า">{q.customerName}</InfoRow>
-            <InfoRow label="ยืนราคาถึง">{formatDate(q.validUntil)}</InfoRow>
+          <div className={c("tblw")}>
+            {/* ตารางกลางตั้ง min-width ไว้ที่ 760px สำหรับหน้าหลังบ้าน — ใบเสนอฝั่งลูกค้ามี 4 คอลัมน์จึงใช้ 460px ตามต้นแบบ */}
+            <table className={c("orders")} style={{ minWidth: 460 }}>
+              <thead>
+                <tr>
+                  <th scope="col">รายการ</th>
+                  <th scope="col" className={c("r")}>จำนวน</th>
+                  <th scope="col" className={c("r")}>ราคา/หน่วย</th>
+                  <th scope="col" className={c("r")}>รวม</th>
+                </tr>
+              </thead>
+              <tbody>
+                {q.items.map((it, i) => (
+                  <tr key={i}>
+                    <td>
+                      <span className="font-medium text-strong">{it.name}</span>
+                      {it.description && (
+                        <span className="block text-sm text-muted">{it.description}</span>
+                      )}
+                    </td>
+                    <td className={c("q r")}>
+                      <b>{it.quantity.toLocaleString("th-TH")}</b> {it.unit}
+                    </td>
+                    <td className={c("amt r")}>{baht(it.unitPrice)}</td>
+                    <td className={c("amt r")}>{baht(it.totalPrice)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Items + totals */}
-      <Card>
-        <CardContent className="p-5">
-          <div className="space-y-3">
-            {q.items.map((it, i) => (
-              <div key={i} className="flex items-start justify-between gap-3 border-b border-divider pb-3 last:border-0 last:pb-0">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-strong">{it.name}</p>
-                  {it.description && <p className="text-xs text-muted">{it.description}</p>}
-                  <p className="mt-0.5 text-xs text-muted">
-                    {it.quantity.toLocaleString("th-TH")} {it.unit} × {baht(it.unitPrice)}
-                  </p>
-                </div>
-                <span className="shrink-0 text-sm font-medium tabular-nums text-strong">
-                  {baht(it.totalPrice)}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-4 space-y-1.5 border-t border-divider pt-4 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted">ยอดรวมสินค้า</span>
-              <span className="tabular-nums text-secondary">{baht(q.subtotal)}</span>
+          <div className="border-t border-divider px-4.5 py-3">
+            {/* คำบนเอกสารเงินต้องตรงกับใบพิมพ์ — "ยอดก่อนภาษี" ใช้ได้เฉพาะตอนไม่มีส่วนลดคั่น */}
+            <div className={c("srow")}>
+              <span>{q.discount > 0 ? "ยอดรวมสินค้า" : "ยอดก่อนภาษี"}</span>
+              <b>{baht(q.subtotal)}</b>
             </div>
             {q.discount > 0 && (
-              <div className="flex justify-between">
-                <span className="text-muted">ส่วนลด</span>
-                <span className="tabular-nums text-red-700 dark:text-red-300">-{baht(q.discount)}</span>
+              <div className={c("srow")}>
+                <span>ส่วนลด</span>
+                <b className={c("neg")}>-{baht(q.discount)}</b>
               </div>
             )}
             {q.tax > 0 && (
-              <div className="flex justify-between">
-                <span className="text-muted">ภาษี (VAT)</span>
-                <span className="tabular-nums text-secondary">+{baht(q.tax)}</span>
+              <div className={c("srow")}>
+                <span>ภาษีมูลค่าเพิ่ม</span>
+                <b>{baht(q.tax)}</b>
               </div>
             )}
-            <div className="flex items-center justify-between border-t border-divider pt-2.5">
-              <span className="text-base font-semibold text-strong">ยอดรวมทั้งหมด</span>
-              <span className="text-lg font-semibold tabular-nums text-strong">{baht(q.totalAmount)}</span>
+            <div className={c("srow total")}>
+              <span>ยอดสุทธิ</span>
+              <b>{baht(q.totalAmount)}</b>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Terms */}
+      {/* เงื่อนไข */}
       {q.terms && (
         <Card>
-          <CardContent className="p-5">
-            <p className="mb-1 text-xs font-medium text-muted">เงื่อนไข</p>
-            <p className="whitespace-pre-wrap text-sm text-secondary">{q.terms}</p>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <ClipboardList className="h-4 w-4 text-muted" />
+              เงื่อนไข
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-secondary">{q.terms}</p>
           </CardContent>
         </Card>
       )}
@@ -143,7 +158,7 @@ export default function QuoteConfirmPage({
       {/* Action / status area */}
       {decided === "ACCEPTED" ? (
         <Card>
-          <CardContent className="flex items-center gap-3 p-5">
+          <CardContent className="flex items-center gap-3 p-4.5">
             <CheckCircle2 className="h-8 w-8 shrink-0 text-green-600 dark:text-green-400" />
             <div>
               <p className="font-semibold text-green-700 dark:text-green-300">ยืนยันใบเสนอแล้ว</p>
@@ -153,7 +168,7 @@ export default function QuoteConfirmPage({
         </Card>
       ) : decided === "REJECTED" ? (
         <Card>
-          <CardContent className="flex items-center gap-3 p-5">
+          <CardContent className="flex items-center gap-3 p-4.5">
             <XCircle className="h-8 w-8 shrink-0 text-muted" />
             <div>
               <p className="font-semibold text-secondary">ส่งคำขอแก้ไขแล้ว</p>
@@ -163,7 +178,7 @@ export default function QuoteConfirmPage({
         </Card>
       ) : q.isExpired || q.status === "EXPIRED" ? (
         <Card>
-          <CardContent className="flex items-center gap-3 p-5">
+          <CardContent className="flex items-center gap-3 p-4.5">
             <Clock className="h-8 w-8 shrink-0 text-amber-700 dark:text-amber-400" />
             <div>
               <p className="font-semibold text-amber-700 dark:text-amber-400">ใบเสนอนี้หมดอายุแล้ว</p>
@@ -172,46 +187,43 @@ export default function QuoteConfirmPage({
           </CardContent>
         </Card>
       ) : actionable ? (
-        <Card>
-          <CardContent className="space-y-3 p-5">
-            {(accept.error || reject.error) && (
-              <Alert variant="error">
-                {accept.error?.message || reject.error?.message}
-              </Alert>
-            )}
-            {!showReject ? (
-              <>
-                <p className="text-center text-sm text-secondary">
-                  กรุณาตรวจสอบรายการและราคา หากถูกต้องกด “ยืนยันใบเสนอ” เพื่อให้เราเริ่มงานได้เลยค่ะ
-                </p>
-                <Button
-                  size="lg"
-                  onClick={() => accept.mutate({ token })}
-                  disabled={isPending}
-                  className="w-full gap-1.5"
-                >
-                  {accept.isPending ? <Loader2 className="animate-spin" /> : <CheckCircle2 />}
-                  ยืนยันใบเสนอ
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setShowReject(true)}
-                  disabled={isPending}
-                  className="h-11 w-full gap-1.5"
-                >
-                  ขอแก้ไข / ยังไม่ตกลง
-                </Button>
-              </>
-            ) : (
-              <>
+        <>
+          {(accept.error || reject.error) && (
+            <Alert variant="error">
+              {accept.error?.message || reject.error?.message}
+            </Alert>
+          )}
+          {!showReject ? (
+            // แถวปุ่มคู่ท้ายหน้าตามต้นแบบ (ต้นแบบติดขอบล่างด้วยเงา — เงาต้องมาจากชุดกลาง ดู sharedFileRequests)
+            <ActionZone note="ตรวจรายการและราคาให้ครบก่อนกดรับ กดรับแล้วร้านจะเปิดออเดอร์ให้ทันที · ถ้ายังไม่ตกลงให้กดขอแก้ไข">
+              <Button
+                variant="outline"
+                onClick={() => setShowReject(true)}
+                disabled={isPending}
+                className="flex-1"
+              >
+                ขอแก้ไข
+              </Button>
+              <Button
+                onClick={() => accept.mutate({ token })}
+                disabled={isPending}
+                className="flex-1"
+              >
+                {accept.isPending ? <Loader2 className="animate-spin" /> : <CheckCircle2 />}
+                รับราคานี้
+              </Button>
+            </ActionZone>
+          ) : (
+            <Card>
+              <CardContent className="space-y-3 p-4.5">
                 <Field label="ส่วนที่ต้องการแก้ไข (ไม่บังคับ)">
                   <Textarea
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                  rows={3}
-                  maxLength={1000}
-                  placeholder="เช่น ขอลดจำนวน / ปรับราคา / เปลี่ยนแบบ ..."
-                  disabled={isPending}
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    rows={3}
+                    maxLength={1000}
+                    placeholder="เช่น ขอลดจำนวน / ปรับราคา / เปลี่ยนแบบ ..."
+                    disabled={isPending}
                   />
                 </Field>
                 <div className="flex flex-col gap-2 sm:flex-row">
@@ -219,23 +231,23 @@ export default function QuoteConfirmPage({
                     variant="outline"
                     onClick={() => setShowReject(false)}
                     disabled={isPending}
-                    className="h-11 flex-1"
+                    className="flex-1"
                   >
                     ย้อนกลับ
                   </Button>
                   <Button
                     onClick={() => reject.mutate({ token, reason: reason.trim() || undefined })}
                     disabled={isPending}
-                    className="h-11 flex-1 gap-1.5"
+                    className="flex-1"
                   >
                     {reject.isPending ? <Loader2 className="animate-spin" /> : null}
                     ส่งคำขอแก้ไข
                   </Button>
                 </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          )}
+        </>
       ) : null}
     </PublicPageShell>
   );

@@ -22,7 +22,6 @@ import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { QueryError } from "@/components/ui/query-error";
 import { FOCUS_INSET } from "@/components/ui/tokens";
@@ -30,10 +29,22 @@ import { CONTROL_MIN_H } from "@/components/ui/control-size";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ToneMark } from "@/components/ui/section";
+import { Section } from "@/components/ui/section";
 import { useConfirm } from "@/components/ui/confirm-dialog";
-import { ArrowDown, ArrowUp, Check, Link2, Plus, Trash2, Truck, Workflow } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  Check,
+  ChevronRight,
+  ClipboardList,
+  Link2,
+  Plus,
+  Trash2,
+  Truck,
+  Workflow,
+} from "lucide-react";
 import { HelpTip } from "@/components/ui/help-tip";
+import { c } from "@/components/kit/kit";
 import { cn } from "@/lib/utils";
 
 type Phase = "PREPARATION" | "MANUFACTURING" | "OUTSOURCE" | "QUALITY" | "PACKING";
@@ -412,6 +423,7 @@ export default function RoutingSettingsPage() {
   return (
     <PageShell
       title="สูตรขั้นงาน"
+      description="เปิดใบผลิตแล้วระบบจะสร้างขั้นตามสูตรนี้ให้เอง"
       loading={listQuery.isLoading || meQuery.isLoading}
       skeleton={
         <>
@@ -432,13 +444,6 @@ export default function RoutingSettingsPage() {
     >
       {header}
 
-      <p className="text-sm text-secondary">
-        สูตรคือลำดับขั้นที่ใบผลิตจะเดินผ่าน — ตั้งได้ว่าขั้นไหน{" "}
-        <strong className="font-medium text-strong">ทำเองหรือส่งร้าน</strong> และขั้นไหน{" "}
-        <strong className="font-medium text-strong">ต้องเสร็จก่อน</strong> ขั้นที่ไม่ได้ผูกกันจะเดินขนานกันได้
-        · เวอร์ชันที่ใช้งานอยู่แก้ไม่ได้ เพราะใบผลิตที่เปิดไปแล้วอ้างอิงอยู่ — กด “แก้สูตร” แล้วระบบจะคัดลอกเป็นร่างใหม่ให้
-      </p>
-
       {(listQuery.data?.length ?? 0) === 0 ? (
         <EmptyState
           icon={Workflow}
@@ -447,22 +452,16 @@ export default function RoutingSettingsPage() {
         />
       ) : (
         <div className="grid gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
-          {/* รายการสูตรและเวอร์ชัน */}
-          <div className="space-y-3">
-            {listQuery.data?.map((routing) => (
-              <Card key={routing.id}>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-sm">
-                    <ToneMark icon={Workflow} tone="production" />
-                    {routing.name}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-1.5">
-                  {routing.versions.map((item) => {
-                    const selected = item.id === activeVersionId;
-                    return (
+          {/* การ์ดเดียว "สูตรทั้งหมด" ตามต้นแบบ — แถวละเวอร์ชัน เพราะของจริงแก้กันทีละเวอร์ชัน
+              (ต้นแบบมีสูตรแบนๆ ไม่มีเวอร์ชัน จึงยุบตามไม่ได้) */}
+          <Section title="สูตรทั้งหมด" icon={Workflow} tone="production" flush>
+            <ul className="divide-y divide-divider">
+              {listQuery.data?.flatMap((routing) =>
+                routing.versions.map((item) => {
+                  const selected = item.id === activeVersionId;
+                  return (
+                    <li key={item.id}>
                       <button
-                        key={item.id}
                         type="button"
                         aria-pressed={selected}
                         onClick={() => {
@@ -473,31 +472,34 @@ export default function RoutingSettingsPage() {
                         className={cn(
                           FOCUS_INSET,
                           CONTROL_MIN_H,
-                          "flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-xs transition-colors",
-                          selected
-                            ? "bg-interactive-pressed text-strong"
-                            : "text-secondary",
+                          "flex w-full items-center gap-2 px-4 py-2.5 text-left transition-colors",
+                          selected ? "bg-interactive-pressed" : null,
                         )}
                       >
-                        <span className="font-medium">เวอร์ชัน {item.versionNumber}</span>
-                        <span className="flex items-center gap-1.5">
-                          <span className="tabular-nums text-muted">
-                            {item.operationCount} ขั้น
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-medium text-strong">
+                            {routing.name}
                           </span>
-                          <Badge
-                            variant={item.state === "RELEASED" ? "default" : "secondary"}
-                            size="sm"
-                          >
-                            {item.state === "RELEASED" ? "ใช้งานอยู่" : "ร่าง"}
-                          </Badge>
+                          <span className="block text-xs text-muted">
+                            เวอร์ชัน {item.versionNumber} ·{" "}
+                            <span className="tabular-nums">{item.operationCount}</span> ขั้น ·{" "}
+                            ใช้ <span className="tabular-nums">{item.workOrderCount}</span> ใบ
+                          </span>
                         </span>
+                        <Badge
+                          variant={item.state === "RELEASED" ? "default" : "secondary"}
+                          size="sm"
+                        >
+                          {item.state === "RELEASED" ? "ใช้งานอยู่" : "ร่าง"}
+                        </Badge>
+                        <ChevronRight className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
                       </button>
-                    );
-                  })}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                    </li>
+                  );
+                }),
+              )}
+            </ul>
+          </Section>
 
           {/* รายละเอียดเวอร์ชันที่เลือก */}
           <div className="space-y-3">
@@ -506,21 +508,22 @@ export default function RoutingSettingsPage() {
             ) : versionQuery.isLoading || !version ? (
               <Skeleton className="h-64 rounded-2xl" />
             ) : (
-              <>
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <p className="text-sm font-semibold text-strong">
-                      {version.routingName} · เวอร์ชัน {version.versionNumber}
-                    </p>
-                    <p className="text-xs text-muted">
-                      {version.state === "RELEASED"
-                        ? `ใช้งานอยู่ · ใบผลิตที่อ้างเวอร์ชันนี้ ${version.workOrderCount} ใบ`
-                        : "ร่าง — ยังไม่มีใบผลิตไหนใช้ แก้ได้เต็มที่"}
-                    </p>
-                  </div>
+              /* หัวการ์ด + ปุ่ม + รายการขั้น อยู่ในการ์ดใบเดียวตามต้นแบบ (.ch .r + .wsteps + .tfoot) */
+              <Section
+                title={`ขั้นใน "${version.routingName}" เวอร์ชัน ${version.versionNumber}`}
+                icon={ClipboardList}
+                tone="production"
+                meta={
+                  version.state === "RELEASED"
+                    ? `ใช้งานอยู่ · ใบผลิตที่อ้างเวอร์ชันนี้ ${version.workOrderCount} ใบ`
+                    : "ร่าง — ยังไม่มีใบผลิตไหนใช้ แก้ได้เต็มที่"
+                }
+                flush
+                action={
                   <div className="flex flex-wrap gap-2">
                     {canManage && !isDraft ? (
                       <Button
+                        size="sm"
                         onClick={() => createDraft.mutate({ id: version.id })}
                         disabled={createDraft.isPending}
                       >
@@ -529,18 +532,20 @@ export default function RoutingSettingsPage() {
                     ) : null}
                     {canManage && isDraft ? (
                       <>
-                        <Button variant="outline" onClick={addRow}>
+                        <Button variant="outline" size="sm" onClick={addRow}>
                           <Plus />
                           เพิ่มขั้น
                         </Button>
                         <Button
                           variant="outline"
+                          size="sm"
                           onClick={submitDraft}
                           disabled={saveDraft.isPending || draft === null}
                         >
                           บันทึกร่าง
                         </Button>
                         <Button
+                          size="sm"
                           onClick={async () => {
                             const ok = await confirm({
                               title: "เริ่มใช้สูตรเวอร์ชันนี้",
@@ -558,6 +563,7 @@ export default function RoutingSettingsPage() {
                         </Button>
                         <Button
                           variant="ghost"
+                          size="sm"
                           onClick={async () => {
                             const ok = await confirm({
                               title: "ทิ้งร่างนี้",
@@ -574,10 +580,10 @@ export default function RoutingSettingsPage() {
                       </>
                     ) : null}
                   </div>
-                </div>
-
+                }
+              >
                 {isDraft ? (
-                  <div className="space-y-3">
+                  <div className="space-y-3 p-3.5">
                     {rows.map((operation, index) => (
                       <DraftRow
                         key={`${operation.code}-${index}`}
@@ -593,12 +599,11 @@ export default function RoutingSettingsPage() {
                     ))}
                   </div>
                 ) : (
-                  /* เวอร์ชันที่ใช้งานอยู่ = อ่านอย่างเดียว */
-                  <div className="card-surface overflow-hidden rounded-2xl">
-                    <ul className="divide-y divide-divider">
+                  /* เวอร์ชันที่ใช้งานอยู่ = อ่านอย่างเดียว · เลขขั้นในวงกลมตามต้นแบบ (.wsteps .sn) */
+                  <ol className="divide-y divide-divider">
                       {version.operations.map((operation, index) => (
-                        <li key={operation.id} className="flex gap-3 px-4 py-3">
-                          <span className="w-6 shrink-0 text-sm font-semibold tabular-nums text-muted">
+                        <li key={operation.id} className="flex items-start gap-3 px-4 py-3">
+                          <span className="grid size-7 shrink-0 place-items-center rounded-full border border-border text-xs tabular-nums text-muted">
                             {index + 1}
                           </span>
                           <div className="min-w-0 flex-1">
@@ -642,10 +647,13 @@ export default function RoutingSettingsPage() {
                           </div>
                         </li>
                       ))}
-                    </ul>
-                  </div>
+                  </ol>
                 )}
-              </>
+                {/* กติกาที่เดิมเป็นย่อหน้ายาวบนหัวหน้า — ย้ายมาอยู่ท้ายการ์ดที่ใช้จริงตามต้นแบบ (.tfoot) */}
+                <div className={c("tfoot")}>
+                  แก้สูตรมีผลกับใบผลิตที่เปิด<b>หลังจากนี้</b>เท่านั้น ใบเก่าคงลำดับเดิมไว้
+                </div>
+              </Section>
             )}
           </div>
         </div>

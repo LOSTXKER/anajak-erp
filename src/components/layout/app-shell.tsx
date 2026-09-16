@@ -23,6 +23,7 @@ import { trpc } from "@/lib/trpc";
 import {
   findActiveNavigationItem,
   groupedNavigationItems,
+  type NavigationBadge,
 } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
 import { ROLE_LABELS } from "@/lib/roles";
@@ -98,12 +99,16 @@ function sidebarNavItemClass({
   return cn(
     CONTROL_MIN_H,
     FOCUS_INSET,
-    RADIUS.item,
-    "group/sidebar-item relative flex scroll-m-4 items-center gap-3 px-3 py-2 text-sm transition-colors",
-    // ตอนหุบเป็น "ปุ่มสี่เหลี่ยมจัตุรัส 40px วางกลางราง" ไม่ใช่แถบเต็มความกว้าง
-    // เดิมปล่อยให้ยืดตามกล่องแม่ แล้วโดนบีบเหลือกว้าง 24px สูง 36px = อ่านเป็นเม็ดยา
-    // (วัดจริง 2026-08-26 หลังเบสทัก "sidebar ตอนหุบ UI ก็ไม่ดี")
-    collapsed && "mx-auto h-10 w-10 justify-center gap-0 px-0 py-0",
+    // ระยะ/ขนาด/มุมโค้งของแถวเมนูอยู่ที่ .app-rail-link ใน globals.css (ต้นแบบ .nav a:
+    // สูง 36 · padding 6/10 · gap 10 · 13.5px · มุม 11) — บันไดตัวอักษรของ markup
+    // ไม่มีครึ่งพิกเซล และกติกาห้ามสั่ง px ดิบใน .tsx
+    "app-rail-link group/sidebar-item relative flex scroll-m-4 items-center transition-colors",
+    // ตอนหุบเป็นแถวแนวตั้ง "ไอคอนบน ชื่อ 10px ใต้" สูง 48px (ต้นแบบ .collapsed .nav a
+    // · เบสสั่ง 2026-09-16) — ของเดิมเป็นปุ่มจัตุรัส 40px ไอคอนเปล่า ชื่อไปอยู่ใน title
+    // ซึ่งคนที่ยืนหน้าจอโรงงาน (ไม่มีเมาส์ชี้) ไม่มีทางเห็นชื่อเลย
+    // lg:min-h-12 = 48px ตามต้นแบบ · ต้องสั่งเป็น utility เพราะ CONTROL_MIN_H
+    // ตั้ง sm:min-h-9 (36px) ไว้ ซึ่งชนะคลาสใน @layer components
+    collapsed && "app-rail-link-collapsed w-full justify-center lg:min-h-12",
     active
       ? // รื้อ 2026-09-14 (ต้นแบบหน้าแรกที่เบสเคาะ): เมนูที่เปิดอยู่เป็นพื้นฟ้าอ่อน
         // ตัวหนังสือ/ไอคอนน้ำเงิน Anajak ไม่มีขีดริมซ้าย — ใช้ token selected ชุดเดียวกับ
@@ -118,16 +123,23 @@ function sidebarNavItemClass({
   );
 }
 
+/* หัวกลุ่มเมนู — 11px จางระดับ ink-4 (ต้นแบบ .nav .grp)
+   ของเดิม 12px สี muted เข้มเกือบเท่าตัวหนังสือรายการ หัวกลุ่มจึงแย่งสายตากับเมนูจริง
+   กลุ่มที่ไม่มีหัวข้อและไม่ใช่กลุ่มแรก วาด "เส้นคั่น" แทน (ต้นแบบ .grp.gap)
+   ไม่ใช่ปล่อยว่าง — ระยะห่างเปล่ามีเท่ากับระยะระหว่างกลุ่มอื่นทุกกลุ่ม จึงไม่บอกอะไร */
 function SidebarGroupLabel({
   label,
+  divider = false,
 }: {
   label: string | null;
+  divider?: boolean;
 }) {
-  if (!label) return null;
+  if (!label) {
+    if (!divider) return null;
+    return <p aria-hidden="true" className="app-rail-divider" />;
+  }
 
-  return (
-    <p className="px-3 pb-1.5 text-xs font-medium text-muted">{label}</p>
-  );
+  return <p className="app-rail-group">{label}</p>;
 }
 
 /* เคยมี NavPendingMark = จุดเล็กกะพริบในเมนูระหว่างที่หน้าใหม่ยังโหลด (เฟส 4)
@@ -306,6 +318,18 @@ function AppShellContent({ children }: { children: ReactNode }) {
     [me?.permissions],
   );
 
+  /* ตัวเลขงานค้างท้ายเมนู (ต้นแบบ .cnt) — มาจาก query นับล้วนที่มีอยู่แล้ว
+     (task.navBadges = count ไม่ดึงแถว ไม่มีข้อมูลเงิน) ไม่ใช่ตัวเลขตายตัวของต้นแบบ
+     ยิงเฉพาะเมื่อรางมีรายการที่ขอตัวเลขจริง ไม่งั้นทุกหน้าจะแบกคิวรีเปล่า */
+  const needsTaskBadges = useMemo(
+    () => sidebarGroups.some((group) => group.items.some((item) => item.badge === "outsource")),
+    [sidebarGroups],
+  );
+  const { data: navBadges } = trpc.task.navBadges.useQuery(undefined, {
+    enabled: needsTaskBadges,
+    staleTime: 60_000,
+  });
+
   const mobileItems = useMemo(() => {
     const byId = new Map(
       sidebarGroups.flatMap((group) => group.items).map((item) => [item.id, item]),
@@ -335,6 +359,11 @@ function AppShellContent({ children }: { children: ReactNode }) {
   }, []);
 
   const count = unreadCount ?? 0;
+  const navBadgeCount = (badge: NavigationBadge | undefined) => {
+    if (badge === "notifications") return count;
+    if (badge === "outsource") return navBadges?.outsource ?? 0;
+    return 0;
+  };
   const activeNavigationId = findActiveNavigationItem(pathname)?.id;
   const sidebarCollapsed = useSyncExternalStore(
     subscribeSidebarCollapsed,
@@ -369,8 +398,9 @@ function AppShellContent({ children }: { children: ReactNode }) {
         {
           "--app-bottom-nav-offset":
             "calc(5rem + env(safe-area-inset-bottom))",
-          // หุบ = พอให้ไอคอน 16px ยืนกลางช่องที่หัก px-3 ออกแล้ว · กาง = 240px เท่าเดิม
-          "--app-sidebar-w": sidebarCollapsed ? "4rem" : "15rem",
+          // ความกว้างรางตามต้นแบบทั้งเว็บ (เบสสั่ง 2026-09-16): กาง 244px · หุบ 78px
+          // หุบกว้างขึ้นจาก 64px เพราะแถวเมนูเปลี่ยนเป็น "ไอคอนบน ชื่อ 10px ใต้"
+          "--app-sidebar-w": sidebarCollapsed ? "4.875rem" : "15.25rem",
         } as CSSProperties
       }
     >
@@ -441,19 +471,23 @@ function AppShellContent({ children }: { children: ReactNode }) {
           aria-label="เมนูหลัก"
           className={cn(
             "min-h-0 flex-1 overflow-y-auto px-3 py-3",
-            // ตอนหุบถอดระยะขอบข้างออก แล้วให้ปุ่ม 40px จัดกลางเอง
-            // (px-3 + รางแถบเลื่อนสองข้าง เหลือเนื้อที่จริงแค่ 19px ปุ่มเลยถูกบีบ)
+            // ตอนหุบถอดระยะขอบข้างออก แล้วให้แถวเมนูกินความกว้างรางเอง
+            // (px-3 + รางแถบเลื่อนสองข้าง เหลือเนื้อที่จริงแค่ 19px แถวเลยถูกบีบ)
             sidebarCollapsed && "px-0 [scrollbar-gutter:stable_both-edges]",
           )}
         >
-          {/* ตอนกางมีหัวกลุ่มอธิบายช่องว่าง 16px · ตอนหุบหัวกลุ่มหายไป
-              ช่องว่างเท่าเดิมจึงอ่านเป็น "เว้นมั่ว" — ย่อเหลือ 12px ให้ยังแยกกลุ่มออก
-              แต่ไม่ห่างจนดูเหมือนลืมใส่อะไร */}
-          <div className={cn(sidebarCollapsed ? "space-y-3" : "space-y-4")}>
-            {sidebarGroups.map((group) => (
+          {/* ตอนกาง: ระยะระหว่างกลุ่มมาจากหัวกลุ่ม/เส้นคั่นเอง (margin 12/4 ใน .app-rail-group
+              และ 8/4 ใน .app-rail-divider ตามต้นแบบ) จึงไม่ซ้อน space-y ทับอีกชั้น
+              ตอนหุบหัวกลุ่มหายไป ถ้าไม่เว้นเลยจะอ่านเป็นเมนูก้อนเดียวยาว — เหลือ 12px */}
+          <div className={cn(sidebarCollapsed && "space-y-3")}>
+            {sidebarGroups.map((group, groupIndex) => (
               <div key={group.id}>
-                <SidebarGroupLabel label={sidebarCollapsed ? null : group.label} />
-                <ul aria-label={group.label ?? undefined} className="space-y-1">
+                <SidebarGroupLabel
+                  label={sidebarCollapsed ? null : group.label}
+                  divider={!sidebarCollapsed && groupIndex > 0}
+                />
+                {/* ต้นแบบ nav gap 2px — แถวเมนูชิดกันเป็นก้อนเดียวของกลุ่ม */}
+                <ul aria-label={group.label ?? undefined} className="space-y-0.5">
                   {group.items.map((item) => {
                     const active = activeNavigationId === item.id;
                     return (
@@ -462,8 +496,8 @@ function AppShellContent({ children }: { children: ReactNode }) {
                           ref={active ? activeSidebarRef : undefined}
                           href={item.href}
                           aria-current={active ? "page" : undefined}
-                          // ตอนหุบ ชื่อเมนูหายไปจากจอ จึงต้องเหลือชื่อไว้ให้ทั้งเมาส์
-                          // (title) และเครื่องอ่านหน้าจอ (aria-label) ไม่งั้นเหลือแต่ไอคอนเปล่า
+                          // ตอนหุบชื่อเมนูอยู่ใต้ไอคอนที่ 10px และถูกตัดท้ายเมื่อยาวเกินราง
+                          // จึงยังต้องเหลือชื่อเต็มไว้ให้ทั้งเมาส์ (title) และเครื่องอ่านหน้าจอ (aria-label)
                           title={sidebarCollapsed ? item.label : undefined}
                           aria-label={sidebarCollapsed ? item.label : undefined}
                           className={sidebarNavItemClass({
@@ -476,7 +510,13 @@ function AppShellContent({ children }: { children: ReactNode }) {
                             className={cn("h-4 w-4 shrink-0", sidebarNavIconClass(active))}
                             strokeWidth={1.75}
                           />
-                          {!sidebarCollapsed && <span>{item.label}</span>}
+                          <span>{item.label}</span>
+                          {!sidebarCollapsed && navBadgeCount(item.badge) > 0 && (
+                            <span className="app-rail-count">
+                              {navBadgeCount(item.badge).toLocaleString("th-TH")}
+                              <span className="sr-only"> รายการที่ต้องจัดการ</span>
+                            </span>
+                          )}
                         </Link>
                       </li>
                     );
@@ -487,6 +527,22 @@ function AppShellContent({ children }: { children: ReactNode }) {
           </div>
         </nav>
 
+        {/* แถบผู้ใช้ท้ายราง (ต้นแบบ .me) — บอกว่ากำลังทำงานในนามใครโดยไม่ต้องเปิดเมนูมุมขวาบน
+            เป็นข้อความอย่างเดียว ไม่ใช่ปุ่ม: สลับธีม/ออกจากระบบยังอยู่ที่ UserMenu ที่เดียว
+            (ต้นแบบมีอักษรย่อทั้งในรางและบนแถบบนเหมือนกัน) */}
+        {me && (
+          <div className={cn("app-rail-me mx-3", sidebarCollapsed && "app-rail-me-collapsed")}>
+            <span className="app-rail-avatar" aria-hidden="true">
+              {me.name.charAt(0).toUpperCase()}
+            </span>
+            {!sidebarCollapsed && (
+              <span className="app-rail-who">
+                {me.name}
+                <small>{ROLE_LABELS[me.role as keyof typeof ROLE_LABELS] ?? me.role}</small>
+              </span>
+            )}
+          </div>
+        )}
       </aside>
 
       {/* แถบบนอยู่เหนือ "เฉพาะฝั่งเนื้อหา" บนจอกว้าง ไม่พาดทับเมนูซ้ายอีกแล้ว
@@ -533,7 +589,8 @@ function AppShellContent({ children }: { children: ReactNode }) {
             className={cn(
               CONTROL_H,
               FOCUS_BUTTON,
-              RADIUS.field,
+              // มุม 12px ตามต้นแบบ (.search ใช้ --r-ctl) ไม่ใช่ 10px ของช่องกรอกในฟอร์ม
+              RADIUS.control,
               // chrome กลับมาเป็นขาวแล้ว (2026-08-26) ช่องค้นหาจึงต้องเป็น "ช่องจม"
               // ไม่ใช่ขาวบนขาวที่เห็นแค่เส้นขอบ — SUNK_PANEL ให้พื้นเทาอ่อนกว่าแถบหนึ่งขั้น
               SUNK_PANEL,
@@ -541,7 +598,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
               INTERACTIVE_HOVER,
               INTERACTIVE_PRESSED,
               // จอแคบยังยืดเต็มที่ · จอกว้างเป็นชิปกว้างคงที่ชิดซ้าย (ต้นแบบ 2026-09-14)
-              "group flex min-w-0 flex-1 items-center gap-2 px-3 text-sm text-muted transition-colors sm:max-w-lg sm:px-4 lg:w-72 lg:max-w-72 lg:flex-none",
+              "group flex min-w-0 flex-1 items-center gap-2 px-3 text-sm text-muted transition-colors sm:max-w-lg sm:px-4 lg:w-[300px] lg:max-w-[300px] lg:flex-none",
             )}
           >
             <Search className="h-4 w-4 shrink-0" strokeWidth={1.75} />
@@ -564,7 +621,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
               >
                 <Bell />
                 {count > 0 && (
-                  <span className="absolute right-0 top-0 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-2xs font-semibold tabular-nums text-white ring-2 ring-chrome">
+                  <span className="app-bell-dot" aria-hidden="true">
                     {count > 99 ? "99+" : count}
                   </span>
                 )}
@@ -580,7 +637,9 @@ function AppShellContent({ children }: { children: ReactNode }) {
         tabIndex={-1}
         className="relative col-start-1 row-start-2 min-h-0 min-w-0 overflow-y-auto outline-none [scrollbar-gutter:stable] lg:col-start-2"
       >
-        <div className="mx-auto w-full max-w-screen-2xl px-4 pb-[calc(var(--app-bottom-nav-offset)+2rem)] pt-4 sm:px-6 sm:pt-8 lg:px-8 lg:pb-10">
+        {/* ขอบล่าง 88px ตามต้นแบบ (.page padding 28px 28px 88px) — ท้ายหน้ามีที่หายใจ
+            ก่อนถึงขอบจอ · จอแคบยังเผื่อระยะแถบเมนูล่างเหมือนเดิม */}
+        <div className="mx-auto w-full max-w-screen-2xl px-4 pb-[calc(var(--app-bottom-nav-offset)+2rem)] pt-4 sm:px-6 sm:pt-8 lg:px-8 lg:pb-22">
           {children}
         </div>
       </main>

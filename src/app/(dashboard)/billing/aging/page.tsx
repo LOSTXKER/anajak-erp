@@ -26,13 +26,26 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { formatCurrency } from "@/lib/utils";
+import { formatBaht, formatCurrency } from "@/lib/utils";
 import { permAllows } from "@/lib/permissions";
 import { PageShell } from "@/components/page-shell";
-import { Users, DollarSign, AlertCircle, Hourglass, MessageSquare, Copy } from "lucide-react";
+import { c } from "@/components/kit/kit";
+import type { RouterOutput } from "@/lib/trpc";
+import {
+  Users,
+  Wallet,
+  Flame,
+  Hourglass,
+  MessageSquare,
+  Copy,
+  Download,
+  ChevronRight,
+} from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 
 type DunningTone = "gentle" | "firm";
+
+type AgingRow = RouterOutput["billingNote"]["aging"]["rows"][number];
 
 // ลำดับ + ป้ายถังอายุหนี้ — ตรงกับ AGING_BUCKETS ใน services/receivables.ts
 const BUCKETS = [
@@ -57,6 +70,50 @@ const AGING_SORT_OPTIONS = [
 ] as const;
 
 const PAGE_SIZE = 20;
+
+/** ยอดที่เลยกำหนดแล้วของลูกค้าหนึ่งราย = ทุกถังยกเว้น "ยังไม่ครบกำหนด" */
+function overdueOf(row: AgingRow) {
+  return row.buckets.d1_30 + row.buckets.d31_60 + row.buckets.d61_90 + row.buckets.d90plus;
+}
+
+/* ดาวน์โหลดรายงานลูกหนี้เป็น CSV — pattern เดียวกับ exportWhtCsv ใน billing/wht/page.tsx
+   (BOM U+FEFF นำหน้าให้ Excel ไทยอ่าน UTF-8 ถูก) · ออกจากผลกรองที่อยู่บนจอ ไม่ยิง API ใหม่ */
+function exportAgingCsv(rows: AgingRow[]) {
+  const header = ["ลูกค้า", "ผู้ติดต่อ", ...BUCKETS.map((bucket) => bucket.label), "รวมค้าง"];
+
+  const body = rows.map((row) => [
+    row.company || row.name,
+    row.company ? row.name : "",
+    ...BUCKETS.map((bucket) => row.buckets[bucket.key].toFixed(2)),
+    row.total.toFixed(2),
+  ]);
+
+  const escape = (value: string) =>
+    value.includes(",") || value.includes('"') || value.includes("\n")
+      ? `"${value.replace(/"/g, '""')}"`
+      : value;
+
+  const csv = "﻿" + [header, ...body].map((row) => row.map(escape).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `aging-${new Date().toISOString().slice(0, 10)}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+/** ป้ายปุ่มกรองพร้อมจำนวน — รูปแบบเดียวกับแถบกรองหน้าบิล/หน้าออเดอร์ */
+function pillLabel(label: string, count?: number) {
+  return (
+    <>
+      {label}
+      {typeof count === "number" && count > 0 ? (
+        <span className={c("n")}>{count.toLocaleString("th-TH")}</span>
+      ) : null}
+    </>
+  );
+}
 
 export default function AgingPage() {
   return (
@@ -120,21 +177,32 @@ function AgingPageContent() {
     toast.success(copied ? "คัดลอกข้อความแล้ว — วางส่งลูกค้าได้เลย" : "คัดลอกไม่สำเร็จ");
   }
 
-  const filteredRows = useMemo(() => {
+  // กรองด้วยคำค้นก่อน แล้วค่อยแยกตามช่วงอายุหนี้ — ตัวเลขบนปุ่มกรองจึงนับจากชุดเดียวกับที่กำลังดู
+  const searchedRows = useMemo(() => {
     if (!data) return [];
     const needle = search.trim().toLocaleLowerCase("th");
-    const rows = data.rows.filter((row) => {
-      const label = `${row.name} ${row.company ?? ""}`.toLocaleLowerCase("th");
-      if (needle && !label.includes(needle)) return false;
+    if (!needle) return data.rows;
+    return data.rows.filter((row) =>
+      `${row.name} ${row.company ?? ""}`.toLocaleLowerCase("th").includes(needle)
+    );
+  }, [data, search]);
+
+  /** จำนวนลูกค้าที่เข้าเกณฑ์ของแต่ละปุ่มกรอง — เกณฑ์เดียวกับตัวกรองด้านล่าง */
+  const bucketCounts = useMemo(() => {
+    const counts: Record<string, number> = {
+      "": searchedRows.length,
+      overdue: searchedRows.filter((row) => overdueOf(row) > 0).length,
+    };
+    for (const bucket of BUCKETS) {
+      counts[bucket.key] = searchedRows.filter((row) => row.buckets[bucket.key] > 0).length;
+    }
+    return counts;
+  }, [searchedRows]);
+
+  const filteredRows = useMemo(() => {
+    const rows = searchedRows.filter((row) => {
       if (!status) return true;
-      if (status === "overdue") {
-        return (
-          row.buckets.d1_30 +
-          row.buckets.d31_60 +
-          row.buckets.d61_90 +
-          row.buckets.d90plus
-        ) > 0;
-      }
+      if (status === "overdue") return overdueOf(row) > 0;
       return row.buckets[status as (typeof BUCKETS)[number]["key"]] > 0;
     });
 
@@ -143,16 +211,11 @@ function AgingPageContent() {
         return (a.company || a.name).localeCompare(b.company || b.name, "th");
       }
       if (sort === "overdue:desc") {
-        const overdueOf = (row: typeof a) =>
-          row.buckets.d1_30 +
-          row.buckets.d31_60 +
-          row.buckets.d61_90 +
-          row.buckets.d90plus;
         return overdueOf(b) - overdueOf(a);
       }
       return b.total - a.total;
     });
-  }, [data, search, sort, status]);
+  }, [searchedRows, sort, status]);
 
   const filteredTotals = useMemo(() => {
     const totals = {
@@ -180,13 +243,29 @@ function AgingPageContent() {
   const overdueTotal = data
     ? data.totals.d1_30 + data.totals.d31_60 + data.totals.d61_90 + data.totals.d90plus
     : 0;
+  // จำนวน "ราย" ที่ยืนข้างยอดเงินในช่องตัวเลข — นับฝั่งหน้าเว็บจากรายงานที่โหลดมาแล้ว
+  const overdueCustomers = data ? data.rows.filter((row) => overdueOf(row) > 0).length : 0;
+  const currentCustomers = data ? data.rows.filter((row) => row.buckets.current > 0).length : 0;
+  // แถบสรุปท้ายการ์ด (.tfoot) คิดจากผลกรองที่กำลังดู ไม่ใช่ยอดทั้งรายงาน
+  const filteredOverdue =
+    filteredTotals.d1_30 + filteredTotals.d31_60 + filteredTotals.d61_90 + filteredTotals.d90plus;
 
   return (
     <PageShell
       title="ลูกหนี้ค้างชำระ"
       meta="ดูว่าเงินค้างอยู่ที่ใคร และค้างมานานแค่ไหน"
       help="อายุหนี้นับจากวันครบกำหนดของเอกสาร"
-      breadcrumb={[{ label: "บิล/การเงิน", href: "/billing" }, { label: "ลูกหนี้" }]}
+      breadcrumb={[{ label: "บิลและการเงิน", href: "/billing" }, { label: "ลูกหนี้" }]}
+      action={
+        <Button
+          variant="outline"
+          onClick={() => exportAgingCsv(filteredRows)}
+          disabled={filteredRows.length === 0}
+        >
+          <Download />
+          ดาวน์โหลด
+        </Button>
+      }
       denied={
         me && !canView
           ? {
@@ -196,23 +275,26 @@ function AgingPageContent() {
           : null
       }
     >
-      {(!isError || data) && <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      {/* ช่องตัวเลข 4 ช่องตามต้นแบบ: Wallet · Flame · Hourglass · Users (กริด .metrics ของชุดกลาง) */}
+      {(!isError || data) && <div className={c("metrics")}>
         <StatCard loading={isLoading} moduleTone="finance"
           title="ลูกหนี้รวม"
           value={formatCurrency(data?.grandTotal ?? 0)}
-          icon={DollarSign}
+          icon={Wallet}
         />
         {/* เลขเสี่ยงของหน้านี้ — แดงเมื่อมีจริง ให้ตรงกับเซลล์แดงในตารางข้างล่าง (UX4.3) */}
         <StatCard loading={isLoading} moduleTone="finance"
           title="เลยกำหนดแล้ว"
           value={formatCurrency(overdueTotal)}
-          icon={AlertCircle}
+          icon={Flame}
+          caption={`${overdueCustomers.toLocaleString("th-TH")} ราย`}
           tone={overdueTotal > 0 ? "danger" : "muted"}
         />
         <StatCard loading={isLoading} moduleTone="finance"
           title="ยังไม่ครบกำหนด"
           value={formatCurrency(data?.totals.current ?? 0)}
           icon={Hourglass}
+          caption={`${currentCustomers.toLocaleString("th-TH")} ราย`}
         />
         <StatCard loading={isLoading} moduleTone="finance" title="ลูกหนี้" value={data?.rows.length ?? 0} icon={Users} caption="ราย" />
       </div>}
@@ -228,7 +310,7 @@ function AgingPageContent() {
               surface="raised"
               ref={searchInputRef}
               containerClassName="@2xl:max-w-sm @2xl:flex-1"
-              placeholder="ค้นหาชื่อลูกค้าหรือบริษัท..."
+              placeholder="ค้นชื่อลูกค้าหรือบริษัท"
               defaultValue={search}
               onChange={(event) => onSearchChange(event.target.value)}
             />
@@ -239,7 +321,10 @@ function AgingPageContent() {
               <SegmentedControl
                 value={status}
                 onChange={(value) => replaceListState({ status: value || null, page: null })}
-                options={AGING_STATUS_OPTIONS.map((option) => ({ value: option.value, label: option.label }))}
+                options={AGING_STATUS_OPTIONS.map((option) => ({
+                  value: option.value,
+                  label: pillLabel(option.label, bucketCounts[option.value]),
+                }))}
                 aria-label="กรองช่วงอายุหนี้"
               />
               <Select
@@ -263,6 +348,16 @@ function AgingPageContent() {
                 ))}
               </Select>
             </ToolbarGroup>
+
+            {/* ตัวนับผลลัพธ์ชิดขวาสุดของแถบ (.cnt ของต้นแบบ) — ลูกหนี้ไม่ถึงหน้าละ 20 ราย
+                แถบแบ่งหน้าจะซ่อนตัว ถ้าไม่มีบรรทัดนี้จะไม่รู้ว่าเหลือกี่ราย */}
+            <span
+              className="text-xs tabular-nums text-muted @2xl:ml-auto"
+              aria-live="polite"
+              aria-busy={isFetching}
+            >
+              {data ? `${filteredRows.length.toLocaleString("th-TH")} ราย` : ""}
+            </span>
           </Toolbar>
         }
         items={visibleRows}
@@ -282,12 +377,18 @@ function AgingPageContent() {
                   </DataTable.Th>
                 ))}
                 <DataTable.Th align="right">รวมค้าง</DataTable.Th>
+                <DataTable.Th align="right">
+                  <span className="sr-only">เปิดลูกค้า</span>
+                </DataTable.Th>
               </tr>
             </DataTable.Head>
             <DataTable.Body>
               {rows.map((row) => (
                 <DataTable.Row
                   key={row.customerId}
+                  // กดได้ทั้งแถวเหมือนหน้ารายการอื่น — ปุ่มร่างข้อความทวงในแถวยังกดได้
+                  // เพราะ DataTable.Row ข้ามคลิกที่ตกบนลิงก์/ปุ่มอยู่แล้ว
+                  href={`/customers/${row.customerId}`}
                   tone={
                     row.buckets.d61_90 + row.buckets.d90plus > 0
                       ? "danger"
@@ -296,29 +397,35 @@ function AgingPageContent() {
                         : null
                   }
                 >
+                  {/* ชื่อบริษัทบรรทัดบน ผู้ติดต่อบรรทัดล่าง (.who ของชุดกลาง) — ตรงกับการ์ดจอแคบ */}
                   <DataTable.Td>
-                    <div className="flex items-center gap-2">
-                      <Link
-                        href={`/customers/${row.customerId}`}
-                        className="font-medium text-strong"
-                      >
-                        {row.company ? `${row.company} (${row.name})` : row.name}
-                      </Link>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        className="shrink-0 text-muted"
-                        aria-label={`ร่างข้อความทวง ${row.company || row.name}`}
-                        onClick={() => {
-                          setTone("gentle");
-                          setDraftFor({
-                            id: row.customerId,
-                            label: row.company ? `${row.company} (${row.name})` : row.name,
-                          });
-                        }}
-                      >
-                        <MessageSquare />
-                      </Button>
+                    <div className={c("who")}>
+                      <div className={c("t")}>
+                        <div className={c("id")}>
+                          <Link
+                            href={`/customers/${row.customerId}`}
+                            className="font-medium text-strong"
+                          >
+                            {row.company || row.name}
+                          </Link>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            className="shrink-0 text-muted"
+                            aria-label={`ร่างข้อความทวง ${row.company || row.name}`}
+                            onClick={() => {
+                              setTone("gentle");
+                              setDraftFor({
+                                id: row.customerId,
+                                label: row.company ? `${row.company} (${row.name})` : row.name,
+                              });
+                            }}
+                          >
+                            <MessageSquare />
+                          </Button>
+                        </div>
+                        {row.company ? <div className={c("cu")}>{row.name}</div> : null}
+                      </div>
                     </div>
                   </DataTable.Td>
                   {BUCKETS.map((bucket) => (
@@ -340,14 +447,17 @@ function AgingPageContent() {
                     >
                       {row.buckets[bucket.key] === 0
                         ? "—"
-                        : formatCurrency(row.buckets[bucket.key])}
+                        : formatBaht(row.buckets[bucket.key])}
                     </DataTable.Td>
                   ))}
                   <DataTable.Td
                     align="right"
                     className="font-semibold tabular-nums text-strong"
                   >
-                    {formatCurrency(row.total)}
+                    {formatBaht(row.total)}
+                  </DataTable.Td>
+                  <DataTable.Td align="right">
+                    <ChevronRight className="ml-auto h-4 w-4 text-muted" aria-hidden="true" />
                   </DataTable.Td>
                 </DataTable.Row>
               ))}
@@ -357,12 +467,14 @@ function AgingPageContent() {
                   <DataTable.Td key={bucket.key} align="right" className="font-semibold tabular-nums">
                     {filteredTotals[bucket.key] === 0
                       ? "—"
-                      : formatCurrency(filteredTotals[bucket.key])}
+                      : formatBaht(filteredTotals[bucket.key])}
                   </DataTable.Td>
                 ))}
                 <DataTable.Td align="right" className="font-semibold tabular-nums">
-                  {formatCurrency(filteredTotals.grandTotal)}
+                  {formatBaht(filteredTotals.grandTotal)}
                 </DataTable.Td>
+                {/* ช่องว่างให้ตรงกับคอลัมน์ลูกศรของแถวข้อมูล */}
+                <DataTable.Td align="right" />
               </DataTable.Row>
             </DataTable.Body>
           </DataTable.Root>
@@ -388,7 +500,7 @@ function AgingPageContent() {
                   <p className="shrink-0 text-right">
                     <span className="block text-xs text-muted">ค้างรวม</span>
                     <span className="font-semibold tabular-nums text-strong">
-                      {formatCurrency(row.total)}
+                      {formatBaht(row.total)}
                     </span>
                   </p>
                 </div>
@@ -404,7 +516,7 @@ function AgingPageContent() {
                             : "text-red-700 dark:text-red-300"
                         }`}
                       >
-                        {formatCurrency(row.buckets[bucket.key])}
+                        {formatBaht(row.buckets[bucket.key])}
                       </dd>
                     </div>
                   ))}
@@ -442,15 +554,29 @@ function AgingPageContent() {
         }
         pagination={
           filteredRows.length > 0 ? (
-            <TablePagination
-              page={page}
-              totalPages={totalPages}
-              total={filteredRows.length}
-              onPageChange={(nextPage) =>
-                replaceListState({ page: String(nextPage) })
-              }
-              label="ราย"
-            />
+            <>
+              {/* แถบสรุปปิดท้ายการ์ดตามต้นแบบ (.tfoot) — บอกยอดรวมและสัดส่วนที่เลยกำหนดของผลกรอง
+                  คนละหน้าที่กับแถว "รวมผลลัพธ์" ในตารางที่แยกให้เห็นทีละช่วงอายุหนี้ */}
+              <div className={c("tfoot")}>
+                <span>
+                  รวมลูกหนี้ <b>{formatBaht(filteredTotals.grandTotal)}</b> · เลยกำหนด{" "}
+                  <b>{formatBaht(filteredOverdue)}</b>
+                  {filteredTotals.grandTotal > 0
+                    ? ` (${Math.round((filteredOverdue * 100) / filteredTotals.grandTotal)}%)`
+                    : ""}
+                </span>
+              </div>
+              <TablePagination
+                page={page}
+                totalPages={totalPages}
+                total={filteredRows.length}
+                onPageChange={(nextPage) =>
+                  replaceListState({ page: String(nextPage) })
+                }
+                label="ราย"
+                limit={PAGE_SIZE}
+              />
+            </>
           ) : undefined
         }
       />

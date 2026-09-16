@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
 import { StatusLabel } from "@/components/ui/status-label";
 import { SearchInput } from "@/components/ui/search-input";
-import { Toolbar } from "@/components/ui/toolbar";
+import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
 import { KitDateRange } from "@/components/kit/date-range";
 import { validDateParam } from "@/lib/order-list-contract";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -63,7 +63,7 @@ function NoteStatus({
   className?: string;
 }) {
   if (isVoided) {
-    return <StatusLabel label="ยกเลิก" tone="danger" emphasize className={className} />;
+    return <StatusLabel label="ยกเลิกแล้ว" tone="danger" emphasize className={className} />;
   }
   if (outstanding === 0) {
     return <StatusLabel label="รับครบแล้ว" tone="success" emphasize className={className} />;
@@ -158,7 +158,7 @@ function BillingNotesPageContent() {
     <PageShell
       title="ใบวางบิล"
       meta="รวมหลายบิลของลูกค้ารายเดียวเป็นใบเดียวเพื่อไปวางบิล"
-      breadcrumb={[{ label: "บิล/การเงิน", href: "/billing" }, { label: "ใบวางบิล" }]}
+      breadcrumb={[{ label: "บิลและการเงิน", href: "/billing" }, { label: "ใบวางบิล" }]}
       action={
         <Button onClick={() => setShowCreate(true)} className="gap-1.5">
           <Plus />
@@ -198,7 +198,7 @@ function BillingNotesPageContent() {
               surface="raised"
               ref={searchInputRef}
               containerClassName="@2xl:max-w-sm @2xl:flex-1"
-              placeholder="ค้นหาเลขใบวางบิล, ชื่อลูกค้า..."
+              placeholder="ค้นเลขใบวางบิล หรือชื่อลูกค้า"
               defaultValue={search}
               onChange={(event) => onSearchChange(event.target.value)}
             />
@@ -208,6 +208,15 @@ function BillingNotesPageContent() {
               to={dateTo}
               onChange={(from, to) => replaceListState({ from: from || null, to: to || null, page: null })}
             />
+            {/* ตัวนับท้ายแถบเครื่องมือตามต้นแบบ (.tools .cnt) — ยอดรวมที่ตรงกับตัวกรองตอนนี้
+                ยังไม่มีข้อมูลก็ยังไม่ขึ้นเลข ("0 ใบ" ระหว่างโหลดอ่านเป็น "ไม่มีใบวางบิล") */}
+            {data ? (
+              <ToolbarGroup align="end">
+                <span className="whitespace-nowrap text-xs tabular-nums text-muted">
+                  {data.total.toLocaleString("th-TH")} ใบ
+                </span>
+              </ToolbarGroup>
+            ) : null}
           </Toolbar>
         }
         items={data?.notes}
@@ -388,6 +397,9 @@ function BillingNotesPageContent() {
               page={page}
               totalPages={data.pages}
               total={data.total}
+              /* limit ต้องตรงกับที่ query ใช้ ไม่งั้นช่วง "แสดง 1–50" จะโกหก */
+              limit={50}
+              label="ใบ"
               onPageChange={(nextPage) =>
                 replaceListState({ page: String(nextPage) })
               }

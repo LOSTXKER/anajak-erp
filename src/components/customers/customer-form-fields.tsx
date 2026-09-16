@@ -255,7 +255,9 @@ export function CustomerFormFields({
         </div>
       )}
 
-      <Field label="หมายเหตุ">
+      {/* ชื่อช่องตรงกับแถว "ข้อควรรู้" บนหน้าลูกค้า (ต้นแบบ 2026-09-16) — คำเดียวทั้งสองที่
+          เดิมช่องนี้ชื่อ "หมายเหตุ" แต่หน้ารายละเอียดไม่มีที่แสดงเลย พิมพ์แล้วอ่านกลับไม่ได้ */}
+      <Field label="ข้อควรรู้">
         <Textarea
           value={form.notes}
           onChange={(e) => set({ notes: e.target.value })}

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronRight, ClipboardList, Landmark, ReceiptText } from "lucide-react";
+import { ArrowRight, ChevronRight, ClipboardList, ReceiptText, Wallet } from "lucide-react";
 import { c, CardHead } from "@/components/kit/kit";
 import { formatBaht } from "@/lib/utils";
 import type { HomeMoney } from "@/server/services/home-overview";
@@ -34,11 +34,20 @@ export function MoneyCard({ money }: { money: HomeMoney }) {
   return (
     <section className={c("card")} aria-labelledby="home-money">
       <CardHead
-        icon={Landmark}
-        tone="violet"
+        icon={Wallet}
+        tone="bad"
         id="home-money"
         title="เงินที่ต้องตาม"
-        right={rows.length === 0 ? <span className={c("chip good")}>เรียบร้อย</span> : undefined}
+        right={
+          <>
+            {/* ไม่มีรายการ = "เก็บครบแล้ว" ไม่ใช่ "โหลดไม่ขึ้น" — ป้ายนี้ของจริง ต้นแบบเว้นว่าง */}
+            {rows.length === 0 ? <span className={c("chip good")}>เรียบร้อย</span> : null}
+            <Link href="/billing" className={c("btn ghost sm")}>
+              ไปหน้าการเงิน
+              <ArrowRight aria-hidden="true" />
+            </Link>
+          </>
+        }
       />
       {rows.length === 0 ? (
         <p className={c("mempty")}>ไม่มีบิลค้างและใบเสนอราคาที่รอตอบ</p>

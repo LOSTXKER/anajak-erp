@@ -7,20 +7,25 @@ import {
   Factory,
   FileStack,
   FileText,
+  Gauge,
   Hourglass,
   Landmark,
   LayoutDashboard,
   ListTodo,
   Package,
+  Printer,
   ReceiptText,
   Scissors,
   Settings,
   ShoppingCart,
+  Truck,
   Users,
 } from "lucide-react";
 import { permAllows, type Permission } from "@/lib/permissions";
 
 export type NavigationSurface = "sidebar" | "palette";
+/** ตัวเลขงานค้างท้ายรายการเมนู — ชื่อแหล่งข้อมูลจริง ไม่ใช่ตัวเลขตายตัว (ต้นแบบ NAV2 .cnt) */
+export type NavigationBadge = "outsource" | "notifications";
 export type NavigationGroupId = "main" | "sales" | "production" | "products" | "finance" | "system";
 
 export type NavigationItem = {
@@ -33,6 +38,8 @@ export type NavigationItem = {
   aliases: readonly string[];
   surfaces: readonly NavigationSurface[];
   match?: "exact" | "section";
+  /** ขอตัวเลขงานค้างท้ายรายการ (เมนูซ้ายเท่านั้น) — ไม่ใส่ = ไม่มีตัวเลข */
+  badge?: NavigationBadge;
 };
 
 export type NavigationGroup = {
@@ -40,18 +47,16 @@ export type NavigationGroup = {
   label: string | null;
 };
 
-/* หัวกลุ่มเหลือ 4 จาก 6 (UI-2026 เฟส 2 · เบสสั่ง 2026-08-26 "ทำ UXUI ให้หมดทุกหน้า")
-   เมนูของสิทธิ์เต็มมี 17 รายการ + 6 หัวกลุ่ม × 44px ≈ 1,150px ซึ่งยาวเกินจอโรงงาน
-   (768-800px) แล้วเมนูขาดกลางคันโดยไม่มีสัญญาณว่าเลื่อนได้
-
-   กลุ่มที่มีแค่ 2 รายการถอด "หัวข้อ" ออก แต่ **ยังเป็นกลุ่มเดิม ไม่ย้ายรายการ** —
-   ระยะห่างระหว่างกลุ่มทำหน้าที่แบ่งแทน · จงใจไม่รวบกลุ่มใหม่เพราะการย้ายว่า
-   "สินค้าอยู่ใต้อะไร" เป็นการตัดสินใจเรื่องการจัดหมวดของเจ้าของ ไม่ใช่เรื่องหน้าตา */
+/* หัวกลุ่มกลับมาครบ 5 หัว + กลุ่มท้ายไม่มีหัวข้อ (ต้นแบบทั้งเว็บที่เบสเคาะ 2026-09-16)
+   ต้นแบบจัด "สินค้า · แพทเทิร์น · สต๊อกเสื้อ" ไว้ใต้หัวข้อ "ของและสินค้า" ด้วยกัน
+   และให้กลุ่มท้าย (การแจ้งเตือน · ตั้งค่า) ไม่มีหัวข้อ แต่มี **เส้นคั่น** แทน
+   — การแบ่งหมวดนี้มาจากต้นแบบของเจ้าของเอง ไม่ใช่การเดาของโค้ด
+   หัวกลุ่มเล็กและจางระดับ ink-4 จึงไม่แย่งสายตากับรายการเมนู (ดู .app-rail-group) */
 export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
   { id: "main", label: "ภาพรวม" },
   { id: "sales", label: "งานขาย" },
   { id: "production", label: "การผลิต" },
-  { id: "products", label: null },
+  { id: "products", label: "ของและสินค้า" },
   { id: "finance", label: "การเงิน" },
   { id: "system", label: null },
 ];
@@ -65,11 +70,11 @@ const BOTH = ["sidebar", "palette"] as const;
 export const NAVIGATION_ITEMS: readonly NavigationItem[] = [
   {
     id: "dashboard",
-    label: "แดชบอร์ด",
+    label: "หน้าแรก",
     href: "/",
     icon: LayoutDashboard,
     group: "main",
-    aliases: ["dashboard", "overview", "ภาพรวม"],
+    aliases: ["dashboard", "overview", "ภาพรวม", "แดชบอร์ด"],
     surfaces: BOTH,
     match: "exact",
   },
@@ -112,11 +117,43 @@ export const NAVIGATION_ITEMS: readonly NavigationItem[] = [
   },
   {
     id: "production",
-    label: "การผลิต",
+    label: "คิวงานผลิต",
     href: "/production",
     icon: Factory,
     group: "production",
-    aliases: ["production", "ผลิต", "คิวผลิต", "โต๊ะงาน"],
+    aliases: ["production", "ผลิต", "คิวผลิต", "โต๊ะงาน", "การผลิต"],
+    surfaces: BOTH,
+  },
+  /* เมนูย่อยของการผลิต 3 รายการ (ต้นแบบ NAV2 · เบสสั่ง 2026-09-16 "ทำตามต้นแบบทุกหน้า")
+     route ทั้งสามมีจริงอยู่แล้วและเปิดให้ทุกบทบาทอ่านได้ (router เป็น protectedProcedure
+     ล้วน สิทธิ์ไปตัดที่ปุ่มบันทึกในหน้า) จึงไม่ผูก permission เพิ่ม — ให้ตรงกับแถบเมนูย่อย
+     ในหัวโมดูล (PRODUCTION_MODULE_LINKS) ที่แสดงทั้งสี่ลิงก์ให้ทุกคนเหมือนกัน */
+  {
+    id: "print-runs",
+    label: "พิมพ์ DTF",
+    href: "/production/print-runs",
+    icon: Printer,
+    group: "production",
+    aliases: ["print run", "dtf", "พิมพ์", "รอบพิมพ์"],
+    surfaces: BOTH,
+  },
+  {
+    id: "outsource",
+    label: "ร้านนอก",
+    href: "/production/outsource",
+    icon: Truck,
+    group: "production",
+    aliases: ["outsource", "vendor", "ร้านนอก", "จ้างนอก"],
+    surfaces: BOTH,
+    badge: "outsource",
+  },
+  {
+    id: "production-metrics",
+    label: "ตัวชี้วัด",
+    href: "/production/metrics",
+    icon: Gauge,
+    group: "production",
+    aliases: ["metrics", "oee", "ตัวชี้วัด", "ประสิทธิภาพ"],
     surfaces: BOTH,
   },
   {
@@ -138,13 +175,22 @@ export const NAVIGATION_ITEMS: readonly NavigationItem[] = [
     surfaces: BOTH,
   },
   {
+    id: "stock",
+    label: "สต๊อกเสื้อ",
+    href: "/settings/stock",
+    icon: Cloud,
+    group: "products",
+    aliases: ["stock", "sync", "คลัง", "เชื่อมต่อ", "สต๊อก"],
+    surfaces: BOTH,
+  },
+  {
     id: "billing",
-    label: "บิล/การเงิน",
+    label: "บิลและการเงิน",
     href: "/billing",
-    icon: FileText,
+    icon: Landmark,
     group: "finance",
     permission: "manage_billing_docs",
-    aliases: ["billing", "invoice", "bill", "บิล", "การเงิน"],
+    aliases: ["billing", "invoice", "bill", "บิล", "การเงิน", "บิล/การเงิน"],
     surfaces: BOTH,
   },
   {
@@ -171,7 +217,7 @@ export const NAVIGATION_ITEMS: readonly NavigationItem[] = [
     id: "wht",
     label: "หัก ณ ที่จ่าย",
     href: "/billing/wht",
-    icon: ReceiptText,
+    icon: FileText,
     group: "finance",
     permission: "manage_billing_docs",
     aliases: ["wht", "withholding tax", "50 ทวิ", "หัก ณ ที่จ่าย"],
@@ -181,7 +227,7 @@ export const NAVIGATION_ITEMS: readonly NavigationItem[] = [
     id: "sales-tax",
     label: "ภาษีขาย",
     href: "/billing/tax",
-    icon: Landmark,
+    icon: ReceiptText,
     group: "finance",
     permission: "manage_billing_docs",
     aliases: ["sales tax", "vat", "peak", "ภาษีขาย"],
@@ -189,7 +235,7 @@ export const NAVIGATION_ITEMS: readonly NavigationItem[] = [
   },
   {
     id: "analytics",
-    label: "สถิติ",
+    label: "รายงาน",
     href: "/analytics",
     icon: BarChart3,
     group: "finance",
@@ -204,7 +250,8 @@ export const NAVIGATION_ITEMS: readonly NavigationItem[] = [
     icon: Bell,
     group: "system",
     aliases: ["notification", "alert", "แจ้งเตือน"],
-    surfaces: ["palette"],
+    surfaces: BOTH,
+    badge: "notifications",
   },
   {
     id: "settings",
@@ -213,15 +260,6 @@ export const NAVIGATION_ITEMS: readonly NavigationItem[] = [
     icon: Settings,
     group: "system",
     aliases: ["settings", "config", "ตั้งค่า", "ระบบ"],
-    surfaces: BOTH,
-  },
-  {
-    id: "stock",
-    label: "สต๊อก",
-    href: "/settings/stock",
-    icon: Cloud,
-    group: "system",
-    aliases: ["stock", "sync", "คลัง", "เชื่อมต่อ"],
     surfaces: BOTH,
   },
 ];

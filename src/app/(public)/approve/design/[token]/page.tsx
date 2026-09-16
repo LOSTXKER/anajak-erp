@@ -8,12 +8,12 @@ import { Alert } from "@/components/ui/alert";
 import { Textarea } from "@/components/ui/textarea";
 import { Field } from "@/components/ui/field";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { ActionZone } from "@/components/ui/action-zone";
 import { PublicLinkError } from "@/components/public-link-error";
 import {
   PublicPageShell,
   FullScreenLoading,
-  InfoRow,
 } from "@/components/public/public-page";
 import {
   Check,
@@ -23,6 +23,7 @@ import {
   Palette,
   CheckCircle,
   AlertCircle,
+  AlertTriangle,
 } from "lucide-react";
 import { DASHED } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
@@ -59,11 +60,19 @@ export default function DesignApprovalPage({
   const alreadyDecided = d.approvalStatus !== "PENDING";
   // เวอร์ชันเก่าที่มีรูปเดียวจะได้ลิสต์ยาว 1 — หน้านี้จึงใช้โค้ดทางเดียวกันทั้งของเก่าและใหม่
   const images = mockupImages(d);
+  const pageTitle = `แบบเสื้อรอบที่ ${d.versionNumber}`;
+  const pageSubtitle = `${d.order.orderNumber} · ${d.order.customer.name}`;
 
   // Thank you screen after submission
   if (submitted) {
     return (
-      <PublicPageShell icon={<Palette />} subtitle={`แบบออเดอร์ ${d.order.orderNumber}`}>
+      <PublicPageShell
+        icon={<Palette />}
+        pageLabel="อนุมัติแบบ"
+        brandNote="ดูแบบแล้วกดอนุมัติหรือขอแก้"
+        title={pageTitle}
+        subtitle={pageSubtitle}
+      >
         <Card>
           <CardContent className="p-8 text-center" role="status">
             {submitted === "approved" ? (
@@ -97,34 +106,19 @@ export default function DesignApprovalPage({
   return (
     <PublicPageShell
       icon={<Palette />}
-      subtitle="ตรวจสอบและอนุมัติแบบ"
+      pageLabel="อนุมัติแบบ"
+      brandNote="ดูแบบแล้วกดอนุมัติหรือขอแก้"
+      title={pageTitle}
+      subtitle={pageSubtitle}
     >
-
-        {/* Order Info */}
+        {/* ม็อกอัพทั้งชุด — ลูกค้าตัดสินครั้งเดียวจึงต้องเห็นครบทุกด้านก่อนกด
+            (เวอร์ชันอยู่บนหัวหน้าแล้ว การ์ดนี้จึงไม่มีหัวการ์ดตามต้นแบบ) */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">ข้อมูลออเดอร์</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-2 text-sm">
-              <InfoRow label="เลขออเดอร์">{d.order.orderNumber}</InfoRow>
-              <InfoRow label="ลูกค้า">{d.order.customer.name}</InfoRow>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* ม็อกอัพทั้งชุด — ลูกค้าตัดสินครั้งเดียวจึงต้องเห็นครบทุกด้านก่อนกด */}
-        <Card>
-          <CardHeader>
+          <CardContent className="space-y-4 pt-4.5">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <CardTitle className="text-base">
-                ม็อกอัพเวอร์ชัน {d.versionNumber}
-                {images.length > 1 ? (
-                  <span className="ml-1.5 font-normal text-muted">
-                    ({images.length} รูป)
-                  </span>
-                ) : null}
-              </CardTitle>
+              <p className="text-sm text-muted">
+                {images.length > 0 ? `ม็อกอัพ ${images.length} รูป` : "ยังไม่มีรูปม็อกอัพในรอบนี้"}
+              </p>
               <Badge
                 variant={
                   d.approvalStatus === "APPROVED"
@@ -141,17 +135,18 @@ export default function DesignApprovalPage({
                     : "รอตรวจสอบ"}
               </Badge>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
             {/* กางรูปใหญ่เรียงลงมา ไม่ใช่ตารางรูปย่อ — ลูกค้าส่วนใหญ่เปิดบนมือถือและ
                 ต้องเห็นรายละเอียดลายชัดพอจะตัดสินใจ ไม่ใช่แค่รู้ว่ามีกี่รูป */}
             {images.map((image, index) => (
               <figure key={`${image.fileUrl}-${index}`} className="space-y-1.5">
-                {image.positionLabel ? (
+                {/* ป้ายข้างรูปตามต้นแบบ: ตำแหน่ง + คำกำกับในบรรทัดเดียว (ขนาดลายจริงยังไม่มีใน payload) */}
+                {(image.positionLabel || image.caption) && (
                   <figcaption className="text-sm font-medium text-secondary">
-                    ด้าน{image.positionLabel}
+                    {[image.positionLabel ? `ด้าน${image.positionLabel}` : null, image.caption]
+                      .filter(Boolean)
+                      .join(" · ")}
                   </figcaption>
-                ) : null}
+                )}
 
                 {image.previewUrl ? (
                   <a
@@ -176,10 +171,6 @@ export default function DesignApprovalPage({
                     ไฟล์นี้เป็นไฟล์งาน เปิดดูตัวอย่างในหน้านี้ไม่ได้ — กดลิงก์ด้านล่างเพื่อดูก่อนตัดสินใจ
                   </div>
                 )}
-
-                {image.caption ? (
-                  <p className="text-sm text-muted">{image.caption}</p>
-                ) : null}
 
                 <p className="text-center">
                   <a
@@ -230,62 +221,66 @@ export default function DesignApprovalPage({
             </CardContent>
           </Card>
         ) : (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">ความคิดเห็นของคุณ</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Field label="ความคิดเห็นของคุณ" visuallyHiddenLabel>
-                <Textarea
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  placeholder="พิมพ์ความเห็นหรือสิ่งที่ต้องการแก้ไข (ถ้ามี)..."
-                  rows={4}
-                  disabled={approve.isPending}
-                />
-              </Field>
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <Button
-                  variant="outline"
-                  className="flex-1 gap-1.5"
-                  onClick={() =>
-                    approve.mutate({
-                      token,
-                      approved: false,
-                      comment: comment || undefined,
-                    })
-                  }
-                  disabled={approve.isPending}
-                >
-                  <X />
-                  ขอแก้ไข
-                </Button>
-                <Button
-                  className="flex-1 gap-1.5"
-                  onClick={() =>
-                    approve.mutate({
-                      token,
-                      approved: true,
-                      comment: comment || undefined,
-                    })
-                  }
-                  disabled={approve.isPending}
-                >
-                  {approve.isPending ? (
-                    <Loader2 className="animate-spin" />
-                  ) : (
-                    <Check />
-                  )}
-                  อนุมัติแบบ
-                </Button>
-              </div>
-              {/* ลูกค้ากดอนุมัติแล้วไม่สำเร็จ ต้องเห็นชัด — เดิมเป็นบรรทัดแดงจางๆ
-                  ที่มองข้ามได้ง่าย แล้วลูกค้าจะนึกว่าอนุมัติไปแล้ว (audit สี 2026-08-02) */}
-              {approve.error && (
-                <Alert variant="error">เกิดข้อผิดพลาด กรุณาลองอีกครั้ง</Alert>
-              )}
-            </CardContent>
-          </Card>
+          <>
+            <Card>
+              <CardContent className="pt-4.5">
+                <Field label="ความคิดเห็นของคุณ (ไม่บังคับ)">
+                  <Textarea
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    placeholder="พิมพ์ความเห็นหรือสิ่งที่ต้องการแก้ไข (ถ้ามี)..."
+                    rows={4}
+                    disabled={approve.isPending}
+                  />
+                </Field>
+              </CardContent>
+            </Card>
+            {/* คำเตือนอยู่ติดปุ่ม เพราะการกดนี้ย้อนไม่ได้และมีผลกับเงิน */}
+            <ActionZone
+              icon={AlertTriangle}
+              tone="error"
+              note="ตรวจตัวสะกด สี และตำแหน่งให้ครบก่อนกดอนุมัติ · อนุมัติแล้วเข้าคิวผลิตทันที แก้ทีหลังมีค่าใช้จ่าย"
+            >
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() =>
+                  approve.mutate({
+                    token,
+                    approved: false,
+                    comment: comment || undefined,
+                  })
+                }
+                disabled={approve.isPending}
+              >
+                <X />
+                ขอแก้แบบ
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={() =>
+                  approve.mutate({
+                    token,
+                    approved: true,
+                    comment: comment || undefined,
+                  })
+                }
+                disabled={approve.isPending}
+              >
+                {approve.isPending ? (
+                  <Loader2 className="animate-spin" />
+                ) : (
+                  <Check />
+                )}
+                อนุมัติแบบนี้
+              </Button>
+            </ActionZone>
+            {/* ลูกค้ากดอนุมัติแล้วไม่สำเร็จ ต้องเห็นชัด — เดิมเป็นบรรทัดแดงจางๆ
+                ที่มองข้ามได้ง่าย แล้วลูกค้าจะนึกว่าอนุมัติไปแล้ว (audit สี 2026-08-02) */}
+            {approve.error && (
+              <Alert variant="error">เกิดข้อผิดพลาด กรุณาลองอีกครั้ง</Alert>
+            )}
+          </>
         )}
     </PublicPageShell>
   );

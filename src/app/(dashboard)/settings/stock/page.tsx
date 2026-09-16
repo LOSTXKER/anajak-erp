@@ -2,21 +2,16 @@
 import { HelpTip } from "@/components/ui/help-tip";
 
 import { useState } from "react";
+import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { permAllows } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { ToneMark } from "@/components/ui/section";
+import { Section } from "@/components/ui/section";
 import { RADIUS, TINT } from "@/components/ui/tokens";
 import { Badge } from "@/components/ui/badge";
 import { QueryError } from "@/components/ui/query-error";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn, formatDateTime } from "@/lib/utils";
 import {
   Cloud,
@@ -38,6 +33,7 @@ import { Alert } from "@/components/ui/alert";
 import { DataTable } from "@/components/ui/data-table";
 import { PageShell } from "@/components/page-shell";
 import { ContextPanel } from "@/components/ui/context-panel";
+import { c } from "@/components/kit/kit";
 
 // ─── Setting Keys ──────────────────────────────────────────
 const STOCK_API_URL_KEY = "stock_api_url";
@@ -165,13 +161,13 @@ export default function StockSettingsPage() {
   const syncStock = trpc.stockSync.syncStock.useMutation({
     onSuccess: (result) => {
       setLastStockResult(result);
-      toast.success("Sync สต็อกสำเร็จ", {
-        description: `อัพเดท ${result.updated} รายการ`,
+      toast.success("ดึงยอดคงเหลือแล้ว", {
+        description: `อัปเดต ${result.updated} รายการ`,
       });
       utils.stockSync.status.invalidate();
     },
     onError: (error) => {
-      toast.error("Sync สต็อกล้มเหลว", { description: error.message });
+      toast.error("ดึงยอดคงเหลือไม่สำเร็จ", { description: error.message });
     },
   });
 
@@ -194,11 +190,31 @@ export default function StockSettingsPage() {
   }
 
   const hasCredentials = Boolean(apiUrl.trim() && apiKey.trim());
+  /** ตั้งค่าไว้แล้วจริงในฐานข้อมูล (ไม่ใช่ค่าที่เพิ่งพิมพ์) — ใช้บอกสถานะบนแถบ */
+  const isLinked = Boolean(savedApiUrl && savedApiKey);
 
   return (
     <PageShell
-      title={demoMode ? "สต๊อกทดสอบ" : "เชื่อมต่อ Anajak Stock"}
+      title="สต๊อกเสื้อ"
+      description="ยอดจริงอยู่ที่ Anajak Stock · ที่นี่ตั้งค่าการเชื่อมต่อและสั่งดึงยอด"
       loading={meQuery.isLoading || (canManage && statusLoading)}
+      /* ปุ่มสั่งดึงยอดอยู่มุมขวาบนตามต้นแบบ — ของเดิมฝังอยู่กลางหน้า ต้องเลื่อนหา */
+      action={
+        !demoMode ? (
+          <Button
+            variant="outline"
+            onClick={() => syncStock.mutate()}
+            disabled={syncStock.isPending || !hasCredentials}
+          >
+            {syncStock.isPending ? (
+              <RefreshCw className="animate-spin" />
+            ) : (
+              <RefreshCw />
+            )}
+            {syncStock.isPending ? "กำลังดึงยอด…" : "ดึงยอดล่าสุด"}
+          </Button>
+        ) : undefined
+      }
       error={
         meQuery.isError
           ? {
@@ -221,38 +237,56 @@ export default function StockSettingsPage() {
         }
       }
     >
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      {/* แถบสถานะบรรทัดเดียวตามต้นแบบ (.statusbar) — เดิมกระจายเป็น 4 บรรทัดในกล่องเทา */}
+      {syncStatus ? (
+        <div className="card-surface flex flex-wrap items-center gap-3 rounded-xl px-4 py-2.5 text-sm text-secondary">
+          <span className={c("stat")}>
+            <span
+              className={c(demoMode ? "d warn" : isLinked ? "d good" : "d gray")}
+              aria-hidden="true"
+            />
+            <b className="font-medium">
+              {demoMode
+                ? "ใช้สต๊อกทดลองในเครื่อง"
+                : isLinked
+                  ? "เชื่อมกับ Anajak Stock อยู่"
+                  : "ยังไม่ได้ตั้งค่าการเชื่อมต่อ"}
+            </b>
+          </span>
+          <span className="h-4 w-px bg-divider" aria-hidden="true" />
+          <span className="tabular-nums">
+            {syncStatus.lastSyncAt
+              ? `ดึงล่าสุด ${formatDateTime(syncStatus.lastSyncAt)}`
+              : "ยังไม่เคยดึงยอด"}
+            {" · สินค้าทั้งหมด "}
+            {syncStatus.totalProducts} รายการ
+          </span>
+        </div>
+      ) : null}
+
+      <div className="grid grid-cols-1 gap-4.5 lg:grid-cols-2">
         {demoMode ? (
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <ToneMark icon={Database} tone="system" />
-                ใช้สต๊อกทดสอบในเครื่อง
-              </CardTitle>
-              <CardDescription>
-                ยอดจอง เบิก และคืนจะเปลี่ยนเฉพาะข้อมูลสำหรับทดลองเท่านั้น
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ContextPanel tone="info" title="พื้นที่ทดลองแยกจาก Anajak Stock">
-                ข้อมูลในหน้านี้ไม่ถูกส่งไปคลังหลัก หากต้องการเริ่มใหม่ให้ผู้ดูแลระบบคืนข้อมูลตัวอย่าง แล้วทดลองเบิกจากจอสถานี
-              </ContextPanel>
-            </CardContent>
-          </Card>
+          <Section
+            className="lg:col-span-2"
+            title="ใช้สต๊อกทดลองในเครื่อง"
+            icon={Database}
+            tone="system"
+            description="ยอดจอง เบิก และคืนจะเปลี่ยนเฉพาะข้อมูลสำหรับทดลองเท่านั้น"
+          >
+            <ContextPanel tone="info" title="พื้นที่ทดลองแยกจาก Anajak Stock">
+              ข้อมูลในหน้านี้ไม่ถูกส่งไปคลังหลัก หากต้องการเริ่มใหม่ให้ผู้ดูแลระบบคืนข้อมูลตัวอย่าง แล้วทดลองเบิกจากจอสถานี
+            </ContextPanel>
+          </Section>
         ) : (
           <>
         {/* ─── Connection Section ─────────────────────────────── */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <ToneMark icon={Plug} tone="system" />
-              การเชื่อมต่อ API
-            </CardTitle>
-            <CardDescription>
-              ใส่ API URL และ API Key จากระบบ Anajak Stock
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <Section
+          title="การเชื่อมต่อ API"
+          icon={Plug}
+          tone="system"
+          description="ใส่ API URL และ API Key จากระบบ Anajak Stock"
+        >
+          <div className="space-y-4">
             {settingsError ? (
               <QueryError
                 message="โหลดค่าการเชื่อมต่อ Stock ไม่สำเร็จ"
@@ -260,8 +294,8 @@ export default function StockSettingsPage() {
               />
             ) : settingsLoading ? (
               <div className="space-y-3">
-                <div className="h-10 animate-pulse rounded-lg bg-slate-200 dark:bg-slate-700" />
-                <div className="h-10 animate-pulse rounded-lg bg-slate-200 dark:bg-slate-700" />
+                <Skeleton className="h-10 rounded-lg" />
+                <Skeleton className="h-10 rounded-lg" />
               </div>
             ) : (
               <>
@@ -399,18 +433,12 @@ export default function StockSettingsPage() {
                 )}
               </>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </Section>
 
         {/* ─── Sync Section ──────────────────────────────────── */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <ToneMark icon={RefreshCw} tone="system" />
-              Sync สินค้า
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <Section title="ดึงข้อมูลสินค้า" icon={RefreshCw} tone="system" flush>
+          <div className="space-y-4 px-4.5 pt-4">
             {/* Sync status summary */}
             <div className="rounded-lg border border-border bg-surface-muted p-4">
               {statusError ? (
@@ -420,24 +448,14 @@ export default function StockSettingsPage() {
                 />
               ) : statusLoading ? (
                 <div className="space-y-2">
-                  <div className="h-4 w-48 animate-pulse rounded bg-slate-200 dark:bg-slate-700" />
-                  <div className="h-4 w-32 animate-pulse rounded bg-slate-200 dark:bg-slate-700" />
+                  <Skeleton className="h-4 w-48" />
+                  <Skeleton className="h-4 w-32" />
                 </div>
               ) : syncStatus ? (
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center justify-between">
                         <span className="text-muted">
-                          อัพเดทล่าสุด
-                        </span>
-                    <span className="font-medium text-strong">
-                      {syncStatus.lastSyncAt
-                        ? formatDateTime(syncStatus.lastSyncAt)
-                        : "ยังไม่เคย Sync"}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                        <span className="text-muted">
-                          สินค้าจาก Stock
+                          สินค้าจาก Anajak Stock
                         </span>
                     <span className="font-medium text-strong">
                       {syncStatus.totalStockProducts} รายการ
@@ -445,7 +463,7 @@ export default function StockSettingsPage() {
                   </div>
                   <div className="flex items-center justify-between">
                         <span className="text-muted">
-                          สินค้า Local
+                          สินค้าที่สร้างในระบบนี้
                         </span>
                     <span className="font-medium text-strong">
                       {syncStatus.totalLocalProducts} รายการ
@@ -465,39 +483,24 @@ export default function StockSettingsPage() {
               )}
             </div>
 
-            {/* Sync buttons */}
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              <Button
-                onClick={() => setSyncDialogOpen(true)}
-                disabled={!hasCredentials}
-                className="w-full"
-              >
-                <Cloud />
-                Sync สินค้า
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => syncStock.mutate()}
-                disabled={syncStock.isPending || !hasCredentials}
-                className="w-full"
-              >
-                {syncStock.isPending ? (
-                  <RefreshCw className="animate-spin" />
-                ) : (
-                  <Database />
-                )}
-                {syncStock.isPending ? "กำลัง Sync..." : "Sync เฉพาะสต็อค"}
-              </Button>
-            </div>
+            {/* ปุ่มดึงเฉพาะยอดคงเหลือย้ายขึ้นมุมขวาบนของหน้าแล้ว — ที่นี่เหลือการดึงรายการสินค้าทีละหน้า */}
+            <Button
+              onClick={() => setSyncDialogOpen(true)}
+              disabled={!hasCredentials}
+              className="w-full"
+            >
+              <Cloud />
+              ดึงรายการสินค้า
+            </Button>
 
             {/* Last stock sync result */}
             {lastStockResult && (
               <Alert variant="success">
                 <p className="mb-1 text-sm font-medium text-green-700 dark:text-green-400">
-                  ผลลัพธ์ Sync สต็อก
+                  ผลการดึงยอดคงเหลือ
                 </p>
                 <p className="text-xs text-green-600 dark:text-green-300">
-                  อัพเดท: {lastStockResult.updated} รายการ
+                  อัปเดต: {lastStockResult.updated} รายการ
                 </p>
                 {lastStockResult.errors.length > 0 && (
                   <p className="mt-1 text-xs text-red-600 dark:text-red-400">
@@ -506,78 +509,75 @@ export default function StockSettingsPage() {
                 )}
               </Alert>
             )}
-          </CardContent>
-        </Card>
+          </div>
+
+          {/* แถบสรุปท้ายการ์ดตามต้นแบบ (.tfoot) — ที่นี่ไม่มีตารางยอด ต้องบอกว่าไปดูที่ไหน */}
+          <div className={cn(c("tfoot"), "mt-4")}>
+            ดึงยอดเมื่อกดสั่งเท่านั้น · ยอดคงเหลือรายสินค้าดูที่{" "}
+            <Link href="/products" className="text-blue-600 dark:text-blue-400">
+              หน้าสินค้า
+            </Link>
+          </div>
+        </Section>
           </>
         )}
 
         {/* ─── Category Mapping ──────────────────────────────── */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <ToneMark icon={ArrowRightLeft} tone="system" />
-              การแมปหมวดหมู่
-            </CardTitle>
-            <CardDescription>
-              ระบบแมปเข้ากลุ่มสินค้าให้อัตโนมัติ
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <DataTable.Root bordered={false}>
-              <DataTable.Head>
-                <tr>
-                  <DataTable.Th>หมวดหมู่ Stock</DataTable.Th>
-                  <DataTable.Th aria-label="แมปไปยัง" align="center">
+        <Section
+          title="การแมปหมวดหมู่"
+          icon={ArrowRightLeft}
+          tone="system"
+          description="ระบบแมปเข้ากลุ่มสินค้าให้อัตโนมัติ"
+          flush
+        >
+          <DataTable.Root bordered={false}>
+            <DataTable.Head>
+              <tr>
+                <DataTable.Th>หมวดหมู่ Stock</DataTable.Th>
+                <DataTable.Th aria-label="แมปไปยัง" align="center">
+                  →
+                </DataTable.Th>
+                <DataTable.Th>ประเภทสินค้า ERP</DataTable.Th>
+              </tr>
+            </DataTable.Head>
+            <DataTable.Body>
+              {itemTypeMappings.map((mapping, i) => (
+                <DataTable.Row key={i}>
+                  <th
+                    scope="row"
+                    className="px-6 py-4 text-left text-sm font-normal text-strong"
+                  >
+                    {mapping.stockCategory}
+                  </th>
+                  <DataTable.Td
+                    aria-hidden="true"
+                    align="center"
+                    className="text-muted"
+                  >
                     →
-                  </DataTable.Th>
-                  <DataTable.Th>ประเภทสินค้า ERP</DataTable.Th>
-                </tr>
-              </DataTable.Head>
-              <DataTable.Body>
-                {itemTypeMappings.map((mapping, i) => (
-                  <DataTable.Row key={i}>
-                    <th
-                      scope="row"
-                      className="px-6 py-4 text-left text-sm font-normal text-strong"
-                    >
-                      {mapping.stockCategory}
-                    </th>
-                    <DataTable.Td
-                      aria-hidden="true"
-                      align="center"
-                      className="text-muted"
-                    >
-                      →
-                    </DataTable.Td>
-                    <DataTable.Td
-                      aria-label={`${mapping.erpItemType} ${mapping.erpCode}`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="text-strong">
-                          {mapping.erpItemType}
-                        </span>
-                        <Badge variant="secondary">
-                          {mapping.erpCode}
-                        </Badge>
-                      </div>
-                    </DataTable.Td>
-                  </DataTable.Row>
-                ))}
-              </DataTable.Body>
-            </DataTable.Root>
-          </CardContent>
-        </Card>
+                  </DataTable.Td>
+                  <DataTable.Td
+                    aria-label={`${mapping.erpItemType} ${mapping.erpCode}`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-strong">
+                        {mapping.erpItemType}
+                      </span>
+                      <Badge variant="secondary">
+                        {mapping.erpCode}
+                      </Badge>
+                    </div>
+                  </DataTable.Td>
+                </DataTable.Row>
+              ))}
+            </DataTable.Body>
+          </DataTable.Root>
+        </Section>
 
         {/* ─── Info / How-to Section ────────────────────────── */}
         {!demoMode ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <ToneMark icon={Info} tone="system" />
-              วิธีเชื่อมต่อ
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm text-secondary">
+        <Section title="วิธีเชื่อมต่อ" icon={Info} tone="system">
+          <div className="space-y-3 text-sm text-secondary">
             <div className="space-y-3">
               <div className="flex gap-3">
                 <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-700 dark:bg-blue-900 dark:text-blue-300">
@@ -628,13 +628,11 @@ export default function StockSettingsPage() {
 
             <Alert variant="info" className="mt-4">
               <p className="text-xs text-blue-700 dark:text-blue-400">
-                  <strong>Tip:</strong> ไม่ต้องตั้งค่า ENV แล้ว
-                  เพียงใส่ข้อมูลผ่านหน้าเว็บนี้
-                  ระบบจะเก็บไว้ในฐานข้อมูลอัตโนมัติ
+                  ใส่ค่าผ่านหน้านี้ได้เลย ไม่ต้องตั้งค่า ENV ที่เครื่องเซิร์ฟเวอร์
               </p>
             </Alert>
-          </CardContent>
-        </Card>
+          </div>
+        </Section>
         ) : null}
       </div>
 

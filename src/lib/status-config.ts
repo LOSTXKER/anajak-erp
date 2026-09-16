@@ -102,3 +102,35 @@ export const DELIVERY_STATUS_LABELS_CUSTOMER: Record<string, string> = {
   PENDING: "รอจัดส่ง",
   PREPARING: "กำลังเตรียมส่ง",
 };
+
+/* ============================================================
+   เส้นสีขอบซ้ายของแถว/การ์ดรายการ (ต้นแบบ markRows · ใช้เหมือนกันทุกตารางทั้งเว็บ)
+
+   กติกาเดียวของทั้งระบบ เพื่อไม่ให้แต่ละหน้าตีความ "แถวไหนควรมีเส้น" คนละแบบ:
+     งานที่จบแล้ว (ส่ง/ปิด/ยกเลิก/ร่าง) = ไม่ใส่เส้น — ไม่มีอะไรให้ทำแล้ว
+     เลยกำหนด หรือติดปัญหาโทนร้าย       = danger (แดง)
+     ถึงกำหนดวันนี้/พรุ่งนี้ หรือโทนเตือน = warning (ส้ม)
+
+   ⚠️ เส้นคือ "ตัวช่วยกวาดสายตา" ไม่ใช่ข้อมูล — แถวที่ได้เส้นต้องมีข้อความบอกเหตุ
+   ในแถวด้วยเสมอ (ป้ายกำหนดส่ง/เหตุผล) ห้ามใช้สีเป็นข้อมูลอย่างเดียว (WCAG 1.4.1)
+   ส่งค่าให้ <DataTable.Row tone> หรือ <ListCardItem tone> ตรง ๆ ได้เลย
+   ============================================================ */
+export type RowTone = "danger" | "warning" | null;
+
+/** สถานะที่ถือว่า "จบแล้ว" จึงไม่ต้องมีเส้นเตือน (ตรงกับต้นแบบ markRows) */
+const SETTLED_STATUSES = new Set(["SHIPPED", "COMPLETED", "CANCELLED", "DRAFT"]);
+
+export function rowToneFor(input: {
+  /** สถานะภายในของออเดอร์/ใบงาน — ใช้ตัดงานที่จบแล้วออก */
+  status?: string | null;
+  /** จำนวนวันถึงกำหนด (ติดลบ = เลยกำหนดแล้ว · null = ไม่มีกำหนด) */
+  dueInDays?: number | null;
+  /** โทนของปัญหาที่หน้านั้นคำนวณไว้แล้ว เช่น HomeProblemTone */
+  problemTone?: "danger" | "warning" | "success" | "neutral" | null;
+}): RowTone {
+  if (input.status && SETTLED_STATUSES.has(input.status)) return null;
+  const due = input.dueInDays ?? null;
+  if (input.problemTone === "danger" || (due !== null && due < 0)) return "danger";
+  if (input.problemTone === "warning" || (due !== null && due <= 1)) return "warning";
+  return null;
+}

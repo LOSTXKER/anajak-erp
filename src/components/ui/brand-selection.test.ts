@@ -62,11 +62,11 @@ describe("Anajak selected-state contract", () => {
 
   /* กระดาษคือที่ที่แบรนด์อยู่ได้นานที่สุด — ลูกค้า B2B เก็บใบกำกับภาษีเป็นปี
      grayscale lock ใน globals.css มีไว้กัน slate ของ app shell ไหลลงกระดาษ
-     ไม่ได้มีไว้ห้ามแบรนด์ · ตราหัวใบกับเส้นคาดหนึ่งเส้นเท่านั้นที่ได้สี ที่เหลือคงเทา */
+     ไม่ได้มีไว้ห้ามแบรนด์ · ตราหัวใบเท่านั้นที่ได้สี เส้นคาดเป็นดำตามชุดเอกสาร (ต้นแบบ 2026-09-16) */
   it("เอกสารพิมพ์มีตราสีแบรนด์และพิมพ์ออกมาแล้วสีติดจริง", () => {
     const printSource = read("../print/print-document.tsx");
     expect(printSource).toContain("bg-blue-600");
-    expect(printSource).toContain("border-b-2 border-blue-600");
+    expect(printSource).toContain("border-b-2 border-slate-900");
     expect(read("../../app/globals.css")).toContain("print-color-adjust: exact");
   });
 

@@ -24,16 +24,27 @@ export function ListCards({
   );
 }
 
-/** การ์ดหนึ่งใบ — ผิว/มุมโค้งมาตรฐาน (เนื้อในและลิงก์เป็นของหน้า) */
+/** เส้นจริงวาดใน globals.css (.row-tone-*) — markup ห้ามเขียนเงาเอง */
+const CARD_TONE = { danger: "row-tone-danger", warning: "row-tone-warning" } as const;
+
+/** การ์ดหนึ่งใบ — ผิว/มุมโค้งมาตรฐาน (เนื้อในและลิงก์เป็นของหน้า)
+ *  tone = เส้นสีขอบซ้ายชุดเดียวกับแถวตาราง (DataTable.Row) เพื่อให้จอแคบกับจอกว้าง
+ *  อ่านงานด่วนได้เหมือนกัน · หาโทนด้วย rowToneFor จาก @/lib/status-config
+ *  ใช้เส้นคู่กับข้อความในการ์ดเสมอ ห้ามใช้สีเป็นข้อมูลอย่างเดียว */
 export function ListCardItem({
   className,
+  tone,
   children,
 }: {
   className?: string;
+  tone?: "danger" | "warning" | null;
   children: React.ReactNode;
 }) {
   return (
-    <article role="listitem" className={cn("card-surface rounded-2xl", className)}>
+    <article
+      role="listitem"
+      className={cn("card-surface rounded-2xl", tone && CARD_TONE[tone], className)}
+    >
       {children}
     </article>
   );

@@ -6,10 +6,12 @@ import { createClient } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field } from "@/components/ui/field";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardDescription } from "@/components/ui/card";
 import { Printer } from "lucide-react";
 import { Alert } from "@/components/ui/alert";
 import { safeAfterLoginHref } from "@/lib/auth-redirect";
+import { cn } from "@/lib/utils";
+import styles from "./login.module.css";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -50,52 +52,59 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-bg px-4 py-8">
-      <Card className="w-full max-w-sm">
-        <CardHeader className="gap-4">
+    // ต้นแบบ .login = พื้นเต็มจอ จัดกึ่งกลาง ระยะขอบ 40px บน-ล่าง / 16px ซ้าย-ขวา
+    <main className="flex min-h-dvh items-center justify-center bg-bg px-4 py-10">
+      {/* ต้นแบบ .lcard: กว้างสุด 392px · ระยะใน 26/24/22 · ช่องไฟระหว่างบล็อก 14px */}
+      <Card className="w-full max-w-[392px]">
+        <CardHeader className="gap-3.5 space-y-0 px-6 pb-3.5 pt-6.5">
           {/* แบรนด์อยู่แถวเดียวกับชื่อ แล้วค่อยขึ้นหัวข้อของหน้า (ต้นแบบ 2026-09-16) */}
           <div className="flex items-center gap-2.5">
-            <span className="grid size-9 place-items-center rounded-[11px] bg-blue-600 text-white">
+            <span className="grid size-8.5 place-items-center rounded-[11px] bg-blue-600 text-white">
               <Printer className="h-[18px] w-[18px]" aria-hidden="true" />
             </span>
             <span className="min-w-0">
-              <span className="block text-sm font-semibold text-strong">Anajak Print</span>
+              <span className={cn("block font-semibold text-strong", styles.brand)}>Anajak Print</span>
               <span className="block text-xs text-muted">ERP โรงงานสกรีนเสื้อ</span>
             </span>
           </div>
           <div>
-            <CardTitle className="text-xl">เข้าสู่ระบบ</CardTitle>
-            <CardDescription className="mt-1">ใช้บัญชีที่ร้านออกให้ · เข้าไม่ได้ให้ทักหัวหน้า</CardDescription>
+            {/* หัวข้อจริงของหน้า — หน้าอื่นได้ h1 จาก PageHeader หน้านี้ไม่มีหัวหน้าชุดกลาง */}
+            <h1 className={cn("font-semibold text-strong", styles.title)}>เข้าสู่ระบบ</h1>
+            <CardDescription className="mt-1.5">ใช้บัญชีที่ร้านออกให้ · ถ้าเข้าไม่ได้ให้ทักหัวหน้า</CardDescription>
           </div>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4" aria-busy={loading}>
-            <Field id="login-email" label="อีเมล">
-              <Input
-                id="login-email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="email@example.com"
-                autoComplete="email"
-                autoCapitalize="none"
-                spellCheck={false}
-                disabled={loading}
-                required
-              />
-            </Field>
-            <Field id="login-password" label="รหัสผ่าน">
-              <Input
-                id="login-password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="รหัสผ่าน"
-                autoComplete="current-password"
-                disabled={loading}
-                required
-              />
-            </Field>
+        <CardContent className="px-6 pb-5.5">
+          {/* ช่องไฟตามต้นแบบ: สองช่องกรอกห่างกัน 12px ส่วนฟอร์ม→ปุ่ม→คำช่วยห่าง 14px */}
+          <form onSubmit={handleSubmit} className="space-y-3.5" aria-busy={loading}>
+            <div className="space-y-3">
+              <Field id="login-email" label="อีเมล">
+                <Input
+                  id="login-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@anajak.co"
+                  autoComplete="email"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  disabled={loading}
+                  required
+                />
+              </Field>
+              <Field id="login-password" label="รหัสผ่าน">
+                <Input
+                  id="login-password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                  disabled={loading}
+                  required
+                />
+              </Field>
+            </div>
+            {/* ต้นแบบไม่มีกล่องนี้เพราะกดไม่ได้จริง — ของจริงต้องบอกสาเหตุตรงจุดก่อนปุ่ม */}
             {errorMessage && (
               <Alert variant="error">
                 {errorMessage}

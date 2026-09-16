@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import { PageHeader, type BreadcrumbItem } from "@/components/page-header";
+import { c } from "@/components/kit/kit";
 import { QueryError } from "@/components/ui/query-error";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AccessDenied } from "@/components/ui/access-denied";
@@ -19,21 +20,14 @@ import type { VisualTone } from "@/lib/visual-tone";
    ลำดับ = error → loading → denied → children
    (error/loading มาก่อน denied เพราะระหว่างเช็คสิทธิ์ยังตอบไม่ได้ว่า "ไม่มีสิทธิ์")
 
-   width เลือกตามบทบาท ไม่ใช่ตาม component ข้างใน:
-   full = กว้างตาม layout กลาง (list/detail/inline editor) · wide = max-w-5xl
-   (standalone document form) · content = max-w-4xl (เนื้อหาอ่านโฟกัส) ·
-   form = max-w-2xl (ฟอร์มตั้งค่าสั้น) · component ลูกห้ามใส่ max-width ซ้ำ
+   ความกว้างเหลือค่าเดียวทั้งเว็บ (ต้นแบบที่เบสเคาะ 2026-09-16): ทุกหน้าใช้ผืน .page
+   ของชุด kit เหมือนกันหมด รวมทั้งฟอร์มเปิดออเดอร์/ใบเสนอราคา — ต้นแบบไม่มีชั้นแคบ
+   prop `width` จึงไม่มีผลแล้ว แต่ยังรับไว้ให้ caller เดิมคอมไพล์ผ่านระหว่างรอถอดออก
+   (ฟอร์มยาวคุมความอ่านง่ายด้วยกริดในการ์ด ไม่ใช่การบีบทั้งหน้า)
    ============================================================ */
 
+/** @deprecated ทุกหน้าใช้ความกว้างเดียวกันแล้ว — ค่าที่ส่งมาไม่มีผล */
 type PageWidth = "full" | "wide" | "content" | "form";
-
-const WIDTH_CLASS: Record<PageWidth, string> = {
-  // ความกว้างเดียวกับหน้าตาชุด kit (.page 1124px · หน้าออเดอร์/หน้าแรก/ผลิต) — 2026-09-17 ให้ทุกหน้าเข้ากัน
-  full: "mx-auto w-full max-w-[1124px]",
-  wide: "mx-auto max-w-5xl", // ฟอร์มเอกสาร (orders/new, quotations/new)
-  content: "mx-auto max-w-4xl",
-  form: "mx-auto max-w-2xl",
-};
 
 interface PageShellProps {
   // ---- ส่งต่อ PageHeader ทั้งชุด (เขียนครั้งเดียว ใช้ทุก state) ----
@@ -67,6 +61,7 @@ interface PageShellProps {
   /** ไม่มีสิทธิ์ — ส่ง object เพื่อใช้ข้อความเฉพาะหน้า หรือ true ใช้ข้อความกลาง */
   denied?: { title?: string; description?: string } | boolean | null;
 
+  /** @deprecated ทุกหน้ากว้างเท่ากันตามต้นแบบแล้ว — ค่าที่ส่งมาไม่มีผล */
   width?: PageWidth;
   className?: string;
   children: ReactNode;
@@ -90,7 +85,6 @@ export function PageShell({
   skeleton,
   error,
   denied,
-  width = "full",
   className,
   children,
 }: PageShellProps) {
@@ -111,8 +105,15 @@ export function PageShell({
   }
   const normal = !error && !loading && !denied;
 
+  /* หน้าที่มีหัวโมดูลของตัวเอง (โมดูลการผลิต/หน้าแรก) วาดผืน .page ของตัวเองอยู่แล้ว
+     ที่นี่จึงคุมแค่ความกว้างและตัวอักษรชุดกลาง ไม่ซ้อนผืนซ้ำจนของในหน้าไล่ขึ้นสองรอบ */
   return (
-    <div className={cn(header ? "space-y-0" : "space-y-4.5", WIDTH_CLASS[width], className)}>
+    <div
+      className={cn(
+        header ? cn(c("tokens"), "mx-auto w-full max-w-[1124px] space-y-0") : c("tokens page"),
+        className,
+      )}
+    >
       {header ?? (
         <PageHeader
           title={title}

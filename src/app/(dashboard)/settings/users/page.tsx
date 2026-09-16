@@ -16,14 +16,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ToneMark } from "@/components/ui/section";
 import { Select } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
-import { QueryError } from "@/components/ui/query-error";
 import { DataTable } from "@/components/ui/data-table";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ResponsiveList } from "@/components/ui/responsive-list";
+import { ListCards, ListCardItem, ListCardMetaGrid, ListCardMeta } from "@/components/ui/list-card";
+import { SearchInput } from "@/components/ui/search-input";
+import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
 import { PageShell } from "@/components/page-shell";
+import { c } from "@/components/kit/kit";
 import {
   Dialog,
   DialogContent,
@@ -37,6 +39,36 @@ import type { Role } from "@prisma/client";
 import { CONTROL_MIN_H } from "@/components/ui/control-size";
 import { Alert } from "@/components/ui/alert";
 
+/* ผู้ใช้และสิทธิ์ — โครงตามต้นแบบทั้งเว็บที่เบสเคาะ 2026-09-16:
+   หัวหน้า + ปุ่มหลักมุมขวา → การ์ดเดียวไม่มีหัวการ์ด (แถบเครื่องมือ = ค้นหา + ตัวนับ)
+   → ตาราง ชื่อ · บทบาท · อีเมล · เห็นเงิน · สถานะ
+   ต่างจากต้นแบบโดยตั้งใจ (ต้นแบบเป็นภาพนิ่ง ของจริงต้องทำงานได้):
+     · บทบาท/สถานะเป็น control จริง (Select + Switch) ไม่ใช่ข้อความ/ชิปอ่านอย่างเดียว
+     · คอลัมน์ท้ายมีปุ่ม "สิทธิ์" และ "รีเซ็ตรหัส" ซึ่งต้นแบบไม่มีเลย
+     · คอลัมน์ "เข้าล่าสุด" ของต้นแบบทำไม่ได้: User ไม่มีฟิลด์เวลาเข้าระบบ (มีแค่ createdAt/updatedAt)
+       จะมีได้ต้องแก้ schema + เก็บเวลาที่ชั้น auth ซึ่งเกินขอบเขตงานหน้าตา */
+
+/** ตัวอักษรแรกของชื่อสำหรับวงกลมหน้าชื่อ (ต้นแบบ .who .av) */
+function initialOf(name: string) {
+  return name.trim().charAt(0) || "?";
+}
+
+function Avatar({ name }: { name: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      className="grid size-8 shrink-0 place-items-center rounded-full bg-module-brand-surface text-xs font-semibold text-module-brand-text"
+    >
+      {initialOf(name)}
+    </span>
+  );
+}
+
+/** เห็นตัวเลขเงินได้ไหม = ผลลัพธ์ของ role + สิทธิ์ที่ปรับเอง (อ่านอย่างเดียว · แก้ที่กล่องสิทธิ์) */
+function seesMoney(role: Role, overrides: unknown) {
+  return effectivePermissions(role, parsePermissionOverrides(overrides)).includes("see_order_money");
+}
+
 export default function UsersSettingsPage() {
   const utils = trpc.useUtils();
 
@@ -47,6 +79,16 @@ export default function UsersSettingsPage() {
     enabled: canManageUsers,
   });
   const { data: users, isLoading, error } = usersQuery;
+
+  // user.list ไม่มี input search (และรายชื่อพนักงานสั้น) — กรองฝั่งจอ ไม่แตะ router
+  const [search, setSearch] = useState("");
+  const keyword = search.trim().toLowerCase();
+  const visibleUsers = keyword
+    ? users?.filter(
+        (user) =>
+          user.name.toLowerCase().includes(keyword) || user.email.toLowerCase().includes(keyword),
+      )
+    : users;
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [newUser, setNewUser] = useState({
@@ -126,9 +168,25 @@ export default function UsersSettingsPage() {
     updateMutation.error?.message ||
     setActiveMutation.error?.message;
 
+  /* เหตุผลที่หน้านี้ไม่มีปุ่มลบ — วางไว้ใต้ตารางที่มีสวิตช์ ไม่ใช่คำโปรยบนหัวหน้า
+     (ส่งผ่าน slot ท้ายการ์ดของ ResponsiveList เพื่อให้อยู่ในกรอบเดียวกับสวิตช์ที่มันอธิบาย
+      — ขอ slot ชื่อตรงความหมายไว้แล้ว ดู sharedFileRequests) */
+  const closeInsteadOfDeleteNote = (
+    <p className="border-t border-divider/60 px-4.5 py-3 text-xs text-secondary">
+      ปิดผู้ใช้แทนการลบ เพื่อให้ประวัติที่เขาทำไว้ยังอ่านได้
+    </p>
+  );
+
   return (
     <PageShell
-      title="จัดการผู้ใช้"
+      title="ผู้ใช้และสิทธิ์"
+      description="ใครเข้าระบบได้ และใครเห็นตัวเลขเงิน"
+      action={
+        <Button size="sm" onClick={() => setShowAddForm(!showAddForm)}>
+          <Plus />
+          เพิ่มผู้ใช้
+        </Button>
+      }
       loading={meQuery.isLoading}
       error={
         meQuery.isError
@@ -144,240 +202,301 @@ export default function UsersSettingsPage() {
         }
       }
     >
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <ToneMark icon={Users} tone="system" />
-            ผู้ใช้ทั้งหมด
-          </CardTitle>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowAddForm(!showAddForm)}
-          >
-            <Plus className="mr-1" />
-            เพิ่มผู้ใช้
-          </Button>
-        </CardHeader>
-        <CardContent>
-          {showAddForm && (
-            <form
-              onSubmit={handleCreate}
-              className="card-surface mb-4 grid grid-cols-1 items-end gap-3 rounded-2xl p-4 sm:grid-cols-2 lg:grid-cols-5"
-            >
-              <div>
-                <label htmlFor="new-user-name" className="mb-1 block text-xs font-medium text-muted">
-                  ชื่อ *
-                </label>
-                <Input
-                  id="new-user-name"
-                  value={newUser.name}
-                  onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
-                  placeholder="ชื่อพนักงาน"
-                  required
-                  autoComplete="name"
-                />
-              </div>
-              <div>
-                <label htmlFor="new-user-email" className="mb-1 block text-xs font-medium text-muted">
-                  อีเมล *
-                </label>
-                <Input
-                  id="new-user-email"
-                  type="email"
-                  value={newUser.email}
-                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                  placeholder="email@anajak.com"
-                  required
-                  autoComplete="email"
-                />
-              </div>
-              <div>
-                <label htmlFor="new-user-role" className="mb-1 block text-xs font-medium text-muted">
-                  บทบาท *
-                </label>
-                <Select
-                  id="new-user-role"
-                  value={newUser.role}
-                  onChange={(e) =>
-                    setNewUser({ ...newUser, role: e.target.value as Role })
-                  }
-                >
-                  {ROLE_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </Select>
-              </div>
-              <div>
-                <label htmlFor="new-user-password" className="mb-1 block text-xs font-medium text-muted">
-                  รหัสผ่านเริ่มต้น * (8+ ตัว)
-                </label>
-                <Input
-                  id="new-user-password"
-                  type="text"
-                  value={newUser.password}
-                  onChange={(e) =>
-                    setNewUser({ ...newUser, password: e.target.value })
-                  }
-                  placeholder="รหัสผ่านชั่วคราว"
-                  minLength={8}
-                  required
-                  autoComplete="new-password"
-                />
-              </div>
-              <div className="flex gap-2">
-                <Button type="submit" size="sm" disabled={createMutation.isPending}>
-                  {createMutation.isPending ? "กำลังสร้าง..." : "สร้าง"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowAddForm(false)}
-                >
-                  ยกเลิก
-                </Button>
-              </div>
-            </form>
-          )}
-
-          {isLoading ? (
-            <div className="space-y-3">
-              {[...Array(4)].map((_, i) => (
-                <Skeleton key={i} className="h-12 w-full" />
-              ))}
-            </div>
-          ) : error ? (
-            <QueryError
-              message={error.message}
-              onRetry={() => usersQuery.refetch()}
+      {showAddForm && (
+        <form
+          onSubmit={handleCreate}
+          className="card-surface grid grid-cols-1 items-end gap-3 rounded-2xl p-4.5 sm:grid-cols-2 lg:grid-cols-5"
+        >
+          <div>
+            <label htmlFor="new-user-name" className="mb-1 block text-xs font-medium text-muted">
+              ชื่อ *
+            </label>
+            <Input
+              id="new-user-name"
+              value={newUser.name}
+              onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+              placeholder="ชื่อพนักงาน"
+              required
+              autoComplete="name"
             />
-          ) : !users || users.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12">
-              <Users className="h-10 w-10 text-muted" />
-              <p className="mt-3 text-sm text-muted">ยังไม่มีผู้ใช้</p>
-            </div>
-          ) : (
-            <DataTable.Root bordered={false}>
-              <DataTable.Head>
-                <tr>
-                  <DataTable.Th>ชื่อ</DataTable.Th>
-                  <DataTable.Th>อีเมล</DataTable.Th>
-                  <DataTable.Th>บทบาท</DataTable.Th>
-                  <DataTable.Th align="center">ใช้งาน</DataTable.Th>
-                  <DataTable.Th align="right">จัดการ</DataTable.Th>
-                </tr>
-              </DataTable.Head>
-              <DataTable.Body>
-                  {users.map((user) => {
-                    const isSelf = user.id === me?.id;
-                    return (
-                      <DataTable.Row
-                        key={user.id}
-                        className={!user.isActive ? "opacity-50" : undefined}
-                      >
-                        <DataTable.Td>
-                          <div>
-                            <span className="text-sm font-medium text-strong">
-                              {user.name}
-                            </span>
-                            {isSelf && (
-                              <span className="ml-2 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
-                                คุณ
-                              </span>
-                            )}
-                          </div>
-                        </DataTable.Td>
-                        <DataTable.Td className="text-muted">
-                          {user.email}
-                        </DataTable.Td>
-                        <DataTable.Td>
-                          {isSelf ? (
-                            <span className="text-sm text-secondary">
-                              {ROLE_LABELS[user.role]}
-                            </span>
-                          ) : (
-                            <Select size="sm"
-                              value={user.role}
-                              disabled={updateMutation.isPending}
-                              aria-label={`บทบาทของ ${user.name}`}
-                              onChange={(e) =>
-                                updateMutation.mutate({
-                                  id: user.id,
-                                  role: e.target.value as Role,
-                                })
-                              }
-                              className="w-36"
-                            >
-                              {ROLE_OPTIONS.map((opt) => (
-                                <option key={opt.value} value={opt.value}>
-                                  {opt.label}
-                                </option>
-                              ))}
-                            </Select>
-                          )}
-                        </DataTable.Td>
-                        <DataTable.Td align="center">
-                          <Switch
-                            checked={user.isActive}
-                            disabled={isSelf || setActiveMutation.isPending}
-                            aria-label={`${user.isActive ? "ปิด" : "เปิด"}บัญชี ${user.name}`}
-                            onCheckedChange={(checked) =>
-                              setActiveMutation.mutate({
-                                id: user.id,
-                                isActive: checked,
-                              })
-                            }
-                          />
-                        </DataTable.Td>
-                        <DataTable.Td align="right">
-                          {!isSelf && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => openPermissions(user)}
-                              className="px-2 text-muted"
-                            >
-                              <ShieldCheck className="mr-1" />
-                              สิทธิ์
-                              {(() => {
-                                // นับเฉพาะที่ต่างจาก default ของ role ปัจจุบันจริง — ตรงกับป้าย "ปรับเอง" ใน dialog
-                                const n = countEffectiveOverrides(
-                                  user.role,
-                                  user.permissionOverrides
-                                );
-                                return n > 0 ? ` (${n})` : "";
-                              })()}
-                            </Button>
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() =>
-                              setResetTarget({ id: user.id, name: user.name })
-                            }
-                            className="px-2 text-muted"
-                          >
-                            <KeyRound className="mr-1" />
-                            รีเซ็ตรหัส
-                          </Button>
-                        </DataTable.Td>
-                      </DataTable.Row>
-                    );
-                  })}
-              </DataTable.Body>
-            </DataTable.Root>
-          )}
+          </div>
+          <div>
+            <label htmlFor="new-user-email" className="mb-1 block text-xs font-medium text-muted">
+              อีเมล *
+            </label>
+            <Input
+              id="new-user-email"
+              type="email"
+              value={newUser.email}
+              onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+              placeholder="email@anajak.com"
+              required
+              autoComplete="email"
+            />
+          </div>
+          <div>
+            <label htmlFor="new-user-role" className="mb-1 block text-xs font-medium text-muted">
+              บทบาท *
+            </label>
+            <Select
+              id="new-user-role"
+              value={newUser.role}
+              onChange={(e) => setNewUser({ ...newUser, role: e.target.value as Role })}
+            >
+              {ROLE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <div>
+            <label htmlFor="new-user-password" className="mb-1 block text-xs font-medium text-muted">
+              รหัสผ่านเริ่มต้น * (8+ ตัว)
+            </label>
+            <Input
+              id="new-user-password"
+              type="text"
+              value={newUser.password}
+              onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+              placeholder="รหัสผ่านชั่วคราว"
+              minLength={8}
+              required
+              autoComplete="new-password"
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button type="submit" size="sm" disabled={createMutation.isPending}>
+              {createMutation.isPending ? "กำลังสร้าง..." : "สร้าง"}
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={() => setShowAddForm(false)}>
+              ยกเลิก
+            </Button>
+          </div>
+        </form>
+      )}
 
-          {mutationError && (
-            <Alert variant="error" className="mt-3">
-              {mutationError}
-            </Alert>
-          )}
-        </CardContent>
-      </Card>
+      <ResponsiveList
+        items={visibleUsers}
+        isLoading={isLoading}
+        isError={Boolean(error)}
+        errorMessage={error?.message ?? "โหลดรายชื่อผู้ใช้ไม่สำเร็จ"}
+        onRetry={() => usersQuery.refetch()}
+        label="ผู้ใช้"
+        toolbar={
+          <Toolbar>
+            <SearchInput
+              surface="raised"
+              containerClassName="@2xl:max-w-sm @2xl:flex-1"
+              placeholder="ค้นชื่อหรืออีเมล"
+              aria-label="ค้นหาผู้ใช้จากชื่อหรืออีเมล"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+            <ToolbarGroup align="end">
+              <span className="text-xs tabular-nums whitespace-nowrap text-muted">
+                {(visibleUsers?.length ?? 0).toLocaleString("th-TH")} คน
+              </span>
+            </ToolbarGroup>
+          </Toolbar>
+        }
+        emptyState={
+          <EmptyState
+            icon={Users}
+            title={keyword ? "ไม่พบผู้ใช้ที่ค้น" : "ยังไม่มีผู้ใช้"}
+            description={keyword ? "ลองเปลี่ยนคำค้นหา" : undefined}
+            action={
+              keyword ? (
+                <Button variant="outline" size="sm" onClick={() => setSearch("")}>
+                  ล้างคำค้น
+                </Button>
+              ) : undefined
+            }
+          />
+        }
+        pagination={closeInsteadOfDeleteNote}
+        renderDesktop={(rows) => (
+          <DataTable.Root>
+            <DataTable.Head>
+              <tr>
+                <DataTable.Th>ชื่อ</DataTable.Th>
+                <DataTable.Th>บทบาท</DataTable.Th>
+                <DataTable.Th>อีเมล</DataTable.Th>
+                <DataTable.Th>เห็นเงิน</DataTable.Th>
+                <DataTable.Th>สถานะ</DataTable.Th>
+                <DataTable.Th align="right">
+                  <span className="sr-only">จัดการผู้ใช้</span>
+                </DataTable.Th>
+              </tr>
+            </DataTable.Head>
+            <DataTable.Body>
+              {rows.map((user) => {
+                const isSelf = user.id === me?.id;
+                return (
+                  <DataTable.Row
+                    key={user.id}
+                    className={!user.isActive ? "opacity-50" : undefined}
+                  >
+                    <DataTable.Td>
+                      <div className="flex items-center gap-3">
+                        <Avatar name={user.name} />
+                        <div className="min-w-0">
+                          <span className="text-sm font-medium text-strong">{user.name}</span>
+                          {isSelf && (
+                            <span className="ml-2 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
+                              คุณ
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </DataTable.Td>
+                    <DataTable.Td>
+                      {isSelf ? (
+                        <span className="text-sm text-secondary">{ROLE_LABELS[user.role]}</span>
+                      ) : (
+                        <Select
+                          size="sm"
+                          value={user.role}
+                          disabled={updateMutation.isPending}
+                          aria-label={`บทบาทของ ${user.name}`}
+                          onChange={(e) =>
+                            updateMutation.mutate({
+                              id: user.id,
+                              role: e.target.value as Role,
+                            })
+                          }
+                          className="w-36"
+                        >
+                          {ROLE_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </Select>
+                      )}
+                    </DataTable.Td>
+                    <DataTable.Td className="text-muted">{user.email}</DataTable.Td>
+                    <DataTable.Td>
+                      {seesMoney(user.role, user.permissionOverrides) ? (
+                        <span className={c("chip good")}>เห็น</span>
+                      ) : (
+                        <span className={c("chip gray")}>ไม่เห็น</span>
+                      )}
+                    </DataTable.Td>
+                    <DataTable.Td>
+                      <Switch
+                        checked={user.isActive}
+                        disabled={isSelf || setActiveMutation.isPending}
+                        aria-label={`${user.isActive ? "ปิด" : "เปิด"}บัญชี ${user.name}`}
+                        onCheckedChange={(checked) =>
+                          setActiveMutation.mutate({
+                            id: user.id,
+                            isActive: checked,
+                          })
+                        }
+                      />
+                    </DataTable.Td>
+                    <DataTable.Td align="right">
+                      {!isSelf && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openPermissions(user)}
+                          className="px-2 text-muted"
+                        >
+                          <ShieldCheck className="mr-1" />
+                          สิทธิ์
+                          {(() => {
+                            // นับเฉพาะที่ต่างจาก default ของ role ปัจจุบันจริง — ตรงกับป้าย "ปรับเอง" ใน dialog
+                            const n = countEffectiveOverrides(user.role, user.permissionOverrides);
+                            return n > 0 ? ` (${n})` : "";
+                          })()}
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setResetTarget({ id: user.id, name: user.name })}
+                        className="px-2 text-muted"
+                      >
+                        <KeyRound className="mr-1" />
+                        รีเซ็ตรหัส
+                      </Button>
+                    </DataTable.Td>
+                  </DataTable.Row>
+                );
+              })}
+            </DataTable.Body>
+          </DataTable.Root>
+        )}
+        renderMobile={(rows) => (
+          <ListCards label="รายชื่อผู้ใช้">
+            {rows.map((user) => {
+              const isSelf = user.id === me?.id;
+              return (
+                <ListCardItem key={user.id} className={!user.isActive ? "opacity-60" : undefined}>
+                  <div className="p-4">
+                    <div className="flex items-start gap-3">
+                      <Avatar name={user.name} />
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-strong">
+                          {user.name}
+                          {isSelf && (
+                            <span className="ml-2 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
+                              คุณ
+                            </span>
+                          )}
+                        </p>
+                        <p className="mt-0.5 truncate text-xs text-secondary">{user.email}</p>
+                      </div>
+                      <Switch
+                        checked={user.isActive}
+                        disabled={isSelf || setActiveMutation.isPending}
+                        aria-label={`${user.isActive ? "ปิด" : "เปิด"}บัญชี ${user.name}`}
+                        onCheckedChange={(checked) =>
+                          setActiveMutation.mutate({ id: user.id, isActive: checked })
+                        }
+                      />
+                    </div>
+                    <ListCardMetaGrid>
+                      <ListCardMeta label="บทบาท">{ROLE_LABELS[user.role]}</ListCardMeta>
+                      <ListCardMeta label="เห็นเงิน" align="right">
+                        {seesMoney(user.role, user.permissionOverrides) ? (
+                          <span className={c("chip good")}>เห็น</span>
+                        ) : (
+                          <span className={c("chip gray")}>ไม่เห็น</span>
+                        )}
+                      </ListCardMeta>
+                    </ListCardMetaGrid>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {!isSelf && (
+                        <Button variant="outline" size="sm" onClick={() => openPermissions(user)}>
+                          <ShieldCheck />
+                          สิทธิ์
+                          {(() => {
+                            const n = countEffectiveOverrides(user.role, user.permissionOverrides);
+                            return n > 0 ? ` (${n})` : "";
+                          })()}
+                        </Button>
+                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setResetTarget({ id: user.id, name: user.name })}
+                      >
+                        <KeyRound />
+                        รีเซ็ตรหัส
+                      </Button>
+                    </div>
+                  </div>
+                </ListCardItem>
+              );
+            })}
+          </ListCards>
+        )}
+      />
+
+      {mutationError && <Alert variant="error">{mutationError}</Alert>}
 
       <Dialog
         open={resetTarget !== null}
@@ -412,9 +531,7 @@ export default function UsersSettingsPage() {
               />
             </div>
             {resetPasswordMutation.error && (
-              <Alert variant="error">
-                {resetPasswordMutation.error.message}
-              </Alert>
+              <Alert variant="error">{resetPasswordMutation.error.message}</Alert>
             )}
             <div className="flex justify-end gap-2">
               <Button
@@ -425,11 +542,7 @@ export default function UsersSettingsPage() {
               >
                 ยกเลิก
               </Button>
-              <Button
-                type="submit"
-                size="sm"
-                disabled={resetPasswordMutation.isPending}
-              >
+              <Button type="submit" size="sm" disabled={resetPasswordMutation.isPending}>
                 {resetPasswordMutation.isPending ? "กำลังรีเซ็ต..." : "รีเซ็ตรหัสผ่าน"}
               </Button>
             </div>
@@ -459,9 +572,7 @@ export default function UsersSettingsPage() {
             <div className="space-y-4">
               {[...new Set(PERMISSION_DEFS.map((d) => d.group))].map((group) => (
                 <div key={group}>
-                  <p className="mb-1.5 text-xs font-semibold text-muted">
-                    {group}
-                  </p>
+                  <p className="mb-1.5 text-xs font-semibold text-muted">{group}</p>
                   <div className="space-y-1">
                     {PERMISSION_DEFS.filter((d) => d.group === group).map((def) => {
                       const locked = NON_OVERRIDABLE_PERMISSIONS.includes(def.key);
@@ -472,18 +583,14 @@ export default function UsersSettingsPage() {
                         <label
                           key={def.key}
                           className={`${CONTROL_MIN_H} flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-sm ${
-                            locked
-                              ? "cursor-not-allowed opacity-50"
-                              : "cursor-pointer"
+                            locked ? "cursor-not-allowed opacity-50" : "cursor-pointer"
                           }`}
                         >
                           <span className="flex items-center gap-2">
                             <Checkbox
                               checked={checked}
                               disabled={locked}
-                              onChange={() =>
-                                setPermDraft((d) => ({ ...d, [def.key]: !checked }))
-                              }
+                              onChange={() => setPermDraft((d) => ({ ...d, [def.key]: !checked }))}
                             />
                             {def.label}
                           </span>
@@ -493,9 +600,7 @@ export default function UsersSettingsPage() {
                                 ปรับเอง
                               </span>
                             )}
-                            {locked && (
-                              <span className="text-xs text-muted">เจ้าของเท่านั้น</span>
-                            )}
+                            {locked && <span className="text-xs text-muted">เจ้าของเท่านั้น</span>}
                           </span>
                         </label>
                       );
@@ -504,9 +609,7 @@ export default function UsersSettingsPage() {
                 </div>
               ))}
               {setPermissionsMutation.error && (
-                <Alert variant="error">
-                  {setPermissionsMutation.error.message}
-                </Alert>
+                <Alert variant="error">{setPermissionsMutation.error.message}</Alert>
               )}
               {/* ใช้ DialogFooter เพื่อให้ปุ่มปักก้นกรอบเหมือน dialog อื่น — รายการสิทธิ์ 20 ข้อ
                   ยาวเกินกรอบเสมอ ปุ่มบันทึกเดิมจึงจมอยู่ล่างสุดของกล่องที่ต้องเลื่อนหา
@@ -519,10 +622,7 @@ export default function UsersSettingsPage() {
                   onClick={() =>
                     setPermDraft(
                       Object.fromEntries(
-                        PERMISSIONS.map((p) => [
-                          p,
-                          defaultPermissionsOf(permTarget.role).includes(p),
-                        ])
+                        PERMISSIONS.map((p) => [p, defaultPermissionsOf(permTarget.role).includes(p)])
                       )
                     )
                   }

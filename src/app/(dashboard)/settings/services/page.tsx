@@ -8,9 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ToneMark } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/utils";
 import { Plus, Trash2, Pencil, X, Check, Settings } from "lucide-react";
 import { Select } from "@/components/ui/select";
@@ -18,13 +15,22 @@ import { Switch } from "@/components/ui/switch";
 import { SegmentedControl } from "@/components/ui/segmented";
 import { ADDON_TYPES, PRICING_TYPE_LABELS } from "@/types/order-form";
 import { PageShell } from "@/components/page-shell";
-import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DataTable } from "@/components/ui/data-table";
+import { ResponsiveList } from "@/components/ui/responsive-list";
+import { ListCards, ListCardItem, ListCardMetaGrid, ListCardMeta } from "@/components/ui/list-card";
+import { SearchInput } from "@/components/ui/search-input";
+import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
 
 // ============================================================
 // TYPES & CONSTANTS
 // ============================================================
+
+/* บริการและราคา — โครงตามต้นแบบทั้งเว็บที่เบสเคาะ 2026-09-16:
+   หัวหน้า + ปุ่มหลักมุมขวา → การ์ดเดียวไม่มีหัวการ์ด (แท็บหมวด + ค้นหา + ตัวนับอยู่ในแถบเครื่องมือ)
+   → ตาราง บริการ · ประเภท · คิดราคา · ราคา · สถานะ
+   ต่างจากต้นแบบโดยตั้งใจ: ต้นแบบมีตารางเดียวและเป็นภาพนิ่ง ของจริงมี 3 หมวด (ADDON/PRINT/FEE),
+   แก้ไขในแถวได้, สวิตช์เปิด-ปิดจริง และปุ่มลบเฉพาะเจ้าของ — คงไว้ทั้งหมด */
 
 type TabKey = "ADDON" | "PRINT" | "FEE";
 
@@ -33,11 +39,6 @@ const tabs: { key: TabKey; label: string }[] = [
   { key: "PRINT", label: "การสกรีน" },
   { key: "FEE", label: "ค่าบริการ" },
 ];
-
-const pricingTypeConfig: Record<string, { label: string; variant: "default" | "secondary" }> = {
-  PER_PIECE: { label: PRICING_TYPE_LABELS.PER_PIECE, variant: "default" },
-  PER_ORDER: { label: PRICING_TYPE_LABELS.PER_ORDER, variant: "secondary" },
-};
 
 type NewItemForm = {
   type: string;
@@ -62,6 +63,9 @@ const emptyForm: NewItemForm = {
   pricingType: "PER_PIECE",
 };
 
+const pricingLabel = (pricingType: string) =>
+  PRICING_TYPE_LABELS[pricingType as keyof typeof PRICING_TYPE_LABELS] ?? pricingType;
+
 // ============================================================
 // COMPONENT
 // ============================================================
@@ -72,6 +76,8 @@ export default function ServicesPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [formData, setFormData] = useState<NewItemForm>({ ...emptyForm });
   const [editingItem, setEditingItem] = useState<EditingItem | null>(null);
+  // รายการบริการต่อหมวดสั้น จึงกรองฝั่งจอ (ครอบทั้งชื่อและชื่อประเภทที่คนอ่านเห็น) ไม่แตะ router
+  const [search, setSearch] = useState("");
 
   const utils = trpc.useUtils();
   const confirmDialog = useConfirm();
@@ -83,6 +89,15 @@ export default function ServicesPage() {
   const { data: items, isLoading, isError, refetch } = trpc.serviceCatalog.list.useQuery({
     category: activeTab,
   }, { enabled: canManage });
+
+  const keyword = search.trim().toLowerCase();
+  const visibleItems = keyword
+    ? items?.filter(
+        (item) =>
+          item.name.toLowerCase().includes(keyword) ||
+          (ADDON_TYPES[item.type] ?? item.type).toLowerCase().includes(keyword)
+      )
+    : items;
 
   const createItem = trpc.serviceCatalog.create.useMutation({
     onSuccess: () => {
@@ -153,13 +168,35 @@ export default function ServicesPage() {
     });
   };
 
+  /* ผลของการแก้ราคา — วางไว้ท้ายการ์ดที่มีราคาและปุ่มแก้ไข ไม่ใช่คำโปรยบนหัวหน้า
+     (ตรงกับของจริง: OrderItemAddon เก็บ unitPrice ของตัวเองตอนเปิดออเดอร์ ไม่อ้างอิงราคาปัจจุบัน)
+     ส่งผ่าน slot ท้ายการ์ดของ ResponsiveList — ขอ slot ชื่อตรงความหมายไว้แล้ว ดู sharedFileRequests */
+  const priceNote = (
+    <p className="border-t border-divider/60 px-4.5 py-3 text-xs text-secondary">
+      ราคานี้ใช้คิดเงินอัตโนมัติตอนเปิดออเดอร์ · ออเดอร์เก่าคงราคาเดิม
+    </p>
+  );
+
   // ============================================================
   // RENDER
   // ============================================================
 
   return (
     <PageShell
-      title="จัดการบริการ"
+      title="บริการและราคา"
+      description="ราคาต่อหน่วยที่ระบบใช้คิดเงินให้อัตโนมัติ"
+      action={
+        <Button
+          size="sm"
+          onClick={() => {
+            setShowAddForm(!showAddForm);
+            setFormData({ ...emptyForm });
+          }}
+        >
+          <Plus />
+          เพิ่มบริการ
+        </Button>
+      }
       loading={meQuery.isLoading}
       error={
         meQuery.isError
@@ -179,329 +216,442 @@ export default function ServicesPage() {
         }
       }
     >
-      {/* Tabs */}
-      <SegmentedControl
-        value={activeTab}
-        onChange={(value) => {
-          setActiveTab(value);
-          setShowAddForm(false);
-          setEditingItem(null);
-        }}
-        options={tabs.map((tab) => ({ value: tab.key, label: tab.label }))}
+      {/* Add form */}
+      {showAddForm && (
+        <form onSubmit={handleCreate} className="card-surface space-y-3 rounded-2xl p-4.5">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            <div>
+              <label htmlFor={`${formId}-type`} className="mb-1 block text-xs font-medium text-muted">
+                ประเภท *
+              </label>
+              {activeTab === "ADDON" ? (
+                // ส่วนเสริม: เลือกจากรายการไทย รหัสเก็บเงียบๆ (ป้ายเย็บติดทำให้ใบผลิตเสนอขั้น "เย็บป้าย")
+                <Select
+                  id={`${formId}-type`}
+                  value={formData.type}
+                  onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                  required
+                >
+                  <option value="">เลือกประเภท...</option>
+                  {Object.entries(ADDON_TYPES).map(([code, label]) => (
+                    <option key={code} value={code}>{label}</option>
+                  ))}
+                </Select>
+              ) : (
+                <Input
+                  id={`${formId}-type`}
+                  value={formData.type}
+                  onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                  placeholder="เช่น ปักโลโก้"
+                  required
+                />
+              )}
+            </div>
+            <div>
+              <label htmlFor={`${formId}-name`} className="mb-1 block text-xs font-medium text-muted">
+                ชื่อ *
+              </label>
+              <Input
+                id={`${formId}-name`}
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="ชื่อบริการ"
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor={`${formId}-price`} className="mb-1 block text-xs font-medium text-muted">
+                ราคา (บาท) *
+              </label>
+              <Input
+                id={`${formId}-price`}
+                type="number"
+                min={0}
+                step={0.01}
+                value={formData.defaultPrice}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    defaultPrice: Number.isFinite(e.target.valueAsNumber) ? e.target.valueAsNumber : "",
+                  })
+                }
+                placeholder="0.00"
+                aria-describedby={`${formId}-price-help`}
+                required
+              />
+              <p id={`${formId}-price-help`} className="mt-1 text-xs text-secondary">กรอก 0 ได้หากบริการนี้ไม่คิดเงิน</p>
+            </div>
+            <div>
+              <label htmlFor={`${formId}-pricing-type`} className="mb-1 block text-xs font-medium text-muted">
+                คิดราคา
+              </label>
+              <Select
+                id={`${formId}-pricing-type`}
+                value={formData.pricingType}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    pricingType: e.target.value as "PER_PIECE" | "PER_ORDER",
+                  })
+                }
+              >
+                <option value="PER_PIECE">{PRICING_TYPE_LABELS.PER_PIECE}</option>
+                <option value="PER_ORDER">{PRICING_TYPE_LABELS.PER_ORDER}</option>
+              </Select>
+            </div>
+            <div className="flex items-end gap-2">
+              <Button type="submit" size="sm" className="flex-1" disabled={createItem.isPending}>
+                {createItem.isPending ? "กำลังเพิ่ม..." : "เพิ่ม"}
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => setShowAddForm(false)}>
+                ยกเลิก
+              </Button>
+            </div>
+          </div>
+        </form>
+      )}
+
+      <ResponsiveList
+        items={visibleItems}
+        isLoading={isLoading}
+        isError={isError}
+        errorMessage="โหลดรายการบริการไม่สำเร็จ"
+        onRetry={() => refetch()}
+        label="บริการ"
+        toolbar={
+          <Toolbar>
+            <SearchInput
+              surface="raised"
+              containerClassName="@2xl:max-w-sm @2xl:flex-1"
+              placeholder="ค้นชื่อบริการ"
+              aria-label="ค้นหาบริการจากชื่อหรือประเภท"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+            <SegmentedControl
+              value={activeTab}
+              onChange={(value) => {
+                setActiveTab(value);
+                setShowAddForm(false);
+                setEditingItem(null);
+              }}
+              options={tabs.map((tab) => ({ value: tab.key, label: tab.label }))}
+              aria-label="หมวดของบริการ"
+            />
+            <ToolbarGroup align="end">
+              <span className="text-xs tabular-nums whitespace-nowrap text-muted">
+                {(visibleItems?.length ?? 0).toLocaleString("th-TH")} บริการ
+              </span>
+            </ToolbarGroup>
+          </Toolbar>
+        }
+        emptyState={
+          <EmptyState
+            icon={Settings}
+            title={keyword ? "ไม่พบบริการที่ค้น" : "ยังไม่มีรายการ"}
+            description={keyword ? "ลองเปลี่ยนคำค้นหาหรือสลับหมวด" : undefined}
+            action={
+              keyword ? (
+                <Button variant="outline" size="sm" onClick={() => setSearch("")}>
+                  ล้างคำค้น
+                </Button>
+              ) : undefined
+            }
+          />
+        }
+        pagination={priceNote}
+        renderDesktop={(rows) => (
+          <DataTable.Root>
+            <DataTable.Head>
+              <tr>
+                <DataTable.Th>บริการ</DataTable.Th>
+                <DataTable.Th>ประเภท</DataTable.Th>
+                <DataTable.Th>คิดราคา</DataTable.Th>
+                <DataTable.Th align="right">ราคา</DataTable.Th>
+                <DataTable.Th>สถานะ</DataTable.Th>
+                <DataTable.Th align="right">
+                  <span className="sr-only">แก้ไขหรือลบบริการ</span>
+                </DataTable.Th>
+              </tr>
+            </DataTable.Head>
+            <DataTable.Body>
+              {rows.map((item) => {
+                const isEditing = editingItem?.id === item.id;
+
+                return (
+                  <DataTable.Row
+                    key={item.id}
+                    className={!item.isActive ? "opacity-50" : undefined}
+                  >
+                    <DataTable.Td>
+                      {isEditing ? (
+                        <Input size="sm"
+                          disabled={updateItem.isPending}
+                          aria-label={`ชื่อบริการ ${item.name}`}
+                          value={editingItem.name}
+                          onChange={(e) =>
+                            setEditingItem({ ...editingItem, name: e.target.value })
+                          }
+                        />
+                      ) : (
+                        <span className="text-sm font-medium text-strong">{item.name}</span>
+                      )}
+                    </DataTable.Td>
+                    <DataTable.Td className="text-muted">
+                      {ADDON_TYPES[item.type] ?? item.type}
+                    </DataTable.Td>
+                    <DataTable.Td className="text-secondary">
+                      {isEditing ? (
+                        <Select size="sm"
+                          disabled={updateItem.isPending}
+                          aria-label={`วิธีคิดราคาของ ${item.name}`}
+                          value={editingItem.pricingType}
+                          onChange={(e) =>
+                            setEditingItem({
+                              ...editingItem,
+                              pricingType: e.target.value as "PER_PIECE" | "PER_ORDER",
+                            })
+                          }
+                        >
+                          <option value="PER_PIECE">{PRICING_TYPE_LABELS.PER_PIECE}</option>
+                          <option value="PER_ORDER">{PRICING_TYPE_LABELS.PER_ORDER}</option>
+                        </Select>
+                      ) : (
+                        pricingLabel(item.pricingType)
+                      )}
+                    </DataTable.Td>
+                    <DataTable.Td align="right">
+                      {isEditing ? (
+                        <Input
+                          aria-label={`ราคาบริการ ${item.name}`}
+                          disabled={updateItem.isPending}
+                          size="dense"
+                          type="number"
+                          min={0}
+                          step={0.01}
+                          value={editingItem.defaultPrice}
+                          onChange={(e) =>
+                            setEditingItem({
+                              ...editingItem,
+                              defaultPrice: Number.isFinite(e.target.valueAsNumber) ? e.target.valueAsNumber : "",
+                            })
+                          }
+                          className="ml-auto w-28 text-right"
+                        />
+                      ) : (
+                        <span className="text-sm tabular-nums font-medium text-strong">
+                          {formatCurrency(item.defaultPrice)}
+                        </span>
+                      )}
+                    </DataTable.Td>
+                    <DataTable.Td>
+                      <Switch
+                        aria-label={`${item.isActive ? "ปิด" : "เปิด"}การใช้งาน ${item.name}`}
+                        checked={item.isActive}
+                        disabled={toggleActive.isPending}
+                        onCheckedChange={() => handleToggleActive(item.id, item.isActive)}
+                      />
+                    </DataTable.Td>
+                    <DataTable.Td align="right">
+                      {isEditing ? (
+                        <div className="flex justify-end gap-1.5">
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label={`บันทึกการแก้ไข ${item.name}`}
+                            onClick={handleSaveEdit}
+                            disabled={updateItem.isPending || editingItem.defaultPrice === "" || editingItem.defaultPrice < 0}
+                            className="text-green-600 dark:text-green-400"
+                          >
+                            <Check />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label={`ยกเลิกการแก้ไข ${item.name}`}
+                            onClick={() => setEditingItem(null)}
+                            disabled={updateItem.isPending}
+                          >
+                            <X />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex justify-end gap-1.5">
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label={`แก้ไข ${item.name}`}
+                            onClick={() => startEdit(item)}
+                            disabled={updateItem.isPending}
+                            className="text-muted"
+                          >
+                            <Pencil />
+                          </Button>
+                          {canDelete && (
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              aria-label={`ลบ ${item.name}`}
+                              onClick={() => handleDelete(item.id, item.name)}
+                              disabled={deleteItem.isPending}
+                              className="text-muted"
+                            >
+                              <Trash2 />
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                    </DataTable.Td>
+                  </DataTable.Row>
+                );
+              })}
+            </DataTable.Body>
+          </DataTable.Root>
+        )}
+        renderMobile={(rows) => (
+          <ListCards label="รายการบริการ">
+            {rows.map((item) => {
+              const isEditing = editingItem?.id === item.id;
+              return (
+                <ListCardItem key={item.id} className={!item.isActive ? "opacity-60" : undefined}>
+                  <div className="p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="min-w-0 flex-1">
+                        {isEditing ? (
+                          <Input
+                            size="sm"
+                            disabled={updateItem.isPending}
+                            aria-label={`ชื่อบริการ ${item.name}`}
+                            value={editingItem.name}
+                            onChange={(e) =>
+                              setEditingItem({ ...editingItem, name: e.target.value })
+                            }
+                          />
+                        ) : (
+                          <p className="break-words font-semibold text-strong">{item.name}</p>
+                        )}
+                        <p className="mt-0.5 text-xs text-secondary">
+                          {ADDON_TYPES[item.type] ?? item.type}
+                        </p>
+                      </div>
+                      <Switch
+                        aria-label={`${item.isActive ? "ปิด" : "เปิด"}การใช้งาน ${item.name}`}
+                        checked={item.isActive}
+                        disabled={toggleActive.isPending}
+                        onCheckedChange={() => handleToggleActive(item.id, item.isActive)}
+                      />
+                    </div>
+                    <ListCardMetaGrid>
+                      <ListCardMeta label="คิดราคา">
+                        {isEditing ? (
+                          <Select
+                            size="sm"
+                            disabled={updateItem.isPending}
+                            aria-label={`วิธีคิดราคาของ ${item.name}`}
+                            value={editingItem.pricingType}
+                            onChange={(e) =>
+                              setEditingItem({
+                                ...editingItem,
+                                pricingType: e.target.value as "PER_PIECE" | "PER_ORDER",
+                              })
+                            }
+                          >
+                            <option value="PER_PIECE">{PRICING_TYPE_LABELS.PER_PIECE}</option>
+                            <option value="PER_ORDER">{PRICING_TYPE_LABELS.PER_ORDER}</option>
+                          </Select>
+                        ) : (
+                          pricingLabel(item.pricingType)
+                        )}
+                      </ListCardMeta>
+                      <ListCardMeta label="ราคา" align="right">
+                        {isEditing ? (
+                          <Input
+                            aria-label={`ราคาบริการ ${item.name}`}
+                            disabled={updateItem.isPending}
+                            size="dense"
+                            type="number"
+                            min={0}
+                            step={0.01}
+                            value={editingItem.defaultPrice}
+                            onChange={(e) =>
+                              setEditingItem({
+                                ...editingItem,
+                                defaultPrice: Number.isFinite(e.target.valueAsNumber) ? e.target.valueAsNumber : "",
+                              })
+                            }
+                            className="ml-auto w-28 text-right"
+                          />
+                        ) : (
+                          <span className="font-semibold tabular-nums text-strong">
+                            {formatCurrency(item.defaultPrice)}
+                          </span>
+                        )}
+                      </ListCardMeta>
+                    </ListCardMetaGrid>
+                    <div className="mt-3 flex flex-wrap justify-end gap-2">
+                      {isEditing ? (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setEditingItem(null)}
+                            disabled={updateItem.isPending}
+                          >
+                            <X />
+                            ยกเลิก
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={handleSaveEdit}
+                            disabled={updateItem.isPending || editingItem.defaultPrice === "" || editingItem.defaultPrice < 0}
+                          >
+                            <Check />
+                            บันทึก
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => startEdit(item)}
+                            disabled={updateItem.isPending}
+                          >
+                            <Pencil />
+                            แก้ไข
+                          </Button>
+                          {canDelete && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              aria-label={`ลบ ${item.name}`}
+                              onClick={() => handleDelete(item.id, item.name)}
+                              disabled={deleteItem.isPending}
+                            >
+                              <Trash2 />
+                              ลบ
+                            </Button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </ListCardItem>
+              );
+            })}
+          </ListCards>
+        )}
       />
 
-      {/* Content */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <ToneMark icon={Settings} tone="system" />
-            {tabs.find((t) => t.key === activeTab)?.label}
-          </CardTitle>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setShowAddForm(!showAddForm);
-              setFormData({ ...emptyForm });
-            }}
-          >
-            <Plus className="mr-1" />
-            เพิ่มรายการ
-          </Button>
-        </CardHeader>
-        <CardContent>
-          {/* Add form */}
-          {showAddForm && (
-            <form
-              onSubmit={handleCreate}
-              className="card-surface mb-4 space-y-3 rounded-2xl p-4"
-            >
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
-                <div>
-                  <label htmlFor={`${formId}-type`} className="mb-1 block text-xs font-medium text-muted">
-                    ประเภท *
-                  </label>
-                  {activeTab === "ADDON" ? (
-                    // ส่วนเสริม: เลือกจากรายการไทย รหัสเก็บเงียบๆ (ป้ายเย็บติดทำให้ใบผลิตเสนอขั้น "เย็บป้าย")
-                    <Select
-                      id={`${formId}-type`}
-                      value={formData.type}
-                      onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                      required
-                    >
-                      <option value="">เลือกประเภท...</option>
-                      {Object.entries(ADDON_TYPES).map(([code, label]) => (
-                        <option key={code} value={code}>{label}</option>
-                      ))}
-                    </Select>
-                  ) : (
-                    <Input
-                      id={`${formId}-type`}
-                      value={formData.type}
-                      onChange={(e) =>
-                        setFormData({ ...formData, type: e.target.value })
-                      }
-                      placeholder="เช่น ปักโลโก้"
-                      required
-                    />
-                  )}
-                </div>
-                <div>
-                  <label htmlFor={`${formId}-name`} className="mb-1 block text-xs font-medium text-muted">
-                    ชื่อ *
-                  </label>
-                  <Input
-                    id={`${formId}-name`}
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
-                    placeholder="ชื่อบริการ"
-                    required
-                  />
-                </div>
-                <div>
-                  <label htmlFor={`${formId}-price`} className="mb-1 block text-xs font-medium text-muted">
-                    ราคา (บาท) *
-                  </label>
-                  <Input
-                    id={`${formId}-price`}
-                    type="number"
-                    min={0}
-                    step={0.01}
-                    value={formData.defaultPrice}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        defaultPrice: Number.isFinite(e.target.valueAsNumber) ? e.target.valueAsNumber : "",
-                      })
-                    }
-                    placeholder="0.00"
-                    aria-describedby={`${formId}-price-help`}
-                    required
-                  />
-                  <p id={`${formId}-price-help`} className="mt-1 text-xs text-secondary">กรอก 0 ได้หากบริการนี้ไม่คิดเงิน</p>
-                </div>
-                <div>
-                  <label htmlFor={`${formId}-pricing-type`} className="mb-1 block text-xs font-medium text-muted">
-                    คิดราคา
-                  </label>
-                  <Select
-                    id={`${formId}-pricing-type`}
-                    value={formData.pricingType}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        pricingType: e.target.value as "PER_PIECE" | "PER_ORDER",
-                      })
-                    }
-                  >
-                    <option value="PER_PIECE">{PRICING_TYPE_LABELS.PER_PIECE}</option>
-                    <option value="PER_ORDER">{PRICING_TYPE_LABELS.PER_ORDER}</option>
-                  </Select>
-                </div>
-                <div className="flex items-end gap-2">
-                  <Button
-                    type="submit"
-                    size="sm"
-                    className="flex-1"
-                    disabled={createItem.isPending}
-                  >
-                    {createItem.isPending ? "กำลังเพิ่ม..." : "เพิ่ม"}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowAddForm(false)}
-                  >
-                    ยกเลิก
-                  </Button>
-                </div>
-              </div>
-            </form>
-          )}
-
-          {/* Table */}
-          {isLoading ? (
-            <div className="space-y-3">
-              {[...Array(4)].map((_, i) => (
-                <Skeleton key={i} className="h-12 w-full" />
-              ))}
-            </div>
-          ) : !items || items.length === 0 ? (
-            <EmptyState icon={Settings} title="ยังไม่มีรายการ" />
-          ) : (
-            <DataTable.Root bordered={false}>
-              <DataTable.Head>
-                <tr>
-                  <DataTable.Th>ชื่อ</DataTable.Th>
-                  <DataTable.Th>ประเภท</DataTable.Th>
-                  <DataTable.Th align="right">ราคา</DataTable.Th>
-                  <DataTable.Th align="center">คิดราคา</DataTable.Th>
-                  <DataTable.Th align="center">สถานะ</DataTable.Th>
-                  <DataTable.Th align="right">จัดการ</DataTable.Th>
-                </tr>
-              </DataTable.Head>
-              <DataTable.Body>
-                  {items.map((item) => {
-                    const isEditing = editingItem?.id === item.id;
-                    const ptConfig = pricingTypeConfig[item.pricingType] ?? {
-                      label: item.pricingType,
-                      variant: "secondary" as const,
-                    };
-
-                    return (
-                      <DataTable.Row
-                        key={item.id}
-                        className={!item.isActive ? "opacity-50" : undefined}
-                      >
-                        <DataTable.Td>
-                          {isEditing ? (
-                            <Input size="sm"
-                              disabled={updateItem.isPending}
-                              aria-label={`ชื่อบริการ ${item.name}`}
-                              value={editingItem.name}
-                              onChange={(e) =>
-                                setEditingItem({
-                                  ...editingItem,
-                                  name: e.target.value,
-                                })
-                              }
-                            />
-                          ) : (
-                            <span className="text-sm font-medium text-strong">
-                              {item.name}
-                            </span>
-                          )}
-                        </DataTable.Td>
-                        <DataTable.Td className="text-muted">
-                          {ADDON_TYPES[item.type] ?? item.type}
-                        </DataTable.Td>
-                        <DataTable.Td align="right">
-                          {isEditing ? (
-                            <Input
-                              aria-label={`ราคาบริการ ${item.name}`}
-                              disabled={updateItem.isPending}
-                              size="dense"
-                              type="number"
-                              min={0}
-                              step={0.01}
-                              value={editingItem.defaultPrice}
-                              onChange={(e) =>
-                                setEditingItem({
-                                  ...editingItem,
-                                  defaultPrice: Number.isFinite(e.target.valueAsNumber) ? e.target.valueAsNumber : "",
-                                })
-                              }
-                              className="ml-auto w-28 text-right"
-                            />
-                          ) : (
-                            <span className="text-sm tabular-nums font-medium text-strong">
-                              {formatCurrency(item.defaultPrice)}
-                            </span>
-                          )}
-                        </DataTable.Td>
-                        <DataTable.Td align="center">
-                          {isEditing ? (
-                            <Select size="sm"
-                              disabled={updateItem.isPending}
-                              aria-label={`วิธีคิดราคาของ ${item.name}`}
-                              value={editingItem.pricingType}
-                              onChange={(e) =>
-                                setEditingItem({
-                                  ...editingItem,
-                                  pricingType: e.target.value as
-                                    | "PER_PIECE"
-                                    | "PER_ORDER",
-                                })
-                              }
-                            >
-                              <option value="PER_PIECE">{PRICING_TYPE_LABELS.PER_PIECE}</option>
-                              <option value="PER_ORDER">{PRICING_TYPE_LABELS.PER_ORDER}</option>
-                            </Select>
-                          ) : (
-                            <Badge variant={ptConfig.variant}>
-                              {ptConfig.label}
-                            </Badge>
-                          )}
-                        </DataTable.Td>
-                        <DataTable.Td align="center">
-                          <Switch
-                            aria-label={`${item.isActive ? "ปิด" : "เปิด"}การใช้งาน ${item.name}`}
-                            checked={item.isActive}
-                            disabled={toggleActive.isPending}
-                            onCheckedChange={() => handleToggleActive(item.id, item.isActive)}
-                          />
-                        </DataTable.Td>
-                        <DataTable.Td align="right">
-                          {isEditing ? (
-                            <div className="flex justify-end gap-1.5">
-                              <Button
-                                variant="ghost"
-                                size="icon-sm"
-                                aria-label={`บันทึกการแก้ไข ${item.name}`}
-                                onClick={handleSaveEdit}
-                                disabled={updateItem.isPending || editingItem.defaultPrice === "" || editingItem.defaultPrice < 0}
-                                className="text-green-600 dark:text-green-400"
-                              >
-                                <Check />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon-sm"
-                                aria-label={`ยกเลิกการแก้ไข ${item.name}`}
-                                onClick={() => setEditingItem(null)}
-                                disabled={updateItem.isPending}
-                              >
-                                <X />
-                              </Button>
-                            </div>
-                          ) : (
-                            <div className="flex justify-end gap-1.5">
-                              <Button
-                                variant="ghost"
-                                size="icon-sm"
-                                aria-label={`แก้ไข ${item.name}`}
-                                onClick={() => startEdit(item)}
-                                disabled={updateItem.isPending}
-                                className="text-muted"
-                              >
-                                <Pencil />
-                              </Button>
-                              {canDelete && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon-sm"
-                                  aria-label={`ลบ ${item.name}`}
-                                  onClick={() => handleDelete(item.id, item.name)}
-                                  disabled={deleteItem.isPending}
-                                  className="text-muted"
-                                >
-                                  <Trash2 />
-                                </Button>
-                              )}
-                            </div>
-                          )}
-                        </DataTable.Td>
-                      </DataTable.Row>
-                    );
-                  })}
-              </DataTable.Body>
-            </DataTable.Root>
-          )}
-
-          {/* Error display */}
-          {(createItem.isError || updateItem.isError || deleteItem.isError || toggleActive.isError) && (
-            <Alert variant="error" className="mt-3">
-              {createItem.error?.message ||
-                updateItem.error?.message ||
-                deleteItem.error?.message ||
-                toggleActive.error?.message}
-            </Alert>
-          )}
-        </CardContent>
-      </Card>
+      {/* Error display */}
+      {(createItem.isError || updateItem.isError || deleteItem.isError || toggleActive.isError) && (
+        <Alert variant="error">
+          {createItem.error?.message ||
+            updateItem.error?.message ||
+            deleteItem.error?.message ||
+            toggleActive.error?.message}
+        </Alert>
+      )}
     </PageShell>
   );
 }

@@ -58,7 +58,9 @@ export function SettingsNav() {
   return (
     <nav
       aria-label="เมนูตั้งค่า"
-      className="card-surface flex gap-1.5 overflow-x-auto rounded-2xl p-2 lg:sticky lg:top-24 lg:grid lg:gap-0.5 lg:overflow-visible lg:p-2.5"
+      // top-27 = 108px ตามต้นแบบ (.setnav{position:sticky;top:108px}) — พ้นแถบบนของแอปที่ค้างอยู่
+      // เดิม top-24 (96px) ทำให้หัวเมนูเบียดใต้แถบบนตอนเลื่อนหน้ายาว
+      className="card-surface flex gap-1.5 overflow-x-auto rounded-2xl p-2 lg:sticky lg:top-27 lg:grid lg:gap-0.5 lg:overflow-visible lg:p-2.5"
     >
       <div className="lg:mb-1 lg:border-b lg:border-divider/70 lg:pb-2">
         {item("/settings", "ภาพรวมการตั้งค่า", Settings)}
@@ -75,7 +77,8 @@ export function SettingsNav() {
 
 export function SettingsShell({ children }: { children: ReactNode }) {
   return (
-    <div className="grid items-start gap-4 lg:grid-cols-[236px_minmax(0,1fr)]">
+    // gap 18px + คอลัมน์เมนู 236px ตามต้นแบบ (.setwrap)
+    <div className="grid items-start gap-4.5 lg:grid-cols-[236px_minmax(0,1fr)]">
       <SettingsNav />
       <div className="min-w-0 space-y-4.5">{children}</div>
     </div>

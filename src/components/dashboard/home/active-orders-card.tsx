@@ -23,6 +23,9 @@ import type { HomeOrder } from "@/server/services/home-overview";
    กฎ "ต้องจัดการ" มาจาก lib/home-orders ชุดเดียวกับหน้ารายการออเดอร์
    ============================================================ */
 
+/** จำนวนแถวที่หน้าแรกแสดง (ต้นแบบ active.slice(0, 6)) — ที่เหลืออยู่ในหน้ารายการออเดอร์ */
+const HOME_TABLE_ROWS = 6;
+
 export function ActiveOrdersCard({
   orders,
   canSeeMoney,
@@ -49,6 +52,8 @@ export function ActiveOrdersCard({
   );
   const quantity = rows.reduce((sum, order) => sum + order.quantity, 0);
   const amount = rows.reduce((sum, order) => sum + (order.totalAmount ?? 0), 0);
+  // ต้นแบบโชว์ 6 แถวบนหน้าแรก แล้วส่งต่อหน้ารายการออเดอร์ด้วยปุ่ม "ดูทั้งหมด"
+  const visible = rows.slice(0, HOME_TABLE_ROWS);
 
   const selectFilter = (key: HomeOrderFilter) => {
     setFilter(key);
@@ -59,6 +64,7 @@ export function ActiveOrdersCard({
     <section className={c("card")} aria-labelledby="home-orders">
       <CardHead
         icon={ShoppingCart}
+        tone="blue"
         id="home-orders"
         title="ออเดอร์ที่กำลังเดิน"
         right={
@@ -119,7 +125,7 @@ export function ActiveOrdersCard({
       ) : (
         <>
           <div className={c("tblw")}>
-            <table className={c("orders")}>
+            <table className={c("orders")} style={{ minWidth: 900 }}>
               <thead>
                 <tr>
                   <th>ออเดอร์</th>
@@ -134,7 +140,7 @@ export function ActiveOrdersCard({
                 </tr>
               </thead>
               <tbody>
-                {rows.map((order) => {
+                {visible.map((order) => {
                   const problem = describeHomeOrder(order);
                   const ProblemIcon = problem ? PROBLEM_ICON[problem.kind] : null;
                   const href = `/orders/${order.id}`;
@@ -221,8 +227,17 @@ export function ActiveOrdersCard({
             </table>
           </div>
           <div className={c("tfoot")}>
+            {/* ยอดรวมคิดจากทุกแถวที่ตัวกรองนี้เลือกไว้ ไม่ใช่เฉพาะ 6 แถวที่เห็น — บอกให้ชัดว่ากำลังดูกี่แถว */}
             <span>
-              <b>{rows.length}</b> ออเดอร์
+              {rows.length > visible.length ? (
+                <>
+                  แสดง <b>{visible.length}</b> จาก <b>{rows.length}</b> ออเดอร์
+                </>
+              ) : (
+                <>
+                  <b>{rows.length}</b> ออเดอร์
+                </>
+              )}
             </span>
             <span>
               <b>{quantity.toLocaleString("th-TH")}</b> ตัว

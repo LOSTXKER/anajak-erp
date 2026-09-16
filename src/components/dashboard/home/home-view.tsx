@@ -41,16 +41,20 @@ export function HomeView({ metrics, overview, canSeeMoney, canCreateOrder }: Hom
 
   return (
     <div className={c("tokens page home")}>
+      {/* หัวหน้าเหมือน phead ของต้นแบบ: ชื่อ+วันที่อยู่ใน .ht · ปุ่มมุมขวาอยู่ในกล่อง .acts
+          (กล่องเดียวกับ PageHeader ของหน้าอื่น จึงเรียงเหมือนกันเมื่อมีปุ่มที่สอง) */}
       <div className={c("head")}>
-        <div>
+        <div className={c("ht")}>
           <h1>ภาพรวมวันนี้</h1>
           <p className={c("date")}>{longDate.format(now)}</p>
         </div>
         {canCreateOrder ? (
-          <Link href="/orders/new" className={c("btn primary")}>
-            <Plus aria-hidden="true" />
-            เปิดงานใหม่
-          </Link>
+          <div className={c("acts")}>
+            <Link href="/orders/new" className={c("btn primary")}>
+              <Plus aria-hidden="true" />
+              เปิดงานใหม่
+            </Link>
+          </div>
         ) : null}
       </div>
 
@@ -58,7 +62,9 @@ export function HomeView({ metrics, overview, canSeeMoney, canCreateOrder }: Hom
 
       <FactoryFlowCard counts={overview.nodes} facts={overview.facts} />
 
-      <div className={c("split")}>
+      {/* ต้นแบบ .split2 = 7fr/5fr — ชุดกลางมีสัดส่วนนี้อยู่แล้วที่ .two (ไม่ใช่ .split ซึ่งเป็น 8fr/4fr)
+          คอลัมน์ขวาจึงกว้างพอให้แท่งกราฟ 7 วันและยอดเงินไม่ถูกบีบ */}
+      <div className={c("two")}>
         <ActiveOrdersCard
           orders={overview.orders}
           canSeeMoney={canSeeMoney}

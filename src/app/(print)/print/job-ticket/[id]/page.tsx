@@ -67,7 +67,7 @@ function TickBoxes({ stepType }: { stepType: string }) {
 function StepsHead() {
   return (
     <thead>
-      <tr className="border-y border-slate-400 text-left">
+      <tr className="border-y border-slate-900 text-left">
         <th className="w-8 py-1 pr-2 text-center font-semibold">#</th>
         <th className="py-1 pr-2 font-semibold">ขั้นตอน</th>
         <th className="py-1 pr-2 font-semibold">ข้อกำหนด (ติ๊กเมื่อทำแล้ว)</th>
@@ -236,8 +236,9 @@ export default async function PrintJobTicketPage({
       <PrintActions backHref={`/orders/${order.id}`} />
 
       <PrintPage>
-        {/* หัวใบงาน */}
-        <div className="flex items-start justify-between gap-4 border-b-4 border-slate-900 pb-3">
+        {/* หัวใบงาน — เส้นคาด 2px ชุดเดียวกับเอกสารอีก 4 ใบ (ต้นแบบ .ptop)
+            เลขออเดอร์ยังตัวใหญ่: ใบนี้ถูกหยิบจากกองบนโต๊ะ ต้องอ่านจากระยะไกล */}
+        <div className="flex items-start justify-between gap-4 border-b-2 border-slate-900 pb-3">
           <div>
             <div className="mb-2">
               <DocumentStamp title="ใบสั่งงาน" label="Production document" code="JT" />
@@ -371,7 +372,10 @@ export default async function PrintJobTicketPage({
                       {p.receiveNote ? ` · ${p.receiveNote}` : ""}
                     </p>
                   )}
-                  <table className="mt-1 w-auto border-collapse text-[12px] tabular-nums">
+                  {/* ป้ายบอกว่าแถวเซลล์ด้านล่างอ่านยังไง — ต้นแบบมีหัวคอลัมน์ "จำนวน"
+                      ของจริงเป็นแถวเซลล์ติดกันเพราะรองรับสี+ไซซ์ในที่แคบกว่า */}
+                  <p className="mt-1 text-[10.5px] text-slate-500">ไซซ์ × จำนวน</p>
+                  <table className="mt-0.5 w-auto border-collapse text-[12px] tabular-nums">
                     <tbody>
                       <tr>
                         {p.variants.map((v) => (
@@ -394,7 +398,7 @@ export default async function PrintJobTicketPage({
               {item.prints.length > 0 && (
                 <table className="w-full border-collapse text-[12px]">
                   <thead>
-                    <tr className="border-y border-slate-400 text-left">
+                    <tr className="border-y border-slate-900 text-left">
                       <th className="w-16 py-1 pr-2 font-semibold">ภาพแบบ</th>
                       <th className="py-1 pr-2 font-semibold">ตำแหน่ง</th>
                       <th className="py-1 pr-2 font-semibold">วิธีพิมพ์</th>

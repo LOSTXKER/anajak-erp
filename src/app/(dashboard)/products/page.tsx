@@ -8,21 +8,20 @@ import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
 import { Select } from "@/components/ui/select";
 import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
-import { Skeleton } from "@/components/ui/skeleton";
 import { ListPageSkeleton } from "@/components/ui/page-skeleton";
-import { QueryError } from "@/components/ui/query-error";
 import { EmptyState } from "@/components/ui/empty-state";
-import { cn, formatCurrency, formatDateTime } from "@/lib/utils";
+import { cn, formatBaht, formatDateTime } from "@/lib/utils";
 import { PageShell } from "@/components/page-shell";
 import { TablePagination } from "@/components/ui/table-pagination";
-import { Package, RefreshCw, Cloud, Database, Settings } from "lucide-react";
+import { Package, Cloud, Database, Settings, ChevronRight } from "lucide-react";
 import { permAllows } from "@/lib/permissions";
 
 import { SyncDialog } from "@/components/sync-dialog";
-import { FilterChip } from "@/components/ui/filter-chip";
+import { SegmentedControl } from "@/components/ui/segmented";
 import { DataTable } from "@/components/ui/data-table";
 import { ResponsiveList } from "@/components/ui/responsive-list";
 import { Badge } from "@/components/ui/badge";
+import { c } from "@/components/kit/kit";
 import { FOCUS_BUTTON } from "@/components/ui/tokens";
 
 
@@ -42,13 +41,36 @@ function ProductThumb({ url, name, size = "sm" }: { url?: string | null; name: s
   );
 }
 
-/** ราคาขาย: มีหลายตัวเลือกให้บอกเป็นช่วง ไม่มีก็ใช้ราคาตั้งต้น */
+/** ราคาขาย: มีหลายตัวเลือกให้บอกเป็นช่วง ไม่มีก็ใช้ราคาตั้งต้น
+ *  ทศนิยม 2 ตำแหน่งเสมอ เพื่อให้หลักของคอลัมน์ตัวเงินเรียงตรงแบบต้นแบบ */
 function priceLabel(product: { variants?: { sellingPrice: number }[] | null; basePrice: number }) {
   const prices = (product.variants ?? []).map((v) => v.sellingPrice).filter((price) => price > 0);
-  if (prices.length === 0) return formatCurrency(product.basePrice);
+  if (prices.length === 0) return formatBaht(product.basePrice);
   const min = Math.min(...prices);
   const max = Math.max(...prices);
-  return min === max ? formatCurrency(min) : `${formatCurrency(min)} - ${formatCurrency(max)}`;
+  return min === max ? formatBaht(min) : `${formatBaht(min)} - ${formatBaht(max)}`;
+}
+
+/** ระดับของคงเหลือ — จุดสั่งซื้อ (reorderPoint) ของสินค้าแต่ละตัวเป็นเกณฑ์ "ใกล้หมด" */
+function stockLevel(product: { totalStock?: number | null; reorderPoint?: number | null }) {
+  const stock = product.totalStock ?? 0;
+  const reorder = product.reorderPoint ?? 0;
+  if (stock === 0) return "out" as const;
+  if (reorder > 0 && stock <= reorder) return "low" as const;
+  return "ok" as const;
+}
+
+/** ช่องคงเหลือแบบต้นแบบ: หมด = ป้ายแดง · ใกล้หมด = ป้ายเหลืองพร้อมตัวเลข · ปกติ = ตัวเลขหนา */
+function StockCell({ level, stock }: { level: "out" | "low" | "ok"; stock: number }) {
+  if (level === "out") return <span className={c("due bad")}>หมด</span>;
+  if (level === "low")
+    return (
+      <span className={c("due warn")}>
+        {stock.toLocaleString("th-TH")}
+        <span className="sr-only"> · ใกล้หมด ถึงจุดสั่งซื้อแล้ว</span>
+      </span>
+    );
+  return <span className="font-medium text-strong">{stock.toLocaleString("th-TH")}</span>;
 }
 
 // ─── Product Group Tabs ─────────────────────────────────────
@@ -61,7 +83,7 @@ const itemTypes = [
 
 // ─── Product Type Config ────────────────────────────────────
 const productTypes = [
-  { value: "", label: "ทั้งหมด" },
+  { value: "", label: "ทุกประเภท" },
   { value: "T_SHIRT", label: "เสื้อยืด" },
   { value: "POLO", label: "โปโล" },
   { value: "HOODIE", label: "ฮู้ดดี้" },
@@ -132,9 +154,24 @@ function ProductsPageContent() {
   const filtered = Boolean(search || productType || itemType);
   const clearFilters = () => clearSearch({ type: null, itemType: null });
 
+  /* บรรทัดรองใต้ชื่อหน้า (ตำแหน่ง .date ของต้นแบบ) — บอกว่าสต๊อกมาจากไหน
+     ไม่เติมคำโปรยลอย: ข้อความมาจากสถานะเชื่อมต่อจริงเท่านั้น */
+  const sourceMeta = demoMode ? (
+    <span className="inline-flex items-center gap-2">
+      <Database className="h-3.5 w-3.5" aria-hidden="true" />
+      สต๊อกทดสอบในเครื่อง · ไม่เชื่อม Anajak Stock
+    </span>
+  ) : syncStatus?.lastSyncAt ? (
+    <span className="inline-flex items-center gap-2">
+      <Cloud className="h-3.5 w-3.5" aria-hidden="true" />
+      เชื่อมสต๊อกกับ Anajak Stock · ดึงล่าสุด {formatDateTime(syncStatus.lastSyncAt)}
+    </span>
+  ) : undefined;
+
   return (
     <PageShell
       title="สินค้า"
+      meta={sourceMeta}
       action={
         canManageStock ? (
           <>
@@ -148,28 +185,14 @@ function ProductsPageContent() {
             </Button>
             {!syncStatusLoading && !demoMode ? (
               <Button size="sm" onClick={() => setSyncDialogOpen(true)}>
-                <RefreshCw />
-                Sync
+                <Cloud />
+                ดึงสต๊อก
               </Button>
             ) : null}
           </>
         ) : undefined
       }
     >
-      {demoMode ? (
-        <div className="flex items-center gap-2 text-xs font-medium text-blue-700 dark:text-blue-300">
-          <Database className="h-3.5 w-3.5" aria-hidden="true" />
-          <span>สต๊อกทดสอบในเครื่อง · ไม่เชื่อม Anajak Stock</span>
-        </div>
-      ) : syncStatus?.lastSyncAt ? (
-        <div className="flex items-center gap-2 text-xs text-muted">
-          <Cloud className="h-3.5 w-3.5" />
-          <span>Sync ล่าสุด: {formatDateTime(syncStatus.lastSyncAt)}</span>
-          <span className="text-muted">·</span>
-          <span>ทั้งหมด {syncStatus.totalProducts} รายการ</span>
-        </div>
-      ) : null}
-
       <ResponsiveList
         items={data?.products}
         isLoading={isLoading || isFetching}
@@ -182,28 +205,24 @@ function ProductsPageContent() {
             <SearchInput
               surface="raised"
               containerClassName="@2xl:max-w-sm @2xl:flex-1"
-              placeholder="ค้นหาชื่อสินค้า, SKU..."
+              placeholder="ค้นชื่อสินค้า หรือ SKU"
               aria-label="ค้นหาสินค้าจากชื่อหรือ SKU"
               ref={searchInputRef}
               defaultValue={search}
               onChange={(e) => onSearchChange(e.target.value)}
             />
             <ToolbarGroup className="flex-wrap">
-              {/* ≤5 ตัวเลือก → ชิป (กติกาเดียวกับ /quotations, /notifications · ดู tokens.ts) */}
-              {itemTypes.map((g) => (
-                <FilterChip
-                  key={g.value}
-                  surface="raised"
-                  selected={itemType === g.value}
-                  onClick={() => handleItemTypeChange(g.value)}
-                >
-                  {g.label}
-                </FilterChip>
-              ))}
+              {/* แถบเลื่อนกลุ่มสินค้า — ชุดเดียวกับหน้าลูกค้า/ใบเสนอราคา (ต้นแบบ segbar) */}
+              <SegmentedControl
+                value={itemType}
+                onChange={handleItemTypeChange}
+                options={itemTypes.map((g) => ({ value: g.value as string, label: g.label }))}
+                aria-label="กรองกลุ่มสินค้า"
+              />
               <Select
                 shape="pill"
                 surface="raised"
-                aria-label="กรองประเภทสินค้า"
+                aria-label="ประเภทเสื้อ"
                 value={productType}
                 onChange={(e) => replaceListState({ type: e.target.value || null, page: null })}
                 className="@2xl:w-44"
@@ -216,6 +235,13 @@ function ProductsPageContent() {
               </Select>
               {filtered ? <Button variant="ghost" size="sm" onClick={clearFilters}>ล้างตัวกรอง</Button> : null}
             </ToolbarGroup>
+            {data ? (
+              <ToolbarGroup align="end">
+                <span className="whitespace-nowrap text-xs tabular-nums text-muted">
+                  {data.total.toLocaleString("th-TH")} รายการ
+                </span>
+              </ToolbarGroup>
+            ) : null}
           </Toolbar>
         }
         emptyState={
@@ -236,8 +262,8 @@ function ProductsPageContent() {
                 <div className="flex gap-2">
                   {!syncStatusLoading && !demoMode ? (
                     <Button variant="outline" size="sm" onClick={() => setSyncDialogOpen(true)}>
-                      <RefreshCw />
-                      Sync ตอนนี้
+                      <Cloud />
+                      ดึงสต๊อกตอนนี้
                     </Button>
                   ) : null}
                   <Button asChild variant="ghost" size="sm">
@@ -261,34 +287,47 @@ function ProductsPageContent() {
                 <DataTable.Th align="right">คงเหลือ</DataTable.Th>
                 <DataTable.Th align="right">ราคาขาย</DataTable.Th>
                 <DataTable.Th>สถานะ</DataTable.Th>
+                <DataTable.Th align="right"><span className="sr-only">เปิดสินค้า</span></DataTable.Th>
               </tr>
             </DataTable.Head>
             <DataTable.Body>
               {products.map((product) => {
                 const typ = typeConfig[product.productType] ?? { label: product.productType };
                 const stock = product.totalStock ?? 0;
+                const level = stockLevel(product);
                 return (
                   <DataTable.Row
                     key={product.id}
                     href={`/products/${product.id}`}
-                    tone={product.isActive && stock === 0 ? "danger" : null}
+                    tone={
+                      !product.isActive
+                        ? null
+                        : level === "out"
+                          ? "danger"
+                          : level === "low"
+                            ? "warning"
+                            : null
+                    }
                   >
                     <DataTable.Td>
                       <div className="flex items-center gap-3">
                         <ProductThumb url={product.imageUrl} name={product.name} />
-                        <Link href={`/products/${product.id}`} className="min-w-0 font-medium text-strong">
-                          {product.name}
-                        </Link>
+                        <div className="min-w-0">
+                          <Link href={`/products/${product.id}`} className="font-medium text-strong">
+                            {product.name}
+                          </Link>
+                          <p className="truncate text-xs text-muted">
+                            {product._count.variants > 0
+                              ? `${product._count.variants.toLocaleString("th-TH")} ตัวเลือก`
+                              : "ยังไม่มีตัวเลือก"}
+                          </p>
+                        </div>
                       </div>
                     </DataTable.Td>
                     <DataTable.Td className="whitespace-nowrap tabular-nums text-muted">{product.sku}</DataTable.Td>
                     <DataTable.Td className="whitespace-nowrap text-secondary">{typ.label}</DataTable.Td>
                     <DataTable.Td align="right" className="whitespace-nowrap tabular-nums">
-                      {stock === 0 ? (
-                        <span className="font-medium text-red-700 dark:text-red-400">ของหมด</span>
-                      ) : (
-                        <span className="font-medium text-strong">{stock.toLocaleString("th-TH")}</span>
-                      )}
+                      <StockCell level={level} stock={stock} />
                     </DataTable.Td>
                     <DataTable.Td align="right" className="whitespace-nowrap tabular-nums text-strong">
                       {priceLabel(product)}
@@ -297,6 +336,9 @@ function ProductsPageContent() {
                       <Badge variant={product.isActive ? "success" : "default"} size="sm">
                         {product.isActive ? "ใช้งาน" : "ปิดอยู่"}
                       </Badge>
+                    </DataTable.Td>
+                    <DataTable.Td align="right">
+                      <ChevronRight className="ml-auto h-4 w-4 text-muted" aria-hidden="true" />
                     </DataTable.Td>
                   </DataTable.Row>
                 );
@@ -308,6 +350,8 @@ function ProductsPageContent() {
           <div className="grid grid-cols-1 gap-3 px-4.5 pb-4.5 sm:grid-cols-2">
             {products.map((product) => {
               const typ = typeConfig[product.productType] ?? { label: product.productType };
+              const stock = product.totalStock ?? 0;
+              const level = stockLevel(product);
               return (
                 <Link
                   key={product.id}
@@ -321,8 +365,8 @@ function ProductsPageContent() {
                       <p className="truncate text-xs text-muted">{product.sku} · {typ.label}</p>
                       <p className="mt-1 text-sm font-semibold tabular-nums text-strong">{priceLabel(product)}</p>
                     </div>
-                    <span className="shrink-0 text-xs tabular-nums text-muted">
-                      สต็อก {(product.totalStock ?? 0).toLocaleString("th-TH")}
+                    <span className="shrink-0 whitespace-nowrap tabular-nums">
+                      <StockCell level={level} stock={stock} />
                     </span>
                   </div>
                 </Link>
@@ -332,7 +376,12 @@ function ProductsPageContent() {
         )}
         pagination={
           data && data.total > 0 && totalPages <= 1 ? (
-            <p className="px-4.5 py-3 text-xs tabular-nums text-muted">ทั้งหมด {data.total} รายการ</p>
+            /* หน้าเดียวก็ยังใช้แถบเดียวกับตอนหลายหน้า — ผิวและตำแหน่งไม่กระโดด */
+            <div className={c("pager")}>
+              <span>
+                ทั้งหมด <b>{data.total.toLocaleString("th-TH")}</b> รายการ
+              </span>
+            </div>
           ) : data && data.total > 0 ? (
             <TablePagination
               page={page}

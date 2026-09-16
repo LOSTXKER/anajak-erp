@@ -10,6 +10,10 @@ import { Button } from "@/components/ui/button";
 import { StatusLabel } from "@/components/ui/status-label";
 import { SearchInput } from "@/components/ui/search-input";
 import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
+import { SegmentedControl } from "@/components/ui/segmented";
+import { KitDateRange } from "@/components/kit/date-range";
+import { validDateParam } from "@/lib/order-list-contract";
+import { dateRangeFilter, differenceInBangkokDays } from "@/lib/date-utils";
 import { ListPageSkeleton } from "@/components/ui/page-skeleton";
 import { QueryError } from "@/components/ui/query-error";
 import { DataTable } from "@/components/ui/data-table";
@@ -44,7 +48,6 @@ import {
   AlertTriangle,
   X,
 } from "lucide-react";
-import { FilterChip } from "@/components/ui/filter-chip";
 
 // ทะเบียนหัก ณ ที่จ่ายขารับ (50ทวิ) — แถวเกิดอัตโนมัติตอนบัญชีบันทึกรับเงินที่มี WHT
 // งานหน้านี้: ตามหนังสือรับรองจากลูกค้า (ไม่มีใบ = เครดิตภาษี 3% หายฟรี) + export CSV ให้นักบัญชี
@@ -59,6 +62,15 @@ const FILTER_TABS: { key: FilterTab; label: string }[] = [
   { key: "received", label: "ได้ใบแล้ว" },
   { key: "all", label: "ทั้งหมด" },
 ];
+
+/** รอใบมากี่วันแล้ว — นับวันแบบเดียวกับเส้นเตือน 30 วันใน row-tone.ts (ปฏิทินไทย)
+ *  วันเดียวกับที่รับเงินยังไม่ต้องบอก ("ผ่านมา 0 วัน" ไม่ได้ช่วยอะไร) */
+function waitedSub(paidAt: Date | string): string | undefined {
+  const diff = differenceInBangkokDays(paidAt, Date.now());
+  if (diff === null) return undefined;
+  const days = -diff;
+  return days > 0 ? `ผ่านมา ${days} วัน` : undefined;
+}
 
 // ────────────────────────────────────────────────────────────
 // CSV Export helper — pattern เดียวกับ exportOrdersCsv ใน orders/page.tsx
@@ -132,6 +144,10 @@ function WhtRegisterPageContent() {
   // แท็บสถานะอยู่ใน URL (?status=received|all) — ไม่มี param/ค่าเพี้ยน = "pending" (default)
   const rawTab = searchParams.get("status");
   const tab: FilterTab = rawTab === "received" || rawTab === "all" ? rawTab : "pending";
+  // ช่วงวันที่กรองที่ whtCertificate.createdAt = วันที่รับเงิน (ป้ายบนปุ่มจึงต้องพูดว่า "รับเงิน")
+  const dateFrom = validDateParam(searchParams.get("from"));
+  const dateTo = validDateParam(searchParams.get("to"));
+  const dateRange = dateRangeFilter(dateFrom, dateTo);
 
   // Dialog "บันทึกรับหนังสือรับรอง"
   const [markTarget, setMarkTarget] = useState<WhtRow | null>(null);
@@ -148,6 +164,8 @@ function WhtRegisterPageContent() {
     {
       received: tab === "all" ? undefined : tab === "received",
       search: search.trim() || undefined,
+      from: dateRange?.gte,
+      to: dateRange?.lte,
     },
     { enabled: canView }
   );
@@ -186,13 +204,15 @@ function WhtRegisterPageContent() {
 
   const list = rows ?? [];
   const hasSearch = search.trim().length > 0;
+  // มีช่วงวันที่กรองอยู่ด้วย — ผลว่างต้องไม่ไปบอกว่า "ได้ใบครบแล้ว" ทั้งที่แค่ช่วงนี้ไม่มีแถว
+  const hasFilter = hasSearch || Boolean(dateFrom || dateTo);
   const pendingAmount = stats.data?.pendingAmount ?? 0;
 
   return (
     <PageShell
       title="หัก ณ ที่จ่าย (50 ทวิ)"
-      meta="ต้องมีหนังสือรับรองเพื่อใช้เครดิตภาษี"
-      breadcrumb={[{ label: "บิล/การเงิน", href: "/billing" }, { label: "หัก ณ ที่จ่าย" }]}
+      meta="ตามหนังสือรับรองจากลูกค้าที่หักภาษีไว้"
+      breadcrumb={[{ label: "บิลและการเงิน", href: "/billing" }, { label: "หัก ณ ที่จ่าย" }]}
       action={
         <Button
           variant="outline"
@@ -201,7 +221,7 @@ function WhtRegisterPageContent() {
           className="gap-1.5"
         >
           <Download />
-          Export CSV
+          ดาวน์โหลดทะเบียน
         </Button>
       }
       error={
@@ -259,36 +279,47 @@ function WhtRegisterPageContent() {
             <SearchInput
               surface="raised"
               ref={searchInputRef}
-              placeholder="ค้นหาลูกค้า / เลขบิล / เลขใบรับรอง..."
+              placeholder="ค้นลูกค้า เลขบิล หรือเลขใบรับรอง"
               defaultValue={search}
               onChange={(e) => onSearchChange(e.target.value)}
               containerClassName="@2xl:max-w-sm @2xl:flex-1"
             />
-            <ToolbarGroup>
-              {FILTER_TABS.map((t) => (
-                <FilterChip
-                  key={t.key}
-                  surface="raised"
-                  selected={tab === t.key}
-                  // "pending" = ค่า default → ส่ง null ให้ลบ param (URL สะอาด)
-                  onClick={() =>
-                    replaceListState({ status: t.key === "pending" ? null : t.key, page: null })
-                  }
-                >
-                  {t.label}
-                </FilterChip>
-              ))}
-            </ToolbarGroup>
+            <KitDateRange
+              label="ช่วงวันที่รับเงิน"
+              from={dateFrom}
+              to={dateTo}
+              onChange={(from, to) =>
+                replaceListState({ from: from || null, to: to || null, page: null })
+              }
+            />
+            <SegmentedControl
+              value={tab}
+              // "pending" = ค่า default → ส่ง null ให้ลบ param (URL สะอาด)
+              onChange={(value) =>
+                replaceListState({ status: value === "pending" ? null : value, page: null })
+              }
+              options={FILTER_TABS.map((t) => ({ value: t.key, label: t.label }))}
+              aria-label="กรองตามสถานะใบรับรอง"
+            />
+            {/* ตัวนับท้ายแถบเครื่องมือตามต้นแบบ (.tools .cnt) — หน้านี้ไม่มีแถบแบ่งหน้า
+                จึงเป็นที่เดียวที่บอกว่าตัวกรองตอนนี้เหลือกี่แถว · ยังไม่มีข้อมูลก็ยังไม่ขึ้นเลข */}
+            {rows ? (
+              <ToolbarGroup align="end">
+                <span className="whitespace-nowrap text-xs tabular-nums text-muted">
+                  {list.length.toLocaleString("th-TH")} รายการ
+                </span>
+              </ToolbarGroup>
+            ) : null}
           </Toolbar>
         }
         items={rows}
         isLoading={isLoading}
         emptyState={
-          hasSearch ? (
+          hasFilter ? (
             <EmptyState
               icon={ReceiptText}
-              title="ไม่พบรายการที่ค้นหา"
-              description="ลองคำค้นอื่น — ค้นได้ด้วยชื่อลูกค้า เลขบิล หรือเลขที่หนังสือรับรอง"
+              title="ไม่พบรายการตามเงื่อนไข"
+              description="ลองคำค้นอื่นหรือขยายช่วงวันที่ — ค้นได้ด้วยชื่อลูกค้า เลขบิล หรือเลขที่หนังสือรับรอง"
             />
           ) : tab === "pending" ? (
             <EmptyState
@@ -369,7 +400,11 @@ function WhtRegisterPageContent() {
                         sub={row.certNumber}
                       />
                     ) : (
-                      <StatusLabel label="รอใบ" tone="warning" />
+                      <StatusLabel
+                        label="รอใบ"
+                        tone="warning"
+                        sub={waitedSub(row.payment.createdAt)}
+                      />
                     )}
                   </DataTable.Td>
                   <DataTable.Td align="right">
@@ -400,7 +435,7 @@ function WhtRegisterPageContent() {
                           className="gap-1.5"
                         >
                           <FileCheck2 />
-                          ได้ใบแล้ว
+                          บันทึกใบ
                         </Button>
                       )}
                     </div>
@@ -437,7 +472,12 @@ function WhtRegisterPageContent() {
                       className="shrink-0"
                     />
                   ) : (
-                    <StatusLabel label="รอใบ" tone="warning" className="shrink-0" />
+                    <StatusLabel
+                      label="รอใบ"
+                      tone="warning"
+                      sub={waitedSub(row.payment.createdAt)}
+                      className="shrink-0"
+                    />
                   )}
                 </div>
 
@@ -481,7 +521,7 @@ function WhtRegisterPageContent() {
                         className="h-10 flex-1 gap-1.5"
                       >
                         <FileCheck2 />
-                        ได้ใบแล้ว
+                        บันทึกใบ
                       </Button>
                     )}
                     {row.fileUrl && (

@@ -81,7 +81,10 @@ export default async function PrintBillingNotePage({
 
         <PartyBlock label="วางบิลถึง" {...buyer} />
 
+        {/* ใบวางบิลอ้างใบแจ้งหนี้ ไม่มีจำนวน/หน่วย/ราคาต่อหน่วย — ซ่อนสามคอลัมน์นั้น
+            แทนการพิมพ์ "-" ยาวทั้งใบ (ต้นแบบมี 4 คอลัมน์) · คอลัมน์จำนวนเงินยังอยู่ */}
         <ItemsTable
+          collapseEmptyColumns
           rows={note.items.map((item) => ({
             description: `${INVOICE_TYPE_LABELS_CUSTOMER[item.invoice.type] ?? item.invoice.type} ${item.invoice.invoiceNumber} — อ้างอิงออเดอร์ ${item.invoice.order.orderNumber}\nลงวันที่ ${formatDocDate(item.invoice.createdAt)}${item.invoice.dueDate ? ` · ครบกำหนด ${formatDocDate(item.invoice.dueDate)}` : ""}`,
             amount: item.amount,

@@ -4,16 +4,18 @@ import { use, useRef, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { uploadToCustomerSignedUrl } from "@/lib/supabase";
 import { formatDate } from "@/lib/utils";
+import { c } from "@/components/kit/kit";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { PublicLinkError } from "@/components/public-link-error";
 import {
   PublicPageShell,
   FullScreenLoading,
-  InfoRow,
 } from "@/components/public/public-page";
-import { Upload, CheckCircle, FileCheck, Paperclip, X } from "lucide-react";
+import { Upload, CheckCircle, FileCheck, Paperclip, FileText, X } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import { DASHED_INTERACTIVE, FOCUS_BUTTON, SUNK_PANEL } from "@/components/ui/tokens";
+import { RADIUS, SUNK_PANEL } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
 import { CUSTOMER_UPLOAD_ACCEPT, CUSTOMER_UPLOAD_MAX_BYTES, CUSTOMER_UPLOAD_MAX_MB } from "@/lib/customer-upload-policy";
 
@@ -40,6 +42,7 @@ export default function CustomerUploadPage({
   const uploadInFlight = useRef(false);
   const [items, setItems] = useState<UploadItem[]>([]);
   const [busy, setBusy] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
 
   const info = trpc.customerUpload.getInfo.useQuery({ token });
   const createUrl = trpc.customerUpload.createUploadUrl.useMutation();
@@ -118,30 +121,25 @@ export default function CustomerUploadPage({
   return (
     <PublicPageShell
       icon={<Paperclip />}
-      subtitle="ส่งไฟล์งานให้ทีมงาน"
+      pageLabel="ส่งไฟล์งาน"
+      brandNote="อัปโหลดไฟล์ให้ร้านโดยไม่ต้องเข้าระบบ"
+      title={<span className="tabular-nums">ส่งไฟล์สำหรับ {d.orderNumber}</span>}
+      subtitle={
+        <>
+          <span className="block">
+            {d.customerName}
+            {d.deadline ? ` · กำหนดส่ง ${formatDate(d.deadline)}` : ""}
+          </span>
+          {/* ชนิดไฟล์/ขนาดอ่านจากกติกากลาง (customer-upload-policy) — ห้ามพิมพ์รายการไฟล์ตายตัว */}
+          <span className="block">
+            รับไฟล์รูปภาพ · PDF · AI · PSD · ไฟล์บีบอัด ขนาดไม่เกิน {CUSTOMER_UPLOAD_MAX_MB} MB ต่อไฟล์
+          </span>
+        </>
+      }
     >
-        {/* Order Info */}
+        {/* กล่องรับไฟล์ — ลากมาวางได้ หรือกดปุ่มเลือกไฟล์ (ต้นแบบ: .drop) */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">ข้อมูลออเดอร์</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-2 text-sm">
-              <InfoRow label="เลขออเดอร์">{d.orderNumber}</InfoRow>
-              <InfoRow label="ลูกค้า">{d.customerName}</InfoRow>
-              {d.deadline && (
-                <InfoRow label="กำหนดส่ง">{formatDate(d.deadline)}</InfoRow>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Upload */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">อัปโหลดไฟล์</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 pt-4.5">
             <input
               ref={inputRef}
               type="file"
@@ -151,27 +149,41 @@ export default function CustomerUploadPage({
               disabled={busy}
               className="hidden"
             />
-            <button
-              type="button"
-              onClick={() => inputRef.current?.click()}
-              disabled={busy}
-              className={cn(DASHED_INTERACTIVE, FOCUS_BUTTON, "flex w-full touch-manipulation flex-col items-center justify-center gap-2 rounded-lg px-4 py-8 text-sm text-muted transition-colors disabled:pointer-events-none disabled:border-border disabled:bg-surface-muted disabled:text-muted")}
+            <div
+              className={c("drop", dragOver && "over")}
+              aria-busy={busy || undefined}
+              onDragOver={(event) => {
+                if (busy) return;
+                event.preventDefault();
+                if (!dragOver) setDragOver(true);
+              }}
+              onDragLeave={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDragOver(false);
+              }}
+              onDrop={(event) => {
+                event.preventDefault();
+                setDragOver(false);
+                if (!busy) void handleFiles(event.dataTransfer.files);
+              }}
             >
+              <span
+                className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
+                aria-hidden="true"
+              >
+                {busy ? <Spinner size="lg" /> : <Upload className="h-5 w-5" />}
+              </span>
               {busy ? (
-                <>
-                  <Spinner size="xl" />
-                  กำลังอัปโหลด...
-                </>
+                <b className="text-sm font-medium text-strong">กำลังอัปโหลด...</b>
               ) : (
                 <>
-                  <Upload className="h-7 w-7" />
-                  <span className="font-medium">เลือกไฟล์เพื่ออัปโหลด</span>
-                  <span className="text-xs text-muted">
-                    รูปภาพ / PDF / AI / PSD / ไฟล์ ZIP · สูงสุด {CUSTOMER_UPLOAD_MAX_MB}MB ต่อไฟล์
-                  </span>
+                  <b className="text-sm font-medium text-strong">ลากไฟล์มาวางตรงนี้</b>
+                  <span className="text-sm text-muted">หรือ</span>
+                  <Button variant="outline" onClick={() => inputRef.current?.click()} disabled={busy}>
+                    เลือกไฟล์จากเครื่อง
+                  </Button>
                 </>
               )}
-            </button>
+            </div>
 
             {/* รายการที่อัปในรอบนี้ */}
             {items.length > 0 && (
@@ -179,7 +191,7 @@ export default function CustomerUploadPage({
                 {items.map((it) => (
                   <li
                     key={it.id}
-                    className={cn(SUNK_PANEL, "flex flex-wrap items-center gap-2 rounded-lg px-3 py-2 text-sm")}
+                    className={cn(SUNK_PANEL, RADIUS.inner, "flex flex-wrap items-center gap-2 px-3 py-2 text-sm")}
                   >
                     {it.status === "uploading" && (
                       <Spinner size="md" className="shrink-0 text-blue-500" />
@@ -205,7 +217,7 @@ export default function CustomerUploadPage({
             )}
 
             {doneCount > 0 && (
-              <p role="status" className="flex items-center gap-1.5 text-sm text-green-600 dark:text-green-400">
+              <p role="status" className="flex items-center gap-1.5 text-sm text-green-700 dark:text-green-300">
                 <FileCheck className="h-4 w-4" />
                 ส่งไฟล์เรียบร้อย {doneCount} ไฟล์ — ทีมงานได้รับแล้ว
               </p>
@@ -217,23 +229,28 @@ export default function CustomerUploadPage({
         {d.files.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">
-                ไฟล์ที่ส่งแล้ว ({d.files.length})
+              <CardTitle className="flex items-center gap-2 text-base">
+                ไฟล์ที่ส่งมาแล้ว
+                <Badge>{d.files.length}</Badge>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <ul className="space-y-1.5">
+              {/* แถวไฟล์: กล่องไอคอน · ชื่อไฟล์ + วันที่ใต้ชื่อ · คั่นด้วยเส้นเต็มความกว้างการ์ด */}
+              <ul className="-mx-4.5">
                 {d.files.map((f, idx) => (
                   <li
                     key={idx}
-                    className="flex items-center justify-between gap-2 text-sm"
+                    className="flex items-center gap-3 border-t border-divider px-4.5 py-2.5"
                   >
-                    <span className="flex min-w-0 items-center gap-2 text-secondary">
-                      <Paperclip className="h-3.5 w-3.5 shrink-0 text-muted" />
-                      <span className="truncate">{f.fileName}</span>
+                    <span
+                      className={cn(SUNK_PANEL, RADIUS.inner, "flex h-8 w-8 shrink-0 items-center justify-center text-secondary")}
+                      aria-hidden="true"
+                    >
+                      <FileText className="h-4 w-4" />
                     </span>
-                    <span className="shrink-0 text-xs text-muted">
-                      {formatDate(f.createdAt)}
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm text-strong">{f.fileName}</span>
+                      <span className="block text-sm text-muted">ส่งเมื่อ {formatDate(f.createdAt)}</span>
                     </span>
                   </li>
                 ))}

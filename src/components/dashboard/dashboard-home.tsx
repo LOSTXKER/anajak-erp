@@ -26,7 +26,7 @@ function HomeSkeleton() {
         ))}
       </div>
       <span className={c("sk")} style={{ height: 360 }} />
-      <div className={c("split")}>
+      <div className={c("two")}>
         <span className={c("sk")} style={{ height: 380 }} />
         <div className={c("col")}>
           <span className={c("sk")} style={{ height: 180 }} />

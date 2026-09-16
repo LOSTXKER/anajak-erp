@@ -6,10 +6,13 @@ import { permAllows } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ToneMark } from "@/components/ui/section";
+import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { SearchInput } from "@/components/ui/search-input";
+import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
+import { c } from "@/components/kit/kit";
 import {
   Plus,
   Trash2,
@@ -22,11 +25,17 @@ import { Alert } from "@/components/ui/alert";
 import { DataTable } from "@/components/ui/data-table";
 import { PageShell } from "@/components/page-shell";
 
+/* แพ็คเกจจัดส่ง — โครงตามต้นแบบที่เบสเคาะ 2026-09-16 (setpackaging):
+   ปุ่มเพิ่มมุมขวาบนของหน้า · การ์ดเดียวมีแถบเครื่องมือ (ค้นหา + ตัวนับ) อยู่ข้างใน
+   ต้นแบบมีคอลัมน์ หน่วย/ต้นทุน/ใช้กับ ซึ่ง PackagingOption ไม่มีข้อมูลรองรับ
+   (มีแค่ name/isActive/sortOrder) — คงคอลัมน์ของจริงไว้ ไม่เติมค่าปลอม */
+
 export default function PackagingSettingsPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [newName, setNewName] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
+  const [search, setSearch] = useState("");
 
   const utils = trpc.useUtils();
   const confirmDialog = useConfirm();
@@ -37,6 +46,11 @@ export default function PackagingSettingsPage() {
     { includeInactive: true },
     { enabled: canManage },
   );
+
+  const keyword = search.trim().toLowerCase();
+  const visibleOptions = keyword
+    ? (options ?? []).filter((opt) => opt.name.toLowerCase().includes(keyword))
+    : options;
 
   const createMutation = trpc.packaging.create.useMutation({
     onSuccess: () => {
@@ -66,6 +80,11 @@ export default function PackagingSettingsPage() {
     createMutation.mutate({ name: newName.trim() });
   };
 
+  const openAddForm = () => {
+    setShowAddForm(true);
+    setNewName("");
+  };
+
   const handleSaveEdit = () => {
     if (!editingId || !editName.trim()) return;
     updateMutation.mutate({ id: editingId, name: editName.trim() });
@@ -87,7 +106,21 @@ export default function PackagingSettingsPage() {
 
   return (
     <PageShell
-      title="จัดการแพ็คเกจจัดส่ง"
+      title="แพ็คเกจจัดส่ง"
+      description="ตัวเลือกแพ็คเกจที่ขึ้นให้เลือกตอนเพิ่มสินค้าในออเดอร์ — ปิดรายการที่เลิกใช้ได้โดยไม่ลบ"
+      action={
+        <Button
+          size="sm"
+          onClick={() => {
+            setShowAddForm(!showAddForm);
+            setNewName("");
+          }}
+          disabled={!canManage}
+        >
+          <Plus />
+          เพิ่มแพ็คเกจ
+        </Button>
+      }
       loading={meQuery.isLoading}
       error={
         meQuery.isError
@@ -107,29 +140,30 @@ export default function PackagingSettingsPage() {
         }
       }
     >
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <ToneMark icon={Package} tone="product" />
-            แพ็คเกจทั้งหมด
-          </CardTitle>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setShowAddForm(!showAddForm);
-              setNewName("");
-            }}
-          >
-            <Plus className="mr-1" />
-            เพิ่มแพ็คเกจ
-          </Button>
-        </CardHeader>
-        <CardContent>
+      <Card className="overflow-hidden">
+        <div className="px-4.5 pb-2.5 pt-3.5">
+          <Toolbar>
+            <SearchInput
+              surface="raised"
+              containerClassName="@2xl:max-w-sm @2xl:flex-1"
+              placeholder="ค้นชื่อแพ็คเกจ"
+              aria-label="ค้นหาแพ็คเกจจากชื่อ"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+            <ToolbarGroup align="end">
+              <span className="whitespace-nowrap text-xs tabular-nums text-muted">
+                {(visibleOptions?.length ?? 0).toLocaleString("th-TH")} แบบ
+              </span>
+            </ToolbarGroup>
+          </Toolbar>
+        </div>
+
+        <div className="border-t border-divider/60">
           {showAddForm && (
             <form
               onSubmit={handleCreate}
-              className="mb-4 flex flex-col gap-3 border-b border-divider pb-4 sm:flex-row sm:items-end"
+              className="flex flex-col gap-3 border-b border-divider px-4.5 py-4 sm:flex-row sm:items-end"
             >
               <div className="min-w-0 flex-1">
                 <label htmlFor="new-packaging-name" className="mb-1 block text-xs font-medium text-muted">
@@ -162,31 +196,50 @@ export default function PackagingSettingsPage() {
           )}
 
           {isLoading ? (
-            <div className="space-y-3">
+            <div className="space-y-3 px-4.5 py-4">
               {[...Array(5)].map((_, i) => (
                 <Skeleton key={i} className="h-12 w-full" />
               ))}
             </div>
-          ) : !options || options.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12">
-              <Package className="h-10 w-10 text-muted" />
-              <p className="mt-3 text-sm text-muted">ยังไม่มีแพ็คเกจ</p>
-              <p className="mt-1 text-xs text-muted">
-                เพิ่มตัวเลือกแพ็คเกจเพื่อใช้ในออเดอร์
-              </p>
-            </div>
+          ) : !visibleOptions || visibleOptions.length === 0 ? (
+            keyword ? (
+              <EmptyState
+                icon={Package}
+                title="ไม่พบแพ็คเกจที่ค้น"
+                description="ลองเปลี่ยนคำค้นหา"
+                action={
+                  <Button variant="outline" size="sm" onClick={() => setSearch("")}>
+                    ล้างคำค้น
+                  </Button>
+                }
+              />
+            ) : (
+              <EmptyState
+                icon={Package}
+                title="ยังไม่มีแพ็คเกจ"
+                description="เพิ่มตัวเลือกแพ็คเกจเพื่อใช้ในออเดอร์"
+                action={
+                  <Button size="sm" onClick={openAddForm} disabled={!canManage}>
+                    <Plus />
+                    เพิ่มแพ็คเกจแรก
+                  </Button>
+                }
+              />
+            )
           ) : (
             <DataTable.Root bordered={false}>
               <DataTable.Head>
                 <tr>
-                  <DataTable.Th>ชื่อแพ็คเกจ</DataTable.Th>
+                  <DataTable.Th>แพ็คเกจ</DataTable.Th>
                   <DataTable.Th align="center">ลำดับ</DataTable.Th>
                   <DataTable.Th align="center">สถานะ</DataTable.Th>
-                  <DataTable.Th align="right">จัดการ</DataTable.Th>
+                  <DataTable.Th align="right">
+                    <span className="sr-only">แก้ไขแพ็คเกจ</span>
+                  </DataTable.Th>
                 </tr>
               </DataTable.Head>
               <DataTable.Body>
-                {options.map((opt) => {
+                {visibleOptions.map((opt) => {
                   const isEditing = editingId === opt.id;
                   return (
                     <DataTable.Row
@@ -206,9 +259,14 @@ export default function PackagingSettingsPage() {
                             }}
                           />
                         ) : (
-                          <span className="text-sm font-medium text-strong">
-                            {opt.name}
-                          </span>
+                          <div className={c("who")}>
+                            <span className={c("thumb")} aria-hidden="true">
+                              <Package />
+                            </span>
+                            <span className="min-w-0 text-sm font-medium text-strong">
+                              {opt.name}
+                            </span>
+                          </div>
                         )}
                       </DataTable.Td>
                       <DataTable.Td align="center" className="text-xs text-muted">
@@ -278,11 +336,15 @@ export default function PackagingSettingsPage() {
           )}
 
           {(createMutation.isError || updateMutation.isError || deleteMutation.isError) && (
-            <Alert variant="error" className="mt-3" aria-live="polite">
+            <Alert variant="error" className="mx-4.5 mb-4" aria-live="polite">
               {createMutation.error?.message || updateMutation.error?.message || deleteMutation.error?.message}
             </Alert>
           )}
-        </CardContent>
+        </div>
+
+        <div className={c("tfoot")}>
+          รายการที่ปิดจะไม่ขึ้นให้เลือกตอนสร้างออเดอร์ แต่ออเดอร์เก่ายังอ้างถึงได้
+        </div>
       </Card>
     </PageShell>
   );

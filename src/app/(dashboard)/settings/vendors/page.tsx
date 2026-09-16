@@ -17,13 +17,24 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
+import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { QueryError } from "@/components/ui/query-error";
-import { Section } from "@/components/ui/section";
-import { Skeleton } from "@/components/ui/skeleton";
+import { ListCards, ListCardItem, ListCardMetaGrid, ListCardMeta } from "@/components/ui/list-card";
+import { ResponsiveList } from "@/components/ui/responsive-list";
+import { SearchInput } from "@/components/ui/search-input";
+import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
 import { PageShell } from "@/components/page-shell";
+import { c } from "@/components/kit/kit";
+
+/* ร้านรับจ้างภายนอก — โครงตามต้นแบบทั้งเว็บที่เบสเคาะ 2026-09-16:
+   หัวหน้า + ปุ่มหลักมุมขวา → การ์ดเดียวไม่มีหัวการ์ด (ค้นหา + ตัวนับ) → ตารางเทียบร้านกันได้
+   ต่างจากต้นแบบโดยตั้งใจ:
+     · ต้นแบบมีคอลัมน์ "งานที่อยู่ที่ร้าน" (ยอดค้าง) กับ "ตรงเวลา/เลยนัด N ใบ" — ของจริงยังไม่มี
+       ตัวเลขนั้น (listVendors คืนแค่ _count.outsourceOrders = ใบสะสมทั้งหมด) การเพิ่มยอดค้าง
+       ต้องแก้ router ซึ่งใบงานนี้ห้าม จึงใช้ตัวเลขที่มีจริงและตั้งชื่อคอลัมน์ตามความหมายของมัน
+     · คะแนนคุณภาพร้านและป้ายประเภทงานหลายอัน เป็นของจริงที่ต้นแบบไม่มี — เก็บไว้ครบ */
 
 interface VendorFormState {
   name: string;
@@ -48,10 +59,18 @@ function capabilityList(value: string): string[] {
   );
 }
 
+/** ป้ายประเภทงานที่คนอ่านเข้าใจ (ใช้ทั้งในตารางและในการค้นหา) */
+function capabilityLabel(capability: string) {
+  return STEP_TYPE_LABELS[capability]?.replace(" (ร้านนอก)", "") ?? capability;
+}
+
 export default function VendorsSettingsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<VendorFormState>(EMPTY_FORM);
+  // listVendors ค้นได้เฉพาะชื่อร้าน/ชื่อผู้ติดต่อ แต่ต้นแบบให้ค้นประเภทงานด้วย
+  // ทะเบียนร้านเป็นตารางตั้งค่าสั้น จึงกรองฝั่งจอให้ครอบคลุมทั้งสองอย่าง ไม่แตะ router
+  const [search, setSearch] = useState("");
 
   const utils = trpc.useUtils();
   const meQuery = trpc.user.me.useQuery();
@@ -60,6 +79,17 @@ export default function VendorsSettingsPage() {
     {},
     { enabled: canManage }
   );
+
+  const keyword = search.trim().toLowerCase();
+  const vendors = keyword
+    ? vendorsQuery.data?.filter(
+        (vendor) =>
+          vendor.name.toLowerCase().includes(keyword) ||
+          vendor.capabilities.some((capability) =>
+            capabilityLabel(capability).toLowerCase().includes(keyword)
+          )
+      )
+    : vendorsQuery.data;
 
   function closeDialog() {
     setDialogOpen(false);
@@ -138,6 +168,13 @@ export default function VendorsSettingsPage() {
   return (
     <PageShell
       title="ร้านรับจ้างภายนอก"
+      description="ร้านที่เราส่งงานออกไปทำ"
+      action={
+        <Button size="sm" onClick={openCreate} disabled={!canManage}>
+          <Plus />
+          เพิ่มร้าน
+        </Button>
+      }
       error={
         meQuery.isError
           ? {
@@ -146,7 +183,7 @@ export default function VendorsSettingsPage() {
             }
           : null
       }
-      // ไม่ส่ง loading — ระหว่างรอ me ให้โชว์ skeleton grid ใน Section ตามเดิม (denied เช็คหลัง me มาแล้วเท่านั้น)
+      // ไม่ส่ง loading — ระหว่างรอ me ให้โชว์โครงร่างในการ์ดรายการตามเดิม (denied เช็คหลัง me มาแล้วเท่านั้น)
       denied={
         !meQuery.isLoading &&
         !canManage && {
@@ -156,88 +193,188 @@ export default function VendorsSettingsPage() {
         }
       }
     >
-      <Section
-        title={`ร้านที่ใช้งานอยู่ (${vendorsQuery.data?.length ?? 0})`}
-        action={
-          <Button size="sm" onClick={openCreate} disabled={!canManage}>
-            <Plus />
-            เพิ่มร้าน
-          </Button>
+      <ResponsiveList
+        items={vendors}
+        isLoading={meQuery.isLoading || vendorsQuery.isLoading}
+        isError={vendorsQuery.isError}
+        errorMessage="โหลดทะเบียนร้านไม่สำเร็จ"
+        onRetry={() => vendorsQuery.refetch()}
+        label="ร้าน"
+        toolbar={
+          <Toolbar>
+            <SearchInput
+              surface="raised"
+              containerClassName="@2xl:max-w-sm @2xl:flex-1"
+              placeholder="ค้นชื่อร้านหรือประเภทงาน"
+              aria-label="ค้นหาร้านจากชื่อร้านหรือประเภทงาน"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+            <ToolbarGroup align="end">
+              <span className="text-xs tabular-nums whitespace-nowrap text-muted">
+                {(vendors?.length ?? 0).toLocaleString("th-TH")} ร้าน
+              </span>
+            </ToolbarGroup>
+          </Toolbar>
         }
-      >
-        {meQuery.isLoading || vendorsQuery.isLoading ? (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {[...Array(4)].map((_, index) => (
-              <Skeleton key={index} className="h-32 rounded-lg" />
-            ))}
-          </div>
-        ) : vendorsQuery.isError && !vendorsQuery.data ? (
-          <QueryError
-            message="โหลดทะเบียนร้านไม่สำเร็จ"
-            onRetry={() => vendorsQuery.refetch()}
-          />
-        ) : !vendorsQuery.data || vendorsQuery.data.length === 0 ? (
-          <EmptyState
-            icon={Store}
-            title="ยังไม่มีร้านรับจ้าง"
-            description="เพิ่มร้านแรก แล้วร้านจะปรากฏให้เลือกตอนส่งขั้นผลิตออกไปทำภายนอก"
-            action={
-              <Button onClick={openCreate}>
-                <Plus />
-                เพิ่มร้านแรก
-              </Button>
-            }
-          />
-        ) : (
-          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {vendorsQuery.data.map((vendor) => (
-              <li
-                key={vendor.id}
-                className="rounded-lg border border-border p-4"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <h2 className="break-words text-sm font-medium text-strong">
-                      {vendor.name}
-                    </h2>
-                    <p className="mt-1 text-xs text-muted">
-                      {vendor.phone || "ยังไม่มีเบอร์โทร"} · {vendor._count.outsourceOrders} งาน
-                    </p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label={`แก้ไขร้าน ${vendor.name}`}
-                    onClick={() => openEdit(vendor)}
-                  >
-                    <Pencil />
-                  </Button>
-                </div>
-
-                <div className="mt-3 flex min-h-5 flex-wrap items-center gap-1.5">
-                  {vendor.capabilities.length > 0 ? (
-                    vendor.capabilities.map((capability) => (
-                      <Badge key={capability} size="sm">
-                        {STEP_TYPE_LABELS[capability]?.replace(" (ร้านนอก)", "") ?? capability}
-                      </Badge>
-                    ))
-                  ) : (
-                    <span className="text-xs text-muted">
-                      ยังไม่ระบุประเภทงาน
-                    </span>
-                  )}
-                  {vendor.qualityRating !== null && (
-                    <span className="ml-auto inline-flex items-center gap-1.5 text-xs text-amber-700 dark:text-amber-300">
-                      <Star className="h-3.5 w-3.5 fill-current" />
-                      {vendor.qualityRating.toFixed(1)}
-                    </span>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
+        emptyState={
+          keyword ? (
+            <EmptyState
+              icon={Store}
+              title="ไม่พบร้านที่ค้น"
+              description="ลองเปลี่ยนคำค้นหา"
+              action={
+                <Button variant="outline" size="sm" onClick={() => setSearch("")}>
+                  ล้างคำค้น
+                </Button>
+              }
+            />
+          ) : (
+            <EmptyState
+              icon={Store}
+              title="ยังไม่มีร้านรับจ้าง"
+              description="เพิ่มร้านแรก แล้วร้านจะปรากฏให้เลือกตอนส่งขั้นผลิตออกไปทำภายนอก"
+              action={
+                <Button size="sm" onClick={openCreate} disabled={!canManage}>
+                  <Plus />
+                  เพิ่มร้านแรก
+                </Button>
+              }
+            />
+          )
+        }
+        renderDesktop={(rows) => (
+          <DataTable.Root>
+            <DataTable.Head>
+              <tr>
+                <DataTable.Th>ร้าน</DataTable.Th>
+                <DataTable.Th>ประเภทงาน</DataTable.Th>
+                <DataTable.Th>ติดต่อ</DataTable.Th>
+                <DataTable.Th align="right">งานที่ส่งไปแล้ว</DataTable.Th>
+                <DataTable.Th align="right">คะแนน</DataTable.Th>
+                <DataTable.Th align="right">
+                  <span className="sr-only">แก้ไขร้าน</span>
+                </DataTable.Th>
+              </tr>
+            </DataTable.Head>
+            <DataTable.Body>
+              {rows.map((vendor) => (
+                <DataTable.Row key={vendor.id}>
+                  <DataTable.Td>
+                    <div className={c("who")}>
+                      <span className={c("thumb")} aria-hidden="true">
+                        <Store />
+                      </span>
+                      <div className="min-w-0">
+                        <span className="text-sm font-medium text-strong">{vendor.name}</span>
+                      </div>
+                    </div>
+                  </DataTable.Td>
+                  <DataTable.Td>
+                    {vendor.capabilities.length > 0 ? (
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {vendor.capabilities.map((capability) => (
+                          <Badge key={capability} size="sm">
+                            {capabilityLabel(capability)}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted">ยังไม่ระบุประเภทงาน</span>
+                    )}
+                  </DataTable.Td>
+                  <DataTable.Td className="text-muted">
+                    {vendor.phone || "ยังไม่มีเบอร์โทร"}
+                  </DataTable.Td>
+                  <DataTable.Td align="right" className="tabular-nums text-strong">
+                    <span className="font-medium">{vendor._count.outsourceOrders}</span> ใบ
+                  </DataTable.Td>
+                  <DataTable.Td align="right">
+                    {vendor.qualityRating !== null ? (
+                      <span className="inline-flex items-center gap-1.5 tabular-nums text-amber-700 dark:text-amber-300">
+                        <Star className="h-3.5 w-3.5 fill-current" aria-hidden="true" />
+                        {vendor.qualityRating.toFixed(1)}
+                      </span>
+                    ) : (
+                      <span className="text-muted">—</span>
+                    )}
+                  </DataTable.Td>
+                  <DataTable.Td align="right">
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={`แก้ไขร้าน ${vendor.name}`}
+                      onClick={() => openEdit(vendor)}
+                      disabled={!canManage}
+                    >
+                      <Pencil />
+                    </Button>
+                  </DataTable.Td>
+                </DataTable.Row>
+              ))}
+            </DataTable.Body>
+          </DataTable.Root>
         )}
-      </Section>
+        renderMobile={(rows) => (
+          <ListCards label="ทะเบียนร้านรับจ้าง">
+            {rows.map((vendor) => (
+              <ListCardItem key={vendor.id}>
+                <div className="p-4">
+                  <div className="flex items-start gap-3">
+                    <span className={c("thumb")} aria-hidden="true">
+                      <Store />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="break-words font-semibold text-strong">{vendor.name}</p>
+                      <p className="mt-0.5 text-xs text-secondary">
+                        {vendor.phone || "ยังไม่มีเบอร์โทร"}
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={`แก้ไขร้าน ${vendor.name}`}
+                      onClick={() => openEdit(vendor)}
+                      disabled={!canManage}
+                    >
+                      <Pencil />
+                    </Button>
+                  </div>
+                  <div className="mt-3 flex min-h-5 flex-wrap items-center gap-1.5">
+                    {vendor.capabilities.length > 0 ? (
+                      vendor.capabilities.map((capability) => (
+                        <Badge key={capability} size="sm">
+                          {capabilityLabel(capability)}
+                        </Badge>
+                      ))
+                    ) : (
+                      <span className="text-xs text-secondary">ยังไม่ระบุประเภทงาน</span>
+                    )}
+                  </div>
+                  <ListCardMetaGrid>
+                    <ListCardMeta label="งานที่ส่งไปแล้ว">
+                      <span className="font-semibold tabular-nums text-strong">
+                        {vendor._count.outsourceOrders}
+                      </span>{" "}
+                      ใบ
+                    </ListCardMeta>
+                    <ListCardMeta label="คะแนน" align="right">
+                      {vendor.qualityRating !== null ? (
+                        <span className="inline-flex items-center gap-1.5 tabular-nums text-amber-700 dark:text-amber-300">
+                          <Star className="h-3.5 w-3.5 fill-current" aria-hidden="true" />
+                          {vendor.qualityRating.toFixed(1)}
+                        </span>
+                      ) : (
+                        "ยังไม่มีคะแนน"
+                      )}
+                    </ListCardMeta>
+                  </ListCardMetaGrid>
+                </div>
+              </ListCardItem>
+            ))}
+          </ListCards>
+        )}
+      />
 
       <Dialog
         open={dialogOpen}
@@ -249,7 +386,8 @@ export default function VendorsSettingsPage() {
           <DialogHeader>
             <DialogTitle>{editingId ? "แก้ไขร้าน" : "เพิ่มร้าน"}</DialogTitle>
             <DialogDescription>
-              ข้อมูลนี้ใช้ในช่องเลือกร้านตอนเปิดใบงานภายนอก
+              ข้อมูลนี้ใช้ในช่องเลือกร้านตอนเปิดใบงานภายนอก · ร้านจะได้ลิงก์ใบงานของตัวเอง
+              เห็นเฉพาะงานที่ส่งให้ ไม่เห็นราคา
             </DialogDescription>
           </DialogHeader>
           <form className="space-y-4" onSubmit={handleSubmit}>

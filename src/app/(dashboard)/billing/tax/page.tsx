@@ -3,15 +3,18 @@
 import { useState } from "react";
 import { trpc, type RouterOutput } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { StatusLabel } from "@/components/ui/status-label";
 import { StatCard } from "@/components/ui/stat-card";
+import { SearchInput } from "@/components/ui/search-input";
+import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Alert } from "@/components/ui/alert";
 import { Select } from "@/components/ui/select";
 import { DataTable } from "@/components/ui/data-table";
 import { ResponsiveList } from "@/components/ui/responsive-list";
 import { PageShell } from "@/components/page-shell";
-import { cn, formatCurrency } from "@/lib/utils";
+import { c } from "@/components/kit/kit";
+import { cn, formatBaht, formatCurrency } from "@/lib/utils";
 import {
   salesTaxReportCsv,
   peakImportCsv,
@@ -71,6 +74,8 @@ function downloadCsv(content: string, filename: string) {
 export default function SalesTaxReportPage() {
   const options = monthOptions();
   const [selected, setSelected] = useState(`${options[0].year}-${options[0].month}`);
+  // ค้นในงวดที่โหลดมาแล้ว — salesTaxReport คืนทั้งงวดโดยไม่แบ่งหน้า จึงกรองฝั่งหน้าได้ครบจริง
+  const [search, setSearch] = useState("");
   const [yearStr, monthStr] = selected.split("-");
   const year = Number(yearStr);
   const month = Number(monthStr);
@@ -91,27 +96,25 @@ export default function SalesTaxReportPage() {
   const summary: ReportData["summary"] | undefined = data?.summary;
   const fileStamp = `${year}-${String(month).padStart(2, "0")}`;
 
+  // ไฟล์ CSV ยังใช้ rows ของทั้งงวดเสมอ — คำค้นเป็นตัวช่วยอ่านบนจอ ไม่ใช่ตัวตัดข้อมูลที่ส่งบัญชี
+  const term = search.trim().toLowerCase();
+  const visibleRows = term
+    ? rows.filter(
+        (r) =>
+          r.invoiceNumber.toLowerCase().includes(term) ||
+          r.customerName.toLowerCase().includes(term) ||
+          (r.taxId ?? "").toLowerCase().includes(term)
+      )
+    : rows;
+
   return (
     <PageShell
       title="ภาษีขาย"
       meta="ใบกำกับภาษีของแต่ละงวด สำหรับส่งบัญชี"
       help="จัดงวดตามวันที่ที่ระบุบนเอกสาร"
-      breadcrumb={[{ label: "บิล/การเงิน", href: "/billing" }, { label: "ภาษีขาย" }]}
+      breadcrumb={[{ label: "บิลและการเงิน", href: "/billing" }, { label: "ภาษีขาย" }]}
       action={
         <div className="flex flex-wrap items-center gap-2">
-          <Select
-            value={selected}
-            onChange={(e) => setSelected(e.target.value)}
-            shape="pill"
-            surface="raised"
-            className="w-[180px]"
-          >
-              {options.map((o) => (
-                <option key={`${o.year}-${o.month}`} value={`${o.year}-${o.month}`}>
-                  {o.label}
-                </option>
-              ))}
-            </Select>
           <Button
             variant="outline"
             disabled={rows.length === 0}
@@ -150,14 +153,14 @@ export default function SalesTaxReportPage() {
     >
       {/* ── สรุปงวด ── */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard loading={isLoading} moduleTone="finance" title="เอกสารในงวด" value={summary?.docCount ?? 0} icon={ReceiptText} />
+        <StatCard loading={isLoading} moduleTone="finance" title="เอกสารในงวด" value={summary?.docCount ?? 0} icon={ReceiptText} caption="ใบ · ไม่รวมใบยกเลิก" />
         <StatCard loading={isLoading} moduleTone="finance"
           title="ฐานภาษี (หลังหักลดหนี้)"
           value={formatCurrency(summary?.totalBase ?? 0)}
           icon={Coins}
         />
         <StatCard loading={isLoading} moduleTone="finance" title="VAT งวดนี้" value={formatCurrency(summary?.totalVat ?? 0)} icon={Coins} />
-        <StatCard loading={isLoading} moduleTone="finance" title="ใบยกเลิก" value={summary?.voidedCount ?? 0} icon={Ban} />
+        <StatCard loading={isLoading} moduleTone="finance" title="ใบยกเลิก" value={summary?.voidedCount ?? 0} icon={Ban} caption="ใบ" />
       </div>
 
       <Alert variant="info">
@@ -177,15 +180,73 @@ export default function SalesTaxReportPage() {
 
       {/* ── รายการเอกสาร ── */}
       <ResponsiveList
-        items={rows}
+        toolbar={
+          <Toolbar>
+            <SearchInput
+              surface="raised"
+              containerClassName="@2xl:max-w-sm @2xl:flex-1"
+              placeholder="ค้นเลขใบกำกับ หรือชื่อลูกค้า"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            {/* ช่องเลือกงวดอยู่กับรายการที่มันกรอง ไม่ใช่ปนกับปุ่มดาวน์โหลดบนหัวหน้า */}
+            <Select
+              value={selected}
+              onChange={(e) => setSelected(e.target.value)}
+              shape="pill"
+              surface="raised"
+              className="w-full @2xl:w-48"
+              aria-label="เลือกงวดภาษี"
+            >
+              {options.map((o) => (
+                <option key={`${o.year}-${o.month}`} value={`${o.year}-${o.month}`}>
+                  {o.label}
+                </option>
+              ))}
+            </Select>
+            {/* ตัวนับท้ายแถบเครื่องมือตามต้นแบบ (.tools .cnt) — นับใบที่เห็นอยู่จริงในตาราง
+                (คำค้นตัดแถวออกได้) · ยังไม่มีข้อมูลก็ยังไม่ขึ้นเลข */}
+            {data ? (
+              <ToolbarGroup align="end">
+                <span className="whitespace-nowrap text-xs tabular-nums text-muted">
+                  {visibleRows.length.toLocaleString("th-TH")} ใบ
+                </span>
+              </ToolbarGroup>
+            ) : null}
+          </Toolbar>
+        }
+        items={visibleRows}
         isLoading={isLoading}
         label="ใบกำกับภาษี"
         emptyState={
-          <EmptyState
-            icon={ReceiptText}
-            title={`งวด ${periodLabel} ยังไม่มีใบกำกับภาษี`}
-            description="ใบเสร็จ/ใบกำกับเกิดตอนบันทึกรับเงินแล้วกดออกใบที่งวดนั้น (tax point จ้างทำของ)"
-          />
+          term ? (
+            <EmptyState
+              icon={ReceiptText}
+              title="ไม่พบใบกำกับที่ค้นหา"
+              description="ลองคำค้นอื่น — ค้นได้ด้วยเลขใบกำกับ ชื่อลูกค้า หรือเลขผู้เสียภาษี"
+            />
+          ) : (
+            <EmptyState
+              icon={ReceiptText}
+              title={`งวด ${periodLabel} ยังไม่มีใบกำกับภาษี`}
+              description="ใบเสร็จ/ใบกำกับเกิดตอนบันทึกรับเงินแล้วกดออกใบที่งวดนั้น (tax point จ้างทำของ)"
+            />
+          )
+        }
+        pagination={
+          summary ? (
+            /* แถบสรุปท้ายการ์ดตามต้นแบบ — เดสก์ท็อปมีแถวรวมตามคอลัมน์ในตารางอยู่แล้ว
+               แถบนี้จึงเป็นของฝั่งการ์ด (มือถือ) ที่เดิมไม่มียอดรวมให้เห็นเลย */
+            <div className={cn(c("tfoot"), "lg:hidden")}>
+              <span>
+                รวมฐานภาษี <b>{formatBaht(summary.totalBase)}</b>
+              </span>
+              <span>
+                VAT ที่ต้องนำส่ง <b>{formatBaht(summary.totalVat)}</b>
+              </span>
+              <span>(ไม่รวมใบยกเลิก)</span>
+            </div>
+          ) : undefined
         }
         renderDesktop={(items) => (
           // พื้นที่หลังหัก sidebar ที่ช่วง tablet ไม่พอสำหรับ 9 คอลัมน์ —
@@ -235,25 +296,25 @@ export default function SalesTaxReportPage() {
                     align="right"
                     className={cn("tabular-nums", r.isVoided && "text-muted")}
                   >
-                    {r.base.toFixed(2)}
+                    {formatBaht(r.base)}
                   </DataTable.Td>
                   <DataTable.Td
                     align="right"
                     className={cn("tabular-nums", r.isVoided && "text-muted")}
                   >
-                    {r.vat.toFixed(2)}
+                    {formatBaht(r.vat)}
                   </DataTable.Td>
                   <DataTable.Td
                     align="right"
                     className={cn("font-medium tabular-nums", r.isVoided && "text-muted")}
                   >
-                    {r.total.toFixed(2)}
+                    {formatBaht(r.total)}
                   </DataTable.Td>
                   <DataTable.Td>
                     {r.isVoided ? (
-                      <Badge variant="destructive" size="sm" className="no-underline">ยกเลิก</Badge>
+                      <StatusLabel label="ยกเลิก" tone="danger" emphasize className="no-underline" />
                     ) : (
-                      <Badge variant="success" size="sm">ปกติ</Badge>
+                      <StatusLabel label="ปกติ" tone="success" emphasize />
                     )}
                   </DataTable.Td>
                 </DataTable.Row>
@@ -263,17 +324,18 @@ export default function SalesTaxReportPage() {
               <tfoot>
                 <tr className="border-t border-border font-semibold">
                   <DataTable.Td colSpan={3} align="right">
-                    รวมงวด {periodLabel} ({summary.docCount} ฉบับ
-                    {summary.voidedCount > 0 ? ` · ยกเลิก ${summary.voidedCount}` : ""})
+                    {summary.voidedCount > 0
+                      ? `รวมงวด ${periodLabel} (${summary.docCount} ฉบับ) — ไม่รวมใบยกเลิก ${summary.voidedCount} ใบ`
+                      : `รวมงวด ${periodLabel} (${summary.docCount} ฉบับ)`}
                   </DataTable.Td>
                   <DataTable.Td align="right" className="tabular-nums">
-                    {summary.totalBase.toFixed(2)}
+                    {formatBaht(summary.totalBase)}
                   </DataTable.Td>
                   <DataTable.Td align="right" className="tabular-nums">
-                    {summary.totalVat.toFixed(2)}
+                    {formatBaht(summary.totalVat)}
                   </DataTable.Td>
                   <DataTable.Td align="right" className="tabular-nums">
-                    {summary.totalAmount.toFixed(2)}
+                    {formatBaht(summary.totalAmount)}
                   </DataTable.Td>
                   <DataTable.Td />
                 </tr>
@@ -298,9 +360,7 @@ export default function SalesTaxReportPage() {
                       {r.invoiceNumber}
                     </p>
                     {r.isVoided && (
-                      <Badge variant="destructive" size="sm">
-                        ยกเลิก
-                      </Badge>
+                      <StatusLabel label="ยกเลิก" tone="danger" emphasize className="shrink-0 no-underline" />
                     )}
                   </div>
                   <p className="mt-1 text-xs tabular-nums text-muted">
@@ -326,15 +386,15 @@ export default function SalesTaxReportPage() {
                 >
                   <div className="min-w-0">
                     <dt className="text-xs text-muted">ฐานภาษี</dt>
-                    <dd className="mt-0.5 text-sm tabular-nums">{r.base.toFixed(2)}</dd>
+                    <dd className="mt-0.5 text-sm tabular-nums">{formatBaht(r.base)}</dd>
                   </div>
                   <div className="min-w-0">
                     <dt className="text-xs text-muted">VAT</dt>
-                    <dd className="mt-0.5 text-sm tabular-nums">{r.vat.toFixed(2)}</dd>
+                    <dd className="mt-0.5 text-sm tabular-nums">{formatBaht(r.vat)}</dd>
                   </div>
                   <div className="min-w-0">
                     <dt className="text-xs text-muted">รวม</dt>
-                    <dd className="mt-0.5 text-sm font-medium tabular-nums">{r.total.toFixed(2)}</dd>
+                    <dd className="mt-0.5 text-sm font-medium tabular-nums">{formatBaht(r.total)}</dd>
                   </div>
                 </dl>
               </div>

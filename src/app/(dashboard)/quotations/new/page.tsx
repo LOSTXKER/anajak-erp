@@ -7,7 +7,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/page-shell";
 import { Field } from "@/components/ui/field";
-import { FIELD_LABEL, DISPLAY_AMOUNT } from "@/components/ui/tokens";
+import { FIELD_LABEL } from "@/components/ui/tokens";
 import { Input } from "@/components/ui/input";
 import { MoneyInput, NumberInput } from "@/components/ui/number-input";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -16,11 +16,12 @@ import { Alert } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ToneMark } from "@/components/ui/section";
 import { ListPageSkeleton } from "@/components/ui/page-skeleton";
-import { formatCurrency } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
+import { c } from "@/components/kit/kit";
 import { CustomerPicker } from "@/components/customers/customer-picker";
 import { permAllows } from "@/lib/permissions";
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
-import { Plus, Trash2, FileText, User } from "lucide-react";
+import { Plus, Trash2, ClipboardList, User, PenLine } from "lucide-react";
 
 // ============================================================
 // TYPES
@@ -65,6 +66,13 @@ const labelClass = FIELD_LABEL;
 
 const sectionLabelClass =
   "mb-1.5 block text-sm font-medium text-secondary";
+
+/* ตารางรายการในฟอร์ม (ต้นแบบ 2026-09-16): หัวคอลัมน์ครั้งเดียวด้านบน แล้วแต่ละแถว
+   เป็น รายการ | จำนวน + หน่วย | ราคา/หน่วย | รวม | ปุ่มลบ
+   วัดจาก "ความกว้างการ์ด" (@container) ไม่ใช่ความกว้างหน้าต่าง เพราะการ์ดนี้ยืนใน
+   คอลัมน์ 7 ส่วนของ 12 — จอกว้าง 1,440 แต่ที่ว่างจริงในการ์ดเหลือราว 590px
+   แคบกว่านั้นช่องกรอกเรียงลงมาพร้อมป้ายกำกับของตัวเอง (หัวคอลัมน์ซ่อน) */
+const ITEM_GRID = "@2xl:grid-cols-[minmax(0,1fr)_7.5rem_6.5rem_5.5rem_2rem]";
 
 // ============================================================
 // COMPONENT
@@ -301,21 +309,35 @@ function QuotationFormPage() {
     });
   };
 
+  const saving = createQuotation.isPending || editSaving;
+
   // ============================================================
   // RENDER
   // ============================================================
 
   return (
     <PageShell
-      width="wide"
-      back={{ href: "/quotations", label: "กลับไปรายการใบเสนอราคา" }}
-      title={editId ? "แก้ไขใบเสนอราคา (ฉบับร่าง)" : "สร้างใบเสนอราคาใหม่"}
+      back={{ href: "/quotations", label: "ใบเสนอราคาทั้งหมด" }}
+      title={editId ? "แก้ไขใบเสนอราคา (ฉบับร่าง)" : "สร้างใบเสนอราคา"}
       meta={
         fromOrderId
           ? `ผูกกับออเดอร์ ${linkedOrder?.orderNumber ?? "..."} — ลูกค้าตกลงแล้วระบบจะยืนยันออเดอร์ใบเดิม ไม่สร้างซ้ำ`
           : editId
             ? editing?.quotationNumber ?? ""
-            : undefined
+            : "บันทึกแล้วได้ใบฉบับร่าง จากนั้นกดส่งลิงก์ให้ลูกค้ากดรับได้เลย ไม่ต้องล็อกอิน"
+      }
+      /* ปุ่มสั่งงานอยู่มุมขวาบนตามต้นแบบ — action ถูก render นอก <form> จึงผูกกลับ
+         ด้วย form="quotation-form" (ไม่เรียก handleSubmit ตรงๆ เพราะจะข้าม required
+         ของเบราว์เซอร์ที่ช่องชื่อรายการ/จำนวน/ราคาใช้อยู่) */
+      action={
+        <>
+          <Button type="button" variant="outline" asChild>
+            <Link href="/quotations">ยกเลิก</Link>
+          </Button>
+          <Button type="submit" form="quotation-form" disabled={saving}>
+            {saving ? "กำลังบันทึก..." : editId ? "บันทึกการแก้ไข" : "สร้างใบเสนอราคา"}
+          </Button>
+        </>
       }
       error={
         // โหลด prefill ไม่สำเร็จ (โหมดผูกออเดอร์/แก้ไข) → กันฟอร์มเปล่าไปเซฟทับใบเดิม
@@ -342,16 +364,226 @@ function QuotationFormPage() {
         }
       }
     >
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* ============================================================ */}
-        {/* BASIC INFO                                                   */}
-        {/* ============================================================ */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">ข้อมูลทั่วไป</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <form id="quotation-form" onSubmit={handleSubmit} className={c("two")}>
+        <div className={c("stack")}>
+          {/* ============================================================ */}
+          {/* รายการที่เสนอ + สรุปยอด (ต้นแบบรวมไว้การ์ดเดียว)              */}
+          {/* ============================================================ */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between gap-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <ToneMark icon={ClipboardList} tone="product" />
+                รายการที่เสนอ
+              </CardTitle>
+              <Button type="button" variant="ghost" size="sm" onClick={addItem}>
+                <Plus />
+                เพิ่มรายการ
+              </Button>
+            </CardHeader>
+            <CardContent className="@container">
+              {/* หัวคอลัมน์ครั้งเดียว — การ์ดแคบกว่านี้ช่องกรอกมีป้ายของตัวเองแทน */}
+              <div
+                className={cn(
+                  "hidden gap-2.5 border-b border-divider pb-2 text-xs text-muted @2xl:grid",
+                  ITEM_GRID,
+                )}
+              >
+                <span>รายการ</span>
+                <span>จำนวน</span>
+                <span className="text-right">ราคา/หน่วย</span>
+                <span className="text-right">รวม</span>
+                <span className="sr-only">ลบรายการ</span>
+              </div>
+
+              {items.map((item, idx) => {
+                const rowTotal = item.quantity * item.unitPrice;
+                return (
+                  <div
+                    key={idx}
+                    className={cn(
+                      "grid gap-2.5 border-b border-divider py-3 last:border-b-0 last:pb-0 @2xl:items-start",
+                      ITEM_GRID,
+                    )}
+                  >
+                    {/* ชื่อรายการ + คำอธิบายเป็นบรรทัดที่สองใต้ชื่อ */}
+                    <div className="space-y-1.5">
+                      <label htmlFor={`quotation-item-${idx}-name`} className={cn(labelClass, "@2xl:sr-only")}>
+                        ชื่อรายการ *
+                      </label>
+                      <Input
+                        id={`quotation-item-${idx}-name`}
+                        value={item.name}
+                        onChange={(e) => updateItem(idx, "name", e.target.value)}
+                        placeholder="เช่น เสื้อยืด Cotton 100%"
+                        required
+                      />
+                      <label htmlFor={`quotation-item-${idx}-description`} className={cn(labelClass, "@2xl:sr-only")}>
+                        คำอธิบาย
+                      </label>
+                      <Input
+                        id={`quotation-item-${idx}-description`}
+                        value={item.description}
+                        onChange={(e) => updateItem(idx, "description", e.target.value)}
+                        placeholder="รายละเอียดเพิ่มเติม..."
+                      />
+                    </div>
+
+                    {/* จำนวน + หน่วย อยู่คอลัมน์เดียวกันตามต้นแบบ ("250 ชิ้น") */}
+                    <div className="space-y-1.5">
+                      <label htmlFor={`quotation-item-${idx}-quantity`} className={cn(labelClass, "@2xl:sr-only")}>
+                        จำนวน *
+                      </label>
+                      <div className="flex gap-1.5">
+                        <NumberInput
+                          id={`quotation-item-${idx}-quantity`}
+                          integer
+                          min={1}
+                          fallback={1}
+                          value={item.quantity}
+                          onValueChange={(value) => updateItem(idx, "quantity", value || 1)}
+                          className="min-w-0 flex-1"
+                          required
+                        />
+                        <Input
+                          id={`quotation-item-${idx}-unit`}
+                          value={item.unit}
+                          onChange={(e) => updateItem(idx, "unit", e.target.value)}
+                          placeholder="ชิ้น"
+                          aria-label={`หน่วยของรายการที่ ${idx + 1}`}
+                          className="w-14 min-w-0 px-2"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label htmlFor={`quotation-item-${idx}-price`} className={cn(labelClass, "@2xl:sr-only")}>
+                        ราคาต่อหน่วย *
+                      </label>
+                      <MoneyInput
+                        id={`quotation-item-${idx}-price`}
+                        value={item.unitPrice}
+                        onValueChange={(value) => updateItem(idx, "unitPrice", value)}
+                        placeholder="0.00"
+                        className="text-right"
+                        required
+                      />
+                    </div>
+
+                    <div className="flex items-baseline justify-between gap-2 @2xl:block @2xl:pt-2 @2xl:text-right">
+                      <span className={cn(labelClass, "mb-0 @2xl:sr-only")}>รวม</span>
+                      <span className="text-sm font-medium tabular-nums text-strong">
+                        {formatCurrency(rowTotal)}
+                      </span>
+                    </div>
+
+                    <div className="@2xl:pt-1">
+                      {items.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeItem(idx)}
+                          className="text-red-500 dark:text-red-400"
+                          aria-label={`ลบรายการ ${idx + 1}`}
+                        >
+                          <Trash2 />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* ---- ส่วนลด/ภาษี แล้วต่อด้วยกล่องสรุปยอด (ต้นแบบ .sumbox) ---- */}
+              <div className="mt-4 space-y-3 border-t border-divider pt-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <label htmlFor="quotation-discount" className="text-sm text-secondary">
+                    ส่วนลด (บาท)
+                  </label>
+                  <MoneyInput
+                    id="quotation-discount"
+                    value={discount}
+                    onValueChange={setDiscount}
+                    placeholder="0.00"
+                    className="w-32 text-right"
+                  />
+                </div>
+
+                {/* ภาษี — จำนวนเงินบาท (ต่างจากฟอร์มออเดอร์ที่เป็น %) · ปุ่มลัดคิด 7%
+                    จากฐานหลังหักส่วนลด — บริษัทจด VAT ใบเสนอควรมีภาษีเสมอ (Gate B2) */}
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <label htmlFor="quotation-tax" className="text-sm text-secondary">
+                    ภาษีมูลค่าเพิ่ม (บาท)
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      title="คำนวณ VAT 7% จากยอดหลังหักส่วนลด"
+                      onClick={() => {
+                        const base = Math.max(0, pricingSummary.subtotal - discount);
+                        setTax(Math.round(base * 7) / 100);
+                      }}
+                    >
+                      VAT 7%
+                    </Button>
+                    <MoneyInput
+                      id="quotation-tax"
+                      value={tax}
+                      onValueChange={setTax}
+                      placeholder="0.00"
+                      className="w-32 text-right"
+                    />
+                  </div>
+                </div>
+
+                <div className="border-t border-divider pt-2">
+                  <div className={c("srow")}>
+                    <span>ยอดก่อนภาษี</span>
+                    <b>{formatCurrency(pricingSummary.subtotal)}</b>
+                  </div>
+                  <div className={c("srow")}>
+                    <span>ส่วนลด</span>
+                    <b className={pricingSummary.discount > 0 ? c("neg") : undefined}>
+                      {pricingSummary.discount > 0
+                        ? `-${formatCurrency(pricingSummary.discount)}`
+                        : formatCurrency(0)}
+                    </b>
+                  </div>
+                  <div className={c("srow")}>
+                    <span>ภาษีมูลค่าเพิ่ม</span>
+                    <b>{formatCurrency(pricingSummary.tax)}</b>
+                  </div>
+                  <div className={c("srow total")}>
+                    <span>ยอดสุทธิ</span>
+                    <b>{formatCurrency(pricingSummary.total)}</b>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Error display — อยู่ใต้การ์ดหลัก ไม่ให้ข้อความพลาดหลุดออกนอกสายตา */}
+          {(createQuotation.isError || editError) && (
+            <Alert variant="error">
+              {editError ?? createQuotation.error?.message}
+            </Alert>
+          )}
+        </div>
+
+        <div className={c("stack")}>
+          {/* ============================================================ */}
+          {/* ลูกค้าและเงื่อนไข                                            */}
+          {/* ============================================================ */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <ToneMark icon={User} tone="brand" />
+                ลูกค้าและเงื่อนไข
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <fieldset>
                 <legend className={sectionLabelClass}>ลูกค้า *</legend>
                 {fromOrderId || editId ? (
@@ -369,281 +601,59 @@ function QuotationFormPage() {
                   />
                 )}
               </fieldset>
-              <Field label="ใช้ได้ถึงวันที่" required id="quotation-valid-until">
+              <Field label="ชื่องาน" id="quotation-description">
+                <Input
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="เช่น เสื้อโปโลพนักงาน 250 ตัว"
+                />
+              </Field>
+              <Field label="เงื่อนไขชำระ" id="quotation-terms">
+                <Textarea
+                  value={terms}
+                  onChange={(e) => setTerms(e.target.value)}
+                  placeholder="เช่น มัดจำ 50% ก่อนผลิต ที่เหลือชำระก่อนส่งของ"
+                  rows={2}
+                />
+              </Field>
+              <Field label="ยืนราคาถึงวันที่" required id="quotation-valid-until">
                 <DatePicker
                   value={validUntil}
                   onChange={(v) => setValidUntil(v)}
                   required
                 />
               </Field>
-            </div>
-            <Field label="รายละเอียด" id="quotation-description">
-              <Textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="รายละเอียดเพิ่มเติม..."
-                rows={3}
-              />
-            </Field>
-            <Field label="เงื่อนไข" id="quotation-terms">
-              <Textarea
-                value={terms}
-                onChange={(e) => setTerms(e.target.value)}
-                placeholder="เงื่อนไขการชำระเงิน, การจัดส่ง..."
-                rows={3}
-              />
-            </Field>
-            <Field label="หมายเหตุ" id="quotation-notes">
-              <Textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="หมายเหตุภายใน..."
-                rows={2}
-              />
-            </Field>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        {/* ============================================================ */}
-        {/* LINE ITEMS                                                   */}
-        {/* ============================================================ */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <ToneMark icon={FileText} tone="product" />
-              รายการสินค้า
-            </CardTitle>
-            <Button type="button" variant="outline" size="sm" onClick={addItem}>
-              <Plus className="mr-1" />
-              เพิ่มรายการ
-            </Button>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {items.map((item, idx) => {
-              const rowTotal = item.quantity * item.unitPrice;
-
-              return (
-                <div
-                  key={idx}
-                  className="space-y-3 border-b border-divider pb-5 last:border-b-0 last:pb-0"
-                >
-                  {/* Item header */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-secondary">
-                      รายการ #{idx + 1}
-                    </span>
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
-                        {formatCurrency(rowTotal)}
-                      </span>
-                      {items.length > 1 && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeItem(idx)}
-                          className="text-red-500 dark:text-red-400"
-                          aria-label={`ลบรายการ ${idx + 1}`}
-                        >
-                          <Trash2 />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Name + Description */}
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <div>
-                      <label htmlFor={`quotation-item-${idx}-name`} className={labelClass}>
-                        ชื่อรายการ *
-                      </label>
-                      <Input
-                        id={`quotation-item-${idx}-name`}
-                        value={item.name}
-                        onChange={(e) => updateItem(idx, "name", e.target.value)}
-                        placeholder="เช่น เสื้อยืด Cotton 100%"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor={`quotation-item-${idx}-description`} className={labelClass}>
-                        คำอธิบาย
-                      </label>
-                      <Input
-                        id={`quotation-item-${idx}-description`}
-                        value={item.description}
-                        onChange={(e) =>
-                          updateItem(idx, "description", e.target.value)
-                        }
-                        placeholder="รายละเอียดเพิ่มเติม..."
-                      />
-                    </div>
-                  </div>
-
-                  {/* Quantity, Unit, Unit Price */}
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                    <div>
-                      <label htmlFor={`quotation-item-${idx}-quantity`} className={labelClass}>
-                        จำนวน *
-                      </label>
-                      <NumberInput
-                        id={`quotation-item-${idx}-quantity`}
-                        integer
-                        min={1}
-                        fallback={1}
-                        value={item.quantity}
-                        onValueChange={(value) => updateItem(idx, "quantity", value || 1)}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor={`quotation-item-${idx}-unit`} className={labelClass}>
-                        หน่วย
-                      </label>
-                      <Input
-                        id={`quotation-item-${idx}-unit`}
-                        value={item.unit}
-                        onChange={(e) => updateItem(idx, "unit", e.target.value)}
-                        placeholder="ชิ้น"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor={`quotation-item-${idx}-price`} className={labelClass}>
-                        ราคาต่อหน่วย *
-                      </label>
-                      <MoneyInput
-                        id={`quotation-item-${idx}-price`}
-                        value={item.unitPrice}
-                        onValueChange={(value) => updateItem(idx, "unitPrice", value)}
-                        placeholder="0.00"
-                        required
-                      />
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </CardContent>
-        </Card>
-
-        {/* ============================================================ */}
-        {/* PRICE SUMMARY                                                */}
-        {/* ============================================================ */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">สรุปราคา</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="space-y-2 text-sm">
-              {/* Discount */}
-              <div className="flex items-center justify-between">
-                <label htmlFor="quotation-discount" className="text-secondary">
-                  ส่วนลด
-                </label>
-                <MoneyInput
-                  id="quotation-discount"
-                  value={discount}
-                  onValueChange={setDiscount}
-                  placeholder="0.00"
-                  className="w-32 text-right"
+          {/* ============================================================ */}
+          {/* ข้อความในเอกสาร                                              */}
+          {/* ============================================================ */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <ToneMark icon={PenLine} tone="system" />
+                ข้อความในเอกสาร
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {/* ฐานข้อมูลมี notes ช่องเดียว และค่านี้ถูกพิมพ์ลงใบเสนอราคาที่ลูกค้าได้รับ
+                  (print/quotation) — ห้ามเขียนว่าเป็น "หมายเหตุภายใน" เหมือนต้นแบบ */}
+              <Field
+                label="หมายเหตุถึงลูกค้า"
+                id="quotation-notes"
+                description="ข้อความนี้จะถูกพิมพ์ลงใบเสนอราคาที่ลูกค้าได้รับ"
+              >
+                <Textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="เช่น ราคานี้ยังไม่รวมค่าจัดส่ง"
+                  rows={3}
                 />
-              </div>
-
-              {/* Tax — จำนวนเงินบาท (ต่างจากฟอร์มออเดอร์ที่เป็น %) · ปุ่มลัดคิด 7%
-                  จากฐานหลังหักส่วนลด — บริษัทจด VAT ใบเสนอควรมีภาษีเสมอ (Gate B2) */}
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <label htmlFor="quotation-tax" className="text-secondary">
-                  ภาษี (บาท)
-                </label>
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    title="คำนวณ VAT 7% จากยอดหลังหักส่วนลด"
-                    onClick={() => {
-                      const base = Math.max(0, pricingSummary.subtotal - discount);
-                      setTax(Math.round(base * 7) / 100);
-                    }}
-                  >
-                    VAT 7%
-                  </Button>
-                  <MoneyInput
-                    id="quotation-tax"
-                    value={tax}
-                    onValueChange={setTax}
-                    placeholder="0.00"
-                    className="w-32 text-right"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Summary breakdown */}
-            <div className="space-y-1.5 border-t border-border pt-3 text-sm">
-              <div className="flex justify-between text-muted">
-                <span>ยอดรวมสินค้า</span>
-                <span className="tabular-nums">
-                  {formatCurrency(pricingSummary.subtotal)}
-                </span>
-              </div>
-              {pricingSummary.discount > 0 && (
-                <div className="flex justify-between text-red-600 dark:text-red-400">
-                  <span>- ส่วนลด</span>
-                  <span className="tabular-nums">
-                    -{formatCurrency(pricingSummary.discount)}
-                  </span>
-                </div>
-              )}
-              {pricingSummary.tax > 0 && (
-                <div className="flex justify-between text-muted">
-                  <span>+ ภาษี</span>
-                  <span className="tabular-nums">
-                    +{formatCurrency(pricingSummary.tax)}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Grand total */}
-            <div className="flex items-center justify-between border-t border-border pt-3">
-              <span className="text-lg font-semibold text-strong">
-                ยอดรวมทั้งหมด
-              </span>
-              <span className={DISPLAY_AMOUNT}>
-                {formatCurrency(pricingSummary.total)}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* ============================================================ */}
-        {/* Actions                                                      */}
-        {/* ============================================================ */}
-        <div className="flex justify-end gap-3 pb-8 [&>button]:flex-1 [&>a]:flex-1 sm:[&>button]:flex-none sm:[&>a]:flex-none">
-          <Button type="button" variant="outline" asChild>
-            <Link href="/quotations">
-              ยกเลิก
-            </Link>
-          </Button>
-          <Button
-            type="submit"
-            disabled={createQuotation.isPending || editSaving}
-          >
-            {createQuotation.isPending || editSaving
-              ? "กำลังบันทึก..."
-              : editId
-                ? "บันทึกการแก้ไข"
-                : "สร้างใบเสนอราคา"}
-          </Button>
+              </Field>
+            </CardContent>
+          </Card>
         </div>
-
-        {/* Error display */}
-        {(createQuotation.isError || editError) && (
-          <Alert variant="error">
-            {editError ?? createQuotation.error?.message}
-          </Alert>
-        )}
       </form>
     </PageShell>
   );

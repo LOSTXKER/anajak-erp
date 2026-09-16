@@ -34,6 +34,13 @@
 .head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 4px 0 2px; }
 .head h1 { font-size: 28px; line-height: 1.15; font-weight: 600; letter-spacing: -.02em; text-wrap: balance; }
 .head .date { margin-top: 6px; color: var(--ink-3); font-size: 13.5px; }
+/* ฝั่งซ้ายของหัวหน้า: ปุ่มย้อนกลับ → ชื่อหน้า → บรรทัดรอง (ต้นแบบ .head .ht/.bk)
+   ปุ่มย้อนกลับอยู่ "เหนือ" ชื่อหน้าและมีชื่อปลายทางจริง ไม่ใช่ลูกศรเปล่ายืนข้างหัวข้อ
+   ⚠️ ขนาด/น้ำหนักของ h1 ยังมาจากบันไดตัวอักษรกลาง (text-3xl = 28px/600) ที่ markup
+   ที่นี่จึงคุมแค่โครงและ text-wrap — ช่องไฟติดลบของต้นแบบไม่ใช้กับข้อความไทย (globals) */
+.head .ht { min-width: 0; }
+.head .bk { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 6px; font-size: 12.5px; color: var(--ink-3); }
+.head .bk :global(svg.lucide) { width: 14px; height: 14px; }
 
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 38px; padding: 0 16px; border-radius: var(--r-ctl); border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-weight: 500; font-size: 13.5px; white-space: nowrap; transition: transform .12s; }
 .btn:active { transform: scale(.97); background: var(--pressed); }

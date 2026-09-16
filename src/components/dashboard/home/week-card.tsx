@@ -2,17 +2,18 @@
 
 import { CalendarDays } from "lucide-react";
 import { c, CardHead } from "@/components/kit/kit";
-import { BANGKOK_TZ } from "@/lib/utils";
+import { formatDateShort } from "@/lib/utils";
 import type { HomeWeek } from "@/server/services/home-overview";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-// ชื่อวันแบบย่อสุด (จ อ พ พฤ ศ ส อา) — ชื่อย่อของ Intl ภาษาไทยยังยาวเกินช่องกว้าง 40px
-const WEEKDAY_TH: Record<string, string> = { Mon: "จ", Tue: "อ", Wed: "พ", Thu: "พฤ", Fri: "ศ", Sat: "ส", Sun: "อา" };
-const weekdayEn = new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: BANGKOK_TZ });
-const weekday = { format: (date: Date) => WEEKDAY_TH[weekdayEn.format(date)] ?? weekdayEn.format(date) };
-const dayOfMonth = new Intl.DateTimeFormat("th-TH", { day: "numeric", timeZone: BANGKOK_TZ });
 
-/** กำหนดส่ง 7 วัน (ต้นแบบ weekHTML) — กดวันไหน ตารางออเดอร์กรองตามวันนั้น (กดซ้ำเพื่อยกเลิก) */
+/* กำหนดส่ง 7 วัน (ต้นแบบ wkbox) — กดวันไหน ตารางออเดอร์กรองตามวันนั้น (กดซ้ำเพื่อยกเลิก)
+   แท่งของต้นแบบกว้างเต็มช่อง (ไม่เกิน 34px) สูง 8–82px และเป็นสีแบรนด์ทุกวัน
+   ค่าพวกนี้สั่งตรงที่แท่งไว้ก่อน จนกว่า .week/.day ในชุดกลางจะย้ายมาใช้ค่าเดียวกัน */
+const BAR_BOX_H = 82;
+const BAR_MIN_H = 8;
+const BAR_RANGE = 74;
+
 export function WeekCard({
   week,
   now,
@@ -40,28 +41,32 @@ export function WeekCard({
             const date = new Date(now.getTime() + day.offset * DAY_MS);
             const isToday = day.offset === 0;
             const active = selected === day.offset;
+            const label = isToday ? "วันนี้" : formatDateShort(date);
             return (
               <button
                 key={day.offset}
                 type="button"
                 className={c("day", isToday && "now", day.count === 0 && "zero")}
                 aria-pressed={active}
-                aria-label={`${isToday ? "วันนี้" : weekday.format(date)} ${dayOfMonth.format(date)} มี ${day.count} ออเดอร์`}
+                aria-label={`${label} มี ${day.count} ออเดอร์`}
                 onClick={() => onSelect(active ? null : day.offset)}
               >
-                <span className={c("bar")} aria-hidden="true">
+                <span className={c("bar")} style={{ height: BAR_BOX_H }} aria-hidden="true">
                   <i
                     style={{
-                      height: day.count === 0 ? 3 : Math.max(6, Math.round((day.count / max) * 52)),
+                      height: Math.round(BAR_MIN_H + (day.count / max) * BAR_RANGE),
+                      width: "100%",
+                      maxWidth: 34,
+                      borderRadius: "8px 8px 4px 4px",
+                      background: day.count === 0 ? "var(--line)" : "var(--accent)",
+                      opacity: 0.85,
                       animationDelay: `${day.offset * 40}ms`,
                     }}
                   />
                 </span>
-                <span className={c("n")}>{day.count}</span>
-                <span className={c("lb")}>
-                  <b>{isToday ? "วันนี้" : weekday.format(date)}</b>
-                  {dayOfMonth.format(date)}
-                </span>
+                {/* วันที่ไม่มีงานเขียน "–" ไม่ใช่ 0 — ศูนย์ตัวโตอ่านแล้วสะดุดเหมือนมีของ */}
+                <span className={c("n")}>{day.count || "–"}</span>
+                <span className={c("lb")}>{label}</span>
               </button>
             );
           })}

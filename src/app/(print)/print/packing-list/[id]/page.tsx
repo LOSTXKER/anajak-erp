@@ -72,18 +72,18 @@ export default async function PrintPackingListPage({
             <div className="mb-2">
               <DocumentStamp title="ใบรายการสินค้า" label="Packing document" code="PL" />
             </div>
-            <p className="text-[20px] font-bold leading-tight">ใบรายการสินค้า</p>
+            <p className="text-[17px] font-bold leading-tight">ใบรายการสินค้า</p>
             <p className="text-[12px] tracking-wide text-slate-600">PACKING LIST</p>
           </div>
           <div className="shrink-0 text-right">
             <table className="ml-auto text-[12.5px]">
               <tbody>
                 <tr>
-                  <td className="pr-3 text-right text-slate-600">ออเดอร์</td>
+                  <td className="pr-3 text-right text-slate-500">ออเดอร์</td>
                   <td className="text-right font-semibold tabular-nums">{order.orderNumber}</td>
                 </tr>
                 <tr>
-                  <td className="pr-3 text-right text-slate-600">วันที่</td>
+                  <td className="pr-3 text-right text-slate-500">วันที่</td>
                   <td className="text-right tabular-nums">{formatDocDate(delivery.createdAt)}</td>
                 </tr>
               </tbody>
@@ -91,9 +91,11 @@ export default async function PrintPackingListPage({
           </div>
         </div>
 
-        {/* ผู้ส่ง / ผู้รับ */}
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          <div className="rounded border border-slate-300 px-4 py-3">
+        {/* ผู้ส่ง / ผู้รับ — ต้นแบบเป็นย่อหน้าเดียวไม่มีกรอบ แต่ใบนี้ไปแปะกล่อง กรอบคือสิ่งที่
+            กันคนแพ็คอ่านสลับผู้ส่ง/ผู้รับ · เก็บกรอบไว้แต่ลดเหลือเส้นบาง ไม่มีมุมโค้ง
+            ให้เข้าชุดกับเส้นตรงของเอกสารใบอื่น */}
+        <div className="mt-3.5 grid grid-cols-2 gap-3">
+          <div className="border border-slate-300 px-4 py-3">
             <p className="text-[11px] font-semibold text-slate-500">
               ผู้ส่ง / FROM
             </p>
@@ -115,7 +117,7 @@ export default async function PrintPackingListPage({
               </>
             )}
           </div>
-          <div className="rounded border border-slate-300 px-4 py-3">
+          <div className="border border-slate-300 px-4 py-3">
             <p className="text-[11px] font-semibold text-slate-500">
               ผู้รับ / TO
             </p>
@@ -128,7 +130,7 @@ export default async function PrintPackingListPage({
         </div>
 
         {/* วิธีส่ง + เลขพัสดุ */}
-        <div className="mt-3 rounded border border-slate-300 px-4 py-2 text-[12.5px]">
+        <div className="mt-3 border border-slate-300 px-4 py-2 text-[12.5px]">
           <span className="font-semibold">วิธีส่ง: </span>
           {SHIPPING_METHOD_LABELS[delivery.shippingMethod] ?? delivery.shippingMethod}
           {delivery.trackingNumber && (
@@ -141,7 +143,7 @@ export default async function PrintPackingListPage({
         </div>
 
         {/* รายการในกล่อง — ไม่มีราคา/เงินทุกชนิด */}
-        <table className="mt-4 w-full border-collapse text-[12.5px]">
+        <table className="mt-3.5 w-full border-collapse text-[12.5px]">
           <thead>
             <tr className="border-y border-slate-900 text-left">
               <th className="w-8 py-1.5 pr-2 text-center font-semibold">#</th>

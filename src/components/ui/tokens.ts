@@ -34,6 +34,8 @@ export const RADIUS = {
   field: "rounded-md",
   /** 10px — กล่องย่อย · รูปย่อ · ป้ายสี่เหลี่ยม */
   inner: "rounded-md",
+  /** 12px — control บนแถบของเว็บ (ปุ่มค้นหา/ปุ่มไอคอนบนแถบบน) ตามต้นแบบ --r-ctl */
+  control: "rounded-lg",
   /** 16px — panel/card/overlay · การ์ดคือชั้นนอกสุด จึงโค้งมากที่สุด */
   surface: "rounded-2xl",
   /** เต็ม — ของทรงแคปซูล: ปุ่ม · ช่องค้นหา · สวิตช์ */

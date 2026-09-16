@@ -24,18 +24,41 @@ describe("navigation registry", () => {
     expect(findActiveNavigationItem("/billing/notes/abc")?.id).toBe("billing-notes");
     expect(findActiveNavigationItem("/settings/stock")?.id).toBe("stock");
     expect(findActiveNavigationItem("/settings/patterns/abc")?.id).toBe("patterns");
+    // เมนูย่อยการผลิตต้องชนะ /production ที่เป็น prefix เดียวกัน
+    expect(findActiveNavigationItem("/production/print-runs")?.id).toBe("print-runs");
+    expect(findActiveNavigationItem("/production/metrics")?.id).toBe("production-metrics");
+    expect(findActiveNavigationItem("/production/abc")?.id).toBe("production");
   });
 
-  it("label เป็นไทยแล้ว แต่คำอังกฤษเดิมยังค้นเจอผ่าน aliases (UX4.6)", () => {
+  it("label ตามต้นแบบ แต่คำเดิมทั้งอังกฤษและไทยยังค้นเจอผ่าน aliases (UX4.6)", () => {
     const dashboard = NAVIGATION_ITEMS.find((item) => item.id === "dashboard")!;
-    expect(dashboard.label).toBe("แดชบอร์ด");
+    expect(dashboard.label).toBe("หน้าแรก");
     expect(dashboard.aliases).toContain("dashboard");
+    // เปลี่ยนป้ายตามต้นแบบแล้ว คำเดิมต้องยังพิมพ์ค้นเจอ ไม่งั้นคนที่ท่องคำเก่าหาไม่เจอ
+    expect(dashboard.aliases).toContain("แดชบอร์ด");
+    const renamed = [
+      ["billing", "บิลและการเงิน", "บิล/การเงิน"],
+      ["analytics", "รายงาน", "สถิติ"],
+      ["stock", "สต๊อกเสื้อ", "สต๊อก"],
+      ["production", "คิวงานผลิต", "การผลิต"],
+    ] as const;
+    for (const [id, label, oldLabel] of renamed) {
+      const item = NAVIGATION_ITEMS.find((entry) => entry.id === id)!;
+      expect(item.label).toBe(label);
+      expect(item.aliases).toContain(oldLabel);
+    }
   });
 
   it("กรอง surface และ permission จาก registry เดียว", () => {
     const noPermissions = navigationItemsForSurface("sidebar", []);
     expect(noPermissions.some((item) => item.id === "billing")).toBe(false);
-    expect(noPermissions.some((item) => item.id === "notifications")).toBe(false);
+    // การแจ้งเตือนขึ้นทั้งรางและจานค้นหาแล้ว (ต้นแบบ NAV2) — ตัวที่ยังจำกัด surface คือ "หัก ณ ที่จ่าย"
+    expect(noPermissions.some((item) => item.id === "notifications")).toBe(true);
+    const palette = navigationItemsForSurface("palette", [
+      "manage_billing_docs",
+    ]);
+    expect(palette.some((item) => item.id === "wht")).toBe(false);
+    expect(palette.some((item) => item.id === "billing")).toBe(true);
   });
 
   it("จัด Sidebar เป็นหมวดครบและเรียงงานผลิตตามทางเดินจริง", () => {
@@ -46,13 +69,12 @@ describe("navigation registry", () => {
       "see_finance",
     ]);
 
-    // หัวกลุ่มเหลือ 4 จาก 6 (UI-2026 เฟส 2) — กลุ่มที่มี 2 รายการถอดหัวข้อออก
-    // แต่ยังเป็นกลุ่มเดิม ไม่ย้ายรายการ · ระยะห่างระหว่างกลุ่มแบ่งแทน
+    // หัวกลุ่มตามต้นแบบ: 5 หัว + กลุ่มท้ายไม่มีหัวข้อ (ราง sidebar วาดเส้นคั่นแทน)
     expect(groups.map(({ id, label }) => ({ id, label }))).toEqual([
       { id: "main", label: "ภาพรวม" },
       { id: "sales", label: "งานขาย" },
       { id: "production", label: "การผลิต" },
-      { id: "products", label: null },
+      { id: "products", label: "ของและสินค้า" },
       { id: "finance", label: "การเงิน" },
       { id: "system", label: null },
     ]);
@@ -70,9 +92,21 @@ describe("navigation registry", () => {
       "quotations",
       "customers",
     ]);
+    // กลุ่มการผลิตมีเมนูย่อยครบสี่ตามต้นแบบ เรียงตามทางเดินงานจริง
     expect(
       groups.find((group) => group.id === "production")?.items.map((item) => item.id),
-    ).toEqual(["production"]);
+    ).toEqual(["production", "print-runs", "outsource", "production-metrics"]);
+    // ของและสินค้ารวมสต๊อกเสื้อไว้ด้วยกันตามต้นแบบ โดยไม่ตัด "แพทเทิร์น" ที่ต้นแบบไม่มี
+    expect(groups.find((group) => group.id === "products")?.items.map((item) => item.id)).toEqual([
+      "products",
+      "patterns",
+      "stock",
+    ]);
+    // กลุ่มท้ายมีการแจ้งเตือนอยู่ในรางคู่กับกระดิ่งบนแถบบน
+    expect(groups.find((group) => group.id === "system")?.items.map((item) => item.id)).toEqual([
+      "notifications",
+      "settings",
+    ]);
   });
 
   it("ซ่อนเฉพาะหมวดที่ไม่มีสิทธิ์ ไม่ซ่อนเมนูที่มีสิทธิ์ไว้หลัง disclosure", () => {
@@ -81,11 +115,14 @@ describe("navigation registry", () => {
     expect(groups.some((group) => group.id === "finance")).toBe(false);
     expect(groups.find((group) => group.id === "production")?.items.map((item) => item.id)).toEqual([
       "production",
+      "print-runs",
+      "outsource",
+      "production-metrics",
     ]);
 
     const operatorGroups = groupedNavigationItems("sidebar", ["manage_production"]);
     expect(
       operatorGroups.find((group) => group.id === "production")?.items.map((item) => item.id),
-    ).toEqual(["production"]);
+    ).toEqual(["production", "print-runs", "outsource", "production-metrics"]);
   });
 });

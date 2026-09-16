@@ -6,8 +6,6 @@ import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidat
 import { Button } from "@/components/ui/button";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ToneMark } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -32,8 +30,21 @@ import { Alert } from "@/components/ui/alert";
 import { DataTable } from "@/components/ui/data-table";
 import { DASHED_INTERACTIVE } from "@/components/ui/tokens";
 import { PageShell } from "@/components/page-shell";
+import { SearchInput } from "@/components/ui/search-input";
+import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
+import { SegmentedControl } from "@/components/ui/segmented";
+import { c } from "@/components/kit/kit";
 
 const labelClass = "mb-1 block text-xs font-medium text-muted";
+
+/** ตัวกรองสถานะ — เดิม query ล็อก isActive:true ทำให้กดปิดแล้วแถวหายถาวร เปิดกลับไม่ได้ */
+type ActiveFilter = "active" | "inactive" | "all";
+
+const ACTIVE_FILTERS: { value: ActiveFilter; label: string }[] = [
+  { value: "active", label: "ใช้งาน" },
+  { value: "inactive", label: "ปิด" },
+  { value: "all", label: "ทั้งหมด" },
+];
 
 type NewPatternForm = {
   name: string;
@@ -62,6 +73,8 @@ export default function PatternsPage() {
   const [editData, setEditData] = useState<Partial<NewPatternForm>>({});
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [activeFilter, setActiveFilter] = useState<ActiveFilter>("active");
 
   const utils = trpc.useUtils();
   const confirmDialog = useConfirm();
@@ -70,8 +83,12 @@ export default function PatternsPage() {
   const canCreate = permAllows(meQuery.data?.permissions, "create_design_assets");
   const canEdit = permAllows(meQuery.data?.permissions, "manage_design_files");
   const canDelete = permAllows(meQuery.data?.permissions, "manage_settings");
-  const { data, isLoading, isError, refetch } = trpc.pattern.list.useQuery({ isActive: true });
+  const { data, isLoading, isError, refetch } = trpc.pattern.list.useQuery({
+    isActive: activeFilter === "all" ? undefined : activeFilter === "active",
+    search: search.trim() || undefined,
+  });
   const patterns = data?.patterns;
+  const filtered = search.trim().length > 0 || activeFilter !== "active";
 
   const createPattern = trpc.pattern.create.useMutation({
     onSuccess: () => {
@@ -119,6 +136,7 @@ export default function PatternsPage() {
       collarType: editData.collarType,
       sleeveType: editData.sleeveType,
       bodyFit: editData.bodyFit,
+      description: editData.description,
     });
   };
 
@@ -158,9 +176,24 @@ export default function PatternsPage() {
 
   return (
     <PageShell
-      // เข้าหน้านี้จาก sidebar กลุ่ม "สินค้า" — ปุ่มย้อนต้องพากลับที่ที่เคยผ่าน ไม่ใช่ตั้งค่า
-      back={{ href: "/products", label: "กลับไปหน้าสินค้า" }}
-      title="จัดการแพทเทิร์น"
+      title="แพทเทิร์น"
+      description="แบบตัดเย็บสำเร็จรูปที่หยิบมาใช้ซ้ำในออเดอร์ตัดเย็บ"
+      /* ปุ่มเพิ่มอยู่มุมขวาบนของหน้าตามต้นแบบ (2026-09-16) — เดิมซ่อนอยู่ในหัวการ์ด */
+      action={
+        canCreate ? (
+          <Button
+            disabled={createPattern.isPending || uploading}
+            onClick={() => {
+              setShowAddForm(!showAddForm);
+              setFormData({ ...emptyForm });
+              setUploadError(null);
+            }}
+          >
+            <Plus />
+            เพิ่มแพทเทิร์น
+          </Button>
+        ) : undefined
+      }
       error={
         meQuery.isError
           ? {
@@ -173,34 +206,52 @@ export default function PatternsPage() {
             : null
       }
     >
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <ToneMark icon={Scissors} tone="product" />
-            แพทเทิร์นทั้งหมด
-          </CardTitle>
-          {canCreate && (
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={createPattern.isPending || uploading}
-              onClick={() => {
-                setShowAddForm(!showAddForm);
-                setFormData({ ...emptyForm });
-                setUploadError(null);
-              }}
-            >
-              <Plus className="mr-1" />
-              เพิ่มแพทเทิร์น
-            </Button>
-          )}
-        </CardHeader>
-        <CardContent>
+      {/* การ์ดรายการตามต้นแบบ (.card.lst): แถบเครื่องมือบนสุด → ตาราง → แถบสรุปท้ายการ์ด */}
+      <section className="card-surface overflow-hidden rounded-2xl">
+        <div className="px-4.5 pt-3.5 pb-2.5">
+          <Toolbar>
+            <SearchInput
+              surface="raised"
+              containerClassName="@2xl:max-w-sm @2xl:flex-1"
+              placeholder="ค้นชื่อแพทเทิร์น"
+              aria-label="ค้นชื่อแพทเทิร์นหรือข้อควรรู้"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <ToolbarGroup className="flex-wrap">
+              <SegmentedControl
+                value={activeFilter}
+                onChange={(value) => setActiveFilter(value)}
+                options={ACTIVE_FILTERS}
+                aria-label="กรองสถานะแพทเทิร์น"
+              />
+              {filtered ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setSearch("");
+                    setActiveFilter("active");
+                  }}
+                >
+                  ล้างตัวกรอง
+                </Button>
+              ) : null}
+            </ToolbarGroup>
+            {/* ตัวนับท้ายแถบเครื่องมือตามต้นแบบ (.tools .cnt) — นับตามตัวกรองที่เลือกอยู่ */}
+            {data ? (
+              <ToolbarGroup align="end">
+                <span className="tabular-nums text-xs text-muted" aria-live="polite">
+                  {data.total.toLocaleString("th-TH")} แบบ
+                </span>
+              </ToolbarGroup>
+            ) : null}
+          </Toolbar>
+        </div>
+
+        <div className="border-t border-divider/60">
           {showAddForm && canCreate && (
-            <form
-              onSubmit={handleCreate}
-              className="card-surface mb-4 space-y-3 rounded-2xl p-4"
-            >
+            <form onSubmit={handleCreate} className="space-y-3 border-b border-divider/60 px-4.5 py-4">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <div>
                   <label htmlFor="pattern-name" className={labelClass}>ชื่อแพทเทิร์น *</label>
@@ -252,7 +303,7 @@ export default function PatternsPage() {
                   </Select>
                 </div>
               </div>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <div>
                   <label htmlFor="pattern-body-fit" className={labelClass}>ฟิต</label>
                   <Select
@@ -265,6 +316,16 @@ export default function PatternsPage() {
                       <option key={k} value={k}>{v}</option>
                     ))}
                   </Select>
+                </div>
+                {/* ข้อควรรู้ = Pattern.description ที่ router รับอยู่แล้ว แต่เดิมไม่มีช่องให้กรอก */}
+                <div>
+                  <label htmlFor="pattern-description" className={labelClass}>ข้อควรรู้</label>
+                  <Input
+                    id="pattern-description"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="เช่น อกแคบกว่าปกติ 2 ซม."
+                  />
                 </div>
                 <div>
                   <label htmlFor="pattern-file" className={labelClass}>ไฟล์แพทเทิร์น</label>
@@ -307,22 +368,31 @@ export default function PatternsPage() {
           )}
 
           {isLoading ? (
-            <div className="space-y-3">
+            <div className="space-y-3 px-4.5 py-4">
               {[...Array(4)].map((_, i) => (
                 <Skeleton key={i} className="h-12 w-full" />
               ))}
             </div>
           ) : !patterns || patterns.length === 0 ? (
-            <EmptyState icon={Scissors} title="ยังไม่มีแพทเทิร์น" description="เพิ่มแพทเทิร์นสำเร็จรูปเพื่อใช้ซ้ำในออเดอร์ตัดเย็บ" />
+            <EmptyState
+              icon={Scissors}
+              title={filtered ? "ไม่พบแพทเทิร์นตามตัวกรอง" : "ยังไม่มีแพทเทิร์น"}
+              description={
+                filtered
+                  ? "ลองเปลี่ยนคำค้นหรือเลือกสถานะ “ทั้งหมด”"
+                  : "เพิ่มแพทเทิร์นสำเร็จรูปเพื่อใช้ซ้ำในออเดอร์ตัดเย็บ"
+              }
+            />
           ) : (
             <DataTable.Root bordered={false}>
               <DataTable.Head>
                 <tr>
-                  <DataTable.Th>ชื่อ</DataTable.Th>
+                  <DataTable.Th>แพทเทิร์น</DataTable.Th>
                   <DataTable.Th>ประเภท</DataTable.Th>
                   <DataTable.Th align="center">ทรงคอ</DataTable.Th>
                   <DataTable.Th align="center">แขน</DataTable.Th>
                   <DataTable.Th align="center">ฟิต</DataTable.Th>
+                  <DataTable.Th>ข้อควรรู้</DataTable.Th>
                   <DataTable.Th align="center">สถานะ</DataTable.Th>
                   {(canEdit || canDelete) && (
                     <DataTable.Th align="right">จัดการ</DataTable.Th>
@@ -346,20 +416,26 @@ export default function PatternsPage() {
                             onChange={(e) => setEditData({ ...editData, name: e.target.value })}
                           />
                         ) : (
-                          <div>
-                            <span className="text-sm font-medium text-strong">
-                              {p.name}
+                          /* ชื่อมีกล่องไอคอนกรรไกรนำตามต้นแบบ (.who + .thumb) */
+                          <div className={c("who")}>
+                            <span className={c("thumb")} aria-hidden="true">
+                              <Scissors />
                             </span>
-                            {p.fileUrl && (
-                              <a
-                                href={p.fileUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className={cn(CONTROL_MIN_H, "ml-2 inline-flex items-center text-xs text-blue-600 dark:text-blue-400")}
-                              >
-                                ดูไฟล์
-                              </a>
-                            )}
+                            <div className={c("t")}>
+                              <div className={c("id")}>
+                                <span className="font-medium text-strong">{p.name}</span>
+                                {p.fileUrl && (
+                                  <a
+                                    href={p.fileUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className={cn(CONTROL_MIN_H, "inline-flex items-center text-xs text-blue-600 dark:text-blue-400")}
+                                  >
+                                    ดูไฟล์
+                                  </a>
+                                )}
+                              </div>
+                            </div>
                           </div>
                         )}
                       </DataTable.Td>
@@ -421,6 +497,19 @@ export default function PatternsPage() {
                           <span className="text-xs">
                             {p.bodyFit ? (BODY_FITS[p.bodyFit] ?? p.bodyFit) : "-"}
                           </span>
+                        )}
+                      </DataTable.Td>
+                      <DataTable.Td className="text-muted">
+                        {isEditing ? (
+                          <Input size="sm"
+                            disabled={updatePattern.isPending}
+                            aria-label={`ข้อควรรู้ของ ${p.name}`}
+                            value={editData.description ?? p.description ?? ""}
+                            onChange={(e) => setEditData({ ...editData, description: e.target.value })}
+                            placeholder="เช่น อกแคบกว่าปกติ 2 ซม."
+                          />
+                        ) : (
+                          <span className="text-xs">{p.description || "-"}</span>
                         )}
                       </DataTable.Td>
                       <DataTable.Td align="center">
@@ -498,12 +587,17 @@ export default function PatternsPage() {
           )}
 
           {(createPattern.isError || updatePattern.isError || deletePattern.isError) && (
-            <Alert variant="error" className="mt-3">
+            <Alert variant="error" className="mx-4.5 mb-4">
               {createPattern.error?.message || updatePattern.error?.message || deletePattern.error?.message}
             </Alert>
           )}
-        </CardContent>
-      </Card>
+        </div>
+
+        {/* แถบสรุปเกณฑ์ท้ายการ์ดตามต้นแบบ (.tfoot) — ข้อเท็จจริงของระบบจริง ไม่ใช่คำโปรย */}
+        <div className={c("tfoot")}>
+          แพทเทิร์นที่ <b>ปิดใช้งาน</b> จะไม่ขึ้นให้เลือกในออเดอร์ตัดเย็บ · แก้แล้วมีผลกับงานที่เปิดหลังจากนี้
+        </div>
+      </section>
     </PageShell>
   );
 }

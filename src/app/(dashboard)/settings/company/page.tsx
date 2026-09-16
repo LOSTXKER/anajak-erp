@@ -7,15 +7,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Section } from "@/components/ui/section";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Save, Loader2 } from "lucide-react";
+import { Save, Loader2, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import type { CompanyProfile } from "@/lib/company-profile";
 import { EMPTY_COMPANY_PROFILE } from "@/lib/company-profile";
 import { PageShell } from "@/components/page-shell";
 
 // ข้อมูลกิจการ — ขึ้นหัวเอกสารพิมพ์ทุกใบ + เป็นข้อมูลบังคับของใบกำกับภาษีเต็มรูป
+
+/** ปุ่มบันทึกอยู่มุมขวาบนของหน้า (ต้นแบบ 2026-09-16) จึงอยู่นอก <form> — ผูกกลับด้วย id */
+const FORM_ID = "company-profile-form";
+
+const labelClass = "mb-1 block text-xs font-medium text-secondary";
+
 export default function CompanySettingsPage() {
   const meQuery = trpc.user.me.useQuery();
   const canManage = permAllows(meQuery.data?.permissions, "manage_settings");
@@ -44,8 +50,17 @@ export default function CompanySettingsPage() {
 
   return (
     <PageShell
-      width="form"
       title="ข้อมูลกิจการ"
+      description="ใช้พิมพ์บนใบเสนอราคา ใบกำกับภาษี และใบส่งของ"
+      /* ระหว่างโหลดยังไม่มีฟอร์มให้ปุ่มหัวหน้าสั่งบันทึก — ให้ PageShell ซ่อนปุ่มและวาดโครงร่างแทน */
+      loading={meQuery.isLoading || (canManage && profileQuery.isLoading)}
+      skeleton={<Skeleton className="h-96 rounded-2xl" />}
+      action={
+        <Button type="submit" form={FORM_ID} disabled={save.isPending} className="gap-1.5">
+          {save.isPending ? <Loader2 className="animate-spin" /> : <Save />}
+          บันทึก
+        </Button>
+      }
       error={
         meQuery.isError
           ? {
@@ -61,7 +76,7 @@ export default function CompanySettingsPage() {
               }
             : null
       }
-      // !meQuery.isLoading: ระหว่างเช็คสิทธิ์ยังโชว์ skeleton ฟอร์มใน Card (ตามเดิม) ไม่ใช่จอไม่มีสิทธิ์
+      // !meQuery.isLoading: ระหว่างเช็คสิทธิ์ยังโชว์โครงร่างฟอร์ม (ตามเดิม) ไม่ใช่จอไม่มีสิทธิ์
       denied={
         !meQuery.isLoading &&
         !canManage && {
@@ -70,31 +85,24 @@ export default function CompanySettingsPage() {
         }
       }
     >
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">ข้อมูลผู้ออกเอกสาร</CardTitle>
-          <CardDescription>
-            ชื่อ ที่อยู่ และเลขประจำตัวผู้เสียภาษี เป็นข้อมูลบังคับบนใบกำกับภาษีเต็มรูป (ม.86/4)
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {meQuery.isLoading || profileQuery.isLoading ? (
-            <div className="space-y-3">
-              <Skeleton className="h-9 w-full" />
-              <Skeleton className="h-20 w-full" />
-              <Skeleton className="h-9 w-full" />
-            </div>
-          ) : (
-            <form
-              className="space-y-4"
-              onSubmit={(e) => {
-                e.preventDefault();
-                save.mutate(form);
-              }}
-            >
-              <fieldset disabled={save.isPending} className="space-y-4">
-              <div>
-                <label htmlFor="company-name" className="mb-1 block text-sm font-medium text-secondary">
+      <Section
+        title="ข้อมูลที่ขึ้นบนเอกสาร"
+        icon={Building2}
+        tone="brand"
+        description="ชื่อ ที่อยู่ และเลขประจำตัวผู้เสียภาษี เป็นข้อมูลบังคับบนใบกำกับภาษีเต็มรูป (ม.86/4)"
+      >
+        <form
+          id={FORM_ID}
+          onSubmit={(e) => {
+            e.preventDefault();
+            save.mutate(form);
+          }}
+        >
+          <fieldset disabled={save.isPending} className="min-w-0">
+            {/* ฟอร์ม 2 คอลัมน์ตามต้นแบบ (.form2) — ลำดับช่อง ชื่อ → เลขผู้เสียภาษี → สาขา → ที่อยู่ → โทร → อีเมล */}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-x-4">
+              <div className="sm:col-span-2">
+                <label htmlFor="company-name" className={labelClass}>
                   ชื่อกิจการ (ตามจดทะเบียน) *
                 </label>
                 <Input
@@ -107,7 +115,57 @@ export default function CompanySettingsPage() {
               </div>
 
               <div>
-                <label htmlFor="company-address" className="mb-1 block text-sm font-medium text-secondary">
+                <label htmlFor="company-tax-id" className={labelClass}>
+                  เลขประจำตัวผู้เสียภาษี (13 หลัก) *
+                </label>
+                <Input
+                  id="company-tax-id"
+                  value={form.taxId}
+                  onChange={(e) => set("taxId")(e.target.value.replace(/\D/g, "").slice(0, 13))}
+                  placeholder="0000000000000"
+                  inputMode="numeric"
+                  required
+                />
+              </div>
+
+              <div>
+                <label htmlFor="company-branch-kind" className={labelClass}>
+                  สำนักงาน
+                </label>
+                <Select
+                  id="company-branch-kind"
+                  value={form.branch === "สำนักงานใหญ่" ? "สำนักงานใหญ่" : "branch"}
+                  onChange={(e) =>
+                    set("branch")(e.target.value === "สำนักงานใหญ่" ? "สำนักงานใหญ่" : "สาขาที่ ")
+                  }
+                  aria-describedby="company-branch-hint"
+                >
+                  <option value="สำนักงานใหญ่">สำนักงานใหญ่</option>
+                  <option value="branch">สาขา (ระบุเอง)</option>
+                </Select>
+                {form.branch !== "สำนักงานใหญ่" && (
+                  <>
+                    <label htmlFor="company-branch-name" className="sr-only">
+                      ชื่อหรือรหัสสาขา
+                    </label>
+                    <Input
+                      id="company-branch-name"
+                      className="mt-2"
+                      value={form.branch}
+                      onChange={(e) => set("branch")(e.target.value)}
+                      placeholder="เช่น สาขาที่ 00001"
+                      aria-describedby="company-branch-hint"
+                    />
+                  </>
+                )}
+                {/* คำช่วยอยู่ตรงช่องที่ใช้ตามต้นแบบ (.fld small) */}
+                <p id="company-branch-hint" className="mt-1 text-xs text-secondary">
+                  ขึ้นบนใบกำกับภาษีตามที่กรมสรรพากรกำหนด
+                </p>
+              </div>
+
+              <div className="sm:col-span-2">
+                <label htmlFor="company-address" className={labelClass}>
                   ที่อยู่ *
                 </label>
                 <Textarea
@@ -120,93 +178,35 @@ export default function CompanySettingsPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <label htmlFor="company-tax-id" className="mb-1 block text-sm font-medium text-secondary">
-                    เลขประจำตัวผู้เสียภาษี (13 หลัก) *
-                  </label>
-                  <Input
-                    id="company-tax-id"
-                    value={form.taxId}
-                    onChange={(e) => set("taxId")(e.target.value.replace(/\D/g, "").slice(0, 13))}
-                    placeholder="0000000000000"
-                    inputMode="numeric"
-                    required
-                  />
-                </div>
-                <div>
-                  <label htmlFor="company-branch-kind" className="mb-1 block text-sm font-medium text-secondary">
-                    สำนักงาน
-                  </label>
-                  <Select
-                    id="company-branch-kind"
-                    value={form.branch === "สำนักงานใหญ่" ? "สำนักงานใหญ่" : "branch"}
-                    onChange={(e) =>
-                      set("branch")(e.target.value === "สำนักงานใหญ่" ? "สำนักงานใหญ่" : "สาขาที่ ")
-                    }
-                  >
-                    <option value="สำนักงานใหญ่">สำนักงานใหญ่</option>
-                    <option value="branch">สาขา (ระบุเอง)</option>
-                  </Select>
-                  {form.branch !== "สำนักงานใหญ่" && (
-                    <>
-                      <label htmlFor="company-branch-name" className="sr-only">
-                        ชื่อหรือรหัสสาขา
-                      </label>
-                      <Input
-                        id="company-branch-name"
-                        className="mt-2"
-                        value={form.branch}
-                        onChange={(e) => set("branch")(e.target.value)}
-                        placeholder="เช่น สาขาที่ 00001"
-                      />
-                    </>
-                  )}
-                </div>
+              <div>
+                <label htmlFor="company-phone" className={labelClass}>
+                  โทรศัพท์
+                </label>
+                <Input
+                  id="company-phone"
+                  type="tel"
+                  value={form.phone}
+                  onChange={(e) => set("phone")(e.target.value)}
+                  placeholder="0x-xxx-xxxx"
+                />
               </div>
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <label htmlFor="company-phone" className="mb-1 block text-sm font-medium text-secondary">
-                    โทรศัพท์
-                  </label>
-                  <Input
-                    id="company-phone"
-                    type="tel"
-                    value={form.phone}
-                    onChange={(e) => set("phone")(e.target.value)}
-                    placeholder="0x-xxx-xxxx"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="company-email" className="mb-1 block text-sm font-medium text-secondary">
-                    อีเมล
-                  </label>
-                  <Input
-                    id="company-email"
-                    type="email"
-                    value={form.email}
-                    onChange={(e) => set("email")(e.target.value)}
-                    placeholder="contact@example.com"
-                  />
-                </div>
+              <div>
+                <label htmlFor="company-email" className={labelClass}>
+                  อีเมล
+                </label>
+                <Input
+                  id="company-email"
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => set("email")(e.target.value)}
+                  placeholder="contact@example.com"
+                />
               </div>
-
-              <div className="flex justify-end">
-                <Button type="submit" disabled={save.isPending} className="gap-1.5">
-                  {save.isPending ? (
-                    <Loader2 className="animate-spin" />
-                  ) : (
-                    <Save />
-                  )}
-                  บันทึก
-                </Button>
-              </div>
-              </fieldset>
-            </form>
-          )}
-        </CardContent>
-      </Card>
+            </div>
+          </fieldset>
+        </form>
+      </Section>
     </PageShell>
   );
 }

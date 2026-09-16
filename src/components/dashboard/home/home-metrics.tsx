@@ -1,9 +1,8 @@
 import type { LucideIcon } from "lucide-react";
 import { CheckCircle2, Factory, ReceiptText, ShoppingCart, Users } from "lucide-react";
 import { c, type Tone } from "@/components/kit/kit";
-import { formatBaht } from "@/lib/utils";
 
-/** ช่องตัวเลข (.tile ของต้นแบบ metricsHTML) */
+/** ช่องตัวเลข (.tile ของต้นแบบ metricsHTML) — chip ประกอบอยู่บรรทัดที่ 3 (.tfo) ใต้ตัวเลข ไม่แย่งที่กับตัวเลข */
 function Tile({
   label,
   icon: Icon,
@@ -32,11 +31,18 @@ function Tile({
       <div className={c("val")}>
         <b className={c("num", mono && "mono")}>{value}</b>
         {unit ? <small>{unit}</small> : null}
-        {chip ? <span className={c("chip good")}>{chip}</span> : null}
       </div>
+      {chip ? (
+        <span className={c("tfo")}>
+          <span className={c("chip good")}>{chip}</span>
+        </span>
+      ) : null}
     </div>
   );
 }
+
+/** เงินบนช่องตัวเลขใหญ่ — ตัดทศนิยมให้อ่านเร็ว (moneyT ของต้นแบบ) · เอกสาร/ตารางยังใช้ formatBaht เต็มทศนิยม */
+const moneyTile = (amount: number) => `฿${amount.toLocaleString("th-TH", { maximumFractionDigits: 0 })}`;
 
 export interface HomeMetricsData {
   activeOrders: number;
@@ -61,7 +67,7 @@ export function HomeMetrics({ data }: { data: HomeMetricsData }) {
         chip={data.newCustomersThisMonth > 0 ? `+${count(data.newCustomersThisMonth)} เดือนนี้` : undefined}
       />
       {data.revenueThisMonth !== null ? (
-        <Tile label="มูลค่าออเดอร์ที่เปิดเดือนนี้" icon={ReceiptText} tone="violet" value={formatBaht(data.revenueThisMonth)} mono />
+        <Tile label="มูลค่าออเดอร์ที่เปิดเดือนนี้" icon={ReceiptText} tone="violet" value={moneyTile(data.revenueThisMonth)} mono />
       ) : (
         <Tile label="ขั้นผลิตค้างทั้งหมด" icon={Factory} tone="blue" value={count(data.openSteps)} unit="ขั้น" />
       )}

@@ -330,7 +330,16 @@ function FlowNode({ node, bottleneck, load }: { node: FactoryNode; bottleneck: b
       <span className={c("ns")}>{node.detail}</span>
       {load !== undefined ? (
         <span className={c("nl")} aria-hidden="true">
-          <i style={{ width: `${Math.round(load * 100)}%` }} />
+          {/* แถบงานในมือย้อมตามสุขภาพของด่านนั้น (ต้นแบบ .nl i.warn/.bad) — ระบบยังไม่มีกำลังผลิตต่อวันจริง
+              จึงใช้ tone ของ node แทนสัดส่วนต่อ cap
+              สีสั่งตรงที่แท่งไว้ก่อน จนกว่าชุดกลางจะมีกฎ .node .nl i.warn/.bad (แบบเดียวกับแท่ง 7 วัน) */}
+          <i
+            className={c(node.tone !== "ok" && node.tone)}
+            style={{
+              width: `${Math.round(load * 100)}%`,
+              background: node.tone === "bad" ? "var(--bad)" : node.tone === "warn" ? "var(--warn)" : undefined,
+            }}
+          />
         </span>
       ) : (
         <span className={c("nl none")} aria-hidden="true" />

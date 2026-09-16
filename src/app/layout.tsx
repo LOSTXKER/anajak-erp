@@ -14,8 +14,15 @@ const jetbrainsMono = JetBrains_Mono({
   variable: "--font-mono",
 });
 
+/* ชื่อบนแท็บเบราว์เซอร์ (ต้นแบบ PTITLE) — เปิดหลายแท็บแล้วต้องแยกออกว่าแท็บไหนคือหน้าอะไร
+   template ทำให้หน้าที่ประกาศ metadata.title ของตัวเองได้ "<ชื่อหน้า> · Anajak Print"
+   ทันทีโดยไม่ต้องเขียนชื่อระบบซ้ำ · หน้าที่ยังไม่ประกาศใช้ default เหมือนเดิม
+   (หน้าหลังบ้านเกือบทั้งหมดเป็น "use client" จึงต้องประกาศผ่าน layout.tsx ของ route นั้น) */
 export const metadata: Metadata = {
-  title: "Anajak Print - ERP โรงงานสกรีนเสื้อ",
+  title: {
+    default: "Anajak Print - ERP โรงงานสกรีนเสื้อ",
+    template: "%s · Anajak Print",
+  },
   description: "ระบบจัดการโรงงานสกรีนเสื้อครบวงจร",
 };
 

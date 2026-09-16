@@ -9,8 +9,8 @@ import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidat
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { isImageUrl } from "@/lib/utils";
 import { artworkSpecGaps, ARTWORK_POSITION_LABELS } from "@/lib/artwork";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ToneMark } from "@/components/ui/section";
+import { Card, CardContent } from "@/components/ui/card";
+import { CardHead, c } from "@/components/kit/kit";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -195,13 +195,15 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
 
   return (
     <Card>
-      <CardHeader>
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <ToneMark icon={Palette} tone="production" />
-            คลังลาย ({rows.length})
-          </CardTitle>
-          <div className="flex items-center gap-2">
+      {/* หัวการ์ดชุดกลาง (ch) เหมือนการ์ดอื่นบนหน้าลูกค้า — จำนวนลายเป็นชิปตามต้นแบบ
+          ไม่ใช่วงเล็บต่อท้ายชื่อการ์ด */}
+      <CardHead
+        icon={Palette}
+        tone="violet"
+        title="คลังลาย"
+        after={<span className={c("chip gray")}>{rows.length} ลาย</span>}
+        right={
+          <>
             {totalFilm > 0 && (
               <Badge variant="warning" className="gap-1.5">
                 <Film className="h-3 w-3" />
@@ -215,9 +217,9 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
                 เพิ่มลาย
               </Button>
             )}
-          </div>
-        </div>
-      </CardHeader>
+          </>
+        }
+      />
       <CardContent>
         {artworks.isLoading ? (
           <p className="text-sm text-muted">กำลังโหลด...</p>
@@ -232,7 +234,9 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
               return (
                 <div
                   key={a.id}
-                  className={`flex gap-3 rounded-lg border border-border p-3 ${
+                  /* การ์ดนี้อยู่คอลัมน์แคบ (ตำแหน่งตามต้นแบบ) — ปุ่มตกลงบรรทัดล่างเองเมื่อ
+                     ที่ไม่พอ แทนที่จะบีบชื่อลาย/ชิปสเปกจนอ่านไม่ออก */
+                  className={`flex flex-wrap gap-3 rounded-lg border border-border p-3 ${
                     a.isActive ? "" : "opacity-50"
                   }`}
                 >
@@ -249,7 +253,7 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
                       <ImageIcon className="h-6 w-6 text-muted" />
                     </div>
                   )}
-                  <div className="min-w-0 flex-1">
+                  <div className="min-w-0 flex-1 basis-44">
                     <div className="flex flex-wrap items-center gap-1.5">
                       <p className="truncate text-sm font-medium text-strong">
                         {a.name}
@@ -261,9 +265,9 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
                       )}
                     </div>
                     <div className="mt-1 flex flex-wrap gap-1.5">
-                      {specChips(a).map((c) => (
-                        <Badge key={c} variant="secondary">
-                          {c}
+                      {specChips(a).map((chip) => (
+                        <Badge key={chip} variant="secondary">
+                          {chip}
                         </Badge>
                       ))}
                     </div>

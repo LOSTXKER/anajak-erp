@@ -397,9 +397,10 @@ const hSm = CONTROL_H_SM.split(" ");
     )?.[0] ?? "";
   if (
     // ความกว้างเมนูซ้ายมาจากตัวแปร ไม่ใช่ค่าคงที่ ตั้งแต่มีโหมดหุบ/กาง (2026-08-26)
+    // ค่ากาง 244px / หุบ 78px มาจากต้นแบบทั้งเว็บที่เบสเคาะ 2026-09-16
     // ยังล็อกไว้ว่าคอลัมน์ขวาต้อง minmax(0,1fr) และค่าทั้งสองสถานะต้องประกาศจริง
     !appShellSource.includes('lg:grid-cols-[var(--app-sidebar-w)_minmax(0,1fr)]') ||
-    !appShellSource.includes('"--app-sidebar-w": sidebarCollapsed ? "4rem" : "15rem"') ||
+    !appShellSource.includes('"--app-sidebar-w": sidebarCollapsed ? "4.875rem" : "15.25rem"') ||
     // สถานะหุบต้องมาจาก store ภายนอก ไม่ใช่ useState+useEffect (กัน SSR/client ต่างกัน)
     !appShellSource.includes("useSyncExternalStore") ||
     // หุบแล้วชื่อเมนูหายจากจอ ต้องเหลือชื่อไว้ให้เมาส์และเครื่องอ่านหน้าจอ
@@ -412,8 +413,9 @@ const hSm = CONTROL_H_SM.split(" ");
     // และต้องถอดระยะขอบข้างของ nav ออกด้วย ไม่งั้นเนื้อที่จริงเหลือ 19px
     // จนปุ่มเมนูถูกบีบเหลือกว้าง 24px สูง 36px = อ่านเป็นเม็ดยา (วัดจริง 2026-08-26)
     !appShellSource.includes('sidebarCollapsed && "px-0 [scrollbar-gutter:stable_both-edges]"') ||
-    // ปุ่มเมนูตอนหุบต้องเป็นสี่เหลี่ยมจัตุรัส 40px วางกลางราง
-    !appShellSource.includes('collapsed && "mx-auto h-10 w-10 justify-center gap-0 px-0 py-0"') ||
+    // ตอนหุบ แถวเมนูเป็นคอลัมน์ ไอคอนบน ชื่อ 10px ใต้ สูง 48px — ชื่อเมนูต้องยังอยู่บนจอ
+    // (ต้นแบบทั้งเว็บ เบสเคาะ 2026-09-16 · ก่อนหน้านี้เป็นปุ่มจัตุรัส 40px ไอคอนเปล่า)
+    !appShellSource.includes('collapsed && "app-rail-link-collapsed w-full justify-center lg:min-h-12"') ||
     // ตอนหุบ ตราหายทั้งก้อน เหลือปุ่มยืนกลางราง 64px (เบสเคาะ 2026-08-28)
     // ราง 64px วางตรา 28px กับเป้ากด 36px คู่กันไม่ได้โดยไม่ทับกัน — เรขาคณิต ไม่ใช่รสนิยม
     // ห้ามกลับไปคง sr-only ให้ตราตอนหุบ เพราะตราจะแย่งที่กับปุ่มอีก
@@ -1425,7 +1427,7 @@ check(
   const desktopSidebarSource = shellSource.slice(sidebarStart, sidebarEnd);
   const sidebarGroupsStayVisible =
     shellSource.includes('const sidebarGroups = useMemo(') &&
-    desktopSidebarSource.includes("sidebarGroups.map((group)") &&
+    desktopSidebarSource.includes("sidebarGroups.map((group") &&
     desktopSidebarSource.includes("activeSidebarRef") &&
     shellSource.includes('scrollIntoView({ block: "nearest" })') &&
     !desktopSidebarSource.includes("<details") &&

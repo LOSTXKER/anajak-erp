@@ -1,54 +1,74 @@
 "use client";
 
-import { useState, type ComponentType } from "react";
+import { useState } from "react";
 import Link from "next/link";
+import type { LucideIcon } from "lucide-react";
 import {
-  AlertTriangle,
+  CalendarClock,
   CheckCircle2,
   ChevronDown,
-  ChevronRight,
-  Clock,
-  UserRound,
-  UsersRound,
+  ClipboardList,
+  Factory,
+  Flame,
+  Hourglass,
+  ListTodo,
+  PackageCheck,
+  PenLine,
+  Printer,
+  ReceiptText,
+  RefreshCw,
+  Shirt,
+  Truck,
+  Wallet,
 } from "lucide-react";
 import { trpc, type RouterOutput } from "@/lib/trpc";
-import { ListSkeleton } from "@/components/ui/page-skeleton";
 import { PageShell } from "@/components/page-shell";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { FOCUS_INSET } from "@/components/ui/tokens";
-import { EmptyState } from "@/components/ui/empty-state";
-import { StatusLabel, toneFromBadgeVariant } from "@/components/ui/status-label";
+import { c, CardHead, Empty, timeText, type Tone } from "@/components/kit/kit";
 import { STEP_TYPE_LABELS } from "@/lib/production-steps";
 import { manufacturingTaskHref } from "@/lib/manufacturing-task";
 import { APPROVAL_STATUS_LABELS } from "@/lib/status-config";
 import {
   groupTaskItems,
   taskAttention,
+  taskTone,
   type TaskGroup,
   type TaskListItem,
+  type TaskTone,
 } from "@/lib/task-groups";
-import { cn, formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate } from "@/lib/utils";
+
+/* ============================================================
+   งานของฉัน — ต้นแบบ pgTasks(): หัวหน้า + ปุ่มโหลดใหม่ → การ์ดกองละใบ → แถวงาน
+   แถวเรียงซ้าย→ขวา: ไอคอนประจำเรื่อง · หัวเรื่อง+บรรทัดรอง · เลขออเดอร์ · ปุ่มที่บอกว่าจะไปทำอะไร
+   กองไหนมีงานขึ้นตามสิทธิ์จริงของคน (router task.myToday) — ไม่ใช่รายการตายตัวแบบต้นแบบ
+   ============================================================ */
 
 type TaskData = RouterOutput["task"]["myToday"];
 
-const GROUP_ICONS: Record<TaskGroup["id"], ComponentType<{ className?: string }>> = {
-  attention: AlertTriangle,
-  mine: UserRound,
-  team: UsersRound,
+const GROUP_ICONS: Record<TaskGroup["id"], LucideIcon> = {
+  attention: Flame,
+  mine: ListTodo,
+  team: Hourglass,
 };
 
-function attentionLabel(attention: TaskListItem["attention"]) {
-  if (attention === "blocked") return "ติดปัญหา";
-  if (attention === "overdue") return "เลยกำหนด";
-  if (attention === "due-soon") return "ใกล้กำหนด";
-  return null;
-}
+/** จำนวนแถวที่เปิดมาเห็นก่อน — ของจริงกองละหลายสิบแถวได้ จึงยังมีปุ่มขยาย */
+const VISIBLE_ROWS = 5;
+
+const ATTENTION_LABEL: Record<TaskListItem["attention"], string | null> = {
+  blocked: "ติดปัญหา",
+  overdue: "เลยกำหนด",
+  "due-soon": "ใกล้กำหนด",
+  normal: null,
+};
+
+/** โทนกองบนกล่องไอคอนของหัวการ์ด — เทา = ไม่ใส่สี (ต้นแบบ ic ว่าง) */
+const headTone = (tone: TaskTone): Tone => (tone === "gray" ? "" : tone);
 
 function buildTaskItems(data: TaskData): TaskListItem[] {
   const items: TaskListItem[] = [];
   const ownership = (assignedToId: string | null) =>
     assignedToId === data.viewerId ? "mine" as const : "team" as const;
+  const orderLink = (orderId: string) => `/orders/${orderId}`;
 
   const operationHref = (input: {
     stepType: string;
@@ -73,21 +93,24 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
 
   for (const step of data.production) {
     const isBlocked = step.status === "FAILED" || step.status === "ON_HOLD";
+    const state = isBlocked ? "มีปัญหา" : step.status === "IN_PROGRESS" ? "กำลังทำ" : "รอทำ";
     items.push({
       key: `step:${step.stepId}`,
       href: operationHref(step),
+      icon: Factory,
       title:
         step.operationName ||
         step.customStepName ||
         STEP_TYPE_LABELS[step.stepType] ||
         step.stepType,
-      description: `${step.order.orderNumber} · ${step.order.customer.name}`,
+      description: step.order.customer.name,
+      orderNumber: step.order.orderNumber,
+      orderHref: orderLink(step.order.id),
       deadline: step.order.deadline,
       attention: taskAttention(step.order.deadline, isBlocked),
       ownership: ownership(step.assignedToId),
-      badge: isBlocked ? "มีปัญหา" : step.status === "IN_PROGRESS" ? "กำลังทำ" : "รอทำ",
-      badgeTone: isBlocked ? "destructive" : step.status === "IN_PROGRESS" ? "accent" : "default",
-      meta: step.assignedToName ?? "ยังไม่มีคนรับ",
+      meta: `${state} · ${step.assignedToName ?? "ยังไม่มีคนรับ"}`,
+      actionLabel: isBlocked ? "ดูปัญหา" : "เปิดขั้นงาน",
     });
   }
 
@@ -95,14 +118,16 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
     items.push({
       key: `step:${queue.stepId}`,
       href: `/production/${queue.productionId}`,
-      title: queue.orderNumber,
+      icon: Printer,
+      title: "คิวพิมพ์ฟิล์ม DTF",
       description: queue.customerName,
+      orderNumber: queue.orderNumber,
+      orderHref: orderLink(queue.orderId),
       deadline: queue.dueDate,
       attention: taskAttention(queue.dueDate),
       ownership: "team",
-      badge: "คิวพิมพ์",
-      badgeTone: "accent",
-      meta: queue.qtyTotal > 0 ? `เหลือ ${queue.remaining.toLocaleString()} ชิ้น` : undefined,
+      meta: queue.qtyTotal > 0 ? `เหลือ ${queue.remaining.toLocaleString("th-TH")} ชิ้น` : undefined,
+      actionLabel: "ไปคิวพิมพ์",
     });
   }
 
@@ -110,16 +135,19 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
     items.push({
       key: `step:${queue.stepId}`,
       href: `/production/${queue.productionId}`,
-      title: queue.orderNumber,
+      icon: Flame,
+      title: "คิวรีดร้อน",
       description: queue.customerName,
+      // คิวรีดไม่มีรหัสออเดอร์ติดมาด้วย จึงโชว์เลขเป็นข้อความ ไม่ทำเป็นลิงก์ที่เดาปลายทาง
+      orderNumber: queue.orderNumber,
       deadline: queue.deadline,
       attention: taskAttention(queue.deadline),
       ownership: "team",
-      badge: "คิวรีด",
       meta:
         queue.qtyTotal != null
-          ? `รีดแล้ว ${queue.qtyDone.toLocaleString()}/${queue.qtyTotal.toLocaleString()}`
+          ? `รีดแล้ว ${queue.qtyDone.toLocaleString("th-TH")}/${queue.qtyTotal.toLocaleString("th-TH")}`
           : undefined,
+      actionLabel: "ไปคิวรีด",
     });
   }
 
@@ -129,14 +157,18 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
       href: queue.productionId
         ? `/production/${queue.productionId}`
         : `/production?q=${encodeURIComponent(queue.orderNumber)}`,
-      title: queue.orderNumber,
+      icon: PackageCheck,
+      title: "คิวแพ็คและส่งของ",
       description: queue.customerName,
+      orderNumber: queue.orderNumber,
+      orderHref: orderLink(queue.orderId),
       deadline: queue.deadline,
       attention: taskAttention(queue.deadline),
       ownership: "team",
-      badge: "คิวแพ็ค",
-      badgeTone: queue.blindShip ? "warning" : "default",
-      meta: queue.blindShip ? "Blind ship — ห้ามใส่เอกสาร Anajak" : undefined,
+      // กติกา blind ship ห้ามหายไปกับการจัดหน้า — ขึ้นเป็นป้ายคู่กับข้อความเต็ม
+      warning: queue.blindShip ? "Blind ship" : undefined,
+      meta: queue.blindShip ? "ห้ามใส่เอกสาร Anajak" : undefined,
+      actionLabel: "ไปคิวแพ็ค",
     });
   }
 
@@ -144,13 +176,15 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
     items.push({
       key: `order:${order.id}`,
       href: `/production?create=${order.id}`,
-      title: order.orderNumber,
+      icon: Factory,
+      title: "รอเปิดใบผลิต",
       description: order.customer.name,
+      orderNumber: order.orderNumber,
+      orderHref: orderLink(order.id),
       deadline: order.deadline,
       attention: taskAttention(order.deadline),
       ownership: "team",
-      badge: "รอเปิดใบผลิต",
-      badgeTone: "warning",
+      actionLabel: "เปิดใบผลิต",
     });
   }
 
@@ -158,17 +192,20 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
     const latestApproval = design.latestApproval
       ? APPROVAL_STATUS_LABELS[design.latestApproval as keyof typeof APPROVAL_STATUS_LABELS]
       : null;
+    const version = design.latestVersion == null ? "ยังไม่มีแบบ" : `แบบ v${design.latestVersion}`;
     items.push({
       key: `order:${design.order.id}`,
       href: `/orders/${design.order.id}?tab=files`,
-      title: design.order.orderNumber,
+      icon: PenLine,
+      title: "งานออกแบบ",
       description: design.order.customer.name,
+      orderNumber: design.order.orderNumber,
+      orderHref: orderLink(design.order.id),
       deadline: design.order.deadline,
       attention: taskAttention(design.order.deadline),
       ownership: "team",
-      badge: design.latestVersion == null ? "ยังไม่มีแบบ" : `แบบ v${design.latestVersion}`,
-      badgeTone: design.latestVersion == null ? "warning" : "default",
-      meta: latestApproval ?? undefined,
+      meta: latestApproval ? `${version} · ${latestApproval}` : version,
+      actionLabel: "ดูไฟล์งาน",
     });
   }
 
@@ -177,50 +214,58 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
     items.push({
       key: `outsource:${outsource.id}`,
       href: `/orders/${outsource.orderId}?tab=production`,
+      icon: Truck,
       title: `รับงานกลับจาก ${outsource.vendorName}`,
-      description: outsource.orderNumber,
+      orderNumber: outsource.orderNumber,
+      orderHref: orderLink(outsource.orderId),
       deadline: outsource.expectedBackAt,
+      deadlineLabel: "นัดรับ",
       attention: "overdue",
       ownership: "team",
-      badge: "ร้านนอก",
-      badgeTone: "warning",
+      actionLabel: "ตรวจรับของ",
     });
   }
   for (const order of admin.awaitingInspection.items) {
     items.push({
       key: `order:${order.orderId}`,
       href: `/orders/${order.orderId}?tab=production`,
-      title: order.orderNumber,
+      icon: Shirt,
+      title: "ตรวจรับเสื้อลูกค้า",
       description: order.customerName,
+      orderNumber: order.orderNumber,
+      orderHref: orderLink(order.orderId),
       attention: "normal",
       ownership: "team",
-      badge: "รอตรวจรับเสื้อ",
-      badgeTone: "warning",
+      actionLabel: "ตรวจรับเสื้อ",
     });
   }
   for (const order of admin.designsAwaiting.items) {
     items.push({
       key: `order:${order.orderId}`,
       href: `/orders/${order.orderId}?tab=files`,
-      title: order.orderNumber,
+      icon: ClipboardList,
+      title: "รอลูกค้าอนุมัติแบบ",
       description: order.customerName,
+      orderNumber: order.orderNumber,
+      orderHref: orderLink(order.orderId),
       attention: "normal",
       ownership: "team",
-      badge: "รอลูกค้าอนุมัติแบบ",
-      badgeTone: "warning",
+      actionLabel: "ตามลูกค้า",
     });
   }
   for (const order of admin.dueSoon.items) {
     items.push({
       key: `order:${order.orderId}`,
       href: `/orders/${order.orderId}`,
-      title: order.orderNumber,
+      icon: CalendarClock,
+      title: "ใกล้กำหนดส่ง",
       description: order.customerName,
+      orderNumber: order.orderNumber,
+      orderHref: orderLink(order.orderId),
       deadline: order.deadline,
       attention: "due-soon",
       ownership: "team",
-      badge: "ใกล้กำหนดส่ง",
-      badgeTone: "warning",
+      actionLabel: "เปิดออเดอร์",
     });
   }
 
@@ -228,14 +273,16 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
     items.push({
       key: `order:${followUp.order.id}`,
       href: `/orders/${followUp.order.id}`,
-      title: followUp.order.orderNumber,
+      icon: ClipboardList,
+      title: followUp.itemCount === 0 ? "ออเดอร์ยังไม่มีรายการ" : "ติดตามลูกค้า",
       description: followUp.order.customer.name,
+      orderNumber: followUp.order.orderNumber,
+      orderHref: orderLink(followUp.order.id),
       deadline: followUp.order.deadline,
       attention: taskAttention(followUp.order.deadline),
       ownership: "team",
-      badge: followUp.itemCount === 0 ? "ยังไม่มีรายการ" : "ติดตามลูกค้า",
-      badgeTone: followUp.itemCount === 0 ? "warning" : "default",
       meta: formatCurrency(followUp.totalAmount),
+      actionLabel: "ตามลูกค้า",
     });
   }
 
@@ -243,14 +290,17 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
     items.push({
       key: `invoice:${invoice.id}`,
       href: `/orders/${invoice.orderId}?tab=money`,
-      title: `${invoice.invoiceNumber} · ${invoice.customerName}`,
-      description: invoice.orderNumber,
+      icon: ReceiptText,
+      title: `บิลเลยกำหนด ${invoice.invoiceNumber}`,
+      description: invoice.customerName,
+      orderNumber: invoice.orderNumber,
+      orderHref: orderLink(invoice.orderId),
       deadline: invoice.dueDate,
+      deadlineLabel: "ครบกำหนดชำระ",
       attention: "overdue",
       ownership: "team",
-      badge: "บิลเลยกำหนด",
-      badgeTone: "destructive",
       meta: formatCurrency(invoice.totalAmount),
+      actionLabel: "ดูบิล",
     });
   }
 
@@ -258,164 +308,144 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
     items.push({
       key: `order:${order.id}`,
       href: `/orders/${order.id}?tab=money`,
-      title: order.orderNumber,
+      icon: Wallet,
+      title: "รอวางบิล/ปิดงาน",
       description: order.customer.name,
+      orderNumber: order.orderNumber,
+      orderHref: orderLink(order.id),
       deadline: order.deadline,
       attention: taskAttention(order.deadline),
       ownership: "team",
-      badge: "รอวางบิล/ปิดงาน",
+      actionLabel: "ออกบิล",
     });
   }
 
   return items;
 }
 
-function TaskRow({ item }: { item: TaskListItem }) {
-  const attention = attentionLabel(item.attention);
-  // ติดปัญหา/เลยกำหนด = ปลายทางของแถวนี้ (ไม่เดินต่อเองจนกว่าจะมีคนแตะ) → ย้อมข้อความ
-  // ส่วน "ใกล้กำหนด" ยังเป็นระหว่างทาง ปล่อยให้จุดสีอำพันเป็นตัวบอกพอ
-  const urgentAttention = item.attention === "blocked" || item.attention === "overdue";
+/** แถวงาน (.tasks li ของต้นแบบ บนแถวกลาง .mrow ที่ชุด kit มีอยู่แล้ว) */
+function TaskRow({ item, primary }: { item: TaskListItem; primary: boolean }) {
+  const tone = taskTone(item.attention);
+  const Icon = item.icon ?? ClipboardList;
+  const attention = ATTENTION_LABEL[item.attention];
+  const sub = [
+    item.description,
+    item.deadline ? `${item.deadlineLabel ?? "กำหนดส่ง"} ${formatDate(item.deadline)}` : null,
+    item.meta,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
   return (
-    <li>
-      <Link
-        href={item.href}
-        className={cn(
-          FOCUS_INSET,
-          "flex min-h-14 items-center gap-3 px-4 py-3 transition-colors active:bg-interactive-pressed"
-        )}
-      >
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="min-w-0 truncate text-sm font-medium text-strong">
-              {item.title}
-            </p>
-            {attention && (
-              <StatusLabel
-                label={attention}
-                tone={urgentAttention ? "danger" : "warning"}
-                emphasize={urgentAttention}
-              />
-            )}
-          </div>
-          {item.description && (
-            <p className="truncate text-xs text-secondary">
-              {item.description}
-            </p>
-          )}
-          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-secondary">
-            {/* ป้ายสถานะของงานอยู่ในแถว meta (flex-wrap) เพื่อให้เห็นทุกขนาดจอ — ห้ามซ่อนบนมือถือ */}
-            {item.badge && (
-              <StatusLabel
-                label={item.badge}
-                tone={toneFromBadgeVariant(item.badgeTone)}
-                // แดง = บิลเลยกำหนด ซึ่งเป็นปลายทางที่ต้องสะดุดตาตอนสแกน
-                emphasize={item.badgeTone === "destructive"}
-              />
-            )}
-            {item.deadline && (
-              <span
-                className={cn(
-                  "inline-flex items-center gap-1.5",
-                  (item.attention === "overdue" || item.attention === "blocked") &&
-                    "font-medium text-red-600 dark:text-red-400",
-                  item.attention === "due-soon" && "text-amber-700 dark:text-amber-400"
-                )}
-              >
-                <Clock className="h-3.5 w-3.5" aria-hidden="true" />
-                {formatDate(item.deadline)}
-              </span>
-            )}
-            {item.meta && <span className="tabular-nums">{item.meta}</span>}
-          </div>
-        </div>
-        <ChevronRight className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
-      </Link>
+    <li className={c("mrow", tone !== "gray" && tone)}>
+      <span className={c("tl")} aria-hidden="true">
+        <Icon />
+      </span>
+      <span className={c("tx")}>
+        <b>{item.title}</b>
+        {sub ? <small>{sub}</small> : null}
+      </span>
+      <span className={c("acts")}>
+        {/* ความเร่งเป็นป้าย ไม่ใช่ข้อความจางท้ายบรรทัด — สแกนทั้งกองแล้วเห็นทันทีว่าอันไหนต้องแตะก่อน */}
+        {attention ? <span className={c("chip", tone)}>{attention}</span> : null}
+        {item.warning ? <span className={c("chip warn")}>{item.warning}</span> : null}
+        {item.orderNumber ? (
+          item.orderHref ? (
+            <Link href={item.orderHref} className={c("mono")}>
+              {item.orderNumber}
+            </Link>
+          ) : (
+            <span className={c("mono")}>{item.orderNumber}</span>
+          )
+        ) : null}
+        <Link href={item.href} className={c("btn sm", primary && "primary")}>
+          {item.actionLabel ?? "เปิดดู"}
+        </Link>
+      </span>
     </li>
   );
 }
 
 function TaskGroupCard({ group }: { group: TaskGroup }) {
   const [expanded, setExpanded] = useState(false);
-  const Icon = GROUP_ICONS[group.id];
-  const visible = expanded ? group.items : group.items.slice(0, 5);
+  const visible = expanded ? group.items : group.items.slice(0, VISIBLE_ROWS);
   const remaining = group.items.length - visible.length;
+  const headingId = `tasks-head-${group.id}`;
 
   return (
-    <section
-      // หัวการ์ดสีแดงบอกกลุ่มด่วนอยู่แล้ว ไม่ต้องตีกรอบแดงทั้งใบ (ต้นแบบ 2026-09-16)
-      className="card-surface overflow-hidden rounded-2xl"
-    >
-      <div className="flex items-start gap-3 border-b border-divider/60 px-4.5 pt-3.5 pb-3">
-        <div
-          className={cn(
-            "mt-0.5 grid size-8 place-items-center rounded-[11px]",
-            group.id === "attention"
-              ? "bg-red-50 text-red-700 dark:bg-red-950/50 dark:text-red-300"
-              : "bg-surface-muted text-secondary"
-          )}
-        >
-          <Icon className="h-4 w-4" aria-hidden="true" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold text-strong">{group.title}</h2>
-            <Badge variant={group.id === "attention" ? "destructive" : "default"} size="sm">
-              {group.items.length}
-            </Badge>
-          </div>
-          {group.description && (
-            <p className="text-xs text-secondary">{group.description}</p>
-          )}
-        </div>
-      </div>
-      <ul id={`tasks-${group.id}`} className="divide-y divide-divider" aria-label={group.title}>
+    <section className={c("card")} aria-labelledby={headingId}>
+      <CardHead
+        icon={GROUP_ICONS[group.id]}
+        tone={headTone(group.tone)}
+        id={headingId}
+        title={group.title}
+        // เกณฑ์ของกองเขียนไว้ข้างชื่อกอง (ช่องเดียวกับ legend ของการ์ดผังโรงงาน)
+        // ต้นแบบมีแค่ชื่อกอง แต่คนอ่านต้องรู้ว่าอะไรตกมาอยู่กองนี้ จึงคงคำช่วยไว้ตรงจุดใช้
+        after={group.description ? <span className={c("legend")}>{group.description}</span> : undefined}
+        right={<span className={c("chip", group.tone)}>{group.items.length} เรื่อง</span>}
+      />
+      <ul id={`tasks-${group.id}`} aria-labelledby={headingId}>
         {visible.map((item) => (
-          <TaskRow key={item.key} item={item} />
+          <TaskRow key={item.key} item={item} primary={group.tone === "bad"} />
         ))}
       </ul>
-      {group.items.length > 5 && (
-        <div className="border-t border-divider p-2">
-          <Button
+      {group.items.length > VISIBLE_ROWS ? (
+        <div className={c("cb")} style={{ paddingTop: 12 }}>
+          <button
             type="button"
-            variant="ghost"
-            className="w-full justify-center"
+            className={c("btn")}
+            style={{ width: "100%" }}
             onClick={() => setExpanded((current) => !current)}
             aria-expanded={expanded}
             aria-controls={`tasks-${group.id}`}
           >
-            {expanded ? "ย่อรายการ" : `ดูทั้งหมดอีก ${remaining} งาน`}
-            <ChevronDown
-              className={cn("transition-transform", expanded && "rotate-180")}
-              aria-hidden="true"
-            />
-          </Button>
+            {expanded ? "ย่อรายการ" : `ดูทั้งหมดอีก ${remaining} เรื่อง`}
+            <ChevronDown style={{ transform: expanded ? "rotate(180deg)" : undefined }} aria-hidden="true" />
+          </button>
         </div>
-      )}
+      ) : null}
     </section>
   );
 }
 
+function TasksSkeleton() {
+  return (
+    <div className={c("stack")} role="status" aria-label="กำลังโหลดงานของฉัน">
+      {[0, 1, 2].map((index) => (
+        <span key={index} className={c("sk")} style={{ height: 190 }} />
+      ))}
+    </div>
+  );
+}
+
 export default function MyTasksPage() {
-  const { data, isLoading, isError, refetch } = trpc.task.myToday.useQuery();
+  const { data, isLoading, isError, refetch, dataUpdatedAt } = trpc.task.myToday.useQuery();
 
   const groups = data
     ? groupTaskItems(buildTaskItems(data)).filter((group) => group.items.length > 0)
     : [];
   const total = groups.reduce((sum, group) => sum + group.items.length, 0);
+  const updatedAt = dataUpdatedAt ? ` · อัปเดตล่าสุด ${timeText(new Date(dataUpdatedAt))}` : "";
 
   return (
     <PageShell
       title="งานของฉัน"
-      // ระหว่างโหลด/พังยังไม่รู้จำนวนงาน — ใช้ข้อความกลางเดิม (header อยู่ครบทุก state)
-      meta={
+      // ระหว่างโหลด/พังยังไม่รู้จำนวนงาน — ใช้ข้อความกลางเดิม (หัวหน้าอยู่ครบทุก state)
+      description={
         !data
-          ? "เรียงสิ่งที่ต้องทำก่อนให้แล้ว"
+          ? "งานที่รอคุณจากทุกส่วนที่คุณมีสิทธิ์"
           : total > 0
-            ? `${total} งาน · เรียงงานติดปัญหาและใกล้กำหนดไว้ก่อนแล้ว`
-            : "เคลียร์หมดแล้ว — ไม่มีงานค้าง"
+            ? `${total} เรื่องที่รอคุณ${updatedAt}`
+            : `ไม่มีเรื่องที่รอคุณ${updatedAt}`
+      }
+      action={
+        <button type="button" className={c("btn")} onClick={() => void refetch()}>
+          <RefreshCw aria-hidden="true" />
+          โหลดใหม่
+        </button>
       }
       loading={isLoading}
-      skeleton={<ListSkeleton rows={5} />}
+      skeleton={<TasksSkeleton />}
       error={
         isError || (!isLoading && !data)
           ? { message: "เกิดข้อผิดพลาดในการโหลดข้อมูล", onRetry: () => refetch() }
@@ -423,16 +453,19 @@ export default function MyTasksPage() {
       }
     >
       {groups.length === 0 ? (
-        <div className="card-surface rounded-2xl">
-          <EmptyState
+        <section className={c("card")}>
+          <Empty
             icon={CheckCircle2}
             title="ไม่มีงานค้างบนโต๊ะคุณ"
-            description="งานใหม่ที่ตรงกับสิทธิ์ของคุณจะมาอยู่ที่นี่"
+            hint="งานใหม่ที่ตรงกับสิทธิ์ของคุณจะมาอยู่ที่นี่"
+            flat
           />
-        </div>
+        </section>
       ) : (
-        <div className="space-y-4">
-          {groups.map((group) => <TaskGroupCard key={group.id} group={group} />)}
+        <div className={c("stack")}>
+          {groups.map((group) => (
+            <TaskGroupCard key={group.id} group={group} />
+          ))}
         </div>
       )}
     </PageShell>
