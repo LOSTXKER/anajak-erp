@@ -9,6 +9,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { ListPageSkeleton } from "@/components/ui/page-skeleton";
 import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
+import { SegmentedControl } from "@/components/ui/segmented";
 import { QueryError } from "@/components/ui/query-error";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -183,6 +184,7 @@ function AgingPageContent() {
   return (
     <PageShell
       title="ลูกหนี้ค้างชำระ"
+      meta="ดูว่าเงินค้างอยู่ที่ใคร และค้างมานานแค่ไหน"
       help="อายุหนี้นับจากวันครบกำหนดของเอกสาร"
       breadcrumb={[{ label: "บิล/การเงิน", href: "/billing" }, { label: "ลูกหนี้" }]}
       denied={
@@ -234,22 +236,12 @@ function AgingPageContent() {
             {/* flex-wrap: จอมือถือให้ช่องเลือกซ้อนกันเต็มความกว้างเหมือนเดิม —
                 ถ้าปล่อยเรียงคู่กัน ป้ายยาวอย่าง "ยอดเลยกำหนดมากสุด" จะโดนตัดจนอ่านไม่ออก */}
             <ToolbarGroup className="flex-wrap">
-              <Select
-                shape="pill"
-                surface="raised"
-                aria-label="กรองช่วงอายุหนี้"
+              <SegmentedControl
                 value={status}
-                onChange={(event) =>
-                  replaceListState({ status: event.target.value || null, page: null })
-                }
-                className="@2xl:w-48"
-              >
-                {AGING_STATUS_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </Select>
+                onChange={(value) => replaceListState({ status: value || null, page: null })}
+                options={AGING_STATUS_OPTIONS.map((option) => ({ value: option.value, label: option.label }))}
+                aria-label="กรองช่วงอายุหนี้"
+              />
               <Select
                 shape="pill"
                 surface="raised"

@@ -157,6 +157,7 @@ function BillingNotesPageContent() {
   return (
     <PageShell
       title="ใบวางบิล"
+      meta="รวมหลายบิลของลูกค้ารายเดียวเป็นใบเดียวเพื่อไปวางบิล"
       breadcrumb={[{ label: "บิล/การเงิน", href: "/billing" }, { label: "ใบวางบิล" }]}
       action={
         <Button onClick={() => setShowCreate(true)} className="gap-1.5">
