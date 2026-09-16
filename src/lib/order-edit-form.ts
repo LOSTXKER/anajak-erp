@@ -267,6 +267,8 @@ export function buildOrderEditFormSeed(
   const selectedCustomer: PickerCustomer = {
     ...order.customer,
     _count: { orders: order.customer.totalOrders },
+    // order.getById ไม่ได้ส่งวันสั่งล่าสุดมา — ตัวเลือกลูกค้าไม่ได้ใช้ค่านี้
+    lastOrderAt: null,
   };
 
   return {

@@ -22,6 +22,7 @@ import { Select } from "@/components/ui/select";
 import { Alert } from "@/components/ui/alert";
 import { formatCurrency } from "@/lib/utils";
 import { permAllows } from "@/lib/permissions";
+import { differenceInBangkokDays } from "@/lib/date-utils";
 import { CustomerFormFields } from "@/components/customers/customer-form-fields";
 import {
   buildCustomerCreatePayload,
@@ -30,6 +31,10 @@ import {
   type CustomerEditForm,
 } from "@/lib/customer-form";
 import { PageShell } from "@/components/page-shell";
+import { SegmentedControl } from "@/components/ui/segmented";
+import { KitDateRange } from "@/components/kit/date-range";
+import { validDateParam } from "@/lib/order-list-contract";
+import { formatDateShort } from "@/lib/utils";
 import { Plus, Users, UserPlus, Crown, UserX, ChevronRight } from "lucide-react";
 import { FOCUS_BUTTON } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
@@ -55,6 +60,24 @@ const SEGMENT_FILTERS = [
   })),
 ];
 
+
+/** สั่งล่าสุด: วันที่ + ผ่านมากี่วัน · ลูกค้าที่หายไปนานให้เห็นทันที */
+function LastOrderCell({ at, now }: { at: Date | string | null; now: number }) {
+  if (!at) return <span className="text-xs text-muted">ยังไม่เคยสั่ง</span>;
+  const days = differenceInBangkokDays(at, now);
+  const ago = days === null ? null : Math.abs(days);
+  return (
+    <span className="text-xs text-secondary">
+      {formatDateShort(at)}
+      {ago !== null ? (
+        <span className={cn("ml-1.5", ago > 180 ? "text-amber-700 dark:text-amber-400" : "text-muted")}>
+          {ago === 0 ? "วันนี้" : `${ago.toLocaleString("th-TH")} วันก่อน`}
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
 export default function CustomersPage() {
   return (
     <Suspense fallback={<ListPageSkeleton />}>
@@ -68,8 +91,10 @@ function CustomersPageContent() {
     useListPageState();
   const rawSegment = searchParams.get("status") ?? "";
   const segment = Object.hasOwn(segmentConfig, rawSegment) ? rawSegment : "";
-  const filtered = Boolean(search || segment);
-  const clearFilters = () => clearSearch({ status: null });
+  const dateFrom = validDateParam(searchParams.get("from"));
+  const dateTo = validDateParam(searchParams.get("to"));
+  const filtered = Boolean(search || segment || dateFrom || dateTo);
+  const clearFilters = () => clearSearch({ status: null, from: null, to: null });
   const [showForm, setShowForm] = useState(false);
   // ฟอร์มเพิ่มลูกค้าใช้ field ชุดเดียวกับฟอร์มแก้ไข (CustomerFormFields + CustomerEditForm)
   // — เดิมเขียนช่องซ้ำเองแล้ว drift: เลขภาษี/วงเงินไม่ถูก validate ตอนสร้าง
@@ -86,10 +111,12 @@ function CustomersPageContent() {
   // Policy ⑦: ฝ่ายผลิต/กราฟิกไม่เห็นเงินฝั่งขาย — ซ่อนคอลัมน์ยอดรวมทั้งแถบ (server ส่ง null มาอยู่แล้ว)
   const canSeeMoney = permAllows(me?.permissions, "see_order_money");
   const statsQuery = trpc.customer.stats.useQuery();
-  const { data, isLoading, isFetching, isError, refetch } = trpc.customer.list.useQuery(
+  const { data, isLoading, isFetching, isError, refetch, dataUpdatedAt: listUpdatedAt } = trpc.customer.list.useQuery(
     {
       search: search.trim() || undefined,
       segment: segment || undefined,
+      from: dateFrom || undefined,
+      to: dateTo || undefined,
       page,
       limit: 50,
     },
@@ -138,6 +165,11 @@ function CustomersPageContent() {
   return (
     <PageShell
       title="ลูกค้า"
+      meta={
+        statsQuery.data
+          ? `${statsQuery.data.total.toLocaleString("th-TH")} ราย · ใหม่เดือนนี้ ${statsQuery.data.newThisMonth.toLocaleString("th-TH")} · VIP ${statsQuery.data.vip.toLocaleString("th-TH")} · ไม่เคลื่อนไหว ${statsQuery.data.inactive.toLocaleString("th-TH")}`
+          : undefined
+      }
       action={
         canManageCustomers ? (
           <Button size="sm" onClick={() => setShowForm(!showForm)}>
@@ -147,17 +179,9 @@ function CustomersPageContent() {
         ) : undefined
       }
     >
-      {/* stats พังต้องบอก — เลขโชว์ 0 เงียบๆ อ่านเป็น "ไม่มีลูกค้า" ได้ (ขัด DESIGN.md) */}
       {statsQuery.isError ? (
         <QueryError message="โหลดสถิติไม่สำเร็จ" onRetry={() => statsQuery.refetch()} />
-      ) : (
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard loading={statsQuery.isLoading} moduleTone="brand" title="ลูกค้าทั้งหมด" value={statsQuery.data?.total ?? 0} icon={Users} />
-          <StatCard loading={statsQuery.isLoading} moduleTone="brand" title="ใหม่เดือนนี้" value={statsQuery.data?.newThisMonth ?? 0} icon={UserPlus} />
-          <StatCard loading={statsQuery.isLoading} moduleTone="brand" title="VIP" value={statsQuery.data?.vip ?? 0} icon={Crown} />
-          <StatCard loading={statsQuery.isLoading} moduleTone="brand" title="ไม่เคลื่อนไหว" value={statsQuery.data?.inactive ?? 0} icon={UserX} />
-        </div>
-      )}
+      ) : null}
 
       {showForm && canManageCustomers && (
         <Section title="เพิ่มลูกค้าใหม่" icon={UserPlus} tone="brand">
@@ -204,23 +228,20 @@ function CustomersPageContent() {
             onChange={(event) => onSearchChange(event.target.value)}
           />
 
-          <ToolbarGroup>
-            <Select
-              shape="pill"
-              surface="raised"
-              aria-label="กรองกลุ่มลูกค้า"
+          <KitDateRange
+            label="ช่วงวันที่สั่งล่าสุด"
+            from={dateFrom}
+            to={dateTo}
+            onChange={(from, to) => replaceListState({ from: from || null, to: to || null, page: null })}
+          />
+
+          <ToolbarGroup className="flex-wrap">
+            <SegmentedControl
               value={segment}
-              onChange={(event) =>
-                replaceListState({ status: event.target.value || null, page: null })
-              }
-              className="@2xl:w-44"
-            >
-              {SEGMENT_FILTERS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </Select>
+              onChange={(value) => replaceListState({ status: value || null, page: null })}
+              options={SEGMENT_FILTERS.map((option) => ({ value: option.value, label: option.label }))}
+              aria-label="กรองกลุ่มลูกค้า"
+            />
             {filtered ? <Button variant="ghost" size="sm" onClick={clearFilters}>ล้างตัวกรอง</Button> : null}
           </ToolbarGroup>
         </Toolbar>
@@ -230,11 +251,12 @@ function CustomersPageContent() {
             <DataTable.Head>
               <tr>
                 <DataTable.Th>ลูกค้า</DataTable.Th>
-                <DataTable.Th>ประเภท</DataTable.Th>
                 <DataTable.Th>ติดต่อ</DataTable.Th>
                 <DataTable.Th>กลุ่ม</DataTable.Th>
                 <DataTable.Th align="right">ออเดอร์</DataTable.Th>
-                {canSeeMoney && <DataTable.Th align="right">ยอดรวม</DataTable.Th>}
+                {canSeeMoney && <DataTable.Th align="right">ยอดสะสม</DataTable.Th>}
+                <DataTable.Th>สั่งล่าสุด</DataTable.Th>
+                <DataTable.Th align="right"><span className="sr-only">เปิดลูกค้า</span></DataTable.Th>
               </tr>
             </DataTable.Head>
             <DataTable.Body>
@@ -253,19 +275,10 @@ function CustomersPageContent() {
                         >
                           {customer.name}
                         </Link>
-                        {customer.company && (
-                          <p className="truncate text-xs text-muted">
-                            {customer.company}
-                          </p>
-                        )}
+                        <p className="truncate text-xs text-muted">
+                          {customer.company || (customer.customerType === "CORPORATE" ? "นิติบุคคล" : "บุคคลธรรมดา")}
+                        </p>
                       </div>
-                    </DataTable.Td>
-                    <DataTable.Td>
-                      {customer.customerType === "CORPORATE" ? (
-                        <span className="text-xs text-secondary">นิติบุคคล</span>
-                      ) : (
-                        <span className="text-xs text-muted">บุคคล</span>
-                      )}
                     </DataTable.Td>
                     <DataTable.Td className="text-xs text-muted">
                       {customer.phone || customer.email || "—"}
@@ -284,6 +297,12 @@ function CustomersPageContent() {
                         {formatCurrency(customer.totalSpent ?? 0)}
                       </DataTable.Td>
                     )}
+                    <DataTable.Td className="whitespace-nowrap">
+                      <LastOrderCell at={customer.lastOrderAt} now={listUpdatedAt} />
+                    </DataTable.Td>
+                    <DataTable.Td align="right">
+                      <ChevronRight className="ml-auto h-4 w-4 text-muted" aria-hidden="true" />
+                    </DataTable.Td>
                   </DataTable.Row>
                 );
               })}

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { dateRangeFilter } from "@/lib/date-utils";
 import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure, requirePermission } from "../trpc";
 import { createAuditLog } from "@/server/helpers";
@@ -67,6 +68,8 @@ export const customerRouter = router({
       z.object({
         search: z.string().optional(),
         segment: z.string().optional(),
+        from: z.string().optional(),
+        to: z.string().optional(),
         page: z.number().default(1),
         limit: z.number().default(20),
       })
@@ -88,10 +91,18 @@ export const customerRouter = router({
         where.segment = input.segment;
       }
 
+      // กรองตามวันที่สั่งล่าสุด = มีออเดอร์อย่างน้อยหนึ่งใบในช่วงที่เลือก
+      const orderedAt = dateRangeFilter(input.from, input.to);
+      if (orderedAt) where.orders = { some: { createdAt: orderedAt } };
+
       const [customers, total] = await Promise.all([
         ctx.prisma.customer.findMany({
           where,
-          include: { _count: { select: { orders: true } } },
+          include: {
+            _count: { select: { orders: true } },
+            // ออเดอร์ล่าสุดใบเดียว — คอลัมน์ "สั่งล่าสุด" บนหน้ารายชื่อ
+            orders: { select: { createdAt: true }, orderBy: { createdAt: "desc" }, take: 1 },
+          },
           orderBy: { updatedAt: "desc" },
           skip: (input.page - 1) * input.limit,
           take: input.limit,
@@ -102,9 +113,13 @@ export const customerRouter = router({
       // ⑦ (เบสเคาะ 2026-07-06): ยอดซื้อสะสม/วงเงิน = เงินฝั่งขาย — ช่าง/กราฟิกไม่เห็น
       // (null ไม่ใช่ 0 — 0 อ่านเป็น "ไม่เคยซื้อ" ได้ · pattern เดียวกับ analytics.dashboard)
       const seesMoney = hasPermission(ctx.userRole, ctx.permissionOverrides, "see_order_money");
+      const withLastOrder = customers.map(({ orders, ...rest }) => ({
+        ...rest,
+        lastOrderAt: (orders[0]?.createdAt ?? null) as Date | null,
+      }));
       const sanitized = seesMoney
-        ? customers
-        : customers.map((c) => ({ ...c, totalSpent: null, creditLimit: null }));
+        ? withLastOrder
+        : withLastOrder.map((c) => ({ ...c, totalSpent: null, creditLimit: null }));
 
       return { customers: sanitized, total, pages: Math.ceil(total / input.limit) };
     }),
