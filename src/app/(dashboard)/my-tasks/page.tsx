@@ -342,16 +342,13 @@ function TaskGroupCard({ group }: { group: TaskGroup }) {
 
   return (
     <section
-      className={cn(
-        "card-surface overflow-hidden rounded-2xl",
-        // ต้องมี `border` คู่ด้วย ไม่งั้นสั่งแค่สีขอบ = เส้นไม่ขึ้นเลย (audit สี 2026-08-02)
-        group.id === "attention" && "border border-red-200 dark:border-red-900"
-      )}
+      // หัวการ์ดสีแดงบอกกลุ่มด่วนอยู่แล้ว ไม่ต้องตีกรอบแดงทั้งใบ (ต้นแบบ 2026-09-16)
+      className="card-surface overflow-hidden rounded-2xl"
     >
-      <div className="flex items-start gap-3 border-b border-divider px-4 py-3">
+      <div className="flex items-start gap-3 border-b border-divider/60 px-4.5 pt-3.5 pb-3">
         <div
           className={cn(
-            "mt-0.5 rounded-lg p-2",
+            "mt-0.5 grid size-8 place-items-center rounded-[11px]",
             group.id === "attention"
               ? "bg-red-50 text-red-700 dark:bg-red-950/50 dark:text-red-300"
               : "bg-surface-muted text-secondary"
