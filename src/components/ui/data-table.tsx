@@ -118,10 +118,17 @@ interface RowProps extends React.HTMLAttributes<HTMLTableRowElement> {
    *  ลิงก์จริงในแถว (เลขออเดอร์) คงไว้เป็นทาง keyboard/เปิดแท็บใหม่ ·
    *  ปุ่มในแถวที่ไม่อยากให้พาไป ให้ stopPropagation เอง */
   href?: string;
+  /** เส้นสีที่ขอบซ้ายแถว (เบสสั่งกลับมา 2026-09-16 "อันไหนที่เคยเอาออก เอากลับมา ให้เหมือนกันทั้งหมด")
+   *  danger = เลยกำหนด/ติดปัญหา · warning = ใกล้ถึงกำหนด · งานที่จบแล้วไม่ต้องใส่
+   *  ใช้เส้นคู่กับข้อความในแถวเสมอ ห้ามใช้สีเป็นข้อมูลอย่างเดียว */
+  tone?: "danger" | "warning" | null;
 }
 
+/** เส้นจริงวาดใน globals.css (.row-tone-*) — markup ห้ามเขียนเงาเอง */
+const ROW_TONE = { danger: "row-tone-danger", warning: "row-tone-warning" } as const;
+
 const Row = React.forwardRef<HTMLTableRowElement, RowProps>(
-  ({ className, href, onClick, ...props }, ref) => {
+  ({ className, href, tone, onClick, ...props }, ref) => {
     const router = useRouter();
     return (
       <tr
@@ -145,6 +152,7 @@ const Row = React.forwardRef<HTMLTableRowElement, RowProps>(
           // ไม่มีเอฟเฟกต์ตอนชี้แบบชุด kit — ตอบสนองตอนกด (active) แทน
           "group transition-colors",
           href && cn("cursor-pointer", INTERACTIVE_PRESSED),
+          tone && ROW_TONE[tone],
           className
         )}
         {...props}

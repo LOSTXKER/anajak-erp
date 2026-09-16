@@ -14,6 +14,7 @@ import { QueryError } from "@/components/ui/query-error";
 import { DataTable } from "@/components/ui/data-table";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { EmptyState } from "@/components/ui/empty-state";
+import { dueRowTone } from "@/lib/row-tone";
 import { ResponsiveList } from "@/components/ui/responsive-list";
 import { Select } from "@/components/ui/select";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -322,7 +323,11 @@ function BillingPageContent() {
                 const status = paymentStatusProps(inv.paymentStatus);
                 const moneyHref = `/orders/${inv.orderId}?tab=money`;
                 return (
-                  <DataTable.Row key={inv.id} href={moneyHref}>
+                  <DataTable.Row
+                    key={inv.id}
+                    href={moneyHref}
+                    tone={dueRowTone(inv.dueDate, inv.paymentStatus === "PAID")}
+                  >
                     <DataTable.Td className="whitespace-nowrap font-medium text-strong">
                       <Link href={moneyHref} className={cn("rounded font-medium text-strong", FOCUS_BUTTON)}>
                         {inv.invoiceNumber}

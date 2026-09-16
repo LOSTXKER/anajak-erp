@@ -14,6 +14,7 @@ import { ListPageSkeleton } from "@/components/ui/page-skeleton";
 import { QueryError } from "@/components/ui/query-error";
 import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
+import { whtRowTone } from "@/lib/row-tone";
 import { ResponsiveList } from "@/components/ui/responsive-list";
 import { StatCard } from "@/components/ui/stat-card";
 import { Input } from "@/components/ui/input";
@@ -321,7 +322,7 @@ function WhtRegisterPageContent() {
             </DataTable.Head>
             <DataTable.Body>
               {items.map((row) => (
-                <DataTable.Row key={row.id}>
+                <DataTable.Row key={row.id} tone={whtRowTone(row.certNumber, row.payment.createdAt)}>
                   <DataTable.Td className="text-xs tabular-nums text-muted">
                     {formatDate(row.payment.createdAt)}
                   </DataTable.Td>

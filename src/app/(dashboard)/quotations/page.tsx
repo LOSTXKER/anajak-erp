@@ -14,6 +14,7 @@ import { StatusLabel, toneFromBadgeVariant } from "@/components/ui/status-label"
 import { ListPageSkeleton } from "@/components/ui/page-skeleton";
 import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
+import { dueRowTone } from "@/lib/row-tone";
 import { ResponsiveList } from "@/components/ui/responsive-list";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { QUOTATION_STATUS_LABELS, QUOTATION_STATUS_VARIANTS } from "@/lib/status-config";
@@ -231,7 +232,7 @@ function QuotationsPageContent() {
             </DataTable.Head>
             <DataTable.Body>
               {quotations.map((q) => (
-                <DataTable.Row key={q.id} href={`/quotations/${q.id}`}>
+                <DataTable.Row key={q.id} href={`/quotations/${q.id}`} tone={dueRowTone(q.validUntil, q.status !== "SENT")}>
                   <DataTable.Td>
                     <Link
                       href={`/quotations/${q.id}`}

@@ -294,7 +294,16 @@ function AgingPageContent() {
             </DataTable.Head>
             <DataTable.Body>
               {rows.map((row) => (
-                <DataTable.Row key={row.customerId}>
+                <DataTable.Row
+                  key={row.customerId}
+                  tone={
+                    row.buckets.d61_90 + row.buckets.d90plus > 0
+                      ? "danger"
+                      : row.buckets.d1_30 + row.buckets.d31_60 > 0
+                        ? "warning"
+                        : null
+                  }
+                >
                   <DataTable.Td>
                     <div className="flex items-center gap-2">
                       <Link
