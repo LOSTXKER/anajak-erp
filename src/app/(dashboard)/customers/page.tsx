@@ -23,6 +23,7 @@ import { Alert } from "@/components/ui/alert";
 import { formatCurrency } from "@/lib/utils";
 import { permAllows } from "@/lib/permissions";
 import { differenceInBangkokDays } from "@/lib/date-utils";
+import { c } from "@/components/kit/kit";
 import { CustomerFormFields } from "@/components/customers/customer-form-fields";
 import {
   buildCustomerCreatePayload,
@@ -53,13 +54,23 @@ const segmentConfig: Record<string, { label: string; variant: "default" | "accen
 };
 
 const SEGMENT_FILTERS = [
-  { value: "", label: "ทุกกลุ่มลูกค้า" },
+  { value: "", label: "ทั้งหมด" },
   ...Object.entries(segmentConfig).map(([value, config]) => ({
     value,
     label: config.label,
   })),
 ];
 
+
+/** ป้ายปุ่มกรองพร้อมจำนวน — รูปแบบเดียวกับแถบกรองหน้าออเดอร์ */
+function pillLabel(label: string, count?: number) {
+  return (
+    <>
+      {label}
+      {typeof count === "number" && count > 0 ? <span className={c("n")}>{count.toLocaleString("th-TH")}</span> : null}
+    </>
+  );
+}
 
 /** สั่งล่าสุด: วันที่ + ผ่านมากี่วัน · ลูกค้าที่หายไปนานให้เห็นทันที */
 function LastOrderCell({ at, now }: { at: Date | string | null; now: number }) {
@@ -167,7 +178,7 @@ function CustomersPageContent() {
       title="ลูกค้า"
       meta={
         statsQuery.data
-          ? `${statsQuery.data.total.toLocaleString("th-TH")} ราย · ใหม่เดือนนี้ ${statsQuery.data.newThisMonth.toLocaleString("th-TH")} · VIP ${statsQuery.data.vip.toLocaleString("th-TH")} · ไม่เคลื่อนไหว ${statsQuery.data.inactive.toLocaleString("th-TH")}`
+          ? `${statsQuery.data.total.toLocaleString("th-TH")} ราย · ใหม่เดือนนี้ ${statsQuery.data.newThisMonth.toLocaleString("th-TH")} ราย · ไม่เคลื่อนไหว ${statsQuery.data.inactive.toLocaleString("th-TH")} ราย`
           : undefined
       }
       action={
@@ -239,7 +250,10 @@ function CustomersPageContent() {
             <SegmentedControl
               value={segment}
               onChange={(value) => replaceListState({ status: value || null, page: null })}
-              options={SEGMENT_FILTERS.map((option) => ({ value: option.value, label: option.label }))}
+              options={SEGMENT_FILTERS.map((option) => ({
+                value: option.value,
+                label: pillLabel(option.label, data?.counts?.[option.value]),
+              }))}
               aria-label="กรองกลุ่มลูกค้า"
             />
             {filtered ? <Button variant="ghost" size="sm" onClick={clearFilters}>ล้างตัวกรอง</Button> : null}

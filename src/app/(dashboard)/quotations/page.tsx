@@ -19,6 +19,7 @@ import { KitDateRange } from "@/components/kit/date-range";
 import { SegmentedControl } from "@/components/ui/segmented";
 import { DueTag } from "@/components/ui/due-tag";
 import { differenceInBangkokDays } from "@/lib/date-utils";
+import { c } from "@/components/kit/kit";
 import { validDateParam } from "@/lib/order-list-contract";
 import { ResponsiveList } from "@/components/ui/responsive-list";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -31,12 +32,12 @@ import { Select } from "@/components/ui/select";
 
 const QUOTATION_STATUSES = [
   { value: "", label: "ทั้งหมด" },
-  { value: "DRAFT", label: "ฉบับร่าง" },
-  { value: "SENT", label: "ส่งแล้ว" },
+  { value: "DRAFT", label: "ร่าง" },
+  { value: "SENT", label: "รอลูกค้าตอบ" },
   { value: "ACCEPTED", label: "อนุมัติ" },
   { value: "REJECTED", label: "ปฏิเสธ" },
   { value: "EXPIRED", label: "หมดอายุ" },
-  { value: "CONVERTED", label: "แปลงแล้ว" },
+  { value: "CONVERTED", label: "เปิดออเดอร์แล้ว" },
 ];
 
 // สถานะปลายทางของใบเสนอ — จบเรื่องแล้ว ไม่ขยับต่อ จึงย้อมข้อความให้สะดุดตาตอนไล่สายตา
@@ -71,6 +72,16 @@ export default function QuotationsPage() {
   );
 }
 
+
+/** ป้ายปุ่มกรองพร้อมจำนวน — รูปแบบเดียวกับแถบกรองหน้าออเดอร์ */
+function pillLabel(label: string, count?: number) {
+  return (
+    <>
+      {label}
+      {typeof count === "number" && count > 0 ? <span className={c("n")}>{count.toLocaleString("th-TH")}</span> : null}
+    </>
+  );
+}
 
 /** วันหมดอายุของใบเสนอ: ใบที่ยังรอลูกค้าตอบเท่านั้นที่ต้องเร่ง ใบที่จบแล้วบอกแค่วันที่ */
 function QuotationExpiry({
@@ -166,7 +177,10 @@ function QuotationsPageContent() {
               <SegmentedControl
                 value={status}
                 onChange={(value) => replaceListState({ status: value || null, page: null })}
-                options={QUOTATION_STATUSES.map((f) => ({ value: f.value, label: f.label }))}
+                options={QUOTATION_STATUSES.map((f) => ({
+                  value: f.value,
+                  label: pillLabel(f.label, data?.counts?.[f.value]),
+                }))}
                 aria-label="กรองตามสถานะใบเสนอราคา"
               />
               {filtered ? <Button variant="ghost" size="sm" onClick={clearFilters}>ล้างตัวกรอง</Button> : null}

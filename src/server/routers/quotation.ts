@@ -87,7 +87,11 @@ export const quotationRouter = router({
       const createdAt = dateRangeFilter(input.from, input.to);
       if (createdAt) where.createdAt = createdAt;
 
-      const [quotations, total] = await Promise.all([
+      // จำนวนต่อสถานะสำหรับปุ่มกรอง — นับจากเงื่อนไขอื่นทั้งหมดยกเว้นสถานะเอง
+      const countWhere: Record<string, unknown> = { ...where };
+      delete countWhere.status;
+
+      const [quotations, total, byStatus] = await Promise.all([
         ctx.prisma.quotation.findMany({
           where,
           include: {
@@ -100,9 +104,16 @@ export const quotationRouter = router({
           take: input.limit,
         }),
         ctx.prisma.quotation.count({ where }),
+        ctx.prisma.quotation.groupBy({ by: ["status"], where: countWhere, _count: { _all: true } }),
       ]);
 
-      return { quotations, total, pages: Math.ceil(total / input.limit) };
+      const counts: Record<string, number> = { "": 0 };
+      for (const row of byStatus) {
+        counts[row.status] = row._count._all;
+        counts[""] += row._count._all;
+      }
+
+      return { quotations, total, counts, pages: Math.ceil(total / input.limit) };
     }),
 
   getById: protectedProcedure

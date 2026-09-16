@@ -106,7 +106,11 @@ export const billingRouter = router({
       const createdAt = dateRangeFilter(input.from, input.to);
       if (createdAt) where.createdAt = createdAt;
 
-      const [invoices, total] = await Promise.all([
+      // จำนวนต่อสถานะชำระสำหรับปุ่มกรอง — นับจากเงื่อนไขอื่นยกเว้นสถานะเอง
+      const countWhere: Record<string, unknown> = { ...where };
+      delete countWhere.paymentStatus;
+
+      const [invoices, total, byStatus] = await Promise.all([
         ctx.prisma.invoice.findMany({
           where,
           include: {
@@ -119,9 +123,16 @@ export const billingRouter = router({
           take: input.limit,
         }),
         ctx.prisma.invoice.count({ where }),
+        ctx.prisma.invoice.groupBy({ by: ["paymentStatus"], where: countWhere, _count: { _all: true } }),
       ]);
 
-      return { invoices, total, pages: Math.ceil(total / input.limit) };
+      const counts: Record<string, number> = { "": 0 };
+      for (const row of byStatus) {
+        counts[row.paymentStatus] = row._count._all;
+        counts[""] += row._count._all;
+      }
+
+      return { invoices, total, counts, pages: Math.ceil(total / input.limit) };
     }),
 
   create: protectedProcedure

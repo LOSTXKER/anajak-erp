@@ -71,12 +71,13 @@ export const APPROVAL_STATUS_VARIANTS = _approvalStatus.variants;
 
 // Quotation status
 const _quotationStatus = buildConfig({
-  DRAFT: { label: "ฉบับร่าง", variant: "secondary" },
-  SENT: { label: "ส่งแล้ว", variant: "default" },
+  // คำบนจอใช้ชุดเดียวกับต้นแบบที่เบสเคาะ — บอกว่ารออะไรอยู่ ไม่ใช่บอกว่าเราทำอะไรไป
+  DRAFT: { label: "ร่าง", variant: "secondary" },
+  SENT: { label: "รอลูกค้าตอบ", variant: "default" },
   ACCEPTED: { label: "อนุมัติ", variant: "success" },
   REJECTED: { label: "ปฏิเสธ", variant: "destructive" },
   EXPIRED: { label: "หมดอายุ", variant: "warning" },
-  CONVERTED: { label: "แปลงเป็นออเดอร์", variant: "purple" },
+  CONVERTED: { label: "เปิดออเดอร์แล้ว", variant: "purple" },
 });
 export const QUOTATION_STATUS_LABELS = _quotationStatus.labels;
 export const QUOTATION_STATUS_VARIANTS = _quotationStatus.variants;

@@ -104,7 +104,7 @@ export default function AnalyticsPage() {
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <Section
-          title="รายได้ 6 เดือนย้อนหลัง"
+          title="ยอดขาย 6 เดือนย้อนหลัง"
           icon={TrendingUp}
           tone="finance"
           bordered

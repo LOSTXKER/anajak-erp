@@ -95,7 +95,10 @@ export const customerRouter = router({
       const orderedAt = dateRangeFilter(input.from, input.to);
       if (orderedAt) where.orders = { some: { createdAt: orderedAt } };
 
-      const [customers, total] = await Promise.all([
+      const countWhere: Record<string, unknown> = { ...where };
+      delete countWhere.segment;
+
+      const [customers, total, bySegment] = await Promise.all([
         ctx.prisma.customer.findMany({
           where,
           include: {
@@ -108,7 +111,14 @@ export const customerRouter = router({
           take: input.limit,
         }),
         ctx.prisma.customer.count({ where }),
+        ctx.prisma.customer.groupBy({ by: ["segment"], where: countWhere, _count: { _all: true } }),
       ]);
+
+      const counts: Record<string, number> = { "": 0 };
+      for (const row of bySegment) {
+        counts[row.segment] = row._count._all;
+        counts[""] += row._count._all;
+      }
 
       // ⑦ (เบสเคาะ 2026-07-06): ยอดซื้อสะสม/วงเงิน = เงินฝั่งขาย — ช่าง/กราฟิกไม่เห็น
       // (null ไม่ใช่ 0 — 0 อ่านเป็น "ไม่เคยซื้อ" ได้ · pattern เดียวกับ analytics.dashboard)
@@ -121,7 +131,7 @@ export const customerRouter = router({
         ? withLastOrder
         : withLastOrder.map((c) => ({ ...c, totalSpent: null, creditLimit: null }));
 
-      return { customers: sanitized, total, pages: Math.ceil(total / input.limit) };
+      return { customers: sanitized, total, counts, pages: Math.ceil(total / input.limit) };
     }),
 
   getById: protectedProcedure

@@ -17,6 +17,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { validDateParam } from "@/lib/order-list-contract";
 import { KitDateRange } from "@/components/kit/date-range";
 import { SegmentedControl } from "@/components/ui/segmented";
+import { c } from "@/components/kit/kit";
 import { dueRowTone } from "@/lib/row-tone";
 import { ResponsiveList } from "@/components/ui/responsive-list";
 import { Select } from "@/components/ui/select";
@@ -84,6 +85,16 @@ export default function BillingPage() {
 }
 
 
+/** ป้ายปุ่มกรองพร้อมจำนวน — รูปแบบเดียวกับแถบกรองหน้าออเดอร์ */
+function pillLabel(label: string, count?: number) {
+  return (
+    <>
+      {label}
+      {typeof count === "number" && count > 0 ? <span className={c("n")}>{count.toLocaleString("th-TH")}</span> : null}
+    </>
+  );
+}
+
 /** ยอดที่ยังค้าง = ยอดบิล − เงินที่รับมาแล้ว (ใบที่ปิดแล้วเหลือ 0) */
 function outstandingOf(invoice: { totalAmount: number; payments: { amount: number }[] }) {
   const paid = invoice.payments.reduce((sum, payment) => sum + payment.amount, 0);
@@ -127,7 +138,7 @@ function BillingPageContent() {
 
   return (
     <PageShell
-      title="บิล/การเงิน"
+      title="บิลและการเงิน"
       meta="ออกบิล รับชำระ และตามเงินค้าง"
       denied={
         me && !canView
@@ -205,8 +216,11 @@ function BillingPageContent() {
                 value={statusFilter === ALL ? "" : statusFilter}
                 onChange={(value) => replaceListState({ status: value || null, page: null })}
                 options={[
-                  { value: "", label: "ทุกสถานะ" },
-                  ...Object.entries(PAYMENT_STATUS_LABELS).map(([value, label]) => ({ value, label })),
+                  { value: "", label: pillLabel("ทั้งหมด", data?.counts?.[""]) },
+                  ...Object.entries(PAYMENT_STATUS_LABELS).map(([value, label]) => ({
+                    value,
+                    label: pillLabel(label, data?.counts?.[value]),
+                  })),
                 ]}
                 aria-label="กรองตามสถานะ"
               />
