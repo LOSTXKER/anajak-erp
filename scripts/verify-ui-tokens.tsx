@@ -684,18 +684,14 @@ check(
   ["border-0", "border-field-border", "bg-field", "shadow-sm"],
 );
 
-// Toolbar ยืนบน workspace off-white จึงใช้พื้น panel ขาว + boundary บางแบบ Vercel
+// ช่องค้นหาบนแถบเครื่องมือใช้หน้าตา .sinput ของชุดกลาง (รวมสไตล์ 2026-09-17)
 {
-  const searchHtml = renderToStaticMarkup(
-    <SearchInput surface="raised" />,
-  );
-  const searchControl = searchHtml.match(/<input[^>]*>/)?.[0] ?? "";
-  check(
-    "ช่องค้นหาแบบยกบนผืนหน้า",
-    searchControl,
-    ["bg-surface", "shadow-none", "border-field-border"],
-    ["bg-transparent", "shadow-sm", "border-transparent"],
-  );
+  const searchHtml = renderToStaticMarkup(<SearchInput surface="raised" placeholder="ค้นหา" />);
+  check("ช่องค้นหาใช้กล่องของชุดกลาง", searchHtml, ["sinput"], ["shadow-sm", "bg-field"]);
+  if (!searchHtml.includes('type="search"')) {
+    failed++;
+    console.log("❌ ช่องค้นหาต้องเป็น input type=search (เครื่องช่วยอ่านและปุ่มล้างของเบราว์เซอร์)");
+  }
 }
 {
   const filterHtml = renderToStaticMarkup(
