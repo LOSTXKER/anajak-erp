@@ -1,54 +1,29 @@
 import type { LucideIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
+import type { ReactNode } from "react";
+import { c } from "@/components/kit/kit";
+
+/* ============================================================
+   กล่อง "ยังไม่มีข้อมูล" ของทุกหน้า — ใช้หน้าตา `.empty` ของชุดกลาง (kit.module.css)
+   ชุดเดียวกับหน้าออเดอร์/ใบผลิต (รวมสไตล์ 2026-09-17 · เดิมหน้าเก่าวาดเอง)
+   ============================================================ */
 
 interface EmptyStateProps {
   icon: LucideIcon;
   title: string;
   description?: string;
-  action?: React.ReactNode;
+  action?: ReactNode;
   density?: "default" | "compact";
 }
 
-export function EmptyState({
-  icon: Icon,
-  title,
-  description,
-  action,
-  density = "default",
-}: EmptyStateProps) {
-  const compact = density === "compact";
-
+export function EmptyState({ icon: Icon, title, description, action, density = "default" }: EmptyStateProps) {
   return (
-    <div
-      className={cn(
-        "flex flex-col items-center justify-center text-center",
-        compact ? "px-4 py-6" : "px-6 py-16",
-      )}
-    >
-      <div
-        className={cn(
-          // เดิม bg-slate-100 เคยเกือบเท่าผืนหน้า = วงกลมหายไปกับพื้น
-          // ใช้ token กลางแทน และตอนนี้ empty state ยืนอยู่ในการ์ดขาวแล้ว จึงอ่านออกจริง
-          "flex items-center justify-center rounded-full bg-surface-muted text-muted",
-          compact ? "h-10 w-10" : "h-12 w-12",
-        )}
-      >
-        <Icon className={compact ? "h-4 w-4" : "h-5 w-5"} strokeWidth={1.5} />
-      </div>
-      <p
-        className={cn(
-          "text-sm font-medium text-strong",
-          compact ? "mt-3" : "mt-4",
-        )}
-      >
-        {title}
-      </p>
-      {description && (
-        <p className="mt-1.5 max-w-sm text-xs leading-relaxed text-muted">
-          {description}
-        </p>
-      )}
-      {action && <div className={compact ? "mt-4" : "mt-5"}>{action}</div>}
+    <div className={c("empty", density === "compact" && "sm")}>
+      <span className={c("ring")} aria-hidden="true">
+        <Icon />
+      </span>
+      <b>{title}</b>
+      {description ? <small>{description}</small> : null}
+      {action}
     </div>
   );
 }

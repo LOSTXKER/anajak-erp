@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { c } from "@/components/kit/kit";
 
 /* ============================================================
    ป้ายสถานะ — ภาษาเดียวของทั้งเว็บ (เบสสั่ง "ทำหมดเลย" 2026-08-01)
@@ -16,12 +17,13 @@ import { cn } from "@/lib/utils";
 
 export type StatusTone = "neutral" | "accent" | "success" | "warning" | "danger";
 
+/* จุดสีของ .stat ในชุดกลาง (kit.module.css) — สีเดียวกับจุดสถานะบนหน้าออเดอร์/ใบผลิต (รวมสไตล์ 2026-09-17) */
 const DOT: Record<StatusTone, string> = {
-  neutral: "bg-slate-500 dark:bg-slate-400",
-  accent: "bg-blue-500",
-  success: "bg-green-600 dark:bg-green-400",
-  warning: "bg-amber-500",
-  danger: "bg-red-500",
+  neutral: "gray",
+  accent: "blue",
+  success: "good",
+  warning: "warn",
+  danger: "bad",
 };
 
 /** โทนที่ย้อมข้อความด้วย — เฉพาะปลายทางที่ต้องสะดุดตา */
@@ -51,15 +53,8 @@ export function StatusLabel({
   const showSub = sub != null && sub !== "" && sub !== label;
   return (
     <div className={cn("flex flex-col", className)}>
-      <span
-        className={cn(
-          "inline-flex items-center gap-1.5 whitespace-nowrap text-xs font-medium",
-          emphasize
-            ? (EMPHASIS_TEXT[tone] ?? "text-secondary")
-            : "text-secondary",
-        )}
-      >
-        <span aria-hidden className={cn("h-2 w-2 shrink-0 rounded-full", DOT[tone])} />
+      <span className={cn(c("stat"), "text-xs font-medium", emphasize ? (EMPHASIS_TEXT[tone] ?? "text-secondary") : "text-secondary")}>
+        <span aria-hidden className={c("d", DOT[tone])} />
         {label}
       </span>
       {showSub && (

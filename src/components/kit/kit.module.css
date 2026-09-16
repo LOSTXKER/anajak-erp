@@ -8,31 +8,13 @@
    ต่างจากต้นแบบโดยตั้งใจ: ไม่มี stagger แถวตาราง (กติกา globals) · dd ว่างใช้ .none แทน .empty
    ===================================================================== */
 
+/* ตัวแปรสี/มุม/เงาของชุดกลางย้ายไป globals.css (:root และ .dark) ตั้งแต่ 2026-09-17
+   เพื่อให้ชิ้นส่วน kit ใช้ได้ทุกที่ ไม่ต้องอยู่ใต้ .tokens · ที่นี่เหลือแค่ตัวอักษรของพื้นที่ kit */
 .tokens {
-  --bg: #ffffff; --surface: #ffffff; --sunk: #f3f5f8; --pressed: #e9edf2;
-  --line: #e6e8ec; --line-2: #eef0f3; --line-strong: #c9cfd7;
-  --ink: #14181d; --ink-2: #525c69; --ink-3: #8a93a1; --ink-4: #b6bdc7;
-  --accent: #3973b2; --accent-ink: #2c5a8c; --accent-tint: #e9f0f8; --accent-line: #cfdff0; --accent-soft: #f4f8fc;
-  --good: #188a4d; --good-bg: #e6f5ec; --warn: #b36b00; --warn-bg: #fff3df; --bad: #c5372c; --bad-bg: #fdecea;
-  --violet: #5e56c9; --violet-bg: #eeedfb;
-  --overlay: rgb(20 24 29 / .38);
-  --shadow-pop: 0 16px 48px -16px rgb(20 24 29 / .28), 0 2px 10px -4px rgb(20 24 29 / .12);
-  --r-card: 20px; --r-tile: 18px; --r-ctl: 12px;
-  --mono: var(--font-mono), "JetBrains Mono", ui-monospace, Menlo, monospace;
   color: var(--ink);
   font-size: 14px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
-}
-:global(.dark) .tokens {
-  --bg: #0e1013; --surface: #16191e; --sunk: #1d2127; --pressed: #262b33;
-  --line: #262b32; --line-2: #20252b; --line-strong: #3a414b;
-  --ink: #ebedf0; --ink-2: #aab2bd; --ink-3: #7d8794; --ink-4: #4f5865;
-  --accent: #6ea3de; --accent-ink: #a9c8ec; --accent-tint: #18304a; --accent-line: #2a4b70; --accent-soft: #151f2b;
-  --good: #5ccf8a; --good-bg: #12301f; --warn: #f0b451; --warn-bg: #3a2a0e; --bad: #f28b82; --bad-bg: #3d1b18;
-  --violet: #a9a3f0; --violet-bg: #26244a;
-  --overlay: rgb(0 0 0 / .6);
-  --shadow-pop: 0 16px 48px -12px rgb(0 0 0 / .7), 0 2px 10px -4px rgb(0 0 0 / .5);
 }
 
 :where(.tokens) :global(svg.lucide) { display: inline-block; width: 16px; height: 16px; flex: none; stroke-width: 1.75; }
@@ -1006,3 +988,8 @@ ul.ocards { margin: 0; list-style: none; }
   .dpop .pre { grid-template-columns: repeat(2, 1fr); border-right: 0; border-bottom: 1px solid var(--line-2); }
   .dpop .pre .all { margin-top: 0; }
 }
+
+/* ---------- ชิ้นที่หน้าเก่าเรียกใช้โดยไม่มี .tokens ครอบ (รวมสไตล์ 2026-09-17) ---------- */
+/* ไอคอนของชิ้นเหล่านี้ต้องได้ขนาดเดียวกับในพื้นที่ kit แม้จะไปยืนในหน้าที่ยังใช้ Tailwind */
+.due :global(svg.lucide), .chip :global(svg.lucide), .stat :global(svg.lucide) { width: 14px; height: 14px; flex: none; stroke-width: 1.75; }
+.empty :global(svg.lucide) { flex: none; stroke-width: 1.75; }

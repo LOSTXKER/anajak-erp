@@ -1,25 +1,26 @@
 import { CalendarClock } from "lucide-react";
-import { InfoChip, type InfoChipTone } from "./info-chip";
+import { c } from "@/components/kit/kit";
+import type { InfoChipTone } from "./info-chip";
 
 /* ============================================================
    DueTag — กำหนดส่งที่หนักตามความรีบ (เพิ่ม 2026-09-02)
 
-   กำหนดส่งคือข้อมูลที่หัวหน้าตัดสินลำดับงานจากมันมากที่สุด แต่เดิมเป็น
-   "ส่ง: อีก 6 วัน · 5 ก.ย." ตัวเทาเท่ากับทุกอย่าง — DueTag ให้ป้ายเดียวที่
+   กำหนดส่งคือข้อมูลที่หัวหน้าตัดสินลำดับงานจากมันมากที่สุด ป้ายเดียวที่
    สี/น้ำหนักเปลี่ยนตามความรีบ (สูตรเดียวกับ DueBadge/dueText ที่ใช้ทั่วเว็บ):
 
-     เลยกำหนด  → error (แดง) ตัวหนา "เลยกำหนด 2 วัน"
-     วันนี้     → warning (ส้ม) ตัวหนา "ส่งวันนี้"
-     พรุ่งนี้   → warning "ส่งพรุ่งนี้"
-     ≤ 7 วัน   → neutral "อีก 5 วัน"
-     ไกลกว่า   → neutral "ส่ง 12 ก.ย."
-     ไม่กำหนด  → neutral จาง "ยังไม่กำหนดส่ง"
+     เลยกำหนด  → แดง ตัวหนา "เลยกำหนด 2 วัน"
+     วันนี้     → ส้ม ตัวหนา "ส่งวันนี้"
+     พรุ่งนี้   → ส้ม "ส่งพรุ่งนี้"
+     ≤ 7 วัน   → เทา "อีก 5 วัน"
+     ไกลกว่า   → เทา "ส่ง 12 ก.ย."
+     ไม่กำหนด  → เทา "ยังไม่กำหนดส่ง"
+
+   หน้าตาใช้ `.due` ของชุดกลาง (kit.module.css) ชุดเดียวกับหน้าออเดอร์/ใบผลิต
+   (รวมเป็นสไตล์เดียว 2026-09-17 — เดิมหน้าเก่าวาดเองด้วย InfoChip)
    ============================================================ */
 
 interface DueTagProps {
-  /** ระยะถึงกำหนดส่งเป็นวัน · ติดลบ = เลยกำหนด · null = ยังไม่กำหนด */
   dueInDays: number | null;
-  /** วันที่แบบสั้น เช่น "5 ก.ย." — ต่อท้ายเมื่อไม่ใช่วันนี้/พรุ่งนี้ */
   dateLabel?: string | null;
   size?: "sm" | "md" | "lg";
   className?: string;
@@ -50,11 +51,20 @@ export function dueTagContent(dueInDays: number | null, dateLabel?: string | nul
   return { text: dateLabel ? `ส่ง ${dateLabel}` : `อีก ${dueInDays} วัน`, tone: "neutral", strong: false };
 }
 
+const DUE_CLASS: Record<InfoChipTone, string> = {
+  neutral: "n",
+  info: "n",
+  warning: "warn",
+  error: "bad",
+  success: "n",
+};
+
 export function DueTag({ dueInDays, dateLabel, size = "md", className }: DueTagProps) {
-  const { text, tone, strong } = dueTagContent(dueInDays, dateLabel);
+  const { text, tone } = dueTagContent(dueInDays, dateLabel);
   return (
-    <InfoChip icon={CalendarClock} tone={tone} strong={strong} size={size} className={className}>
+    <span className={[c("due", DUE_CLASS[tone]), size === "lg" ? "text-sm" : "", className ?? ""].filter(Boolean).join(" ")}>
+      <CalendarClock aria-hidden="true" />
       {text}
-    </InfoChip>
+    </span>
   );
 }

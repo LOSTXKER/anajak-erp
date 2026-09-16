@@ -349,6 +349,23 @@
   --duration-base: 180ms;
 }
 
+/* ============================================================
+   ตัวแปรของชุดหน้าตากลาง (kit) — ย้ายมาจาก kit.module.css 2026-09-17
+   เพื่อให้ชิ้นส่วน kit ใช้ได้ทุกหน้าโดยไม่ต้องมี .tokens ครอบ · แก้สีที่นี่ที่เดียว
+   ============================================================ */
+:root {
+  --bg: #ffffff; --surface: #ffffff; --sunk: #f3f5f8; --pressed: #e9edf2;
+  --line: #e6e8ec; --line-2: #eef0f3; --line-strong: #c9cfd7;
+  --ink: #14181d; --ink-2: #525c69; --ink-3: #8a93a1; --ink-4: #b6bdc7;
+  --accent: #3973b2; --accent-ink: #2c5a8c; --accent-tint: #e9f0f8; --accent-line: #cfdff0; --accent-soft: #f4f8fc;
+  --good: #188a4d; --good-bg: #e6f5ec; --warn: #b36b00; --warn-bg: #fff3df; --bad: #c5372c; --bad-bg: #fdecea;
+  --violet: #5e56c9; --violet-bg: #eeedfb;
+  --overlay: rgb(20 24 29 / .38);
+  --shadow-pop: 0 16px 48px -16px rgb(20 24 29 / .28), 0 2px 10px -4px rgb(20 24 29 / .12);
+  --r-card: 20px; --r-tile: 18px; --r-ctl: 12px;
+  --mono: var(--font-mono), "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+
 .dark {
   /* Dark กลับเป็น neutral gray ตามบริบทใช้งานในโรงงาน · depth อ่านทิศเดียวกับ light:
      chrome < page < card ขณะที่ sunk/field จมลง และ elevated ใช้ border/เงาแยกจาก card
@@ -423,6 +440,16 @@
   --color-secondary: #cbcbd0;
   --color-muted: #a4a4aa;
   --color-ring: #6b9cca;
+
+  /* ชุดมืดของชุดหน้าตากลาง (kit) */
+  --bg: #0e1013; --surface: #16191e; --sunk: #1d2127; --pressed: #262b33;
+  --line: #262b32; --line-2: #20252b; --line-strong: #3a414b;
+  --ink: #ebedf0; --ink-2: #aab2bd; --ink-3: #7d8794; --ink-4: #4f5865;
+  --accent: #6ea3de; --accent-ink: #a9c8ec; --accent-tint: #18304a; --accent-line: #2a4b70; --accent-soft: #151f2b;
+  --good: #5ccf8a; --good-bg: #12301f; --warn: #f0b451; --warn-bg: #3a2a0e; --bad: #f28b82; --bad-bg: #3d1b18;
+  --violet: #a9a3f0; --violet-bg: #26244a;
+  --overlay: rgb(0 0 0 / .6);
+  --shadow-pop: 0 16px 48px -12px rgb(0 0 0 / .7), 0 2px 10px -4px rgb(0 0 0 / .5);
 }
 
 /* Anajak Panel System — workspace เป็นฉาก ส่วน chrome/panel ยกด้วยสีและเส้นบาง */
