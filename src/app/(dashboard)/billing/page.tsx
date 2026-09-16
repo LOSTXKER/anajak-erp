@@ -17,6 +17,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { validDateParam } from "@/lib/order-list-contract";
 import { KitDateRange } from "@/components/kit/date-range";
 import { SegmentedControl } from "@/components/ui/segmented";
+import { ChevronRight } from "lucide-react";
 import { c } from "@/components/kit/kit";
 import { dueRowTone } from "@/lib/row-tone";
 import { ResponsiveList } from "@/components/ui/responsive-list";
@@ -348,7 +349,7 @@ function BillingPageContent() {
                 <DataTable.Th align="right">ค้างชำระ</DataTable.Th>
                 <DataTable.Th>สถานะ</DataTable.Th>
                 <DataTable.Th>ครบกำหนด</DataTable.Th>
-                <DataTable.Th align="right">ทำต่อ</DataTable.Th>
+                <DataTable.Th align="right"><span className="sr-only">เปิดบิล</span></DataTable.Th>
               </tr>
             </DataTable.Head>
             <DataTable.Body>
@@ -387,24 +388,7 @@ function BillingPageContent() {
                     </DataTable.Td>
                     <DataTable.Td className="text-muted">{inv.dueDate ? formatDate(inv.dueDate) : "—"}</DataTable.Td>
                     <DataTable.Td align="right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <Button variant="ghost" size="icon-sm" asChild>
-                          <Link
-                            href={`/print/invoice/${inv.id}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            aria-label={`พิมพ์ ${inv.invoiceNumber}`}
-                            title="พิมพ์"
-                          >
-                            <Printer />
-                          </Link>
-                        </Button>
-                        <Button size="sm" variant={inv.paymentStatus === "PAID" ? "outline" : "default"} asChild>
-                          <Link href={moneyHref}>
-                            {paymentActionLabel(inv.paymentStatus, inv.type)}
-                          </Link>
-                        </Button>
-                      </div>
+                      <ChevronRight className="ml-auto h-4 w-4 text-muted" aria-hidden="true" />
                     </DataTable.Td>
                   </DataTable.Row>
                 );

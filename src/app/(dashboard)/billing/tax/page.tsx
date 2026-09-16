@@ -193,15 +193,13 @@ export default function SalesTaxReportPage() {
           <DataTable.Root className="[&_table]:min-w-[880px]">
             <DataTable.Head>
               <tr>
-                <DataTable.Th>#</DataTable.Th>
+                <DataTable.Th>เลขใบกำกับ</DataTable.Th>
+                <DataTable.Th>ลูกค้า</DataTable.Th>
                 <DataTable.Th>วันที่</DataTable.Th>
-                <DataTable.Th>เลขที่</DataTable.Th>
-                <DataTable.Th>ประเภท</DataTable.Th>
-                <DataTable.Th>ผู้ซื้อ</DataTable.Th>
-                <DataTable.Th>เลขภาษี/สาขา</DataTable.Th>
                 <DataTable.Th align="right">ฐานภาษี</DataTable.Th>
-                <DataTable.Th align="right">VAT</DataTable.Th>
+                <DataTable.Th align="right">VAT 7%</DataTable.Th>
                 <DataTable.Th align="right">รวม</DataTable.Th>
+                <DataTable.Th>สถานะ</DataTable.Th>
               </tr>
             </DataTable.Head>
             <DataTable.Body>
@@ -210,42 +208,28 @@ export default function SalesTaxReportPage() {
                   key={r.invoiceNumber}
                   className={r.isVoided ? "text-muted line-through" : undefined}
                 >
-                  <DataTable.Td className="tabular-nums text-muted">{r.seq}</DataTable.Td>
                   <DataTable.Td
-                    className={cn(
-                      "whitespace-nowrap tabular-nums",
-                      r.isVoided && "text-muted"
-                    )}
-                  >
-                    {formatThaiDateBE(r.date)}
-                  </DataTable.Td>
-                  <DataTable.Td
-                    className={cn(
-                      "whitespace-nowrap font-medium",
-                      r.isVoided && "text-muted"
-                    )}
+                    className={cn("whitespace-nowrap font-medium", r.isVoided && "text-muted")}
                   >
                     {r.invoiceNumber}
-                    {r.isVoided && (
-                      <Badge variant="destructive" size="sm" className="ml-1.5 no-underline">
-                        ยกเลิก
-                      </Badge>
-                    )}
-                  </DataTable.Td>
-                  <DataTable.Td
-                    className={cn("whitespace-nowrap", r.isVoided && "text-muted")}
-                  >
-                    {SALES_TAX_DOC_LABELS[r.docType]}
+                    <span className="block text-xs font-normal text-muted">
+                      ลำดับ {r.seq} · {SALES_TAX_DOC_LABELS[r.docType]}
+                    </span>
                   </DataTable.Td>
                   <DataTable.Td
                     className={cn("max-w-[220px]", r.isVoided && "text-muted")}
                   >
                     <p className="truncate">{r.customerName}</p>
+                    <p className="truncate text-xs tabular-nums text-muted">
+                      {r.taxId || "ไม่มีเลขภาษี"}
+                      {r.branch ? ` · ${r.branch}` : ""}
+                    </p>
                     {r.note && <p className="truncate text-xs text-muted">{r.note}</p>}
                   </DataTable.Td>
-                  <DataTable.Td className="text-xs text-muted">
-                    {r.taxId || "—"}
-                    {r.branch && <p>{r.branch}</p>}
+                  <DataTable.Td
+                    className={cn("whitespace-nowrap tabular-nums", r.isVoided && "text-muted")}
+                  >
+                    {formatThaiDateBE(r.date)}
                   </DataTable.Td>
                   <DataTable.Td
                     align="right"
@@ -265,13 +249,20 @@ export default function SalesTaxReportPage() {
                   >
                     {r.total.toFixed(2)}
                   </DataTable.Td>
+                  <DataTable.Td>
+                    {r.isVoided ? (
+                      <Badge variant="destructive" size="sm" className="no-underline">ยกเลิก</Badge>
+                    ) : (
+                      <Badge variant="success" size="sm">ปกติ</Badge>
+                    )}
+                  </DataTable.Td>
                 </DataTable.Row>
               ))}
             </DataTable.Body>
             {summary && (
               <tfoot>
                 <tr className="border-t border-border font-semibold">
-                  <DataTable.Td colSpan={6} align="right">
+                  <DataTable.Td colSpan={3} align="right">
                     รวมงวด {periodLabel} ({summary.docCount} ฉบับ
                     {summary.voidedCount > 0 ? ` · ยกเลิก ${summary.voidedCount}` : ""})
                   </DataTable.Td>
@@ -284,6 +275,7 @@ export default function SalesTaxReportPage() {
                   <DataTable.Td align="right" className="tabular-nums">
                     {summary.totalAmount.toFixed(2)}
                   </DataTable.Td>
+                  <DataTable.Td />
                 </tr>
               </tfoot>
             )}

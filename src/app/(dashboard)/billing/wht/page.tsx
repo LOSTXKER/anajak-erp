@@ -308,13 +308,12 @@ function WhtRegisterPageContent() {
           <DataTable.Root>
             <DataTable.Head>
               <tr>
-                <DataTable.Th>วันที่รับเงิน</DataTable.Th>
-                <DataTable.Th>ลูกค้า</DataTable.Th>
                 <DataTable.Th>เลขบิล</DataTable.Th>
-                <DataTable.Th align="right">ฐานก่อน VAT</DataTable.Th>
+                <DataTable.Th>ลูกค้า</DataTable.Th>
+                <DataTable.Th align="right">ฐานที่ถูกหัก</DataTable.Th>
                 <DataTable.Th align="right">อัตรา</DataTable.Th>
                 <DataTable.Th align="right">ยอดหัก</DataTable.Th>
-                <DataTable.Th>สถานะ</DataTable.Th>
+                <DataTable.Th>สถานะใบ</DataTable.Th>
                 <DataTable.Th align="right">
                   <span className="sr-only">จัดการ</span>
                 </DataTable.Th>
@@ -323,24 +322,11 @@ function WhtRegisterPageContent() {
             <DataTable.Body>
               {items.map((row) => (
                 <DataTable.Row key={row.id} tone={whtRowTone(row.certNumber, row.payment.createdAt)}>
-                  <DataTable.Td className="text-xs tabular-nums text-muted">
-                    {formatDate(row.payment.createdAt)}
-                  </DataTable.Td>
-                  <DataTable.Td>
-                    <p className="font-medium text-strong">
-                      {row.customer.name}
-                    </p>
-                    {row.customer.taxId && (
-                      <p className="text-xs tabular-nums text-muted">
-                        {row.customer.taxId}
-                      </p>
-                    )}
-                  </DataTable.Td>
                   <DataTable.Td>
                     <div className="flex items-center gap-2">
                       <Link
                         href={`/orders/${row.invoice.orderId}`}
-                        className="text-strong"
+                        className="font-medium text-strong"
                       >
                         {row.invoice.invoiceNumber}
                       </Link>
@@ -349,6 +335,17 @@ function WhtRegisterPageContent() {
                         <StatusLabel label="บิลยกเลิก" tone="danger" emphasize />
                       )}
                     </div>
+                    <p className="text-xs tabular-nums text-muted">
+                      รับเงิน {formatDate(row.payment.createdAt)}
+                    </p>
+                  </DataTable.Td>
+                  <DataTable.Td>
+                    <p className="text-strong">{row.customer.name}</p>
+                    {row.customer.taxId && (
+                      <p className="text-xs tabular-nums text-muted">
+                        {row.customer.taxId}
+                      </p>
+                    )}
                   </DataTable.Td>
                   <DataTable.Td align="right" className="tabular-nums">
                     {formatCurrency(row.baseAmount)}

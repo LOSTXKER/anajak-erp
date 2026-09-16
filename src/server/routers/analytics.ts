@@ -6,7 +6,7 @@ import { getStartOfMonth, getStartOfLastMonth, getMonthRange, dateRangeFilter } 
 import { aggToNumber } from "@/server/services/money";
 import { getOwnerPulse } from "@/server/services/owner-pulse";
 import { getHomeOverview } from "@/server/services/home-overview";
-import { printLabelOf } from "@/lib/print-labels";
+import { printLabelOf, PRINT_LABELS } from "@/lib/print-labels";
 
 // PERM3: default ตรงชุดเดิมเป๊ะ + override รายคน
 const adminOnly = requirePermission("view_admin_reports");
@@ -209,6 +209,36 @@ export const analyticsRouter = router({
           };
         })
       );
+    }),
+
+  /** สัดส่วนงานที่ทำ แยกตามชนิดงานพิมพ์ (การ์ด "งานที่ขายดี" ในหน้ารายงาน · ต้นแบบ 2026-09-16)
+   *  นับจำนวนตัวจากรายการในออเดอร์ที่เปิดในช่วงที่ขอ ไม่รวมออเดอร์ที่ยกเลิก */
+  printTypeMix: protectedProcedure
+    .input(z.object({ months: z.number().default(6) }))
+    .query(async ({ ctx, input }) => {
+      const since = getMonthRange(input.months - 1).start;
+      const prints = await ctx.prisma.orderItemPrint.findMany({
+        where: {
+          orderItem: { order: { createdAt: { gte: since }, internalStatus: { not: "CANCELLED" } } },
+        },
+        select: { printType: true, orderItem: { select: { totalQuantity: true } } },
+      });
+
+      const byType = new Map<string, number>();
+      for (const print of prints) {
+        byType.set(print.printType, (byType.get(print.printType) ?? 0) + print.orderItem.totalQuantity);
+      }
+      const total = [...byType.values()].reduce((sum, qty) => sum + qty, 0);
+      const rows = [...byType.entries()]
+        .map(([type, quantity]) => ({
+          type,
+          label: PRINT_LABELS[type] ?? type,
+          quantity,
+          share: total > 0 ? Math.round((quantity / total) * 100) : 0,
+        }))
+        .sort((a, b) => b.quantity - a.quantity);
+
+      return { rows, total };
     }),
 
   auditLog: protectedProcedure

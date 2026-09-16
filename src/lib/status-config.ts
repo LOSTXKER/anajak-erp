@@ -30,7 +30,7 @@ function buildConfig<T extends string>(
 const _paymentStatus = buildConfig({
   UNPAID: { label: "ยังไม่ชำระ", variant: "warning" },
   PARTIALLY_PAID: { label: "ชำระบางส่วน", variant: "accent" },
-  PAID: { label: "ชำระแล้ว", variant: "success" },
+  PAID: { label: "ชำระครบ", variant: "success" },
   OVERDUE: { label: "เกินกำหนด", variant: "destructive" },
   VOIDED: { label: "ยกเลิก", variant: "outline" },
 });

@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
 import { cn, formatCurrency } from "@/lib/utils";
 import { FOCUS_BUTTON } from "@/components/ui/tokens";
-import { CircleCheck, ShoppingCart, TrendingUp, Users } from "lucide-react";
+import { CircleCheck, Shirt, ShoppingCart, TrendingUp, Users } from "lucide-react";
 import { PageShell } from "@/components/page-shell";
 import { Section } from "@/components/ui/section";
 import { StatCard } from "@/components/ui/stat-card";
@@ -26,6 +26,7 @@ export default function AnalyticsPage() {
     isError: dashboardError,
     refetch: refetchDashboard,
   } = trpc.analytics.dashboard.useQuery();
+  const { data: printMix, isLoading: printMixLoading } = trpc.analytics.printTypeMix.useQuery({ months: 6 });
   const {
     data: revenueData,
     isLoading: revenueLoading,
@@ -177,6 +178,34 @@ export default function AnalyticsPage() {
               </p>
             )}
           </div>
+        </Section>
+
+        <Section title="งานที่ขายดี" icon={Shirt} tone="production" bordered>
+          {printMixLoading ? (
+            <div role="status" aria-label="กำลังโหลดสัดส่วนงาน" className="space-y-3">
+              {Array.from({ length: 4 }, (_, index) => <Skeleton key={index} className="h-6 w-full" />)}
+            </div>
+          ) : !printMix || printMix.rows.length === 0 ? (
+            <p className="text-sm text-muted">ยังไม่มีงานในช่วง 6 เดือนล่าสุด</p>
+          ) : (
+            <div className="space-y-3">
+              {printMix.rows.map((row) => (
+                <div key={row.type} className="flex items-center gap-3">
+                  <span className="w-28 shrink-0 truncate text-sm text-strong">{row.label}</span>
+                  <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-muted">
+                    <span
+                      className="block h-full rounded-full bg-blue-600"
+                      style={{ width: `${row.share}%` }}
+                    />
+                  </span>
+                  <span className="w-24 shrink-0 text-right text-sm tabular-nums text-secondary">
+                    {row.quantity.toLocaleString("th-TH")} ตัว
+                  </span>
+                  <span className="w-10 shrink-0 text-right text-xs tabular-nums text-muted">{row.share}%</span>
+                </div>
+              ))}
+            </div>
+          )}
         </Section>
       </div>
     </PageShell>

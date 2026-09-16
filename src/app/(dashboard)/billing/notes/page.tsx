@@ -222,11 +222,9 @@ function BillingNotesPageContent() {
               <tr>
                 <DataTable.Th>เลขที่</DataTable.Th>
                 <DataTable.Th>ลูกค้า</DataTable.Th>
+                <DataTable.Th align="right">จำนวนบิล</DataTable.Th>
+                <DataTable.Th align="right">ยอดรวม</DataTable.Th>
                 <DataTable.Th>วันที่วางบิล</DataTable.Th>
-                <DataTable.Th>นัดรับชำระ</DataTable.Th>
-                <DataTable.Th align="right">จำนวนใบ</DataTable.Th>
-                <DataTable.Th align="right">ยอดเรียกเก็บ</DataTable.Th>
-                <DataTable.Th align="right">คงเหลือจริง</DataTable.Th>
                 <DataTable.Th>สถานะ</DataTable.Th>
                 <DataTable.Th><span className="sr-only">การทำงาน</span></DataTable.Th>
               </tr>
@@ -242,20 +240,22 @@ function BillingNotesPageContent() {
                       ? `${note.customer.company} (${note.customer.name})`
                       : note.customer.name}
                   </DataTable.Td>
-                  <DataTable.Td className="text-xs text-muted">
-                    {formatDate(note.billingDate)}
-                  </DataTable.Td>
-                  <DataTable.Td className="text-xs text-muted">
-                    {note.dueDate ? formatDate(note.dueDate) : "—"}
-                  </DataTable.Td>
                   <DataTable.Td align="right" className="tabular-nums">
                     {note._count.items}
                   </DataTable.Td>
                   <DataTable.Td align="right" className="font-medium tabular-nums text-strong">
                     {formatCurrency(note.totalAmount)}
+                    {!note.isVoided && note.currentOutstanding > 0 ? (
+                      <span className="block text-xs font-normal text-muted">
+                        ค้าง {formatCurrency(note.currentOutstanding)}
+                      </span>
+                    ) : null}
                   </DataTable.Td>
-                  <DataTable.Td align="right" className="tabular-nums">
-                    {note.isVoided ? "—" : formatCurrency(note.currentOutstanding)}
+                  <DataTable.Td className="whitespace-nowrap text-xs text-muted">
+                    {formatDate(note.billingDate)}
+                    {note.dueDate ? (
+                      <span className="block">นัดรับชำระ {formatDate(note.dueDate)}</span>
+                    ) : null}
                   </DataTable.Td>
                   <DataTable.Td>
                     <NoteStatus
