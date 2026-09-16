@@ -15,16 +15,16 @@ export interface SegOption<K extends string> {
   count?: number;
 }
 
-/** ตัวเลื่อนของ .seg — วัดปุ่มที่เลือกอยู่แล้วขยับแถบขาวไปทับ */
+/** ตัวเลื่อนของ .seg/.tabs — วัดปุ่มที่เลือกอยู่ในกล่องแม่ของแถบเลื่อน แล้วขยับไปทับ
+ *  คืนแค่ ref ของแถบเลื่อน (หากล่องแม่เอง) จึงใช้กับ component ที่ ref ของตัวเองถูกจองไว้แล้วได้ */
 export function useSegIndicator(deps: string) {
-  const segRef = useRef<HTMLDivElement>(null);
   const indRef = useRef<HTMLSpanElement>(null);
   useLayoutEffect(() => {
-    const seg = segRef.current;
     const ind = indRef.current;
-    if (!seg || !ind) return;
+    const box = ind?.parentElement;
+    if (!ind || !box) return;
     const place = () => {
-      const on = seg.querySelector<HTMLElement>('[aria-pressed="true"], [aria-selected="true"]');
+      const on = box.querySelector<HTMLElement>('[aria-pressed="true"], [aria-selected="true"]');
       ind.style.opacity = on ? "1" : "0";
       if (!on) return;
       ind.style.left = `${on.offsetLeft}px`;
@@ -32,11 +32,11 @@ export function useSegIndicator(deps: string) {
     };
     place();
     const observer = new ResizeObserver(place);
-    observer.observe(seg);
+    observer.observe(box);
     void document.fonts?.ready.then(place);
     return () => observer.disconnect();
   }, [deps]);
-  return { segRef, indRef };
+  return indRef;
 }
 
 export function Seg<K extends string>({
@@ -55,10 +55,10 @@ export function Seg<K extends string>({
   style?: CSSProperties;
 }) {
   const countKey = options.map((option) => `${option.key}:${option.count ?? ""}`).join("|");
-  const { segRef, indRef } = useSegIndicator(`${value ?? ""}|${countKey}`);
+  const indRef = useSegIndicator(`${value ?? ""}|${countKey}`);
 
   return (
-    <div ref={segRef} className={c("seg")} role="group" aria-label={label} style={style}>
+    <div className={c("seg")} role="group" aria-label={label} style={style}>
       <span ref={indRef} className={c("ind")} aria-hidden="true" />
       {options.map((option) => (
         <button key={option.key} type="button" aria-pressed={option.key === value} onClick={() => onChange(option.key)}>

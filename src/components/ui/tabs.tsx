@@ -5,6 +5,9 @@ import * as TabsPrimitive from "@radix-ui/react-tabs";
 import { CONTROL_MIN_H } from "@/components/ui/control-size";
 import { FOCUS_BUTTON, FOCUS_INSET } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
+import { c } from "@/components/kit/kit";
+import { useSegIndicator } from "@/components/kit/seg";
+
 
 /**
  * แถบแท็บแบบเส้นใต้ของระบบ — ข้อความ + active line โดยคง semantics ของ Radix
@@ -42,20 +45,23 @@ export function TabsBar({
   );
 }
 
+/** แถบแท็บ — หน้าตา `.tabs` ของชุดกลาง: ขีดน้ำเงินเลื่อนไปใต้แท็บที่เลือก (รวมสไตล์ 2026-09-17) */
 export const TabsList = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.List>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>
->(({ className, ...props }, ref) => (
+>(({ className, children, ...props }, ref) => {
+  const indRef = useSegIndicator(String(props["aria-label"] ?? ""));
+  return (
     <TabsPrimitive.List
       ref={ref}
-      className={cn(
-        // no-scrollbar: จอแคบเลื่อนได้แต่ไม่มีแถบเลื่อนมากินที่
-        "no-scrollbar flex w-full max-w-full gap-6 overflow-x-auto pr-1 sm:gap-8",
-        className
-      )}
+      className={[c("tabs"), "no-scrollbar", className ?? ""].filter(Boolean).join(" ")}
       {...props}
-    />
-));
+    >
+      {children}
+      <span ref={indRef} className={c("ind")} aria-hidden="true" />
+    </TabsPrimitive.List>
+  );
+});
 TabsList.displayName = "TabsList";
 
 export const TabsTrigger = React.forwardRef<
@@ -98,13 +104,7 @@ export const TabsTrigger = React.forwardRef<
   return (
     <TabsPrimitive.Trigger
       ref={ref}
-      className={cn(
-        CONTROL_MIN_H,
-        FOCUS_INSET,
-        "inline-flex min-w-11 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap text-sm font-medium text-muted transition-colors",
-        "-mb-px border-b-2 border-transparent px-1 data-[state=active]:border-blue-600 data-[state=active]:text-strong dark:data-[state=active]:border-blue-400",
-        className,
-      )}
+      className={[c("tab"), CONTROL_MIN_H, FOCUS_INSET, className ?? ""].filter(Boolean).join(" ")}
       onClick={(event) => {
         onClick?.(event);
         bringActiveTabIntoView();

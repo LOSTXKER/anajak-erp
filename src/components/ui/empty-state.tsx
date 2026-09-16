@@ -17,7 +17,7 @@ interface EmptyStateProps {
 
 export function EmptyState({ icon: Icon, title, description, action, density = "default" }: EmptyStateProps) {
   return (
-    <div className={c("empty", density === "compact" && "sm")}>
+    <div className={c("empty plain", density === "compact" && "sm")}>
       <span className={c("ring")} aria-hidden="true">
         <Icon />
       </span>

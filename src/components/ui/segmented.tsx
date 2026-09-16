@@ -55,10 +55,9 @@ export function SegmentedControl<T extends string = string>({
   ...props
 }: SegmentedControlProps<T>) {
   // หน้าตา .seg ของชุดกลาง (kit) — ตัวเลื่อนวัดจากปุ่มที่เลือกเหมือนหน้าออเดอร์/ผลิต (รวมสไตล์ 2026-09-17)
-  const { segRef, indRef } = useSegIndicator(`${String(value)}|${options.map((item) => item.value).join(",")}`);
+  const indRef = useSegIndicator(`${String(value)}|${options.map((item) => item.value).join(",")}`);
   return (
     <div
-      ref={segRef}
       role={semantics === "tabs" ? "tablist" : "group"}
       className={[c("seg"), className ?? ""].filter(Boolean).join(" ")}
       {...props}

@@ -469,6 +469,8 @@ table.tbl { width: 100%; border-collapse: collapse; }
 .empty.sm .ring { width: 44px; height: 44px; background: var(--sunk); color: var(--ink-3); }
 .empty.sm .ring :global(svg.lucide) { width: 20px; height: 20px; }
 .empty.flat { border-top: 0; }
+/* วงไอคอนสีเทา — กล่องว่างทั่วไป (วงเขียวสงวนไว้ให้ "เคลียร์หมดแล้ว") */
+.empty.plain .ring { background: var(--sunk); color: var(--ink-3); }
 
 /* ส่วนที่ยังใช้ของเดิมข้างใน (ฟอร์ม/กล่องโต้ตอบของระบบ) — วางในการ์ดต้นแบบ ไม่ทับหน้าตาภายใน */
 .embed { min-width: 0; }

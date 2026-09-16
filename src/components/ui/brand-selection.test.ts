@@ -23,7 +23,9 @@ describe("Anajak selected-state contract", () => {
       expect(source).not.toContain("border-slate-900");
       expect(source).not.toContain("dark:border-white");
     }
-    expect(tabsSource).toContain("data-[state=active]:border-blue-600");
+    // แถบแท็บใช้หน้าตา .tabs ของชุดกลาง (ขีดน้ำเงินเลื่อน · รวมสไตล์ 2026-09-17)
+    expect(tabsSource).toContain('c("tabs")');
+    expect(tabsSource).toContain('c("ind")');
     expect(filterChipSource).toContain("ACTIVE_UNDERLINE");
   });
 
