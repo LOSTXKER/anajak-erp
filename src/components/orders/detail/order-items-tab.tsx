@@ -137,6 +137,17 @@ function itemPieceRows(item: OrderItem): PieceRow[] {
 
 const unique = <T,>(values: T[]) => [...new Set(values)];
 
+/** จำนวนแถวที่ช่อง "สินค้า" ต้องคร่อม — 0 = แถวนี้ใช้ช่องของแถวก่อนหน้า */
+function productSpans(rows: PieceRow[]): number[] {
+  const spans = rows.map(() => 0);
+  rows.forEach((row, i) => {
+    if (i > 0 && row.prod.id === rows[i - 1].prod.id) return;
+    spans[i] = 1;
+    for (let j = i + 1; j < rows.length && rows[j].prod.id === row.prod.id; j++) spans[i] += 1;
+  });
+  return spans;
+}
+
 /** ป้ายช่องกรอกในแถวตรวจรับ — ต้นแบบไม่มีคลาส .field จึงเขียน inline */
 const FIELD_LABEL = { fontSize: 11.5, color: "var(--ink-3)" } as const;
 
@@ -297,25 +308,41 @@ function PrintThumb({ print }: { print: OrderItemPrint }) {
   );
 }
 
-function PrintCell({ prints }: { prints: OrderItemPrint[] }) {
+/**
+ * ลายของชุดงาน — แถบเดียวเหนือตาราง ไม่ซ้ำทุกแถว (เบสเคาะ 2026-09-17 จากต้นแบบ
+ * "ทำหน้ารายการใหม่ แต่เป็นแบบตารางเหมือนเดิม") · เหตุผลเดิมของการแยกแถวละตัวคือ
+ * "สกรีนกรอกครั้งเดียว แต่เสื้อมีหลายไซส์" การแปะลายซ้ำทุกแถวจึงขัดกับเหตุผลนั้นเอง
+ * ค่าสกรีน/ตัวทางขวา = เลขเดียวกับคอลัมน์ "ค่าสกรีน" ของทุกแถว
+ */
+function PrintStrip({ prints, showMoney }: { prints: OrderItemPrint[]; showMoney: boolean }) {
+  if (prints.length === 0) return null;
+  const perPiece = printPerPiece(prints);
   return (
-    <div style={{ display: "grid", gap: 8 }}>
-      {prints.map((print) => (
-        <div key={print.id} className={c("prod")}>
-          <PrintThumb print={print} />
-          <div style={{ minWidth: 0 }}>
-            <b style={{ fontWeight: 500 }}>
-              {techLabel(print)} <span className={c("chip gray")}>{positionLabel(print)}</span>
-            </b>
-            <span className={c("sub")}>{printSubLine(print)}</span>
-            {print.designNote ? (
-              <span className={c("sub")} style={{ overflowWrap: "anywhere" }}>
-                {print.designNote}
-              </span>
-            ) : null}
+    <div className={c("pstrip")}>
+      <div className={c("pstrip-list")}>
+        {prints.map((print) => (
+          <div key={print.id} className={c("prod")}>
+            <PrintThumb print={print} />
+            <div style={{ minWidth: 0 }}>
+              <b style={{ fontWeight: 500 }}>
+                {techLabel(print)} <span className={c("chip gray")}>{positionLabel(print)}</span>
+              </b>
+              <span className={c("sub")}>{printSubLine(print)}</span>
+              {print.designNote ? (
+                <span className={c("sub")} style={{ overflowWrap: "anywhere" }}>
+                  {print.designNote}
+                </span>
+              ) : null}
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
+      {showMoney && perPiece > 0 ? (
+        <p className={c("pstrip-cost")}>
+          <b className={c("mono")}>{formatBaht(perPiece)}</b>
+          <span>ค่าสกรีน/ตัว{prints.length > 1 ? " · รวมทุกจุด" : ""}</span>
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -382,6 +409,9 @@ function ItemBlock({
   const hasPrints = prints.length > 0;
   const printCost = printPerPiece(prints);
   const manyProducts = products.length > 1;
+  // ช่อง "สินค้า" คร่อมทุกแถวของสินค้าเดียวกัน (rowSpan) — เดิมพิมพ์ชื่อซ้ำทุกบรรทัด
+  const spans = productSpans(rows);
+  const sizeCount = unique(rows.map((row) => row.size ?? "")).length;
 
   const sources = unique(
     products
@@ -421,6 +451,8 @@ function ItemBlock({
         <CustomSpec key={prod.id} prod={prod} showName={manyProducts} />
       ))}
 
+      <PrintStrip prints={prints} showMoney={showMoney} />
+
       {rows.length > 0 ? (
         <div className={c("tblw")}>
           <table className={c("tbl")}>
@@ -428,7 +460,7 @@ function ItemBlock({
               <tr>
                 <th style={{ width: 36 }}>#</th>
                 <th>สินค้า</th>
-                {hasPrints && <th>ลาย</th>}
+                <th className={c("szc")}>ไซส์</th>
                 <th className={c("num")}>จำนวน</th>
                 {showMoney && <th className={c("num")}>ราคาเสื้อ</th>}
                 {showMoney && hasPrints && <th className={c("num")}>ค่าสกรีน</th>}
@@ -438,8 +470,8 @@ function ItemBlock({
             <tbody>
               {rows.map((row, i) => {
                 const { prod } = row;
-                const variant = [row.color, row.size].filter(Boolean).join(" ");
                 const subLine = [
+                  row.color,
                   prod.product?.sku ?? null,
                   prod.packagingOption?.name ? `แพค ${prod.packagingOption.name}` : null,
                   prod.itemSource && prod.itemSource !== "FROM_STOCK" && prod.productType
@@ -451,23 +483,18 @@ function ItemBlock({
                 return (
                   <tr key={row.key}>
                     <td style={{ color: "var(--ink-4)" }}>{startIndex + i + 1}</td>
-                    <td>
-                      <div className={c("prod")}>
-                        <Thumb cover={prod.product?.imageUrl ?? null} alt="" />
-                        <div style={{ minWidth: 0 }}>
-                          <b style={{ fontWeight: 500, overflowWrap: "anywhere" }}>
-                            {productName(prod)}
-                            {variant ? ` · ${variant}` : ""}
-                          </b>
-                          {subLine.length > 0 ? <span className={c("sub")}>{subLine.join(" · ")}</span> : null}
+                    {spans[i] > 0 ? (
+                      <td className={c("pcell")} rowSpan={spans[i]}>
+                        <div className={c("prod")}>
+                          <Thumb cover={prod.product?.imageUrl ?? null} alt="" />
+                          <div style={{ minWidth: 0 }}>
+                            <b style={{ fontWeight: 500, overflowWrap: "anywhere" }}>{productName(prod)}</b>
+                            {subLine.length > 0 ? <span className={c("sub")}>{subLine.join(" · ")}</span> : null}
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    {hasPrints && (
-                      <td>
-                        <PrintCell prints={prints} />
                       </td>
-                    )}
+                    ) : null}
+                    <td className={c("szc")}>{row.size ? <b>{row.size}</b> : <span style={{ color: "var(--ink-4)" }}>—</span>}</td>
                     <td className={c("num")}>
                       <b>{row.qty.toLocaleString("th-TH")}</b>
                     </td>
@@ -493,7 +520,8 @@ function ItemBlock({
             </tbody>
             <tfoot>
               <tr>
-                <td colSpan={hasPrints ? 3 : 2}>รวมชุดงานนี้</td>
+                <td colSpan={2}>รวมชุดงานนี้</td>
+                <td className={c("szc")}>{sizeCount} ไซส์</td>
                 <td className={c("num")}>{qty.toLocaleString("th-TH")}</td>
                 {showMoney && (
                   <td className={c("num")} colSpan={hasPrints ? 3 : 2}>
@@ -503,11 +531,6 @@ function ItemBlock({
               </tr>
             </tfoot>
           </table>
-        </div>
-      ) : hasPrints ? (
-        // มีลายแต่ยังไม่มีเสื้อ — โชว์ลายเดี่ยว ไม่ปล่อยให้ลายหาย
-        <div style={{ padding: "12px 14px" }}>
-          <PrintCell prints={prints} />
         </div>
       ) : null}
 

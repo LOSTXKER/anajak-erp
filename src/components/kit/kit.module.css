@@ -402,6 +402,18 @@ table.tbl { width: 100%; border-collapse: collapse; }
 .item-no { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); font-size: 11.5px; font-weight: 600; }
 .item-head b { font-size: 13.5px; font-weight: 600; }
 .item-note { padding: 8px 0; border-top: 1px solid var(--line-2); font-size: 12.5px; color: var(--ink-2); }
+/* ลายของชุดงาน — แถบเดียวเหนือตาราง (เบสเคาะ 2026-09-17) แทนการแปะซ้ำทุกแถวไซส์ */
+.pstrip { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 12px; padding: 10px 12px; border-radius: 14px; background: var(--sunk); }
+.pstrip-list { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; flex: 1; min-width: 0; }
+.pstrip-cost { margin: 0; text-align: right; flex: none; }
+.pstrip-cost b { display: block; font-size: 13.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.pstrip-cost span { font-size: 11.5px; color: var(--ink-3); }
+/* ช่องสินค้าคร่อมหลายแถว — กันจอแคบบีบจนชื่อแตกทีละตัวอักษร (ให้ตารางเลื่อนแทน) */
+.tbl td.pcell { min-width: 190px; vertical-align: top; }
+/* ไซส์ = คอลัมน์ของตัวเอง อ่านไล่ลงมาได้ (เดิมซ่อนท้ายชื่อสินค้า) */
+.tbl th.szc, .tbl td.szc { text-align: center; white-space: nowrap; }
+.tbl tbody td.szc b { display: inline-block; min-width: 34px; padding: 2px 7px; border-radius: 7px; background: var(--sunk); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.item .tbl tfoot td.szc { font-size: 12px; font-weight: 400; color: var(--ink-3); }
 .prod { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .prod .thumb { width: 34px; height: 34px; border-radius: 10px; }
 .prod .sub { display: block; font-size: 11.5px; color: var(--ink-3); font-weight: 400; }
