@@ -5,6 +5,7 @@ import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatCard } from "@/components/ui/stat-card";
 import { Badge } from "@/components/ui/badge";
 import { Fact, FactList } from "@/components/ui/fact";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -127,6 +128,35 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
         )}
       </PageHeader>
 
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+        <StatCard
+          moduleTone="brand"
+          title="ออเดอร์ทั้งหมด"
+          value={customer._count.orders}
+          icon={ShoppingCart}
+          caption="ใบ"
+        />
+        {canSeeMoney ? (
+          <StatCard
+            moduleTone="finance"
+            title="ยอดซื้อสะสม"
+            value={formatCurrency(customer.totalSpent ?? 0)}
+            icon={DollarSign}
+          />
+        ) : null}
+        {canSeeMoney ? (
+          <StatCard
+            loading={creditLoading}
+            moduleTone="finance"
+            title="ค้างชำระอยู่"
+            value={formatCurrency(credit?.invoiceOutstanding ?? 0)}
+            icon={FileText}
+            tone={(credit?.invoiceOutstanding ?? 0) > 0 ? "warning" : "muted"}
+            caption={credit && credit.openOrders > 0 ? `งานยังไม่ปิด ${credit.openOrders} งาน` : undefined}
+          />
+        ) : null}
+      </div>
+
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Profile Card */}
         <div className="space-y-6">
@@ -175,18 +205,8 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
           </Card>
 
           <Card>
-            <CardHeader><CardTitle className="text-base">สรุป</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base">เครดิตและการสั่งซื้อ</CardTitle></CardHeader>
             <CardContent className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="flex items-center gap-2 text-sm text-muted"><SummaryIcon icon={ShoppingCart} tone="brand" /> ออเดอร์ทั้งหมด</span>
-                <span className="font-semibold tabular-nums text-module-brand-text">{customer._count.orders}</span>
-              </div>
-              {canSeeMoney && (
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-2 text-sm text-muted"><SummaryIcon icon={DollarSign} tone="finance" /> ยอดสั่งรวม</span>
-                  <span className="font-semibold tabular-nums text-module-finance-text">{formatCurrency(customer.totalSpent ?? 0)}</span>
-                </div>
-              )}
               {creditLoading && (
                 <div
                   role="status"

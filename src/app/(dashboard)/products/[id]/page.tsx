@@ -6,6 +6,8 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatCard } from "@/components/ui/stat-card";
+import { Boxes, Layers, Tag } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -46,6 +48,16 @@ const itemTypeLabels: Record<string, string> = {
 // ============================================================
 // COMPONENT
 // ============================================================
+
+
+/** ราคาขาย: มีหลายตัวเลือกให้บอกเป็นช่วง ไม่มีก็ใช้ราคาตั้งต้น (ชุดเดียวกับหน้ารายการสินค้า) */
+function priceRangeLabel(product: { variants: { sellingPrice: number }[]; basePrice: number }) {
+  const prices = product.variants.map((variant) => variant.sellingPrice).filter((price) => price > 0);
+  if (prices.length === 0) return formatCurrency(product.basePrice);
+  const min = Math.min(...prices);
+  const max = Math.max(...prices);
+  return min === max ? formatCurrency(min) : `${formatCurrency(min)} - ${formatCurrency(max)}`;
+}
 
 export default function ProductDetailPage({
   params,
@@ -236,6 +248,30 @@ export default function ProductDetailPage({
           )
         }
       />
+
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+        <StatCard
+          moduleTone="product"
+          title="คงเหลือรวม"
+          value={(product.totalStock || totalStock).toLocaleString("th-TH")}
+          icon={Boxes}
+          caption="ชิ้น"
+          tone={(product.totalStock || totalStock) === 0 ? "danger" : "default"}
+        />
+        <StatCard
+          moduleTone="finance"
+          title="ราคาขาย"
+          value={priceRangeLabel(product)}
+          icon={Tag}
+        />
+        <StatCard
+          moduleTone="product"
+          title="ตัวเลือกสินค้า"
+          value={product.variants.length}
+          icon={Layers}
+          caption="สี/ไซซ์"
+        />
+      </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Left: Product image + info */}

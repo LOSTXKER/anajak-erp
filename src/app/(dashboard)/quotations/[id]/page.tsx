@@ -16,13 +16,14 @@ import { Alert } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
 import { DataTable } from "@/components/ui/data-table";
-import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
+import { cn, formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
 import { QUOTATION_STATUS_LABELS, QUOTATION_STATUS_VARIANTS } from "@/lib/status-config";
 import type { QuotationStatus } from "@/lib/quotation-status";
 import { PAYMENT_TERMS_LABELS } from "@/lib/payment-terms";
 import { DISPLAY_AMOUNT } from "@/components/ui/tokens";
 import { PageHeader } from "@/components/page-header";
 import {
+  History,
   Share2,
   Check,
   X,
@@ -402,7 +403,7 @@ export default function QuotationDetailPage({
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
                 <ToneMark icon={FileText} tone="product" />
-                รายการสินค้า ({quotation.items?.length ?? 0})
+                รายการ ({quotation.items?.length ?? 0})
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -595,6 +596,47 @@ export default function QuotationDetailPage({
                   )}
                 </>
               )}
+            </CardContent>
+          </Card>
+
+          {/* ------------------------------------------
+              ความเคลื่อนไหว (ต้นแบบ 2026-09-16) — เวลาจริงจากฐานข้อมูล ไม่เดา
+          ------------------------------------------ */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <ToneMark icon={History} tone="system" />
+                ความเคลื่อนไหว
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ol className="space-y-3">
+                {[
+                  quotation.rejectedAt ? { key: "rejected", label: "ลูกค้าปฏิเสธ", at: quotation.rejectedAt, tone: "danger" as const } : null,
+                  quotation.acceptedAt ? { key: "accepted", label: "ลูกค้าอนุมัติ", at: quotation.acceptedAt, tone: "success" as const } : null,
+                  quotation.sentAt ? { key: "sent", label: "ส่งให้ลูกค้า", at: quotation.sentAt, tone: "info" as const } : null,
+                  { key: "created", label: "สร้างใบเสนอราคา", at: quotation.createdAt, tone: "muted" as const },
+                ]
+                  .filter((event) => event !== null)
+                  .map((event) => (
+                    <li key={event.key} className="flex items-start gap-3">
+                      <span
+                        aria-hidden="true"
+                        className={cn(
+                          "mt-1.5 size-2 shrink-0 rounded-full",
+                          event.tone === "danger" && "bg-red-600",
+                          event.tone === "success" && "bg-green-600",
+                          event.tone === "info" && "bg-blue-600",
+                          event.tone === "muted" && "bg-border-strong",
+                        )}
+                      />
+                      <span className="min-w-0">
+                        <span className="block text-sm font-medium text-strong">{event.label}</span>
+                        <span className="block text-xs text-muted">{formatDateTime(event.at)}</span>
+                      </span>
+                    </li>
+                  ))}
+              </ol>
             </CardContent>
           </Card>
 
