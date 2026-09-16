@@ -1,8 +1,10 @@
+"use client";
+
 import * as React from "react";
 import type { LucideIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { c } from "@/components/kit/kit";
+import { useSegIndicator } from "@/components/kit/seg";
 import { FOCUS_BUTTON } from "./tokens";
-import { CONTROL_H_SM } from "./control-size";
 
 export interface SegmentedOption<T extends string = string> {
   value: T;
@@ -52,15 +54,16 @@ export function SegmentedControl<T extends string = string>({
   className,
   ...props
 }: SegmentedControlProps<T>) {
+  // หน้าตา .seg ของชุดกลาง (kit) — ตัวเลื่อนวัดจากปุ่มที่เลือกเหมือนหน้าออเดอร์/ผลิต (รวมสไตล์ 2026-09-17)
+  const { segRef, indRef } = useSegIndicator(`${String(value)}|${options.map((item) => item.value).join(",")}`);
   return (
     <div
+      ref={segRef}
       role={semantics === "tabs" ? "tablist" : "group"}
-      className={cn(
-        "inline-flex gap-0.5 rounded-lg bg-surface-muted p-0.5 ring-1 ring-inset ring-border",
-        className,
-      )}
+      className={[c("seg"), className ?? ""].filter(Boolean).join(" ")}
       {...props}
     >
+      <span ref={indRef} className={c("ind")} aria-hidden="true" />
       {options.map((opt) => {
         const active = opt.value === value;
         const Icon = opt.icon;
@@ -92,12 +95,7 @@ export function SegmentedControl<T extends string = string>({
               );
               buttons?.[nextIndex]?.focus();
             }}
-            className={cn(CONTROL_H_SM, "inline-flex touch-manipulation items-center justify-center gap-1.5 whitespace-nowrap rounded-lg font-medium transition-colors", FOCUS_BUTTON,
-              size === "sm" ? "px-2.5 py-1 text-xs" : "px-3 py-1.5 text-xs",
-              active
-                ? "bg-interactive-selected text-interactive-selected-text"
-                : "text-muted",
-            )}
+            className={FOCUS_BUTTON}
           >
             {Icon && <Icon className={size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4"} />}
             {opt.label}

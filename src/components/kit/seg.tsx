@@ -6,12 +6,37 @@ import { c } from "@/components/kit/kit";
 /* ============================================================
    ตัวกรองแบบเลื่อน (.seg ของต้นแบบ) — ตัวเลื่อนวิ่งไปใต้ปุ่มที่เลือก
    วัดปุ่มจริงแล้วเขียน style ตรง ไม่ setState ใน effect · ใช้ร่วม: แท็บไฟล์ของออเดอร์ · ตารางออเดอร์หน้าแรก
+   ตัววัดแยกเป็น useSegIndicator ให้ SegmentedControl ของชุดเก่าใช้ร่วม (รวมสไตล์ 2026-09-17)
    ============================================================ */
 
 export interface SegOption<K extends string> {
   key: K;
   label: ReactNode;
   count?: number;
+}
+
+/** ตัวเลื่อนของ .seg — วัดปุ่มที่เลือกอยู่แล้วขยับแถบขาวไปทับ */
+export function useSegIndicator(deps: string) {
+  const segRef = useRef<HTMLDivElement>(null);
+  const indRef = useRef<HTMLSpanElement>(null);
+  useLayoutEffect(() => {
+    const seg = segRef.current;
+    const ind = indRef.current;
+    if (!seg || !ind) return;
+    const place = () => {
+      const on = seg.querySelector<HTMLElement>('[aria-pressed="true"], [aria-selected="true"]');
+      ind.style.opacity = on ? "1" : "0";
+      if (!on) return;
+      ind.style.left = `${on.offsetLeft}px`;
+      ind.style.width = `${on.offsetWidth}px`;
+    };
+    place();
+    const observer = new ResizeObserver(place);
+    observer.observe(seg);
+    void document.fonts?.ready.then(place);
+    return () => observer.disconnect();
+  }, [deps]);
+  return { segRef, indRef };
 }
 
 export function Seg<K extends string>({
@@ -29,27 +54,8 @@ export function Seg<K extends string>({
   onChange: (key: K) => void;
   style?: CSSProperties;
 }) {
-  const segRef = useRef<HTMLDivElement>(null);
-  const indRef = useRef<HTMLSpanElement>(null);
   const countKey = options.map((option) => `${option.key}:${option.count ?? ""}`).join("|");
-
-  useLayoutEffect(() => {
-    const seg = segRef.current;
-    const ind = indRef.current;
-    if (!seg || !ind) return;
-    const place = () => {
-      const on = seg.querySelector<HTMLElement>('[aria-pressed="true"]');
-      ind.style.opacity = on ? "1" : "0";
-      if (!on) return;
-      ind.style.left = `${on.offsetLeft}px`;
-      ind.style.width = `${on.offsetWidth}px`;
-    };
-    place();
-    const observer = new ResizeObserver(place);
-    observer.observe(seg);
-    void document.fonts?.ready.then(place);
-    return () => observer.disconnect();
-  }, [value, countKey]);
+  const { segRef, indRef } = useSegIndicator(`${value ?? ""}|${countKey}`);
 
   return (
     <div ref={segRef} className={c("seg")} role="group" aria-label={label} style={style}>
