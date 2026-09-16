@@ -16,6 +16,9 @@ import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { dueRowTone } from "@/lib/row-tone";
 import { KitDateRange } from "@/components/kit/date-range";
+import { SegmentedControl } from "@/components/ui/segmented";
+import { DueTag } from "@/components/ui/due-tag";
+import { differenceInBangkokDays } from "@/lib/date-utils";
 import { validDateParam } from "@/lib/order-list-contract";
 import { ResponsiveList } from "@/components/ui/responsive-list";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -68,6 +71,24 @@ export default function QuotationsPage() {
   );
 }
 
+
+/** วันหมดอายุของใบเสนอ: ใบที่ยังรอลูกค้าตอบเท่านั้นที่ต้องเร่ง ใบที่จบแล้วบอกแค่วันที่ */
+function QuotationExpiry({
+  validUntil,
+  status,
+  now,
+}: {
+  validUntil: Date | string | null;
+  status: string;
+  now: number;
+}) {
+  if (!validUntil) return <span className="text-xs text-muted">—</span>;
+  if (status !== "SENT") {
+    return <span className="text-xs text-muted">{formatDate(validUntil)}</span>;
+  }
+  return <DueTag dueInDays={differenceInBangkokDays(validUntil, now)} dateLabel={formatDate(validUntil)} size="sm" />;
+}
+
 function QuotationsPageContent() {
   const { search, page, searchParams, replaceListState, onSearchChange, searchInputRef, clearSearch } =
     useListPageState();
@@ -86,7 +107,7 @@ function QuotationsPageContent() {
   // ใบเสนอทั้งหน้าเป็นเรื่องราคาขาย — ช่าง/กราฟิกห้ามเห็น (Policy ⑦ · ตรงกับ requireRole ฝั่ง server)
   const canView = me ? permAllows(me.permissions, "see_order_money") : true;
 
-  const { data, isLoading, isFetching, isError, refetch } = trpc.quotation.list.useQuery(
+  const { data, isLoading, isFetching, isError, refetch, dataUpdatedAt: listUpdatedAt } = trpc.quotation.list.useQuery(
     {
       search: search.trim() || undefined,
       status: status || undefined,
@@ -103,6 +124,7 @@ function QuotationsPageContent() {
   return (
     <PageShell
       title="ใบเสนอราคา"
+      meta="เสนอราคาแล้วกดเปิดออเดอร์ได้เลยเมื่อลูกค้าตอบรับ"
       action={
         canCreateQuotation ? (
           <Button size="sm" asChild>
@@ -141,22 +163,12 @@ function QuotationsPageContent() {
             />
             <ToolbarGroup>
               {/* 7 ตัวเลือก = เกิน 5 → ดรอปดาวน์ (ชิป 7 ตัวล้นแถวบนมือถือ) · กติกาใน tokens.ts */}
-              <Select
-                shape="pill"
-                surface="raised"
-                className="@2xl:w-52"
-                aria-label="กรองตามสถานะใบเสนอราคา"
+              <SegmentedControl
                 value={status}
-                onChange={(e) =>
-                  replaceListState({ status: e.target.value || null, page: null })
-                }
-              >
-                {QUOTATION_STATUSES.map((f) => (
-                  <option key={f.value} value={f.value}>
-                    {f.label}
-                  </option>
-                ))}
-              </Select>
+                onChange={(value) => replaceListState({ status: value || null, page: null })}
+                options={QUOTATION_STATUSES.map((f) => ({ value: f.value, label: f.label }))}
+                aria-label="กรองตามสถานะใบเสนอราคา"
+              />
               {filtered ? <Button variant="ghost" size="sm" onClick={clearFilters}>ล้างตัวกรอง</Button> : null}
             </ToolbarGroup>
           </Toolbar>
@@ -236,10 +248,12 @@ function QuotationsPageContent() {
             <DataTable.Head>
               <tr>
                 <DataTable.Th>เลขที่</DataTable.Th>
-                <DataTable.Th>ลูกค้า</DataTable.Th>
+                <DataTable.Th>ลูกค้า / งาน</DataTable.Th>
                 <DataTable.Th align="right">ยอดรวม</DataTable.Th>
                 <DataTable.Th>สถานะ</DataTable.Th>
-                <DataTable.Th>วันที่สร้าง</DataTable.Th>
+                <DataTable.Th>หมดอายุ</DataTable.Th>
+                <DataTable.Th>คนทำ</DataTable.Th>
+                <DataTable.Th align="right"><span className="sr-only">เปิดใบเสนอราคา</span></DataTable.Th>
               </tr>
             </DataTable.Head>
             <DataTable.Body>
@@ -254,12 +268,10 @@ function QuotationsPageContent() {
                     </Link>
                   </DataTable.Td>
                   <DataTable.Td>
-                    <p className="text-sm text-strong">{q.customer.name}</p>
-                    {q.customer.company && (
-                      <p className="text-xs text-muted">
-                        {q.customer.company}
-                      </p>
-                    )}
+                    <p className="text-sm text-strong">{q.customer.company || q.customer.name}</p>
+                    <p className="truncate text-xs text-muted">
+                      {q.customer.company ? q.customer.name : `${q._count.items.toLocaleString("th-TH")} รายการ`}
+                    </p>
                   </DataTable.Td>
                   <DataTable.Td
                     align="right"
@@ -270,8 +282,14 @@ function QuotationsPageContent() {
                   <DataTable.Td>
                     <QuotationStatusLabel status={q.status} />
                   </DataTable.Td>
-                  <DataTable.Td className="text-xs text-muted">
-                    {formatDate(q.createdAt)}
+                  <DataTable.Td className="whitespace-nowrap">
+                    <QuotationExpiry validUntil={q.validUntil} status={q.status} now={listUpdatedAt} />
+                  </DataTable.Td>
+                  <DataTable.Td className="whitespace-nowrap text-xs text-secondary">
+                    {q.createdBy?.name ?? "—"}
+                  </DataTable.Td>
+                  <DataTable.Td align="right">
+                    <ChevronRight className="ml-auto h-4 w-4 text-muted" aria-hidden="true" />
                   </DataTable.Td>
                 </DataTable.Row>
               ))}

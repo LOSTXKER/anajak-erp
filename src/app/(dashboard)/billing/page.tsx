@@ -16,6 +16,7 @@ import { TablePagination } from "@/components/ui/table-pagination";
 import { EmptyState } from "@/components/ui/empty-state";
 import { validDateParam } from "@/lib/order-list-contract";
 import { KitDateRange } from "@/components/kit/date-range";
+import { SegmentedControl } from "@/components/ui/segmented";
 import { dueRowTone } from "@/lib/row-tone";
 import { ResponsiveList } from "@/components/ui/responsive-list";
 import { Select } from "@/components/ui/select";
@@ -82,6 +83,13 @@ export default function BillingPage() {
   );
 }
 
+
+/** ยอดที่ยังค้าง = ยอดบิล − เงินที่รับมาแล้ว (ใบที่ปิดแล้วเหลือ 0) */
+function outstandingOf(invoice: { totalAmount: number; payments: { amount: number }[] }) {
+  const paid = invoice.payments.reduce((sum, payment) => sum + payment.amount, 0);
+  return Math.max(0, invoice.totalAmount - paid);
+}
+
 function BillingPageContent() {
   const { search, page, searchParams, replaceListState, onSearchChange, searchInputRef } =
     useListPageState();
@@ -120,6 +128,7 @@ function BillingPageContent() {
   return (
     <PageShell
       title="บิล/การเงิน"
+      meta="ออกบิล รับชำระ และตามเงินค้าง"
       denied={
         me && !canView
           ? {
@@ -192,17 +201,15 @@ function BillingPageContent() {
             {/* flex-wrap: จอแคบให้ตัวกรองเต็มความกว้างคนละบรรทัดเหมือนเดิม — ถ้าบีบสองช่องลงแถวเดียว
                 ป้ายยาวอย่าง "ใบแจ้งหนี้ส่วนที่เหลือ" จะถูกตัดกลางคำ · จอกว้างค่อยยืนเรียงกัน */}
             <ToolbarGroup className="flex-wrap">
-              <Select value={statusFilter} surface="raised"
-                onChange={(e) => {
-                  replaceListState({ status: e.target.value === ALL ? null : e.target.value, page: null });
-                }} shape="pill" className="w-full @2xl:w-40" aria-label="กรองตามสถานะ">
-                  <option value={ALL}>ทุกสถานะ</option>
-                  {Object.entries(PAYMENT_STATUS_LABELS).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </Select>
+              <SegmentedControl
+                value={statusFilter === ALL ? "" : statusFilter}
+                onChange={(value) => replaceListState({ status: value || null, page: null })}
+                options={[
+                  { value: "", label: "ทุกสถานะ" },
+                  ...Object.entries(PAYMENT_STATUS_LABELS).map(([value, label]) => ({ value, label })),
+                ]}
+                aria-label="กรองตามสถานะ"
+              />
               <Select value={typeFilter} surface="raised"
                 onChange={(e) => {
                   replaceListState({ type: e.target.value === ALL ? null : e.target.value, page: null });
@@ -322,10 +329,9 @@ function BillingPageContent() {
             <DataTable.Head>
               <tr>
                 <DataTable.Th>เลขบิล</DataTable.Th>
-                <DataTable.Th>ประเภท</DataTable.Th>
-                <DataTable.Th>ลูกค้า</DataTable.Th>
-                <DataTable.Th>ออเดอร์</DataTable.Th>
-                <DataTable.Th align="right">จำนวนเงิน</DataTable.Th>
+                <DataTable.Th>ลูกค้า / ออเดอร์</DataTable.Th>
+                <DataTable.Th align="right">ยอดบิล</DataTable.Th>
+                <DataTable.Th align="right">ค้างชำระ</DataTable.Th>
                 <DataTable.Th>สถานะ</DataTable.Th>
                 <DataTable.Th>ครบกำหนด</DataTable.Th>
                 <DataTable.Th align="right">ทำต่อ</DataTable.Th>
@@ -346,11 +352,21 @@ function BillingPageContent() {
                         {inv.invoiceNumber}
                       </Link>
                     </DataTable.Td>
-                    <DataTable.Td className="text-muted">{INVOICE_TYPE_LABELS[inv.type] ?? inv.type}</DataTable.Td>
-                    <DataTable.Td>{inv.customer.name}</DataTable.Td>
-                    <DataTable.Td className="whitespace-nowrap">{inv.order.orderNumber}</DataTable.Td>
+                    <DataTable.Td>
+                      <p className="text-sm text-strong">{inv.customer.name}</p>
+                      <p className="truncate text-xs tabular-nums text-muted">
+                        {inv.order.orderNumber} · {INVOICE_TYPE_LABELS[inv.type] ?? inv.type}
+                      </p>
+                    </DataTable.Td>
                     <DataTable.Td align="right" className="font-medium tabular-nums text-strong">
                       {formatCurrency(inv.totalAmount)}
+                    </DataTable.Td>
+                    <DataTable.Td align="right" className="tabular-nums">
+                      {outstandingOf(inv) > 0 ? (
+                        <span className="font-medium text-strong">{formatCurrency(outstandingOf(inv))}</span>
+                      ) : (
+                        <span className="text-muted">—</span>
+                      )}
                     </DataTable.Td>
                     <DataTable.Td>
                       <StatusLabel label={status.label} tone={status.tone} emphasize={status.emphasize} />
