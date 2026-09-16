@@ -11,6 +11,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PageShell } from "@/components/page-shell";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { EmptyState } from "@/components/ui/empty-state";
+import { SegmentedControl } from "@/components/ui/segmented";
+import { c } from "@/components/kit/kit";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { ListSkeleton } from "@/components/ui/page-skeleton";
 import { FOCUS_INSET } from "@/components/ui/tokens";
@@ -129,6 +131,11 @@ function NotificationsContent() {
   return (
     <PageShell
       title="การแจ้งเตือน"
+      meta={
+        (unreadCount ?? 0) > 0
+          ? `${(unreadCount ?? 0).toLocaleString("th-TH")} เรื่องยังไม่อ่าน`
+          : "อ่านครบทุกเรื่องแล้ว"
+      }
       error={isError ? { onRetry: () => void refetch(), message: "เกิดข้อผิดพลาดในการโหลดข้อมูล" } : null}
       action={
         (unreadCount ?? 0) > 0 ? (
@@ -145,24 +152,24 @@ function NotificationsContent() {
       }
     >
 
-      {/* Filter chips */}
-      <div className="flex flex-wrap items-center gap-1.5">
-        {FILTER_TABS.map((tab) => (
-          <FilterChip
-            key={tab.value}
-            surface="raised"
-            selected={filter === tab.value}
-            onClick={() => replaceListState({ view: tab.value === "unread" ? "unread" : null, page: null })}
-          >
-            {tab.label}
-            {tab.value === "unread" && (unreadCount ?? 0) > 0 && (
-              <Badge variant="accent" size="sm" className="ml-1.5">
-                {unreadCount}
-              </Badge>
-            )}
-          </FilterChip>
-        ))}
-      </div>
+      {/* ปุ่มแถบชุดเดียวกับหน้าออเดอร์ — มีจำนวนกำกับให้รู้ว่าเหลือเท่าไรก่อนกด */}
+      <SegmentedControl
+        value={filter}
+        onChange={(value) => replaceListState({ view: value === "unread" ? "unread" : null, page: null })}
+        options={FILTER_TABS.map((tab) => ({
+          value: tab.value,
+          label: (
+            <>
+              {tab.label}
+              {tab.value === "all" && total > 0 ? <span className={c("n")}>{total.toLocaleString("th-TH")}</span> : null}
+              {tab.value === "unread" && (unreadCount ?? 0) > 0 ? (
+                <span className={c("n")}>{(unreadCount ?? 0).toLocaleString("th-TH")}</span>
+              ) : null}
+            </>
+          ),
+        }))}
+        aria-label="กรองการแจ้งเตือน"
+      />
 
       {/* List */}
       <div>

@@ -7,12 +7,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
 import { cn, formatCurrency } from "@/lib/utils";
 import { FOCUS_BUTTON } from "@/components/ui/tokens";
-import {
-  TrendingUp,
-  Users,
-} from "lucide-react";
+import { CircleCheck, ShoppingCart, TrendingUp, Users } from "lucide-react";
 import { PageShell } from "@/components/page-shell";
 import { Section } from "@/components/ui/section";
+import { StatCard } from "@/components/ui/stat-card";
 
 
 
@@ -46,6 +44,7 @@ export default function AnalyticsPage() {
   return (
     <PageShell
       title="รายงาน"
+      meta="ภาพรวมยอดขายและลูกค้า 6 เดือนล่าสุด"
       loading={isLoading || meQuery.isLoading}
       skeleton={
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
@@ -64,6 +63,45 @@ export default function AnalyticsPage() {
           : null
       }
     >
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatCard
+          loading={isLoading}
+          moduleTone="finance"
+          title="ยอดขายเดือนนี้"
+          value={canViewRevenue ? formatCurrency(dashboard?.revenueThisMonth ?? 0) : "—"}
+          icon={TrendingUp}
+          caption={
+            canViewRevenue && typeof dashboard?.revenueChange === "number"
+              ? `${dashboard.revenueChange >= 0 ? "+" : ""}${dashboard.revenueChange.toLocaleString("th-TH")}% จากเดือนก่อน`
+              : undefined
+          }
+        />
+        <StatCard
+          loading={isLoading}
+          moduleTone="brand"
+          title="ออเดอร์ที่กำลังเดิน"
+          value={dashboard?.activeOrders ?? 0}
+          icon={ShoppingCart}
+          caption="ออเดอร์"
+        />
+        <StatCard
+          loading={isLoading}
+          moduleTone="brand"
+          title="ปิดงานเดือนนี้"
+          value={dashboard?.completedThisMonth ?? 0}
+          icon={CircleCheck}
+          caption="ออเดอร์"
+        />
+        <StatCard
+          loading={isLoading}
+          moduleTone="brand"
+          title="ลูกค้าทั้งหมด"
+          value={dashboard?.totalCustomers ?? 0}
+          icon={Users}
+          caption={`ใหม่เดือนนี้ ${(dashboard?.newCustomersThisMonth ?? 0).toLocaleString("th-TH")}`}
+        />
+      </div>
+
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <Section
           title="รายได้ 6 เดือนย้อนหลัง"
@@ -87,29 +125,20 @@ export default function AnalyticsPage() {
           ) : !revenueData || revenueData.length === 0 ? (
             <p className="text-sm text-muted">ยังไม่มีข้อมูล</p>
           ) : (
-            <div className="space-y-3">
+            <div className="flex items-end gap-2.5 pt-2" role="img" aria-label="ยอดขายรายเดือน 6 เดือนล่าสุด">
               {revenueData.map((item) => {
-                const width =
-                  maxRevenue > 0 ? (item.revenue / maxRevenue) * 100 : 0;
+                const height = maxRevenue > 0 ? Math.max(8, (item.revenue / maxRevenue) * 130) : 8;
                 return (
-                  <div key={item.month} className="space-y-1">
-                    <div className="flex items-baseline justify-between text-sm">
-                      <span className="text-xs text-muted">
-                        {item.month}
-                      </span>
-                      <span className="font-medium tabular-nums text-strong">
-                        {formatCurrency(item.revenue)}
-                        <span className="ml-1 text-xs font-normal text-muted">
-                          ({item.orders} ออเดอร์)
-                        </span>
-                      </span>
-                    </div>
-                    <div className="h-1.5 overflow-hidden rounded-full bg-surface-muted">
-                      <div
-                        className="h-full rounded-full bg-blue-600 transition-[width] duration-[var(--duration-base)] ease-out"
-                        style={{ width: `${width}%` }}
-                      />
-                    </div>
+                  <div key={item.month} className="flex min-w-0 flex-1 flex-col items-center gap-1.5">
+                    <span className="text-2xs tabular-nums text-secondary">
+                      {Math.round(item.revenue / 1000).toLocaleString("th-TH")}
+                    </span>
+                    <span
+                      className="w-full max-w-11 rounded-t-lg rounded-b bg-blue-600 transition-[height] duration-[var(--duration-base)] ease-out"
+                      style={{ height: `${height}px` }}
+                    />
+                    <span className="truncate text-xs text-muted">{item.month}</span>
+                    <span className="text-2xs tabular-nums text-muted">{item.orders} ใบ</span>
                   </div>
                 );
               })}
