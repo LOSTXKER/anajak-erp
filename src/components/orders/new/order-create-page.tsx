@@ -18,7 +18,7 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { useConfirm } from "@/components/ui/confirm-dialog";
-import { Section } from "@/components/ui/section";
+import { Section, SectionTitle } from "@/components/ui/section";
 import {
   Tabs,
   TabsBar,
@@ -43,7 +43,7 @@ import { calculateFormItemSubtotal, calculateOrderSummary } from "@/lib/pricing"
 import { cn, formatCurrency } from "@/lib/utils";
 import { Alert } from "@/components/ui/alert";
 import { Field } from "@/components/ui/field";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, ClipboardList, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -1273,10 +1273,12 @@ export default function OrderFormPage(props: OrderFormPageProps) {
           </TabsBar>
 
           <TabsContent value="intake" keepMounted className="mt-6 space-y-4">
-          {/* รับเรื่อง — ลูกค้าเป็นช่องบังคับเพียงช่องเดียว */}
+          {/* รับเรื่อง — ลูกค้าเป็นช่องบังคับเพียงช่องเดียว
+              หัวการ์ดเพิ่ม 2026-09-17: การ์ดเดียวในฟอร์มที่ไม่มีหัว ทั้งที่การ์ดอื่นทั้งเว็บมีหมด */}
           <Section
             id={STEP_IDS.intake}
             tabIndex={-1}
+            title={<SectionTitle icon={ClipboardList} tone="brand">รับเรื่อง</SectionTitle>}
             className={cn("scroll-mt-16 outline-none", FOCUS_BUTTON)}
           >
             <div className="space-y-4">
