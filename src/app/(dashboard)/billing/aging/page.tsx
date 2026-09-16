@@ -37,9 +37,9 @@ type DunningTone = "gentle" | "firm";
 // ลำดับ + ป้ายถังอายุหนี้ — ตรงกับ AGING_BUCKETS ใน services/receivables.ts
 const BUCKETS = [
   { key: "current", label: "ยังไม่ครบกำหนด" },
-  { key: "d1_30", label: "เลย 1-30 วัน" },
-  { key: "d31_60", label: "เลย 31-60 วัน" },
-  { key: "d61_90", label: "เลย 61-90 วัน" },
+  { key: "d1_30", label: "เลย 1-30" },
+  { key: "d31_60", label: "เลย 31-60" },
+  { key: "d61_90", label: "เลย 61-90" },
   { key: "d90plus", label: "เกิน 90 วัน" },
 ] as const;
 
@@ -281,7 +281,7 @@ function AgingPageContent() {
                     {bucket.label}
                   </DataTable.Th>
                 ))}
-                <DataTable.Th align="right">รวม</DataTable.Th>
+                <DataTable.Th align="right">รวมค้าง</DataTable.Th>
               </tr>
             </DataTable.Head>
             <DataTable.Body>
