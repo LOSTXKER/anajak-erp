@@ -52,12 +52,21 @@ export default function LoginPage() {
   return (
     <main className="flex min-h-dvh items-center justify-center bg-bg px-4 py-8">
       <Card className="w-full max-w-sm">
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-blue-600 text-white">
-            <Printer className="h-6 w-6" />
+        <CardHeader className="gap-4">
+          {/* แบรนด์อยู่แถวเดียวกับชื่อ แล้วค่อยขึ้นหัวข้อของหน้า (ต้นแบบ 2026-09-16) */}
+          <div className="flex items-center gap-2.5">
+            <span className="grid size-9 place-items-center rounded-[11px] bg-blue-600 text-white">
+              <Printer className="h-[18px] w-[18px]" aria-hidden="true" />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-sm font-semibold text-strong">Anajak Print</span>
+              <span className="block text-xs text-muted">ERP โรงงานสกรีนเสื้อ</span>
+            </span>
           </div>
-          <CardTitle className="text-xl">Anajak Print</CardTitle>
-          <CardDescription>ERP โรงงานสกรีนเสื้อ</CardDescription>
+          <div>
+            <CardTitle className="text-xl">เข้าสู่ระบบ</CardTitle>
+            <CardDescription className="mt-1">ใช้บัญชีที่ร้านออกให้ · เข้าไม่ได้ให้ทักหัวหน้า</CardDescription>
+          </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4" aria-busy={loading}>
@@ -95,6 +104,9 @@ export default function LoginPage() {
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
             </Button>
+            <p className="text-center text-xs text-muted">
+              จอในโรงงานใช้ทางเข้าแยก ไม่ต้องใส่รหัสทุกครั้ง
+            </p>
           </form>
         </CardContent>
       </Card>
