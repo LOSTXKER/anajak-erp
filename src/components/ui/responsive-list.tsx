@@ -124,7 +124,7 @@ export function ResponsiveList<T>({
             <div className="hidden border-t border-divider/60 lg:block">{renderDesktop(resolvedItems)}</div>
             <div className="px-3.5 pb-3.5 lg:hidden">{renderMobile(resolvedItems)}</div>
           </InListCard.Provider>
-          {pagination ? <div className="border-t border-divider/60 px-4.5 pb-2.5 [&>nav]:pt-2.5">{pagination}</div> : null}
+          {pagination}
         </div>
       ) : (
         <>

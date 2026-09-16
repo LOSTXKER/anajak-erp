@@ -1275,7 +1275,8 @@ check(
     pageHover[1] !== hover[1] &&
     // ของที่ยืนบนผืนงานต้องตอบสนองตอนกด (ชุด kit ไม่มีเอฟเฟกต์ตอนชี้ · 2026-09-17):
     // ปุ่มย้อนกลับของหัวหน้าใช้คู่ pressed ของผืนงาน · แถบแบ่งหน้าใช้ pressed กลางทุกปุ่ม
-    readFileSync("src/components/ui/table-pagination.tsx", "utf8").includes("active:bg-interactive-pressed") &&
+    // แถบแบ่งหน้าใช้ .pager ของชุดกลาง (ตอบสนองตอนกดในไฟล์ kit.module.css)
+    readFileSync("src/components/ui/table-pagination.tsx", "utf8").includes('c("pager")') &&
     readFileSync("src/components/page-header.tsx", "utf8")
       .includes("cn(INTERACTIVE_PAGE_PRESSED,");
   const chromeTokensAreWired =
