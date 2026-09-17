@@ -9,6 +9,7 @@ import { PayTag, WhyCell } from "@/components/orders/orders-ui";
 import { describeOrderAttention } from "@/lib/home-orders";
 import { mockupCoverImage } from "@/lib/mockup";
 import { isAttentionStatus } from "@/lib/order-progress";
+import { PRIORITY_LABELS } from "@/lib/order-status";
 import type { SortDirection, SortKey } from "@/lib/order-list-contract";
 import { formatBaht, formatDateShort } from "@/lib/utils";
 
@@ -228,7 +229,7 @@ export function OrdersTable({
                           </button>
                         </div>
                         <span className={c("dt")}>
-                          {urgent ? <b className={c("urg")}>ด่วน · </b> : null}
+                          {urgent ? <b className={c("urg")}>{PRIORITY_LABELS.URGENT} · </b> : null}
                           {order.printLabel ? `${order.printLabel} · ` : ""}เปิด {formatDateShort(order.createdAt)}
                         </span>
                       </div>

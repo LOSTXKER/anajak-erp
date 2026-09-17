@@ -12,6 +12,7 @@ import { AlertTriangle, ArrowLeft, ChevronRight, ClipboardCheck, Clock, Package,
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DueTag } from "@/components/ui/due-tag";
+import { PRIORITY_LABELS } from "@/lib/order-status";
 import { EmptyState } from "@/components/ui/empty-state";
 import { InfoChip, InfoChipRow } from "@/components/ui/info-chip";
 import { Metric } from "@/components/ui/metric";
@@ -190,7 +191,7 @@ export function QueueCard<O extends CardOrder, S extends StationStepLike>({
           <div>
             <p className="flex flex-wrap items-center gap-2">
               <span className="text-lg font-semibold tabular-nums text-strong">{order.orderNumber}</span>
-              {urgent ? <Badge variant="destructive">ด่วน</Badge> : null}
+              {urgent ? <Badge variant="destructive">{PRIORITY_LABELS.URGENT}</Badge> : null}
               {order.blindShip ? <Badge variant="warning">ไม่ระบุผู้ส่ง</Badge> : null}
             </p>
             <p className="truncate text-sm text-secondary">{order.customerName ?? "ไม่ระบุลูกค้า"}</p>

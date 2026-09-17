@@ -9,7 +9,7 @@ import {
   ImageOff,
 } from "lucide-react";
 import s from "./kit.module.css";
-import { INTERNAL_STATUS_LABELS } from "@/lib/order-status";
+import { INTERNAL_STATUS_LABELS, PRIORITY_LABELS } from "@/lib/order-status";
 import { formatDateShort, formatTime } from "@/lib/utils";
 
 /* ============================================================
@@ -133,11 +133,16 @@ export function DueTag({
   );
 }
 
-/** ความเร่งด่วน — โผล่เฉพาะงานสำคัญ/เร่งด่วน */
+/** ลำดับคิวผลิต — โผล่เฉพาะสองระดับบน (สูง/เร่งด่วน) ระดับปกติ/ต่ำไม่ต้องมีป้าย
+ *  คำบนป้ายมาจาก PRIORITY_LABELS ชุดเดียวกับตัวเลือกในฟอร์ม (เบสสั่ง 2026-09-18 ให้ตรงกัน)
+ *  เดิมป้ายเขียน "สำคัญ" ขณะที่ช่องเลือกเขียน "สูง" — คนละคำสำหรับค่าเดียวกัน */
 export function PriorityChip({ priority, lg = false }: { priority: string; lg?: boolean }) {
-  if (priority === "URGENT") return <span className={c("chip bad", lg && "lg")}>เร่งด่วน</span>;
-  if (priority === "HIGH") return <span className={c("chip warn", lg && "lg")}>สำคัญ</span>;
-  return null;
+  if (priority !== "URGENT" && priority !== "HIGH") return null;
+  return (
+    <span className={c("chip", priority === "URGENT" ? "bad" : "warn", lg && "lg")}>
+      {PRIORITY_LABELS[priority]}
+    </span>
+  );
 }
 
 /** แถบขั้นงาน (.prog) — ขั้นที่เสร็จทึบ ขั้นที่ทำอยู่จาง */

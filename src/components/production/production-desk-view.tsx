@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import { DueTag } from "@/components/ui/due-tag";
+import { PRIORITY_LABELS } from "@/lib/order-status";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { SearchInput } from "@/components/ui/search-input";
 import { MockupThumbnail } from "@/components/mockup/mockup-thumbnail";
@@ -277,7 +278,7 @@ export function DeskTable<S extends DeskStepLike, O extends BoardOrderLike<S>>({
                           {order.orderNumber}
                         </Link>
                       )}
-                      {urgent ? <Badge variant={order.priority === "URGENT" ? "destructive" : "warning"} size="sm">{order.priority === "URGENT" ? "ด่วน" : "สำคัญ"}</Badge> : null}
+                      {urgent ? <Badge variant={order.priority === "URGENT" ? "destructive" : "warning"} size="sm">{PRIORITY_LABELS[order.priority ?? "NORMAL"] ?? order.priority}</Badge> : null}
                       {order.blindShip ? <Badge variant="warning" size="sm">Blind ship</Badge> : null}
                     </div>
                     <p className="line-clamp-2 text-secondary" title={order.customerName ?? undefined}>{order.customerName ?? "ไม่ระบุลูกค้า"}</p>
