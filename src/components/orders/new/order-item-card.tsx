@@ -270,6 +270,7 @@ export function OrderItemCard({
 
   const itemPriceSummary = buildOrderItemPriceSummary(item);
   const { totalQuantity: totalQty, subtotal } = itemPriceSummary;
+  const printPerPiece = item.prints.reduce((sum, print) => sum + (print.unitPrice || 0), 0);
   const headingId = `${cardId}-heading`;
   // ── section: คำอธิบายงาน ──
   const descField = (
@@ -355,6 +356,21 @@ export function OrderItemCard({
                   />
                 ))}
               </tbody>
+              {/* ค่าสกรีนรวมทุกจุดต่อเสื้อหนึ่งตัว — เลขนี้ไม่ได้โผล่ที่อื่นในฟอร์ม
+                  แต่เป็นตัวที่ใช้คิดราคาต่อตัวจริง (ต้นแบบ 2026-09-18) */}
+              {printPerPiece > 0 && (
+                <tfoot>
+                  <tr className="border-t border-divider">
+                    <td colSpan={6} className="px-2 pt-2.5 text-xs text-muted">
+                      รวมค่าสกรีนต่อตัว {item.prints.length} ลาย
+                    </td>
+                    <td className="px-2 pt-2.5 text-center text-sm font-semibold tabular-nums text-strong">
+                      {formatCurrency(printPerPiece)}
+                    </td>
+                    <td><span className="sr-only">ช่องปุ่มลบ</span></td>
+                  </tr>
+                </tfoot>
+              )}
             </table>
           </div>
           <div className="space-y-2.5 @2xl:hidden">

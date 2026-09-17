@@ -58,23 +58,39 @@ export function OrderDetailFields({
 }: OrderDetailFieldsProps) {
   const id = useId();
 
+  /* ซ้ายอ่านแชท ขวากรอกสิ่งที่อ่านได้ — เรียงตามที่แอดมินทำจริงตอนถือแชท
+     (ต้นแบบ mockup-order-form-2026-09-18 · เดิมเรียงลงมาแนวเดียว ต้องเลื่อนขึ้นลงสลับ) */
   return (
-    <div className="space-y-4">
-      {/* คำสั่งสอนอยู่ description ใต้ช่อง (ไม่หายตอนพิมพ์) — placeholder เหลือตัวอย่างค่า */}
-      <Field
-        label="ข้อความจากลูกค้า"
-        id={`${id}-description`}
-        help={showGuidance ? "สรุปจากแชทให้ครบแบบ สี จำนวน งบ และสิ่งที่ลูกค้าเน้น" : undefined}
-      >
-        <Textarea
-          value={description}
-          onChange={(e) => onDescriptionChange(e.target.value)}
-          placeholder="โปโล 120 ตัว สีกรม ปักอกซ้าย ส่งก่อน 25 ส.ค."
-          rows={3}
-        />
-      </Field>
+    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,17rem)] lg:items-start">
+      <div className="space-y-4">
+        {/* คำสั่งสอนอยู่ description ใต้ช่อง (ไม่หายตอนพิมพ์) — placeholder เหลือตัวอย่างค่า */}
+        <Field
+          label="ข้อความจากลูกค้า"
+          id={`${id}-description`}
+          help={showGuidance ? "สรุปจากแชทให้ครบแบบ สี จำนวน งบ และสิ่งที่ลูกค้าเน้น" : undefined}
+        >
+          <Textarea
+            value={description}
+            onChange={(e) => onDescriptionChange(e.target.value)}
+            placeholder="โปโล 120 ตัว สีกรม ปักอกซ้าย ส่งก่อน 25 ส.ค."
+            rows={5}
+          />
+        </Field>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <Field
+          label="หมายเหตุภายใน (ลูกค้าไม่เห็น)"
+          id={`${id}-notes`}
+          className={cn(FIELD_MEASURE, "w-full max-sm:max-w-none")}
+        >
+          <Input
+            value={notes}
+            onChange={(e) => onNotesChange(e.target.value)}
+            placeholder="เช่น นัดโทรกลับ รอไฟล์ต้นฉบับ"
+          />
+        </Field>
+      </div>
+
+      <div className="space-y-3">
         <Field label="ช่องทาง" id={`${id}-channel`} description={channelLockedReason}>
           <Select
             value={channel}
@@ -88,10 +104,7 @@ export function OrderDetailFields({
           </Select>
         </Field>
         <Field label="กำหนดส่ง" id={`${id}-deadline`}>
-          <DatePicker
-            value={deadline}
-            onChange={(v) => onDeadlineChange(v)}
-          />
+          <DatePicker value={deadline} onChange={(v) => onDeadlineChange(v)} />
         </Field>
         <Field label="ความเร่งด่วน" id={`${id}-priority`}>
           <Select
@@ -103,29 +116,16 @@ export function OrderDetailFields({
             ))}
           </Select>
         </Field>
+        {isMarketplace && (
+          <Field label={`เลขออเดอร์ ${CHANNEL_LABELS[channel]}`} id={`${id}-external`}>
+            <Input
+              value={externalOrderId}
+              onChange={(e) => onExternalOrderIdChange(e.target.value)}
+              placeholder="เช่น 2502120001234"
+            />
+          </Field>
+        )}
       </div>
-
-      {isMarketplace && (
-        <Field label={`เลขออเดอร์ ${CHANNEL_LABELS[channel]}`} id={`${id}-external`} className={FIELD_MEASURE}>
-          <Input
-            value={externalOrderId}
-            onChange={(e) => onExternalOrderIdChange(e.target.value)}
-            placeholder="เช่น 2502120001234"
-          />
-        </Field>
-      )}
-
-      <Field
-        label="หมายเหตุภายใน (ลูกค้าไม่เห็น)"
-        id={`${id}-notes`}
-        className={cn(FIELD_MEASURE, "w-full max-sm:max-w-none")}
-      >
-        <Input
-          value={notes}
-          onChange={(e) => onNotesChange(e.target.value)}
-          placeholder="เช่น นัดโทรกลับ รอไฟล์ต้นฉบับ"
-        />
-      </Field>
     </div>
   );
 }

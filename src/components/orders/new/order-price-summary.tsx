@@ -36,6 +36,10 @@ interface OrderPriceSummaryProps {
   marginEstimate?: MarginEstimate | null;
   /** วางใน Section หลักของหน้าโดยไม่สร้าง card-surface ซ้อนอีกชั้น */
   embedded?: boolean;
+  /** ผู้เรียกวาดหัวการ์ด "สรุปยอด" เองแล้ว — ที่นี่ส่งคืนเฉพาะเนื้อใน */
+  headless?: boolean;
+  /** จำนวนตัวทั้งใบ — บอกใต้ยอดรวมให้รู้ว่ายอดนี้มาจากกี่ตัว */
+  totalQuantity?: number;
 }
 
 // ============ กำไรขั้นต้นโดยประมาณ (FLOW-REDESIGN ก้อน 2 ชิ้น 5b) ============
@@ -210,7 +214,60 @@ export function OrderPriceSummary({
   onDiscountChange,
   marginEstimate,
   embedded = false,
+  headless = false,
+  totalQuantity,
 }: OrderPriceSummaryProps) {
+  /* 3 ก้อนคนละเรื่องกัน: ยอดที่ลูกค้าจ่าย · กำไรขั้นต้น (เห็นเฉพาะ role การเงิน)
+     เบสทัก 2026-09-18 "ดูยาก" เพราะเดิมเป็นรายการน้ำหนักเท่ากันหมด
+     และบรรทัด "ยอดรวมทั้งหมด" ซ้ำกับเลขใหญ่ที่อยู่ห่างกันไม่กี่บรรทัด */
+  const body = (
+    <>
+      <div className="border-b border-divider pb-4">
+        <p className={DISPLAY_AMOUNT}>{formatCurrency(pricingSummary.grandTotal)}</p>
+        <p className="mt-0.5 text-xs text-muted">
+          ยอดรวมทั้งหมด{taxRate > 0 ? " (รวม VAT)" : ""}
+          {totalQuantity ? ` · ${totalQuantity.toLocaleString("th-TH")} ตัว` : ""}
+        </p>
+      </div>
+
+      <div className="space-y-2.5 pt-3.5">
+        <Row label="รวมสินค้า" value={formatCurrency(pricingSummary.subtotalItems)} />
+        {showFeeSections && (
+          <Row label="รวมค่าใช้จ่ายเพิ่มเติม" value={formatCurrency(pricingSummary.subtotalFees)} />
+        )}
+        {isMarketplace &&
+          (onPlatformFeeChange ? (
+            <div className="flex items-center justify-between gap-2">
+              <label htmlFor="order-platform-fee" className="text-sm text-muted">
+                ค่าธรรมเนียม {channelLabel}
+              </label>
+              <MoneyInput size="sm" id="order-platform-fee" value={platformFee} onValueChange={onPlatformFeeChange} className="w-28" />
+            </div>
+          ) : (
+            <Row label={`ค่าธรรมเนียม ${channelLabel}`} value={formatCurrency(platformFee)} />
+          ))}
+        {onDiscountChange ? (
+          <div className="flex items-center justify-between gap-2">
+            <label htmlFor="order-discount" className="text-sm text-muted">ส่วนลดท้ายบิล</label>
+            <MoneyInput size="sm" id="order-discount" value={discount} onValueChange={onDiscountChange} className="w-28" />
+          </div>
+        ) : (
+          discount > 0 && <Row label="ส่วนลดท้ายบิล" value={`-${formatCurrency(discount)}`} />
+        )}
+        {taxRate > 0 && <Row label={`VAT (${taxRate}%)`} value={formatCurrency(pricingSummary.taxAmount)} />}
+      </div>
+
+      {/* กำไรขั้นต้นโดยประมาณ — โชว์เฉพาะ role การเงิน (caller ส่ง null = ไม่ render เลย) */}
+      {marginEstimate && (
+        <div className="mt-4 border-t border-divider pt-4">
+          <MarginEstimateBlock estimate={marginEstimate} />
+        </div>
+      )}
+    </>
+  );
+
+  if (headless) return body;
+
   return (
     <Section
       title={
@@ -222,80 +279,7 @@ export function OrderPriceSummary({
       bordered={!embedded}
       headingLevel={embedded ? 3 : 2}
     >
-      <div className="space-y-2">
-        <Row
-          label="รวมสินค้า"
-          value={formatCurrency(pricingSummary.subtotalItems)}
-        />
-
-        {showFeeSections && (
-          <Row
-            label="รวมค่าใช้จ่ายเพิ่มเติม"
-            value={formatCurrency(pricingSummary.subtotalFees)}
-          />
-        )}
-
-        {isMarketplace &&
-          (onPlatformFeeChange ? (
-            <div className="flex items-center justify-between gap-2">
-              <label htmlFor="order-platform-fee" className="text-sm text-muted">
-                ค่าธรรมเนียม {channelLabel}
-              </label>
-              <MoneyInput size="sm"
-                id="order-platform-fee"
-                value={platformFee}
-                onValueChange={onPlatformFeeChange}
-                className="w-28"
-              />
-            </div>
-          ) : (
-            <Row label={`ค่าธรรมเนียม ${channelLabel}`} value={formatCurrency(platformFee)} />
-          ))}
-
-        {onDiscountChange ? (
-          <div className="flex items-center justify-between gap-2">
-            <label htmlFor="order-discount" className="text-sm text-muted">
-              ส่วนลดท้ายบิล
-            </label>
-            <MoneyInput size="sm"
-              id="order-discount"
-              value={discount}
-              onValueChange={onDiscountChange}
-              className="w-28"
-            />
-          </div>
-        ) : (
-          discount > 0 && <Row label="ส่วนลดท้ายบิล" value={`-${formatCurrency(discount)}`} />
-        )}
-
-        {taxRate > 0 && (
-          <Row
-            label={`VAT (${taxRate}%)`}
-            value={formatCurrency(pricingSummary.taxAmount)}
-          />
-        )}
-      </div>
-
-      <div className="mt-3 flex items-baseline justify-between border-t border-divider pt-3">
-        <span className="text-sm font-medium text-strong">
-          ยอดรวมทั้งหมด
-          {taxRate > 0 && (
-            <span className="ml-1 text-xs font-normal text-muted">
-              (รวม VAT)
-            </span>
-          )}
-        </span>
-        <span className={DISPLAY_AMOUNT}>
-          {formatCurrency(pricingSummary.grandTotal)}
-        </span>
-      </div>
-
-      {/* กำไรขั้นต้นโดยประมาณ — โชว์เฉพาะ role การเงิน (caller ส่ง null = ไม่ render เลย) */}
-      {marginEstimate && (
-        <div className="mt-3 border-t border-divider pt-3">
-          <MarginEstimateBlock estimate={marginEstimate} />
-        </div>
-      )}
+      {body}
     </Section>
   );
 }

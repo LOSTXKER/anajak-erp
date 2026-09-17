@@ -19,6 +19,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Section, SectionTitle } from "@/components/ui/section";
+import { InfoChip } from "@/components/ui/info-chip";
 import {
   Tabs,
   TabsBar,
@@ -43,7 +44,7 @@ import { calculateFormItemSubtotal, calculateOrderSummary } from "@/lib/pricing"
 import { cn, formatCurrency } from "@/lib/utils";
 import { Alert } from "@/components/ui/alert";
 import { Field } from "@/components/ui/field";
-import { ArrowLeft, ClipboardList, Loader2 } from "lucide-react";
+import { ArrowLeft, Calculator, ClipboardList, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -521,6 +522,11 @@ export default function OrderFormPage(props: OrderFormPageProps) {
   // มีเนื้อรายการจริงไหม — ตัวตัดสินเดียวแทนสวิตช์โหมดเดิม (สอบถาม/ระบุครบ):
   // ไม่มี = เปิดเป็นการสอบถาม (ตีราคาทีหลัง) · มี = validate + ส่งรายการไปคิดเงิน
   const hasItemContent = items.some(itemHasContent);
+  // จำนวนตัวทั้งใบ — ใช้บอกใต้ยอดรวมในสรุปยอด (สูตรเดียวกับที่ server ใช้)
+  const totalQuantity = items.reduce(
+    (sum, item) => sum + item.products.reduce((n, p) => n + p.variants.reduce((q, v) => q + (v.quantity || 0), 0), 0),
+    0,
+  );
   useEffect(() => {
     if (isEdit) return;
     if (!deadline) return;
@@ -1273,46 +1279,47 @@ export default function OrderFormPage(props: OrderFormPageProps) {
           </TabsBar>
 
           <TabsContent value="intake" keepMounted className="mt-6 space-y-4">
-          {/* รับเรื่อง — ลูกค้าเป็นช่องบังคับเพียงช่องเดียว
-              หัวการ์ดเพิ่ม 2026-09-17: การ์ดเดียวในฟอร์มที่ไม่มีหัว ทั้งที่การ์ดอื่นทั้งเว็บมีหมด */}
-          <Section
+          {/* รับเรื่อง — สองการ์ด: ลูกค้า (ช่องบังคับช่องเดียว) แล้วเรื่องที่รับมา
+              ต้นแบบ mockup-order-form-2026-09-18 · เบสเคาะ "ทำจริงเลย" 18 ก.ย. */}
+          <div
             id={STEP_IDS.intake}
             tabIndex={-1}
-            title={<SectionTitle icon={ClipboardList} tone="brand">รับเรื่อง</SectionTitle>}
-            className={cn("scroll-mt-16 outline-none", FOCUS_BUTTON)}
+            className={cn("scroll-mt-16 space-y-4 outline-none", FOCUS_BUTTON)}
           >
-            <div className="space-y-4">
-              <OrderCustomerSection
-                customerId={customerId}
-                selectedCustomer={selectedCustomer}
-                invalid={submitted && !customerId}
-                lockedReason={isEdit ? "ลูกค้าผูกกับออเดอร์และประวัติเดิมแล้ว — หากเลือกผิดให้ยกเลิกใบและเปิดใหม่" : undefined}
-                onSelect={(id, customer) => {
-                  setHeaderField("customerId", id);
-                  setSelectedCustomer(customer);
-                }}
+            <OrderCustomerSection
+              customerId={customerId}
+              selectedCustomer={selectedCustomer}
+              invalid={submitted && !customerId}
+              lockedReason={isEdit ? "ลูกค้าผูกกับออเดอร์และประวัติเดิมแล้ว — หากเลือกผิดให้ยกเลิกใบและเปิดใหม่" : undefined}
+              onSelect={(id, customer) => {
+                setHeaderField("customerId", id);
+                setSelectedCustomer(customer);
+              }}
+            />
+            <Section
+              title={<SectionTitle icon={ClipboardList} tone="brand">รับเรื่อง</SectionTitle>}
+              data-order-edit-focus="info"
+              className="scroll-mt-24"
+            >
+              <OrderDetailFields
+                deadline={deadline}
+                onDeadlineChange={(value) => setHeaderField("deadline", value)}
+                priority={priority}
+                onPriorityChange={(value) => setHeaderField("priority", value)}
+                channel={channel}
+                onChannelChange={(value) => setHeaderField("channel", value)}
+                channelLockedReason={isEdit ? "ช่องทางผูกกับเลขออเดอร์และสูตรภาษีเดิม จึงเปลี่ยนไม่ได้" : undefined}
+                isMarketplace={isMarketplace}
+                externalOrderId={externalOrderId}
+                onExternalOrderIdChange={(value) => setHeaderField("externalOrderId", value)}
+                description={description}
+                onDescriptionChange={(value) => setHeaderField("description", value)}
+                notes={notes}
+                onNotesChange={(value) => setHeaderField("notes", value)}
+                showGuidance={false}
               />
-              <div data-order-edit-focus="info" className="scroll-mt-24">
-                <OrderDetailFields
-                  deadline={deadline}
-                  onDeadlineChange={(value) => setHeaderField("deadline", value)}
-                  priority={priority}
-                  onPriorityChange={(value) => setHeaderField("priority", value)}
-                  channel={channel}
-                  onChannelChange={(value) => setHeaderField("channel", value)}
-                  channelLockedReason={isEdit ? "ช่องทางผูกกับเลขออเดอร์และสูตรภาษีเดิม จึงเปลี่ยนไม่ได้" : undefined}
-                  isMarketplace={isMarketplace}
-                  externalOrderId={externalOrderId}
-                  onExternalOrderIdChange={(value) => setHeaderField("externalOrderId", value)}
-                  description={description}
-                  onDescriptionChange={(value) => setHeaderField("description", value)}
-                  notes={notes}
-                  onNotesChange={(value) => setHeaderField("notes", value)}
-                  showGuidance={false}
-                />
-              </div>
-            </div>
-          </Section>
+            </Section>
+          </div>
 
           {/* ที่อยู่ยังอยู่ในแท็บรับเรื่องตาม flow สนทนากับลูกค้า แต่เป็นคนละก้อนงาน
               จึงแยกเป็น sibling card ให้สแกน/เลื่อนไปแก้ได้ชัดทั้ง create และ edit */}
@@ -1386,15 +1393,14 @@ export default function OrderFormPage(props: OrderFormPageProps) {
           </TabsContent>
 
           <TabsContent value="pricing" keepMounted className="mt-6">
-          <Section
+          {/* ช่องกรอกซ้าย · สรุปยอดเป็นการ์ดติดขอบขวา (ต้นแบบ 2026-09-18 · เบสเคาะ "ทำจริงเลย")
+              เดิมสรุปยอดเป็นก้อนพื้นจมปิดท้าย ต้องเลื่อนลงไปดูทุกครั้งที่แก้ราคา */}
+          <div
             id={STEP_IDS.pricing}
             tabIndex={-1}
-            className={cn("scroll-mt-16 outline-none", FOCUS_BUTTON)}
+            className={cn("grid items-start gap-4 scroll-mt-16 outline-none lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]", FOCUS_BUTTON)}
           >
-            {/* เรียงลงคอลัมน์เดียว (เบสเคาะ 2026-08-04 "ไม่ต้องแบ่ง 2 ฝั่งละ") —
-                ลองแบ่งซ้าย/ขวามา 3 รอบแล้วไม่ลงตัว เลิกแบ่ง แต่คงของที่ดีขึ้นไว้ทั้งหมด:
-                ไม่มีเส้นคั่นสักเส้น · ส่วนลดท้ายบิลอยู่ฝั่งช่องกรอก · สรุปยอดเป็นก้อนพื้นจมปิดท้าย */}
-            <div className="space-y-6">
+            <Section>
               <div className="space-y-6">
                 <fieldset disabled={workReadOnly} className="m-0 min-w-0 border-0 p-0">
                   <OrderFeeSection
@@ -1506,22 +1512,28 @@ export default function OrderFormPage(props: OrderFormPageProps) {
                 )}
               </div>
 
-              {/* สรุปยอดเป็นก้อนพื้นจม — อ่านออกทันทีว่านี่คือผลลัพธ์ ไม่ใช่ช่องให้กรอกต่อ */}
-              <div className={cn(RADIUS.surface, SUNK_PANEL, "p-5")}>
-                <OrderPriceSummary
-                  pricingSummary={pricingSummary}
-                  showFeeSections={true}
-                  isMarketplace={isMarketplace}
-                  channelLabel={CHANNEL_LABELS[channel]}
-                  taxRate={taxRate}
-                  platformFee={platformFee}
-                  discount={discount}
-                  marginEstimate={marginEstimate}
-                  embedded
-                />
-              </div>
-            </div>
-          </Section>
+            </Section>
+
+            <Section
+              title={<SectionTitle icon={Calculator} tone="finance">สรุปยอด</SectionTitle>}
+              action={taxRate > 0 ? <InfoChip size="sm">รวม VAT {taxRate}%</InfoChip> : undefined}
+              className="lg:sticky lg:top-24"
+            >
+              <OrderPriceSummary
+                pricingSummary={pricingSummary}
+                showFeeSections={true}
+                isMarketplace={isMarketplace}
+                channelLabel={CHANNEL_LABELS[channel]}
+                taxRate={taxRate}
+                platformFee={platformFee}
+                discount={discount}
+                marginEstimate={marginEstimate}
+                embedded
+                headless
+                totalQuantity={totalQuantity}
+              />
+            </Section>
+          </div>
           </TabsContent>
 
           {/* ไฟล์แนบเป็นแท็บสุดท้าย (เดิมอยู่ล่างสุดของฟอร์ม เบสสั่ง 2026-08-04)

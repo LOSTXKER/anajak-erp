@@ -4,8 +4,9 @@ import { Input } from "@/components/ui/input";
 import { MoneyInput, NumberInput } from "@/components/ui/number-input";
 import { Badge } from "@/components/ui/badge";
 import { Select } from "@/components/ui/select";
-import { formatCurrency } from "@/lib/utils";
-import { ImageIcon } from "lucide-react";
+import { cn, formatCurrency } from "@/lib/utils";
+import { DASHED_INTERACTIVE } from "@/components/ui/tokens";
+import { ImageIcon, Scissors, Shirt } from "lucide-react";
 import type { OrderItemForm, OrderItemProductForm } from "@/types/order-form";
 import { ITEM_SOURCES } from "@/types/order-form";
 import { getProductSourcePresentation } from "@/lib/order-item-composer";
@@ -57,6 +58,14 @@ export function ProductTableRow({
     </Select>
   );
 
+  /* บรรทัดรองของแถวที่ไม่ใช่สต็อก — สี · ไซส์ที่มี (คู่ขนานกับ "สี · ไซส์ · รหัส · คลัง" ของสต็อก) */
+  const subLabel = [
+    product.variants?.[0]?.color || null,
+    (product.variants ?? []).map((v) => v.size).filter(Boolean).join(", ") || null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
   const dash = <span className="text-xs text-muted">—</span>;
 
   return (
@@ -65,39 +74,53 @@ export function ProductTableRow({
         {/* แหล่ง */}
         <td className="py-2 pl-1 pr-3 align-top">{sourceBadge}</td>
 
-        {/* สินค้า */}
+        {/* สินค้า — ทุกแหล่งอ่านเป็นแบบเดียวกัน: รูปย่อ · ชื่อ · บรรทัดรอง
+            (เบสทัก 2026-09-18 "ลูกค้าส่งมา กับ สั่งทำ ดูยาก ไม่เหมือนกับเสื้อสต๊อค"
+             ของเดิมสองแหล่งนั้นเป็นช่องพิมพ์เปล่า ไม่มีรูปย่อ คอลัมน์จึงเริ่มคนละตำแหน่ง) */}
         <td className="py-2 pr-2 align-top">
-          {isFromStock ? (
-            <div className="flex items-center gap-2">
-              {product.productImageUrl ? (
-                /* Signed URLs มาจาก Stock หลาย host จึงใช้รูปเดิมโดยไม่ผ่าน Next image optimizer */
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={product.productImageUrl} alt={productLabel} className="h-9 w-9 flex-shrink-0 rounded-lg border border-border object-cover" />
-              ) : (
-                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-border bg-surface-muted">
-                  <ImageIcon className="h-4 w-4 text-muted" />
-                </div>
-              )}
-              <div className="min-w-0">
-                <span className="block truncate text-sm font-medium text-strong">{productLabel}</span>
-                {variantLabel && <span className="block text-xs text-muted">{variantLabel}</span>}
-                <div className="mt-0.5 flex items-center gap-2 text-xs text-muted">
-                  {product.productSku && <span>{product.productSku}</span>}
-                  {product.stockAvailable != null && (
-                    <span className={product.stockAvailable > 0 ? "text-green-600 dark:text-green-400" : "text-red-700 dark:text-red-300"}>คลัง {product.stockAvailable}</span>
-                  )}
-                </div>
+          <div className="flex items-start gap-2">
+            {isFromStock && product.productImageUrl ? (
+              /* Signed URLs มาจาก Stock หลาย host จึงใช้รูปเดิมโดยไม่ผ่าน Next image optimizer */
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={product.productImageUrl} alt={productLabel} className="h-9 w-9 flex-shrink-0 rounded-lg border border-border object-cover" />
+            ) : (
+              <div
+                className={cn(
+                  "flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-surface-muted text-muted",
+                  isFromStock ? "border border-border" : DASHED_INTERACTIVE,
+                )}
+              >
+                {isCustomMade ? <Scissors className="h-4 w-4" /> : isCustomerProvided ? <Shirt className="h-4 w-4" /> : <ImageIcon className="h-4 w-4" />}
               </div>
+            )}
+            <div className="min-w-0 flex-1">
+              {isFromStock ? (
+                <span className="block truncate text-sm font-medium text-strong">{productLabel}</span>
+              ) : (
+                <Input
+                  aria-label={`ชื่อสินค้า ${prodIdx + 1}`}
+                  value={product.description}
+                  onChange={(e) => updateProduct("description", e.target.value)}
+                  placeholder={isCustomerProvided ? "ชื่อสินค้า เช่น เสื้อยืดลูกค้า" : "ชื่อสินค้า เช่น เสื้อคอกลม Cotton"}
+                  size="dense"
+                  className="border-transparent bg-transparent px-1.5 font-medium text-strong hover:border-border"
+                />
+              )}
+              <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-muted">
+                {isFromStock ? (
+                  <>
+                    {variantLabel && <span>{variantLabel}</span>}
+                    {product.productSku && <span>{product.productSku}</span>}
+                    {product.stockAvailable != null && (
+                      <span className={product.stockAvailable > 0 ? "text-green-600 dark:text-green-400" : "text-red-700 dark:text-red-300"}>คลัง {product.stockAvailable}</span>
+                    )}
+                  </>
+                ) : (
+                  <span>{subLabel || "ยังไม่ได้ใส่สี/ไซส์"}</span>
+                )}
+              </p>
             </div>
-          ) : (
-            <Input
-              aria-label={`ชื่อสินค้า ${prodIdx + 1}`}
-              value={product.description}
-              onChange={(e) => updateProduct("description", e.target.value)}
-              placeholder={isCustomerProvided ? "ชื่อสินค้า เช่น เสื้อยืดลูกค้า" : "ชื่อสินค้า เช่น เสื้อคอกลม Cotton"}
-              size="dense"
-            />
-          )}
+          </div>
         </td>
 
         {/* แพค */}
