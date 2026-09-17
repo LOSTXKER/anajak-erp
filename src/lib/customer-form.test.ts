@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildCustomerCommunicationPayload,
   buildCustomerUpdatePayload,
+  customerDuplicateProbes,
   customerEditFormFromRecord,
   hasCorporateDetails,
   validateCustomerCommunicationForm,
@@ -156,5 +157,26 @@ describe("customer communication form policy", () => {
     expect(
       validateCustomerCommunicationForm({ channel: "PHONE", subject: "", content: "   " })
     ).toEqual({ content: "กรุณาสรุปสิ่งที่คุยกับลูกค้า" });
+  });
+});
+
+// กันสร้างลูกค้าซ้ำ — ฟอร์มเพิ่มลูกค้าชุดเดียวของทั้งเว็บใช้คำค้นชุดนี้ก่อนสร้างจริง
+// (ยกมาจากฟอร์มย่อในตัวเลือกลูกค้า ตอนรวมฟอร์ม 2026-09-18)
+describe("customerDuplicateProbes", () => {
+  it("ค้นด้วยเบอร์ที่ตัดขีดแล้ว → LINE → ชื่อ ตามลำดับ", () => {
+    expect(
+      customerDuplicateProbes({
+        ...baseForm,
+        name: "  คุณส้ม LINE  ",
+        phone: "081-234-5678",
+        lineId: " @somline ",
+      })
+    ).toEqual(["0812345678", "@somline", "คุณส้ม LINE"]);
+  });
+
+  it("ช่องที่ว่างไม่ถูกใช้ค้น — ไม่เหวี่ยงคำว่างไปเจอทุกคน", () => {
+    expect(customerDuplicateProbes({ ...baseForm, name: "คุณเอ", phone: "", lineId: "   " })).toEqual([
+      "คุณเอ",
+    ]);
   });
 });

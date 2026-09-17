@@ -1,30 +1,23 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import type { RouterOutput } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
+import { CustomerCreateDialog } from "@/components/customers/customer-create-dialog";
 import { UserPlus, Search } from "lucide-react";
-import { normalizePhone } from "@/lib/phone";
 import { QueryError } from "@/components/ui/query-error";
-import { Field } from "@/components/ui/field";
 
 import { cn } from "@/lib/utils";
-import { TINT } from "@/components/ui/tokens";
 
-// ตัวเลือกลูกค้ามาตรฐาน: ค้นหาผ่าน server + เพิ่มลูกค้าด่วนจากชื่อแชท + กันสร้างซ้ำ
+// ตัวเลือกลูกค้ามาตรฐาน: ค้นหาผ่าน server + เพิ่มลูกค้าใหม่ได้จากที่นี่ตรงๆ
 // หลักคิด "โปรไฟล์โตตามงาน" — ลูกค้าแชทใหม่เริ่มได้ด้วยชื่ออย่างเดียว ข้อมูลอื่นเติมทีหลัง
+// ปุ่ม "ใหม่" เปิดฟอร์มเพิ่มลูกค้าชุดเดียวกับหน้าลูกค้า (CustomerCreateDialog) — เบสสั่ง
+// 2026-09-18 "ขอใช้ฟอร์มเดียวกันทั้งเว็บ" · เดิมที่นี่มีฟอร์มย่อ 4 ช่องของตัวเอง
+// ลูกค้าที่เพิ่มจากหน้าเปิดงานจึงไม่มีที่อยู่/เลขภาษี แล้วไปติดตอนออกใบกำกับ
+// (กันสร้างซ้ำจากชื่อ/เบอร์/LINE ย้ายไปอยู่ในกล่องนั้นแล้ว ทุกทางเข้าได้เหมือนกัน)
 
 export type PickerCustomer = RouterOutput["customer"]["list"]["customers"][number];
 
@@ -70,17 +63,6 @@ export function CustomerPicker({
   // ลูกค้าที่เลือกอยู่ — ปักไว้ใน dropdown แม้ผลค้นหาปัจจุบันไม่มีรายนี้
   const [selected, setSelected] = useState<PickerCustomer | null>(initialSelected);
 
-  // Quick create form
-  const [newName, setNewName] = useState("");
-  const [newLineId, setNewLineId] = useState("");
-  const [newPhone, setNewPhone] = useState("");
-  const [newType, setNewType] = useState<"INDIVIDUAL" | "CORPORATE">("INDIVIDUAL");
-  // ลูกค้าที่หน้าตาคล้ายของใหม่ — ให้เลือกใช้รายเดิมก่อนยืนยันสร้างซ้ำ
-  const [similar, setSimilar] = useState<PickerCustomer[] | null>(null);
-  // กันกดซ้ำระหว่างรอผลเช็คซ้ำ (isPending ของ mutation ยังไม่ติดช่วงนั้น)
-  const [isChecking, setIsChecking] = useState(false);
-
-  const utils = trpc.useUtils();
   const { data, isLoading, isError, refetch } = trpc.customer.list.useQuery(
     {
       search: search || undefined,
@@ -89,16 +71,6 @@ export function CustomerPicker({
     { enabled: !disabled },
   );
 
-  const createCustomer = trpc.customer.create.useMutation({
-    onSuccess: (customer) => {
-      utils.customer.list.invalidate();
-      pick(customer as PickerCustomer);
-      closeCreate();
-      toast.success(`เพิ่มลูกค้า "${customer.name}" แล้ว — เติมที่อยู่/ข้อมูลอื่นทีหลังได้`);
-    },
-    onError: (err) => toast.error(err.message ?? "เพิ่มลูกค้าไม่สำเร็จ"),
-  });
-
   const list = data?.customers ?? [];
   const options =
     selected && !list.some((c) => c.id === selected.id) ? [selected, ...list] : list;
@@ -106,52 +78,6 @@ export function CustomerPicker({
   function pick(customer: PickerCustomer | null) {
     setSelected(customer);
     onChange(customer?.id ?? "", customer);
-  }
-
-  function closeCreate() {
-    setShowCreate(false);
-    setNewName("");
-    setNewLineId("");
-    setNewPhone("");
-    setNewType("INDIVIDUAL");
-    setSimilar(null);
-    setIsChecking(false);
-  }
-
-  async function handleCreate() {
-    if (isChecking) return;
-    // เบอร์เก็บเป็นตัวเลขล้วน — กันซ้ำพลาดเพราะคนพิมพ์มี/ไม่มีขีด (helper เดียวกับ server)
-    const cleanPhone = normalizePhone(newPhone);
-
-    // กันซ้ำก่อนสร้าง: เบอร์/LINE ตรง หรือชื่อใกล้เคียง → เสนอใช้รายเดิม
-    if (similar === null) {
-      try {
-        setIsChecking(true);
-        const probes = [cleanPhone, newLineId, newName].filter(Boolean);
-        const matches = new Map<string, PickerCustomer>();
-        for (const probe of probes) {
-          const result = await utils.customer.list.fetch({ search: probe, limit: 5 });
-          for (const c of result.customers) matches.set(c.id, c);
-        }
-        if (matches.size > 0) {
-          setSimilar([...matches.values()]);
-          return; // รอผู้ใช้ตัดสิน — กดสร้างอีกครั้ง = ยืนยันสร้างใหม่
-        }
-      } catch {
-        toast.error("ตรวจลูกค้าซ้ำไม่สำเร็จ — ลองอีกครั้ง");
-        return;
-      } finally {
-        setIsChecking(false);
-      }
-    }
-    createCustomer.mutate({
-      name: newName,
-      lineId: newLineId || undefined,
-      phone: cleanPhone || undefined,
-      customerType: newType,
-      segment: "NEW",
-      tags: [],
-    });
   }
 
   return (
@@ -220,98 +146,14 @@ export function CustomerPicker({
         </Button>
       </div>}
 
-      <Dialog open={showCreate} onOpenChange={(open) => !open && closeCreate()}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>เพิ่มลูกค้าใหม่</DialogTitle>
-            <DialogDescription>
-              ใส่แค่ชื่อแชทก็เริ่มงานได้ — ที่อยู่/เบอร์/ข้อมูลใบกำกับ เติมทีหลังเมื่อลูกค้าบอก
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3">
-            <Field label="ชื่อ (ชื่อแชทได้)" required>
-              <Input
-                value={newName}
-                onChange={(e) => {
-                  setNewName(e.target.value);
-                  setSimilar(null);
-                }}
-                placeholder="เช่น คุณส้ม LINE"
-              />
-            </Field>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="LINE ID">
-                <Input
-                  value={newLineId}
-                  onChange={(e) => {
-                    setNewLineId(e.target.value);
-                    setSimilar(null);
-                  }}
-                  placeholder="@..."
-                />
-              </Field>
-              <Field label="เบอร์ (ถ้ามี)">
-                <Input
-                  value={newPhone}
-                  onChange={(e) => {
-                    setNewPhone(e.target.value);
-                    setSimilar(null);
-                  }}
-                  placeholder="08xxxxxxxx"
-                />
-              </Field>
-            </div>
-            <Field label="ประเภทลูกค้า">
-              <Select
-                value={newType}
-                onChange={(e) => setNewType(e.target.value as "INDIVIDUAL" | "CORPORATE")}
-              >
-                <option value="INDIVIDUAL">บุคคลธรรมดา</option>
-                <option value="CORPORATE">นิติบุคคล (บริษัท/หจก. — เติมเลขภาษีทีหลังได้)</option>
-              </Select>
-            </Field>
-
-            {similar && similar.length > 0 && (
-              <div className={cn(TINT.warning, "space-y-1.5 rounded-lg border p-3")}>
-                <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
-                  เจอลูกค้าที่คล้ายกันในระบบ — ใช่คนเดียวกันไหม?
-                </p>
-                {similar.map((c) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    onClick={() => {
-                      pick(c);
-                      closeCreate();
-                    }}
-                    className="group flex w-full items-center justify-between rounded-lg bg-surface px-2.5 py-1.5 text-left text-sm transition-colors active:bg-interactive-pressed"
-                  >
-                    <span>
-                      {c.name}
-                      {c.company && <span className="text-muted group-active:text-secondary"> ({c.company})</span>}
-                      <span className="ml-1.5 text-xs text-muted group-active:text-secondary">
-                        {[c.phone, c.lineId].filter(Boolean).join(" · ")}
-                      </span>
-                    </span>
-                    <span className="text-xs text-blue-600 dark:text-blue-400">ใช้รายนี้</span>
-                  </button>
-                ))}
-                <p className="text-xs text-amber-700 dark:text-amber-400">
-                  ไม่ใช่คนเดียวกัน → กด &quot;เพิ่มลูกค้า&quot; อีกครั้งเพื่อยืนยันสร้างใหม่
-                </p>
-              </div>
-            )}
-          </div>
-          <DialogSubmitFooter
-            pending={createCustomer.isPending || isChecking}
-            disabled={!newName.trim()}
-            submitLabel="เพิ่มลูกค้า"
-            submitIcon={<UserPlus />}
-            onCancel={closeCreate}
-            onSubmit={handleCreate}
-          />
-        </DialogContent>
-      </Dialog>
+      {showCreate && (
+        <CustomerCreateDialog
+          onClose={() => setShowCreate(false)}
+          // ผลลัพธ์ของ create (และรายเดิมที่คนกด "ใช้รายนี้") มาจาก customer router
+          // ชุดเดียวกับ list — แคสต์ให้เป็นรายการใน dropdown เหมือนโค้ดเดิม
+          onCreated={(customer) => pick(customer as PickerCustomer)}
+        />
+      )}
     </div>
   );
 }

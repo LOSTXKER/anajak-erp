@@ -119,8 +119,6 @@ function CustomersPageContent() {
 
   const { data: me } = trpc.user.me.useQuery();
   const canManageCustomers = permAllows(me?.permissions, "manage_customers");
-  // วงเงินเครดิต = การตัดสินใจความเสี่ยง — SALES ตั้งเองไม่ได้ (ตรง server guard ฝั่ง create)
-  const canSetCredit = !me || me.role !== "SALES";
   // Policy ⑦: ฝ่ายผลิต/กราฟิกไม่เห็นเงินฝั่งขาย — ซ่อนคอลัมน์ยอดรวมทั้งแถบ (server ส่ง null มาอยู่แล้ว)
   const canSeeMoney = permAllows(me?.permissions, "see_order_money");
   const statsQuery = trpc.customer.stats.useQuery();
@@ -394,7 +392,7 @@ function CustomersPageContent() {
       />
 
       {creating && canManageCustomers && (
-        <CustomerCreateDialog canEditCredit={canSetCredit} onClose={() => setCreating(false)} />
+        <CustomerCreateDialog onClose={() => setCreating(false)} />
       )}
     </PageShell>
   );

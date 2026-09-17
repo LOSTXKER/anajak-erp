@@ -1,3 +1,4 @@
+import { normalizePhone } from "./phone";
 import type { PaymentTermsValue } from "./payment-terms";
 
 export type CustomerTypeValue = "INDIVIDUAL" | "CORPORATE";
@@ -269,6 +270,13 @@ export function validateCustomerEditForm(form: CustomerEditForm): CustomerEditEr
     errors.creditLimit = "วงเงินเครดิตต้องเป็นตัวเลข";
   }
   return errors;
+}
+
+/** คำที่ใช้ค้นหาลูกค้าซ้ำก่อนสร้างใหม่ (เบอร์ → LINE → ชื่อ)
+ *  เบอร์ตัดขีด/ช่องว่างก่อนค้น — คนพิมพ์ 081-234-5678 กับ 0812345678 ต้องเจอคนเดียวกัน
+ *  (helper เดียวกับที่ server ใช้ normalize ตอนบันทึก) · ช่องว่างไม่ต้องค้น */
+export function customerDuplicateProbes(form: CustomerEditForm): string[] {
+  return [normalizePhone(form.phone), form.lineId.trim(), form.name.trim()].filter(Boolean);
 }
 
 /** ข้อมูลที่ยังมีผลกับใบกำกับ/วงเงินจริง ต้องไม่ถูกซ่อนเมื่อสลับเป็นบุคคลธรรมดา */
