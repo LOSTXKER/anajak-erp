@@ -43,17 +43,34 @@ NumberInput.displayName = "NumberInput";
  *  ชั้น UI คุมรูปแบบรับเข้าให้เหมือนกันทุกฟอร์ม) */
 const MoneyInput = React.forwardRef<
   HTMLInputElement,
-  Omit<NumberInputProps, "integer">
->(({ className, ...props }, ref) => (
-  <NumberInput
-    ref={ref}
-    min={0}
-    step={0.01}
-    placeholder="0.00"
-    className={cn("text-right", className)}
-    {...props}
-  />
-));
+  Omit<NumberInputProps, "integer"> & {
+    /** แสดง ฿ นำหน้าในช่อง + ตัวเลขฟอนต์ mono (ฟอร์มออเดอร์ตามต้นแบบ 2026-09-18) — ไม่ส่ง = หน้าตาเดิม */
+    currency?: boolean;
+  }
+>(({ className, currency = false, ...props }, ref) => {
+  const input = (
+    <NumberInput
+      ref={ref}
+      min={0}
+      step={0.01}
+      placeholder="0.00"
+      className={cn("text-right", currency && "pl-6 font-mono", className)}
+      {...props}
+    />
+  );
+  if (!currency) return input;
+  return (
+    <span className="relative block w-full min-w-0">
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-y-0 left-2.5 flex items-center text-xs text-muted"
+      >
+        ฿
+      </span>
+      {input}
+    </span>
+  );
+});
 MoneyInput.displayName = "MoneyInput";
 
 export { NumberInput, MoneyInput };
