@@ -18,6 +18,7 @@ import { normalizePhone } from "@/lib/phone";
 import { addressLine, optionalAddressLine, optionalPostalCode } from "@/lib/address-schema";
 import { isValidDeliveryTransition, type DeliveryStatus } from "@/lib/delivery-status";
 import { DELIVERY_STATUS_LABELS } from "@/lib/status-config";
+import { customerDisplayName } from "@/lib/customer-name";
 
 // Production V2 แยก “แพ็กที่ Station” ออกจาก “สร้างขนส่ง/เลขพัสดุ/ส่งของ”
 // ชัดเจน: ฝ่ายผลิตใช้ manufacturing commands เท่านั้น ส่วน writer ใบส่งเป็นงานออฟฟิศ
@@ -109,7 +110,7 @@ export const deliveryRouter = router({
         orderNumber: order.orderNumber,
         blindShip: order.blindShip,
         blindShipSenderName: order.blindShipSenderName,
-        customerName: order.customer.company || order.customer.name,
+        customerName: customerDisplayName(order.customer),
         lines,
         totalRemaining: evidence.totalRemaining,
       };

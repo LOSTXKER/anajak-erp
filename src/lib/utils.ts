@@ -43,6 +43,21 @@ export function formatDateCompact(date: Date | string | number): string {
   }).format(new Date(date));
 }
 
+/** วันที่ตัวเลข DD/MM/พ.ศ. เช่น "18/09/2569" — ไฟล์ที่ดาวน์โหลด (CSV) ที่ Excel ต้องอ่านเป็นวันที่ได้
+ *  ตั้งใจให้ต่างจากวันที่บนจอ ("18 ก.ย. 2569"): บนจอไว้ให้คนอ่าน ในไฟล์ไว้ให้โปรแกรมอ่าน
+ *  เดิม CSV เรียก toLocaleDateString("th-TH") เปล่า ๆ ซึ่งยึดเขตเวลาของเครื่องที่กดโหลด —
+ *  กดจากเครื่องที่ไม่ได้ตั้งเวลาไทย ออเดอร์ที่เปิดหัวค่ำจะเลื่อนไปอีกวันในไฟล์
+ *  ระบุปฏิทิน buddhist ไว้ตรง ๆ (ไม่พึ่งค่าปริยายของ th-TH เหมือน helper ตัวอื่น) เพราะปีที่เป็น
+ *  ตัวเลขล้วนไม่มีอะไรบอกศักราช ถ้าหลุดเป็น ค.ศ. คนอ่านไฟล์จะไม่ทันสังเกต */
+export function formatDateNumeric(date: Date | string | number): string {
+  return new Intl.DateTimeFormat("th-TH-u-ca-buddhist", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    timeZone: BANGKOK_TZ,
+  }).format(new Date(date));
+}
+
 /** วันที่เต็มมีชื่อวัน เช่น "วันศุกร์ที่ 18 กันยายน 2569" — หัวหน้าแรก/หัวกลุ่มวันในแท็บประวัติ
  *  เดิม longDate (home-view) เขียน locale "th-TH-u-ca-buddhist" ส่วน dayLabel (order-revisions)
  *  เขียน "th-TH" — ตรวจแล้วทั้งคู่ resolve เป็นปฏิทิน buddhist ให้ปี พ.ศ. เท่ากัน จึงรวมเป็นตัวเดียว */

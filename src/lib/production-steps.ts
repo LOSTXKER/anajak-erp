@@ -16,7 +16,10 @@ export const STEP_TYPE_LABELS: Record<string, string> = {
   SEWING: "ตัดเย็บใหม่ (ร้านนอก)",
   SCREEN_PRINTING: "สกรีน (ร้านนอก)",
   EMBROIDERY: "ปักลาย (ร้านนอก)",
-  SUBLIMATION: "Sublimation (ร้านนอก)",
+  // ชื่อขั้นเป็นไทยทั้งชุด และเรียกวิธีพิมพ์ด้วยคำเดียวกับ PRINT_LABELS.SUBLIMATION ("ซับ")
+  // — ช่างเห็นคำว่า "ซับ" ในออเดอร์แล้วต้องเจอคำเดิมบนใบผลิต ไม่ใช่ศัพท์อังกฤษคนละคำ
+  // (ท้ายชื่อคง " (ร้านนอก)" ไว้ เพราะหลายหน้าตัดท้ายนี้ทิ้งเพื่อเอาชื่องานล้วน)
+  SUBLIMATION: "ซับ (ร้านนอก)",
   SPECIAL_PRINT: "พิมพ์พิเศษ",
   TAGGING: "เย็บป้ายคอ (ร้านนอก)",
   PACKAGING: "แพ็ค",
@@ -92,7 +95,8 @@ export const LANE_LABELS: Record<ProductionLane, string> = {
   DTG: "DTG",
   SILKSCREEN: "สกรีน",
   EMBROIDERY: "ปัก",
-  SUBLIMATION: "Sublimation",
+  // ชื่อเลนใช้คำสั้นแบบเดียวกับ "สกรีน"/"ปัก" และตรงกับวิธีพิมพ์ที่ออเดอร์เรียกว่า "ซับ"
+  SUBLIMATION: "ซับ",
   LABEL: "ป้ายคอ",
   PACK: "แพ็ค",
   OTHER: "อื่นๆ",

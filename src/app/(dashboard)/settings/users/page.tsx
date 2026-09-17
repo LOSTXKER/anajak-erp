@@ -301,18 +301,16 @@ export default function UsersSettingsPage() {
             </ToolbarGroup>
           </Toolbar>
         }
+        /* ค้นแล้วไม่เจอให้ตัวกลางพูด เหมือนหน้าบิลทั้งชุด — เดิมหน้านี้เขียนคำและปุ่มของตัวเอง
+           ("ไม่พบผู้ใช้ที่ค้น" · "ล้างคำค้น") จนกล่องเดียวกันคนละหน้าพูดคนละคำ */
+        filtered={Boolean(keyword)}
+        onClearFilters={() => setSearch("")}
+        filteredDescription="ค้นได้ด้วยชื่อหรืออีเมล — ล้างแล้วจะเห็นผู้ใช้ทั้งหมดตามเดิม"
         emptyState={
           <EmptyState
             icon={Users}
-            title={keyword ? "ไม่พบผู้ใช้ที่ค้น" : "ยังไม่มีผู้ใช้"}
-            description={keyword ? "ลองเปลี่ยนคำค้นหา" : undefined}
-            action={
-              keyword ? (
-                <Button variant="outline" size="sm" onClick={() => setSearch("")}>
-                  ล้างคำค้น
-                </Button>
-              ) : undefined
-            }
+            title="ยังไม่มีผู้ใช้"
+            description="เพิ่มผู้ใช้คนแรก แล้วเขาจะเข้าระบบด้วยอีเมลกับรหัสผ่านที่ตั้งให้ได้"
           />
         }
         pagination={closeInsteadOfDeleteNote}

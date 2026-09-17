@@ -42,6 +42,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
+import { customerContactName } from "@/lib/customer-name";
 
 type DunningTone = "gentle" | "firm";
 
@@ -491,9 +492,9 @@ function AgingPageContent() {
                     >
                       {row.company || row.name}
                     </Link>
-                    {row.company && (
+                    {customerContactName(row) && (
                       <p className="mt-0.5 text-xs text-muted">
-                        ผู้ติดต่อ {row.name}
+                        ผู้ติดต่อ {customerContactName(row)}
                       </p>
                     )}
                   </div>

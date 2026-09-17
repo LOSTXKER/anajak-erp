@@ -82,14 +82,16 @@ const catalogItems = [
   { category: "ADDON", type: "POLY_BAG", name: "ถุงซิปรูด", defaultPrice: 5, pricingType: "PER_PIECE", sortOrder: 8 },
   { category: "ADDON", type: "STICKER", name: "สติ๊กเกอร์แบรนด์", defaultPrice: 2, pricingType: "PER_PIECE", sortOrder: 9 },
   { category: "ADDON", type: "BOX", name: "กล่องบรรจุภัณฑ์", defaultPrice: 25, pricingType: "PER_PIECE", sortOrder: 10 },
-  // PRINT
-  { category: "PRINT", type: "SILK_SCREEN", name: "Silk Screen 1 สี", defaultPrice: 15, pricingType: "PER_PIECE", sortOrder: 1 },
-  { category: "PRINT", type: "SILK_SCREEN", name: "Silk Screen 2 สี", defaultPrice: 25, pricingType: "PER_PIECE", sortOrder: 2 },
-  { category: "PRINT", type: "SILK_SCREEN", name: "Silk Screen 3 สี", defaultPrice: 35, pricingType: "PER_PIECE", sortOrder: 3 },
-  { category: "PRINT", type: "SILK_SCREEN", name: "Silk Screen 4+ สี", defaultPrice: 45, pricingType: "PER_PIECE", sortOrder: 4 },
+  // PRINT — ชื่อท่าพิมพ์ใช้คำไทยชุดเดียวกับป้ายวิธีพิมพ์ (PRINT_LABELS ใน src/lib/print-labels.ts)
+  // เพราะรายการนี้ถูกกางเป็น dropdown "ต้นแบบ" ในฟอร์มเปิดออเดอร์ คนเปิดออเดอร์จึงเห็นคำจากที่นี่ตรง ๆ
+  // (ฐานที่ seed ไปแล้วเทียบด้วย (category, type, name) — ชื่อเก่ายังอยู่ ต้องแก้เองที่ Settings → Services)
+  { category: "PRINT", type: "SILK_SCREEN", name: "สกรีน 1 สี", defaultPrice: 15, pricingType: "PER_PIECE", sortOrder: 1 },
+  { category: "PRINT", type: "SILK_SCREEN", name: "สกรีน 2 สี", defaultPrice: 25, pricingType: "PER_PIECE", sortOrder: 2 },
+  { category: "PRINT", type: "SILK_SCREEN", name: "สกรีน 3 สี", defaultPrice: 35, pricingType: "PER_PIECE", sortOrder: 3 },
+  { category: "PRINT", type: "SILK_SCREEN", name: "สกรีน 4+ สี", defaultPrice: 45, pricingType: "PER_PIECE", sortOrder: 4 },
   { category: "PRINT", type: "DTG", name: "DTG พิมพ์ดิจิทัล", defaultPrice: 50, pricingType: "PER_PIECE", sortOrder: 5 },
-  { category: "PRINT", type: "SUBLIMATION", name: "Sublimation", defaultPrice: 40, pricingType: "PER_PIECE", sortOrder: 6 },
-  { category: "PRINT", type: "HEAT_TRANSFER", name: "Heat Transfer", defaultPrice: 30, pricingType: "PER_PIECE", sortOrder: 7 },
+  { category: "PRINT", type: "SUBLIMATION", name: "ซับ", defaultPrice: 40, pricingType: "PER_PIECE", sortOrder: 6 },
+  { category: "PRINT", type: "HEAT_TRANSFER", name: "รีดร้อน", defaultPrice: 30, pricingType: "PER_PIECE", sortOrder: 7 },
   { category: "PRINT", type: "EMBROIDERY", name: "ปักโลโก้ (ไม่เกิน 8cm)", defaultPrice: 25, pricingType: "PER_PIECE", sortOrder: 8 },
   { category: "PRINT", type: "EMBROIDERY", name: "ปักโลโก้ (8-15cm)", defaultPrice: 40, pricingType: "PER_PIECE", sortOrder: 9 },
   // FEE

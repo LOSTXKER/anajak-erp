@@ -259,7 +259,9 @@ export function buildCustomerUpdatePayload(
 /** ตรวจเฉพาะข้อบังคับที่ฟอร์มเดิมใช้ โดยไม่เพิ่มกติกาธุรกิจใหม่เหนือ server */
 export function validateCustomerEditForm(form: CustomerEditForm): CustomerEditErrors {
   const errors: CustomerEditErrors = {};
-  if (!form.name.trim()) errors.name = "กรุณากรอกชื่อลูกค้า";
+  // นิติบุคคลไม่ต้องมีชื่อผู้ติดต่อก็ได้ (เบสสั่ง 2026-09-18) — ชื่อบริษัทที่บังคับอยู่แล้วใช้เรียกแทน
+  // บุคคลธรรมดายังบังคับ เพราะช่องนี้คือชื่อลูกค้าเอง ไม่มีอย่างอื่นให้เรียก (ด่านเดียวกับ server)
+  if (form.customerType !== "CORPORATE" && !form.name.trim()) errors.name = "กรุณากรอกชื่อลูกค้า";
   if (form.customerType === "CORPORATE" && !form.company.trim()) {
     errors.company = "กรุณากรอกชื่อบริษัท";
   }

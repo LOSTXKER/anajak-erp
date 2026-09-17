@@ -185,8 +185,11 @@ export const customerRouter = router({
     .use(customerEditors)
     .input(
       z.object({
-        name: z.string().min(1, "กรุณากรอกชื่อลูกค้า"),
-        company: z.string().optional(),
+        // นิติบุคคลไม่ต้องมีชื่อผู้ติดต่อก็ได้ (เบสสั่ง 2026-09-18 "ขี้เกียจมาจัดการ")
+        // ฐานบังคับให้ฟิลด์นี้มีค่า จึงเก็บเป็นค่าว่าง ไม่ใช่ null · ด่านจริงอยู่ใต้ input:
+        // ต้องมีชื่อใดชื่อหนึ่ง ไม่งั้นลูกค้ารายนั้นจะไม่มีอะไรให้เรียกเลย
+        name: z.string().trim().default(""),
+        company: z.string().trim().optional(),
         email: z.string().email("อีเมลไม่ถูกต้อง").optional().or(z.literal("")),
         // เบอร์ normalize ที่ทางเข้า server ทุกทาง — กันซ้ำ/ค้นไม่เจอเพราะ format ต่างกัน
         phone: z
@@ -216,6 +219,9 @@ export const customerRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      if (!input.name && !input.company) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "ต้องมีชื่อลูกค้าหรือชื่อบริษัทอย่างน้อยหนึ่งอย่าง" });
+      }
       // วงเงินเครดิต = การตัดสินใจความเสี่ยง — SALES ตั้งเองไม่ได้
       if (ctx.userRole === "SALES" && input.creditLimit !== undefined) {
         throw new TRPCError({
@@ -246,8 +252,8 @@ export const customerRouter = router({
     .input(
       z.object({
         id: z.string(),
-        name: z.string().min(1).optional(),
-        company: z.string().optional(),
+        name: z.string().trim().optional(),
+        company: z.string().trim().optional(),
         email: z.string().email().optional().or(z.literal("")),
         phone: z
           .string()
@@ -291,6 +297,14 @@ export const customerRouter = router({
           code: "FORBIDDEN",
           message: "ฝ่ายขายแก้วงเงินเครดิตเองไม่ได้ — ให้ผู้จัดการ/บัญชีกำหนด",
         });
+      }
+
+      // ชื่อผู้ติดต่อลบทิ้งได้ถ้ายังเหลือชื่อบริษัท — เทียบกับค่าหลังแก้ ไม่ใช่ค่าที่ส่งมา
+      // เพราะฟอร์มส่งเฉพาะช่องที่เปลี่ยน ("ลบชื่อผู้ติดต่อ" กับ "ไม่ได้แตะ" มาเป็นค่าคนละแบบ)
+      const nextName = data.name ?? old.name;
+      const nextCompany = data.company ?? old.company;
+      if (!nextName && !nextCompany) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "ต้องมีชื่อลูกค้าหรือชื่อบริษัทอย่างน้อยหนึ่งอย่าง" });
       }
 
       const customer = await ctx.prisma.customer.update({

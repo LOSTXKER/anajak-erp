@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { BANGKOK_TZ, daysAgoText, formatBaht, formatDateFull, timeAgo } from "./utils";
+import {
+  BANGKOK_TZ,
+  daysAgoText,
+  formatBaht,
+  formatDateFull,
+  formatDateNumeric,
+  timeAgo,
+} from "./utils";
 import { formatBaht as formatBahtFromModule } from "./format";
 
 describe("re-export เงินจาก lib/format", () => {
@@ -62,5 +69,27 @@ describe("formatDateFull — วันที่เต็มมีชื่อว
 
   it("ยึดเวลาไทย — ห้าทุ่มครึ่ง UTC ยังเป็นวันถัดไปของไทย", () => {
     expect(formatDateFull(new Date("2026-09-18T17:30:00Z"))).toContain("19");
+  });
+});
+
+describe("formatDateNumeric — วันที่ในไฟล์ที่ดาวน์โหลด", () => {
+  it("DD/MM/พ.ศ. เติมศูนย์หน้า และเป็น พ.ศ. ไม่ใช่ ค.ศ.", () => {
+    expect(formatDateNumeric(new Date("2026-09-08T03:00:00Z"))).toBe("08/09/2569");
+  });
+
+  it("เที่ยงคืนตามเวลาไทย = วันใหม่ ถึงเครื่องที่กดโหลดจะเป็น UTC (17:00Z ของวันก่อน)", () => {
+    // เครื่อง UTC อ่านเวลานี้เป็น 17 ก.ย. · ไฟล์ต้องเขียน 18 เหมือนที่คนไทยเห็นบนจอ
+    expect(formatDateNumeric(new Date("2026-09-17T17:00:00Z"))).toBe("18/09/2569");
+  });
+
+  it("หัวค่ำเวลาไทยยังเป็นวันเดิม (ปลายวันที่ UTC ข้ามไปแล้ว)", () => {
+    expect(formatDateNumeric(new Date("2026-09-18T17:30:00Z"))).toBe("19/09/2569");
+    expect(formatDateNumeric(new Date("2026-09-18T16:59:00Z"))).toBe("18/09/2569");
+  });
+
+  it("รับ string/number ได้เหมือน helper วันที่ตัวอื่น", () => {
+    const iso = "2026-01-31T12:00:00Z";
+    expect(formatDateNumeric(iso)).toBe("31/01/2569");
+    expect(formatDateNumeric(new Date(iso).getTime())).toBe("31/01/2569");
   });
 });

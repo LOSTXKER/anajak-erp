@@ -1,4 +1,5 @@
 import type { ExtendedPrismaClient } from "@/lib/prisma";
+import { customerDisplayName } from "@/lib/customer-name";
 
 export type GlobalSearchResult = {
   id: string;
@@ -108,7 +109,7 @@ export async function globalSearch(
     customers: customers.map((customer) => ({
       id: customer.id,
       type: "customer" as const,
-      title: customer.company || customer.name,
+      title: customerDisplayName(customer),
       subtitle:
         [customer.company ? customer.name : null, customer.phone, customer.email]
           .filter(Boolean)

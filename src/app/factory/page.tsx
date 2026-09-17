@@ -19,6 +19,7 @@ import { ToneMark } from "@/components/ui/section";
 import { cn, formatDateShort } from "@/lib/utils";
 import { differenceInBangkokDays, formatDueDate } from "@/lib/date-utils";
 import { BLIND_SHIP_LABEL, PRIORITY_LABELS } from "@/lib/order-status";
+import { STEP_STATUS_LABELS } from "@/lib/status-config";
 
 // Factory TV — read-only pulse ของสายงานจริง 5 ด่าน
 // endpoint factory.board ไม่มี field เงินโดยโครงสร้าง และหน้านี้ไม่มี action ใด ๆ
@@ -432,7 +433,9 @@ function BoardRail({ board }: { board: Board }) {
   const problemAlerts = board.problems.map((item) => ({
     key: `problem:${item.stepId}`,
     orderNumber: item.orderNumber,
-    label: `${item.status === "FAILED" ? "งานเสีย" : "พักงาน"} · ${item.stepLabel}`,
+    // คำเดียวกับใบผลิตและจอช่าง — จอทีวีเคยเขียน "งานเสีย"/"พักงาน" ของตัวเอง
+    // คนที่เดินจากจอทีวีไปเปิดใบผลิตจึงเห็นคนละคำของเรื่องเดียวกัน
+    label: `${STEP_STATUS_LABELS[item.status === "FAILED" ? "FAILED" : "ON_HOLD"]} · ${item.stepLabel}`,
     detail: item.assignedToName || item.customerName,
     danger: true,
   }));

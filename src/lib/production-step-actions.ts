@@ -4,6 +4,7 @@ import {
   OUTSOURCE_ACTIVE_STATUSES,
 } from "@/lib/production-steps";
 import { currentProductionProblemReason } from "@/lib/production-problem";
+import { STEP_STATUS_LABELS } from "@/lib/status-config";
 
 export type ProductionStepUiAction =
   | "send-outsource"
@@ -177,7 +178,7 @@ export function selectNowSteps<S extends NowStepInput>(
           group: "waiting" as const,
           action: null,
           waitingOn: [],
-          note: currentProductionProblemReason(step) || "มีปัญหา — รอหัวหน้าตัดสินใจ",
+          note: currentProductionProblemReason(step) || `${STEP_STATUS_LABELS.FAILED} — รอหัวหน้าตัดสินใจ`,
         };
       }
       if (step.status === "ON_HOLD") {

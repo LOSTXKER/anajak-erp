@@ -27,7 +27,7 @@ import { c, CardHead, Empty, timeText, type Tone } from "@/components/kit/kit";
 import { STEP_TYPE_LABELS } from "@/lib/production-steps";
 import { manufacturingTaskHref } from "@/lib/manufacturing-task";
 import { BLIND_SHIP_LABEL } from "@/lib/order-status";
-import { APPROVAL_STATUS_LABELS } from "@/lib/status-config";
+import { APPROVAL_STATUS_LABELS, STEP_STATUS_LABELS } from "@/lib/status-config";
 import {
   groupTaskItems,
   taskAttention,
@@ -94,7 +94,10 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
 
   for (const step of data.production) {
     const isBlocked = step.status === "FAILED" || step.status === "ON_HOLD";
-    const state = isBlocked ? "มีปัญหา" : step.status === "IN_PROGRESS" ? "กำลังทำ" : "รอทำ";
+    // คำสถานะขั้นอ่านจากชุดกลางชุดเดียวกับใบผลิตและจอทีวี — "ติดปัญหา" (งานสะดุด)
+    // กับ "พักไว้" (หัวหน้าตั้งใจหยุด) เป็นคนละเรื่อง ยุบเป็นคำเดียวแล้วช่างแยกไม่ออก
+    // ว่าต้องลงมือแก้หรือรอคำสั่ง (เดิมจุดนี้เขียน "มีปัญหา" ทับทั้งสองค่า)
+    const state = STEP_STATUS_LABELS[step.status as keyof typeof STEP_STATUS_LABELS] ?? step.status;
     items.push({
       key: `step:${step.stepId}`,
       href: operationHref(step),

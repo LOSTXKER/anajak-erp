@@ -15,11 +15,13 @@ import {
   worklistStationChips,
 } from "./production-worklist";
 import type {
+  BoardException,
   BoardJob,
   BoardOrderLike,
   BoardStepLike,
   ProductionBoard,
 } from "./production-board";
+import { BOARD_REASON_OVERDUE, BOARD_REASON_STEP_FAILED } from "./production-board";
 
 type TestOrder = BoardOrderLike<BoardStepLike>;
 type TestJob = BoardJob<TestOrder, BoardStepLike>;
@@ -106,7 +108,8 @@ function board(jobs: TestJob[]): ProductionBoard<TestOrder, BoardStepLike> {
         customerName: null,
         deadline: null,
         priority: null,
-        reasons: [{ label: "มีปัญหา", tone: "red" }],
+        // เหตุทั่วไปที่บอร์ดสร้างจริง — ยกค่ามาจากแหล่งเดียวกับฝั่งสร้าง ไม่พิมพ์ข้อความเอง
+        reasons: [{ label: BOARD_REASON_STEP_FAILED, tone: "red" }],
         waitingOn: [],
         href: "/production/prod-problem",
         skippable: false,
@@ -193,6 +196,47 @@ describe("production worklist", () => {
       attention: true,
       tone: "red",
     });
+  });
+
+  // ด่านกันพลาดของการเปลี่ยนคำ: ฝั่งกรองเคยเทียบข้อความที่พิมพ์ซ้ำเอง พอบอร์ดเปลี่ยนคำ
+  // เหตุทั่วไปจะกลายเป็น "เหตุเฉพาะ" แล้วแถวจะบอกแค่ว่า "ติดปัญหา" แทนที่จะบอกว่าติดอะไร
+  it("เหตุทั่วไปของบอร์ดไม่ถูกอ่านเป็นเหตุเฉพาะ แต่เหตุเฉพาะต้องขึ้นก่อน", () => {
+    const exception = (reasons: BoardException["reasons"]): BoardException => ({
+      orderId: "failed",
+      orderNumber: "ORD-failed",
+      customerName: null,
+      deadline: null,
+      priority: null,
+      reasons,
+      waitingOn: [],
+      href: "/production/prod-failed",
+      skippable: false,
+    });
+    const failed = job({
+      id: "failed",
+      status: "PRODUCING",
+      stationKey: "DTF",
+      productionId: "prod-failed",
+    });
+    failed.spots[0]!.step = {
+      id: "step-failed",
+      stepType: "DTF_PRINT",
+      status: "FAILED",
+      sortOrder: 1,
+      notes: "[แจ้งปัญหาจากสถานี] ฟิล์มยับ ต้องพิมพ์ใหม่",
+    };
+
+    const generic = exception([
+      { label: BOARD_REASON_STEP_FAILED, tone: "red" },
+      { label: BOARD_REASON_OVERDUE, tone: "red" },
+    ]);
+    expect(productionWorklistAction(failed, generic).reason).toBe("ฟิล์มยับ ต้องพิมพ์ใหม่");
+
+    const specific = exception([
+      { label: BOARD_REASON_OVERDUE, tone: "red" },
+      { label: "รีดร้อนยังไม่พร้อม", tone: "amber" },
+    ]);
+    expect(productionWorklistAction(failed, specific).reason).toBe("รีดร้อนยังไม่พร้อม");
   });
 
   it("กรองมุมงานโดยรักษาลำดับขาเข้าไว้ให้ sort contract เป็นเจ้าของลำดับ", () => {

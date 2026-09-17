@@ -20,12 +20,13 @@ describe("buildJobShareText", () => {
   it("ครบสามบรรทัด: งาน/กำหนดส่งคืน/ลิงก์", () => {
     const text = buildJobShareText({
       description: "สกรีนหน้าอก",
-      quantity: 120,
+      quantity: 1200,
       dueText: "10 ก.ค. 2569",
       url: "https://erp.example/job/abc",
     });
     expect(text.split("\n")).toEqual([
-      "ใบงาน: สกรีนหน้าอก — 120 ชิ้น",
+      // คำเดียวกับกล่องแชร์บนจอ: มีตัวคั่นหลักพัน และหน่วยเป็น "ตัว" ไม่ใช่ "ชิ้น"
+      "ใบงาน: สกรีนหน้าอก — 1,200 ตัว",
       "กำหนดส่งคืน: 10 ก.ค. 2569",
       "รายละเอียด+ไฟล์ลาย: https://erp.example/job/abc",
     ]);

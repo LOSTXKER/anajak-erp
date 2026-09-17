@@ -14,7 +14,9 @@ export function buildJobShareText(params: {
   url: string;
 }): string {
   const lines = [
-    `ใบงาน: ${params.description} — ${params.quantity} ชิ้น`,
+    // หน่วยกับตัวคั่นหลักพันต้องตรงกับกล่องแชร์บนจอ ("1,200 ตัว") — ร้านเทียบข้อความในแชท
+    // กับหน้าจอที่คนส่งเห็น ถ้าคนละคำจะกลายเป็นคำถามว่าใช่งานเดียวกันไหม
+    `ใบงาน: ${params.description} — ${params.quantity.toLocaleString("th-TH")} ตัว`,
     params.dueText ? `กำหนดส่งคืน: ${params.dueText}` : null,
     `รายละเอียด+ไฟล์ลาย: ${params.url}`,
   ];

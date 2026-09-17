@@ -119,6 +119,7 @@ describe("customer edit form policy", () => {
   });
 
   it("ตรวจ required ตามกติกาฟอร์มเดิมและกันวงเงินที่แปลงเป็นตัวเลขไม่ได้", () => {
+    // นิติบุคคลไม่บังคับชื่อผู้ติดต่อแล้ว (เบสสั่ง 2026-09-18) — ชื่อบริษัทที่บังคับอยู่ใช้เรียกแทน
     expect(
       validateCustomerEditForm({
         ...baseForm,
@@ -129,10 +130,15 @@ describe("customer edit form policy", () => {
         creditLimit: "abc",
       })
     ).toEqual({
-      name: "กรุณากรอกชื่อลูกค้า",
       company: "กรุณากรอกชื่อบริษัท",
       taxId: "กรุณากรอกเลขผู้เสียภาษี",
       creditLimit: "วงเงินเครดิตต้องเป็นตัวเลข",
+    });
+  });
+
+  it("บุคคลธรรมดายังต้องมีชื่อ เพราะไม่มีชื่อบริษัทให้เรียกแทน", () => {
+    expect(validateCustomerEditForm({ ...baseForm, customerType: "INDIVIDUAL", name: " " })).toEqual({
+      name: "กรุณากรอกชื่อลูกค้า",
     });
   });
 });

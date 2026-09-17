@@ -8,6 +8,7 @@ import { mockupCoverImage } from "@/lib/mockup";
 import { aggToNumber } from "@/server/services/money";
 import { getOwnerPulse } from "@/server/services/owner-pulse";
 import { PREP_QUEUE_WHERE } from "@/server/services/factory-board";
+import { customerDisplayName } from "@/lib/customer-name";
 
 /* ============================================================
    home-overview — ตัวเลขทั้งหมดของหน้าแรก (รื้อ 2026-09-14 ตามต้นแบบที่เบสเคาะ)
@@ -242,7 +243,7 @@ export function describeHomeOrderRow(
   return {
     ...describeOrderProgress(row, now),
     id: row.id,
-    customerName: row.customer.company || row.customer.name,
+    customerName: customerDisplayName(row.customer),
     title,
     cover: row.designs[0] ? mockupCoverImage(row.designs[0]) : null,
     printLabel: printLabelOf(row.items.flatMap((item) => item.prints.map((print) => print.printType))),

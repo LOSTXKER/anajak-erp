@@ -16,6 +16,7 @@ import { INTERNAL_STATUS_LABELS } from "@/lib/order-status";
 import { getOwnerPulse } from "@/server/services/owner-pulse";
 import { getOrdersReadiness } from "@/server/services/production-readiness";
 import { registerReadTool, agentHasPermission } from "../tool";
+import { customerDisplayName } from "@/lib/customer-name";
 
 export function registerTodayQueueTool(server: McpServer): void {
   registerReadTool(server, {
@@ -73,7 +74,7 @@ export function registerTodayQueueTool(server: McpServer): void {
           const r = readiness.get(o.id);
           return {
             orderNumber: o.orderNumber,
-            customer: o.customer.company || o.customer.name,
+            customer: customerDisplayName(o.customer),
             deadline: o.deadline,
             overdue: o.deadline ? o.deadline < now : false,
             status: INTERNAL_STATUS_LABELS[o.internalStatus],

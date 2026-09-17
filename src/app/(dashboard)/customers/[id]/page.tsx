@@ -48,6 +48,7 @@ import { Alert } from "@/components/ui/alert";
 import { RecordNotFound } from "@/components/ui/record-not-found";
 import { cn } from "@/lib/utils";
 import { VISUAL_TONE_CLASSES, type VisualTone } from "@/lib/visual-tone";
+import { customerContactName } from "@/lib/customer-name";
 
 /** ไอคอนนำหน้าแถวในการ์ด "สรุป" — ไอคอนสีตามหมวด ไม่มีพื้นกล่อง
  *  (พื้นกล่องถูกถอดออกทั้งเว็บ 2026-08-31 เบสเคาะแบบ B จากหน้าลอง /proto/quiet) */
@@ -104,7 +105,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
     ? [
         customerSegmentLabel(customer.segment),
         `ลูกค้าตั้งแต่ ปี ${buddhistYear(customer.createdAt)}`,
-        customer.company ? `ผู้ติดต่อ ${customer.name}` : null,
+        customerContactName(customer) ? `ผู้ติดต่อ ${customerContactName(customer)}` : null,
       ].filter(Boolean)
     : [];
   const paymentTermsLabel = customer?.defaultPaymentTerms

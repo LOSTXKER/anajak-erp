@@ -26,6 +26,7 @@ import { differenceInBangkokDays, formatDueDate } from "@/lib/date-utils";
 import { CHANNEL_LABELS, ORDER_TYPE_UI_LABELS, PRIORITY_LABELS } from "@/lib/order-status";
 import { PAYMENT_TERMS_LABELS } from "@/lib/payment-terms";
 import { formatBaht, formatDateCompact } from "@/lib/utils";
+import { customerContactName } from "@/lib/customer-name";
 
 /* ============================================================
    แท็บ "ภาพรวม" — ต้นแบบ tabOverview() ทีละชิ้น (รื้อ 2026-09-15)
@@ -204,7 +205,7 @@ export function OrderOverviewTab({
     showMoney && paidAmount != null && totalAmount > 0 ? Math.min(1, Math.max(0, paidAmount / totalAmount)) : null;
 
   const companyTitle = customer ? customer.company?.trim() || customer.name : null;
-  const contactPerson = customer?.company?.trim() && customer.name !== customer.company ? customer.name : null;
+  const contactPerson = customerContactName(customer);
 
   const stockProp = order.stockReservationError ? (
     <Prop icon={Box} label="จองสต๊อก">

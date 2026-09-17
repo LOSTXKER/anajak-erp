@@ -13,6 +13,7 @@ import { PRIORITY_LABELS } from "@/lib/order-status";
 import type { SortDirection, SortKey } from "@/lib/order-list-contract";
 import { formatBaht, formatDateShort } from "@/lib/utils";
 import { formatDueDate } from "@/lib/date-utils";
+import { customerContactName, customerDisplayNameOrDash } from "@/lib/customer-name";
 
 /* ============================================================
    ตารางออเดอร์ — ต้นแบบ mockup-orders-list-lite-2026-09-16 (เบสเคาะ "ทำจริงเลย")
@@ -35,13 +36,12 @@ export function orderListCover(order: OrderListRow): string | null {
   return order.designs[0] ? mockupCoverImage(order.designs[0]) : null;
 }
 
-/** ชื่อบนแถว: บริษัทก่อน (ต้นแบบ cus) · บรรทัดรอง = ห้องแชท หรือชื่อผู้ติดต่อ */
+/** ชื่อบนแถว: บริษัทก่อน (ต้นแบบ cus) · บรรทัดรอง = ห้องแชท หรือชื่อผู้ติดต่อ
+ *  กติกาการเลือกชื่ออยู่ที่ lib/customer-name ชุดเดียวกับฝั่ง server และหน้าอื่น */
 export function customerLines(order: OrderListRow) {
-  const name = order.customer?.name?.trim() || "";
-  const company = order.customer?.company?.trim() || "";
   return {
-    title: company || name || "—",
-    person: company && name && company !== name ? name : null,
+    title: customerDisplayNameOrDash(order.customer),
+    person: customerContactName(order.customer),
   };
 }
 

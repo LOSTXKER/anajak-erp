@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  BOARD_REASON_OVERDUE,
+  BOARD_REASON_STEP_FAILED,
   bucketOf,
   buildBoardColumns,
   buildProductionBoard,
@@ -301,10 +303,15 @@ describe("buildProductionBoard — งานที่ต้องแก้ก่
       OPTS,
     );
     expect(board.exceptions.map((e) => e.orderId)).toEqual(["red", "amber"]);
+    // คำของเหตุเป็นคำชุดกลาง (STEP_STATUS_LABELS.FAILED) — จอทีวี ใบผลิต และหน้านี้
+    // ต้องเรียกเรื่องเดียวกันด้วยคำเดียวกัน (เดิมหน้านี้เขียน "มีปัญหา" ของตัวเอง)
     expect(board.exceptions[0]!.reasons.map((r) => r.label).sort()).toEqual([
-      "มีปัญหา",
+      "ติดปัญหา",
       "เลยกำหนด",
     ]);
+    // ป้ายที่ export ต้องเป็นคำเดียวกับที่บอร์ดใส่จริง — ฝั่งกรองใน worklist อ้างค่านี้
+    expect(BOARD_REASON_STEP_FAILED).toBe("ติดปัญหา");
+    expect(BOARD_REASON_OVERDUE).toBe("เลยกำหนด");
   });
 });
 

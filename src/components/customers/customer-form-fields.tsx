@@ -88,12 +88,15 @@ export function CustomerFormFields({
             </Select>
           </Field>
         )}
+        {/* นิติบุคคลไม่ต้องกรอกชื่อผู้ติดต่อก็ได้ (เบสสั่ง 2026-09-18) — ชื่อบริษัทใช้เรียกแทนได้แล้ว
+            บุคคลธรรมดายังบังคับ เพราะช่องนี้คือชื่อลูกค้าเอง ไม่มีอย่างอื่นให้เรียก */}
         <Field
           label={`ชื่อ${isCorporate ? "ผู้ติดต่อ" : "ลูกค้า"}`}
-          required
+          required={!isCorporate}
+          description={isCorporate ? "ไม่กรอกก็ได้ — ใช้ชื่อบริษัทเรียกแทน" : undefined}
           error={errors.name}
         >
-          <Input value={form.name} onChange={(e) => set({ name: e.target.value })} required />
+          <Input value={form.name} onChange={(e) => set({ name: e.target.value })} required={!isCorporate} />
         </Field>
         <Field
           label="บริษัท"

@@ -8,6 +8,7 @@ import { getOwnerPulse } from "@/server/services/owner-pulse";
 import { getHomeOverview } from "@/server/services/home-overview";
 import { printLabelOf, PRINT_LABELS } from "@/lib/print-labels";
 import { BANGKOK_TZ } from "@/lib/utils";
+import { customerDisplayName } from "@/lib/customer-name";
 
 // PERM3: default ตรงชุดเดิมเป๊ะ + override รายคน
 const adminOnly = requirePermission("view_admin_reports");
@@ -168,7 +169,7 @@ export const analyticsRouter = router({
           id: o.id,
           orderNumber: o.orderNumber,
           deadline: o.deadline,
-          customerName: o.customer.company || o.customer.name,
+          customerName: customerDisplayName(o.customer),
           customerStatus: o.customerStatus,
           internalStatus: o.internalStatus,
           printLabel,

@@ -2,13 +2,14 @@
 
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, Download, Filter, Plus, Search, X } from "lucide-react";
+import { Download, Filter, Plus, Search, X } from "lucide-react";
 import type { CustomerStatus, InternalStatus, OrderType } from "@prisma/client";
 import { useListPageState, usePageClamp } from "@/hooks/use-list-page-state";
 import { trpc } from "@/lib/trpc";
 import { permAllows } from "@/lib/permissions";
 import { canCreateOrderWithPricing } from "@/lib/order-access";
 import { c, Empty } from "@/components/kit/kit";
+import { QueryError } from "@/components/ui/query-error";
 import { KitDateRange } from "@/components/kit/date-range";
 import { OrderPipeline } from "@/components/orders/list/order-pipeline";
 import { OrderPeekPanel } from "@/components/orders/list/order-peek-panel";
@@ -21,6 +22,7 @@ import {
   ORDER_TYPE_UI_LABELS,
 } from "@/lib/order-status";
 import { hasActiveOrderListFilters } from "@/lib/order-list-ui";
+import { formatDateNumeric } from "@/lib/utils";
 import { PAYMENT_STATUS_LABELS } from "@/lib/status-config";
 import {
   ATTENTION_FILTERS,
@@ -90,7 +92,7 @@ function exportOrdersCsv(
     INTERNAL_STATUS_LABELS[o.internalStatus as InternalStatus] ?? o.internalStatus,
     ...(canSeeMoney ? [String(o.totalAmount ?? 0)] : []),
     paymentLabelMap[o.paymentLabel] ?? "—",
-    new Date(o.createdAt).toLocaleDateString("th-TH"),
+    formatDateNumeric(o.createdAt),
   ]);
   const escape = (v: string) =>
     v.includes(",") || v.includes('"') || v.includes("\n") ? `"${v.replace(/"/g, '""')}"` : v;
@@ -389,12 +391,12 @@ function OrdersPageContent() {
         </div>
 
         {isError && !data ? (
-          <div className={c("noresult")} role="alert">
-            <AlertTriangle aria-hidden="true" />
-            <span>โหลดรายการออเดอร์ไม่สำเร็จ</span>
-            <button type="button" className={c("btn sm")} onClick={() => void refetch()}>
-              ลองอีกครั้ง
-            </button>
+          /* กล่องโหลดไม่สำเร็จใช้ชิ้นเดียวกับหน้าอื่นทั้งเว็บ (QueryError) — เดิมวาด .noresult เอง
+             จนคำและปุ่มลองใหม่ของหน้านี้ไม่ตรงกับหน้าที่เหลือ
+             เส้นคั่นบนใส่เองเหมือนที่ ResponsiveList ใส่ให้หน้าอื่น เพราะการ์ดนี้แยกแถบเครื่องมือ
+             ออกจากเนื้อรายการด้วยเส้น (กล่องว่าง .empty ข้างล่างก็มีเส้นเดียวกัน) */
+          <div className="border-t border-divider/60">
+            <QueryError message="โหลดรายการออเดอร์ไม่สำเร็จ" onRetry={() => void refetch()} />
           </div>
         ) : !rows ? (
           <div className={c("cb")} role="status" aria-label="กำลังโหลดรายการออเดอร์">

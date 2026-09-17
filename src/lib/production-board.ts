@@ -9,6 +9,7 @@ import {
   type ProductionLane,
 } from "@/lib/production-steps";
 import { differenceInBangkokDays } from "@/lib/date-utils";
+import { STEP_STATUS_LABELS } from "@/lib/status-config";
 import type { OrderMockupSourceLike } from "@/lib/mockup";
 import { routeWaitingOn } from "@/lib/work-order-route";
 
@@ -137,6 +138,14 @@ export type BoardStation = {
 };
 
 export type BoardExceptionReason = { label: string; tone: "red" | "amber" };
+
+/* เหตุ "ทั่วไป" ที่บอร์ดเติมเองให้ทุกใบที่เข้าเงื่อนไข — บอกว่ามีเรื่อง แต่ไม่ได้บอกว่า
+   ติดตรงไหน · productionWorklistAction() กรองสองตัวนี้ทิ้งเพื่อหาเหตุเฉพาะของใบนั้น
+   จึงต้องอ่านจากค่าเดียวกันทั้งฝั่งสร้างและฝั่งกรอง เดิมพิมพ์ข้อความซ้ำคนละไฟล์
+   แก้คำที่เดียวแล้วตัวกรองพังเงียบ (เหตุทั่วไปจะถูกอ่านเป็นเหตุเฉพาะ) */
+export const BOARD_REASON_OVERDUE = "เลยกำหนด";
+/** ขั้นผลิตติดปัญหา — ใช้คำชุดกลางเดียวกับใบผลิต/จอทีวี/งานของฉัน */
+export const BOARD_REASON_STEP_FAILED = STEP_STATUS_LABELS.FAILED;
 
 export type BoardException = {
   orderId: string;
@@ -512,9 +521,9 @@ export function buildProductionBoard<
     if (order.internalStatus !== "PRODUCING") continue;
     const target = job.spots.find((s) => s.productionId)?.productionId;
     const href = target ? `/production/${encodeURIComponent(target)}` : `/orders/${order.id}`;
-    if (job.overdue) ensure(order, href).reasons.push({ label: "เลยกำหนด", tone: "red" });
+    if (job.overdue) ensure(order, href).reasons.push({ label: BOARD_REASON_OVERDUE, tone: "red" });
     if (order.productions.some((p) => p.steps.some((s) => s.status === "FAILED"))) {
-      ensure(order, href).reasons.push({ label: "มีปัญหา", tone: "red" });
+      ensure(order, href).reasons.push({ label: BOARD_REASON_STEP_FAILED, tone: "red" });
     }
     const waiting = pressWaitByOrder.get(order.id);
     if (waiting?.length) {
@@ -534,7 +543,7 @@ export function buildProductionBoard<
       const item = ensure(order, `/orders/${order.id}`);
       item.skippable = true;
       if ((timeOf(order.deadline) ?? Number.MAX_SAFE_INTEGER) < nowMs) {
-        item.reasons.push({ label: "เลยกำหนด", tone: "red" });
+        item.reasons.push({ label: BOARD_REASON_OVERDUE, tone: "red" });
       }
       const failing = (order.readiness?.checks ?? []).filter((c) => !c.ok);
       for (const check of failing) {

@@ -25,6 +25,7 @@ import {
 import { getOrdersReadiness } from "@/server/services/production-readiness";
 import { registerReadTool, agentHasPermission, McpToolError } from "../tool";
 import type { AgentContext } from "../auth";
+import { customerDisplayName } from "@/lib/customer-name";
 
 // allow-list — ห้ามมี cost/profit/platformFee/notes/token (extended client แปลง cost เป็น number อัตโนมัติ
 // ถ้าเผลอ select = รั่วทันที) · totalAmount เก็บไว้แล้วค่อยตัดทิ้งตาม role ตอน map
@@ -63,7 +64,7 @@ type OrderRow = {
 function formatOrder(o: OrderRow, ctx: AgentContext) {
   return {
     orderNumber: o.orderNumber,
-    customer: o.customer.company || o.customer.name,
+    customer: customerDisplayName(o.customer),
     type: ORDER_TYPE_LABELS[o.orderType as keyof typeof ORDER_TYPE_LABELS] ?? o.orderType,
     channel: CHANNEL_LABELS[o.channel] ?? o.channel,
     priority: PRIORITY_LABELS[o.priority] ?? o.priority,

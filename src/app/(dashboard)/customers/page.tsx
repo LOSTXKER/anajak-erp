@@ -31,11 +31,12 @@ import { PageShell } from "@/components/page-shell";
 import { SegmentedControl } from "@/components/ui/segmented";
 import { KitDateRange } from "@/components/kit/date-range";
 import { validDateParam } from "@/lib/order-list-contract";
-import { formatDateShort } from "@/lib/utils";
+import { daysAgoText, formatDateShort } from "@/lib/utils";
 import { Plus, Users, Phone, ChevronRight } from "lucide-react";
 import { FOCUS_BUTTON } from "@/components/ui/tokens";
 import { VISUAL_TONE_CLASSES } from "@/lib/visual-tone";
 import { cn } from "@/lib/utils";
+import { customerContactName } from "@/lib/customer-name";
 
 /* กลุ่มลูกค้าไม่ใช่ "สถานะ" — ไม่มีอันไหนดีหรือร้าย (UI-2026 เฟส 3)
    ของเดิมยืมจานสีสถานะมาย้อมจนคอลัมน์เดียวมี 4 สี (VIP=เขียว ขาประจำ=น้ำเงิน
@@ -78,12 +79,14 @@ function CustomerMark({ label }: { label: string }) {
 }
 
 /** สั่งล่าสุด: วันที่ + ผ่านมากี่วัน · หายไปเกิน 90 วันขึ้นป้ายตามต้นแบบ (.due n)
- *  ต้นแบบมีแต่ "N วันก่อน" — ของจริงคงวันที่ไว้ด้วย เพราะคนถามต่อเสมอว่าวันไหน */
+ *  ต้นแบบมีแต่ "N วันก่อน" — ของจริงคงวันที่ไว้ด้วย เพราะคนถามต่อเสมอว่าวันไหน
+ *  คำว่า "ผ่านมานานแค่ไหน" เอามาจาก daysAgoText ชุดเดียวกับหน้าแจ้งเตือน (เดิมประกอบคำเองที่นี่
+ *  จนนานเป็นเดือนยังนับเป็น "120 วันก่อน") · การนับยังเป็นวันตามปฏิทินไทยของหน้านี้เหมือนเดิม */
 function LastOrderCell({ at, now }: { at: Date | string | null; now: number }) {
   if (!at) return <span className="text-xs text-muted">ยังไม่เคยสั่ง</span>;
   const days = differenceInBangkokDays(at, now);
   const ago = days === null ? null : Math.abs(days);
-  const agoText = ago === null ? null : ago === 0 ? "วันนี้" : `${ago.toLocaleString("th-TH")} วันก่อน`;
+  const agoText = ago === null ? null : daysAgoText(ago);
   return (
     <span className="text-xs text-secondary">
       {formatDateShort(at)}
@@ -255,8 +258,8 @@ function CustomersPageContent() {
                               ต้องรู้ว่าออกใบกำกับได้ กลับเป็นฝั่งเดียวที่ไม่มีป้าย (เบสทัก 2026-09-18) */}
                           <div className="mt-0.5 flex min-w-0 items-center gap-2">
                             <CustomerTypeChip type={customer.customerType} />
-                            {customer.company ? (
-                              <span className="truncate text-xs text-secondary">ผู้ติดต่อ {customer.name}</span>
+                            {customerContactName(customer) ? (
+                              <span className="truncate text-xs text-secondary">ผู้ติดต่อ {customerContactName(customer)}</span>
                             ) : null}
                           </div>
                         </div>
@@ -318,9 +321,9 @@ function CustomersPageContent() {
                         <CustomerMark label={title} />
                         <div className="min-w-0">
                           <p className="font-semibold text-strong">{title}</p>
-                          {customer.company && (
+                          {customerContactName(customer) && (
                             <p className="mt-0.5 text-xs text-muted">
-                              ผู้ติดต่อ {customer.name}
+                              ผู้ติดต่อ {customerContactName(customer)}
                             </p>
                           )}
                         </div>

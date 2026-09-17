@@ -11,6 +11,7 @@ import {
 } from "@/server/services/manufacturing-domain";
 import { lockOrderRow } from "@/server/services/order-cost";
 import { lockProductionTopology } from "@/server/services/production-topology-lock";
+import { customerDisplayName } from "@/lib/customer-name";
 
 type CreateWorkOrderCommand = {
   orderId: string;
@@ -102,7 +103,7 @@ export async function getManufacturingCreationContext(
     order: {
       id: order.id,
       orderNumber: order.orderNumber,
-      customerName: order.customer.name,
+      customerName: customerDisplayName(order.customer),
       deadline: order.deadline,
       internalStatus: order.internalStatus,
     },

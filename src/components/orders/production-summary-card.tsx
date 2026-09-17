@@ -8,6 +8,7 @@ import { OUTSOURCE_ACTIVE_STATUSES, productionWorkflowSteps } from "@/lib/produc
 import { productionStepLabel } from "@/lib/order-progress";
 import { differenceInBangkokDays } from "@/lib/date-utils";
 import type { RouterOutput } from "@/lib/trpc";
+import { STEP_STATUS_LABELS } from "@/lib/status-config";
 
 /* ============================================================
    การ์ด "งานผลิต" ซ้ายของแท็บงานผลิต — ต้นแบบ tabProduction() ส่วน left (รื้อ 2026-09-15)
@@ -194,9 +195,9 @@ function ProductionSteps({
               state === "done"
                 ? { tone: "good", label: "เสร็จ" }
                 : step.status === "FAILED"
-                  ? { tone: "bad", label: "มีปัญหา" }
+                  ? { tone: "bad", label: STEP_STATUS_LABELS.FAILED }
                   : step.status === "ON_HOLD"
-                    ? { tone: "warn", label: "พักไว้" }
+                    ? { tone: "warn", label: STEP_STATUS_LABELS.ON_HOLD }
                     : state === "cur"
                       ? lateDays > 0
                         ? { tone: "bad", label: "ร้านนอกช้า" }

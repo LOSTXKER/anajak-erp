@@ -35,7 +35,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
-import { formatBaht, formatBahtRounded, formatDate } from "@/lib/utils";
+import { formatBaht, formatBahtRounded, formatDate, formatDateNumeric } from "@/lib/utils";
 import { PageShell } from "@/components/page-shell";
 import { permAllows } from "@/lib/permissions";
 import {
@@ -93,7 +93,7 @@ function exportWhtCsv(rows: WhtRow[]) {
   ];
 
   const body = rows.map((r) => [
-    new Date(r.payment.createdAt).toLocaleDateString("th-TH"),
+    formatDateNumeric(r.payment.createdAt),
     r.customer.name,
     r.customer.taxId ?? "",
     r.invoice.invoiceNumber,
@@ -103,7 +103,7 @@ function exportWhtCsv(rows: WhtRow[]) {
     String(r.ratePct),
     r.amount.toFixed(2),
     r.certNumber ?? "",
-    r.certDate ? new Date(r.certDate).toLocaleDateString("th-TH") : "",
+    r.certDate ? formatDateNumeric(r.certDate) : "",
     r.received ? "ได้ใบแล้ว" : "รอใบ",
   ]);
 

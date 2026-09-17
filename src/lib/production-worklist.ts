@@ -10,6 +10,8 @@ import type {
 } from "@/lib/production-board";
 import { INTERNAL_STATUS_LABELS } from "@/lib/order-status";
 import {
+  BOARD_REASON_OVERDUE,
+  BOARD_REASON_STEP_FAILED,
   POST_SECTIONS,
   STATION_ALL,
   STATION_QUEUE,
@@ -170,8 +172,11 @@ export function productionWorklistAction<
   const assignedNames = uniqueText(
     job.spots.map((spot) => spot.step?.assignedTo?.name),
   );
+  // ข้ามเหตุทั่วไปเพื่อหา "แถวนี้ติดตรงไหน" — ป้ายต้องอ่านจากค่าที่ production-board
+  // ใช้ตอนสร้าง ไม่ใช่พิมพ์ข้อความซ้ำ ไม่งั้นวันที่เปลี่ยนคำ ตัวกรองจะพังเงียบ
   const firstSpecificReason = exception?.reasons.find(
-    (reason) => reason.label !== "เลยกำหนด" && reason.label !== "มีปัญหา",
+    (reason) =>
+      reason.label !== BOARD_REASON_OVERDUE && reason.label !== BOARD_REASON_STEP_FAILED,
   );
 
   let owner: string;

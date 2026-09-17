@@ -13,6 +13,7 @@ import { withFileToken } from "@/lib/file-urls";
 import { CUSTOMER_STATUS_LABELS } from "@/lib/order-status";
 import type { PrismaTx } from "@/lib/prisma";
 import type { CustomerStatus } from "@prisma/client";
+import { customerDisplayName } from "@/lib/customer-name";
 
 const STATUS_TOKEN_TTL_DAYS = 90; // read-only ความเสี่ยงต่ำ + ออเดอร์ลากได้หลายสัปดาห์
 
@@ -129,7 +130,7 @@ export async function getOrderStatusByToken(
 
   return {
     orderNumber: order.orderNumber,
-    customerName: order.customer.name,
+    customerName: customerDisplayName(order.customer),
     deadline: order.deadline,
     createdAt: order.createdAt,
     customerStatus: order.customerStatus,
