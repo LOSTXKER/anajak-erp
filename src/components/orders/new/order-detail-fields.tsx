@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { Field } from "@/components/ui/field";
 import { c } from "@/components/kit/kit";
-import { CHANNEL_LABELS, PRIORITY_LABELS } from "@/lib/order-status";
+import { CHANNEL_LABELS, PRIORITY_LABELS, priorityLabelWithDays } from "@/lib/order-status";
 
 // ช่องข้อมูลงาน (กำหนดส่ง/ช่องทาง/รายละเอียด/หมายเหตุ) — แยกจาก orders/new/page.tsx
 // ตอนรื้อฟอร์ม 2026-06-12 · ลำดับใหม่: รายละเอียดจากแชทขึ้นก่อน (จุด capture หลักตอนถือแชท)
@@ -99,8 +99,8 @@ export function OrderDetailFields({
             value={priority}
             onChange={(e) => onPriorityChange(e.target.value as Priority)}
           >
-            {Object.entries(PRIORITY_LABELS).map(([key, value]) => (
-              <option key={key} value={key}>{value}</option>
+            {Object.keys(PRIORITY_LABELS).map((key) => (
+              <option key={key} value={key}>{priorityLabelWithDays(key)}</option>
             ))}
           </Select>
         </Field>

@@ -33,7 +33,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { GarmentReceiveInline } from "@/components/production/garment-receive-inline";
 import { ProblemDialog } from "@/components/production/step-command-dialogs";
 import type { ProductionStep } from "@/components/production/types";
-import { PRIORITY_LABELS } from "@/lib/order-status";
+import { priorityLabelWithDays } from "@/lib/order-status";
 import { permAllows } from "@/lib/permissions";
 import { formatDateTime } from "@/lib/utils";
 import { FLOW_OWNED_STEP_TYPES } from "@/lib/production-steps";
@@ -313,9 +313,10 @@ export function WorkOrderView({ c, scannedMockup = Number.NaN, itemsTab, variant
           order && (order.priority === "URGENT" || order.priority === "HIGH" || allDone) ? (
             <span className="flex flex-wrap items-center gap-1.5">
               {allDone ? <Badge variant="success" size="sm">ครบทุกขั้น</Badge> : null}
+              {/* ใบผลิตไม่มีช่องความเร่งด่วนที่อื่น — ป้ายนี้จึงบอกช่วงวันด้วย ช่างจะรู้ว่าต้องเสร็จในกี่วัน */}
               {order.priority === "URGENT" || order.priority === "HIGH" ? (
                 <Badge variant={order.priority === "URGENT" ? "destructive" : "warning"} size="sm">
-                  {PRIORITY_LABELS[order.priority] ?? order.priority}
+                  {priorityLabelWithDays(order.priority)}
                 </Badge>
               ) : null}
             </span>
