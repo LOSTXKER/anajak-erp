@@ -13,6 +13,7 @@ import {
   Copy,
   ImageIcon,
   Files,
+  Shirt,
 } from "lucide-react";
 import type { OrderItemForm } from "@/types/order-form";
 import {
@@ -272,8 +273,13 @@ export function OrderItemCard({
   // ── ลาย ── หัวย่อยกับเนื้อเป็นลูกตรงของ .ibody (ระยะห่างแบบต้นแบบ) จึงคืนเป็น fragment
   const printsSection = (
     <>
+      {/* หัวข้อย่อยมีไอคอนนำ (เบสสั่ง 2026-09-18) — กล่อง .tm 26px ของชุดกลาง เล็กกว่าหัวการ์ด
+          และใช้ไอคอนเดียวกับปุ่มเพิ่มของส่วนนั้น ให้สแกนเจอว่าแต่ละก้อนคือเรื่องอะไร */}
       <div className={c("sub-h")}>
-        <h3>ลายและงานพิมพ์</h3>
+        <h3>
+          <span className={c("tm violet")} aria-hidden="true"><ImageIcon /></span>
+          ลายและงานพิมพ์
+        </h3>
         {(otherItems.length > 0 || item.prints.length > 0) && (
           <div className={c("r")}>
             {otherItems.length > 0 && (
@@ -388,7 +394,10 @@ export function OrderItemCard({
   const productsSection = (
     <>
       <div className={c("sub-h")}>
-        <h3>สินค้าในชุดงาน</h3>
+        <h3>
+          <span className={c("tm blue")} aria-hidden="true"><Shirt /></span>
+          สินค้าในชุดงาน
+        </h3>
         {item.products.length > 0 && (
           <div className={c("r")}>
             <AddProductPopover
@@ -485,7 +494,10 @@ export function OrderItemCard({
   const addonsSection = (
     <>
       <div className={c("sub-h")}>
-        <h3>ส่วนเสริมในชุดงาน</h3>
+        <h3>
+          <span className={c("tm")} aria-hidden="true"><Files /></span>
+          ส่วนเสริมในชุดงาน
+        </h3>
         {item.addons.length > 0 && (
           <div className={c("r")}>
             <button type="button" className={c("btn ghost sm")} onClick={() => onAddAddon(itemIdx)}>
