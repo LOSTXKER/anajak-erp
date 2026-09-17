@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "@/components/ui/date-picker";
-import { cn, formatCurrency, formatDate } from "@/lib/utils";
+import { cn, formatBaht, formatDate } from "@/lib/utils";
 import { TINT } from "@/components/ui/tokens";
 import { PAYMENT_TERMS_LABELS } from "@/lib/payment-terms";
 import { customerProfileGaps } from "@/lib/customer-gaps";
@@ -218,7 +218,7 @@ export function CreateInvoiceDialog({
               <div className="mt-1.5 space-y-2">
                 <p className="text-xs text-blue-600 dark:text-blue-400">
                   ออกเป็นใบกำกับของงวดรับเงินวันที่ {formatDate(receiptForPayment.date)} ยอด{" "}
-                  {formatCurrency(receiptForPayment.gross)} — ยอดเอกสารต้องตรงกับเงินที่รับงวดนี้
+                  {formatBaht(receiptForPayment.gross)} — ยอดเอกสารต้องตรงกับเงินที่รับงวดนี้
                 </p>
                 <Field
                   label="วันที่เอกสาร"
@@ -243,13 +243,13 @@ export function CreateInvoiceDialog({
                   </>
                 )}
                 {suggestion.data.remaining !== null &&
-                  `คงเหลือวางบิลได้ ${formatCurrency(suggestion.data.remaining)}`}
+                  `คงเหลือวางบิลได้ ${formatBaht(suggestion.data.remaining)}`}
               </p>
             )}
             {suggestion.data && suggestion.data.creditNoteTotal > 0 && (
               <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">
                 มีใบลดหนี้ที่ยังไม่ผูกใบเดิมรวม{" "}
-                {formatCurrency(suggestion.data.creditNoteTotal)} — ระบบหักให้อัตโนมัติไม่ได้
+                {formatBaht(suggestion.data.creditNoteTotal)} — ระบบหักให้อัตโนมัติไม่ได้
                 ตรวจยอดก่อนสร้างบิล (ใบลดหนี้ที่ผูกใบเดิมถูกหักจากยอดค้างแล้ว)
               </p>
             )}
@@ -265,7 +265,7 @@ export function CreateInvoiceDialog({
                       {adjustableOriginals.map((inv) => (
                         <option key={inv.id} value={inv.id}>
                           {inv.invoiceNumber} · {INVOICE_TYPE_LABELS[inv.type] ?? inv.type} ·{" "}
-                          {formatCurrency(inv.totalAmount)}
+                          {formatBaht(inv.totalAmount)}
                         </option>
                       ))}
                     </Select>
@@ -386,7 +386,7 @@ export function CreateInvoiceDialog({
           <div className={cn(TINT.neutral, "rounded-lg border p-3 text-sm")}>
             <span className="text-current">ยอดรวมบิล: </span>
             <span className="font-semibold text-strong">
-              {formatCurrency(
+              {formatBaht(
                 (parseFloat(invoiceAmount) || 0) -
                   (parseFloat(invoiceDiscount) || 0) +
                   (parseFloat(invoiceTax) || 0)

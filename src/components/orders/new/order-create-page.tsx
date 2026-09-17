@@ -39,7 +39,7 @@ import { CHANNEL_LABELS } from "@/lib/order-status";
 import { type PaymentTermsValue, PAYMENT_TERMS_LABELS } from "@/lib/payment-terms";
 import { type PickerCustomer } from "@/components/customers/customer-picker";
 import { calculateFormItemSubtotal, calculateOrderSummary } from "@/lib/pricing";
-import { cn, formatBaht, formatCurrency } from "@/lib/utils";
+import { cn, formatBaht } from "@/lib/utils";
 import { Alert } from "@/components/ui/alert";
 import { Field } from "@/components/ui/field";
 import { CircleCheck, ClipboardList, FileText, Landmark, Loader2, Lock, PenLine, TriangleAlert } from "lucide-react";
@@ -880,7 +880,7 @@ export default function OrderFormPage(props: OrderFormPageProps) {
         if (discount > subtotal) {
           errors.push({
             tab: "pricing",
-            message: `ส่วนลด (${formatCurrency(discount)}) มากกว่ายอดรวมก่อนหักส่วนลด (${formatCurrency(subtotal)})`,
+            message: `ส่วนลด (${formatBaht(discount)}) มากกว่ายอดรวมก่อนหักส่วนลด (${formatBaht(subtotal)})`,
           });
         }
       }
@@ -956,7 +956,7 @@ export default function OrderFormPage(props: OrderFormPageProps) {
       if (discount > subtotal) {
         errors.push({
           tab: "pricing",
-          message: `ส่วนลด (${formatCurrency(discount)}) มากกว่ายอดรวมก่อนหักส่วนลด (${formatCurrency(subtotal)})`,
+          message: `ส่วนลด (${formatBaht(discount)}) มากกว่ายอดรวมก่อนหักส่วนลด (${formatBaht(subtotal)})`,
         });
       }
     }
@@ -1059,7 +1059,7 @@ export default function OrderFormPage(props: OrderFormPageProps) {
       hasItemContent
         ? {
             title: dialogTitle,
-            description: `${items.length} รายการ (${totalProducts} สินค้า) · ยอดรวม ${formatCurrency(pricingSummary.grandTotal)}`,
+            description: `${items.length} รายการ (${totalProducts} สินค้า) · ยอดรวม ${formatBaht(pricingSummary.grandTotal)}`,
             confirmText: "เปิดงาน",
           }
         : {

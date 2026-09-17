@@ -23,7 +23,7 @@ import { dueRowTone } from "@/lib/row-tone";
 import { differenceInBangkokDays } from "@/lib/date-utils";
 import { ResponsiveList } from "@/components/ui/responsive-list";
 import { Select } from "@/components/ui/select";
-import { formatBaht, formatCurrency, formatDate } from "@/lib/utils";
+import { formatBaht, formatBahtRounded, formatDate } from "@/lib/utils";
 import { PageShell } from "@/components/page-shell";
 import { permAllows } from "@/lib/permissions";
 import { INVOICE_TYPE_LABELS } from "@/lib/invoice-labels";
@@ -206,7 +206,7 @@ function BillingPageContent() {
               ไอคอนตามต้นแบบ: Wallet · Flame · Coins · Receipt */}
           <StatCard loading={stats.isLoading} moduleTone="finance"
             title="ค้างชำระ"
-            value={formatCurrency(stats.data?.totalUnpaid ?? 0)}
+            value={formatBahtRounded(stats.data?.totalUnpaid ?? 0)}
             icon={Wallet}
             tone={(stats.data?.totalUnpaid ?? 0) > 0 ? "default" : "muted"}
             href="/billing/aging"
@@ -224,12 +224,12 @@ function BillingPageContent() {
           />
           <StatCard loading={stats.isLoading} moduleTone="finance"
             title="รายได้เดือนนี้"
-            value={formatCurrency(stats.data?.revenueThisMonth ?? 0)}
+            value={formatBahtRounded(stats.data?.revenueThisMonth ?? 0)}
             icon={Coins}
           />
           <StatCard loading={stats.isLoading} moduleTone="finance"
             title="รับชำระเดือนนี้"
-            value={formatCurrency(stats.data?.paidThisMonth ?? 0)}
+            value={formatBahtRounded(stats.data?.paidThisMonth ?? 0)}
             icon={Receipt}
           />
         </div>

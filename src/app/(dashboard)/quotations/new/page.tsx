@@ -16,7 +16,7 @@ import { Alert } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ToneMark } from "@/components/ui/section";
 import { ListPageSkeleton } from "@/components/ui/page-skeleton";
-import { cn, formatCurrency } from "@/lib/utils";
+import { cn, formatBaht } from "@/lib/utils";
 import { c } from "@/components/kit/kit";
 import { CustomerPicker } from "@/components/customers/customer-picker";
 import { permAllows } from "@/lib/permissions";
@@ -472,7 +472,7 @@ function QuotationFormPage() {
                     <div className="flex items-baseline justify-between gap-2 @2xl:block @2xl:pt-2 @2xl:text-right">
                       <span className={cn(labelClass, "mb-0 @2xl:sr-only")}>รวม</span>
                       <span className="text-sm font-medium tabular-nums text-strong">
-                        {formatCurrency(rowTotal)}
+                        {formatBaht(rowTotal)}
                       </span>
                     </div>
 
@@ -541,23 +541,23 @@ function QuotationFormPage() {
                 <div className="border-t border-divider pt-2">
                   <div className={c("srow")}>
                     <span>ยอดก่อนภาษี</span>
-                    <b>{formatCurrency(pricingSummary.subtotal)}</b>
+                    <b>{formatBaht(pricingSummary.subtotal)}</b>
                   </div>
                   <div className={c("srow")}>
                     <span>ส่วนลด</span>
                     <b className={pricingSummary.discount > 0 ? c("neg") : undefined}>
                       {pricingSummary.discount > 0
-                        ? `-${formatCurrency(pricingSummary.discount)}`
-                        : formatCurrency(0)}
+                        ? `-${formatBaht(pricingSummary.discount)}`
+                        : formatBaht(0)}
                     </b>
                   </div>
                   <div className={c("srow")}>
                     <span>ภาษีมูลค่าเพิ่ม</span>
-                    <b>{formatCurrency(pricingSummary.tax)}</b>
+                    <b>{formatBaht(pricingSummary.tax)}</b>
                   </div>
                   <div className={c("srow total")}>
                     <span>ยอดสุทธิ</span>
-                    <b>{formatCurrency(pricingSummary.total)}</b>
+                    <b>{formatBaht(pricingSummary.total)}</b>
                   </div>
                 </div>
               </div>

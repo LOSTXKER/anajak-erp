@@ -32,7 +32,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Select } from "@/components/ui/select";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatBaht, formatDate } from "@/lib/utils";
 import { PageShell } from "@/components/page-shell";
 import { FileStack, Plus, Printer, Ban, Loader2 } from "lucide-react";
 import { permAllows } from "@/lib/permissions";
@@ -253,10 +253,10 @@ function BillingNotesPageContent() {
                     {note._count.items}
                   </DataTable.Td>
                   <DataTable.Td align="right" className="font-medium tabular-nums text-strong">
-                    {formatCurrency(note.totalAmount)}
+                    {formatBaht(note.totalAmount)}
                     {!note.isVoided && note.currentOutstanding > 0 ? (
                       <span className="block text-xs font-normal text-muted">
-                        ค้าง {formatCurrency(note.currentOutstanding)}
+                        ค้าง {formatBaht(note.currentOutstanding)}
                       </span>
                     ) : null}
                   </DataTable.Td>
@@ -339,13 +339,13 @@ function BillingNotesPageContent() {
                   <div>
                     <dt className="text-muted">ยอดเรียกเก็บ · {note._count.items} ใบ</dt>
                     <dd className="mt-0.5 font-medium tabular-nums text-strong">
-                      {formatCurrency(note.totalAmount)}
+                      {formatBaht(note.totalAmount)}
                     </dd>
                   </div>
                   <div className="text-right">
                     <dt className="text-muted">คงเหลือจริง</dt>
                     <dd className="mt-0.5 font-semibold tabular-nums text-strong">
-                      {note.isVoided ? "—" : formatCurrency(note.currentOutstanding)}
+                      {note.isVoided ? "—" : formatBaht(note.currentOutstanding)}
                     </dd>
                   </div>
                 </dl>
@@ -501,7 +501,7 @@ function BillingNotesPageContent() {
                           </span>
                         </span>
                         <span className="shrink-0 text-sm font-medium tabular-nums">
-                          {formatCurrency(inv.outstanding)}
+                          {formatBaht(inv.outstanding)}
                         </span>
                       </label>
                     ))}
@@ -510,12 +510,12 @@ function BillingNotesPageContent() {
                 {selectedIds.size > 0 && (
                   <p className="mt-1.5 text-right text-sm">
                     เลือก {selectedIds.size} ใบ · รวม{" "}
-                    <span className="font-semibold tabular-nums">{formatCurrency(selectedTotal)}</span>
+                    <span className="font-semibold tabular-nums">{formatBaht(selectedTotal)}</span>
                   </p>
                 )}
                 {creditNoteTotal > 0 && (
                   <p className="mt-1.5 text-xs text-amber-700 dark:text-amber-400">
-                    ลูกค้ารายนี้มีใบลดหนี้ที่ยังไม่ผูกใบเดิมรวม {formatCurrency(creditNoteTotal)} —
+                    ลูกค้ารายนี้มีใบลดหนี้ที่ยังไม่ผูกใบเดิมรวม {formatBaht(creditNoteTotal)} —
                     ระบบหักให้อัตโนมัติไม่ได้ ตรวจยอดเรียกเก็บก่อนส่งลูกค้า (ใบที่ผูกใบเดิมถูกหักจากยอดค้างแล้ว)
                   </p>
                 )}

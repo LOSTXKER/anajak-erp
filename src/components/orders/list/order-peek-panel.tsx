@@ -23,7 +23,8 @@ import { customerLines, orderListCover, type OrderListRow } from "@/components/o
 import { describeOrderAttention } from "@/lib/home-orders";
 import { isAttentionStatus } from "@/lib/order-progress";
 import { getFlowSteps, ORDER_TYPE_UI_LABELS } from "@/lib/order-status";
-import { formatBaht, formatDateCompact } from "@/lib/utils";
+import { formatBaht } from "@/lib/utils";
+import { formatDueDate } from "@/lib/date-utils";
 
 /* ============================================================
    ดูย่อออเดอร์ — ต้นแบบ peekHTML() ทีละชิ้น (รื้อ 2026-09-15)
@@ -132,7 +133,7 @@ export function OrderPeekPanel({
               <Calendar aria-hidden="true" />
               กำหนดส่ง
             </span>
-            <span className={c("v")}>{order.deadline ? formatDateCompact(order.deadline) : "—"}</span>
+            <span className={c("v")}>{order.deadline ? formatDueDate(order.deadline) : "—"}</span>
             {active && order.deadline && dueInDays !== null && dueInDays <= 2 ? (
               <span>
                 <DueTag status={order.internalStatus} deadline={order.deadline} dueInDays={dueInDays} />

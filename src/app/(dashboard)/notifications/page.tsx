@@ -15,7 +15,7 @@ import { c } from "@/components/kit/kit";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { ListSkeleton } from "@/components/ui/page-skeleton";
 import { FOCUS_INSET, TINT } from "@/components/ui/tokens";
-import { cn, formatDateTime } from "@/lib/utils";
+import { cn, formatDateTime, timeAgo } from "@/lib/utils";
 import { differenceInBangkokDays } from "@/lib/date-utils";
 import {
   Bell,
@@ -27,23 +27,6 @@ import {
   Info,
   MessageSquare,
 } from "lucide-react";
-
-function timeAgo(date: Date | string, now: number): string {
-  const d = new Date(date);
-  const seconds = Math.floor((now - d.getTime()) / 1000);
-
-  if (seconds < 60) return "เมื่อสักครู่";
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes} นาทีที่แล้ว`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} ชั่วโมงที่แล้ว`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days} วันที่แล้ว`;
-  const weeks = Math.floor(days / 7);
-  if (weeks < 4) return `${weeks} สัปดาห์ที่แล้ว`;
-  const months = Math.floor(days / 30);
-  return `${months} เดือนที่แล้ว`;
-}
 
 const TYPE_ICONS: Record<string, React.ReactNode> = {
   ORDER: <Package className="h-4 w-4" strokeWidth={1.75} />,

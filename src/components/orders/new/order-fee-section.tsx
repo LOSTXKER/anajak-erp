@@ -8,7 +8,7 @@ import { c, CardHead } from "@/components/kit/kit";
 import { Plus, Trash, ReceiptText } from "lucide-react";
 import { resolveFeeCatalogSelection } from "@/lib/order-item-composer";
 import type { OrderFeeForm } from "@/types/order-form";
-import { cn } from "@/lib/utils";
+import { cn, formatBaht } from "@/lib/utils";
 
 /** ค่าที่ตรงกับคอมเมนต์ใน schema (DESIGN_FEE, SCREEN_SETUP, ..., CUSTOM) */
 const CUSTOM_FEE_TYPE = "CUSTOM";
@@ -73,7 +73,7 @@ export function OrderFeeSection({
       {hasCatalog &&
         feeCatalog!.map((entry) => (
           <option key={entry.id} value={entry.id}>
-            {entry.name} — ฿{entry.defaultPrice.toLocaleString()}
+            {entry.name} — {formatBaht(entry.defaultPrice)}
           </option>
         ))}
       <option value={OTHER_FEE_OPTION}>อื่นๆ (พิมพ์ชื่อเอง)</option>

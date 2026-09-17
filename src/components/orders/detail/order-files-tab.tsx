@@ -38,7 +38,7 @@ import { safeFileExt } from "@/lib/file-urls";
 import { mockupCoverImage, mockupImageCount, mockupPositionLabel } from "@/lib/mockup";
 import { computeRevisionOverage, REVISION_FEE_PER_ROUND, REVISION_FEE_TYPE } from "@/lib/revision-policy";
 import { uploadFile } from "@/lib/supabase";
-import { formatDate, formatDateCompact, isImageUrl } from "@/lib/utils";
+import { formatBaht, formatDate, formatDateCompact, isImageUrl } from "@/lib/utils";
 
 /* ============================================================
    แท็บ "ม็อกอัพ & ไฟล์" ของใบออเดอร์ — ต้นแบบรอบ 2 tabFiles() (รื้อ 2026-09-15)
@@ -118,7 +118,6 @@ function MockupCard({
 
   const overage = computeRevisionOverage(versions.length);
   const chargedAmount = order.data?.fees?.find((fee) => fee.feeType === REVISION_FEE_TYPE)?.amount ?? 0;
-  const baht = (n: number) => n.toLocaleString("th-TH");
 
   function copyApprovalLink(token: string) {
     const url = `${window.location.origin}/approve/design/${token}`;
@@ -314,7 +313,7 @@ function MockupCard({
               chargedAmount > 0 ? (
                 <span className={c("chip good")}>
                   <Check aria-hidden="true" />
-                  คิดค่าแก้แล้ว ฿{baht(chargedAmount)}
+                  คิดค่าแก้แล้ว {formatBaht(chargedAmount)}
                 </span>
               ) : (
                 <>
@@ -326,11 +325,11 @@ function MockupCard({
                       disabled={addRevisionFee.isPending}
                     >
                       {addRevisionFee.isPending ? <Spinner size="sm" /> : <Receipt aria-hidden="true" />}
-                      คิดค่าแก้แบบ ฿{baht(overage.fee)}
+                      คิดค่าแก้แบบ {formatBaht(overage.fee)}
                     </button>
                   ) : null}
                   <small style={{ flexBasis: "100%", fontSize: 12, color: "var(--ink-3)" }}>
-                    ฿{REVISION_FEE_PER_ROUND}/รอบ แก้ยอดได้ที่ค่าธรรมเนียมออเดอร์
+                    {formatBaht(REVISION_FEE_PER_ROUND)}/รอบ แก้ยอดได้ที่ค่าธรรมเนียมออเดอร์
                   </small>
                 </>
               )

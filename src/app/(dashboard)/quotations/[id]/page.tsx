@@ -15,7 +15,7 @@ import { StatusLabel, toneFromBadgeVariant } from "@/components/ui/status-label"
 import { Alert } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DataTable } from "@/components/ui/data-table";
-import { cn, formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
+import { cn, formatBaht, formatDate, formatDateTime } from "@/lib/utils";
 import { differenceInBangkokDays } from "@/lib/date-utils";
 import { QUOTATION_STATUS_LABELS, QUOTATION_STATUS_VARIANTS } from "@/lib/status-config";
 import type { QuotationStatus } from "@/lib/quotation-status";
@@ -515,8 +515,8 @@ export default function QuotationDetailPage({
                         <p className="font-medium text-strong">{item.name}</p>
                         {item.description && <p className="text-sm text-secondary">{item.description}</p>}
                         <div className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
-                          <span className="text-secondary">{item.quantity} {item.unit} × {formatCurrency(item.unitPrice)}</span>
-                          <span className="font-semibold tabular-nums text-strong">{formatCurrency(item.totalPrice)}</span>
+                          <span className="text-secondary">{item.quantity} {item.unit} × {formatBaht(item.unitPrice)}</span>
+                          <span className="font-semibold tabular-nums text-strong">{formatBaht(item.totalPrice)}</span>
                         </div>
                       </li>
                     ))}
@@ -557,10 +557,10 @@ export default function QuotationDetailPage({
                               {item.quantity.toLocaleString("th-TH")} {item.unit}
                             </DataTable.Td>
                             <DataTable.Td align="right" className="tabular-nums text-strong">
-                              {formatCurrency(item.unitPrice)}
+                              {formatBaht(item.unitPrice)}
                             </DataTable.Td>
                             <DataTable.Td align="right" className="tabular-nums font-medium text-strong">
-                              {formatCurrency(item.totalPrice)}
+                              {formatBaht(item.totalPrice)}
                             </DataTable.Td>
                           </DataTable.Row>
                         ),
@@ -574,21 +574,21 @@ export default function QuotationDetailPage({
                   <div className="mt-4 border-t border-divider pt-2">
                     <div className={c("srow")}>
                       <span>ยอดก่อนภาษี</span>
-                      <b>{formatCurrency(subtotal)}</b>
+                      <b>{formatBaht(subtotal)}</b>
                     </div>
                     {discountAmount > 0 && (
                       <div className={c("srow")}>
                         <span>ส่วนลด</span>
-                        <b className={c("neg")}>-{formatCurrency(discountAmount)}</b>
+                        <b className={c("neg")}>-{formatBaht(discountAmount)}</b>
                       </div>
                     )}
                     <div className={c("srow")}>
                       <span>ภาษีมูลค่าเพิ่ม</span>
-                      <b>{formatCurrency(taxAmount)}</b>
+                      <b>{formatBaht(taxAmount)}</b>
                     </div>
                     <div className={c("srow total")}>
                       <span>ยอดสุทธิ</span>
-                      <b>{formatCurrency(totalAmount)}</b>
+                      <b>{formatBaht(totalAmount)}</b>
                     </div>
                   </div>
                 </CardContent>

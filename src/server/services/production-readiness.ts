@@ -17,6 +17,7 @@
  * ส่วนช่าง (PRODUCTION_STAFF) ไม่เห็นงานติดด่านเลย
  */
 
+import { formatAmount } from "@/lib/format";
 import { getPaymentTerms, requiredUpfrontAmount } from "@/lib/payment-terms";
 import type { ExtendedPrismaClient } from "@/lib/prisma";
 
@@ -62,9 +63,6 @@ const PAST_DESIGN_PHASE = [
   "COMPLETED",
 ];
 
-const fmtBaht = (n: number) =>
-  n.toLocaleString("th-TH", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-
 export function evaluateReadiness(o: ReadinessOrderData): OrderReadiness {
   const checks: ReadinessCheck[] = [];
 
@@ -81,7 +79,7 @@ export function evaluateReadiness(o: ReadinessOrderData): OrderReadiness {
       ? "ไม่ได้ตั้งเงื่อนไขชำระ — ไม่กั้น"
       : requiredAmount <= 0
         ? `${terms.label} — ไม่ต้องรอเงินก่อนผลิต`
-        : `${terms.label}: รับแล้ว ${fmtBaht(o.paidAmount)}/${fmtBaht(requiredAmount)} บาท`,
+        : `${terms.label}: รับแล้ว ${formatAmount(o.paidAmount)}/${formatAmount(requiredAmount)} บาท`,
     ...(paymentOk ? {} : { waitingOn: "รอเงินเข้า — ขาย/การเงินตามลูกค้า" }),
   });
 

@@ -7,7 +7,7 @@ import { ToneMark } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { formatCurrency, cn } from "@/lib/utils";
+import { cn, formatBaht } from "@/lib/utils";
 import { Package, Plus, Minus, Check, AlertCircle, Search, Loader2, RefreshCw, X } from "lucide-react";
 import { toast } from "sonner";
 import { DEFAULT_STOCK_LOCATION } from "@/lib/stock-constants";
@@ -344,7 +344,7 @@ export function MaterialUsage({
                   </span>
                   {showCosts && (
                     <span className="text-xs tabular-nums text-muted">
-                      {formatCurrency(m.totalCost)}
+                      {formatBaht(m.totalCost)}
                     </span>
                   )}
                   <Badge variant="success" size="sm">
@@ -456,7 +456,7 @@ export function MaterialUsage({
                       />
                     </div>
                     <span className="w-16 text-right text-xs tabular-nums text-secondary">
-                      {formatCurrency(m.quantity * m.unitCost)}
+                      {formatBaht(m.quantity * m.unitCost)}
                     </span>
                   </>
                 )}
@@ -482,7 +482,7 @@ export function MaterialUsage({
                   <>
                     {" · "}
                     <span className="font-medium text-strong">
-                      {formatCurrency(totalCost)}
+                      {formatBaht(totalCost)}
                     </span>
                   </>
                 )}

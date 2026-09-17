@@ -20,7 +20,7 @@ import { Switch } from "@/components/ui/switch";
 import { DatePicker } from "@/components/ui/date-picker";
 import { FileUpload } from "@/components/ui/file-upload";
 import { ImageRemoveButton } from "@/components/ui/image-remove-button";
-import { formatCurrency } from "@/lib/utils";
+import { formatBaht } from "@/lib/utils";
 import { PAYMENT_METHODS, DEFAULT_PAYMENT_METHOD } from "@/lib/payment-methods";
 import {
   cashAmountForRemaining,
@@ -156,7 +156,7 @@ export function RecordPaymentDialog({
               <div className="mt-3 space-y-3">
                 <Field
                   label="ยอดที่หัก (บาท)"
-                  description={`ยอดแนะนำ 3% ของฐานก่อน VAT = ${formatCurrency(whtSuggested)} ตรวจให้ตรงกับยอดที่ลูกค้าหักจริง`}
+                  description={`ยอดแนะนำ 3% ของฐานก่อน VAT = ${formatBaht(whtSuggested)} ตรวจให้ตรงกับยอดที่ลูกค้าหักจริง`}
                 >
                   <Input
                     type="number"
@@ -189,9 +189,9 @@ export function RecordPaymentDialog({
                       : "text-xs text-muted"
                   }
                 >
-                  เงินสด {formatCurrency(parseFloat(paymentAmount) || 0)} + หัก ณ ที่จ่าย{" "}
-                  {formatCurrency(parseFloat(whtAmount) || 0)} = เคลียร์บิล{" "}
-                  {formatCurrency(settleAmount)} จากคงเหลือ {formatCurrency(payingRemaining)}
+                  เงินสด {formatBaht(parseFloat(paymentAmount) || 0)} + หัก ณ ที่จ่าย{" "}
+                  {formatBaht(parseFloat(whtAmount) || 0)} = เคลียร์บิล{" "}
+                  {formatBaht(settleAmount)} จากคงเหลือ {formatBaht(payingRemaining)}
                   {settleExceeds && " — เกินยอดคงเหลือ บันทึกไม่ผ่าน"}
                 </p>
               </div>

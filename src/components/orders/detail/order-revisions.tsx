@@ -1,7 +1,7 @@
 import { History } from "lucide-react";
 import { c, CardHead, Empty, statusLabel, timeText } from "@/components/kit/kit";
 import { revisionKind, revisionTitle, type TimelineRevision } from "@/components/orders/detail/order-timeline-card";
-import { BANGKOK_TZ } from "@/lib/utils";
+import { formatDateFull } from "@/lib/utils";
 
 /* ============================================================
    แท็บประวัติ — ต้นแบบ tabHistory() (รื้อ 2026-09-15)
@@ -10,21 +10,13 @@ import { BANGKOK_TZ } from "@/lib/utils";
    โชว์ทั้งหมดโดยไม่พับซ่อน (เบสชี้ 06-12)
    ============================================================ */
 
-const dayLabel = new Intl.DateTimeFormat("th-TH", {
-  weekday: "long",
-  day: "numeric",
-  month: "long",
-  year: "numeric",
-  timeZone: BANGKOK_TZ,
-});
-
 export function OrderRevisions({ revisions }: { revisions: TimelineRevision[] }) {
   const sorted = [...(revisions ?? [])].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
   const days: { day: string; items: TimelineRevision[] }[] = [];
   for (const revision of sorted) {
-    const day = dayLabel.format(new Date(revision.createdAt));
+    const day = formatDateFull(revision.createdAt);
     const current = days[days.length - 1];
     if (current && current.day === day) current.items.push(revision);
     else days.push({ day, items: [revision] });

@@ -12,6 +12,7 @@ import { isAttentionStatus } from "@/lib/order-progress";
 import { PRIORITY_LABELS } from "@/lib/order-status";
 import type { SortDirection, SortKey } from "@/lib/order-list-contract";
 import { formatBaht, formatDateShort } from "@/lib/utils";
+import { formatDueDate } from "@/lib/date-utils";
 
 /* ============================================================
    ตารางออเดอร์ — ต้นแบบ mockup-orders-list-lite-2026-09-16 (เบสเคาะ "ทำจริงเลย")
@@ -147,7 +148,8 @@ function DueCell({ order }: { order: OrderListRow }) {
     days < 0 ? ["bad", `เลย ${-days} วัน`] : days === 0 ? ["warn", "วันนี้"] : days === 1 ? ["warn", "พรุ่งนี้"] : [null, `อีก ${days} วัน`];
   return (
     <>
-      <span className={c("dd")}>{formatDateShort(order.deadline)}</span>
+      {/* กำหนดส่งใช้รูปเดียวกับแผงดูย่อ/หน้าออเดอร์ — ปีโผล่เฉพาะงานข้ามปี คอลัมน์จึงไม่ยาวขึ้น */}
+      <span className={c("dd")}>{formatDueDate(order.deadline)}</span>
       {open ? <span className={c("rel", tone)}>{text}</span> : null}
     </>
   );

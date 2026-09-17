@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
-import { formatCurrency } from "@/lib/utils";
+import { formatBaht } from "@/lib/utils";
 import { Plus, Trash2, Pencil, X, Check, Settings } from "lucide-react";
 import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -440,7 +440,7 @@ export default function ServicesPage() {
                         />
                       ) : (
                         <span className="text-sm tabular-nums font-medium text-strong">
-                          {formatCurrency(item.defaultPrice)}
+                          {formatBaht(item.defaultPrice)}
                         </span>
                       )}
                     </DataTable.Td>
@@ -583,7 +583,7 @@ export default function ServicesPage() {
                           />
                         ) : (
                           <span className="font-semibold tabular-nums text-strong">
-                            {formatCurrency(item.defaultPrice)}
+                            {formatBaht(item.defaultPrice)}
                           </span>
                         )}
                       </ListCardMeta>

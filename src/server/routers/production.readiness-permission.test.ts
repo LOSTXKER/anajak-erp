@@ -67,7 +67,8 @@ describe("production.orderContext readiness permission boundary", () => {
   it("override เพิ่มสิทธิ์ให้ฝ่ายผลิตแล้วคงรายละเอียดเงินจริงครบ", async () => {
     const detail = await getPaymentDetail("PRODUCTION_STAFF", { see_order_money: true });
 
-    expect(detail).toBe("มัดจำ 50%: รับแล้ว 1,234/12,340 บาท");
+    // ยอดเงินในจอความพร้อมผลิตใช้ทศนิยม 2 ตำแหน่งเหมือนยอดอื่นทั้งเว็บแล้ว (ชุดกลาง lib/format)
+    expect(detail).toBe("มัดจำ 50%: รับแล้ว 1,234.00/12,340.00 บาท");
   });
 
   it("เงื่อนไขเงินผ่านแล้วก็ไม่ fallback กลับไปส่งยอดให้คนไม่มีสิทธิ์", async () => {

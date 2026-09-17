@@ -11,6 +11,8 @@
  * (memory: bes-keeps-customer-surface-minimal)
  */
 
+import { formatAmount } from "@/lib/format";
+
 export type DunningTone = "gentle" | "firm";
 
 export interface DunningInvoiceLine {
@@ -40,9 +42,6 @@ export interface DunningDraft {
   invoiceCount: number;
   maxDaysOverdue: number;
 }
-
-const fmtBaht = (n: number): string =>
-  n.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 // วันที่แบบไทย (พ.ศ. อัตโนมัติจาก th-TH) อิง Asia/Bangkok — ให้ตรงกับนิยามวันทั้งระบบ
 const fmtThaiDate = (d: Date | null): string => {
@@ -87,10 +86,10 @@ export function buildDunningDraft(input: DunningInput): DunningDraft {
         : inv.dueDate
           ? ` · ครบกำหนด ${fmtThaiDate(inv.dueDate)}`
           : "";
-    return `• ใบ ${inv.invoiceNumber}${orderPart} — ค้าง ${fmtBaht(inv.outstanding)} บาท${duePart}`;
+    return `• ใบ ${inv.invoiceNumber}${orderPart} — ค้าง ${formatAmount(inv.outstanding)} บาท${duePart}`;
   });
 
-  const totalLine = `รวมค้างชำระ ${fmtBaht(totalOutstanding)} บาท (${invoiceCount} ใบ)`;
+  const totalLine = `รวมค้างชำระ ${formatAmount(totalOutstanding)} บาท (${invoiceCount} ใบ)`;
 
   const closing =
     tone === "firm"

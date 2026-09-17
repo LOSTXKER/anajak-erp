@@ -7,6 +7,7 @@ import { aggToNumber } from "@/server/services/money";
 import { getOwnerPulse } from "@/server/services/owner-pulse";
 import { getHomeOverview } from "@/server/services/home-overview";
 import { printLabelOf, PRINT_LABELS } from "@/lib/print-labels";
+import { BANGKOK_TZ } from "@/lib/utils";
 
 // PERM3: default ตรงชุดเดิมเป๊ะ + override รายคน
 const adminOnly = requirePermission("view_admin_reports");
@@ -203,7 +204,13 @@ export const analyticsRouter = router({
             },
           });
           return {
-            month: start.toLocaleDateString("th-TH", { month: "short", year: "2-digit" }),
+            // ป้ายต้องอ่านขอบเดือนด้วยเวลาไทยเหมือนถังข้อมูล — ไม่ปัก timeZone บน Vercel (UTC)
+            // start คือ 17:00 UTC ของวันสิ้นเดือนก่อน ป้ายจะกลายเป็นเดือนก่อนหน้าทั้งแถว
+            month: start.toLocaleDateString("th-TH", {
+              month: "short",
+              year: "2-digit",
+              timeZone: BANGKOK_TZ,
+            }),
             revenue: aggToNumber(agg._sum.totalAmount),
             orders: agg._count,
           };

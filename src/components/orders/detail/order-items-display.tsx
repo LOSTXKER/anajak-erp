@@ -12,7 +12,7 @@ import { Fact, FactList } from "@/components/ui/fact";
 import { InfoChip } from "@/components/ui/info-chip";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { cn, formatBaht, formatCurrency, isImageUrl } from "@/lib/utils";
+import { cn, formatBaht, isImageUrl } from "@/lib/utils";
 import {
   COLLAR_TYPES,
   SLEEVE_TYPES,
@@ -458,14 +458,14 @@ function PieceCardNarrow({
           <PieceIdentity row={row} />
         </div>
         {showMoney && (
-          <p className={cn("flex-shrink-0 text-sm font-semibold text-strong", NUM)}>{formatCurrency(pieceTotal(row, printCost))}</p>
+          <p className={cn("flex-shrink-0 text-sm font-semibold text-strong", NUM)}>{formatBaht(pieceTotal(row, printCost))}</p>
         )}
       </div>
       {prints.length > 0 && <PrintCell prints={prints} thumb="h-12 w-12" />}
       <FactList columns={showMoney ? 3 : 1}>
         <Fact size="sm" label="จำนวน" value={row.qty} />
         {showMoney && <Fact size="sm" label="ราคาเสื้อ" value={<PiecePrice prod={row.prod} />} />}
-        {showMoney && <Fact size="sm" label="ค่าสกรีน/ตัว" value={prints.length > 0 ? formatCurrency(printCost) : "—"} />}
+        {showMoney && <Fact size="sm" label="ค่าสกรีน/ตัว" value={prints.length > 0 ? formatBaht(printCost) : "—"} />}
       </FactList>
     </div>
   );
@@ -544,7 +544,7 @@ function AddonsTable({ addons, showMoney }: { addons: OrderItemAddon[]; showMone
               </Badge>
             </td>
             <td className={cn(TD, NUM, "text-center font-semibold text-strong")}>
-              {showMoney ? formatCurrency(a.unitPrice ?? 0) : null}
+              {showMoney ? formatBaht(a.unitPrice ?? 0) : null}
             </td>
           </tr>
         ))}
@@ -558,7 +558,7 @@ function AddonCardNarrow({ addon, showMoney }: { addon: OrderItemAddon; showMone
     <div className="rounded-lg border border-border p-3">
       <div className="flex items-start justify-between gap-2">
         <p className="text-sm font-medium text-strong [overflow-wrap:anywhere]">{addon.name || "—"}</p>
-        {showMoney && <p className={cn(NUM, "text-sm font-semibold text-strong")}>{formatCurrency(addon.unitPrice ?? 0)}</p>}
+        {showMoney && <p className={cn(NUM, "text-sm font-semibold text-strong")}>{formatBaht(addon.unitPrice ?? 0)}</p>}
       </div>
       <FactList columns={2} className="mt-2">
         <Fact size="sm" label="คิดราคา" value={PRICING_TYPE_LABELS[addon.pricingType as PricingType] ?? addon.pricingType} />

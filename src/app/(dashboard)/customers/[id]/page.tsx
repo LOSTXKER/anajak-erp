@@ -11,7 +11,7 @@ import { Fact, FactList } from "@/components/ui/fact";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DataTable } from "@/components/ui/data-table";
 import { OrderStatusBadge } from "@/components/order-status-badge";
-import { formatCurrency, formatDate, formatDateShort, formatDateTime, BANGKOK_TZ } from "@/lib/utils";
+import { BANGKOK_TZ, formatBaht, formatBahtRounded, formatDate, formatDateShort, formatDateTime } from "@/lib/utils";
 import { permAllows } from "@/lib/permissions";
 import { canCreateOrderWithPricing } from "@/lib/order-access";
 import { PAYMENT_TERMS_LABELS } from "@/lib/payment-terms";
@@ -182,7 +182,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
               <StatCard
                 moduleTone="finance"
                 title="ยอดซื้อสะสม"
-                value={formatCurrency(customer.totalSpent ?? 0)}
+                value={formatBahtRounded(customer.totalSpent ?? 0)}
                 icon={DollarSign}
               />
             ) : null}
@@ -193,14 +193,14 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                 loading={creditLoading}
                 moduleTone="finance"
                 title="ใช้เครดิตอยู่"
-                value={customer.creditLimit != null ? formatCurrency(credit?.exposure ?? 0) : "—"}
+                value={customer.creditLimit != null ? formatBahtRounded(credit?.exposure ?? 0) : "—"}
                 icon={Wallet}
                 tone={
                   customer.creditLimit != null && (credit?.exposure ?? 0) > 0 ? "warning" : "muted"
                 }
                 caption={
                   customer.creditLimit != null
-                    ? `จากวงเงิน ${formatCurrency(customer.creditLimit)}`
+                    ? `จากวงเงิน ${formatBaht(customer.creditLimit)}`
                     : paymentTermsLabel ?? "ยังไม่ตั้งวงเงิน"
                 }
               />
@@ -258,7 +258,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                           </DataTable.Td>
                           {canSeeMoney && (
                             <DataTable.Td align="right" className="font-medium tabular-nums text-strong">
-                              {formatCurrency(order.totalAmount ?? 0)}
+                              {formatBaht(order.totalAmount ?? 0)}
                             </DataTable.Td>
                           )}
                           <DataTable.Td className="whitespace-nowrap text-secondary">
@@ -459,7 +459,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                           credit.invoiceOutstanding > 0 ? "text-red-600 dark:text-red-400" : ""
                         }`}
                       >
-                        {formatCurrency(credit.invoiceOutstanding)}
+                        {formatBaht(credit.invoiceOutstanding)}
                       </span>
                     </div>
                   )}
@@ -480,7 +480,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                   {customer.creditLimit != null && (
                     <div className="space-y-1 border-t border-divider pt-3">
                       <div className="flex items-center gap-2 text-sm text-secondary">
-                        <SummaryIcon icon={CreditCard} tone="finance" /> วงเงินเครดิต: {formatCurrency(customer.creditLimit)}
+                        <SummaryIcon icon={CreditCard} tone="finance" /> วงเงินเครดิต: {formatBaht(customer.creditLimit)}
                       </div>
                       {creditLoading && (
                         <div role="status" aria-label="กำลังโหลดภาระหนี้" className="pl-6 pt-1">
@@ -494,11 +494,11 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                       )}
                       {credit && credit.available != null && (
                         <FactList columns={1} className="pt-2">
-                          <Fact label="ภาระหนี้รวม" value={formatCurrency(credit.exposure)} />
-                          <Fact label="งานยังไม่วางบิล" value={formatCurrency(credit.unbilled)} />
+                          <Fact label="ภาระหนี้รวม" value={formatBaht(credit.exposure)} />
+                          <Fact label="งานยังไม่วางบิล" value={formatBaht(credit.unbilled)} />
                           <Fact
                             label={credit.available < 0 ? "เกินวงเงิน" : "วงเงินที่ยังใช้ได้"}
-                            value={formatCurrency(Math.abs(credit.available))}
+                            value={formatBaht(Math.abs(credit.available))}
                             tone={credit.available < 0 ? "danger" : "default"}
                           />
                         </FactList>

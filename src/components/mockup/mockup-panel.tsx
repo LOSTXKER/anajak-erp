@@ -18,7 +18,7 @@ import { Section } from "@/components/ui/section";
 import { Spinner } from "@/components/ui/spinner";
 import { RADIUS, SUNK_PANEL, TINT } from "@/components/ui/tokens";
 import { APPROVAL_STATUS_LABELS, APPROVAL_STATUS_VARIANTS } from "@/lib/status-config";
-import { cn, formatDate, formatDateTime } from "@/lib/utils";
+import { cn, formatBaht, formatDate, formatDateTime } from "@/lib/utils";
 import { MockupGallery } from "./mockup-gallery";
 import { MockupDecisionDialog, MockupUploadDialog } from "./mockup-dialogs";
 import {
@@ -95,7 +95,6 @@ export function MockupPanel({
   const overage = computeRevisionOverage(versions.length);
   const existingRevisionFee = order.data?.fees?.find((f) => f.feeType === REVISION_FEE_TYPE);
   const chargedAmount = existingRevisionFee?.amount ?? 0;
-  const baht = (n: number) => n.toLocaleString("th-TH");
 
   function copyApprovalLink(token: string) {
     const url = `${window.location.origin}/approve/design/${token}`;
@@ -286,12 +285,12 @@ export function MockupPanel({
                   // คิดไปแล้ว — โชว์ยอดที่คิดจริง (พนักงานอาจตั้งใจปรับ/ยกเว้น) ไม่ดันให้แก้กลับ
                   <span className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
                     <Check className="h-3.5 w-3.5" />
-                    คิดค่าแก้แล้ว ฿{baht(chargedAmount)}
+                    คิดค่าแก้แล้ว {formatBaht(chargedAmount)}
                   </span>
                 ) : (
                   <>
                     <span className="text-muted">
-                      ค่าแก้แบบเกินโควตา ฿{baht(overage.fee)} (฿{REVISION_FEE_PER_ROUND}/รอบ)
+                      ค่าแก้แบบเกินโควตา {formatBaht(overage.fee)} ({formatBaht(REVISION_FEE_PER_ROUND)}/รอบ)
                     </span>
                     {roleCanApprove && (
                       <Button
@@ -305,7 +304,7 @@ export function MockupPanel({
                         ) : (
                           <Receipt />
                         )}
-                        คิดค่าแก้แบบ ฿{baht(overage.fee)}
+                        คิดค่าแก้แบบ {formatBaht(overage.fee)}
                       </Button>
                     )}
                   </>

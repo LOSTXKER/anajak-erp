@@ -21,7 +21,7 @@ import { differenceInBangkokDays } from "@/lib/date-utils";
 import { c } from "@/components/kit/kit";
 import { validDateParam } from "@/lib/order-list-contract";
 import { ResponsiveList } from "@/components/ui/responsive-list";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatBaht, formatDate } from "@/lib/utils";
 import { QUOTATION_STATUS_LABELS, QUOTATION_STATUS_VARIANTS } from "@/lib/status-config";
 import { PageShell } from "@/components/page-shell";
 import { Plus, ClipboardList, ChevronRight } from "lucide-react";
@@ -280,7 +280,7 @@ function QuotationsPageContent() {
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       <span className="tabular-nums font-semibold text-strong">
-                        {formatCurrency(q.totalAmount)}
+                        {formatBaht(q.totalAmount)}
                       </span>
                       <ChevronRight className="h-4 w-4 text-muted" aria-hidden="true" />
                     </div>
@@ -328,7 +328,7 @@ function QuotationsPageContent() {
                     align="right"
                     className="font-medium tabular-nums text-strong"
                   >
-                    {formatCurrency(q.totalAmount)}
+                    {formatBaht(q.totalAmount)}
                   </DataTable.Td>
                   <DataTable.Td>
                     <QuotationStatusLabel status={q.status} />

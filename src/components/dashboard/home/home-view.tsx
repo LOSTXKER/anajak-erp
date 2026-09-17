@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { c } from "@/components/kit/kit";
-import { BANGKOK_TZ } from "@/lib/utils";
+import { formatDateFull, formatDateShort } from "@/lib/utils";
 import type { HomeOverview } from "@/server/services/home-overview";
 import { ActiveOrdersCard } from "./active-orders-card";
 import { FactoryFlowCard } from "./factory-flow-card";
@@ -13,14 +13,6 @@ import { MoneyCard } from "./money-card";
 import { WeekCard } from "./week-card";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const longDate = new Intl.DateTimeFormat("th-TH-u-ca-buddhist", {
-  weekday: "long",
-  day: "numeric",
-  month: "long",
-  year: "numeric",
-  timeZone: BANGKOK_TZ,
-});
-const shortDate = new Intl.DateTimeFormat("th-TH", { day: "numeric", month: "short", timeZone: BANGKOK_TZ });
 
 export interface HomeViewProps {
   metrics: HomeMetricsData;
@@ -37,7 +29,7 @@ export interface HomeViewProps {
 export function HomeView({ metrics, overview, canSeeMoney, canCreateOrder }: HomeViewProps) {
   const [day, setDay] = useState<number | null>(null);
   const now = new Date(overview.generatedAt);
-  const dayLabel = day === null ? null : day === 0 ? "วันนี้" : shortDate.format(new Date(now.getTime() + day * DAY_MS));
+  const dayLabel = day === null ? null : day === 0 ? "วันนี้" : formatDateShort(now.getTime() + day * DAY_MS);
 
   return (
     <div className={c("tokens page home")}>
@@ -46,7 +38,7 @@ export function HomeView({ metrics, overview, canSeeMoney, canCreateOrder }: Hom
       <div className={c("head")}>
         <div className={c("ht")}>
           <h1>ภาพรวมวันนี้</h1>
-          <p className={c("date")}>{longDate.format(now)}</p>
+          <p className={c("date")}>{formatDateFull(now)}</p>
         </div>
         {canCreateOrder ? (
           <div className={c("acts")}>

@@ -22,7 +22,7 @@ import {
 import type { CustomerStatus, OrderType } from "@prisma/client";
 import { c, CardHead, MiniRing, Prop, StateBox, SubHead, timeText } from "@/components/kit/kit";
 import { customerTypeLabel } from "@/components/customers/customer-type";
-import { differenceInBangkokDays } from "@/lib/date-utils";
+import { differenceInBangkokDays, formatDueDate } from "@/lib/date-utils";
 import { CHANNEL_LABELS, ORDER_TYPE_UI_LABELS, PRIORITY_LABELS } from "@/lib/order-status";
 import { PAYMENT_TERMS_LABELS } from "@/lib/payment-terms";
 import { formatBaht, formatDateCompact } from "@/lib/utils";
@@ -257,7 +257,7 @@ export function OrderOverviewTab({
                 กำหนดส่ง
               </span>
               <span className={c("v")}>
-                {order.deadline ? formatDateCompact(order.deadline) : <span className={c("soft")}>ยังไม่กำหนด</span>}
+                {order.deadline ? formatDueDate(order.deadline) : <span className={c("soft")}>ยังไม่กำหนด</span>}
               </span>
             </span>
           </div>

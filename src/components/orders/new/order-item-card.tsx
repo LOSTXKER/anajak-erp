@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { MoneyInput } from "@/components/ui/number-input";
 import { Select } from "@/components/ui/select";
 import { c } from "@/components/kit/kit";
-import { cn, formatBaht, formatCurrency } from "@/lib/utils";
+import { cn, formatBaht } from "@/lib/utils";
 import { buildOrderItemPriceSummary, createProductForSource, getProductSourcePresentation } from "@/lib/order-item-composer";
 import {
   Plus,
@@ -581,12 +581,12 @@ export function OrderItemCard({
                     </span>
                   )}
                   {line.kind === "product" && (line.discount || 0) > 0 && (
-                    <span className="ml-1 text-red-500">-{formatCurrency(line.discount || 0)}</span>
+                    <span className="ml-1 text-red-500">-{formatBaht(line.discount || 0)}</span>
                   )}
                 </td>
-                <td className="px-2 py-1 text-right tabular-nums text-muted">{formatCurrency(line.unitPrice)}</td>
+                <td className="px-2 py-1 text-right tabular-nums text-muted">{formatBaht(line.unitPrice)}</td>
                 <td className="px-2 py-1 text-right tabular-nums text-muted">×{line.quantity}</td>
-                <td className="py-1 text-right tabular-nums">{formatCurrency(line.total)}</td>
+                <td className="py-1 text-right tabular-nums">{formatBaht(line.total)}</td>
               </tr>
             );
           })}
@@ -600,12 +600,12 @@ export function OrderItemCard({
               {totalQty} ตัว
             </td>
             <td className="pt-2 text-right text-sm font-semibold tabular-nums text-strong">
-              {formatCurrency(subtotal)}
+              {formatBaht(subtotal)}
             </td>
           </tr>
           <tr>
             <td colSpan={3} className="text-xs text-muted">
-              เฉลี่ย {formatCurrency(itemPriceSummary.averageUnitPrice ?? 0)} / ตัว
+              เฉลี่ย {formatBaht(itemPriceSummary.averageUnitPrice ?? 0)} / ตัว
             </td>
             <td aria-hidden="true" />
           </tr>

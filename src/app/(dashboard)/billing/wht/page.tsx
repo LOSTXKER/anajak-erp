@@ -35,7 +35,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatBaht, formatBahtRounded, formatDate } from "@/lib/utils";
 import { PageShell } from "@/components/page-shell";
 import { permAllows } from "@/lib/permissions";
 import {
@@ -256,14 +256,14 @@ function WhtRegisterPageContent() {
           {/* ยอดรอใบ — เด่น amber เมื่อ >0 (UX4.3: StatCard รับ tone แล้ว เลิกการ์ดทำมือ) */}
           <StatCard loading={stats.isLoading} moduleTone="finance"
             title="ยอดหักที่ยังไม่มีใบ"
-            value={formatCurrency(pendingAmount)}
+            value={formatBahtRounded(pendingAmount)}
             icon={AlertTriangle}
             tone={pendingAmount > 0 ? "warning" : "muted"}
             caption="ไม่ได้ใบ = เครดิตภาษีส่วนนี้หายฟรี"
           />
           <StatCard loading={stats.isLoading} moduleTone="finance"
             title="ได้ใบแล้วรวม"
-            value={formatCurrency(stats.data?.receivedAmount ?? 0)}
+            value={formatBahtRounded(stats.data?.receivedAmount ?? 0)}
             icon={CheckCircle2}
             caption="บาท"
           />
@@ -378,7 +378,7 @@ function WhtRegisterPageContent() {
                     )}
                   </DataTable.Td>
                   <DataTable.Td align="right" className="tabular-nums">
-                    {formatCurrency(row.baseAmount)}
+                    {formatBaht(row.baseAmount)}
                   </DataTable.Td>
                   <DataTable.Td align="right" className="tabular-nums">
                     {row.ratePct}%
@@ -387,7 +387,7 @@ function WhtRegisterPageContent() {
                     align="right"
                     className="font-semibold tabular-nums text-strong"
                   >
-                    {formatCurrency(row.amount)}
+                    {formatBaht(row.amount)}
                   </DataTable.Td>
                   <DataTable.Td>
                     {row.received ? (
@@ -499,9 +499,9 @@ function WhtRegisterPageContent() {
                 </div>
 
                 <p className="mt-1.5 text-sm tabular-nums text-secondary">
-                  ฐาน {formatCurrency(row.baseAmount)} × {row.ratePct}% = หัก{" "}
+                  ฐาน {formatBaht(row.baseAmount)} × {row.ratePct}% = หัก{" "}
                   <span className="font-semibold text-strong">
-                    {formatCurrency(row.amount)}
+                    {formatBaht(row.amount)}
                   </span>
                 </p>
                 {row.received && row.certNumber && (
@@ -553,7 +553,7 @@ function WhtRegisterPageContent() {
             {markTarget ? (
               <FactList columns={2} className="border-b border-divider pb-4">
                 <Fact label="เลขบิล" value={markTarget.invoice.invoiceNumber} />
-                <Fact label="ยอดหัก ณ ที่จ่าย" value={formatCurrency(markTarget.amount)} />
+                <Fact label="ยอดหัก ณ ที่จ่าย" value={formatBaht(markTarget.amount)} />
               </FactList>
             ) : null}
             <div className="grid grid-cols-2 gap-3">

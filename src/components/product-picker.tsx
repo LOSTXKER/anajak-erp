@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { trpc } from "@/lib/trpc";
-import { cn, formatCurrency } from "@/lib/utils";
+import { cn, formatBaht } from "@/lib/utils";
 import { FIELD_SURFACE, FOCUS_BUTTON, FOCUS_FIELD, OVERLAY_PANEL, RADIUS, TABLE_HEAD_SURFACE } from "@/components/ui/tokens";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -297,7 +297,7 @@ export function ProductPickerDialog({
                             <span>
                               ราคา{" "}
                               <span className="font-medium text-secondary">
-                                {formatCurrency(product.basePrice)}
+                                {formatBaht(product.basePrice)}
                               </span>
                             </span>
                             <span className="text-divider">|</span>
@@ -400,8 +400,8 @@ export function ProductPickerDialog({
                                       </span>
                                       <span className="block break-words">
                                         {v.sellingPrice > 0
-                                          ? formatCurrency(v.sellingPrice)
-                                          : formatCurrency(product.basePrice)}
+                                          ? formatBaht(v.sellingPrice)
+                                          : formatBaht(product.basePrice)}
                                       </span>
                                     </td>
                                     <td className="col-span-3 col-start-1 p-0 sm:table-cell sm:w-28 sm:px-3 sm:py-1.5">

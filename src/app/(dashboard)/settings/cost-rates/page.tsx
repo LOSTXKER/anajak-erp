@@ -14,7 +14,7 @@ import { Calculator, Coins, Layers, Loader2, Save, Store } from "lucide-react";
 import { HelpTip } from "@/components/ui/help-tip";
 import { c } from "@/components/kit/kit";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { cn, formatAmount } from "@/lib/utils";
 import type { CostRates } from "@/lib/cost-rates";
 import { permAllows } from "@/lib/permissions";
 import {
@@ -117,9 +117,6 @@ function toRates(form: FormState): CostRates {
     costDeviationAlertPct: num(form.costDeviationAlertPct),
   };
 }
-
-const formatBaht = (n: number) =>
-  n.toLocaleString("th-TH", { maximumFractionDigits: 2 });
 
 export default function CostRatesSettingsPage() {
   const meQuery = trpc.user.me.useQuery();
@@ -301,12 +298,12 @@ export default function CostRatesSettingsPage() {
               <FactList columns={2}>
                 <Fact
                   label="ค่าฟิล์ม"
-                  value={sampleFilm !== null ? `${formatBaht(sampleFilm)} บาท` : "—"}
+                  value={sampleFilm !== null ? `${formatAmount(sampleFilm)} บาท` : "—"}
                   sub={`${SAMPLE_QTY} ตัว`}
                 />
                 <Fact
                   label="ค่าแรง + โสหุ้ย"
-                  value={`${formatBaht(sampleLaborOverhead)} บาท`}
+                  value={`${formatAmount(sampleLaborOverhead)} บาท`}
                   sub={`${SAMPLE_QTY} ตัว`}
                 />
               </FactList>

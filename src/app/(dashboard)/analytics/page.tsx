@@ -5,7 +5,7 @@ import { trpc } from "@/lib/trpc";
 import { permAllows } from "@/lib/permissions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
-import { cn, formatCurrency } from "@/lib/utils";
+import { cn, formatBahtRounded } from "@/lib/utils";
 import { FOCUS_BUTTON } from "@/components/ui/tokens";
 import { BarChart3, Coins, Shirt, ShoppingCart, Users } from "lucide-react";
 import { PageShell } from "@/components/page-shell";
@@ -74,7 +74,7 @@ export default function AnalyticsPage() {
           loading={isLoading}
           moduleTone="finance"
           title="ยอดขายเดือนนี้"
-          value={canViewRevenue ? formatCurrency(dashboard?.revenueThisMonth ?? 0) : "—"}
+          value={canViewRevenue ? formatBahtRounded(dashboard?.revenueThisMonth ?? 0) : "—"}
           icon={Coins}
           // เทียบเดือนก่อนเป็นลูกศร+สี ทศนิยม 1 ตำแหน่ง (StatCard คุมให้) ไม่ใช่ข้อความจางทศนิยมยาว
           change={
@@ -201,7 +201,7 @@ export default function AnalyticsPage() {
                       {customer.totalOrders.toLocaleString("th-TH")}
                     </DataTable.Td>
                     <DataTable.Td align="right" className="font-medium tabular-nums text-strong">
-                      {formatCurrency(customer.totalSpent)}
+                      {formatBahtRounded(customer.totalSpent)}
                     </DataTable.Td>
                   </DataTable.Row>
                 ))}

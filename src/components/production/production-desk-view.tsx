@@ -28,7 +28,8 @@ import {
 } from "@/lib/production-desk";
 import { type WorklistStationChip } from "@/lib/production-worklist";
 import { ACTIVE_UNDERLINE, FOCUS_BUTTON, RADIUS, SUNK_PANEL } from "@/components/ui/tokens";
-import { cn, formatDateShort } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { formatDueDate } from "@/lib/date-utils";
 import type { DeskSort, DeskSortKey } from "@/lib/production-desk-sort";
 
 import { CurrentCell, OutsourceCell, ResponsibleCell, RouteRail } from "./production-desk-cells";
@@ -286,7 +287,7 @@ export function DeskTable<S extends DeskStepLike, O extends BoardOrderLike<S>>({
                 </div>
                 <div className={cn("mt-3 space-y-2", !sideDetails && "sm:hidden")}>
                   <div className="flex flex-wrap items-center gap-2">
-                    <DueTag dueInDays={row.dueInDays} dateLabel={order.deadline ? formatDateShort(order.deadline) : null} size="sm" />
+                    <DueTag dueInDays={row.dueInDays} dateLabel={order.deadline ? formatDueDate(order.deadline) : null} size="sm" />
                     <span className="text-secondary tabular-nums">{(order.totalQuantity ?? 0).toLocaleString("th-TH")} ตัว</span>
                   </div>
                   {sideDetails ? <div className="sm:hidden"><CurrentCell row={row} mode="summary" /></div> : <CurrentCell row={row} mode={variant === "a" ? "disclosure" : "full"} />}
@@ -297,7 +298,7 @@ export function DeskTable<S extends DeskStepLike, O extends BoardOrderLike<S>>({
                 <span className="ml-1 text-muted">ตัว</span>
               </DataTable.Td>
               <DataTable.Td className={sideDetails ? "hidden" : "hidden whitespace-nowrap sm:table-cell"}>
-                <DueTag dueInDays={row.dueInDays} dateLabel={order.deadline ? formatDateShort(order.deadline) : null} size="sm" />
+                <DueTag dueInDays={row.dueInDays} dateLabel={order.deadline ? formatDueDate(order.deadline) : null} size="sm" />
               </DataTable.Td>
               <DataTable.Td className="hidden min-w-48 max-w-72 sm:table-cell">
                 <div className="space-y-2">

@@ -26,7 +26,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { formatBaht, formatCurrency } from "@/lib/utils";
+import { formatBaht, formatBahtRounded } from "@/lib/utils";
 import { permAllows } from "@/lib/permissions";
 import { PageShell } from "@/components/page-shell";
 import { c } from "@/components/kit/kit";
@@ -279,20 +279,20 @@ function AgingPageContent() {
       {(!isError || data) && <div className={c("metrics")}>
         <StatCard loading={isLoading} moduleTone="finance"
           title="ลูกหนี้รวม"
-          value={formatCurrency(data?.grandTotal ?? 0)}
+          value={formatBahtRounded(data?.grandTotal ?? 0)}
           icon={Wallet}
         />
         {/* เลขเสี่ยงของหน้านี้ — แดงเมื่อมีจริง ให้ตรงกับเซลล์แดงในตารางข้างล่าง (UX4.3) */}
         <StatCard loading={isLoading} moduleTone="finance"
           title="เลยกำหนดแล้ว"
-          value={formatCurrency(overdueTotal)}
+          value={formatBahtRounded(overdueTotal)}
           icon={Flame}
           caption={`${overdueCustomers.toLocaleString("th-TH")} ราย`}
           tone={overdueTotal > 0 ? "danger" : "muted"}
         />
         <StatCard loading={isLoading} moduleTone="finance"
           title="ยังไม่ครบกำหนด"
-          value={formatCurrency(data?.totals.current ?? 0)}
+          value={formatBahtRounded(data?.totals.current ?? 0)}
           icon={Hourglass}
           caption={`${currentCustomers.toLocaleString("th-TH")} ราย`}
         />
@@ -622,7 +622,7 @@ function AgingPageContent() {
                     เหมือน dialog อื่น (ข้อความทวงยาวตามจำนวนใบ ดันปุ่มตกนอกสายตาได้) */}
                 <DialogFooter className="flex-row items-center justify-between sm:justify-between">
                   <p className="text-xs text-muted">
-                    {draft.data.invoiceCount} ใบ · ค้างรวม {formatCurrency(draft.data.totalOutstanding)}
+                    {draft.data.invoiceCount} ใบ · ค้างรวม {formatBaht(draft.data.totalOutstanding)}
                   </p>
                   <Button size="sm" className="gap-1.5" onClick={() => copyDraft(draft.data!.text!)}>
                     <Copy />

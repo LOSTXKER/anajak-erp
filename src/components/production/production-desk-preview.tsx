@@ -15,7 +15,8 @@ import { BLIND_SHIP_LABEL, INTERNAL_STATUS_LABELS, PRIORITY_LABELS } from "@/lib
 import type { BoardOrderLike } from "@/lib/production-board";
 import type { DeskRow, DeskStepLike } from "@/lib/production-desk";
 import type { DeskSort, DeskSortKey } from "@/lib/production-desk-sort";
-import { cn, formatDateShort } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { formatDueDate } from "@/lib/date-utils";
 import {
   CurrentCell,
   DeskTable,
@@ -175,7 +176,7 @@ export function DeskRowDetails<S extends DeskStepLike, O extends BoardOrderLike<
       </header>
       <dl className="grid grid-cols-2 gap-4 border-y border-divider py-4 text-sm">
         <div><dt className="text-secondary">จำนวน</dt><dd className="mt-1 font-semibold tabular-nums text-strong">{(order.totalQuantity ?? 0).toLocaleString("th-TH")} ตัว</dd></div>
-        <div><dt className="text-secondary">กำหนดส่ง</dt><dd className="mt-1"><DueTag dueInDays={row.dueInDays} dateLabel={order.deadline ? formatDateShort(order.deadline) : null} size="sm" /></dd></div>
+        <div><dt className="text-secondary">กำหนดส่ง</dt><dd className="mt-1"><DueTag dueInDays={row.dueInDays} dateLabel={order.deadline ? formatDueDate(order.deadline) : null} size="sm" /></dd></div>
         <div className="col-span-2"><dt className="text-secondary">ผู้รับผิดชอบ</dt><dd className="mt-1"><ResponsibleCell names={row.responsible} /></dd></div>
       </dl>
       <section className="space-y-3 text-sm"><h3 className="font-semibold text-strong">งานตอนนี้</h3><CurrentCell row={row} /><RouteRail rail={row.job.rail} /></section>

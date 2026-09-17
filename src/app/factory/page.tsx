@@ -17,7 +17,7 @@ import { ProductionFreshness } from "@/components/production/production-freshnes
 import { useProductionV2Enabled } from "@/components/factory/production-v2-context";
 import { ToneMark } from "@/components/ui/section";
 import { cn, formatDateShort } from "@/lib/utils";
-import { differenceInBangkokDays } from "@/lib/date-utils";
+import { differenceInBangkokDays, formatDueDate } from "@/lib/date-utils";
 import { BLIND_SHIP_LABEL, PRIORITY_LABELS } from "@/lib/order-status";
 
 // Factory TV — read-only pulse ของสายงานจริง 5 ด่าน
@@ -26,6 +26,17 @@ type Board = RouterOutput["factory"]["board"];
 
 const STALE_MS = 2 * 60 * 1000;
 const VISIBLE_ROWS = 4;
+
+/* คำของสถานะรอบพิมพ์ครบทุกค่า — เดิมเขียนเป็น ternary สองกิ่ง ค่าอื่นจึงตกมาเป็น
+   "รอตัดแยก" ไปด้วย · วันนี้กระดานดึงเฉพาะรอบที่ยังค้าง (PRINTING/PRINTED) จึงยังไม่เพี้ยน
+   ให้เห็น แต่พอผ่อนตัวกรองเมื่อไรคำจะผิดเงียบ ๆ · ผูก key กับชนิดที่ endpoint ส่งมาจริง
+   ถ้ามีสถานะใหม่ในอนาคต TypeScript จะฟ้องที่นี่ก่อนขึ้นจอ */
+const PRINT_RUN_STATUS_LABELS: Record<Board["activeRuns"][number]["status"], string> = {
+  PRINTING: "กำลังพิมพ์",
+  PRINTED: "รอตัดแยก",
+  COMPLETED: "ตัดแยกเสร็จ",
+  CANCELLED: "ยกเลิกรอบ",
+};
 
 function isOverdue(deadline: Date | string | null): boolean {
   const days = differenceInBangkokDays(deadline, new Date());
@@ -322,7 +333,7 @@ function DtfQueueRows({ board }: { board: Board }) {
       orderNumber: job.orderNumber,
       customerName: job.customerName,
       deadline: null,
-      status: `${run.status === "PRINTING" ? "กำลังพิมพ์" : "รอตัดแยก"} · ${run.runNumber}`,
+      status: `${PRINT_RUN_STATUS_LABELS[run.status]} · ${run.runNumber}`,
       progress: `${job.qty} ตัว`,
       active: true,
     })),
@@ -410,7 +421,7 @@ function QueueRow({
             overdue ? "font-medium text-red-300" : "text-muted",
           )}
         >
-          {progress || (deadline ? `ส่ง ${formatDateShort(deadline)}` : "—")}
+          {progress || (deadline ? `ส่ง ${formatDueDate(deadline)}` : "—")}
         </span>
       </div>
     </div>
@@ -458,7 +469,7 @@ function BoardRail({ board }: { board: Board }) {
       label: isOverdue(item.deadline)
         ? "เลยกำหนดส่ง"
         : item.deadline
-          ? `ส่ง ${formatDateShort(item.deadline)}`
+          ? `ส่ง ${formatDueDate(item.deadline)}`
           : "ใกล้กำหนดส่ง",
       detail: item.customerName,
       danger: isOverdue(item.deadline),

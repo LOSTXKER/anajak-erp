@@ -36,7 +36,7 @@ import {
   type TaskListItem,
   type TaskTone,
 } from "@/lib/task-groups";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatBaht, formatDate } from "@/lib/utils";
 
 /* ============================================================
    งานของฉัน — ต้นแบบ pgTasks(): หัวหน้า + ปุ่มโหลดใหม่ → การ์ดกองละใบ → แถวงาน
@@ -282,7 +282,7 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
       deadline: followUp.order.deadline,
       attention: taskAttention(followUp.order.deadline),
       ownership: "team",
-      meta: formatCurrency(followUp.totalAmount),
+      meta: formatBaht(followUp.totalAmount),
       actionLabel: "ตามลูกค้า",
     });
   }
@@ -300,7 +300,7 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
       deadlineLabel: "ครบกำหนดชำระ",
       attention: "overdue",
       ownership: "team",
-      meta: formatCurrency(invoice.totalAmount),
+      meta: formatBaht(invoice.totalAmount),
       actionLabel: "ดูบิล",
     });
   }

@@ -14,7 +14,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { ResponsiveList } from "@/components/ui/responsive-list";
 import { PageShell } from "@/components/page-shell";
 import { c } from "@/components/kit/kit";
-import { cn, formatBaht, formatCurrency } from "@/lib/utils";
+import { cn, formatBaht, formatBahtRounded } from "@/lib/utils";
 import {
   salesTaxReportCsv,
   peakImportCsv,
@@ -156,10 +156,10 @@ export default function SalesTaxReportPage() {
         <StatCard loading={isLoading} moduleTone="finance" title="เอกสารในงวด" value={summary?.docCount ?? 0} icon={ReceiptText} caption="ใบ · ไม่รวมใบยกเลิก" />
         <StatCard loading={isLoading} moduleTone="finance"
           title="ฐานภาษี (หลังหักลดหนี้)"
-          value={formatCurrency(summary?.totalBase ?? 0)}
+          value={formatBahtRounded(summary?.totalBase ?? 0)}
           icon={Coins}
         />
-        <StatCard loading={isLoading} moduleTone="finance" title="VAT งวดนี้" value={formatCurrency(summary?.totalVat ?? 0)} icon={Coins} />
+        <StatCard loading={isLoading} moduleTone="finance" title="VAT งวดนี้" value={formatBahtRounded(summary?.totalVat ?? 0)} icon={Coins} />
         <StatCard loading={isLoading} moduleTone="finance" title="ใบยกเลิก" value={summary?.voidedCount ?? 0} icon={Ban} caption="ใบ" />
       </div>
 

@@ -15,7 +15,7 @@ import { TablePagination } from "@/components/ui/table-pagination";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ListCards, ListCardItem, ListCardMetaGrid, ListCardMeta } from "@/components/ui/list-card";
 import { ResponsiveList } from "@/components/ui/responsive-list";
-import { formatCurrency } from "@/lib/utils";
+import { formatBahtRounded } from "@/lib/utils";
 import { permAllows } from "@/lib/permissions";
 import { differenceInBangkokDays } from "@/lib/date-utils";
 import { c } from "@/components/kit/kit";
@@ -286,7 +286,7 @@ function CustomersPageContent() {
                         align="right"
                         className="font-medium tabular-nums text-strong"
                       >
-                        {formatCurrency(customer.totalSpent ?? 0)}
+                        {formatBahtRounded(customer.totalSpent ?? 0)}
                       </DataTable.Td>
                     )}
                     <DataTable.Td className="whitespace-nowrap">
@@ -344,7 +344,7 @@ function CustomersPageContent() {
                       {canSeeMoney ? (
                         <ListCardMeta label="ยอดสะสม" align="right">
                           <span className="font-semibold tabular-nums text-strong">
-                            {formatCurrency(customer.totalSpent ?? 0)}
+                            {formatBahtRounded(customer.totalSpent ?? 0)}
                           </span>
                         </ListCardMeta>
                       ) : null}
