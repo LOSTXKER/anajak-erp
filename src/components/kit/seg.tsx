@@ -33,8 +33,15 @@ export function useSegIndicator(deps: string) {
     place();
     const observer = new ResizeObserver(place);
     observer.observe(box);
+    // แท็บของ Radix (ui/tabs) สลับ aria-selected เองโดยไม่ผ่าน deps ของผู้เรียก — ไม่ฟังตรงนี้
+    // ขีดจะค้างใต้แท็บแรกจนกว่ากล่องจะเปลี่ยนขนาด (เบสเจอในฟอร์มออเดอร์ 2026-09-18)
+    const selection = new MutationObserver(place);
+    selection.observe(box, { subtree: true, attributes: true, attributeFilter: ["aria-selected", "aria-pressed"] });
     void document.fonts?.ready.then(place);
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      selection.disconnect();
+    };
   }, [deps]);
   return indRef;
 }
