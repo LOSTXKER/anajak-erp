@@ -1,7 +1,7 @@
 "use client";
 
 import { trpc } from "@/lib/trpc";
-import { sumVariantQty } from "@/lib/size-matrix";
+import { filledSizeVariants, sumVariantQty } from "@/lib/size-matrix";
 import { moveOrderItemProduct } from "@/lib/order-item-composer";
 import type { OrderItemForm, OrderItemProductForm } from "@/types/order-form";
 
@@ -19,7 +19,10 @@ export function useProductRow(
     onSetItems((prev) => {
       const copy = [...prev];
       const products = [...copy[itemIdx].products];
-      products[prodIdx] = { ...products[prodIdx], [field]: value };
+      const next = { ...products[prodIdx], [field]: value };
+      // แหล่งที่กรอกผ่านตารางไซส์นับเฉพาะไซส์ที่กรอก — แถวไซส์ว่างที่ติดมากับสินค้าเปล่าต้องไม่นับเป็น 1 ตัว
+      if (field === "itemSource" && value !== "FROM_STOCK") next.variants = filledSizeVariants(next.variants);
+      products[prodIdx] = next;
       copy[itemIdx] = { ...copy[itemIdx], products };
       return copy;
     });
@@ -65,7 +68,7 @@ export function useProductRow(
   // (เบสเคาะ D 2026-09-06: แถวสินค้าเดียวกันทุกแหล่ง · ไซส์กางตลอดใต้แถว · สเปคใน popup)
   const canMatrix = !isFromStock;
   const multi = canMatrix;
-  const filledSizes = product.variants.filter((v) => v.size.trim());
+  const filledSizes = filledSizeVariants(product.variants);
   const totalQty = sumVariantQty(filledSizes);
   const effectiveQty = multi ? totalQty : qty;
   const lineTotal = netPrice * effectiveQty;

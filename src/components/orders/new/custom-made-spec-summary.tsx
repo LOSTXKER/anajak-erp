@@ -13,7 +13,8 @@ import { CustomMadeDetail } from "./custom-made-detail";
 /**
  * สเปคตัดเย็บในแถวสินค้า (เบสเคาะ D 2026-09-06): บนแถวเห็นแค่ค่าที่กรอกแล้ว แก้ใน popup
  * (CustomMadeDetail ตัวเดิม มีแพทเทิร์นจริง + สร้างด่วน) — ของที่กรอกนานๆ ครั้งไม่กินที่ในตาราง
- * หน้าตาตามต้นแบบ 2026-09-18: บรรทัดเดียว ป้าย + ชิปเทาทีละค่า + ปุ่มแก้ (ชื่อช่องอยู่ใน title ของชิป)
+ * หน้าตาตามต้นแบบ 2026-09-18: บรรทัดเดียว ป้าย + ชิปเทาทีละค่า + ปุ่มแก้
+ * ชิปมีชื่อช่องสีจางนำหน้าค่า — ค่าโดดๆ อย่าง "Regular" อ่านไม่ออกว่าช่องไหน (เบสสั่ง 2026-09-18 ตามที่ทักไว้ 09-06)
  * ยังไม่ระบุ = ชิปเตือน + ปุ่ม "ระบุสเปค" ไม่ปล่อยให้เงียบ
  */
 export function CustomMadeSpecSummary({
@@ -35,7 +36,8 @@ export function CustomMadeSpecSummary({
       <span className={c("lb")}>สเปคตัดเย็บ</span>
       {filled ? (
         facts.map((f) => (
-          <span key={f.label} className={c("chip gray")} title={f.label}>
+          <span key={f.label} className={c("chip gray")}>
+            <span className={c("k")}>{f.label}</span>
             {f.value}
           </span>
         ))

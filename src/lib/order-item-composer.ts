@@ -9,9 +9,24 @@ import {
   PRINT_POSITIONS,
   PRINT_TYPES,
   type OrderFeeForm,
+  createOrderItemProduct,
   type OrderItemForm,
+  type OrderItemProductForm,
   type PricingType,
 } from "@/types/order-form";
+
+/**
+ * แถวสินค้าใหม่ตามแหล่ง · ตัดเย็บใหม่/ลูกค้าส่งมากรอกจำนวนผ่านตารางไซส์ จึงเริ่มแบบยังไม่มีไซส์
+ * ค่าตั้งต้นของสินค้าเปล่ามีแถวไซส์ว่างจำนวน 1 — เคยทำให้หัวชุดงาน/แถวรวม/ยอดเงินนับเป็น 1 ตัว
+ * ทั้งที่ตารางไซส์บอก 0 (เบสเจอ 2026-09-18) · ส่งฟอร์มยังต้องระบุไซส์ตาม validateOrderItemProduct
+ */
+export function createProductForSource(source: string): OrderItemProductForm {
+  return createOrderItemProduct({
+    itemSource: source,
+    ...(source !== "FROM_STOCK" ? { variants: [] } : {}),
+    ...(source === "CUSTOMER_PROVIDED" ? { baseUnitPrice: 0 } : {}),
+  });
+}
 
 export interface OrderItemPriceSummaryLine {
   key: string;

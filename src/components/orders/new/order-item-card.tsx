@@ -6,7 +6,7 @@ import { MoneyInput } from "@/components/ui/number-input";
 import { Select } from "@/components/ui/select";
 import { c } from "@/components/kit/kit";
 import { cn, formatBaht, formatCurrency } from "@/lib/utils";
-import { buildOrderItemPriceSummary, getProductSourcePresentation } from "@/lib/order-item-composer";
+import { buildOrderItemPriceSummary, createProductForSource, getProductSourcePresentation } from "@/lib/order-item-composer";
 import {
   Plus,
   Trash,
@@ -19,7 +19,6 @@ import {
   CUSTOM_ADDON_TYPE,
   PRICING_TYPE_LABELS,
   PRINT_TYPES,
-  createOrderItemProduct,
 } from "@/types/order-form";
 import { addonSelectValue, CUSTOM_ADDON_OPTION } from "@/lib/order-addon-ui";
 import { PrintTableRow } from "./print-table-row";
@@ -258,10 +257,7 @@ export function OrderItemCard({
   const addProductWithSource = (source: string) => {
     onSetItems((prev) => {
       const copy = [...prev];
-      const newProd = createOrderItemProduct({
-        itemSource: source,
-        ...(source === "CUSTOMER_PROVIDED" ? { baseUnitPrice: 0 } : {}),
-      });
+      const newProd = createProductForSource(source);
       copy[itemIdx] = { ...copy[itemIdx], products: [...copy[itemIdx].products, newProd] };
       return copy;
     });

@@ -14,6 +14,11 @@ export function buildSizeVariants(sizeQty: [string, number][], color: string): V
     .map(([size, qty]) => ({ size: size.trim(), color: c, quantity: qty }));
 }
 
+/** เฉพาะแถวที่ระบุไซส์แล้ว — แถวไซส์ว่างเป็นค่าตั้งต้นของสินค้าเปล่า ไม่ใช่ของที่ผู้ใช้กรอก */
+export function filledSizeVariants<V extends { size: string }>(variants: V[]): V[] {
+  return variants.filter((v) => v.size.trim());
+}
+
 /** จำนวนรวมทุกไซส์ */
 export function sumVariantQty(variants: { quantity: number }[]): number {
   return variants.reduce((s, v) => s + (Number(v.quantity) || 0), 0);

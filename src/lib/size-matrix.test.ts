@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildSizeVariants, sumVariantQty, matrixColumns } from "./size-matrix";
+import { buildSizeVariants, filledSizeVariants, sumVariantQty, matrixColumns } from "./size-matrix";
 
 describe("buildSizeVariants", () => {
   it("เก็บเฉพาะไซส์ที่มีจำนวน > 0 + ใส่สีร่วม", () => {
@@ -33,5 +33,18 @@ describe("matrixColumns", () => {
     expect(cols).toContain("4XL");
     // S มาตรฐานมีแล้ว · "s" ใน variant ไม่ควรเพิ่มซ้ำ
     expect(cols.filter((c) => c.toUpperCase() === "S").length).toBe(1);
+  });
+});
+
+describe("filledSizeVariants", () => {
+  it("ทิ้งแถวไซส์ว่าง (ค่าตั้งต้นของสินค้าเปล่า) · คงลำดับและค่าของไซส์ที่กรอก", () => {
+    const rows = [
+      { size: "", color: "", quantity: 1 },
+      { size: "M", color: "ขาว", quantity: 3 },
+      { size: "  ", color: "ขาว", quantity: 2 },
+      { size: "L", color: "ขาว", quantity: 3 },
+    ];
+    expect(filledSizeVariants(rows)).toEqual([rows[1], rows[3]]);
+    expect(sumVariantQty(filledSizeVariants(rows))).toBe(6);
   });
 });

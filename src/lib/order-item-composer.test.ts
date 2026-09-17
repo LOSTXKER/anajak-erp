@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildOrderItemPriceSummary,
+  createProductForSource,
   getProductSourcePresentation,
   moveOrderItemProduct,
   resolveFeeCatalogSelection,
@@ -259,5 +260,33 @@ describe("resolveFeeCatalogSelection", () => {
     expect(resolveFeeCatalogSelection(catalog, "")).toBeNull();
     expect(resolveFeeCatalogSelection(catalog, "missing")).toBeNull();
     expect(resolveFeeCatalogSelection(undefined, "delivery")).toBeNull();
+  });
+});
+
+describe("createProductForSource", () => {
+  const itemWith = (products: OrderItemForm["products"]): OrderItemForm => ({
+    description: "",
+    notes: "",
+    prints: [{ position: "FRONT", printType: "DTF", colorCount: 1, unitPrice: 25, printSize: "", width: 0, height: 0, designNote: "" }],
+    addons: [],
+    products,
+  });
+
+  it("ตัดเย็บใหม่/ลูกค้าส่งมาที่ยังไม่กรอกไซส์ นับ 0 ตัวและยอด 0 — ไม่มีแถวไซส์ว่างจำนวน 1 ติดมา (เบสเจอ 2026-09-18)", () => {
+    const customMade = { ...createProductForSource("CUSTOM_MADE"), baseUnitPrice: 240 };
+    const provided = createProductForSource("CUSTOMER_PROVIDED");
+    expect(customMade.variants).toEqual([]);
+    expect(provided.variants).toEqual([]);
+    expect(provided.baseUnitPrice).toBe(0);
+    const summary = buildOrderItemPriceSummary(itemWith([customMade, provided]));
+    expect(summary.totalQuantity).toBe(0);
+    expect(summary.subtotal).toBe(0);
+  });
+
+  it("จากสต็อกคงค่าตั้งต้นเดิม (มีแถวสินค้าให้กรอกจำนวน)", () => {
+    const stock = createProductForSource("FROM_STOCK");
+    expect(stock.itemSource).toBe("FROM_STOCK");
+    expect(stock.variants).toEqual(EMPTY_PRODUCT.variants);
+    expect(stock.formKey).toBeTruthy();
   });
 });
