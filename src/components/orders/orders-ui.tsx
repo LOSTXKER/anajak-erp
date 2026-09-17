@@ -6,6 +6,12 @@ import type { HomeProblem, HomeProblemKind } from "@/lib/home-orders";
 import type { OrderProgress } from "@/lib/order-progress";
 import { differenceInBangkokDays } from "@/lib/date-utils";
 import { INTERNAL_STATUS_LABELS } from "@/lib/order-status";
+import {
+  APPROVAL_STATUS_LABELS_BY_CUSTOMER,
+  PAYMENT_LABEL_TO_STATUS,
+  PAYMENT_STATUS_LABELS,
+  PAYMENT_STATUS_VARIANTS,
+} from "@/lib/status-config";
 
 /* ============================================================
    ชิ้นเฉพาะหน้าออเดอร์บนชุดหน้าตากลาง (components/kit)
@@ -17,17 +23,30 @@ export function TechChip({ label }: { label: string }) {
   return <span className={c("chip", label === "DTF" ? "blue" : label === "ปัก" ? "gray" : "line")}>{label}</span>;
 }
 
-/** การชำระ (payTag) */
+/** โทนของ Badge (status-config) → คลาสโทนของ .pay — ป้ายจุดกับชิปเรียกชื่อโทนคนละชุด */
+const PAY_TONE: Record<string, string> = {
+  success: "good",
+  accent: "blue",
+  warning: "warn",
+  destructive: "bad",
+};
+
+/**
+ * การชำระ (payTag) — คำและโทนชุดเดียวกับหน้าการเงินและลิงก์ที่ส่งให้ลูกค้า (PAYMENT_STATUS_*)
+ * เดิมที่นี่สะกดเอง ("ชำระแล้ว/บางส่วน/ค้างชำระ" · บางส่วน = ส้ม) แอดมินจึงตอบลูกค้าคนละคำ
+ * กับที่ลูกค้าเห็น (เบสเคาะ 2026-09-18 ให้ยึดชุดของ status-config)
+ * คงรูปทรง .pay ไว้ (ข้อความ + จุด ไม่มีพื้น) — ป้ายนี้อยู่ทั้งคอลัมน์ ถ้ามีพื้นทุกแถวจะกลายเป็นพรมสี
+ */
 export function PayTag({ label, status }: { label: string; status: string }) {
-  if (status === "INQUIRY" || status === "CANCELLED" || !["paid", "partial", "unpaid"].includes(label)) {
+  const key = PAYMENT_LABEL_TO_STATUS[label as keyof typeof PAYMENT_LABEL_TO_STATUS];
+  // งานที่ยังไม่รับ/ยกเลิก และใบที่ยังไม่มีบิล (label = "none") ไม่มีอะไรให้ตาม จึงไม่ขึ้นป้าย
+  if (status === "INQUIRY" || status === "CANCELLED" || !key) {
     return <span className={c("pay none")}>—</span>;
   }
-  const [tone, text] =
-    label === "paid" ? ["good", "ชำระแล้ว"] : label === "partial" ? ["warn", "บางส่วน"] : ["bad", "ค้างชำระ"];
   return (
-    <span className={c("pay", tone)}>
+    <span className={c("pay", PAY_TONE[PAYMENT_STATUS_VARIANTS[key]])}>
       <span className={c("d")} aria-hidden="true" />
-      {text}
+      {PAYMENT_STATUS_LABELS[key]}
     </span>
   );
 }
@@ -171,19 +190,20 @@ export function MockupPill({
   now: Date;
 }) {
   if (!design) return <span className={c("chip gray")}>ยังไม่มีม็อกอัพ</span>;
+  // คำมาจากแผนที่กลาง (ชุดเดียวกับแถวม็อกอัพในแท็บงานผลิต) — ที่นี่เหลือแค่เลือกโทนกับต่อจำนวนวัน
   switch (design.approvalStatus) {
     case "APPROVED":
-      return <span className={c("chip good")}>ลูกค้าอนุมัติแล้ว</span>;
+      return <span className={c("chip good")}>{APPROVAL_STATUS_LABELS_BY_CUSTOMER.APPROVED}</span>;
     case "PENDING":
       return (
         <span className={c("chip warn")}>
-          รอลูกค้าตรวจ · {Math.max(0, differenceInBangkokDays(now, design.createdAt) ?? 0)} วัน
+          {APPROVAL_STATUS_LABELS_BY_CUSTOMER.PENDING} · {Math.max(0, differenceInBangkokDays(now, design.createdAt) ?? 0)} วัน
         </span>
       );
     case "REVISION_REQUESTED":
-      return <span className={c("chip warn")}>ลูกค้าขอแก้</span>;
+      return <span className={c("chip warn")}>{APPROVAL_STATUS_LABELS_BY_CUSTOMER.REVISION_REQUESTED}</span>;
     case "REJECTED":
-      return <span className={c("chip bad")}>ลูกค้าไม่ผ่านแบบ</span>;
+      return <span className={c("chip bad")}>{APPROVAL_STATUS_LABELS_BY_CUSTOMER.REJECTED}</span>;
     default:
       return <span className={c("chip gray")}>{design.approvalStatus}</span>;
   }

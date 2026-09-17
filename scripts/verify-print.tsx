@@ -254,7 +254,9 @@ async function main() {
     ok("Job Ticket: หัวใบงาน + QR", jHtml.includes("JOB TICKET") && jHtml.includes("TEST-ORD-PRINT") && jHtml.includes("<svg"));
     ok("Job Ticket: กำหนดส่ง + ความเร่งด่วนเด่น", jHtml.includes("กำหนดส่ง") && jHtml.includes("เร่งด่วน"));
     ok("Job Ticket: ตารางไซซ์", jHtml.includes("× 5") && jHtml.includes("× 7") && jHtml.includes("รวม 12"));
-    ok("Job Ticket: ลายพิมพ์ครบ", jHtml.includes("Silk Screen") && jHtml.includes("25 × 30 ซม.") && jHtml.includes("ห้ามเพี้ยนสี"));
+    // วิธีพิมพ์บนใบงานเป็นคำไทยชุดเดียวกับหัวใบออเดอร์แล้ว (SILK_SCREEN = "สกรีน")
+    // จับแบบทั้งช่องเพื่อไม่ให้ไปโดน "สกรีน/พิมพ์อย่างเดียว" ของแถวขั้นตอนผลิตในบรรทัดถัดไป
+    ok("Job Ticket: ลายพิมพ์ครบ", jHtml.includes(">สกรีน<") && jHtml.includes("25 × 30 ซม.") && jHtml.includes("ห้ามเพี้ยนสี"));
     ok("Job Ticket: ขั้นตอนผลิต + ส่วนเสริม", jHtml.includes("สกรีน/พิมพ์") && jHtml.includes("แพ็คกิ้ง") && jHtml.includes("ถุงแพค OPP"));
     ok("Job Ticket: ไม่มีราคา/เงินบนใบ", !jHtml.includes("฿") && !jHtml.includes("ราคา") && !jHtml.includes("จำนวนเงิน") && !jHtml.includes("บาท"));
   } finally {

@@ -158,7 +158,8 @@ table.orders { width: 100%; border-collapse: collapse; min-width: 760px; }
 .d.gray { background: var(--ink-4); } .d.blue { background: var(--accent); } .d.warn { background: var(--warn); } .d.good { background: var(--good); } .d.bad { background: var(--bad); }
 .pay { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; white-space: nowrap; }
 .pay .d { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-.pay.good { color: var(--good); } .pay.warn { color: var(--warn); } .pay.bad { color: var(--bad); } .pay.none { color: var(--ink-4); }
+/* ชำระบางส่วน = ฟ้า "กำลังคืบหน้า" ตามชุดสีของหน้าการเงิน (status-config) — ป้ายนี้เดิมมีแค่ 3 โทน */
+.pay.good { color: var(--good); } .pay.warn { color: var(--warn); } .pay.bad { color: var(--bad); } .pay.blue { color: var(--accent); } .pay.none { color: var(--ink-4); }
 .pager { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 18px; border-top: 1px solid var(--line-2); background: var(--sunk); font-size: 12.5px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .pager b { color: var(--ink); font-weight: 500; }
 .pager .pg { display: inline-flex; gap: 4px; margin-left: auto; }

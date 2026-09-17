@@ -37,25 +37,13 @@ import { useConfirm } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
 import { Alert } from "@/components/ui/alert";
 import { RecordNotFound } from "@/components/ui/record-not-found";
+// คำของชนิดสินค้าและกลุ่มสินค้าใช้ชุดกลาง — เดิมหน้านี้เขียนเอง สินค้าตัวเดียวกันจึงอ่านคนละคำ
+// กับตัวเลือกสินค้าในฟอร์มออเดอร์ และชนิดที่หน้านี้ไม่ได้เขียนไว้ก็ตกเป็นรหัสดิบ
+import { ITEM_TYPES, PRODUCT_TYPE_DISPLAY_LABELS } from "@/types/order-form";
 
 // ============================================================
 // CONSTANTS
 // ============================================================
-
-const typeLabels: Record<string, string> = {
-  T_SHIRT: "เสื้อยืด",
-  POLO: "โปโล",
-  HOODIE: "ฮู้ดดี้",
-  JACKET: "แจ็คเก็ต",
-  TOTE_BAG: "ถุงผ้า",
-  OTHER: "อื่นๆ",
-};
-
-const itemTypeLabels: Record<string, string> = {
-  FINISHED_GOOD: "สินค้าสำเร็จรูป",
-  RAW_MATERIAL: "วัตถุดิบ",
-  CONSUMABLE: "วัสดุสิ้นเปลือง",
-};
 
 /** ค่าที่ไม่ซ้ำ เรียงตามลำดับที่เจอใน variants (variants มาจาก server เรียงตาม SKU แล้ว) */
 function distinct(values: string[]): string[] {
@@ -168,8 +156,8 @@ export default function ProductDetailPage({
   // ค่าที่ใช้ซ้ำ (คำนวณได้เฉพาะเมื่อมีข้อมูลแล้ว)
   // ============================================================
 
-  const typeLabel = product ? (typeLabels[product.productType] ?? product.productType) : "";
-  const groupLabel = product ? (itemTypeLabels[product.itemType] ?? product.itemType) : "";
+  const typeLabel = product ? (PRODUCT_TYPE_DISPLAY_LABELS[product.productType] ?? product.productType) : "";
+  const groupLabel = product ? (ITEM_TYPES[product.itemType] ?? product.itemType) : "";
   const variantStock = product ? product.variants.reduce((sum, v) => sum + v.stock, 0) : 0;
   const totalStock = product ? product.totalStock || variantStock : 0;
   const unitLabel = product?.unitName || product?.unit || "ชิ้น";

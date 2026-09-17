@@ -6,6 +6,7 @@ import { FOCUS_INSET } from "@/components/ui/tokens";
 import type { BoardOrderLike, BoardRailPoint } from "@/lib/production-board";
 import type { DeskRow, DeskStepLike } from "@/lib/production-desk";
 import { productionWorklistProgress } from "@/lib/production-worklist";
+import { STEP_STATUS_LABELS } from "@/lib/status-config";
 import { cn } from "@/lib/utils";
 
 const RAIL_CLASS: Record<BoardRailPoint["state"], string> = {
@@ -21,7 +22,7 @@ const RAIL_WORD: Record<BoardRailPoint["state"], string> = {
   done: "ผ่านแล้ว",
   now: "กำลังทำ",
   stuck: "ติดรอของ",
-  failed: "ติดปัญหา",
+  failed: STEP_STATUS_LABELS.FAILED,
   wait: "ยังไม่ถึง",
   na: "ไม่มีในใบนี้",
 };

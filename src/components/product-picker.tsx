@@ -14,6 +14,7 @@ import { QueryError } from "@/components/ui/query-error";
 import { SearchInput } from "@/components/ui/search-input";
 import { Package, X, ChevronDown, ChevronRight, Minus, Plus } from "lucide-react";
 import { CONTROL_H_SM } from "@/components/ui/control-size";
+import { ITEM_TYPES, PRODUCT_TYPE_DISPLAY_LABELS } from "@/types/order-form";
 
 export interface SelectedVariantItem {
   productId: string;
@@ -59,26 +60,11 @@ export interface ProductPickerProps {
   itemType?: string;
 }
 
-const ITEM_TYPE_FILTERS = [
-  { key: undefined as string | undefined, label: "ทั้งหมด" },
-  { key: "FINISHED_GOOD", label: "สินค้าสำเร็จรูป" },
-  { key: "RAW_MATERIAL", label: "วัตถุดิบ" },
-  { key: "CONSUMABLE", label: "วัสดุสิ้นเปลือง" },
-] as const;
-
-const PRODUCT_TYPE_LABELS: Record<string, string> = {
-  T_SHIRT: "เสื้อยืด",
-  POLO: "โปโล",
-  HOODIE: "ฮู้ด",
-  JACKET: "แจ็คเก็ต",
-  TOTE_BAG: "ถุงผ้า",
-  FABRIC: "ผ้า",
-  INK: "หมึก",
-  THREAD: "ด้าย",
-  LABEL: "ป้าย",
-  PACKAGING: "บรรจุภัณฑ์",
-  OTHER: "อื่นๆ",
-};
+// "ทั้งหมด" เป็นตัวกรองของหน้านี้เอง ไม่ใช่กลุ่มสินค้าจริง จึงต่อหน้าชุดคำกลาง
+const ITEM_TYPE_FILTERS: ReadonlyArray<{ key: string | undefined; label: string }> = [
+  { key: undefined, label: "ทั้งหมด" },
+  ...Object.entries(ITEM_TYPES).map(([key, label]) => ({ key, label })),
+];
 
 type VariantSelection = Record<string, number>;
 
@@ -297,7 +283,7 @@ export function ProductPickerDialog({
                             </span>
                             {/* ป้ายชุดกลาง (.chip) เหมือนทั้งเว็บ — เดิมวาดเองด้วย Tailwind จนคนละหน้าตากับป้ายคงเหลือในตารางเดียวกัน */}
                             <Badge className="shrink-0">
-                              {PRODUCT_TYPE_LABELS[product.productType] ?? product.productType}
+                              {PRODUCT_TYPE_DISPLAY_LABELS[product.productType] ?? product.productType}
                             </Badge>
                             {selectedFromProduct > 0 && (
                               <Badge variant="accent" className="shrink-0">

@@ -22,6 +22,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { ResponsiveList } from "@/components/ui/responsive-list";
 import { Badge } from "@/components/ui/badge";
 import { c } from "@/components/kit/kit";
+import { ITEM_TYPES, PRODUCT_TYPE_DISPLAY_LABELS } from "@/types/order-form";
 import { FOCUS_BUTTON } from "@/components/ui/tokens";
 
 
@@ -73,33 +74,18 @@ function StockCell({ level, stock }: { level: "out" | "low" | "ok"; stock: numbe
   return <span className="font-medium text-strong">{stock.toLocaleString("th-TH")}</span>;
 }
 
-// ─── Product Group Tabs ─────────────────────────────────────
-const itemTypes = [
-  { value: "", label: "ทั้งหมด" },
-  { value: "FINISHED_GOOD", label: "สินค้าสำเร็จรูป" },
-  { value: "RAW_MATERIAL", label: "วัตถุดิบ" },
-  { value: "CONSUMABLE", label: "วัสดุสิ้นเปลือง" },
-] as const;
+/* คำของกลุ่มและชนิดสินค้ามาจากชุดกลางใน types/order-form.ts ทั้งหมด
+   (เดิมหน้านี้เขียนคำเอง 3 ก้อน หน้ารายการจึงเรียกของชิ้นเดียวกันคนละคำกับหน้ารายละเอียด
+   เช่น "เสื้อยืด" กับ "เสื้อยืดคอกลม" · ชนิดที่ไม่ได้เขียนไว้ก็ตกเป็นรหัสดิบให้ผู้ใช้อ่าน) */
+const itemTypes = [{ value: "", label: "ทั้งหมด" }, ...Object.entries(ITEM_TYPES).map(([value, label]) => ({ value, label }))];
 
-// ─── Product Type Config ────────────────────────────────────
+/* ตัวกรองชนิด: คงไว้เฉพาะชนิดที่ลูกค้าสั่งบ่อย ไม่กางทั้งชุด ไม่งั้นช่องเลือกยาวจนหาไม่เจอ
+   ("อื่นๆ" ครอบชนิดที่เหลือให้อยู่แล้ว) */
+const FILTERABLE_TYPES = ["T_SHIRT", "POLO", "HOODIE", "JACKET", "TOTE_BAG", "OTHER"] as const;
 const productTypes = [
   { value: "", label: "ทุกประเภท" },
-  { value: "T_SHIRT", label: "เสื้อยืด" },
-  { value: "POLO", label: "โปโล" },
-  { value: "HOODIE", label: "ฮู้ดดี้" },
-  { value: "JACKET", label: "แจ็คเก็ต" },
-  { value: "TOTE_BAG", label: "ถุงผ้า" },
-  { value: "OTHER", label: "อื่นๆ" },
-] as const;
-
-const typeConfig: Record<string, { label: string }> = {
-  T_SHIRT: { label: "เสื้อยืด" },
-  POLO: { label: "โปโล" },
-  HOODIE: { label: "ฮู้ดดี้" },
-  JACKET: { label: "แจ็คเก็ต" },
-  TOTE_BAG: { label: "ถุงผ้า" },
-  OTHER: { label: "อื่นๆ" },
-};
+  ...FILTERABLE_TYPES.map((value) => ({ value, label: PRODUCT_TYPE_DISPLAY_LABELS[value] ?? value })),
+];
 
 export default function ProductsPage() {
   return (
@@ -292,7 +278,7 @@ function ProductsPageContent() {
             </DataTable.Head>
             <DataTable.Body>
               {products.map((product) => {
-                const typ = typeConfig[product.productType] ?? { label: product.productType };
+                const typeLabel = PRODUCT_TYPE_DISPLAY_LABELS[product.productType] ?? product.productType;
                 const stock = product.totalStock ?? 0;
                 const level = stockLevel(product);
                 return (
@@ -325,7 +311,7 @@ function ProductsPageContent() {
                       </div>
                     </DataTable.Td>
                     <DataTable.Td className="whitespace-nowrap tabular-nums text-muted">{product.sku}</DataTable.Td>
-                    <DataTable.Td className="whitespace-nowrap text-secondary">{typ.label}</DataTable.Td>
+                    <DataTable.Td className="whitespace-nowrap text-secondary">{typeLabel}</DataTable.Td>
                     <DataTable.Td align="right" className="whitespace-nowrap tabular-nums">
                       <StockCell level={level} stock={stock} />
                     </DataTable.Td>
@@ -349,7 +335,7 @@ function ProductsPageContent() {
         renderMobile={(products) => (
           <div className="grid grid-cols-1 gap-3 px-4.5 pb-4.5 sm:grid-cols-2">
             {products.map((product) => {
-              const typ = typeConfig[product.productType] ?? { label: product.productType };
+              const typeLabel = PRODUCT_TYPE_DISPLAY_LABELS[product.productType] ?? product.productType;
               const stock = product.totalStock ?? 0;
               const level = stockLevel(product);
               return (
@@ -362,7 +348,7 @@ function ProductsPageContent() {
                     <ProductThumb url={product.imageUrl} name={product.name} size="lg" />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium text-strong">{product.name}</p>
-                      <p className="truncate text-xs text-muted">{product.sku} · {typ.label}</p>
+                      <p className="truncate text-xs text-muted">{product.sku} · {typeLabel}</p>
                       <p className="mt-1 text-sm font-semibold tabular-nums text-strong">{priceLabel(product)}</p>
                     </div>
                     <span className="shrink-0 whitespace-nowrap tabular-nums">

@@ -4,6 +4,7 @@ import { ImageIcon } from "lucide-react";
 import { c, Rw } from "@/components/kit/kit";
 import { mockupImageCount } from "@/lib/mockup";
 import { trpc } from "@/lib/trpc";
+import { APPROVAL_STATUS_LABELS_BY_CUSTOMER } from "@/lib/status-config";
 
 /**
  * แถว "ม็อกอัพ" ในการ์ด "ของที่ต้องพร้อมก่อนผลิต" (แท็บงานผลิต) — บอกสถานะแล้วพาไปที่เดียวที่จัดการได้จริง
@@ -14,13 +15,6 @@ import { trpc } from "@/lib/trpc";
  * หน้าตาตามต้นแบบ tabProduction() (รื้อ 2026-09-15): ไอคอนเขียว = ลูกค้าอนุมัติ, ส้ม = งานสั่งทำที่ยังไม่ผ่าน
  * ใช้ query key เดียวกับ MockupPanel — react-query cache ให้ ไม่ได้ยิงเพิ่ม
  */
-
-const APPROVAL_TEXT: Record<string, string> = {
-  APPROVED: "ลูกค้าอนุมัติแล้ว",
-  PENDING: "รอลูกค้าตรวจ",
-  REVISION_REQUESTED: "ลูกค้าขอแก้",
-  REJECTED: "ลูกค้าไม่ผ่านแบบ",
-};
 
 export function OrderMockupHandoff({
   orderId,
@@ -52,7 +46,7 @@ export function OrderMockupHandoff({
   const sub = designs.isError
     ? "โหลดสถานะไม่สำเร็จ ดูในแท็บม็อกอัพ"
     : latest
-      ? `v${latest.versionNumber} · ${APPROVAL_TEXT[latest.approvalStatus] ?? latest.approvalStatus}`
+      ? `v${latest.versionNumber} · ${APPROVAL_STATUS_LABELS_BY_CUSTOMER[latest.approvalStatus] ?? latest.approvalStatus}`
       : isCustom
         ? "ยังไม่มี"
         : "งานสำเร็จรูป ไม่ต้องมี";

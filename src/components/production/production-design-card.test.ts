@@ -165,7 +165,7 @@ describe("printTypesForProductionStep", () => {
     expect(html).toContain("DTF");
     expect(html).toContain("เสื้อสำหรับงาน DTF");
     expect(html).toContain("×2");
-    expect(html).not.toContain("Silk Screen");
+    expect(html).not.toContain("สกรีน"); // ป้ายวิธีพิมพ์ของ SILK_SCREEN เป็นคำไทยแล้ว
     expect(html).not.toContain("เสื้อสำหรับงาน Silk Screen");
     expect(html).not.toContain("×3");
   });

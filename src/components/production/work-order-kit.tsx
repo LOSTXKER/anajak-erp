@@ -56,6 +56,7 @@ import { stationHeatLabel } from "@/components/factory/station-garment-preview";
 import type { ProductionDetail, ProductionStep } from "@/components/production/types";
 import { orderMockupCover } from "@/lib/mockup";
 import { INTERNAL_STATUS_LABELS } from "@/lib/order-status";
+import { STEP_STATUS_LABELS } from "@/lib/status-config";
 import { permAllows } from "@/lib/permissions";
 import { currentProductionProblemReason, latestPlainProductionNote } from "@/lib/production-problem";
 import { FLOW_OWNED_STEP_TYPES, isOutsourceStep } from "@/lib/production-steps";
@@ -480,7 +481,7 @@ function historyOf(steps: readonly ProductionStep[]): HistoryEvent[] {
       events.push({
         key: `${step.id}-problem`,
         tone: "bad",
-        title: `${stepLabel(step)} · ${step.status === "FAILED" ? "ติดปัญหา" : "พักไว้"}`,
+        title: `${stepLabel(step)} · ${STEP_STATUS_LABELS[step.status === "FAILED" ? "FAILED" : "ON_HOLD"]}`,
         sub: currentProductionProblemReason(step) ?? (who ? `ผู้ทำ ${who}` : ""),
         at: new Date(step.startedAt ?? Date.now()),
         meta: null,
@@ -912,7 +913,7 @@ export function WorkOrderKitView({ c: ctl, scannedMockup = Number.NaN }: { c: Wo
                   >
                     <b>
                       {stepLabel(step)}
-                      {step.status === "ON_HOLD" ? "พักไว้" : "ติดปัญหา"}
+                      {STEP_STATUS_LABELS[step.status === "ON_HOLD" ? "ON_HOLD" : "FAILED"]}
                     </b>{" "}
                     — {currentProductionProblemReason(step) ?? step.notes ?? "ยังไม่ระบุเหตุ"}
                     {step.assignedTo ? <span className={c("whoinline")}> ผู้ทำ {step.assignedTo.name}</span> : null}

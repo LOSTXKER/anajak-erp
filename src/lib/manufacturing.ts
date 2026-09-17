@@ -53,6 +53,44 @@ export const OPERATION_PHASES = [
 
 export type ManufacturingOperationPhase = (typeof OPERATION_PHASES)[number];
 
+/* ============================================================
+   ป้ายไทยของ enum ผลิต V2 — ชุดเดียวทั้งเว็บ (2026-09-18)
+
+   เดิมแต่ละหน้าตั้งคำเอง: หน้าตั้งค่าสูตรมี PHASE_LABELS ของตัวเอง จอโรงงานมี
+   CAPACITY_UNIT_LABEL ของตัวเอง และเขียนระดับความรุนแรงเป็น ternary สามชั้น
+   แก้คำที่เดียวแล้วอีกหน้ายังพูดคำเก่าโดยไม่มีอะไรร้อง
+
+   ใส่เฉพาะ enum ที่มีหน้าจอเรียกใช้จริงแล้ว — ตัวที่ยังไม่มีใครแสดง (WorkOrderState,
+   OperationState, ReworkState, QualityDisposition ฯลฯ) รอตั้งคำตอนจอแรกที่ใช้มันเกิด
+   ไม่ตั้งคำไทยดักไว้ก่อน เพราะคำที่ไม่มีของจริงให้ดูมักไม่ตรงกับที่ผู้ใช้ต้องอ่าน
+   ============================================================ */
+
+export const OPERATION_PHASE_LABELS: Readonly<Record<ManufacturingOperationPhase, string>> = {
+  PREPARATION: "เตรียมงาน",
+  MANUFACTURING: "ผลิตในโรงงาน",
+  OUTSOURCE: "ส่งร้านนอก",
+  QUALITY: "ตรวจคุณภาพ",
+  PACKING: "แพ็ก/ส่ง",
+};
+
+/** หน่วยกำลังผลิต (schema CapacityUnit) — ค่าที่เก็บคือจำนวนต่อวัน คำจึงลงท้าย /วัน */
+export const CAPACITY_UNIT_LABELS = {
+  PIECE: "ชิ้น/วัน",
+  MINUTE: "นาที/วัน",
+  BATCH: "รอบ/วัน",
+} as const;
+
+export type ManufacturingCapacityUnit = keyof typeof CAPACITY_UNIT_LABELS;
+
+/** ระดับความรุนแรงของปัญหา (schema ExceptionSeverity) — เรียงจากเบาไปหนัก */
+export const EXCEPTION_SEVERITY_LABELS = {
+  INFO: "แจ้งไว้",
+  WARNING: "ต้องดู",
+  CRITICAL: "ด่วนมาก",
+} as const;
+
+export type ManufacturingExceptionSeverity = keyof typeof EXCEPTION_SEVERITY_LABELS;
+
 export const WORK_ORDER_TRANSITIONS: Readonly<
   Record<ManufacturingWorkOrderState, readonly ManufacturingWorkOrderState[]>
 > = {

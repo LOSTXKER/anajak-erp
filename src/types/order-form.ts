@@ -1,3 +1,5 @@
+import { ARTWORK_POSITION_LABELS } from "@/lib/artwork";
+
 export type VariantForm = {
   size: string;
   color: string;
@@ -178,13 +180,18 @@ export const EMPTY_ITEM: OrderItemForm = {
 
 export const EMPTY_FEE: OrderFeeForm = { feeType: "", name: "", amount: 0 };
 
+/**
+ * ชนิดเสื้อผ้าที่ "เลือกได้" — กางเป็น dropdown ทั้งในฟอร์มออเดอร์และหน้าเลือกแพทเทิร์น
+ * ห้ามเติมวัตถุดิบ (ผ้า/หมึก/ด้าย/บรรจุภัณฑ์) เข้าชุดนี้ เพราะช่องเลือกแพทเทิร์นจะมีตัวเลือกพวกนั้นให้เลือกทันที
+ * คำละเอียดเพราะฟอร์มออเดอร์ต้องแยก T_SHIRT กับ T_SHIRT_V ออกจากกันให้ได้
+ */
 export const PRODUCT_TYPES: Record<string, string> = {
   T_SHIRT: "เสื้อยืดคอกลม",
   T_SHIRT_V: "เสื้อยืดคอวี",
   POLO: "เสื้อโปโล",
   LONG_SLEEVE: "เสื้อแขนยาว",
   TANK_TOP: "เสื้อกล้าม",
-  HOODIE: "ฮู้ด",
+  HOODIE: "ฮู้ดดี้",
   JACKET: "แจ็คเก็ต",
   WINDBREAKER: "เสื้อกันลม",
   JERSEY: "เสื้อกีฬา/เจอร์ซี่",
@@ -195,6 +202,32 @@ export const PRODUCT_TYPES: Record<string, string> = {
   MASK: "ผ้าปิดปาก",
   TOTE_BAG: "ถุงผ้า",
   OTHER: "อื่นๆ",
+};
+
+/** ชนิดวัตถุดิบในคลัง — มีในฐานสินค้าแต่ไม่ใช่ของที่เลือกได้ตอนเปิดออเดอร์/ตั้งแพทเทิร์น */
+export const MATERIAL_TYPES: Record<string, string> = {
+  FABRIC: "ผ้า",
+  INK: "หมึก",
+  THREAD: "ด้าย",
+  LABEL: "ป้าย",
+  PACKAGING: "บรรจุภัณฑ์",
+};
+
+/**
+ * คำของชนิดสินค้าสำหรับ "จุดแสดงผล" อย่างเดียว (หน้าสินค้า ตัวเลือกสินค้า ป้ายในรายการ)
+ * รวมวัตถุดิบเข้ามาด้วยเพราะจุดพวกนั้นต้องอ่านของที่มีอยู่ในคลังให้ออกทุกชนิด
+ * ห้ามเอาไปกางเป็น dropdown ให้เลือก — ใช้ PRODUCT_TYPES สำหรับช่องที่เลือกได้
+ */
+export const PRODUCT_TYPE_DISPLAY_LABELS: Record<string, string> = {
+  ...PRODUCT_TYPES,
+  ...MATERIAL_TYPES,
+};
+
+/** กลุ่มสินค้าในคลัง (Product.itemType) — คำชุดเดียวของทั้งเว็บ */
+export const ITEM_TYPES: Record<string, string> = {
+  FINISHED_GOOD: "สินค้าสำเร็จรูป",
+  RAW_MATERIAL: "วัตถุดิบ",
+  CONSUMABLE: "วัสดุสิ้นเปลือง",
 };
 
 export const ITEM_SOURCES: Record<string, string> = {
@@ -226,23 +259,34 @@ export const FABRIC_TYPES: Record<string, string> = {
   OTHER: "อื่นๆ",
 };
 
-export const PRINT_POSITIONS: Record<string, string> = {
-  FRONT: "หน้า",
-  BACK: "หลัง",
-  SLEEVE_L: "แขนซ้าย",
-  SLEEVE_R: "แขนขวา",
-  COLLAR: "ปก",
-  POCKET: "กระเป๋า",
-};
+/**
+ * ตำแหน่งลายที่ "เลือกได้" ตอนเปิดออเดอร์ — ไม่มี OTHER เพราะคนเปิดออเดอร์ต้องระบุจุดจริง
+ * (OTHER มีเฉพาะในคลังลาย ซึ่งรับลายเก่าที่ตำแหน่งไม่ตรงช่องไหนเลย)
+ */
+export const PRINT_POSITION_KEYS = [
+  "FRONT",
+  "BACK",
+  "SLEEVE_L",
+  "SLEEVE_R",
+  "COLLAR",
+  "POCKET",
+] as const;
 
-export const PRINT_TYPES: Record<string, string> = {
-  DTF: "DTF", // งานหลักของโรงงาน (70%)
-  DTG: "DTG",
-  SILK_SCREEN: "Silk Screen (outsource)",
-  SUBLIMATION: "Sublimation",
-  HEAT_TRANSFER: "Heat Transfer",
-  EMBROIDERY: "ปัก",
-};
+/**
+ * คำอยู่ที่ lib/artwork.ts ที่เดียว ที่นี่แค่หยิบเฉพาะคีย์ที่เลือกได้มาเรียงตามลำดับ dropdown
+ * ห้ามเปลี่ยนเป็นการอ่าน ARTWORK_POSITION_LABELS ทั้งก้อน — OTHER จะไหลเข้า dropdown ทันที
+ */
+export const PRINT_POSITIONS: Record<string, string> = Object.fromEntries(
+  PRINT_POSITION_KEYS.map((key) => [key, ARTWORK_POSITION_LABELS[key]]),
+);
+
+/**
+ * วิธีพิมพ์ — คำอยู่ที่ lib/print-labels.ts ที่เดียว ฟอร์ม ใบสั่งงาน และลิงก์ร้านนอกจะได้อ่านคำเดียวกัน
+ * คงชื่อ PRINT_TYPES ไว้เพราะเป็นชื่อที่ฝั่งฟอร์ม/ใบพิมพ์เรียกอยู่แล้วทั่วเว็บ
+ * คำว่า "(outsource)" ถอดออกจากป้าย — ศัพท์ภายในและบอกแค่สกรีนทั้งที่ DTG/ปัก/ซับ ก็ส่งร้านนอก
+ * (ความจริงว่าขั้นไหนเป็นร้านนอกอยู่ที่ชื่อขั้นผลิตใน lib/production-steps.ts แล้ว)
+ */
+export { PRINT_LABELS as PRINT_TYPES } from "@/lib/print-labels";
 
 export const PRINT_SIZES: Record<string, { label: string; width: number; height: number }> = {
   A5: { label: "A5 (14.8 × 21 ซม.)", width: 14.8, height: 21 },

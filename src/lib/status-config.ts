@@ -48,13 +48,16 @@ const _deliveryStatus = buildConfig({
 export const DELIVERY_STATUS_LABELS = _deliveryStatus.labels;
 export const DELIVERY_STATUS_VARIANTS = _deliveryStatus.variants;
 
-// Production step status
+// Production step status — คำชุดเดียวที่ทุกจอผลิตต้องใช้ (เบสเคาะ 2026-09-18)
+// FAILED = "ติดปัญหา" เพราะเป็นคำที่ใบผลิตใช้อยู่ ซึ่งเป็นจอที่ช่างเห็นบ่อยที่สุด
+// (ก่อนหน้านี้ใบผลิตเขียน "ติดปัญหา" · คิวผลิต/งานของฉันเขียน "มีปัญหา" · จอทีวีเขียน "งานเสีย")
+// ON_HOLD = "พักไว้" ตามใบผลิตเช่นกัน (จอทีวีเคยเขียน "พักงาน") — พักไว้ = หัวหน้าตั้งใจหยุด
 const _stepStatus = buildConfig({
   PENDING: { label: "รอดำเนินการ", variant: "secondary" },
   IN_PROGRESS: { label: "กำลังทำ", variant: "default" },
   COMPLETED: { label: "เสร็จแล้ว", variant: "success" },
   ON_HOLD: { label: "พักไว้", variant: "warning" },
-  FAILED: { label: "มีปัญหา", variant: "destructive" },
+  FAILED: { label: "ติดปัญหา", variant: "destructive" },
 });
 export const STEP_STATUS_LABELS = _stepStatus.labels;
 export const STEP_STATUS_VARIANTS = _stepStatus.variants;
@@ -102,6 +105,34 @@ export const DELIVERY_STATUS_LABELS_CUSTOMER: Record<string, string> = {
   PENDING: "รอจัดส่ง",
   PREPARING: "กำลังเตรียมส่ง",
 };
+
+// สถานะแบบเสื้อฉบับที่พูดกับลูกค้า (ลิงก์อนุมัติแบบ) — ต้องครบทั้ง 4 ค่า
+// เดิมหน้า /approve/design เขียน ternary เองแล้วให้ REJECTED ตกกิ่ง else เป็น "รอตรวจสอบ"
+// ลูกค้าจึงนึกว่ายังรอตัวเองตัดสิน ทั้งที่แบบรอบนั้นจบไปแล้ว (ผลตรวจ 2026-09-18 ข้อ A3)
+// สีใช้ APPROVAL_STATUS_VARIANTS ชุดเดียวกับฝั่งทีม — คำต่างได้ แต่โทนต้องไม่ต่าง
+export const APPROVAL_STATUS_LABELS_CUSTOMER: Record<string, string> = {
+  ...APPROVAL_STATUS_LABELS,
+  // "ปฏิเสธ" เป็นคำฝั่งทีม พูดกับลูกค้าใช้คำที่บอกผลของแบบตรง ๆ
+  REJECTED: "ไม่อนุมัติ",
+};
+
+// สถานะแบบเสื้อฉบับฝั่งทีม "ใครทำอะไร" — ใช้บนแถวของที่ต้องพร้อมก่อนผลิตและชิปในใบออเดอร์
+// (คนละชุดกับ APPROVAL_STATUS_LABELS ที่เป็นคำสั้นสำหรับตารางเวอร์ชันแบบ)
+export const APPROVAL_STATUS_LABELS_BY_CUSTOMER: Record<string, string> = {
+  PENDING: "รอลูกค้าตรวจ",
+  APPROVED: "ลูกค้าอนุมัติแล้ว",
+  REVISION_REQUESTED: "ลูกค้าขอแก้",
+  REJECTED: "ลูกค้าไม่ผ่านแบบ",
+};
+
+// ป้ายชำระที่ server ปั้นมาให้หน้ารายการออเดอร์ (paid/partial/unpaid — order.ts)
+// → คีย์สถานะกลาง เพื่อให้ตาราง ไฟล์ CSV หน้าการเงิน และลิงก์ลูกค้าอ่านคำและโทนชุดเดียวกัน
+// ("none" = ยังไม่มีบิล ไม่มีคำในชุดนี้ ฝั่งเรียกใช้เป็นตัวตัดสินว่าไม่ต้องขึ้นป้าย)
+export const PAYMENT_LABEL_TO_STATUS = {
+  paid: "PAID",
+  partial: "PARTIALLY_PAID",
+  unpaid: "UNPAID",
+} as const;
 
 /* ============================================================
    เส้นสีขอบซ้ายของแถว/การ์ดรายการ (ต้นแบบ markRows · ใช้เหมือนกันทุกตารางทั้งเว็บ)

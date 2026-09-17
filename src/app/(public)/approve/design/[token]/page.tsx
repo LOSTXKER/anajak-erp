@@ -27,6 +27,12 @@ import {
 } from "lucide-react";
 import { DASHED } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
+import {
+  APPROVAL_STATUS_LABELS_CUSTOMER,
+  APPROVAL_STATUS_VARIANTS,
+} from "@/lib/status-config";
+
+type ApprovalStatusKey = keyof typeof APPROVAL_STATUS_VARIANTS;
 
 export default function DesignApprovalPage({
   params,
@@ -119,20 +125,10 @@ export default function DesignApprovalPage({
               <p className="text-sm text-muted">
                 {images.length > 0 ? `ม็อกอัพ ${images.length} รูป` : "ยังไม่มีรูปม็อกอัพในรอบนี้"}
               </p>
-              <Badge
-                variant={
-                  d.approvalStatus === "APPROVED"
-                    ? "success"
-                    : d.approvalStatus === "REVISION_REQUESTED"
-                      ? "warning"
-                      : "default"
-                }
-              >
-                {d.approvalStatus === "APPROVED"
-                  ? "อนุมัติแล้ว"
-                  : d.approvalStatus === "REVISION_REQUESTED"
-                    ? "ขอแก้ไข"
-                    : "รอตรวจสอบ"}
+              {/* คำและสีมาจากแผนที่กลาง — ของเดิมเขียน ternary เองแล้ว REJECTED ตกกิ่ง else
+                  กลายเป็น "รอตรวจสอบ" สีกลาง ลูกค้าจึงนึกว่ายังรอตัวเองตัดสิน */}
+              <Badge variant={APPROVAL_STATUS_VARIANTS[d.approvalStatus as ApprovalStatusKey] ?? "default"}>
+                {APPROVAL_STATUS_LABELS_CUSTOMER[d.approvalStatus] ?? d.approvalStatus}
               </Badge>
             </div>
             {/* กางรูปใหญ่เรียงลงมา ไม่ใช่ตารางรูปย่อ — ลูกค้าส่วนใหญ่เปิดบนมือถือและ
@@ -198,6 +194,8 @@ export default function DesignApprovalPage({
         {alreadyDecided ? (
           <Card>
             <CardContent className="p-6 text-center">
+              {/* PENDING ไม่มีทางมาถึงตรงนี้ (alreadyDecided คัดออกแล้ว) เหลือ 3 ค่า —
+                  REJECTED ต้องมีกิ่งของตัวเอง ไม่งั้นแบบที่ไม่ผ่านจะบอกลูกค้าว่า "รอแบบใหม่" */}
               {d.approvalStatus === "APPROVED" ? (
                 <div className="space-y-2">
                   <CheckCircle className="mx-auto h-10 w-10 text-green-600 dark:text-green-400" />
@@ -205,11 +203,23 @@ export default function DesignApprovalPage({
                     แบบนี้อนุมัติแล้ว
                   </p>
                 </div>
-              ) : (
+              ) : d.approvalStatus === "REVISION_REQUESTED" ? (
                 <div className="space-y-2">
                   <AlertCircle className="mx-auto h-10 w-10 text-amber-700 dark:text-amber-400" />
                   <p className="font-medium text-amber-700 dark:text-amber-400">
                     ขอแก้ไขแล้ว -- รอแบบใหม่จากทีมงาน
+                  </p>
+                  {d.customerComment && (
+                    <p className="text-sm text-secondary">
+                      &ldquo;{d.customerComment}&rdquo;
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <X className="mx-auto h-10 w-10 text-red-600 dark:text-red-400" />
+                  <p className="font-medium text-red-700 dark:text-red-400">
+                    แบบรอบนี้ไม่ผ่าน -- ทีมงานจะติดต่อกลับ
                   </p>
                   {d.customerComment && (
                     <p className="text-sm text-secondary">

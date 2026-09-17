@@ -15,6 +15,11 @@
 
 import { useId, useMemo, useState } from "react";
 import { trpc } from "@/lib/trpc";
+import {
+  OPERATION_PHASES,
+  OPERATION_PHASE_LABELS,
+  type ManufacturingOperationPhase,
+} from "@/lib/manufacturing";
 import { permAllows } from "@/lib/permissions";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { PageShell } from "@/components/page-shell";
@@ -47,15 +52,9 @@ import { HelpTip } from "@/components/ui/help-tip";
 import { c } from "@/components/kit/kit";
 import { cn } from "@/lib/utils";
 
-type Phase = "PREPARATION" | "MANUFACTURING" | "OUTSOURCE" | "QUALITY" | "PACKING";
-
-const PHASE_LABELS: Record<Phase, string> = {
-  PREPARATION: "เตรียมงาน",
-  MANUFACTURING: "ผลิตในโรงงาน",
-  OUTSOURCE: "ส่งร้านนอก",
-  QUALITY: "ตรวจคุณภาพ",
-  PACKING: "แพ็ก/ส่ง",
-};
+/* ชื่อช่วงงานมาจากชุดกลางใน lib/manufacturing — หน้านี้เคยตั้งคำเอง ทำให้แก้คำที่นี่
+   แล้วจอโรงงานยังพูดคำเก่า (คำเดียวกันต้องมาจากที่เดียว) */
+type Phase = ManufacturingOperationPhase;
 
 type DraftOperation = {
   code: string;
@@ -129,9 +128,9 @@ function DraftRow({
               }
               aria-label="ช่วงงาน"
             >
-              {(Object.keys(PHASE_LABELS) as Phase[]).map((phase) => (
+              {OPERATION_PHASES.map((phase) => (
                 <option key={phase} value={phase}>
-                  {PHASE_LABELS[phase]}
+                  {OPERATION_PHASE_LABELS[phase]}
                 </option>
               ))}
             </Select>
@@ -623,7 +622,7 @@ export default function RoutingSettingsPage() {
                               ) : null}
                             </p>
                             <p className="text-xs text-muted">
-                              {PHASE_LABELS[operation.phase as Phase]}
+                              {OPERATION_PHASE_LABELS[operation.phase as Phase]}
                               {operation.workCenterName
                                 ? ` · ${operation.workCenterName}`
                                 : ""}

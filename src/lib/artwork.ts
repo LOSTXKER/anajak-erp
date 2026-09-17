@@ -1,5 +1,9 @@
 // คลังลายต่อลูกค้า (FLOW-REDESIGN ก้อน 4 ชิ้น 2) — helper pure ใช้ร่วม server/UI
 
+/**
+ * ป้ายตำแหน่งลาย — แหล่งคำชุดเดียวของทั้งเว็บ (ฟอร์มออเดอร์หยิบไปผ่าน PRINT_POSITIONS)
+ * OTHER มีเฉพาะที่นี่: คลังลายรับลายเก่าที่ตำแหน่งไม่ตรงช่องไหน แต่ช่องเลือกตอนเปิดออเดอร์ไม่ให้เลือก
+ */
 export const ARTWORK_POSITION_LABELS: Record<string, string> = {
   FRONT: "หน้า",
   BACK: "หลัง",

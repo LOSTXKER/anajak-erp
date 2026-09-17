@@ -21,6 +21,7 @@ import {
   ORDER_TYPE_UI_LABELS,
 } from "@/lib/order-status";
 import { hasActiveOrderListFilters } from "@/lib/order-list-ui";
+import { PAYMENT_STATUS_LABELS } from "@/lib/status-config";
 import {
   ATTENTION_FILTERS,
   CHANNEL_FILTERS,
@@ -72,10 +73,11 @@ function exportOrdersCsv(
     "สถานะชำระเงิน",
     "วันที่สร้าง",
   ];
+  // ไฟล์ที่ส่งออกต้องอ่านแล้วตรงกับที่เห็นบนตาราง — คำเดียวกับ PayTag/หน้าการเงิน
   const paymentLabelMap: Record<string, string> = {
-    paid: "ชำระแล้ว",
-    unpaid: "ค้างชำระ",
-    partial: "บางส่วน",
+    paid: PAYMENT_STATUS_LABELS.PAID,
+    unpaid: PAYMENT_STATUS_LABELS.UNPAID,
+    partial: PAYMENT_STATUS_LABELS.PARTIALLY_PAID,
     none: "—",
   };
   const rows = orders.map((o) => [

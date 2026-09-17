@@ -12,6 +12,7 @@ import { OUTSOURCE_ACTIVE_STATUSES, OUTSOURCE_STATUS_LABELS, STEP_TYPE_LABELS, i
 import { differenceInBangkokDays } from "@/lib/date-utils";
 import { currentProductionProblemReason } from "@/lib/production-problem";
 import { outsourceQueueForStatus } from "@/lib/outsource-ui";
+import { STEP_STATUS_LABELS } from "@/lib/status-config";
 
 export type DeskLens = "all" | "late" | "blocked" | "outsource" | "ready";
 
@@ -100,7 +101,8 @@ export function jobCurrent<S extends DeskStepLike, O extends BoardOrderLike<S>>(
     }
     const label = step.customStepName || (STEP_TYPE_LABELS[step.stepType] || spot.stationLabel).replace(" (ร้านนอก)", "");
     if (step.status === "FAILED" || step.status === "ON_HOLD") {
-      return { label: `${label} · ${step.status === "FAILED" ? "มีปัญหา" : "พักไว้"}`, state: step.status === "FAILED" ? "failed" : "held", reason: currentProductionProblemReason(step) || null };
+      // คำสถานะขั้นมาจากแผนที่กลาง — ช่างเดินจากจอทีวีมาเปิดใบผลิตต้องอ่านคำเดียวกัน
+      return { label: `${label} · ${step.status === "FAILED" ? STEP_STATUS_LABELS.FAILED : STEP_STATUS_LABELS.ON_HOLD}`, state: step.status === "FAILED" ? "failed" : "held", reason: currentProductionProblemReason(step) || null };
     }
     const outsource = step.outsourceOrders?.[0];
     if (outsource?.status === "QC_FAILED") {

@@ -250,13 +250,15 @@ function CustomersPageContent() {
                               {title}
                             </Link>
                           </div>
-                          {/* ไม่มีชื่อบริษัท = ไม่มีผู้ติดต่อให้บอก บรรทัดรองจึงตกเป็นของประเภทลูกค้า
-                              (ป้ายชุดเดียวกับการ์ดจอแคบด้านล่าง เดิมที่นั่นตัดคำเหลือ "บุคคล") */}
-                          {customer.company ? (
-                            <p className={c("cu")}>ผู้ติดต่อ {customer.name}</p>
-                          ) : (
+                          {/* ป้ายประเภทขึ้นทุกแถว แล้วผู้ติดต่อต่อท้ายเมื่อมี — เดิมบรรทัดรองมีที่เดียว
+                              ใครมีชื่อบริษัทจึงได้ "ผู้ติดต่อ …" แทนป้าย ผลคือนิติบุคคลซึ่งเป็นฝั่งที่
+                              ต้องรู้ว่าออกใบกำกับได้ กลับเป็นฝั่งเดียวที่ไม่มีป้าย (เบสทัก 2026-09-18) */}
+                          <div className="mt-0.5 flex min-w-0 items-center gap-2">
                             <CustomerTypeChip type={customer.customerType} />
-                          )}
+                            {customer.company ? (
+                              <span className="truncate text-xs text-secondary">ผู้ติดต่อ {customer.name}</span>
+                            ) : null}
+                          </div>
                         </div>
                       </div>
                     </DataTable.Td>

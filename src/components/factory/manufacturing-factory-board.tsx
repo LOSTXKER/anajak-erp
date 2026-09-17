@@ -11,9 +11,11 @@ import {
 } from "lucide-react";
 import { trpc, type RouterOutput } from "@/lib/trpc";
 import { cn, formatTime } from "@/lib/utils";
+import { CAPACITY_UNIT_LABELS, EXCEPTION_SEVERITY_LABELS } from "@/lib/manufacturing";
 import { TINT } from "@/components/ui/tokens";
 import { Alert } from "@/components/ui/alert";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Metric } from "@/components/ui/metric";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusLabel } from "@/components/ui/status-label";
 import { ProductionFreshness } from "@/components/production/production-freshness";
@@ -23,12 +25,6 @@ import {
 } from "./manufacturing-factory-paging";
 
 type WorkCenterLoad = RouterOutput["manufacturing"]["workCenterLoad"][number];
-
-const CAPACITY_UNIT_LABEL: Record<string, string> = {
-  PIECE: "ชิ้น/วัน",
-  MINUTE: "นาที/วัน",
-  BATCH: "รอบ/วัน",
-};
 
 export function ManufacturingFactoryBoard() {
   const loads = trpc.manufacturing.workCenterLoad.useQuery(undefined, {
@@ -189,7 +185,7 @@ export function ManufacturingFactoryBoard() {
                     <div className="flex items-start justify-between gap-2">
                       <p className="min-w-0 truncate font-medium">{exception.title}</p>
                       <StatusLabel
-                        label={exception.severity === "CRITICAL" ? "ด่วนมาก" : exception.severity === "WARNING" ? "ต้องดู" : "แจ้งไว้"}
+                        label={EXCEPTION_SEVERITY_LABELS[exception.severity]}
                         tone={exception.severity === "CRITICAL" ? "danger" : "warning"}
                       />
                     </div>
@@ -225,9 +221,16 @@ function WorkCenterPanel({ center }: { center: WorkCenterLoad }) {
       </div>
 
       <div className="mt-4 grid grid-cols-3 gap-2">
-        <Metric label="กำลังทำ" value={center.running} />
-        <Metric label="พร้อมทำ" value={center.ready} />
-        <Metric label="ติดปัญหา" value={center.blocked} danger={center.blocked > 0} />
+        <Metric label="กำลังทำ" value={center.running.toLocaleString("th-TH")} size="md" boxed align="center" />
+        <Metric label="พร้อมทำ" value={center.ready.toLocaleString("th-TH")} size="md" boxed align="center" />
+        <Metric
+          label="ติดปัญหา"
+          value={center.blocked.toLocaleString("th-TH")}
+          size="md"
+          boxed
+          align="center"
+          tone={center.blocked > 0 ? "danger" : "default"}
+        />
       </div>
 
       <div className="mt-auto grid grid-cols-2 gap-3 border-t border-divider pt-3 text-sm">
@@ -244,7 +247,7 @@ function WorkCenterPanel({ center }: { center: WorkCenterLoad }) {
             <p className="text-xs text-muted">กำลังผลิตต่อวัน</p>
             <p className="font-semibold tabular-nums">
               {center.capacity
-                ? `${center.capacity.value.toLocaleString("th-TH")} ${CAPACITY_UNIT_LABEL[center.capacity.unit] ?? center.capacity.unit}`
+                ? `${center.capacity.value.toLocaleString("th-TH")} ${CAPACITY_UNIT_LABELS[center.capacity.unit]}`
                 : "ยังไม่ประเมิน"}
             </p>
           </div>
@@ -259,17 +262,10 @@ function WorkCenterPanel({ center }: { center: WorkCenterLoad }) {
   );
 }
 
-function Metric({ label, value, danger = false }: { label: string; value: number; danger?: boolean }) {
-  return (
-    <div className="rounded-lg bg-surface-muted p-3 text-center">
-      <p className="text-xs text-muted">{label}</p>
-      <p className={danger ? "mt-1 text-2xl font-semibold tabular-nums text-red-300" : "mt-1 text-2xl font-semibold tabular-nums"}>
-        {value.toLocaleString("th-TH")}
-      </p>
-    </div>
-  );
-}
-
+/* ยอดรวมทั้งโรงงานในช่อง "ต้องดูตอนนี้" — ตัวเดียวในไฟล์นี้ที่ยังไม่ได้ใช้ <Metric> กลาง
+   บันไดตัวเลขของ Metric ข้าม 20px (18 → 24 → 30) ส่วนช่องนี้ถูกตั้งไว้ที่ 20px เพื่อให้
+   เบากว่าตัวเลขรายศูนย์งานที่เป็นพระเอกของจอ · จะรวมได้ต้องขยับเป็น 24px = ยอดรวมดังเท่า
+   ตัวเลขรายศูนย์ ซึ่งเปลี่ยนลำดับสายตาของจอที่แขวนดูจากระยะ 2-3 เมตร — รอเบสดูของจริงก่อน */
 function Pulse({ label, value, danger = false }: { label: string; value: number; danger?: boolean }) {
   return (
     <div className="rounded-lg bg-surface-muted px-3 py-2">

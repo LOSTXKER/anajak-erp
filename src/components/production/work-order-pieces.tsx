@@ -11,6 +11,7 @@ import { Fact, FactList } from "@/components/ui/fact";
 import { InfoChip, InfoChipRow } from "@/components/ui/info-chip";
 import { Metric } from "@/components/ui/metric";
 import { Section } from "@/components/ui/section";
+import { STEP_STATUS_LABELS } from "@/lib/status-config";
 import type { ProductionDetail, ProductionStep } from "@/components/production/types";
 import { currentProductionProblemReason } from "@/lib/production-problem";
 import type { NowStep } from "@/lib/production-step-actions";
@@ -48,8 +49,8 @@ export type StepView = {
 const STEP_VIEW: Record<StepView["state"], Omit<StepView, "state">> = {
   done: { label: "ผ่านแล้ว", chip: "success" },
   active: { label: "กำลังทำ", chip: "info" },
-  blocked: { label: "ติดปัญหา", chip: "error" },
-  held: { label: "พักไว้", chip: "warning" },
+  blocked: { label: STEP_STATUS_LABELS.FAILED, chip: "error" },
+  held: { label: STEP_STATUS_LABELS.ON_HOLD, chip: "warning" },
   waiting: { label: "รอ", chip: "warning" },
   todo: { label: "ยังไม่ถึง", chip: "neutral" },
 };
