@@ -6,16 +6,15 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { Field } from "@/components/ui/field";
+import { c } from "@/components/kit/kit";
 import { CHANNEL_LABELS, PRIORITY_LABELS } from "@/lib/order-status";
-import { FIELD_MEASURE } from "@/components/ui/tokens";
-import { cn } from "@/lib/utils";
 
 // ช่องข้อมูลงาน (กำหนดส่ง/ช่องทาง/รายละเอียด/หมายเหตุ) — แยกจาก orders/new/page.tsx
 // ตอนรื้อฟอร์ม 2026-06-12 · ลำดับใหม่: รายละเอียดจากแชทขึ้นก่อน (จุด capture หลักตอนถือแชท)
-// ไม่มีช่อง "ชื่องาน" แล้ว (เบสสั่ง 2026-08-30 เอาระบบชื่องานออก) — สามช่องที่เหลือ
-// อ่านเป็นชุดเดียว "มาจากไหน · ส่งเมื่อไหร่ · ด่วนแค่ไหน" จึงวางเรียงสามช่องในแถวเดียว
+// ไม่มีช่อง "ชื่องาน" แล้ว (เบสสั่ง 2026-08-30 เอาระบบชื่องานออก)
 
-const CHANNELS = Object.keys(CHANNEL_LABELS) as string[];
+// LINE ขึ้นก่อนตามต้นแบบ — เป็นค่าเริ่มต้นและช่องทางที่รับงานบ่อยสุด · ที่เหลือคงลำดับเดิม
+const CHANNELS = ["LINE", ...Object.keys(CHANNEL_LABELS).filter((key) => key !== "LINE")];
 
 type Priority = "LOW" | "NORMAL" | "HIGH" | "URGENT";
 
@@ -36,7 +35,6 @@ interface OrderDetailFieldsProps {
   /** โหมดแก้ออเดอร์: ช่องทางเปลี่ยนไม่ได้ (ผูกกับเลขออเดอร์/สูตรภาษีที่คิดไปแล้ว)
    *  โชว์เป็นช่องเทาพร้อมเหตุผล — ห้ามซ่อน ไม่งั้นคนคิดว่าข้อมูลหาย (เบสสั่ง) */
   channelLockedReason?: string;
-  showGuidance?: boolean;
 }
 
 export function OrderDetailFields({
@@ -54,21 +52,15 @@ export function OrderDetailFields({
   notes,
   onNotesChange,
   channelLockedReason,
-  showGuidance = true,
 }: OrderDetailFieldsProps) {
   const id = useId();
 
   /* ซ้ายอ่านแชท ขวากรอกสิ่งที่อ่านได้ — เรียงตามที่แอดมินทำจริงตอนถือแชท
-     (ต้นแบบ mockup-order-form-2026-09-18 · เดิมเรียงลงมาแนวเดียว ต้องเลื่อนขึ้นลงสลับ) */
+     (ต้นแบบ mockup-order-form-2026-09-18 .intake · จอ ≤860px รวมเป็นคอลัมน์เดียว) */
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,17rem)] lg:items-start">
-      <div className="space-y-4">
-        {/* คำสั่งสอนอยู่ description ใต้ช่อง (ไม่หายตอนพิมพ์) — placeholder เหลือตัวอย่างค่า */}
-        <Field
-          label="ข้อความจากลูกค้า"
-          id={`${id}-description`}
-          help={showGuidance ? "สรุปจากแชทให้ครบแบบ สี จำนวน งบ และสิ่งที่ลูกค้าเน้น" : undefined}
-        >
+    <div className={c("intake")}>
+      <div className={c("side main")}>
+        <Field label="ข้อความจากลูกค้า" id={`${id}-description`}>
           <Textarea
             value={description}
             onChange={(e) => onDescriptionChange(e.target.value)}
@@ -77,11 +69,7 @@ export function OrderDetailFields({
           />
         </Field>
 
-        <Field
-          label="หมายเหตุภายใน (ลูกค้าไม่เห็น)"
-          id={`${id}-notes`}
-          className={cn(FIELD_MEASURE, "w-full max-sm:max-w-none")}
-        >
+        <Field label="หมายเหตุภายใน (ลูกค้าไม่เห็น)" id={`${id}-notes`}>
           <Input
             value={notes}
             onChange={(e) => onNotesChange(e.target.value)}
@@ -90,7 +78,7 @@ export function OrderDetailFields({
         </Field>
       </div>
 
-      <div className="space-y-3">
+      <div className={c("side")}>
         <Field label="ช่องทาง" id={`${id}-channel`} description={channelLockedReason}>
           <Select
             value={channel}

@@ -1,52 +1,66 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
-import { Section, SectionTitle } from "@/components/ui/section";
+import { Spinner } from "@/components/ui/spinner";
+import { c, CardHead } from "@/components/kit/kit";
 import { uploadFile } from "@/lib/supabase";
 import { safeFileExt } from "@/lib/file-urls";
 import { PRINT_POSITIONS } from "@/types/order-form";
 import type { ReferenceImage } from "@/types/order-form";
-import { ImageIcon, Upload, X } from "lucide-react";
-import { Spinner } from "@/components/ui/spinner";
-import { DASHED_INTERACTIVE } from "@/components/ui/tokens";
-import { cn } from "@/lib/utils";
+import { ChevronRight, FileText, ImageIcon, Trash2, Upload } from "lucide-react";
+import { cn, isImageUrl } from "@/lib/utils";
 
 // รูป/ไฟล์อ้างอิงจากแชท — แยกจาก orders/new/page.tsx ตอนรื้อฟอร์ม 2026-06-12
-// (กางตลอด + อัปโหลด Supabase + เลือกตำแหน่งพิมพ์ต่อรูป)
+// (อัปโหลด Supabase + เลือกตำแหน่งพิมพ์ต่อไฟล์) · หน้าตาแถวไฟล์ตามต้นแบบ 2026-09-18 (tabFiles)
+
+const MAX_FILES = 5;
 
 interface OrderAttachmentsSectionProps {
-  title?: React.ReactNode;
   /** anchor + โฟกัสให้แถบขั้นตอนกระโดดมาได้ (ใช้ตอนเป็นตอนเต็มของหน้าเปิดงาน) */
   id?: string;
   className?: string;
   images: ReferenceImage[];
   onImagesChange: React.Dispatch<React.SetStateAction<ReferenceImage[]>>;
-  /** วางใน Section หลักของหน้าโดยไม่สร้าง card-surface ซ้อนอีกชั้น */
-  embedded?: boolean;
+}
+
+/** รูปย่อ: preview ที่เป็นรูปจริง (ไฟล์เดิมที่ระบบรู้ว่าเป็นรูปส่ง preview = fileUrl มาแล้ว)
+ *  หรือ URL ไฟล์ที่เป็นรูป — .pdf/.ai/.psd ใช้ไอคอนไฟล์แทน เพราะ <img> จะแตก */
+function thumbSrc(img: ReferenceImage): string | null {
+  if (img.preview && (isImageUrl(img.preview) || img.preview === img.fileUrl)) return img.preview;
+  return isImageUrl(img.fileUrl) ? img.fileUrl : null;
+}
+
+function fileSizeText(bytes: number | undefined): string {
+  if (!bytes || !Number.isFinite(bytes) || bytes <= 0) return "—";
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
 export function OrderAttachmentsSection({
-  title = "ไฟล์อ้างอิงจากแชท",
   id,
   className,
   images,
   onImagesChange,
-  embedded = false,
 }: OrderAttachmentsSectionProps) {
   const [uploading, setUploading] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const canAttach = images.length < MAX_FILES;
+
+  const openPicker = () => {
+    if (!uploading) inputRef.current?.click();
+  };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    const maxFiles = 5 - images.length;
+    const maxFiles = MAX_FILES - images.length;
     const filesToUpload = Array.from(files).slice(0, maxFiles);
     // ตัดไฟล์ที่เกินโควตาต้องบอก — เดิมตัดเงียบ ผู้ใช้คิดว่าแนบครบแล้ว (audit ข้อ 4)
     if (files.length > maxFiles) {
-      toast.warning(`แนบได้สูงสุด 5 ไฟล์ — ข้าม ${files.length - maxFiles} ไฟล์ที่เกินมา`);
+      toast.warning(`แนบได้สูงสุด ${MAX_FILES} ไฟล์ — ข้าม ${files.length - maxFiles} ไฟล์ที่เกินมา`);
     }
 
     setUploading(true);
@@ -81,108 +95,125 @@ export function OrderAttachmentsSection({
     }
   };
 
-  const uploadControl = images.length < 5 ? (
-    <label
-      className={cn(
-        DASHED_INTERACTIVE,
-        "flex min-h-11 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-lg bg-surface-muted px-3 py-2 text-sm text-secondary transition-colors focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/30 dark:focus-within:border-blue-300 dark:focus-within:ring-blue-300/25",
-        !embedded && "w-full px-4 py-3.5"
-      )}
-    >
+  return (
+    <section id={id} tabIndex={id ? -1 : undefined} className={cn(c("card"), className)}>
+      <CardHead
+        icon={ImageIcon}
+        tone="violet"
+        title="ไฟล์อ้างอิงจากแชท"
+        right={
+          <>
+            <span className={c("chip gray")}>
+              {images.length}/{MAX_FILES} ไฟล์
+            </span>
+            {/* ครบโควตาแล้วไม่มีปุ่มแนบ (ชิปบอกว่าเต็ม) · ระหว่างอัปโหลดกดซ้ำไม่ได้แต่ยังเห็นว่ากำลังทำ */}
+            {canAttach && (
+              <button
+                type="button"
+                className={c("btn sm")}
+                aria-busy={uploading || undefined}
+                onClick={openPicker}
+              >
+                {uploading ? <Spinner size="md" /> : <Upload aria-hidden="true" />}
+                {uploading ? "กำลังอัปโหลด..." : "แนบไฟล์"}
+              </button>
+            )}
+          </>
+        }
+      />
       <input
+        ref={inputRef}
         type="file"
         accept="image/*,.pdf,.ai,.psd"
         multiple
         onChange={handleImageUpload}
         className="sr-only"
+        tabIndex={-1}
+        aria-hidden="true"
         disabled={uploading}
       />
-      {uploading ? (
-        <>
-          <Spinner size="md" />
-          กำลังอัปโหลด...
-        </>
-      ) : (
-        <>
-          <Upload className="h-4 w-4" />
-          {embedded ? "แนบไฟล์" : "แนบไฟล์อ้างอิง (สูงสุด 5 ไฟล์)"}
-        </>
-      )}
-    </label>
-  ) : undefined;
-
-  return (
-    <Section
-      id={id}
-      tabIndex={id ? -1 : undefined}
-      className={className}
-      title={
-        <SectionTitle icon={ImageIcon} tone="system">
-          {title}
-        </SectionTitle>
-      }
-      meta={images.length > 0 ? `${images.length}/5 ไฟล์` : "สูงสุด 5 ไฟล์"}
-      bordered={!embedded}
-      headingLevel={embedded ? 3 : 2}
-      action={embedded ? uploadControl : undefined}
-    >
-      <div className="space-y-3">
-        {images.length > 0 && (
-          <div className="flex flex-wrap gap-3">
-            {images.map((img, idx) => (
-              <div key={idx} className="group relative">
-                {img.preview ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={img.preview}
-                    alt={img.fileName}
-                    className="h-24 w-24 rounded-lg border border-border object-cover"
-                  />
-                ) : (
-                  <div className="flex h-24 w-24 items-center justify-center rounded-lg border border-border bg-surface-muted">
-                    <ImageIcon className="h-8 w-8 text-muted" />
-                  </div>
-                )}
-                {img.canEdit !== false && (
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="icon"
-                    onClick={() => onImagesChange((prev) => prev.filter((_, i) => i !== idx))}
-                    aria-label={`ลบไฟล์ ${img.fileName}`}
-                    className="absolute -right-2 -top-2 rounded-full opacity-100 shadow-sm"
-                  >
-                    <X />
-                  </Button>
-                )}
-                <Select
-                  size="dense"
-                  value={img.printPosition || ""}
-                  onChange={(e) => {
-                    onImagesChange((prev) =>
-                      prev.map((im, i) =>
-                        i === idx ? { ...im, printPosition: e.target.value || undefined } : im
-                      )
-                    );
-                  }}
-                  aria-label={`ตำแหน่งพิมพ์ของ ${img.fileName}`}
-                  disabled={img.canEdit === false}
-                  title={img.canEdit === false ? "แก้ไขได้เฉพาะไฟล์ที่คุณอัปโหลดเอง" : undefined}
-                  className="mt-1.5 w-24 px-1.5 py-0"
-                >
-                  <option value="">ทั่วไป</option>
-                  {Object.entries(PRINT_POSITIONS).map(([k, v]) => (
-                    <option key={k} value={k}>
-                      {v}
-                    </option>
-                  ))}
-                </Select>
-              </div>
-            ))}
+      <div className={c("cb")}>
+        {images.length === 0 ? (
+          <button
+            type="button"
+            className={c("drop act")}
+            aria-busy={uploading || undefined}
+            onClick={openPicker}
+          >
+            {uploading ? <Spinner size="md" /> : <Upload aria-hidden="true" />}
+            <b>{uploading ? "กำลังอัปโหลด..." : "แนบไฟล์อ้างอิง"}</b>
+          </button>
+        ) : (
+          <div className={c("files")}>
+            {images.map((img, idx) => {
+              const src = thumbSrc(img);
+              const editable = img.canEdit !== false;
+              return (
+                /* ทั้งแถวเปิดไฟล์ในแท็บใหม่ (ลิงก์ชื่อไฟล์ขยายเต็มแถว) — ไม่ใช่ <button> ทั้งแถวแบบต้นแบบ
+                   เพราะในแถวมีช่องตำแหน่งพิมพ์กับปุ่มลบซ้อนอยู่ */
+                <div key={idx} className={c("file rfile")}>
+                  <span className={c("th")}>
+                    {src ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={src} alt="" loading="lazy" decoding="async" />
+                    ) : (
+                      <FileText aria-hidden="true" />
+                    )}
+                  </span>
+                  <span className={c("nm")}>
+                    <a href={img.fileUrl} target="_blank" rel="noopener noreferrer" className={c("open")}>
+                      {img.fileName}
+                    </a>
+                    {/* บรรทัดชนิดไฟล์ = ตำแหน่งพิมพ์ของไฟล์นี้ เลือกได้ในที่ · ไฟล์ของคนอื่นเป็นข้อความอ่านอย่างเดียว
+                        จอเมาส์เตี้ยเท่าบรรทัดข้อความให้แถวสูงเท่าแถวไฟล์ทั่วไป · จอทัชยังสูง 44px ตาม control กลาง */}
+                    {editable ? (
+                      <Select
+                        size="dense"
+                        surface="inline"
+                        value={img.printPosition || ""}
+                        onChange={(e) => {
+                          onImagesChange((prev) =>
+                            prev.map((im, i) =>
+                              i === idx ? { ...im, printPosition: e.target.value || undefined } : im
+                            )
+                          );
+                        }}
+                        aria-label={`ตำแหน่งพิมพ์ของ ${img.fileName}`}
+                        className={cn(c("ctl"), "-ml-2 w-auto max-w-full gap-1 px-2 text-secondary sm:h-6 sm:min-h-6")}
+                      >
+                        <option value="">อ้างอิง</option>
+                        {Object.entries(PRINT_POSITIONS).map(([k, v]) => (
+                          <option key={k} value={k}>
+                            {v}
+                          </option>
+                        ))}
+                      </Select>
+                    ) : (
+                      <small className={c("ctl")} title="แก้ไขได้เฉพาะไฟล์ที่คุณอัปโหลดเอง">
+                        {(img.printPosition && PRINT_POSITIONS[img.printPosition]) || "อ้างอิง"}
+                      </small>
+                    )}
+                  </span>
+                  <span className={c("m")}>{fileSizeText(img.fileSize)}</span>
+                  {editable ? (
+                    <button
+                      type="button"
+                      className={c("ibtn ctl")}
+                      onClick={() => onImagesChange((prev) => prev.filter((_, i) => i !== idx))}
+                      aria-label={`ลบไฟล์ ${img.fileName}`}
+                    >
+                      <Trash2 aria-hidden="true" />
+                    </button>
+                  ) : (
+                    <span aria-hidden="true" />
+                  )}
+                  <ChevronRight className={c("arrow")} aria-hidden="true" />
+                </div>
+              );
+            })}
           </div>
         )}
-        {!embedded && uploadControl}
       </div>
-    </Section>
+    </section>
   );
 }

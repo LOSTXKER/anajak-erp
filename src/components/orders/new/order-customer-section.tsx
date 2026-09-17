@@ -5,18 +5,16 @@ import { ChevronRight, Film, ImageIcon, Landmark, Users } from "lucide-react";
 
 import { trpc } from "@/lib/trpc";
 import { permAllows } from "@/lib/permissions";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Section, SectionTitle } from "@/components/ui/section";
-import { InfoChip, InfoChipRow } from "@/components/ui/info-chip";
+import { c, CardHead } from "@/components/kit/kit";
+import { Field } from "@/components/ui/field";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CustomerPicker, type PickerCustomer } from "@/components/customers/customer-picker";
 import { customerProfileGaps } from "@/lib/customer-gaps";
-import { formatCurrency } from "@/lib/utils";
+import { formatBaht } from "@/lib/utils";
 
 // ช่องเลือกลูกค้า + ป้ายบริบทครบ (นิติบุคคล/โปรไฟล์ขาด/วงเงินเครดิต)
 // แยกจาก orders/new/page.tsx ตอนรื้อฟอร์ม 2026-06-12 — พฤติกรรมเดิมทุกอย่าง
+// หน้าตาการ์ดลูกค้า = tabIntake ของต้นแบบ mockup-order-form-2026-09-18 (.cust)
 
 interface OrderCustomerSectionProps {
   customerId: string;
@@ -71,6 +69,7 @@ export function OrderCustomerSection({
     (creditStatus.isLoading || creditStatus.isFetching);
   const creditError =
     shouldLoadCredit && !creditStatus.data && creditStatus.isError;
+  const available = shouldLoadCredit ? creditStatus.data?.available : null;
 
   // เช็คฟิล์มค้าง+คลังลายตอนรับงานซ้ำ (หนี้ก้อน 2 — ลูกค้าทักมาสั่งซ้ำ แอดมินคีย์ใบใหม่
   // คือเคสที่พบบ่อยกว่าปุ่มสำเนา) — query count เบาๆ ตัวเดียว ไม่ลากแถวมานับเอง
@@ -80,13 +79,6 @@ export function OrderCustomerSection({
   );
   const filmCount = summary.data?.filmCount ?? 0;
   const artworkCount = summary.data?.artworkCount ?? 0;
-  const hasCustomerContext =
-    !!selectedCustomer &&
-    (isCorporate ||
-      profileGaps.length > 0 ||
-      showCreditStatus ||
-      filmCount > 0 ||
-      artworkCount > 0);
 
   /* เลือกลูกค้าแล้ว = ยุบช่องค้นหาเหลือสรุปว่าใครถูกเลือก (ต้นแบบ 2026-09-18)
      ของเดิมช่องค้นหา/ช่องเลือก/ปุ่มใหม่ ค้างอยู่ตลอด ทั้งที่งานตรงนั้นจบไปแล้ว */
@@ -97,116 +89,126 @@ export function OrderCustomerSection({
     selectedCustomer?.phone,
     selectedCustomer?.lineId,
   ].filter(Boolean);
+  const taxId = selectedCustomer?.taxId;
+  const hasChips =
+    creditLoading ||
+    creditError ||
+    available != null ||
+    filmCount > 0 ||
+    profileGaps.length > 0;
 
   return (
-    <Section
-      title={<SectionTitle icon={Users} tone="brand">ลูกค้า</SectionTitle>}
-      action={
-        picked ? (
-          lockedReason ? (
-            <InfoChip size="sm">ล็อกไว้</InfoChip>
-          ) : (
-            <Button type="button" variant="outline" size="sm" onClick={() => setChanging(true)}>
-              เปลี่ยนลูกค้า
-            </Button>
-          )
-        ) : undefined
-      }
-    >
-      {picked ? (
-        <div className="space-y-3">
-          <div className="flex flex-wrap items-start gap-3.5">
-            <span
-              aria-hidden="true"
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-blue-50 text-sm font-semibold text-blue-700 dark:bg-blue-950/50 dark:text-blue-300"
-            >
-              {initials(label)}
-            </span>
-            <div className="min-w-0 flex-1 space-y-0.5">
-              <p className="flex flex-wrap items-center gap-2">
-                <span className="text-base font-semibold text-strong [overflow-wrap:anywhere]">{label}</span>
-                {isCorporate && <Badge variant="accent" size="sm">นิติบุคคล</Badge>}
-              </p>
-              <p className="text-xs text-muted [overflow-wrap:anywhere]">
-                {contact.join(" · ")}
-                {selectedCustomer?.taxId ? `${contact.length ? " · " : ""}เลขภาษี ${selectedCustomer.taxId}` : ""}
-              </p>
-            </div>
-            {artworkCount > 0 && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="shrink-0"
-                onClick={() => window.open(`/customers/${customerId}`, "_blank", "noopener")}
-              >
-                <ImageIcon />
-                คลังลาย {artworkCount} ลาย
-                <ChevronRight />
-              </Button>
-            )}
-          </div>
-
-          {/* วงเงินและเรื่องที่ต้องรู้ = ชิป ไม่ใช่ประโยคต่อจุด และไม่ใช่ก้อนใหญ่แย่งสายตา
-             (เบสสั่ง 2026-09-18 "ไม่เป็น text ธรรมดา แต่ไม่ต้องเด่นไป") */}
-          {(showCreditStatus || filmCount > 0 || profileGaps.length > 0) && (
-            <InfoChipRow>
-              {creditLoading && <Skeleton className="h-6 w-44" />}
-              {creditError && (
-                <Button type="button" variant="outline" size="sm" onClick={() => void creditStatus.refetch()}>
-                  โหลดสถานะเครดิตไม่สำเร็จ — ลองใหม่
-                </Button>
-              )}
-              {shouldLoadCredit && creditStatus.data?.available != null && (
-                <InfoChip
-                  icon={Landmark}
-                  tone={creditStatus.data.available < 0 ? "error" : "neutral"}
-                  strong={creditStatus.data.available < 0}
+    <section className={c("card")}>
+      <CardHead
+        icon={Users}
+        tone="blue"
+        title="ลูกค้า"
+        right={
+          picked ? (
+            lockedReason ? (
+              <span className={c("chip gray")}>ล็อกไว้</span>
+            ) : (
+              <button type="button" className={c("btn sm")} onClick={() => setChanging(true)}>
+                เปลี่ยนลูกค้า
+              </button>
+            )
+          ) : undefined
+        }
+      />
+      <div className={c("cb")}>
+        {picked ? (
+          <>
+            <div className={c("cust")}>
+              <span className={c("av")} aria-hidden="true">
+                {initials(label)}
+              </span>
+              <span className={c("who")}>
+                <span className={c("nm")}>
+                  {label}
+                  {isCorporate && <span className={c("chip blue")}>นิติบุคคล</span>}
+                </span>
+                {(contact.length > 0 || taxId) && (
+                  <span className={c("sub")}>
+                    {contact.join(" · ")}
+                    {taxId && (
+                      <>
+                        {contact.length > 0 ? " · " : ""}เลขภาษี <span className={c("mono")}>{taxId}</span>
+                      </>
+                    )}
+                  </span>
+                )}
+                {/* วงเงินและเรื่องที่ต้องรู้ = ชิป ไม่ใช่ประโยคต่อจุด และไม่ใช่ก้อนใหญ่แย่งสายตา
+                   (เบสสั่ง 2026-09-18 "ไม่เป็น text ธรรมดา แต่ไม่ต้องเด่นไป") */}
+                {hasChips && (
+                  <span className={c("chips")}>
+                    {creditLoading && <Skeleton className="h-[22px] w-44 rounded-full" />}
+                    {creditError && (
+                      <button type="button" className={c("btn sm")} onClick={() => void creditStatus.refetch()}>
+                        โหลดสถานะเครดิตไม่สำเร็จ — ลองใหม่
+                      </button>
+                    )}
+                    {available != null &&
+                      (available < 0 ? (
+                        <span className={c("chip bad")}>
+                          <Landmark aria-hidden="true" />
+                          เกินวงเงิน <b className={c("mono")}>{formatBaht(Math.abs(available))}</b>
+                        </span>
+                      ) : (
+                        <span className={c("chip line")}>
+                          <Landmark aria-hidden="true" />
+                          วงเงินเหลือ <b className={c("mono")}>{formatBaht(available)}</b> จาก{" "}
+                          {formatBaht(creditStatus.data?.creditLimit ?? 0)}
+                        </span>
+                      ))}
+                    {filmCount > 0 && (
+                      <span className={c("chip warn")}>
+                        <Film aria-hidden="true" />
+                        ฟิล์มพร้อมรีดค้าง <b>{filmCount}</b> รายการ
+                      </span>
+                    )}
+                    {profileGaps.map((gap) => (
+                      <span key={gap.key} className={c("chip warn")} title={gap.label}>
+                        <span className="min-w-0 truncate">{gap.label}</span>
+                      </span>
+                    ))}
+                  </span>
+                )}
+              </span>
+              {artworkCount > 0 && (
+                <button
+                  type="button"
+                  className={c("btn ghost sm")}
+                  onClick={() => window.open(`/customers/${customerId}`, "_blank", "noopener")}
                 >
-                  {creditStatus.data.available < 0
-                    ? `เกินวงเงิน ${formatCurrency(Math.abs(creditStatus.data.available))}`
-                    : `วงเงินเหลือ ${formatCurrency(creditStatus.data.available)} จาก ${formatCurrency(creditStatus.data.creditLimit ?? 0)}`}
-                </InfoChip>
+                  <ImageIcon aria-hidden="true" />
+                  คลังลาย {artworkCount} ลาย
+                  <ChevronRight className={c("arrow")} aria-hidden="true" />
+                </button>
               )}
-              {filmCount > 0 && (
-                <InfoChip icon={Film} tone="warning" strong>
-                  ฟิล์มพร้อมรีดค้าง {filmCount} รายการ
-                </InfoChip>
-              )}
-              {profileGaps.map((gap) => (
-                <InfoChip key={gap.key} tone="warning">
-                  {gap.label}
-                </InfoChip>
-              ))}
-            </InfoChipRow>
-          )}
-
-          {lockedReason && <p className="text-xs text-muted">{lockedReason}</p>}
-        </div>
-      ) : (
-        <div>
-          <Label htmlFor="new-order-customer" className="mb-2 block">
-            เลือกลูกค้า
-            <span aria-hidden="true" className="ml-1 text-red-700 dark:text-red-400">*</span>
-            <span className="sr-only"> (จำเป็น)</span>
-          </Label>
-          <CustomerPicker
-            id="new-order-customer"
-            value={customerId}
-            onChange={(id, customer) => {
-              onSelect(id, customer);
-              if (id) setChanging(false);
-            }}
-            initialSelected={selectedCustomer}
-            disabled={Boolean(lockedReason)}
-            required
-            invalid={invalid}
-            layout="inline"
-            autoFocusSearch={!lockedReason}
-          />
-          {lockedReason && <p className="mt-1.5 text-xs text-muted">{lockedReason}</p>}
-        </div>
-      )}
-    </Section>
+            </div>
+            {lockedReason && <p className={c("hint")}>{lockedReason}</p>}
+          </>
+        ) : (
+          <div className={c("form")}>
+            <Field label="เลือกลูกค้า" id="new-order-customer" required description={lockedReason}>
+              <CustomerPicker
+                id="new-order-customer"
+                value={customerId}
+                onChange={(id, customer) => {
+                  onSelect(id, customer);
+                  if (id) setChanging(false);
+                }}
+                initialSelected={selectedCustomer}
+                disabled={Boolean(lockedReason)}
+                required
+                invalid={invalid}
+                layout="inline"
+                autoFocusSearch={!lockedReason}
+              />
+            </Field>
+          </div>
+        )}
+      </div>
+    </section>
   );
 }

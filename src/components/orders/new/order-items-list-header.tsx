@@ -1,6 +1,6 @@
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
+import { c } from "@/components/kit/kit";
+import { cn } from "@/lib/utils";
 
 interface OrderItemsListHeaderProps {
   headingId: string;
@@ -11,7 +11,7 @@ interface OrderItemsListHeaderProps {
 }
 
 /**
- * หัวรายการงานร่วมของหน้าเปิดงานและหน้าแก้ไข
+ * หัวรายการงานร่วมของหน้าเปิดงานและหน้าแก้ไข (ต้นแบบ .ihdr)
  * CTA ต้องอยู่ก่อน list เสมอ เพื่อให้เพิ่มรายการได้โดยไม่ต้องเลื่อนผ่านการ์ดเดิมทั้งหมด
  */
 export function OrderItemsListHeader({
@@ -38,19 +38,16 @@ export function OrderItemsListHeader({
   };
 
   return (
-    <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex min-w-0 flex-wrap items-center gap-2">
-        <h2 id={headingId} className="text-base font-semibold text-strong">
-          {title}
-        </h2>
-        <Badge variant="default" size="sm" aria-label={`${count} รายการงาน`}>
-          {count} รายการ
-        </Badge>
-      </div>
-      <Button type="button" onClick={handleAdd} className="w-full gap-1.5 sm:w-auto">
-        <Plus />
+    <header className={c("ihdr")}>
+      <h2 id={headingId}>{title}</h2>
+      <span className={c("chip gray")} aria-label={`${count} รายการงาน`}>
+        {count} รายการ
+      </span>
+      {/* จอแคบปุ่มเต็มแถว (ขึ้นบรรทัดใหม่เอง) กดง่ายด้วยนิ้ว · จอกว้างชิดขวาตามต้นแบบ */}
+      <button type="button" onClick={handleAdd} className={cn(c("btn primary"), "w-full sm:w-auto")}>
+        <Plus aria-hidden="true" />
         เพิ่มรายการ
-      </Button>
+      </button>
     </header>
   );
 }

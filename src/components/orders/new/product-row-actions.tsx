@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { ArrowDown, ArrowUp, MoreHorizontal, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Menu, Trash2 } from "lucide-react";
+import { c } from "@/components/kit/kit";
 import { Button } from "@/components/ui/button";
 import {
   MENU_ITEM,
@@ -40,34 +41,25 @@ export function ProductRowActions({
     setAnnouncement(`ย้ายสินค้าไปลำดับ ${nextNumber} แล้ว`);
   };
 
-  const removeButton = (
-    <Button
-      type="button"
-      variant="ghost"
-      size="icon-sm"
-      onClick={onRemove}
-      aria-label={`ลบสินค้า ${productNumber}`}
-      className="text-muted"
-    >
-      <Trash2 />
-    </Button>
-  );
+  const removeLabel = `ลบสินค้า ${productNumber}`;
 
   if (mode === "menu") {
-    if (totalProducts === 1) return removeButton;
+    // ในตาราง: ปุ่มไอคอนเล็ก .ibtn ของต้นแบบ · แถวเดียวไม่มีอะไรให้เลื่อน จึงเหลือปุ่มลบตรงๆ
+    if (totalProducts === 1) {
+      return (
+        <button type="button" className={c("ibtn")} onClick={onRemove} aria-label={removeLabel}>
+          <Trash2 aria-hidden="true" />
+        </button>
+      );
+    }
 
     return (
       <>
         <DropdownMenu.Root>
           <DropdownMenu.Trigger asChild>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              aria-label={`จัดการสินค้า ${productNumber}`}
-            >
-              <MoreHorizontal />
-            </Button>
+            <button type="button" className={c("ibtn")} aria-label={`จัดการสินค้า ${productNumber}`}>
+              <Menu aria-hidden="true" />
+            </button>
           </DropdownMenu.Trigger>
           <DropdownMenu.Portal>
             <DropdownMenu.Content
@@ -152,7 +144,16 @@ export function ProductRowActions({
           <span aria-hidden="true" className="mx-1 h-6 w-px bg-divider" />
         </>
       )}
-      {removeButton}
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        onClick={onRemove}
+        aria-label={removeLabel}
+        className="text-muted"
+      >
+        <Trash2 />
+      </Button>
       <span className="sr-only" aria-live="polite">{announcement}</span>
     </div>
   );

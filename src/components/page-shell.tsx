@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
-import { PageHeader, type BreadcrumbItem } from "@/components/page-header";
+import { PageHeader, type BreadcrumbItem, type PageBack } from "@/components/page-header";
 import { c } from "@/components/kit/kit";
 import { QueryError } from "@/components/ui/query-error";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -38,7 +38,7 @@ interface PageShellProps {
   action?: ReactNode;
   breadcrumb?: BreadcrumbItem[];
   titleBadge?: ReactNode;
-  back?: { href: string; label: string };
+  back?: PageBack;
   icon?: LucideIcon;
   tone?: VisualTone;
   eyebrow?: string;

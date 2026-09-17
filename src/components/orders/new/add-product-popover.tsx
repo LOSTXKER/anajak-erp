@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { c } from "@/components/kit/kit";
 import { OVERLAY_PANEL } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
 import { Plus, Package, Scissors, Shirt } from "lucide-react";
@@ -17,12 +17,10 @@ export function AddProductPopover({
   onAddFromStock,
   onAddCustomMade,
   onAddCustomerProvided,
-  triggerSize = "sm",
 }: {
   onAddFromStock: () => void;
   onAddCustomMade: () => void;
   onAddCustomerProvided: () => void;
-  triggerSize?: "sm" | "default" | "lg";
 }) {
   const [open, setOpen] = useState(false);
   const handlers = {
@@ -33,9 +31,10 @@ export function AddProductPopover({
 
   return (
     <div className="relative">
-      <Button type="button" variant="ghost" size={triggerSize} onClick={() => setOpen(!open)} aria-expanded={open} aria-haspopup="menu">
-        <Plus />เพิ่มสินค้า
-      </Button>
+      {/* ปุ่ม ghost เล็กบนหัวย่อย "สินค้าในชุดงาน" (ต้นแบบ) · กดแล้วเลือก 3 แหล่งก่อน ไม่เปิดคลังสต็อกทันที */}
+      <button type="button" className={c("btn ghost sm")} onClick={() => setOpen(!open)} aria-expanded={open} aria-haspopup="menu">
+        <Plus aria-hidden="true" />เพิ่มสินค้า
+      </button>
       {open && (
         <>
           <button type="button" tabIndex={-1} aria-label="ปิดเมนูเพิ่มสินค้า" className="fixed inset-0 z-40 cursor-default" onClick={() => setOpen(false)} />

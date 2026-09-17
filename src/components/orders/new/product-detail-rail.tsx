@@ -1,9 +1,12 @@
 import type { ReactNode } from "react";
+import { c } from "@/components/kit/kit";
+import { cn } from "@/lib/utils";
 
 /**
- * พื้นที่รายละเอียดใต้แถวสินค้า (ไซส์ · สเปค) — พื้นขาว ไม่มีเส้นขอบซ้าย (เบสสั่งเอาแถบขอบซ้ายออกทั้งเว็บ 2026-09-16)
- * แทนกล่องพื้นเทา (SUNK_PANEL) เดิม — เบสเคาะ 2026-09-06 "ไม่ชอบพื้นหลังเทา ทำเป็นตาราง"
+ * พื้นที่รายละเอียดใต้แถวสินค้า (สเปคตัดเย็บ · ไซส์) — พื้นขาว ไม่ใช่กล่องเทา (เบสเคาะ 2026-09-06)
+ * มีเส้นนำซ้ายบาง 2px ตามต้นแบบฟอร์มออเดอร์ 2026-09-18 ที่เบสเคาะหลังคำสั่งเอาแถบซ้ายออก (09-16)
+ * เส้นนี้บอกว่าก้อนนี้เป็นของแถวด้านบน ไม่ใช่แถบสีสถานะ
  */
 export function ProductDetailRail({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={className}>{children}</div>;
+  return <div className={cn(c("subrail"), className)}>{children}</div>;
 }

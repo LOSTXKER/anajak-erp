@@ -1,19 +1,23 @@
 "use client";
 
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import { MoneyInput, NumberInput } from "@/components/ui/number-input";
 import { Select } from "@/components/ui/select";
-import { formatCurrency } from "@/lib/utils";
-import { ImageIcon } from "lucide-react";
+import { c, Thumb } from "@/components/kit/kit";
+import { formatBaht } from "@/lib/utils";
 import type { OrderItemForm, OrderItemProductForm } from "@/types/order-form";
 import { ITEM_SOURCES } from "@/types/order-form";
+import { getProductSourcePresentation } from "@/lib/order-item-composer";
 import { useProductRow } from "./use-product-row";
 import { CustomMadeSpecSummary } from "./custom-made-spec-summary";
+import { ProductDetailRail } from "./product-detail-rail";
 import { SizeMatrix } from "./size-matrix";
 import { ProductRowActions } from "./product-row-actions";
+import { ProductSubLine, sourceChipClass } from "./product-table-row";
 
-// การ์ดสินค้า 1 ชิ้น — เวอร์ชันมือถือ (จอ < sm) · เรียงแนวตั้ง ไม่ต้องเลื่อนซ้ายขวา (UX7)
-// logic เดียวกับ ProductTableRow (เดสก์ท็อป) ผ่าน useProductRow — JSX ต่างแค่ layout
+// การ์ดสินค้า 1 ชิ้น — เวอร์ชันพื้นที่แคบ · เรียงแนวตั้ง ไม่ต้องเลื่อนซ้ายขวา (UX7)
+// logic เดียวกับ ProductTableRow ผ่าน useProductRow · ชิป/รูปย่อ/ช่องเงินชุดเดียวกับแถวตาราง
+// ช่องกรอกคงขนาด control กลาง (44px บนจอทัช) และปุ่มเลื่อน/ลบแบบกดด้วยนิ้ว
 export function ProductCardMobile({
   product,
   prodIdx,
@@ -32,19 +36,20 @@ export function ProductCardMobile({
     packagingOptions,
     qty, isFromStock, isCustomMade, isCustomerProvided,
     multi, totalQty, lineTotal,
-    productLabel, variantLabel,
+    productLabel,
   } = useProductRow(product, prodIdx, itemIdx, onSetItems);
 
   const fieldLabel = "mb-1 block text-xs text-muted";
+  const dash = <div className={`flex h-9 items-center ${c("dsh")}`}>—</div>;
 
   return (
     <div className="space-y-2.5 rounded-lg border border-border p-3">
       {/* หัวการ์ด: แหล่ง + เลื่อนลำดับ/ลบ */}
       <div className="flex items-center justify-between gap-2">
         {product.itemSource ? (
-          <Badge variant={isFromStock ? "default" : isCustomMade ? "accent" : "warning"} size="sm">
-            {ITEM_SOURCES[product.itemSource] || product.itemSource}
-          </Badge>
+          <span className={sourceChipClass(product.itemSource)}>
+            {getProductSourcePresentation(product.itemSource).label}
+          </span>
         ) : (
           <Select size="sm"
             value=""
@@ -68,24 +73,11 @@ export function ProductCardMobile({
 
       {/* สินค้า */}
       {isFromStock ? (
-        <div className="flex items-center gap-2">
-          {product.productImageUrl ? (
-            /* eslint-disable-next-line @next/next/no-img-element */
-            <img src={product.productImageUrl} alt="" className="h-10 w-10 flex-shrink-0 rounded-lg border border-border object-cover" />
-          ) : (
-            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border border-border bg-surface-muted">
-              <ImageIcon className="h-4 w-4 text-muted" />
-            </div>
-          )}
+        <div className={c("prod")}>
+          <Thumb cover={product.productImageUrl ?? null} alt="" />
           <div className="min-w-0">
-            <span className="block truncate text-sm font-medium text-strong">{productLabel}</span>
-            {variantLabel && <span className="block text-xs text-muted">{variantLabel}</span>}
-            <div className="mt-0.5 flex items-center gap-2 text-xs text-muted">
-              {product.productSku && <span>{product.productSku}</span>}
-              {product.stockAvailable != null && (
-                <span className={product.stockAvailable > 0 ? "text-green-600 dark:text-green-400" : "text-red-700 dark:text-red-300"}>คลัง {product.stockAvailable}</span>
-              )}
-            </div>
+            <b className="block text-sm font-medium text-strong [overflow-wrap:anywhere]">{productLabel}</b>
+            <ProductSubLine product={product} />
           </div>
         </div>
       ) : (
@@ -100,57 +92,55 @@ export function ProductCardMobile({
       {/* ราคา · จำนวน · รวม */}
       <div className="grid grid-cols-3 gap-2">
         <label className="block">
-          <span className={fieldLabel}>ราคา/ชิ้น</span>
-          {isCustomerProvided ? (
-            <div className="flex h-9 items-center text-xs text-muted">—</div>
-          ) : (
-            <Input type="number" min={0} step={0.01} value={product.baseUnitPrice || ""} onChange={(e) => updateProduct("baseUnitPrice", parseFloat(e.target.value) || 0)} placeholder="0" className="w-full text-right" />
+          <span className={fieldLabel}>ราคา/ตัว</span>
+          {isCustomerProvided ? dash : (
+            <MoneyInput currency value={product.baseUnitPrice} onValueChange={(v) => updateProduct("baseUnitPrice", v)} />
           )}
         </label>
         <label className="block">
           <span className={fieldLabel}>จำนวน</span>
           {multi ? (
-            <div className="flex h-9 items-center justify-center text-sm font-medium text-secondary">{totalQty}</div>
+            <div className="flex h-9 items-center justify-center text-sm font-medium tabular-nums text-secondary">{totalQty.toLocaleString("th-TH")}</div>
           ) : (
-            <Input type="number" min={0} value={qty || ""} onChange={(e) => updateVariantField("quantity", parseInt(e.target.value) || 0)} placeholder="0" className="w-full text-center" />
+            <NumberInput integer min={0} value={qty} onValueChange={(v) => updateVariantField("quantity", v)} placeholder="0" className="w-full text-center" />
           )}
         </label>
         <div className="block">
           <span className={fieldLabel}>รวม</span>
           {isCustomerProvided ? (
-            <div className="flex h-9 items-center justify-end text-xs text-muted">—</div>
+            <div className={`flex h-9 items-center justify-end ${c("dsh")}`}>—</div>
           ) : (
-            <div className="flex h-9 items-center justify-end text-sm font-semibold tabular-nums text-strong">{formatCurrency(lineTotal)}</div>
+            <div className={`flex h-9 items-center justify-end text-sm font-semibold text-strong ${c("mono")}`}>{formatBaht(lineTotal)}</div>
           )}
         </div>
       </div>
 
       {/* ส่วนลด + แพค — แสดงตลอด */}
       <div className="grid grid-cols-2 gap-3">
-            {!isCustomerProvided && (
-              <div>
-                <label htmlFor={`mobile-product-discount-${itemIdx}-${prodIdx}`} className={fieldLabel}>ส่วนลดต่อชิ้น</label>
-                <Input id={`mobile-product-discount-${itemIdx}-${prodIdx}`} type="number" min={0} step={0.01} value={product.discount || ""} onChange={(e) => updateProduct("discount", parseFloat(e.target.value) || 0)} placeholder="0" className="w-full text-right" />
-              </div>
-            )}
-            <div>
-              {packagingOptions && packagingOptions.length > 0 ? (
-                <>
-                <label htmlFor={`mobile-product-packaging-${itemIdx}-${prodIdx}`} className={fieldLabel}>แพค</label>
-                <Select id={`mobile-product-packaging-${itemIdx}-${prodIdx}`} value={product.packagingOptionId} onChange={(e) => updateProduct("packagingOptionId", e.target.value)}>
-                  <option value="">—</option>
-                  {packagingOptions.map((opt) => <option key={opt.id} value={opt.id}>{opt.name}</option>)}
-                </Select>
-                </>
-              ) : (
-                <><p className={fieldLabel}>แพค</p><span className="text-xs text-muted">ยังไม่มีตัวเลือกแพค</span></>
-              )}
-            </div>
+        {!isCustomerProvided && (
+          <div>
+            <label htmlFor={`mobile-product-discount-${itemIdx}-${prodIdx}`} className={fieldLabel}>ส่วนลด/ตัว</label>
+            <MoneyInput currency id={`mobile-product-discount-${itemIdx}-${prodIdx}`} value={product.discount} onValueChange={(v) => updateProduct("discount", v)} />
+          </div>
+        )}
+        <div>
+          {packagingOptions && packagingOptions.length > 0 ? (
+            <>
+              <label htmlFor={`mobile-product-packaging-${itemIdx}-${prodIdx}`} className={fieldLabel}>แพค</label>
+              <Select id={`mobile-product-packaging-${itemIdx}-${prodIdx}`} value={product.packagingOptionId} onChange={(e) => updateProduct("packagingOptionId", e.target.value)}>
+                <option value="">—</option>
+                {packagingOptions.map((opt) => <option key={opt.id} value={opt.id}>{opt.name}</option>)}
+              </Select>
+            </>
+          ) : (
+            <><p className={fieldLabel}>แพค</p><span className="text-xs text-muted">ยังไม่มีตัวเลือกแพค</span></>
+          )}
+        </div>
       </div>
 
-      {/* ตัดเย็บ/ลูกค้าส่งมา — ไซส์กางตลอด · สเปคสรุป+popup (เบสเคาะ D 2026-09-06) */}
+      {/* ตัดเย็บ/ลูกค้าส่งมา — สเปคสรุป+popup · ไซส์กางตลอด (เบสเคาะ D 2026-09-06) */}
       {multi && (
-        <div className="space-y-3 border-t border-divider pt-3">
+        <ProductDetailRail>
           {isCustomMade && <CustomMadeSpecSummary product={product} updateProduct={updateProduct} />}
           <SizeMatrix
             embedded
@@ -159,7 +149,7 @@ export function ProductCardMobile({
             variants={product.variants}
             onChange={(v) => updateProduct("variants", v)}
           />
-        </div>
+        </ProductDetailRail>
       )}
     </div>
   );

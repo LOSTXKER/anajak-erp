@@ -2,16 +2,17 @@
 
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
+import { c } from "@/components/kit/kit";
 import { cn } from "@/lib/utils";
 import { RADIUS, SUNK_PANEL } from "@/components/ui/tokens";
-import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { HelpTip } from "@/components/ui/help-tip";
 import type { VariantForm } from "@/types/order-form";
 import { buildSizeVariants, matrixColumns, sumVariantQty } from "@/lib/size-matrix";
 
-// ตารางกรอกหลายไซส์ในสินค้าเดียว (FLOW-REDESIGN ก้อน 4 / P1.12)
+// ตารางกรอกหลายไซส์ในสินค้าเดียว (FLOW-REDESIGN ก้อน 4 / P1.12) — หน้าตา .szm ของต้นแบบฟอร์มออเดอร์
 // สีเดียวใช้ทุกไซส์ · จำนวนต่อไซส์ · เพิ่มไซส์อื่นได้ · รวมอัตโนมัติ → คืน variants[] (qty>0)
+// ช่องไซส์มาตรฐาน 6 ช่องขึ้นเสมอ (ต้นแบบโชว์เฉพาะไซส์ที่มีจำนวนเพราะเป็นข้อมูลตัวอย่าง)
 export function SizeMatrix({
   idPrefix,
   variants,
@@ -44,7 +45,7 @@ export function SizeMatrix({
 
   const addSize = () => {
     const t = newSize.trim();
-    if (!t || columns.some((c) => c.toUpperCase() === t.toUpperCase())) {
+    if (!t || columns.some((col) => col.toUpperCase() === t.toUpperCase())) {
       setNewSize("");
       return;
     }
@@ -56,52 +57,47 @@ export function SizeMatrix({
 
   return (
     <div className={cn(!embedded && [RADIUS.inner, SUNK_PANEL, "p-3"])}>
-      {title && (
-        <h4 className="mb-3 text-sm font-semibold text-strong">{title}</h4>
-      )}
-      <div className="mb-2 flex items-center gap-2">
-        <label htmlFor={`${idPrefix}-color`} className="text-xs font-medium text-secondary">สี</label>
-        <HelpTip label="สี" className="-ml-1">สีเดียวใช้กับทุกไซส์ในแถวนี้ — คนละสีให้เพิ่มสินค้าอีกรายการ</HelpTip>
-        <Input
-          id={`${idPrefix}-color`}
-          value={color}
-          onChange={(e) => {
-            setColor(e.target.value);
-            rebuild(null, 0, e.target.value);
-          }}
-          placeholder="เช่น ดำ"
-          size="sm"
-          // h-7 เดิมเป็นค่าหลอก (min-h-11 ชนะอยู่แล้ว ไม่เคยสูง 28px จริง) และ text-xs
-          // เปล่าทำให้ iOS ซูมจอเมื่อแตะ — ใช้ size="sm" ที่คุมทั้งสองอย่างให้แล้ว
-          className="w-28"
-        />
-      </div>
+      {title && <h4>{title}</h4>}
+      <div className={c("szm")}>
+        <div className={c("szcolor")}>
+          <label htmlFor={`${idPrefix}-color`}>สี</label>
+          <HelpTip label="สี" className="-ml-1">สีเดียวใช้กับทุกไซส์ในแถวนี้ — คนละสีให้เพิ่มสินค้าอีกรายการ</HelpTip>
+          <Input
+            id={`${idPrefix}-color`}
+            value={color}
+            onChange={(e) => {
+              setColor(e.target.value);
+              rebuild(null, 0, e.target.value);
+            }}
+            placeholder="เช่น ดำ"
+            size="sm"
+          />
+        </div>
 
-      <div className="flex flex-wrap items-end gap-2">
-        {columns.map((size, index) => {
-          const sizeId = `${idPrefix}-size-${index}`;
-          return (
-            <div key={size} className="w-14">
-              <label htmlFor={sizeId} className="block text-center text-xs font-medium text-muted">{size}</label>
-              <Input size="sm"
-                id={sizeId}
+        <div className={c("szrow")}>
+          {columns.map((size, index) => (
+            <label key={size} htmlFor={`${idPrefix}-size-${index}`} className={c("szf")}>
+              <span>{size}</span>
+              <Input
+                id={`${idPrefix}-size-${index}`}
+                size="sm"
                 type="number"
                 min={0}
+                inputMode="numeric"
                 value={qtyOf(size) || ""}
                 onChange={(e) => rebuild(size, parseInt(e.target.value) || 0)}
                 placeholder="0"
-                className="px-1 text-center"
+                aria-label={`จำนวนไซส์ ${size}`}
               />
-            </div>
-          );
-        })}
+            </label>
+          ))}
 
-        {/* เพิ่มไซส์อื่น (XS/4XL/เด็ก/ตัวเลข) */}
-        <div className="flex items-end gap-1.5">
-          <div className="w-16">
-            <label htmlFor={`${idPrefix}-new-size`} className="block text-center text-xs text-muted">เพิ่มไซส์</label>
-            <Input size="sm"
+          {/* เพิ่มไซส์อื่น (XS/4XL/เด็ก/ตัวเลข) */}
+          <label htmlFor={`${idPrefix}-new-size`} className={c("szf add")}>
+            <span>เพิ่มไซส์</span>
+            <Input
               id={`${idPrefix}-new-size`}
+              size="sm"
               value={newSize}
               onChange={(e) => setNewSize(e.target.value)}
               onKeyDown={(e) => {
@@ -111,18 +107,17 @@ export function SizeMatrix({
                 }
               }}
               placeholder="XS/4XL"
-              className="px-1 text-center"
             />
-          </div>
-          <Button type="button" variant="outline" size="icon-sm" onClick={addSize} aria-label="เพิ่มไซส์">
-            <Plus />
-          </Button>
+          </label>
+          <button type="button" className={c("ibtn out")} onClick={addSize} aria-label="เพิ่มไซส์">
+            <Plus aria-hidden="true" />
+          </button>
         </div>
-      </div>
 
-      <p className="mt-2 text-xs text-muted">
-        รวม <span className="font-semibold text-secondary">{total}</span> ตัว
-      </p>
+        <p className={c("sztot")}>
+          รวม <b>{total.toLocaleString("th-TH")}</b> ตัว
+        </p>
+      </div>
     </div>
   );
 }

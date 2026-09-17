@@ -1,10 +1,10 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { ImageRemoveButton } from "@/components/ui/image-remove-button";
 import { Input } from "@/components/ui/input";
 import { MoneyInput } from "@/components/ui/number-input";
 import { Select } from "@/components/ui/select";
+import { c } from "@/components/kit/kit";
 import { Plus, Trash2 } from "lucide-react";
 import {
   PRINT_POSITIONS,
@@ -12,11 +12,10 @@ import {
   PRINT_SIZES,
   type PrintForm,
 } from "@/types/order-form";
-import { DASHED_INTERACTIVE, FOCUS_BUTTON, RADIUS } from "@/components/ui/tokens";
-import { cn } from "@/lib/utils";
 import { Spinner } from "@/components/ui/spinner";
 import { usePrintRow } from "./use-print-row";
 
+// แถวลาย 1 จุด — 8 คอลัมน์ตามต้นแบบ: ไฟล์ · วิธีพิมพ์ · ขนาด · กว้าง×สูง · ตำแหน่ง · จำนวนสี · ค่าสกรีน/ตัว · ลบ
 export function PrintTableRow({
   print, printIdx, onUpdate, onRemove, printCatalog, onApplyCatalog,
 }: {
@@ -38,12 +37,11 @@ export function PrintTableRow({
     imageUrl,
     sizePreset,
   } = usePrintRow(print, onUpdate);
-  const dash = <span className="text-xs text-muted">—</span>;
+  const dash = <span className={c("dsh")}>—</span>;
 
   return (
     <tr>
-      {/* จัดกลางให้ตรงกับหัวคอลัมน์ "ลาย" (เบสเห็นจอจริง 2026-08-04) */}
-      <td className="py-2 pr-1 text-center align-middle">
+      <td className={c("ctr")}>
         <input
           ref={inputRef}
           type="file"
@@ -53,19 +51,15 @@ export function PrintTableRow({
           aria-label={`อัปโหลดไฟล์ลาย ${printIdx + 1}`}
         />
         {imageUrl ? (
-          <div className="relative mx-auto inline-block">
+          <div className="relative mx-auto w-fit">
             <button
               type="button"
               onClick={() => inputRef.current?.click()}
               aria-label={`เปลี่ยนไฟล์ลาย ${printIdx + 1}`}
-              className={cn(RADIUS.item, FOCUS_BUTTON, "block min-h-11 min-w-11")}
+              className={c("pth")}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={imageUrl}
-                alt={`ลาย ${printIdx + 1}`}
-                className={cn(RADIUS.item, "h-11 w-11 border border-border object-cover")}
-              />
+              <img src={imageUrl} alt={`ลาย ${printIdx + 1}`} />
             </button>
             <ImageRemoveButton
               label={`ลบไฟล์ลาย ${printIdx + 1}`}
@@ -78,19 +72,14 @@ export function PrintTableRow({
             onClick={() => inputRef.current?.click()}
             disabled={uploading}
             aria-label={`เพิ่มไฟล์ลาย ${printIdx + 1}`}
-            className={cn(
-              DASHED_INTERACTIVE,
-              RADIUS.item,
-              FOCUS_BUTTON,
-              "mx-auto flex h-11 w-11 shrink-0 items-center justify-center text-muted transition-colors"
-            )}
+            className={c("pth none")}
           >
-            {uploading ? <Spinner size="md" /> : <Plus />}
+            {uploading ? <Spinner size="md" /> : <Plus aria-hidden="true" />}
           </button>
         )}
       </td>
 
-      <td className="px-2 py-2 align-middle">
+      <td>
         {printCatalog && printCatalog.length > 0 ? (
           <Select
             size="sm"
@@ -127,7 +116,7 @@ export function PrintTableRow({
         )}
       </td>
 
-      <td className="px-2 py-2 align-middle">
+      <td>
         <Select
           size="sm"
           aria-label={`ขนาดลาย จุดที่ ${printIdx + 1}`}
@@ -137,15 +126,16 @@ export function PrintTableRow({
           <option value="">ขนาด...</option>
           {Object.entries(PRINT_SIZES).map(([key, value]) => (
             <option key={key} value={key}>
-              {key === "CUSTOM" ? value.label : key}
+              {value.label}
             </option>
           ))}
         </Select>
       </td>
 
-      <td className="px-2 py-2 align-middle">
+      {/* ขนาดมาตรฐานล็อกกว้าง×สูงตามกระดาษ — พิมพ์ตัวเลขเองได้เฉพาะ "กำหนดเอง"/ยังไม่เลือก */}
+      <td>
         {isCustomSize ? (
-          <div className="flex items-center gap-0.5">
+          <span className={c("wh")}>
             <Input
               aria-label={`ความกว้างลาย จุดที่ ${printIdx + 1} (ซม.)`}
               type="number"
@@ -156,9 +146,10 @@ export function PrintTableRow({
                 onUpdate("width", parseFloat(event.target.value) || 0)
               }
               placeholder="0"
-              size="dense" className="w-full px-1 text-center"
+              size="dense"
+              className="tabular-nums"
             />
-            <span className="text-xs text-muted">×</span>
+            <i aria-hidden="true">×</i>
             <Input
               aria-label={`ความสูงลาย จุดที่ ${printIdx + 1} (ซม.)`}
               type="number"
@@ -169,17 +160,24 @@ export function PrintTableRow({
                 onUpdate("height", parseFloat(event.target.value) || 0)
               }
               placeholder="0"
-              size="dense" className="w-full px-1 text-center"
+              size="dense"
+              className="tabular-nums"
             />
-          </div>
+          </span>
         ) : (
-          <div className="flex h-9 items-center justify-center text-xs tabular-nums text-muted">
-            {sizePreset ? `${sizePreset.width} × ${sizePreset.height}` : dash}
-          </div>
+          <span className={c("wh ro")}>
+            {sizePreset ? (
+              <>
+                {sizePreset.width}
+                <i>×</i>
+                {sizePreset.height}
+              </>
+            ) : dash}
+          </span>
         )}
       </td>
 
-      <td className="px-2 py-2 align-middle">
+      <td>
         <Select
           size="dense"
           aria-label={`ตำแหน่งลาย จุดที่ ${printIdx + 1}`}
@@ -194,7 +192,8 @@ export function PrintTableRow({
         </Select>
       </td>
 
-      <td className="px-2 py-2 align-middle">
+      {/* จำนวนสีมีผลเฉพาะ Silk Screen/Heat Transfer (usePrintRow) — วิธีอื่นขึ้นขีด */}
+      <td className={c("ctr")}>
         {showColorCount ? (
           <Input
             aria-label={`จำนวนสีของลาย จุดที่ ${printIdx + 1}`}
@@ -204,33 +203,31 @@ export function PrintTableRow({
             onChange={(event) =>
               onUpdate("colorCount", parseInt(event.target.value) || 1)
             }
-            size="dense" className="w-full px-1 text-center"
+            size="dense"
+            className="px-1 text-center tabular-nums"
           />
-        ) : (
-          <div className="flex h-9 items-center justify-center">{dash}</div>
-        )}
+        ) : dash}
       </td>
 
-      <td className="px-2 py-2 align-middle">
+      <td className={c("num")}>
         <MoneyInput
-          aria-label={`ค่าสกรีน จุดที่ ${printIdx + 1}`}
+          currency
+          aria-label={`ค่าสกรีนต่อตัว จุดที่ ${printIdx + 1}`}
           value={print.unitPrice}
           onValueChange={(v) => onUpdate("unitPrice", v)}
-          size="dense" className="w-full px-2"
+          size="dense"
         />
       </td>
 
-      <td className="py-2 pl-1 align-middle">
-        <Button
+      <td className={c("act")}>
+        <button
           type="button"
-          variant="ghost"
-          size="icon-sm"
-          aria-label={`ลบจุดพิมพ์ ${printIdx + 1}`}
+          className={c("ibtn")}
+          aria-label={`ลบลาย ${printIdx + 1}`}
           onClick={onRemove}
-          className="text-muted"
         >
-          <Trash2 />
-        </Button>
+          <Trash2 aria-hidden="true" />
+        </button>
       </td>
     </tr>
   );

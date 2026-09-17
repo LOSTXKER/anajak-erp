@@ -1,25 +1,25 @@
 "use client";
 
-import { AddCard } from "@/components/ui/add-card";
-import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { MoneyInput } from "@/components/ui/number-input";
 import { Select } from "@/components/ui/select";
-import { cn, formatCurrency } from "@/lib/utils";
-import { buildOrderItemPriceSummary } from "@/lib/order-item-composer";
+import { c } from "@/components/kit/kit";
+import { cn, formatBaht, formatCurrency } from "@/lib/utils";
+import { buildOrderItemPriceSummary, getProductSourcePresentation } from "@/lib/order-item-composer";
 import {
   Plus,
   Trash2,
   Copy,
   ImageIcon,
-  Sparkles,
+  Layers,
 } from "lucide-react";
 import type { OrderItemForm } from "@/types/order-form";
 import {
   CUSTOM_ADDON_TYPE,
   PRICING_TYPE_LABELS,
+  PRINT_TYPES,
   createOrderItemProduct,
-  itemHasContent,
 } from "@/types/order-form";
 import { addonSelectValue, CUSTOM_ADDON_OPTION } from "@/lib/order-addon-ui";
 import { PrintTableRow } from "./print-table-row";
@@ -27,9 +27,7 @@ import { PrintCardMobile } from "./print-card-mobile";
 import { ProductTableRow } from "./product-table-row";
 import { ProductCardMobile } from "./product-card-mobile";
 import { AddProductPopover, PRODUCT_TYPE_OPTIONS } from "./add-product-popover";
-import { FIELD_LABEL, FIELD_MEASURE, FOCUS_BUTTON, RADIUS, SUNK_PANEL, TABLE_HEAD_SURFACE } from "@/components/ui/tokens";
-
-export const labelClass = FIELD_LABEL;
+import { FOCUS_BUTTON } from "@/components/ui/tokens";
 
 const groupHeadingClass =
   "text-sm font-semibold text-strong";
@@ -56,80 +54,81 @@ interface OrderItemCardProps {
   onSetItems: (updater: (prev: OrderItemForm[]) => OrderItemForm[]) => void;
   showPrints?: boolean;
   showAddons?: boolean;
-  // โหมดกระชับ (หน้าแก้รายการ): ยุบ คำอธิบาย/ส่วนเสริม/หมายเหตุ เป็น "รายละเอียดเพิ่มเติม" ·
-  // ตัดสรุปราคาต่อรายการ (sidebar มีรวมแล้ว) · ย่อหัวข้อ (redesign 2026-06-12)
+  // โหมดกระชับ (หน้าแก้รายการ): ตัดสรุปราคาต่อรายการ (sidebar มีรวมแล้ว) (redesign 2026-06-12)
   compact?: boolean;
 }
 
+const unique = <T,>(values: T[]) => [...new Set(values)];
+
+/* ความกว้างคอลัมน์แยกตามตาราง (ต้นแบบ 2026-09-18) — ช่องที่ยืดคือช่องที่ต้องใช้ที่จริง
+   เดิมบังคับ 3 ตารางใช้ชุดเดียวกัน (เบส 2026-08-03) แล้ว "วิธีพิมพ์" กว้างจนหัวคอลัมน์ลอยห่างข้อมูล
+   ตัวเลข 0 = ยืดตามที่เหลือ */
+function Cols({ widths }: { widths: number[] }) {
+  return (
+    <colgroup>
+      {widths.map((width, index) => (
+        <col key={index} style={width ? { width } : undefined} />
+      ))}
+    </colgroup>
+  );
+}
+
 // ============================================================
-// COLLAPSED ROW
+// หัวการ์ดชุดงาน
 // ============================================================
 
-// หัวการ์ดของแต่ละรายการ (ทุกรายการกางเห็นหมด ไม่ accordion — เบส: ไม่ต้องซ่อน)
+// เลขในกรอบ · ชื่อพิมพ์แก้ในที่ · ชิปแหล่ง/วิธีพิมพ์ · จำนวนตัว · ยอด (ต้นแบบ .ch.ih)
+// ทุกรายการกางเห็นหมด ไม่ accordion — เบส: ไม่ต้องซ่อน
 function OrderItemRow({
-  item, itemIdx, canRemove, headingId, onRemoveItem,
+  item, itemIdx, canRemove, headingId, onUpdateItem, onRemoveItem,
 }: {
   item: OrderItemForm;
   itemIdx: number;
   canRemove: boolean;
   headingId: string;
+  onUpdateItem: (idx: number, field: string, value: unknown) => void;
   onRemoveItem: (idx: number) => void;
 }) {
-  const itemPriceSummary = buildOrderItemPriceSummary(item);
-  const { totalQuantity: totalQty, subtotal } = itemPriceSummary;
-  const empty = !itemHasContent(item);
-
-  return (
-    <div className="flex min-h-11 items-center gap-2">
-      <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
-        {itemIdx + 1}
-      </span>
-      <h3 id={headingId} className="min-w-0 flex-1 truncate text-sm font-semibold text-strong">
-        รายการที่ {itemIdx + 1}
-      </h3>
-      {/* จำนวน/ยอด โผล่เมื่อมีเลขจริงเท่านั้น — เดิมใส่ขีด "—" ไว้แทนค่าว่าง
-          กลายเป็นขีดลอยสองอันบนหัวรายการที่ไม่ได้บอกอะไร (เบสถามเอง 2026-08-05
-          "ขีดนี้คืออะไร" = สัญญาณว่ามันสื่อความไม่ได้) */}
-      {!empty && totalQty > 0 && (
-        <span className="flex-shrink-0 text-right text-xs tabular-nums text-muted">
-          {totalQty} ตัว
-        </span>
-      )}
-      {!empty && subtotal > 0 && (
-        <span className="flex-shrink-0 text-right text-sm font-semibold tabular-nums text-strong">
-          {formatCurrency(subtotal)}
-        </span>
-      )}
-      {canRemove && (
-        <Button type="button" variant="ghost" size="icon" onClick={() => onRemoveItem(itemIdx)} aria-label="ลบรายการ" className="text-muted">
-          <Trash2 />
-        </Button>
-      )}
-    </div>
+  // ยอด/จำนวนจาก pricing helper ชุดเดียวกับสรุปยอด — แสดงเสมอแม้ยังว่าง (ต้นแบบ: 0 ตัว ฿0.00)
+  const { totalQuantity, subtotal } = buildOrderItemPriceSummary(item);
+  const sources = unique(
+    item.products
+      .map((product) => product.itemSource)
+      .filter((source) => source && source !== "FROM_STOCK"),
   );
-}
+  const techs = unique(item.prints.map((print) => PRINT_TYPES[print.printType] || print.printType));
 
-/* การ์ดเพิ่มของตอนยังว่าง — สินค้า/ลาย/ส่วนเสริม ใช้หน้าตาเดียวกัน
-   (เบสเห็นของจริง 2026-08-04: "ลาย/ส่วนเสริม ไม่เหมือนตัวอย่าง เอาแบบสินค้าในชุดงาน") */
-/* โครงคอลัมน์ร่วมของ 3 ตารางในชุดงาน (สินค้า · ลาย · ส่วนเสริม)
-   เบสสั่ง 2026-08-03 "แถวคอลัมขอให้มันตรงกันทั้งหมด เพื่อความสวย" — เดิมแต่ละตาราง
-   ตั้งความกว้างเองคนละชุด (สินค้า 76/-/92/80/84/64/84/80 · ลาย 64/-/104/124/92/64/84/40)
-   คอลัมน์ตัวเลขกับปุ่มถังขยะจึงอยู่คนละตำแหน่งเมื่อวางซ้อนกันในการ์ดเดียว
-   ตารางส่วนเสริมมี 4 ช่องข้อมูล จึงใช้ colSpan ยืดให้ "ราคา" กับถังขยะไปลงตำแหน่งเดียวกัน */
-function ItemTableCols() {
   return (
-    <colgroup>
-      {/* 100px — ป้ายแหล่งยาวสุด "ลูกค้าส่งมา" ต้องมีลมหายใจก่อนถึงคอลัมน์สินค้า
-          (เบสเห็นจอจริง 2026-08-04 "คอลัมแหล่งกับสินค้าดูติดไป") */}
-      <col style={{ width: 100 }} />
-      <col />
-      <col style={{ width: 104 }} />
-      <col style={{ width: 112 }} />
-      <col style={{ width: 92 }} />
-      <col style={{ width: 76 }} />
-      <col style={{ width: 96 }} />
-      <col style={{ width: 44 }} />
-    </colgroup>
+    <div className={c("ch ih")}>
+      <h2 id={headingId}>
+        <span className={c("item-no")} aria-hidden="true">{itemIdx + 1}</span>
+        <span className="sr-only">รายการที่ {itemIdx + 1}</span>
+        <input
+          className={c("gname")}
+          value={item.description}
+          onChange={(e) => onUpdateItem(itemIdx, "description", e.target.value)}
+          aria-label={`ชื่อชุดงานที่ ${itemIdx + 1}`}
+          placeholder="ตั้งชื่อชุดงาน เช่น เสื้อทีมหน้าร้าน 30 ตัว"
+        />
+        {sources.map((source) => (
+          <span key={source} className={c("chip line")}>
+            {getProductSourcePresentation(source).label}
+          </span>
+        ))}
+        {techs.map((tech) => (
+          <span key={tech} className={c("chip blue")}>{tech}</span>
+        ))}
+      </h2>
+      <div className={c("r")}>
+        <span className={c("iq")}>{totalQuantity.toLocaleString("th-TH")} ตัว</span>
+        <b className={c("it mono")}>{formatBaht(subtotal)}</b>
+        {canRemove && (
+          <button type="button" className={c("ibtn")} onClick={() => onRemoveItem(itemIdx)} aria-label={`ลบรายการที่ ${itemIdx + 1}`}>
+            <Trash2 aria-hidden="true" />
+          </button>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -148,7 +147,7 @@ export function OrderItemCard({
   compact = false,
 }: OrderItemCardProps) {
   const expanded = isExpanded;
-  const otherItemsWithPrints = (allItems ?? []).map((it, idx) => ({ it, idx })).filter(({ idx }) => idx !== itemIdx).filter(({ it }) => it.prints.length > 0);
+  const otherItems = (allItems ?? []).map((it, idx) => ({ it, idx })).filter(({ idx }) => idx !== itemIdx);
 
   const copyPrintsFrom = (sourceIdx: number) => {
     const source = allItems?.[sourceIdx];
@@ -161,7 +160,7 @@ export function OrderItemCard({
   };
 
   const applyPrintFromCatalog = (pIdx: number, catalogId: string) => {
-    const catalogItem = printCatalog?.find((c) => c.id === catalogId);
+    const catalogItem = printCatalog?.find((entry) => entry.id === catalogId);
     if (!catalogItem) return;
     onSetItems((prev) => {
       const copy = [...prev];
@@ -215,7 +214,7 @@ export function OrderItemCard({
             }}
           >
             <option value="">เลือกส่วนเสริม...</option>
-            {addonCatalog!.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            {addonCatalog!.map((entry) => <option key={entry.id} value={entry.id}>{entry.name}</option>)}
             <option value={CUSTOM_ADDON_OPTION}>อื่นๆ (พิมพ์เอง)</option>
           </Select>
         )}
@@ -224,7 +223,7 @@ export function OrderItemCard({
             aria-label={`ชื่อส่วนเสริม ${aIdx + 1}`}
             value={a.name}
             onChange={(e) => setAddonName(aIdx, e.target.value)}
-            placeholder="ชื่อส่วนเสริม เช่น ปักโลโก้"
+            placeholder="เช่น ปักชื่อรายตัว ป้ายคอ"
             size={dense ? "dense" : undefined}
             className="min-w-[10rem] flex-1"
           />
@@ -234,7 +233,7 @@ export function OrderItemCard({
   };
 
   const applyAddonFromCatalog = (aIdx: number, catalogId: string) => {
-    const catalogItem = addonCatalog?.find((c) => c.id === catalogId);
+    const catalogItem = addonCatalog?.find((entry) => entry.id === catalogId);
     if (!catalogItem) return;
     onSetItems((prev) => {
       const copy = [...prev];
@@ -270,23 +269,20 @@ export function OrderItemCard({
 
   const itemPriceSummary = buildOrderItemPriceSummary(item);
   const { totalQuantity: totalQty, subtotal } = itemPriceSummary;
+  // ค่าสกรีนรวมทุกจุดต่อเสื้อหนึ่งตัว — ตัวคูณจำนวนตัวใน pricing (ผลรวม unitPrice ของลาย)
   const printPerPiece = item.prints.reduce((sum, print) => sum + (print.unitPrice || 0), 0);
   const headingId = `${cardId}-heading`;
-  // ── section: คำอธิบายงาน ──
-  const descField = (
-    <Field label="ชื่อชุดงาน" className={FIELD_MEASURE}>
-      <Input value={item.description} onChange={(e) => onUpdateItem(itemIdx, "description", e.target.value)} placeholder="เช่น เสื้อทีมหน้าร้าน 30 ตัว" />
-    </Field>
-  );
 
-  // ── section: ลาย ──
+  // ── ลาย ── หัวย่อยกับเนื้อเป็นลูกตรงของ .ibody (ระยะห่างแบบต้นแบบ) จึงคืนเป็น fragment
   const printsSection = (
-    <div className="@container">
-      <div className="mb-2 flex items-center justify-between">
-          <span className={groupHeadingClass}>ลายและงานพิมพ์</span>
-          <div className="flex items-center gap-1.5">
-            {otherItemsWithPrints.length > 0 && (
-              <div className="relative">
+    <>
+      <div className={c("sub-h")}>
+        <h3>ลายและงานพิมพ์</h3>
+        {(otherItems.length > 0 || item.prints.length > 0) && (
+          <div className={c("r")}>
+            {otherItems.length > 0 && (
+              <span className={c("minisel")}>
+                <Copy aria-hidden="true" />
                 <Select
                   surface="inline"
                   size="dense"
@@ -295,48 +291,48 @@ export function OrderItemCard({
                   onChange={(e) => {
                     if (e.target.value) copyPrintsFrom(parseInt(e.target.value));
                   }}
-                  className="w-auto appearance-none rounded-lg pl-7 pr-2 text-secondary"
+                  className="w-auto max-w-[180px] pl-[26px] pr-2 text-secondary"
                 >
                   <option value="">คัดลอกลาย...</option>
-                  {otherItemsWithPrints.map(({ it, idx }) => (
-                    <option key={idx} value={idx}>
-                      #{idx + 1} {it.description.slice(0, 20)} ({it.prints.length} ลาย)
+                  {/* ชุดที่ยังไม่มีลายคัดลอกไม่ได้ (จะล้างลายของชุดนี้ทิ้ง) — โชว์ไว้แต่กดไม่ได้ */}
+                  {otherItems.map(({ it, idx }) => (
+                    <option key={idx} value={idx} disabled={it.prints.length === 0}>
+                      {`#${idx + 1} ${it.description.slice(0, 20)}`.trim()}
+                      {it.prints.length === 0 ? " (ยังไม่มีลาย)" : ""}
                     </option>
                   ))}
                 </Select>
-                <Copy className="pointer-events-none absolute left-1.5 top-1/2 h-3 w-3 -translate-y-1/2 text-muted" />
-              </div>
+              </span>
             )}
             {item.prints.length > 0 && (
-              <Button type="button" variant="ghost" size="sm" onClick={() => onAddPrint(itemIdx)}>
-                <Plus />เพิ่มลาย
-              </Button>
+              <button type="button" className={c("btn ghost sm")} onClick={() => onAddPrint(itemIdx)}>
+                <Plus aria-hidden="true" />เพิ่มลาย
+              </button>
             )}
           </div>
+        )}
       </div>
       {item.prints.length === 0 ? (
-        <AddCard
-          icon={ImageIcon}
-          label="เพิ่มลาย"
-          onClick={() => onAddPrint(itemIdx)}
-        />
+        <button type="button" className={c("drop act")} onClick={() => onAddPrint(itemIdx)}>
+          <ImageIcon aria-hidden="true" />
+          <b>เพิ่มลาย</b>
+        </button>
       ) : (
         <>
-          <div className="hidden overflow-hidden @2xl:block">
-            <table className="w-full table-fixed">
-              <ItemTableCols />
-              <thead className={TABLE_HEAD_SURFACE}>
-                <tr className="text-xs font-medium">
-                  <th className="whitespace-nowrap px-2 py-2.5 text-center">ลาย</th>
-                  <th className="px-2 py-2.5 text-left">วิธีพิมพ์</th>
-                  <th className="px-2 py-2.5 text-center">ขนาด</th>
-                  <th className="px-2 py-2.5 text-center">กว้าง × สูง</th>
-                  <th className="px-2 py-2.5 text-center">ตำแหน่ง</th>
-                  <th className="px-2 py-2.5 text-center">จำนวนสี</th>
-                  <th className="px-2 py-2.5 text-center">ค่าสกรีน</th>
-                  <th className="py-2.5">
-                    <span className="sr-only">ลบลาย</span>
-                  </th>
+          {/* min-width: คอลัมน์ยืดสองช่องไม่ถูกบีบจนอ่านไม่ออก — แคบกว่านี้เลื่อนแนวนอน */}
+          <div className={cn(c("tblw"), "hidden @2xl:block")}>
+            <table className={cn(c("tbl itbl"), "min-w-[780px]")}>
+              <Cols widths={[60, 0, 0, 120, 132, 74, 112, 34]} />
+              <thead>
+                <tr>
+                  <th className={c("ctr")}>ไฟล์</th>
+                  <th>วิธีพิมพ์</th>
+                  <th>ขนาด</th>
+                  <th className={c("ctr")}>กว้าง × สูง</th>
+                  <th>ตำแหน่ง</th>
+                  <th className={c("ctr")}>จำนวนสี</th>
+                  <th className={c("num")}>ค่าสกรีน/ตัว</th>
+                  <th><span className="sr-only">ลบลาย</span></th>
                 </tr>
               </thead>
               <tbody>
@@ -356,21 +352,14 @@ export function OrderItemCard({
                   />
                 ))}
               </tbody>
-              {/* ค่าสกรีนรวมทุกจุดต่อเสื้อหนึ่งตัว — เลขนี้ไม่ได้โผล่ที่อื่นในฟอร์ม
-                  แต่เป็นตัวที่ใช้คิดราคาต่อตัวจริง (ต้นแบบ 2026-09-18) */}
-              {printPerPiece > 0 && (
-                <tfoot>
-                  <tr className="border-t border-divider">
-                    <td colSpan={6} className="px-2 pt-2.5 text-xs text-muted">
-                      รวมค่าสกรีนต่อตัว {item.prints.length} ลาย
-                    </td>
-                    <td className="px-2 pt-2.5 text-center text-sm font-semibold tabular-nums text-strong">
-                      {formatCurrency(printPerPiece)}
-                    </td>
-                    <td><span className="sr-only">ช่องปุ่มลบ</span></td>
-                  </tr>
-                </tfoot>
-              )}
+              {/* ค่าสกรีนรวมทุกจุดต่อเสื้อหนึ่งตัว — โผล่ทุกครั้งที่มีลาย แม้ยังเป็น ฿0.00 (ต้นแบบ) */}
+              <tfoot>
+                <tr>
+                  <td colSpan={6}>รวมค่าสกรีนต่อตัว {item.prints.length} ลาย</td>
+                  <td className={c("num mono")}><b>{formatBaht(printPerPiece)}</b></td>
+                  <td aria-hidden="true" />
+                </tr>
+              </tfoot>
             </table>
           </div>
           <div className="space-y-2.5 @2xl:hidden">
@@ -389,174 +378,206 @@ export function OrderItemCard({
                 }
               />
             ))}
+            <p className={c("srow")}>
+              <span>รวมค่าสกรีนต่อตัว {item.prints.length} ลาย</span>
+              <b>{formatBaht(printPerPiece)}</b>
+            </p>
           </div>
         </>
       )}
-    </div>
+    </>
   );
 
-  // ── section: สินค้า ──
+  // ── สินค้า ──
   const productsSection = (
-    <div className="@container">
-      <div className="mb-2 flex items-center justify-between">
-        <span className={groupHeadingClass}>สินค้าในชุดงาน</span>
+    <>
+      <div className={c("sub-h")}>
+        <h3>สินค้าในชุดงาน</h3>
         {item.products.length > 0 && (
-          <AddProductPopover
-            onAddFromStock={onOpenPicker}
-            onAddCustomMade={() => addProductWithSource("CUSTOM_MADE")}
-            onAddCustomerProvided={() => addProductWithSource("CUSTOMER_PROVIDED")}
-          />
+          <div className={c("r")}>
+            <AddProductPopover
+              onAddFromStock={onOpenPicker}
+              onAddCustomMade={() => addProductWithSource("CUSTOM_MADE")}
+              onAddCustomerProvided={() => addProductWithSource("CUSTOMER_PROVIDED")}
+            />
+          </div>
         )}
       </div>
       {item.products.length === 0 ? (
-        // เลือกชนิดงานก่อน → ระบบโชว์เฉพาะ field ที่ชนิดนั้นใช้ (guided by type)
-        <div className="grid gap-2 sm:grid-cols-3">
-          {PRODUCT_TYPE_OPTIONS.map(({ key, icon, label }) => (
-            <AddCard
+        // เลือกแหล่งก่อน → แถวที่ได้โชว์เฉพาะช่องที่แหล่งนั้นใช้ (guided by type)
+        <div className={c("add3")}>
+          {PRODUCT_TYPE_OPTIONS.map(({ key, icon: Icon, label }) => (
+            <button
               key={key}
-              icon={icon}
-              label={label}
+              type="button"
+              className={c("drop act")}
               onClick={() => {
                 if (key === "stock") onOpenPicker();
                 else if (key === "custom") addProductWithSource("CUSTOM_MADE");
                 else addProductWithSource("CUSTOMER_PROVIDED");
               }}
-            />
+            >
+              <Icon aria-hidden="true" />
+              <b>{label}</b>
+            </button>
           ))}
         </div>
       ) : (
-          <>
-            {/* ทุกแหล่งอยู่ตารางเดียวกัน — ตัดเย็บ/ลูกค้าส่งมาได้แถวลูกใต้แถว (เบสเคาะ D 2026-09-06 เลิกกล่องเทา) */}
-            <div className="hidden overflow-hidden @2xl:block">
-              <table className="w-full table-fixed">
-                <ItemTableCols />
-                <thead className={TABLE_HEAD_SURFACE}>
-                  <tr className="text-xs font-medium">
-                    <th className="px-2 py-2.5 text-left">แหล่ง</th>
-                    <th className="px-2 py-2.5 text-left">สินค้า</th>
-                    <th className="px-2 py-2.5 text-center">แพค</th>
-                    <th className="px-2 py-2.5 text-center">ราคา</th>
-                    <th className="px-2 py-2.5 text-center">ส่วนลด</th>
-                    <th className="px-2 py-2.5 text-center">จำนวน</th>
-                    <th className="px-2 py-2.5 text-center">รวม</th>
-                    <th className="py-2.5">
-                      <span className="sr-only">จัดลำดับและลบสินค้า</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {item.products.map((prod, pIdx) => (
-                    <ProductTableRow
-                      key={prod.formKey ?? `stock-table-${pIdx}`}
-                      product={prod}
-                      prodIdx={pIdx}
-                      itemIdx={itemIdx}
-                      totalProducts={item.products.length}
-                      onSetItems={onSetItems}
-                    />
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            {/* จอแคบใช้การ์ด ไม่บีบตาราง 8 คอลัมน์ลงมือถือ/แท็บเล็ต */}
-            <div className="space-y-2.5 @2xl:hidden">
-              {item.products.map((prod, pIdx) => (
-                <ProductCardMobile
-                  key={prod.formKey ?? `stock-mobile-${pIdx}`}
-                  product={prod}
-                  prodIdx={pIdx}
-                  itemIdx={itemIdx}
-                  totalProducts={item.products.length}
-                  onSetItems={onSetItems}
-                />
-              ))}
-            </div>
-          </>
+        <>
+          {/* ทุกแหล่งอยู่ตารางเดียวกัน — ตัดเย็บ/ลูกค้าส่งมาได้แถวลูกใต้แถว (เบสเคาะ D 2026-09-06 เลิกกล่องเทา) */}
+          <div className={cn(c("tblw"), "hidden @2xl:block")}>
+            <table className={cn(c("tbl itbl"), "min-w-[880px]")}>
+              <Cols widths={[104, 0, 150, 104, 104, 78, 110, 34]} />
+              <thead>
+                <tr>
+                  <th>แหล่ง</th>
+                  <th>สินค้า</th>
+                  <th>แพค</th>
+                  <th className={c("num")}>ราคา/ตัว</th>
+                  <th className={c("num")}>ส่วนลด/ตัว</th>
+                  <th className={c("ctr")}>จำนวน</th>
+                  <th className={c("num")}>รวม</th>
+                  <th><span className="sr-only">จัดลำดับและลบสินค้า</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                {item.products.map((prod, pIdx) => (
+                  <ProductTableRow
+                    key={prod.formKey ?? `stock-table-${pIdx}`}
+                    product={prod}
+                    prodIdx={pIdx}
+                    itemIdx={itemIdx}
+                    totalProducts={item.products.length}
+                    onSetItems={onSetItems}
+                  />
+                ))}
+              </tbody>
+              {/* ยอดชุดงานรวมลายและส่วนเสริมแล้ว — ตัวเลขเดียวกับหัวการ์ด (ต้นแบบที่เบสเคาะ) */}
+              <tfoot>
+                <tr>
+                  <td colSpan={5}>รวมชุดงานนี้</td>
+                  <td className={c("ctr")}><b>{totalQty.toLocaleString("th-TH")}</b></td>
+                  <td className={c("num mono")}><b>{formatBaht(subtotal)}</b></td>
+                  <td aria-hidden="true" />
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+          {/* พื้นที่แคบใช้การ์ด ไม่บีบตาราง 8 คอลัมน์ลงมือถือ/แท็บเล็ต */}
+          <div className="space-y-2.5 @2xl:hidden">
+            {item.products.map((prod, pIdx) => (
+              <ProductCardMobile
+                key={prod.formKey ?? `stock-mobile-${pIdx}`}
+                product={prod}
+                prodIdx={pIdx}
+                itemIdx={itemIdx}
+                totalProducts={item.products.length}
+                onSetItems={onSetItems}
+              />
+            ))}
+            <p className={c("srow")}>
+              <span>รวมชุดงานนี้ {totalQty.toLocaleString("th-TH")} ตัว</span>
+              <b>{formatBaht(subtotal)}</b>
+            </p>
+          </div>
+        </>
       )}
-    </div>
+    </>
   );
 
-  // ── section: ส่วนเสริม ──
+  // ── ส่วนเสริม ──
   const addonsSection = (
-    <div className="@container">
-      <div className="mb-2 flex items-center justify-between">
-        <span className={groupHeadingClass}>ส่วนเสริมในชุดงาน</span>
+    <>
+      <div className={c("sub-h")}>
+        <h3>ส่วนเสริมในชุดงาน</h3>
         {item.addons.length > 0 && (
-          <Button type="button" variant="ghost" size="sm" onClick={() => onAddAddon(itemIdx)}>
-            <Plus />เพิ่มส่วนเสริม
-          </Button>
+          <div className={c("r")}>
+            <button type="button" className={c("btn ghost sm")} onClick={() => onAddAddon(itemIdx)}>
+              <Plus aria-hidden="true" />เพิ่มส่วนเสริม
+            </button>
+          </div>
         )}
       </div>
       {item.addons.length === 0 ? (
-        <AddCard
-          icon={Sparkles}
-          label="เพิ่มส่วนเสริม"
-          onClick={() => onAddAddon(itemIdx)}
-        />
+        <button type="button" className={c("drop act")} onClick={() => onAddAddon(itemIdx)}>
+          <Layers aria-hidden="true" />
+          <b>เพิ่มส่วนเสริม</b>
+        </button>
       ) : (
         <>
-        <div className="hidden overflow-hidden @2xl:block">
-          <table className="w-full table-fixed">
-            <ItemTableCols />
-            <thead className={TABLE_HEAD_SURFACE}>
-              <tr className="text-left text-xs font-medium">
-                <th colSpan={4} className="px-2 py-2.5">ส่วนเสริม</th>
-                <th colSpan={2} className="px-2 py-2.5 text-center">คิดราคา</th>
-                <th className="px-2 py-2.5 text-center">ราคา</th>
-                <th className="py-2.5">
-                  <span className="sr-only">ลบส่วนเสริม</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {item.addons.map((a, aIdx) => (
-                <tr key={aIdx}>
-                  <td colSpan={4} className="px-2 py-1.5 align-middle">{renderAddonField(a, aIdx, true)}</td>
-                  <td colSpan={2} className="px-2 py-1.5 align-middle"><Select aria-label={`วิธีคิดราคาส่วนเสริม ${aIdx + 1}`} value={a.pricingType} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "pricingType", e.target.value as "PER_PIECE" | "PER_ORDER")} size="dense"><option value="PER_PIECE">{PRICING_TYPE_LABELS.PER_PIECE}</option><option value="PER_ORDER">{PRICING_TYPE_LABELS.PER_ORDER}</option></Select></td>
-                  <td className="px-2 py-1.5 align-middle"><Input aria-label={`ราคาส่วนเสริม ${aIdx + 1}`} type="number" min={0} step={0.01} value={a.unitPrice || ""} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "unitPrice", parseFloat(e.target.value) || 0)} placeholder="0.00" size="dense" /></td>
-                  <td className="py-1.5 pl-1 text-right align-middle"><Button type="button" variant="ghost" size="icon" aria-label={`ลบส่วนเสริม ${aIdx + 1}`} className="text-muted" onClick={() => onRemoveAddon(itemIdx, aIdx)}><Trash2 /></Button></td>
+          <div className={cn(c("tblw"), "hidden @2xl:block")}>
+            <table className={c("tbl itbl")}>
+              <Cols widths={[0, 150, 110, 34]} />
+              <thead>
+                <tr>
+                  <th>ส่วนเสริม</th>
+                  <th>คิดราคา</th>
+                  <th className={c("num")}>ราคา</th>
+                  <th><span className="sr-only">ลบส่วนเสริม</span></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div className="space-y-2.5 @2xl:hidden">
-          {item.addons.map((addon, addonIdx) => (
-            <div key={addonIdx} className={cn("space-y-3 rounded-lg p-3", SUNK_PANEL)}>
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-xs font-medium text-muted">
-                  ส่วนเสริม #{addonIdx + 1}
-                </p>
-                <Button type="button" variant="ghost" size="icon-sm" aria-label={`ลบส่วนเสริม ${addonIdx + 1}`} className="text-muted" onClick={() => onRemoveAddon(itemIdx, addonIdx)}><Trash2 /></Button>
+              </thead>
+              <tbody>
+                {item.addons.map((a, aIdx) => (
+                  <tr key={aIdx}>
+                    <td>{renderAddonField(a, aIdx, true)}</td>
+                    <td>
+                      <Select aria-label={`วิธีคิดราคาส่วนเสริม ${aIdx + 1}`} value={a.pricingType} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "pricingType", e.target.value as "PER_PIECE" | "PER_ORDER")} size="dense">
+                        <option value="PER_PIECE">{PRICING_TYPE_LABELS.PER_PIECE}</option>
+                        <option value="PER_ORDER">{PRICING_TYPE_LABELS.PER_ORDER}</option>
+                      </Select>
+                    </td>
+                    <td className={c("num")}>
+                      <MoneyInput currency aria-label={`ราคาส่วนเสริม ${aIdx + 1}`} value={a.unitPrice} onValueChange={(v) => onUpdateAddon(itemIdx, aIdx, "unitPrice", v)} size="dense" />
+                    </td>
+                    <td className={c("act")}>
+                      <button type="button" className={c("ibtn")} aria-label={`ลบส่วนเสริม ${aIdx + 1}`} onClick={() => onRemoveAddon(itemIdx, aIdx)}>
+                        <Trash2 aria-hidden="true" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="space-y-2.5 @2xl:hidden">
+            {item.addons.map((addon, addonIdx) => (
+              <div key={addonIdx} className="space-y-3 rounded-lg border border-border p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs font-medium text-muted">
+                    ส่วนเสริม #{addonIdx + 1}
+                  </p>
+                  <button type="button" className={c("ibtn")} aria-label={`ลบส่วนเสริม ${addonIdx + 1}`} onClick={() => onRemoveAddon(itemIdx, addonIdx)}>
+                    <Trash2 aria-hidden="true" />
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="ส่วนเสริม" className="col-span-2">{renderAddonField(addon, addonIdx, false)}</Field>
+                  <Field label="คิดราคา">
+                    <Select aria-label={`วิธีคิดราคาส่วนเสริม ${addonIdx + 1}`} value={addon.pricingType} onChange={(e) => onUpdateAddon(itemIdx, addonIdx, "pricingType", e.target.value as "PER_PIECE" | "PER_ORDER")}>
+                      <option value="PER_PIECE">{PRICING_TYPE_LABELS.PER_PIECE}</option>
+                      <option value="PER_ORDER">{PRICING_TYPE_LABELS.PER_ORDER}</option>
+                    </Select>
+                  </Field>
+                  <Field label="ราคา">
+                    <MoneyInput currency aria-label={`ราคาส่วนเสริม ${addonIdx + 1}`} value={addon.unitPrice} onValueChange={(v) => onUpdateAddon(itemIdx, addonIdx, "unitPrice", v)} />
+                  </Field>
+                </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="ส่วนเสริม" className="col-span-2">{renderAddonField(addon, addonIdx, false)}</Field>
-                <Field label="คิดราคา">
-                  <Select aria-label={`วิธีคิดราคาส่วนเสริม ${addonIdx + 1}`} value={addon.pricingType} onChange={(e) => onUpdateAddon(itemIdx, addonIdx, "pricingType", e.target.value as "PER_PIECE" | "PER_ORDER")}>
-                    <option value="PER_PIECE">{PRICING_TYPE_LABELS.PER_PIECE}</option>
-                    <option value="PER_ORDER">{PRICING_TYPE_LABELS.PER_ORDER}</option>
-                  </Select>
-                </Field>
-                <Field label="ราคา">
-                  <Input aria-label={`ราคาส่วนเสริม ${addonIdx + 1}`} type="number" min={0} step={0.01} value={addon.unitPrice || ""} onChange={(e) => onUpdateAddon(itemIdx, addonIdx, "unitPrice", parseFloat(e.target.value) || 0)} placeholder="0.00" className="text-right" />
-                </Field>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
         </>
       )}
-    </div>
+    </>
   );
 
-  // ── section: หมายเหตุ ──
+  // ── หมายเหตุ ──
   const notesField = (
-    <Field label="หมายเหตุการผลิตชุดนี้" className={FIELD_MEASURE}>
+    <Field label="หมายเหตุการผลิตชุดนี้" className={c("full meas")}>
       <Input value={item.notes} onChange={(e) => onUpdateItem(itemIdx, "notes", e.target.value)} placeholder="รายละเอียดที่ทีมผลิตต้องรู้..." />
     </Field>
   );
 
-  // ── section: สรุปราคาต่อรายการ (เฉพาะโหมดปกติ — compact ใช้สรุปรวมที่ sidebar) ──
+  // ── สรุปราคาต่อรายการ (เฉพาะโหมดปกติ — compact ใช้สรุปรวมที่ sidebar) ──
   const priceSummary = totalQty > 0 ? (
     <div className="border-t border-border/70 pt-3/60">
       <p className={cn(groupHeadingClass, "mb-2")}>สรุปราคารายการ</p>
@@ -606,53 +627,32 @@ export function OrderItemCard({
     </div>
   ) : null;
 
-  // หน้าเปิดงานและหน้าแก้ใช้ลำดับ/ถ้อยคำ/หน้าตาชุดเดียวกัน — ลายอยู่เหนือสินค้า
-  // ตามมติล่าสุด 2026-08-14 และไม่มี presentation branch ให้สองหน้ากลับมา drift
-  const productionSections = (
-    <>
-      {showPrints && printsSection}
-      {productsSection}
-      {showAddons && addonsSection}
-    </>
-  );
-
   return (
-    // หนึ่งชุดงาน = หนึ่ง card surface โดยตรง ไม่มี card ใหญ่ครอบและไม่มีเส้นรอบซ้อน
-    // (เบส 2026-08-14: รายการที่ 2 ต้องแยกเป็นการ์ดใหม่ และเอาขอบรายการออก)
+    // หนึ่งชุดงาน = หนึ่งการ์ด (.card ของ kit) ไม่มี card ใหญ่ครอบ
+    // (เบส 2026-08-14: รายการที่ 2 ต้องแยกเป็นการ์ดใหม่) · id/tabIndex = ปลายทางโฟกัสตอนเพิ่มรายการ
     <article
       id={cardId}
       tabIndex={-1}
       role="listitem"
       aria-labelledby={headingId}
-      className={cn(
-        "card-surface scroll-mt-24 p-4 outline-none sm:p-5",
-        FOCUS_BUTTON,
-        RADIUS.surface,
-      )}
+      className={cn(c("card"), "scroll-mt-24 outline-none", FOCUS_BUTTON)}
     >
       <OrderItemRow
         item={item} itemIdx={itemIdx} canRemove={canRemove}
         headingId={headingId}
+        onUpdateItem={onUpdateItem}
         onRemoveItem={onRemoveItem}
       />
 
       {expanded && (
-        <div className="space-y-5 pt-4">
-          {compact ? (
-            <>
-              {/* คำอธิบายงานอยู่บนสุด ใต้เลขรายการ (เบส: คำอธิบายไปอยู่ข้างบนกับเลข) */}
-              {descField}
-              {productionSections}
-              {notesField}
-            </>
-          ) : (
-            <>
-              {descField}
-              {productionSections}
-              {notesField}
-              {priceSummary}
-            </>
-          )}
+        // ลำดับในการ์ดเดียวกันทั้งหน้าเปิดงานและหน้าแก้: ลาย → สินค้า → ส่วนเสริม → หมายเหตุ (มติ 2026-08-14)
+        // @container = จุดวัดความกว้างที่สลับตาราง ↔ การ์ดจอแคบ
+        <div className={cn(c("cb ibody"), "@container")}>
+          {showPrints && printsSection}
+          {productsSection}
+          {showAddons && addonsSection}
+          {notesField}
+          {!compact && priceSummary}
         </div>
       )}
     </article>

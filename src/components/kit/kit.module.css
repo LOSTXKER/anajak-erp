@@ -1020,6 +1020,8 @@ ul.ocards { margin: 0; list-style: none; }
    ไม่ยกกฎของช่องกรอกทั่วไป (input/select/textarea สูง 38px) — ต้นแบบระบุว่าช่องกรอก = Field/Input ของจริง
    และช่องจริงต้องสูง 44px บนจอทัช · ยกเฉพาะช่องที่ต้นแบบออกแบบใหม่ (ชื่อชุดงาน/ชื่อสินค้าที่อ่านเป็นข้อความ) */
 .ofm { display: grid; gap: 22px; min-width: 0; }
+/* ก้อนหลักในฟอร์มหดตามจอได้ (เหมือน .page > *) — ไม่งั้นแถวแท็บที่ไม่ตัดบรรทัดดันคอลัมน์กริดจนการ์ดล้นจอแคบ */
+.ofm > * { min-width: 0; }
 .ofm .tabs .tab { gap: 7px; }
 /* จุดเขียว = ตอนนั้นกรอกแล้ว (กลไกเดียวกับ order-form-tabs.ts) */
 .ofm .tdot { width: 6px; height: 6px; border-radius: 999px; background: var(--good); flex: none; }
@@ -1043,6 +1045,9 @@ ul.ocards { margin: 0; list-style: none; }
 .ofm .ibtn:disabled { opacity: .4; pointer-events: none; }
 .ofm .ibtn.out { border: 1px solid var(--line); color: var(--ink-2); }
 .ofm .hint { margin-top: 8px; font-size: 11.5px; color: var(--ink-3); }
+/* ป้ายของ Field จริงในฟอร์มนี้ = ป้ายเล็กสีจางห่างช่อง 5px ตามต้นแบบ (.fld) · ตัวช่องกรอกคงขนาด Input/Select จริง */
+.ofm [data-field-state] > :not(:last-child) { margin-block-end: 5px; }
+.ofm [data-field-state] > div:first-child > label { font-size: 12px; font-weight: 500; color: var(--ink-3); }
 
 /* ลูกค้า — ไม่ซ้อนกล่องในการ์ดอีกชั้น · วงเงินเป็นชิปขอบบาง (เบส: "ไม่เป็น text ธรรมดา แต่ไม่ต้องเด่นไป") */
 .ofm .cust { display: flex; align-items: flex-start; gap: 14px; flex-wrap: wrap; padding: 14px 0 4px; }
@@ -1054,6 +1059,10 @@ ul.ocards { margin: 0; list-style: none; }
 .ofm .cust .chips .chip { gap: 6px; }
 .ofm .cust .chips .chip :global(svg.lucide) { width: 13px; height: 13px; color: var(--ink-4); }
 .ofm .cust .chips .chip b { font-weight: 600; color: var(--ink); }
+/* ชิปเตือน (ฟิล์มค้าง/โปรไฟล์ขาด/เกินวงเงิน) คงสีของตัวเองทั้งไอคอนและเลข · ข้อความยาวตัดท้ายไม่ล้นการ์ด */
+.ofm .cust .chips .chip { max-width: 100%; }
+.ofm .cust .chips .chip.warn :global(svg.lucide), .ofm .cust .chips .chip.warn b,
+.ofm .cust .chips .chip.bad :global(svg.lucide), .ofm .cust .chips .chip.bad b { color: inherit; }
 .ofm .cust .btn { flex: none; }
 /* รับเรื่อง: ซ้ายอ่านแชท ขวากรอกสิ่งที่อ่านได้ */
 .ofm .intake { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 290px); gap: 14px 18px; margin-top: 14px; align-items: start; }
@@ -1069,7 +1078,6 @@ ul.ocards { margin: 0; list-style: none; }
 .ofm .ch.ih h2 { flex: 1; min-width: 0; gap: 10px; flex-wrap: wrap; }
 .ofm .gname { flex: 1; min-width: 140px; height: 34px; padding: 0 10px; border: 1px solid transparent; border-radius: 10px; background: transparent; font-size: 14px; font-weight: 600; color: var(--ink); outline: none; }
 .ofm .gname::placeholder { color: var(--ink-4); font-weight: 500; }
-.ofm .gname:hover { border-color: var(--line); }
 .ofm .gname:focus { border-color: var(--accent); background: var(--surface); box-shadow: 0 0 0 3px var(--accent-tint); }
 .ofm .ch.ih .r { gap: 10px; font-variant-numeric: tabular-nums; }
 .ofm .ch.ih .iq { font-size: 12.5px; color: var(--ink-3); }
@@ -1094,10 +1102,9 @@ ul.ocards { margin: 0; list-style: none; }
 .ofm .tbl .prod { align-items: flex-start; }
 .ofm .tbl .prod .pcol { min-width: 0; flex: 1; }
 .ofm .tbl .prod b { display: block; font-size: 13px; font-weight: 500; overflow-wrap: anywhere; }
-/* ชื่อสินค้าที่พิมพ์เอง (ลูกค้าส่งมา/ตัดเย็บใหม่) อ่านเป็นชื่อเหมือนแถวสต็อก — ขอบโผล่ตอนชี้/โฟกัส */
+/* ชื่อสินค้าที่พิมพ์เอง (ลูกค้าส่งมา/ตัดเย็บใหม่) อ่านเป็นชื่อเหมือนแถวสต็อก — ขอบโผล่ตอนโฟกัส (ชุดกลางไม่มีเอฟเฟกต์ตอนชี้ · เบสสั่ง 2026-09-14) */
 .ofm .tbl .prod .pname { display: block; width: 100%; min-width: 0; height: auto; padding: 1px 6px; margin-left: -6px; border: 1px solid transparent; border-radius: 8px; background: transparent; font-size: 13px; font-weight: 500; color: var(--ink); outline: none; }
 .ofm .tbl .prod .pname::placeholder { color: var(--ink-4); }
-.ofm .tbl .prod .pname:hover { border-color: var(--line); }
 .ofm .tbl .prod .pname:focus { background: var(--surface); border-color: var(--accent); }
 .ofm .tbl .prod .sub { display: block; margin-top: 1px; font-size: 11.5px; color: var(--ink-3); }
 .ofm .tbl .prod .ok { color: var(--good); }
@@ -1166,6 +1173,29 @@ ul.ocards { margin: 0; list-style: none; }
 .ofm .sbar .sum b { display: block; font-size: 20px; font-weight: 600; letter-spacing: -.02em; color: var(--ink); }
 .ofm .sbar .sum small { display: block; font-size: 11.5px; color: var(--ink-3); }
 .ofm .sbar .grow { flex: 1; }
+
+/* แท็บรายการงาน — ส่วนที่ต้นแบบเขียนผ่านกฎช่องกรอกทั่วไป (ไม่ได้ยก) จึงเติมเฉพาะความกว้าง/การจัดแนว
+   ความสูงช่องยังเป็นของ Input กลาง (44px บนจอทัช) */
+.ofm .szcolor > label { font-size: 11.5px; font-weight: 500; color: var(--ink-2); }
+.ofm .szcolor input { width: 120px; }
+.ofm .szf input { width: 56px; padding-left: 4px; padding-right: 4px; text-align: center; font-variant-numeric: tabular-nums; }
+.ofm .szf.add input { width: 66px; }
+/* ค่าสเปคยาว (หมายเหตุแพทเทิร์น) ขึ้นบรรทัดใหม่ในชิป ไม่ดันตารางล้น */
+.ofm .specrow .chip { white-space: normal; overflow-wrap: anywhere; line-height: 1.35; padding-top: 3px; padding-bottom: 3px; }
+/* การ์ดสินค้าจอแคบอยู่นอก .tbl — สีคลังเขียว/แดงชุดเดียวกับแถวตาราง */
+.ofm .prod .sub .ok { color: var(--good); }
+.ofm .prod .sub .no { color: var(--bad); }
+
+/* แท็บไฟล์แนบ — แถว .file ของ kit แต่ในแถวมีช่องตำแหน่งพิมพ์และปุ่มลบ จึงเป็น <button> ทั้งแถวไม่ได้
+   ลิงก์ชื่อไฟล์ขยายเต็มแถวแทน (ทั้งแถวยังกดเปิดไฟล์ได้) · .ctl ยกขึ้นเหนือลิงก์ให้กดแยกได้
+   คอลัมน์ปุ่มลบคงที่ แถวไฟล์ของคนอื่น (ไม่มีปุ่มลบ) ขนาดไฟล์จึงยังตรงแนวเดียวกัน */
+.ofm .file.rfile { position: relative; grid-template-columns: 40px minmax(0, 1fr) auto 30px 16px; }
+.ofm .file.rfile .nm { overflow: visible; }
+.ofm .file.rfile .open { display: block; overflow: hidden; text-overflow: ellipsis; color: inherit; outline: none; }
+.ofm .file.rfile .open::after { content: ""; position: absolute; inset: 0; border-radius: 12px; }
+.ofm .file.rfile .open:focus-visible::after { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ofm .file.rfile .ctl { position: relative; z-index: 1; }
+.ofm .file.rfile small.ctl { width: fit-content; max-width: 100%; }
 
 @media (max-width: 1000px) { .ofm .two.wide { grid-template-columns: 1fr; } .ofm .sticky { position: static; } }
 @media (max-width: 860px) { .ofm .intake { grid-template-columns: 1fr; } }

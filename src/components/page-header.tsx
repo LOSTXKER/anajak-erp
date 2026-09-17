@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { MouseEvent, ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
@@ -11,6 +11,13 @@ import type { VisualTone } from "@/lib/visual-tone";
 export interface BreadcrumbItem {
   label: string;
   href?: string;
+}
+
+export interface PageBack {
+  href: string;
+  label: string;
+  /** หน้าที่ต้องถามก่อนออก (ฟอร์มแก้ไขที่มีของค้าง) ดักคลิกเองได้ · preventDefault = ไม่เปลี่ยนหน้าตาม href */
+  onClick?: (event: MouseEvent<HTMLAnchorElement>) => void;
 }
 
 interface PageHeaderProps {
@@ -26,7 +33,7 @@ interface PageHeaderProps {
    *  (เครื่องอ่านหน้าจอประกาศหัวข้อหน้า ไม่ควรมีคำว่า "ร่าง"/"VIP" ปนเข้าไป) */
   titleBadge?: ReactNode;
   /** ปุ่มย้อนกลับหน้าหัวข้อ — หน้ารายละเอียดใช้ */
-  back?: { href: string; label: string };
+  back?: PageBack;
   /** @deprecated หัวแบบ kit ไม่วาดไอคอนประจำหมวดแล้ว (2026-09-17) — คงไว้ให้ caller เดิมไม่พัง */
   icon?: LucideIcon;
   /** @deprecated ดู icon */
@@ -67,7 +74,7 @@ export function PageHeader({
      ② เป็นที่มาของ "ปุ่มย้อนกลับ" เมื่อหน้าไม่ได้ส่ง back มาเอง — 5 หน้าที่เคยมีแต่
         breadcrumb ไม่มี back จะไม่เหลือทางกลับบนจอเลยถ้าไม่ทำตรงนี้
         (ลูกค้ารายตัว · ภาษีขาย · แก้ออเดอร์ · เปิดออเดอร์ 2 ไฟล์) */
-  const resolvedBack =
+  const resolvedBack: PageBack | undefined =
     back ??
     (() => {
       const parents = (breadcrumb ?? []).filter(
@@ -86,6 +93,7 @@ export function PageHeader({
           {resolvedBack && (
             <Link
               href={resolvedBack.href}
+              onClick={resolvedBack.onClick}
               className={cn(INTERACTIVE_PAGE_PRESSED, FOCUS_BUTTON, RADIUS.item, c("bk"))}
             >
               <ArrowLeft aria-hidden="true" />

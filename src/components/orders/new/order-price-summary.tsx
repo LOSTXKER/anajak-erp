@@ -3,14 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
-import { MoneyInput } from "@/components/ui/number-input";
-import { Calculator } from "lucide-react";
+import { Receipt } from "lucide-react";
 import { HelpTip } from "@/components/ui/help-tip";
-import { Section, SectionTitle } from "@/components/ui/section";
-import { formatCurrency } from "@/lib/utils";
+import { c, CardHead } from "@/components/kit/kit";
+import { formatBaht } from "@/lib/utils";
+import { calculateFormItemSubtotal, getFormItemTotalQty } from "@/lib/pricing";
+import { getPaymentTerms, requiredUpfrontAmount } from "@/lib/payment-terms";
 import { itemHasContent, type OrderItemForm } from "@/types/order-form";
 import type { MarginEstimate } from "@/server/services/margin-estimate";
-import { DISPLAY_AMOUNT } from "@/components/ui/tokens";
 
 interface PricingSummary {
   subtotalItems: number;
@@ -29,17 +29,14 @@ interface OrderPriceSummaryProps {
   taxRate: number;
   platformFee: number;
   discount: number;
-  /** ไม่ส่ง = โหมดอ่านอย่างเดียว (ช่องกรอกอยู่ที่อื่นแล้ว) */
-  onPlatformFeeChange?: (value: number) => void;
-  onDiscountChange?: (value: number) => void;
   /** กำไรขั้นต้นโดยประมาณ (ก้อน 2 ชิ้น 5b) — null/ไม่ส่ง = ไม่โชว์บล็อก (role นอกการเงิน) */
   marginEstimate?: MarginEstimate | null;
-  /** วางใน Section หลักของหน้าโดยไม่สร้าง card-surface ซ้อนอีกชั้น */
-  embedded?: boolean;
-  /** ผู้เรียกวาดหัวการ์ด "สรุปยอด" เองแล้ว — ที่นี่ส่งคืนเฉพาะเนื้อใน */
-  headless?: boolean;
   /** จำนวนตัวทั้งใบ — บอกใต้ยอดรวมให้รู้ว่ายอดนี้มาจากกี่ตัว */
   totalQuantity?: number;
+  /** ชุดงานในฟอร์ม — แยกยอดทีละชุด · ไม่ส่ง = บรรทัด "รวมสินค้า" บรรทัดเดียว */
+  items?: OrderItemForm[];
+  /** เงื่อนไขชำระ — คิดแถบยอดที่ต้องเก็บก่อนเริ่มงานท้ายการ์ด */
+  paymentTerms?: string;
 }
 
 // ============ กำไรขั้นต้นโดยประมาณ (FLOW-REDESIGN ก้อน 2 ชิ้น 5b) ============
@@ -96,19 +93,20 @@ export function useMarginEstimate(
   return data ?? null;
 }
 
-/** บล็อกแสดงกำไรขั้นต้นโดยประมาณ — caller เช็ค null เองก่อน render (null = ไม่โชว์เลย) */
-export function MarginEstimateBlock({ estimate }: { estimate: MarginEstimate }) {
+/** ก้อนกำไรขั้นต้นในการ์ดสรุปยอด — caller เช็ค null เองก่อน render (null = ไม่โชว์เลย) */
+function MarginEstimateBlock({ estimate }: { estimate: MarginEstimate }) {
   if (!estimate.configured) {
     return (
-      <p className="text-xs text-muted">
-        <Link
-          href="/settings/cost-rates"
-          className="underline underline-offset-2"
-        >
-          ตั้งเรตต้นทุนกลาง
-        </Link>
-        ก่อน จึงเห็นกำไรขั้นต้นโดยประมาณ
-      </p>
+      <div className={c("mgn")}>
+        <p className={c("mh")}>
+          <span>
+            <Link href="/settings/cost-rates" className="underline underline-offset-2">
+              ตั้งเรตต้นทุนกลาง
+            </Link>
+            ก่อน จึงเห็นกำไรขั้นต้นโดยประมาณ
+          </span>
+        </p>
+      </div>
     );
   }
 
@@ -127,45 +125,38 @@ export function MarginEstimateBlock({ estimate }: { estimate: MarginEstimate }) 
   const negative = estimate.marginAmount < 0;
 
   return (
-    <div className="space-y-1.5">
-      <p className="flex items-center gap-1 text-xs font-medium text-muted">
+    <div className={c("mgn")}>
+      <p className={c("mh")}>
         กำไรขั้นต้นโดยประมาณ
         <HelpTip label="กำไรขั้นต้นโดยประมาณ">
           ประเมินจากเรตต้นทุนกลางเพื่อใช้ตั้งราคา ไม่ใช่ตัวเลขบัญชี (ทุนเสื้อจากแอป Stock ฟิล์มกับหมึกคิดจากขนาดลาย ค่าแรงตามเรต)
         </HelpTip>
       </p>
-      <p
-        className={`text-lg font-semibold tabular-nums ${
-          negative
-            ? "text-red-600 dark:text-red-400"
-            : "text-green-600 dark:text-green-400"
-        }`}
-      >
-        ~{formatCurrency(estimate.marginAmount)}
+      <p className={c("mv")}>
+        <b className={c("mono", negative && "neg")}>{formatBaht(estimate.marginAmount)}</b>
         {estimate.marginPct !== null && (
-          <span className="ml-1 text-sm font-medium">
-            ({estimate.marginPct.toFixed(1)}%)
+          <span className={c("chip", negative ? "bad" : "good")}>
+            {estimate.marginPct.toFixed(1)}%
           </span>
         )}
       </p>
-      <div className="space-y-0.5 text-xs text-muted">
-        <div className="flex items-center justify-between">
-          <span>เสื้อ</span>
-          <span className="tabular-nums">{formatCurrency(estimate.garmentCost)}</span>
+      <div className={c("lines quiet")}>
+        <div className={c("srow")}>
+          <span>ทุนเสื้อ</span>
+          <b>{formatBaht(estimate.garmentCost)}</b>
         </div>
-        <div className="flex items-center justify-between">
-          <span>ฟิล์ม+หมึก</span>
-          <span className="tabular-nums">{formatCurrency(estimate.filmCost)}</span>
+        <div className={c("srow")}>
+          <span>ฟิล์ม + หมึก</span>
+          <b>{formatBaht(estimate.filmCost)}</b>
         </div>
-        <div className="flex items-center justify-between">
-          <span>ค่าแรง+โสหุ้ย</span>
-          <span className="tabular-nums">
-            {formatCurrency(estimate.laborOverheadCost)}
-          </span>
+        <div className={c("srow")}>
+          <span>ค่าแรง + โสหุ้ย</span>
+          <b>{formatBaht(estimate.laborOverheadCost)}</b>
         </div>
       </div>
+      {/* ตัวเลขขาดอะไรต้องบอกตรงๆ — ไม่โชว์เลขทุนที่ไม่ครบแบบเงียบ */}
       {warnings.length > 0 && (
-        <div className="space-y-0.5">
+        <div className="mt-2.5 space-y-0.5">
           {warnings.map((w) => (
             <p key={w} className="text-xs text-amber-700 dark:text-amber-400">
               {w}
@@ -173,31 +164,6 @@ export function MarginEstimateBlock({ estimate }: { estimate: MarginEstimate }) 
           ))}
         </div>
       )}
-    </div>
-  );
-}
-
-function Row({
-  label,
-  value,
-  muted = true,
-}: {
-  label: React.ReactNode;
-  value: React.ReactNode;
-  muted?: boolean;
-}) {
-  return (
-    <div className="flex items-center justify-between text-sm">
-      <span
-        className={
-          muted
-            ? "text-muted"
-            : "text-secondary"
-        }
-      >
-        {label}
-      </span>
-      <span className="tabular-nums">{value}</span>
     </div>
   );
 }
@@ -210,76 +176,92 @@ export function OrderPriceSummary({
   taxRate,
   platformFee,
   discount,
-  onPlatformFeeChange,
-  onDiscountChange,
   marginEstimate,
-  embedded = false,
-  headless = false,
   totalQuantity,
+  items,
+  paymentTerms,
 }: OrderPriceSummaryProps) {
-  /* 3 ก้อนคนละเรื่องกัน: ยอดที่ลูกค้าจ่าย · กำไรขั้นต้น (เห็นเฉพาะ role การเงิน)
+  /* 3 ก้อนคนละเรื่องกัน (ต้นแบบ tabPricing): ยอดที่ลูกค้าจ่าย · กำไรขั้นต้น (เห็นเฉพาะ role การเงิน) · ยอดที่ต้องเก็บก่อน
      เบสทัก 2026-09-18 "ดูยาก" เพราะเดิมเป็นรายการน้ำหนักเท่ากันหมด
      และบรรทัด "ยอดรวมทั้งหมด" ซ้ำกับเลขใหญ่ที่อยู่ห่างกันไม่กี่บรรทัด */
-  const body = (
-    <>
-      <div className="border-b border-divider pb-4">
-        <p className={DISPLAY_AMOUNT}>{formatCurrency(pricingSummary.grandTotal)}</p>
-        <p className="mt-0.5 text-xs text-muted">
-          ยอดรวมทั้งหมด{taxRate > 0 ? " (รวม VAT)" : ""}
-          {totalQuantity ? ` · ${totalQuantity.toLocaleString("th-TH")} ตัว` : ""}
-        </p>
-      </div>
 
-      <div className="space-y-2.5 pt-3.5">
-        <Row label="รวมสินค้า" value={formatCurrency(pricingSummary.subtotalItems)} />
-        {showFeeSections && (
-          <Row label="รวมค่าใช้จ่ายเพิ่มเติม" value={formatCurrency(pricingSummary.subtotalFees)} />
-        )}
-        {isMarketplace &&
-          (onPlatformFeeChange ? (
-            <div className="flex items-center justify-between gap-2">
-              <label htmlFor="order-platform-fee" className="text-sm text-muted">
-                ค่าธรรมเนียม {channelLabel}
-              </label>
-              <MoneyInput size="sm" id="order-platform-fee" value={platformFee} onValueChange={onPlatformFeeChange} className="w-28" />
-            </div>
-          ) : (
-            <Row label={`ค่าธรรมเนียม ${channelLabel}`} value={formatCurrency(platformFee)} />
-          ))}
-        {onDiscountChange ? (
-          <div className="flex items-center justify-between gap-2">
-            <label htmlFor="order-discount" className="text-sm text-muted">ส่วนลดท้ายบิล</label>
-            <MoneyInput size="sm" id="order-discount" value={discount} onValueChange={onDiscountChange} className="w-28" />
-          </div>
-        ) : (
-          discount > 0 && <Row label="ส่วนลดท้ายบิล" value={`-${formatCurrency(discount)}`} />
-        )}
-        {taxRate > 0 && <Row label={`VAT (${taxRate}%)`} value={formatCurrency(pricingSummary.taxAmount)} />}
-      </div>
-
-      {/* กำไรขั้นต้นโดยประมาณ — โชว์เฉพาะ role การเงิน (caller ส่ง null = ไม่ render เลย) */}
-      {marginEstimate && (
-        <div className="mt-4 border-t border-divider pt-4">
-          <MarginEstimateBlock estimate={marginEstimate} />
-        </div>
-      )}
-    </>
-  );
-
-  if (headless) return body;
+  // ยอดรายชุดงานใช้สูตรตัวเดียวกับ pricingSummary — ฟอร์มยังไม่มีเนื้อรายการ ยอดรวมเป็น 0 ทั้งก้อน
+  // บรรทัดรายชุดจึงเป็น 0 ด้วย ผลรวมบรรทัดต้องเท่ายอดใหญ่เสมอ
+  const counted = items?.some(itemHasContent) ?? false;
+  const upfront = requiredUpfrontAmount(paymentTerms, pricingSummary.grandTotal);
+  const upfrontLabel =
+    getPaymentTerms(paymentTerms)?.kind === "deposit" ? "มัดจำที่ต้องเก็บ" : "ต้องชำระก่อนเริ่มงาน";
 
   return (
-    <Section
-      title={
-        <SectionTitle icon={Calculator} tone="finance">
-          สรุปยอด
-        </SectionTitle>
-      }
-      compact={!embedded}
-      bordered={!embedded}
-      headingLevel={embedded ? 3 : 2}
-    >
-      {body}
-    </Section>
+    <section className={c("card price sticky")}>
+      <CardHead
+        icon={Receipt}
+        tone="good"
+        title="สรุปยอด"
+        right={taxRate > 0 ? <span className={c("chip gray")}>รวม VAT {taxRate}%</span> : undefined}
+      />
+      <div className={c("cb sumbody")}>
+        <div className={c("tot")}>
+          <b className={c("mono")}>{formatBaht(pricingSummary.grandTotal)}</b>
+          <span>
+            ยอดรวมทั้งหมด
+            {totalQuantity !== undefined && ` · ${totalQuantity.toLocaleString("th-TH")} ตัว`}
+          </span>
+        </div>
+
+        <div className={c("lines")}>
+          {items ? (
+            items.map((item, idx) => (
+              <div key={idx} className={c("srow")}>
+                <span>
+                  {idx + 1}. {item.description.trim() || `รายการที่ ${idx + 1}`}{" "}
+                  <em>{(counted ? getFormItemTotalQty(item) : 0).toLocaleString("th-TH")} ตัว</em>
+                </span>
+                <b>{formatBaht(counted ? calculateFormItemSubtotal(item) : 0)}</b>
+              </div>
+            ))
+          ) : (
+            <div className={c("srow")}>
+              <span>รวมสินค้า</span>
+              <b>{formatBaht(pricingSummary.subtotalItems)}</b>
+            </div>
+          )}
+          {showFeeSections && (
+            <div className={c("srow")}>
+              <span>ค่าใช้จ่ายเพิ่มเติม</span>
+              <b>{formatBaht(pricingSummary.subtotalFees)}</b>
+            </div>
+          )}
+          {isMarketplace && (
+            <div className={c("srow")}>
+              <span>ค่าธรรมเนียม {channelLabel}</span>
+              <b>{formatBaht(platformFee)}</b>
+            </div>
+          )}
+          {discount > 0 && (
+            <div className={c("srow")}>
+              <span>ส่วนลดท้ายบิล</span>
+              <b>-{formatBaht(discount)}</b>
+            </div>
+          )}
+          {taxRate > 0 && (
+            <div className={c("srow")}>
+              <span>VAT {taxRate}%</span>
+              <b>{formatBaht(pricingSummary.taxAmount)}</b>
+            </div>
+          )}
+        </div>
+
+        {/* กำไรขั้นต้นโดยประมาณ — โชว์เฉพาะ role การเงิน (caller ส่ง null = ไม่ render เลย) */}
+        {marginEstimate && <MarginEstimateBlock estimate={marginEstimate} />}
+      </div>
+
+      {/* ยอดที่ต้องเก็บก่อนเริ่มงานตามเงื่อนไขชำระ (สูตรกลาง payment-terms) · เครดิต/COD/ไม่ระบุ = ไม่มีแถบ */}
+      {upfront > 0 && (
+        <div className={c("tfoot")}>
+          {upfrontLabel} <b className={c("mono")}>{formatBaht(upfront)}</b>
+        </div>
+      )}
+    </section>
   );
 }

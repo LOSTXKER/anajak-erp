@@ -1,11 +1,10 @@
 "use client";
 
-import { Input } from "@/components/ui/input";
+import type { ReactNode } from "react";
 import { MoneyInput, NumberInput } from "@/components/ui/number-input";
-import { Badge } from "@/components/ui/badge";
 import { Select } from "@/components/ui/select";
-import { cn, formatCurrency } from "@/lib/utils";
-import { DASHED_INTERACTIVE } from "@/components/ui/tokens";
+import { c, Thumb } from "@/components/kit/kit";
+import { formatBaht } from "@/lib/utils";
 import { ImageIcon, Scissors, Shirt } from "lucide-react";
 import type { OrderItemForm, OrderItemProductForm } from "@/types/order-form";
 import { ITEM_SOURCES } from "@/types/order-form";
@@ -16,9 +15,40 @@ import { ProductDetailRail } from "./product-detail-rail";
 import { SizeMatrix } from "./size-matrix";
 import { ProductRowActions } from "./product-row-actions";
 
-// แถวสินค้า 1 ชิ้น — 8 คอลัมน์: แหล่ง · สินค้า · แพค · ราคา · ส่วนลด · จำนวน · รวม · จัดการ
+/** สีชิปแหล่งตามต้นแบบ 2026-09-18: จากสต็อก = ฟ้า · ของที่ไม่ได้มาจากคลัง (ตัดเย็บ/ลูกค้าส่งมา) = ส้ม */
+export const sourceChipClass = (source: string) => c("chip", source === "FROM_STOCK" ? "blue" : "warn");
+
+/** คั่นข้อมูลบรรทัดรองด้วยจุดกลาง — ข้ามช่องที่ว่าง */
+function joinDots(parts: ReactNode[]) {
+  return parts
+    .filter((part) => part !== null && part !== undefined && part !== false && part !== "")
+    .flatMap((part, index) => (index === 0 ? [part] : [" · ", part]));
+}
+
+/** บรรทัดรองใต้ชื่อสินค้า (ใช้ทั้งแถวตารางและการ์ดจอแคบ)
+ *  สต็อก: สี · ไซส์ · รหัส · คลัง N (เขียว/แดง) · ที่เหลือ: สี · ไซส์ที่มี หรือบอกว่ายังไม่ได้ใส่ */
+export function ProductSubLine({ product }: { product: OrderItemProductForm }) {
+  const variants = product.variants ?? [];
+  const parts =
+    product.itemSource === "FROM_STOCK"
+      ? joinDots([
+          variants[0]?.color,
+          variants[0]?.size,
+          product.productSku ? <span key="sku" className={c("mono")}>{product.productSku}</span> : null,
+          product.stockAvailable != null ? (
+            <span key="stock" className={c(product.stockAvailable > 0 ? "ok" : "no")}>
+              คลัง {product.stockAvailable.toLocaleString("th-TH")}
+            </span>
+          ) : null,
+        ])
+      : joinDots([variants[0]?.color, variants.map((v) => v.size).filter(Boolean).join(", ")]);
+  if (parts.length > 0) return <span className={c("sub")}>{parts}</span>;
+  return product.itemSource === "FROM_STOCK" ? null : <span className={c("sub")}>ยังไม่ได้ใส่สี/ไซส์</span>;
+}
+
+// แถวสินค้า 1 ชิ้น — 8 คอลัมน์: แหล่ง · สินค้า · แพค · ราคา/ตัว · ส่วนลด/ตัว · จำนวน · รวม · จัดการ
 // ทุกแหล่งอยู่ตารางเดียวกัน (เบสเคาะ D 2026-09-06 จาก /proto/product-rows — เลิกกล่องเทา ProductAdaptiveCard)
-// ตัดเย็บ/ลูกค้าส่งมาได้ "แถวลูก" พื้นขาวใต้แถว: ตารางไซส์กางตลอด · สเปคตัดเย็บเป็นสรุป + แก้ใน popup
+// ตัดเย็บ/ลูกค้าส่งมาได้ "แถวลูก" ใต้แถว: สเปคตัดเย็บเป็นสรุป + แก้ใน popup · ตารางไซส์กางตลอด
 export function ProductTableRow({
   product, prodIdx, itemIdx, totalProducts, onSetItems,
 }: {
@@ -31,19 +61,16 @@ export function ProductTableRow({
   const {
     updateProduct, updateVariantField, removeProduct, moveProduct,
     packagingOptions,
-    qty, variantLabel, isFromStock, isCustomMade, isCustomerProvided,
+    qty, isFromStock, isCustomMade, isCustomerProvided,
     multi, totalQty, lineTotal,
     productLabel,
   } = useProductRow(product, prodIdx, itemIdx, onSetItems);
-  const sourcePresentation = product.itemSource
-    ? getProductSourcePresentation(product.itemSource)
-    : null;
 
   // แถวข้อมูลเก่า/จากใบเสนอ itemSource เป็น null — ต้องมีช่องให้เลือก ไม่งั้น validation บล็อกการเซฟ
-  const sourceBadge = sourcePresentation ? (
-    <Badge variant={sourcePresentation.variant} size="sm">
-      {sourcePresentation.label}
-    </Badge>
+  const sourceCell = product.itemSource ? (
+    <span className={sourceChipClass(product.itemSource)}>
+      {getProductSourcePresentation(product.itemSource).label}
+    </span>
   ) : (
     <Select
       size="dense"
@@ -58,73 +85,44 @@ export function ProductTableRow({
     </Select>
   );
 
-  /* บรรทัดรองของแถวที่ไม่ใช่สต็อก — สี · ไซส์ที่มี (คู่ขนานกับ "สี · ไซส์ · รหัส · คลัง" ของสต็อก) */
-  const subLabel = [
-    product.variants?.[0]?.color || null,
-    (product.variants ?? []).map((v) => v.size).filter(Boolean).join(", ") || null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
-
-  const dash = <span className="text-xs text-muted">—</span>;
+  // ขีดของช่องที่ไม่มีค่า (ลูกค้าส่งมาไม่มีราคาเสื้อ) — สูงเท่าช่องกรอกในแถวเดียวกัน
+  const dash = <span className={c("ro dsh")}>—</span>;
 
   return (
     <>
-      <tr>
-        {/* แหล่ง */}
-        <td className="py-2 pl-1 pr-3 align-top">{sourceBadge}</td>
+      <tr className={multi ? c("prow") : undefined}>
+        <td className={c("va")}>{sourceCell}</td>
 
         {/* สินค้า — ทุกแหล่งอ่านเป็นแบบเดียวกัน: รูปย่อ · ชื่อ · บรรทัดรอง
-            (เบสทัก 2026-09-18 "ลูกค้าส่งมา กับ สั่งทำ ดูยาก ไม่เหมือนกับเสื้อสต๊อค"
-             ของเดิมสองแหล่งนั้นเป็นช่องพิมพ์เปล่า ไม่มีรูปย่อ คอลัมน์จึงเริ่มคนละตำแหน่ง) */}
-        <td className="py-2 pr-2 align-top">
-          <div className="flex items-start gap-2">
-            {isFromStock && product.productImageUrl ? (
-              /* Signed URLs มาจาก Stock หลาย host จึงใช้รูปเดิมโดยไม่ผ่าน Next image optimizer */
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={product.productImageUrl} alt={productLabel} className="h-9 w-9 flex-shrink-0 rounded-lg border border-border object-cover" />
+            (เบสทัก 2026-09-18 "ลูกค้าส่งมา กับ สั่งทำ ดูยาก ไม่เหมือนกับเสื้อสต๊อค") */}
+        <td className={c("va")}>
+          <span className={c("prod")}>
+            {isFromStock ? (
+              // รูปจริงจาก Stock (ต้นแบบวาดเสื้อสีงานแทนรูป)
+              <Thumb cover={product.productImageUrl ?? null} alt="" />
             ) : (
-              <div
-                className={cn(
-                  "flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-surface-muted text-muted",
-                  isFromStock ? "border border-border" : DASHED_INTERACTIVE,
-                )}
-              >
-                {isCustomMade ? <Scissors className="h-4 w-4" /> : isCustomerProvided ? <Shirt className="h-4 w-4" /> : <ImageIcon className="h-4 w-4" />}
-              </div>
+              <span className={c("thumb ghost")} aria-hidden="true">
+                {isCustomMade ? <Scissors /> : isCustomerProvided ? <Shirt /> : <ImageIcon />}
+              </span>
             )}
-            <div className="min-w-0 flex-1">
+            <span className={c("pcol")}>
               {isFromStock ? (
-                <span className="block truncate text-sm font-medium text-strong">{productLabel}</span>
+                <b>{productLabel}</b>
               ) : (
-                <Input
+                <input
+                  className={c("pname")}
                   aria-label={`ชื่อสินค้า ${prodIdx + 1}`}
                   value={product.description}
                   onChange={(e) => updateProduct("description", e.target.value)}
                   placeholder={isCustomerProvided ? "ชื่อสินค้า เช่น เสื้อยืดลูกค้า" : "ชื่อสินค้า เช่น เสื้อคอกลม Cotton"}
-                  size="dense"
-                  className="border-transparent bg-transparent px-1.5 font-medium text-strong hover:border-border"
                 />
               )}
-              <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-muted">
-                {isFromStock ? (
-                  <>
-                    {variantLabel && <span>{variantLabel}</span>}
-                    {product.productSku && <span>{product.productSku}</span>}
-                    {product.stockAvailable != null && (
-                      <span className={product.stockAvailable > 0 ? "text-green-600 dark:text-green-400" : "text-red-700 dark:text-red-300"}>คลัง {product.stockAvailable}</span>
-                    )}
-                  </>
-                ) : (
-                  <span>{subLabel || "ยังไม่ได้ใส่สี/ไซส์"}</span>
-                )}
-              </p>
-            </div>
-          </div>
+              <ProductSubLine product={product} />
+            </span>
+          </span>
         </td>
 
-        {/* แพค */}
-        <td className="px-2 py-2 align-top">
+        <td className={c("va")}>
           {packagingOptions && packagingOptions.length > 0 ? (
             <Select
               size="dense"
@@ -140,44 +138,39 @@ export function ProductTableRow({
               ))}
             </Select>
           ) : (
-            <div className="flex h-9 items-center justify-center" title="ยังไม่มีตัวเลือกแพค">
-              {dash}
-            </div>
+            <span className={c("ro dsh")} title="ยังไม่มีตัวเลือกแพค">—</span>
           )}
         </td>
 
-        {/* ราคา */}
-        <td className="px-2 py-2 text-center align-top">
+        <td className={c("va num")}>
           {isCustomerProvided ? dash : (
-            <MoneyInput aria-label={`ราคาสินค้า ${prodIdx + 1}`} value={product.baseUnitPrice} onValueChange={(v) => updateProduct("baseUnitPrice", v)} size="dense" className="w-full px-2" />
+            <MoneyInput currency aria-label={`ราคาต่อตัว สินค้า ${prodIdx + 1}`} value={product.baseUnitPrice} onValueChange={(v) => updateProduct("baseUnitPrice", v)} size="dense" />
           )}
         </td>
 
-        {/* ส่วนลดต่อชิ้น */}
-        <td className="px-2 py-2 text-center align-top">
+        <td className={c("va num")}>
           {isCustomerProvided ? dash : (
-            <MoneyInput aria-label={`ส่วนลดต่อชิ้น สินค้า ${prodIdx + 1}`} value={product.discount} onValueChange={(v) => updateProduct("discount", v)} size="dense" className="w-full px-2" />
+            <MoneyInput currency aria-label={`ส่วนลดต่อตัว สินค้า ${prodIdx + 1}`} value={product.discount} onValueChange={(v) => updateProduct("discount", v)} size="dense" />
           )}
         </td>
 
-        {/* จำนวน */}
-        <td className="px-2 py-2 align-top">
+        {/* หลายไซส์ = ผลรวมจากตารางไซส์ใต้แถว อ่านอย่างเดียว */}
+        <td className={c("va ctr")}>
           {multi ? (
-            <div className="flex h-9 items-center justify-center text-sm font-medium text-secondary">{totalQty}</div>
+            <span className={c("ro")}>{totalQty.toLocaleString("th-TH")}</span>
           ) : (
-            <NumberInput integer aria-label={`จำนวนสินค้า ${prodIdx + 1}`} min={0} value={qty} onValueChange={(v) => updateVariantField("quantity", v)} placeholder="0" size="dense" className="w-full text-center" />
+            <NumberInput integer aria-label={`จำนวนสินค้า ${prodIdx + 1}`} min={0} value={qty} onValueChange={(v) => updateVariantField("quantity", v)} placeholder="0" size="dense" className="px-1 text-center" />
           )}
         </td>
 
-        {/* รวม — กึ่งกลางตรงหัวคอลัมน์ (เบสเคาะ 2026-08-04) */}
-        <td className="px-2 py-2 text-center align-top">
+        <td className={c("va num mono")}>
           {isCustomerProvided ? dash : (
-            <div className="flex h-9 items-center justify-center text-sm font-semibold tabular-nums text-strong">{formatCurrency(lineTotal)}</div>
+            <span className={c("ro")}><b>{formatBaht(lineTotal)}</b></span>
           )}
         </td>
 
-        {/* จัดการ — เมนูเดียวพอดีกับคอลัมน์ 44px ไม่ซ้อนลูกศรสูง 72px */}
-        <td className="py-2 pr-1 align-top">
+        {/* จัดการ — แถวเดียว = ปุ่มลบ · หลายแถว = เมนู เลื่อนขึ้น/ลง/ลบ */}
+        <td className={c("va act")}>
           <ProductRowActions
             mode="menu"
             productIndex={prodIdx}
@@ -188,12 +181,11 @@ export function ProductTableRow({
         </td>
       </tr>
 
-      {/* แถวลูกของตัดเย็บ/ลูกค้าส่งมา — ไซส์กางตลอด · สเปคสรุป+popup (เบสเคาะ D 2026-09-06) */}
       {multi && (
-        <tr>
+        <tr className={c("subrow")}>
           <td aria-hidden="true" />
-          <td colSpan={7} className="pb-4 pr-2 pt-1">
-            <ProductDetailRail className="space-y-3">
+          <td colSpan={7}>
+            <ProductDetailRail>
               {isCustomMade && <CustomMadeSpecSummary product={product} updateProduct={updateProduct} />}
               <SizeMatrix
                 embedded

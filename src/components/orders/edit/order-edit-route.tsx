@@ -130,14 +130,22 @@ function OrderEditRouteSession({
     );
   }
 
+  // รู้เลขออเดอร์แล้ว = หัวหน้าเหมือนตอนฟอร์มขึ้น (ทางกลับเหนือชื่อ + "แก้ไข <เลข>") หัวจึงไม่กระโดด
+  const orderNumber = orderQuery.data?.id === orderId ? orderQuery.data.orderNumber : undefined;
   return (
     <PageShell
       width="wide"
       breadcrumb={[
         { label: "ออเดอร์", href: "/orders" },
-        { label: orderQuery.data?.orderNumber ?? "แก้ไขออเดอร์" },
+        { label: orderNumber ?? "แก้ไขออเดอร์" },
       ]}
-      title="แก้ไขออเดอร์"
+      back={orderNumber
+        ? {
+            href: `/orders/${encodeURIComponent(orderId)}?tab=${encodeURIComponent(returnTab || "overview")}`,
+            label: `กลับไป ${orderNumber}`,
+          }
+        : undefined}
+      title={orderNumber ? `แก้ไข ${orderNumber}` : "แก้ไขออเดอร์"}
       loading={loading}
       skeleton={
         <div role="status" aria-label="กำลังโหลดฟอร์มแก้ออเดอร์" className="space-y-4">

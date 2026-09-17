@@ -71,7 +71,6 @@ export function useProductRow(
   const lineTotal = netPrice * effectiveQty;
 
   const productLabel = product.productName || product.description || "สินค้าใหม่";
-  const variantLabel = [variant.color, variant.size].filter(Boolean).join(" ");
 
   return {
     // handlers
@@ -82,6 +81,6 @@ export function useProductRow(
     variant, qty, netPrice,
     isFromStock, isCustomMade, isCustomerProvided,
     canMatrix, multi, totalQty, lineTotal,
-    productLabel, variantLabel,
+    productLabel,
   };
 }

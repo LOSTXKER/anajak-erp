@@ -5,9 +5,11 @@ import { CONTROL_H } from "@/components/ui/control-size";
 import { Field } from "@/components/ui/field";
 import { ImageRemoveButton } from "@/components/ui/image-remove-button";
 import { Input } from "@/components/ui/input";
+import { MoneyInput } from "@/components/ui/number-input";
 import { Select } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
-import { DASHED_INTERACTIVE, FOCUS_BUTTON, RADIUS } from "@/components/ui/tokens";
+import { RADIUS } from "@/components/ui/tokens";
+import { c } from "@/components/kit/kit";
 import { cn } from "@/lib/utils";
 import { Plus, Trash2 } from "lucide-react";
 import {
@@ -18,7 +20,7 @@ import {
 } from "@/types/order-form";
 import { usePrintRow } from "./use-print-row";
 
-// จอแคบใช้การ์ดแทนการบีบตาราง 8 คอลัมน์จนต้องเลื่อนซ้ายขวา
+// จอแคบใช้การ์ดแทนการบีบตาราง 8 คอลัมน์จนต้องเลื่อนซ้ายขวา — ชิ้นส่วนหน้าตาชุดเดียวกับแถวตาราง
 export function PrintCardMobile({
   print,
   printIdx,
@@ -53,7 +55,7 @@ export function PrintCardMobile({
   } = usePrintRow(print, onUpdate);
 
   return (
-    <div className={cn(RADIUS.inner, "space-y-3 border border-border p-3/60")}>
+    <div className={cn(RADIUS.inner, "space-y-3 border border-border p-3")}>
       <div className="flex items-center gap-2">
         <input
           ref={inputRef}
@@ -69,14 +71,10 @@ export function PrintCardMobile({
               type="button"
               onClick={() => inputRef.current?.click()}
               aria-label={`เปลี่ยนไฟล์ลาย ${printIdx + 1}`}
-              className={cn(RADIUS.item, FOCUS_BUTTON, "block min-h-11 min-w-11")}
+              className={c("pth")}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={imageUrl}
-                alt={`ลาย ${printIdx + 1}`}
-                className={cn(RADIUS.item, "h-11 w-11 border border-border object-cover")}
-              />
+              <img src={imageUrl} alt={`ลาย ${printIdx + 1}`} />
             </button>
             <ImageRemoveButton
               label={`ลบไฟล์ลาย ${printIdx + 1}`}
@@ -89,14 +87,9 @@ export function PrintCardMobile({
             onClick={() => inputRef.current?.click()}
             disabled={uploading}
             aria-label={`เพิ่มไฟล์ลาย ${printIdx + 1}`}
-            className={cn(
-              DASHED_INTERACTIVE,
-              RADIUS.item,
-              FOCUS_BUTTON,
-              "flex h-11 w-11 shrink-0 items-center justify-center text-muted transition-colors"
-            )}
+            className={cn(c("pth none"), "shrink-0")}
           >
-            {uploading ? <Spinner size="md" /> : <Plus />}
+            {uploading ? <Spinner size="md" /> : <Plus aria-hidden="true" />}
           </button>
         )}
 
@@ -135,11 +128,12 @@ export function PrintCardMobile({
           )}
         </div>
 
+        {/* จอแคบคือจอนิ้ว — คงปุ่มกลางที่เป้ากด 44px บนจอทัช ไม่ใช้ .ibtn 30px ของตาราง */}
         <Button
           type="button"
           variant="ghost"
           size="icon-sm"
-          aria-label={`ลบจุดพิมพ์ ${printIdx + 1}`}
+          aria-label={`ลบลาย ${printIdx + 1}`}
           onClick={onRemove}
           className="shrink-0 text-muted"
         >
@@ -187,9 +181,9 @@ export function PrintCardMobile({
                   onUpdate("width", parseFloat(event.target.value) || 0)
                 }
                 placeholder="กว้าง"
-                className="w-full text-center"
+                className="w-full text-center tabular-nums"
               />
-              <span className="text-xs text-muted">×</span>
+              <span aria-hidden="true" className={c("dsh")}>×</span>
               <Input
                 aria-label={`ความสูงลาย จุดที่ ${printIdx + 1} (ซม.)`}
                 type="number"
@@ -200,7 +194,7 @@ export function PrintCardMobile({
                   onUpdate("height", parseFloat(event.target.value) || 0)
                 }
                 placeholder="สูง"
-                className="w-full text-center"
+                className="w-full text-center tabular-nums"
               />
             </div>
           </Field>
@@ -224,21 +218,15 @@ export function PrintCardMobile({
               onChange={(event) =>
                 onUpdate("colorCount", parseInt(event.target.value) || 1)
               }
-              className="text-center"
+              className="text-center tabular-nums"
             />
           </Field>
         )}
-        <Field label="ค่าสกรีน">
-          <Input
-            type="number"
-            min={0}
-            step={0.01}
-            value={print.unitPrice || ""}
-            onChange={(event) =>
-              onUpdate("unitPrice", parseFloat(event.target.value) || 0)
-            }
-            placeholder="0.00"
-            className="text-right"
+        <Field label="ค่าสกรีน/ตัว">
+          <MoneyInput
+            currency
+            value={print.unitPrice}
+            onValueChange={(v) => onUpdate("unitPrice", v)}
           />
         </Field>
       </div>

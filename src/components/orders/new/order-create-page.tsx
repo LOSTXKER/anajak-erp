@@ -16,10 +16,7 @@ import type { InternalStatus } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
-import { Button } from "@/components/ui/button";
 import { useConfirm } from "@/components/ui/confirm-dialog";
-import { Section, SectionTitle } from "@/components/ui/section";
-import { InfoChip } from "@/components/ui/info-chip";
 import {
   Tabs,
   TabsBar,
@@ -37,14 +34,15 @@ import {
   type OrderFormTabKey,
 } from "@/lib/order-form-tabs";
 import { PageShell } from "@/components/page-shell";
+import { c, Callout, CardHead } from "@/components/kit/kit";
 import { CHANNEL_LABELS } from "@/lib/order-status";
 import { type PaymentTermsValue, PAYMENT_TERMS_LABELS } from "@/lib/payment-terms";
 import { type PickerCustomer } from "@/components/customers/customer-picker";
 import { calculateFormItemSubtotal, calculateOrderSummary } from "@/lib/pricing";
-import { cn, formatCurrency } from "@/lib/utils";
+import { cn, formatBaht, formatCurrency } from "@/lib/utils";
 import { Alert } from "@/components/ui/alert";
 import { Field } from "@/components/ui/field";
-import { ArrowLeft, Calculator, ClipboardList, Loader2 } from "lucide-react";
+import { CircleCheck, ClipboardList, FileText, Landmark, Loader2, Lock, Pen, TriangleAlert } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -91,7 +89,7 @@ import {
   OrderAttachmentsSection,
 } from "@/components/orders/new";
 import { useMarginEstimate } from "@/components/orders/new/order-price-summary";
-import { FOCUS_BUTTON, RADIUS, SUNK_PANEL, TINT, DISPLAY_AMOUNT } from "@/components/ui/tokens";
+import { FOCUS_BUTTON } from "@/components/ui/tokens";
 import { MoneyInput } from "@/components/ui/number-input";
 import {
   buildOrderEditSavePlan,
@@ -481,6 +479,8 @@ export default function OrderFormPage(props: OrderFormPageProps) {
       cancelPendingDraftSave();
       clearOrderDraft(draftScope);
       utils.order.list.invalidate();
+      // เลขออเดอร์ออกจาก server ตอนบันทึก — บอกเลขที่ได้ก่อนพาไปหน้าออเดอร์
+      toast.success(`เปิดงานแล้ว · ระบบตั้งเลข ${data.orderNumber} ให้`);
       const next = new URLSearchParams(window.location.search).get("next");
       router.push(
         next === "quote"
@@ -1150,47 +1150,42 @@ export default function OrderFormPage(props: OrderFormPageProps) {
             { label: "ออเดอร์", href: "/orders" },
             { label: "เปิดงานใหม่" },
           ]}
+      // โหมดแก้ไข: ทางกลับอยู่เหนือชื่อหน้าตำแหน่งเดียวกับโหมดเปิดงาน (ต้นแบบ 2026-09-18)
+      // คลิกปกติผ่าน handleCancel — ถามก่อนทิ้งของที่แก้ และ replace ไม่ทิ้งหน้าแก้ไว้ใน history
+      back={isEdit
+        ? {
+            href: editReturnHref,
+            label: `กลับไป ${props.orderNumber}`,
+            onClick: (event) => {
+              if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+              event.preventDefault();
+              void handleCancel();
+            },
+          }
+        : undefined}
       title={isEdit ? `แก้ไข ${props.orderNumber}` : "เปิดงานใหม่"}
-      action={isEdit ? (
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled={formPending}
-          onClick={() => void handleCancel()}
-          className="gap-1.5"
-        >
-          <ArrowLeft aria-hidden="true" />
-          กลับหน้าออเดอร์
-        </Button>
+      action={changeOrderMode ? (
+        <span className={c("chip warn lg")}>แก้รายการ/ราคา = ออกใบแก้ไข</span>
       ) : undefined}
     >
       {!isEdit && showDraftBanner && (
-        <div className={cn(TINT.warning, "flex flex-wrap items-center gap-3 rounded-lg border px-3 py-2 text-xs")}>
-          <span>
-            พบข้อมูลร่างที่ยังไม่ได้บันทึก — กรอกต่อจากเดิมหรือเริ่มใหม่?
-          </span>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={resetDraft}
-            className="ml-auto"
-          >
-            เริ่มใหม่
-          </Button>
-        </div>
+        <Callout
+          role="note"
+          icon={FileText}
+          action={
+            <button type="button" className={c("btn ghost sm")} onClick={resetDraft}>
+              เริ่มใหม่
+            </button>
+          }
+        >
+          มีร่างที่ยังไม่ได้บันทึก
+        </Callout>
       )}
 
-      {changeOrderMode && (
-        <Alert variant="warning" title="การแก้รายการหรือราคาจะออกใบแก้ไขออเดอร์">
-          ข้อมูลรับเรื่องและจัดส่งยังบันทึกได้ตามปกติ ส่วนรายการ ค่าใช้จ่าย และส่วนลดต้องระบุเหตุผลก่อนบันทึก
-        </Alert>
-      )}
       {workReadOnly && (
-        <Alert variant="warning" title="รายการและราคาถูกล็อกตามสถานะงาน">
-          ยังแก้รายละเอียด หมายเหตุ ที่อยู่จัดส่ง และไฟล์อ้างอิงได้
-        </Alert>
+        <Callout icon={Lock}>
+          <b>รายการและราคาถูกล็อกตามสถานะงาน</b> · ยังแก้รายละเอียด หมายเหตุ ที่อยู่จัดส่ง และไฟล์อ้างอิงได้
+        </Callout>
       )}
 
       {/* noValidate: ใช้ validateForm (กล่อง error เดียว) แทน native validation —
@@ -1199,7 +1194,8 @@ export default function OrderFormPage(props: OrderFormPageProps) {
 
           form ต้องครอบ <Tabs> ทั้งก้อน ไม่ใช่ครอบทีละ TabsContent — ไม่งั้นปุ่มบันทึก
           ที่อยู่นอกแท็บ (แถบล่าง sticky) จะไม่ผูกกับฟอร์ม */}
-      <form onSubmit={handleSubmit} noValidate className="space-y-6">
+      {/* .ofm = ชุดหน้าตาฟอร์มออเดอร์ของต้นแบบ mockup-order-form-2026-09-18 (kit.module.css) */}
+      <form onSubmit={handleSubmit} noValidate className={c("ofm")}>
         {formErrors.length > 0 && (
           <Alert
             ref={errorSummaryRef}
@@ -1249,8 +1245,9 @@ export default function OrderFormPage(props: OrderFormPageProps) {
 
         <Tabs value={tab} onValueChange={changeTab}>
           {/* sticky — เลื่อนลงไปลึกแค่ไหนก็ยังสลับแท็บได้ (ที่เดียวกับที่แถบขั้นตอนเดิมอยู่)
-              TabsBar = พื้นรองที่ทำให้เนื้อหาไม่วิ่งทะลุขึ้นมาอยู่ข้างแท็บ */}
-          <TabsBar>
+              TabsBar = พื้นรองที่ทำให้เนื้อหาไม่วิ่งทะลุขึ้นมาอยู่ข้างแท็บ
+              border-b-0: เหลือเส้นล่างของ .tabs เส้นเดียวตามต้นแบบ ไม่ซ้อนเป็นเส้นคู่ */}
+          <TabsBar className="border-b-0">
             <TabsList aria-label={isEdit ? "ตอนของฟอร์มแก้ออเดอร์" : "ตอนของฟอร์มเปิดงาน"}>
               {tabMarks.map((t) => (
                 <TabsTrigger
@@ -1267,76 +1264,69 @@ export default function OrderFormPage(props: OrderFormPageProps) {
                 >
                   {t.label}
                   {/* จุดเขียว = มีข้อมูลแล้ว · จุดแดงมาจาก hasPending ของ TabsTrigger (แดงชนะเขียว) */}
-                  {t.green && !t.red && (
-                    <span
-                      aria-hidden="true"
-                      className="h-1.5 w-1.5 shrink-0 rounded-full bg-green-500"
-                    />
-                  )}
+                  {t.green && !t.red && <span className={c("tdot")} aria-hidden="true" />}
                 </TabsTrigger>
               ))}
             </TabsList>
           </TabsBar>
 
-          <TabsContent value="intake" keepMounted className="mt-6 space-y-4">
-          {/* รับเรื่อง — สองการ์ด: ลูกค้า (ช่องบังคับช่องเดียว) แล้วเรื่องที่รับมา
-              ต้นแบบ mockup-order-form-2026-09-18 · เบสเคาะ "ทำจริงเลย" 18 ก.ย. */}
+          <TabsContent value="intake" keepMounted className="mt-6">
+          {/* รับเรื่อง — การ์ดแยก 3 ใบ: ลูกค้า (ช่องบังคับช่องเดียว) · เรื่องที่รับมา · การจัดส่ง
+              ต้นแบบ mockup-order-form-2026-09-18 (tabIntake) · เบสเคาะ "ทำให้ครบตามต้นแบบเลย"
+              .stack อยู่ที่ div ข้างใน ไม่ใส่ที่ TabsContent — display:grid ของ kit จะทับการซ่อนแท็บ */}
           <div
             id={STEP_IDS.intake}
             tabIndex={-1}
-            className={cn("scroll-mt-16 space-y-4 outline-none", FOCUS_BUTTON)}
+            className={cn(c("stack"), "scroll-mt-16 outline-none", FOCUS_BUTTON)}
           >
             <OrderCustomerSection
               customerId={customerId}
               selectedCustomer={selectedCustomer}
               invalid={submitted && !customerId}
-              lockedReason={isEdit ? "ลูกค้าผูกกับออเดอร์และประวัติเดิมแล้ว — หากเลือกผิดให้ยกเลิกใบและเปิดใหม่" : undefined}
+              lockedReason={isEdit ? "เปลี่ยนลูกค้าไม่ได้หลังเปิดงาน — เลือกผิดต้องยกเลิกใบและเปิดใหม่" : undefined}
               onSelect={(id, customer) => {
                 setHeaderField("customerId", id);
                 setSelectedCustomer(customer);
               }}
             />
-            <Section
-              title={<SectionTitle icon={ClipboardList} tone="brand">รับเรื่อง</SectionTitle>}
-              data-order-edit-focus="info"
-              className="scroll-mt-24"
-            >
-              <OrderDetailFields
-                deadline={deadline}
-                onDeadlineChange={(value) => setHeaderField("deadline", value)}
-                priority={priority}
-                onPriorityChange={(value) => setHeaderField("priority", value)}
-                channel={channel}
-                onChannelChange={(value) => setHeaderField("channel", value)}
-                channelLockedReason={isEdit ? "ช่องทางผูกกับเลขออเดอร์และสูตรภาษีเดิม จึงเปลี่ยนไม่ได้" : undefined}
-                isMarketplace={isMarketplace}
-                externalOrderId={externalOrderId}
-                onExternalOrderIdChange={(value) => setHeaderField("externalOrderId", value)}
-                description={description}
-                onDescriptionChange={(value) => setHeaderField("description", value)}
-                notes={notes}
-                onNotesChange={(value) => setHeaderField("notes", value)}
-                showGuidance={false}
-              />
-            </Section>
-          </div>
+            <section data-order-edit-focus="info" className={cn(c("card"), "scroll-mt-24")}>
+              <CardHead icon={ClipboardList} title="รับเรื่อง" />
+              <div className={c("cb")}>
+                <OrderDetailFields
+                  deadline={deadline}
+                  onDeadlineChange={(value) => setHeaderField("deadline", value)}
+                  priority={priority}
+                  onPriorityChange={(value) => setHeaderField("priority", value)}
+                  channel={channel}
+                  onChannelChange={(value) => setHeaderField("channel", value)}
+                  channelLockedReason={isEdit ? "แก้ไม่ได้หลังเปิดงาน" : undefined}
+                  isMarketplace={isMarketplace}
+                  externalOrderId={externalOrderId}
+                  onExternalOrderIdChange={(value) => setHeaderField("externalOrderId", value)}
+                  description={description}
+                  onDescriptionChange={(value) => setHeaderField("description", value)}
+                  notes={notes}
+                  onNotesChange={(value) => setHeaderField("notes", value)}
+                />
+              </div>
+            </section>
 
-          {/* ที่อยู่ยังอยู่ในแท็บรับเรื่องตาม flow สนทนากับลูกค้า แต่เป็นคนละก้อนงาน
-              จึงแยกเป็น sibling card ให้สแกน/เลื่อนไปแก้ได้ชัดทั้ง create และ edit */}
-          <div data-order-edit-focus="shipping" className="scroll-mt-24">
-            <OrderShippingSection
-              includeShipping={includeShipping}
-              onIncludeShippingChange={setIncludeShipping}
-              shipping={shipping}
-              onUpdate={updateShipping}
-              showGuidance={false}
-              collapseWhenInactive
-              onUseCustomerAddress={
-                canUseCustomerAddress
-                  ? () => fillShippingFromCustomer(customerAddressFill, customerId || null)
-                  : undefined
-              }
-            />
+            {/* ที่อยู่ยังอยู่ในแท็บรับเรื่องตาม flow สนทนากับลูกค้า แต่เป็นคนละก้อนงาน
+                จึงแยกเป็น sibling card ให้สแกน/เลื่อนไปแก้ได้ชัดทั้ง create และ edit */}
+            <div data-order-edit-focus="shipping" className="scroll-mt-24">
+              <OrderShippingSection
+                includeShipping={includeShipping}
+                onIncludeShippingChange={setIncludeShipping}
+                shipping={shipping}
+                onUpdate={updateShipping}
+                collapseWhenInactive
+                onUseCustomerAddress={
+                  canUseCustomerAddress
+                    ? () => fillShippingFromCustomer(customerAddressFill, customerId || null)
+                    : undefined
+                }
+              />
+            </div>
           </div>
           </TabsContent>
 
@@ -1346,7 +1336,7 @@ export default function OrderFormPage(props: OrderFormPageProps) {
             disabled={workReadOnly}
             tabIndex={-1}
             aria-labelledby="new-order-items-heading"
-            className={cn("m-0 min-w-0 scroll-mt-16 space-y-4 border-0 p-0 outline-none", FOCUS_BUTTON)}
+            className={cn(c("stack"), "m-0 scroll-mt-16 border-0 p-0 outline-none", FOCUS_BUTTON)}
           >
             <OrderItemsListHeader
               headingId="new-order-items-heading"
@@ -1360,7 +1350,7 @@ export default function OrderFormPage(props: OrderFormPageProps) {
             />
 
             {/* หนึ่งรายการต่อหนึ่ง card — ไม่มี outer card ครอบ list ซ้ำ */}
-            <div role="list" className="space-y-4">
+            <div role="list" className={c("stack")}>
               {items.map((item, itemIdx) => (
                 <OrderItemCard
                   key={itemIdx}
@@ -1393,146 +1383,163 @@ export default function OrderFormPage(props: OrderFormPageProps) {
           </TabsContent>
 
           <TabsContent value="pricing" keepMounted className="mt-6">
-          {/* ช่องกรอกซ้าย · สรุปยอดเป็นการ์ดติดขอบขวา (ต้นแบบ 2026-09-18 · เบสเคาะ "ทำจริงเลย")
-              เดิมสรุปยอดเป็นก้อนพื้นจมปิดท้าย ต้องเลื่อนลงไปดูทุกครั้งที่แก้ราคา */}
+          {/* ช่องกรอกซ้ายเป็นการ์ดแยกมีหัวทุกใบ · สรุปยอดเป็นการ์ดติดขอบขวา (ต้นแบบ tabPricing 2026-09-18)
+              เดิมสรุปยอดเป็นก้อนพื้นจมปิดท้าย ต้องเลื่อนลงไปดูทุกครั้งที่แก้ราคา
+              .two อยู่ที่ div ข้างใน ไม่ใส่ที่ TabsContent — display:grid ของ kit จะทับการซ่อนแท็บ */}
           <div
             id={STEP_IDS.pricing}
             tabIndex={-1}
-            className={cn("grid items-start gap-4 scroll-mt-16 outline-none lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]", FOCUS_BUTTON)}
+            className={cn(c("two wide"), "scroll-mt-16 outline-none", FOCUS_BUTTON)}
           >
-            <Section>
-              <div className="space-y-6">
-                <fieldset disabled={workReadOnly} className="m-0 min-w-0 border-0 p-0">
-                  <OrderFeeSection
-                    fees={fees}
-                    onAddFee={addFee}
-                    onRemoveFee={removeFee}
-                    onUpdateFee={updateFee as (idx: number, field: string, value: unknown) => void}
-                    feeCatalog={feeCatalog}
-                    embedded
-                  />
-                </fieldset>
+            <div className={c("stack")}>
+              <fieldset disabled={workReadOnly} className="m-0 min-w-0 border-0 p-0">
+                <OrderFeeSection
+                  fees={fees}
+                  onAddFee={addFee}
+                  onRemoveFee={removeFee}
+                  onUpdateFee={updateFee as (idx: number, field: string, value: unknown) => void}
+                  feeCatalog={feeCatalog}
+                />
+              </fieldset>
 
-                {/* ไม่มีช่อง "ภาษี (%)" แล้ว (เบสเคาะ 2026-08-04 "vat 7% ไม่ต้องมีให้กรอกก็ได้") —
-                    ระบบตั้งให้เอง: ปกติ 7% · ช่องทางมาร์เก็ตเพลสเป็น 0% (ราคารวม VAT อยู่แล้ว)
-                    อัตราจริงยังเห็นได้ที่บรรทัด VAT ในสรุปยอด · งานยกเว้นภาษีแก้ที่หน้าออเดอร์ */}
-                <Section title="เงื่อนไขการขาย" bordered={false} headingLevel={3}>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <Field label="เงื่อนไขชำระ" id="order-payment-terms">
-                      <Select
-                        value={paymentTerms}
-                        onChange={(e) => setHeaderField("paymentTerms", e.target.value)}
-                        disabled={isEdit && editCapability !== "direct"}
-                      >
-                        <option value="">ไม่ระบุ</option>
-                        {Object.entries(PAYMENT_TERMS_LABELS).map(([k, v]) => (
-                          <option key={k} value={k}>
-                            {v}
-                          </option>
-                        ))}
-                      </Select>
-                    </Field>
-                    {/* ส่วนลดท้ายบิลเป็น "ช่องกรอก" — ย้ายมาอยู่ฝั่งช่องกรอก
-                        (เดิมแอบอยู่ในรายการตัวเลขอ่านอย่างเดียวของสรุปยอด คนไม่รู้ว่ากรอกได้) */}
-                    <Field label="ส่วนลดท้ายบิล" id="order-discount">
-                      <MoneyInput
-                        id="order-discount"
-                        value={discount}
-                        onValueChange={(value) => setHeaderField("discount", value)}
-                        disabled={workReadOnly}
-                      />
-                    </Field>
-                    {isEdit && (
-                      <Field
-                        label="ภาษีมูลค่าเพิ่ม (%)"
-                        id="order-tax-rate"
-                        description={editCapability !== "direct" ? "แก้ไม่ได้หลังอนุมัติรายการ" : undefined}
-                        help={editCapability === "direct" ? "คงอัตราเดิมไว้ เว้นแต่งานนี้ได้รับการยกเว้นภาษี" : undefined}
-                      >
-                        <Input
-                          id="order-tax-rate"
-                          type="number"
-                          min={0}
-                          max={100}
-                          step="0.01"
-                          value={taxRate}
-                          onChange={(e) => setHeaderField("taxRate", Number(e.target.value) || 0)}
-                          disabled={editCapability !== "direct"}
-                        />
-                      </Field>
-                    )}
-                    {isMarketplace && (
-                      <Field
-                        label={`ค่าธรรมเนียม ${CHANNEL_LABELS[channel]}`}
-                        id="order-platform-fee"
-                        help="หักจากยอดโอนเข้าร้านและไม่รวมในยอดบิล"
-                      >
-                        <MoneyInput
-                          id="order-platform-fee"
-                          value={platformFee}
-                          onValueChange={(value) => setHeaderField("platformFee", value)}
+              {/* ไม่มีช่อง "ภาษี (%)" ตอนเปิดงาน (เบสเคาะ 2026-08-04 "vat 7% ไม่ต้องมีให้กรอกก็ได้") —
+                  ระบบตั้งให้เอง: ปกติ 7% · ช่องทางมาร์เก็ตเพลสเป็น 0% (ราคารวม VAT อยู่แล้ว)
+                  อัตราจริงยังเห็นได้ที่บรรทัด VAT ในสรุปยอด · หน้าแก้ออเดอร์มีช่องให้แก้ตามสถานะ */}
+              <section className={c("card")}>
+                <CardHead icon={Landmark} tone="blue" title="เงื่อนไขการขาย" />
+                <div className={c("cb")}>
+                  <div className={c("form")}>
+                    <div className={c("f2")}>
+                      <Field label="เงื่อนไขชำระ" id="order-payment-terms">
+                        <Select
+                          value={paymentTerms}
+                          onChange={(e) => setHeaderField("paymentTerms", e.target.value)}
                           disabled={isEdit && editCapability !== "direct"}
+                        >
+                          <option value="">ไม่ระบุ</option>
+                          {Object.entries(PAYMENT_TERMS_LABELS).map(([k, v]) => (
+                            <option key={k} value={k}>
+                              {v}
+                            </option>
+                          ))}
+                        </Select>
+                      </Field>
+                      {/* ส่วนลดท้ายบิลเป็น "ช่องกรอก" — อยู่ฝั่งช่องกรอก
+                          (เดิมแอบอยู่ในรายการตัวเลขอ่านอย่างเดียวของสรุปยอด คนไม่รู้ว่ากรอกได้) */}
+                      <Field label="ส่วนลดท้ายบิล" id="order-discount">
+                        <MoneyInput
+                          currency
+                          id="order-discount"
+                          value={discount}
+                          onValueChange={(value) => setHeaderField("discount", value)}
+                          disabled={workReadOnly}
                         />
                       </Field>
-                    )}
-                    {isCorporateCustomer && (
-                      <Field label="เลขที่ PO" id="order-po-number">
-                        <Input
-                          value={poNumber}
-                          onChange={(e) => setHeaderField("poNumber", e.target.value)}
-                          placeholder="PO Number"
-                        />
-                      </Field>
-                    )}
+                      {isEdit && (
+                        <Field
+                          label="ภาษีมูลค่าเพิ่ม (%)"
+                          id="order-tax-rate"
+                          description={editCapability !== "direct" ? "แก้ไม่ได้หลังอนุมัติรายการ" : undefined}
+                          help={editCapability === "direct" ? "คงอัตราเดิมไว้ เว้นแต่งานนี้ได้รับการยกเว้นภาษี" : undefined}
+                        >
+                          <Input
+                            id="order-tax-rate"
+                            type="number"
+                            min={0}
+                            max={100}
+                            step="0.01"
+                            value={taxRate}
+                            onChange={(e) => setHeaderField("taxRate", Number(e.target.value) || 0)}
+                            disabled={editCapability !== "direct"}
+                          />
+                        </Field>
+                      )}
+                      {isMarketplace && (
+                        <Field
+                          label={`ค่าธรรมเนียม ${CHANNEL_LABELS[channel]}`}
+                          id="order-platform-fee"
+                          help="หักจากยอดโอนเข้าร้านและไม่รวมในยอดบิล"
+                        >
+                          <MoneyInput
+                            currency
+                            id="order-platform-fee"
+                            value={platformFee}
+                            onValueChange={(value) => setHeaderField("platformFee", value)}
+                            disabled={isEdit && editCapability !== "direct"}
+                          />
+                        </Field>
+                      )}
+                      {isCorporateCustomer && (
+                        <Field label="เลขที่ PO" id="order-po-number">
+                          <Input
+                            value={poNumber}
+                            onChange={(e) => setHeaderField("poNumber", e.target.value)}
+                            placeholder="PO Number"
+                          />
+                        </Field>
+                      )}
+                    </div>
                   </div>
-                </Section>
+                </div>
+              </section>
 
-                {changeOrderMode && (
-                  <Field
-                    label="เหตุผลการแก้ไขออเดอร์"
-                    id="order-change-reason"
-                    required={Boolean(editPlan?.work)}
-                    help="ใช้ประกอบใบแก้ไขและประวัติการเปลี่ยนแปลง เมื่อมีการแก้รายการ ค่าใช้จ่าย หรือส่วนลด"
-                  >
-                    <Textarea
-                      id="order-change-reason"
-                      value={changeReason}
-                      onChange={(e) => setChangeReason(e.target.value)}
-                      rows={3}
-                      placeholder="เช่น ลูกค้าเพิ่มจำนวนและเปลี่ยนตำแหน่งพิมพ์"
-                    />
-                  </Field>
-                )}
-                {billedFloorState && (
-                  <Alert variant="warning" className="text-xs font-medium">
-                    {billedFloorState === "credit_note"
-                      ? `ยอดใหม่ ${formatCurrency(pricingSummary.grandTotal)} ต่ำกว่ายอดบิลที่ออกแล้ว ${formatCurrency(editSeed!.billedFloor)} — ออกใบแก้ไขได้ แต่ต้องออกใบลดหนี้ตามให้ยอดบิลตรงยอดจริง`
-                      : `ยอดใหม่ ${formatCurrency(pricingSummary.grandTotal)} ต่ำกว่ายอดบิลที่ออกแล้ว ${formatCurrency(editSeed!.billedFloor)} — บันทึกไม่ผ่าน ต้องยกเลิกบิลเดิมและออกใหม่ตามยอดที่ถูกก่อนลดยอด`}
-                  </Alert>
-                )}
-              </div>
+              {/* ใบแก้ไขต้องมีเหตุผล — ชิป "ต้องกรอก" ขึ้นเมื่อมีการแก้รายการ/ราคาจริง (เงื่อนไขเดียวกับตัวตรวจก่อนบันทึก) */}
+              {changeOrderMode && (
+                <section className={c("card")}>
+                  <CardHead
+                    icon={Pen}
+                    tone="warn"
+                    title="เหตุผลการแก้ไข"
+                    right={editPlan?.work ? <span className={c("chip warn")}>ต้องกรอก</span> : undefined}
+                  />
+                  <div className={c("cb")}>
+                    <div className={c("form")}>
+                      <Field
+                        className={c("full")}
+                        label="เหตุผลการแก้ไขออเดอร์"
+                        id="order-change-reason"
+                        required={Boolean(editPlan?.work)}
+                        help="ใช้ประกอบใบแก้ไขและประวัติการเปลี่ยนแปลง เมื่อมีการแก้รายการ ค่าใช้จ่าย หรือส่วนลด"
+                      >
+                        <Textarea
+                          id="order-change-reason"
+                          value={changeReason}
+                          onChange={(e) => setChangeReason(e.target.value)}
+                          rows={3}
+                          placeholder="เช่น ลูกค้าเพิ่มจำนวนและเปลี่ยนตำแหน่งพิมพ์"
+                        />
+                      </Field>
+                    </div>
+                  </div>
+                </section>
+              )}
+              {/* ยอดใหม่ต่ำกว่ายอดบิลที่ออกแล้ว — ใบแก้ไขยังบันทึกได้ (ส้ม) · แก้ตรงบันทึกไม่ผ่าน (แดง) */}
+              {billedFloorState && (
+                <Callout
+                  role="alert"
+                  tone={billedFloorState === "credit_note" ? undefined : "danger"}
+                  icon={TriangleAlert}
+                >
+                  {billedFloorState === "credit_note"
+                    ? `ยอดใหม่ ${formatBaht(pricingSummary.grandTotal)} ต่ำกว่ายอดบิลที่ออกแล้ว ${formatBaht(editSeed!.billedFloor)} — ออกใบแก้ไขได้ แต่ต้องออกใบลดหนี้ตามให้ยอดบิลตรงยอดจริง`
+                    : `ยอดใหม่ ${formatBaht(pricingSummary.grandTotal)} ต่ำกว่ายอดบิลที่ออกแล้ว ${formatBaht(editSeed!.billedFloor)} — บันทึกไม่ผ่าน ต้องยกเลิกบิลเดิมและออกใหม่ตามยอดที่ถูกก่อนลดยอด`}
+                </Callout>
+              )}
+            </div>
 
-            </Section>
-
-            <Section
-              title={<SectionTitle icon={Calculator} tone="finance">สรุปยอด</SectionTitle>}
-              action={taxRate > 0 ? <InfoChip size="sm">รวม VAT {taxRate}%</InfoChip> : undefined}
-              className="lg:sticky lg:top-24"
-            >
-              <OrderPriceSummary
-                pricingSummary={pricingSummary}
-                showFeeSections={true}
-                isMarketplace={isMarketplace}
-                channelLabel={CHANNEL_LABELS[channel]}
-                taxRate={taxRate}
-                platformFee={platformFee}
-                discount={discount}
-                marginEstimate={marginEstimate}
-                embedded
-                headless
-                totalQuantity={totalQuantity}
-              />
-            </Section>
+            <OrderPriceSummary
+              pricingSummary={pricingSummary}
+              showFeeSections={true}
+              isMarketplace={isMarketplace}
+              channelLabel={CHANNEL_LABELS[channel]}
+              taxRate={taxRate}
+              platformFee={platformFee}
+              discount={discount}
+              marginEstimate={marginEstimate}
+              items={items}
+              paymentTerms={paymentTerms}
+              totalQuantity={hasItemContent ? totalQuantity : 0}
+            />
           </div>
           </TabsContent>
 
@@ -1553,40 +1560,35 @@ export default function OrderFormPage(props: OrderFormPageProps) {
           <OrderFormActionBar
             data-order-submit-bar=""
             summary={
-              hasItemContent ? (
-                <>
-                  {/* ชื่อเดียวกับบรรทัดสุดท้ายของ "สรุปยอด" — เดิมเรียก "ยอดรวม" กับ
-                      "ยอดรวมทั้งหมด" คนละที่คนละขนาด อ่านแล้วไม่แน่ใจว่าเลขเดียวกันไหม */}
-                  <p className="text-xs text-muted">
-                    ยอดรวมทั้งหมด{taxRate > 0 ? " (รวม VAT)" : ""}
-                  </p>
-                  <p className={cn("truncate", DISPLAY_AMOUNT)}>
-                    {formatCurrency(pricingSummary.grandTotal)}
-                  </p>
-                </>
-              ) : (
-                <p className="text-xs text-muted">
-                  ยังไม่ใส่รายการ/ราคา
-                </p>
-              )
+              /* เลขนำ ป้ายรองใต้เลข (ต้นแบบ .sbar) · ชื่อเดียวกับบรรทัดสุดท้ายของ "สรุปยอด"
+                 ยังไม่มีรายการ = ฿0.00 · 0 ตัว (ยอดและจำนวนนับเฉพาะรายการที่จะถูกส่งจริง) */
+              <span className={c("sum")}>
+                <b className={c("mono")}>{formatBaht(pricingSummary.grandTotal)}</b>
+                <small>
+                  ยอดรวมทั้งหมด{taxRate > 0 ? " (รวม VAT)" : ""} ·{" "}
+                  {(hasItemContent ? totalQuantity : 0).toLocaleString("th-TH")} ตัว
+                </small>
+              </span>
             }
           >
-            <Button
+            <button
               type="button"
-              variant="outline"
-              size="sm"
+              className={c("btn")}
               disabled={formPending}
               onClick={() => void handleCancel()}
             >
               ยกเลิก
-            </Button>
-            <Button
+            </button>
+            <button
               type="submit"
-              size="sm"
+              className={c("btn primary")}
               disabled={formPending || (isEdit && !isDirty)}
-              className="gap-1.5"
             >
-              {formPending && <Loader2 className="animate-spin" />}
+              {formPending ? (
+                <Loader2 className="animate-spin" aria-hidden="true" />
+              ) : (
+                <CircleCheck aria-hidden="true" />
+              )}
               {formPending
                 ? "กำลังบันทึก..."
                 : isEdit
@@ -1594,7 +1596,7 @@ export default function OrderFormPage(props: OrderFormPageProps) {
                     ? "บันทึกและออกใบแก้ไข"
                     : "บันทึกการแก้ไข"
                   : "เปิดงาน"}
-            </Button>
+            </button>
           </OrderFormActionBar>
       </form>
 

@@ -1961,7 +1961,10 @@ check(
       onOpenPicker: noop, onSetItems: noop,
     })
   );
-  const cards = [...html.matchAll(/class="([^"]*border-dashed[^"]*)"/g)].map((m) => m[1]);
+  // ตั้งแต่ต้นแบบฟอร์มออเดอร์ 2026-09-18 กล่องเพิ่มของตอนว่างคือ .drop.act ของชุดกลาง (kit)
+  // — ด่านนับ/เทียบคลาสชุดเดียวกันเหมือนเดิม แค่เปลี่ยนจากคลาส Tailwind เป็นชื่อคลาส kit
+  const cards = [...html.matchAll(/class="([^"]*\bdrop act\b[^"]*)"/g)].map((m) => m[1]);
+  const kitCss = readFileSync("src/components/kit/kit.module.css", "utf8");
   const problems: string[] = [];
   for (const t of ["รายการที่ 1", "สินค้าในชุดงาน", "ลายและงานพิมพ์", "ส่วนเสริมในชุดงาน"]) {
     if (!html.includes(t)) problems.push(`ไม่เจอข้อความ "${t}"`);
@@ -1973,21 +1976,17 @@ check(
   for (const t of ["ยังไม่มีสินค้า", "ยังไม่มีลาย", "ยังไม่มีส่วนเสริม"]) {
     if (html.includes(t)) problems.push(`ยังมีข้อความ "${t}" (เบสสั่งเอาออก)`);
   }
-  // การ์ดต้องกินเต็มแถว (เบส: "พื้นที่ปุ่ม CTA เอาเต็มแถวเลย")
-  if (cards.some((c) => !c.split(/\s+/).includes("w-full"))) {
-    problems.push("การ์ดขอบประบางใบไม่ได้ w-full");
+  // การ์ดต้องกินเต็มแถว (เบส: "พื้นที่ปุ่ม CTA เอาเต็มแถวเลย") และเป็นขอบประชุดกลางใบเดียวกัน
+  // ความกว้าง/ขอบประอยู่ที่กฎ .drop ของ kit — ห้ามต่อคลาส Tailwind ทับรายใบ
+  if (cards.some((card) => card.trim() !== "drop act")) {
+    problems.push("กล่องเพิ่มของตอนว่างต้องเป็น .drop.act ของ kit ล้วน ไม่ต่อคลาสอื่นรายใบ");
   }
-  for (const card of cards) {
-    const classes = new Set(card.split(/\s+/));
-    for (const expected of [
-      "border-slate-300",
-      "dark:border-slate-700",
-    ]) {
-      if (!classes.has(expected)) problems.push(`การ์ดขอบประขาด state ${expected}`);
-    }
-    if (classes.has("border-border-strong")) {
-      problems.push("การ์ดขอบประใช้ strong boundary ตั้งแต่ resting");
-    }
+  const dropRule = kitCss.match(/^\.drop \{[^}]*\}/m)?.[0] ?? "";
+  if (!/width:\s*100%/.test(dropRule) || !/border:\s*1px dashed/.test(dropRule)) {
+    problems.push("กฎ .drop ของ kit ต้องกว้างเต็มแถวและขอบประ");
+  }
+  if (!/\.ofm \.drop\.act \{[^}]*min-height:\s*64px/.test(kitCss)) {
+    problems.push("กล่องเพิ่มของในฟอร์มออเดอร์ต้องเป็นแถวเตี้ย ไอคอนข้างคำ (.ofm .drop.act) ตามต้นแบบ");
   }
   // สินค้า 3 ใบ + ลาย 1 + ส่วนเสริม 1 · ทุกใบต้องใช้คลาสชุดเดียวกันเป๊ะ
   if (cards.length !== 5) problems.push(`การ์ดขอบประควรมี 5 ใบ แต่ได้ ${cards.length}`);
@@ -2097,7 +2096,8 @@ check(
     intakeTabStart,
   );
   const intakeTabSource = createSource.slice(intakeTabStart, intakeTabEnd);
-  const intakeCardEnd = intakeTabSource.indexOf("</Section>");
+  // การ์ดรับเรื่องเป็น <section className={c("card")}> ของชุดกลาง (ต้นแบบฟอร์ม 2026-09-18)
+  const intakeCardEnd = intakeTabSource.indexOf("</section>");
   const shippingSectionStart = intakeTabSource.indexOf(
     "<OrderShippingSection",
   );
@@ -2110,7 +2110,7 @@ check(
     shippingSectionEnd,
   );
   if (
-    !intakeTabSource.includes('className="mt-6 space-y-4"') ||
+    !intakeTabSource.includes('c("stack")') ||
     intakeCardEnd < 0 ||
     shippingSectionStart < intakeCardEnd ||
     shippingCall.includes("embedded")
@@ -2124,12 +2124,13 @@ check(
       `ห้ามเรียก editor/dialog รุ่นเก่าจากไฟล์อื่น: ${legacyCallers.join(", ")}`,
     );
   }
+  // การ์ดชุดงานใช้ .card ของชุดกลาง (ต้นแบบฟอร์ม 2026-09-18) — ขอบมาจาก kit ที่เดียว ห้ามต่อ border/ring ของ Tailwind
   if (
     !itemWrapper.includes('role="listitem"') ||
-    !itemWrapper.includes("card-surface") ||
+    !(itemWrapper.includes('c("card")') || itemWrapper.includes("card-surface")) ||
     /(?:^|\s)border(?:\s|["'`])|(?:^|\s)ring-(?!0)/.test(itemWrapper)
   ) {
-    problems.push("OrderItemCard ต้องเป็น listitem บน card-surface โดยไม่มี border/ring");
+    problems.push("OrderItemCard ต้องเป็น listitem บนการ์ดชุดกลาง (.card) โดยไม่มี border/ring เพิ่ม");
   }
 
   const headerIndex = createSource.indexOf("<OrderItemsListHeader");
