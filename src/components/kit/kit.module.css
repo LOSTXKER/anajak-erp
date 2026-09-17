@@ -955,7 +955,7 @@ ul.ocards { margin: 0; list-style: none; }
 /* ---------- หน้ารายการออเดอร์ รอบโล่งขึ้น (ต้นแบบ mockup-orders-list-lite-2026-09-16) ---------- */
 .tools .grow { flex: 1; }
 .card.lst .tools { padding-top: 14px; }
-.orders.olistt col.n-no { width: 200px; } .orders.olistt col.n-cu { width: auto; } .orders.olistt col.n-q { width: 78px; } .orders.olistt col.n-st { width: 134px; } .orders.olistt col.n-who { width: 132px; } .orders.olistt col.n-why { width: 172px; } .orders.olistt col.n-amt { width: 118px; } .orders.olistt col.n-pay { width: 96px; } .orders.olistt col.n-due { width: 112px; } .orders.olistt col.n-arr { width: 40px; }
+.orders.olistt col.n-no { width: 200px; } .orders.olistt col.n-cu { width: auto; } .orders.olistt col.n-q { width: 78px; } .orders.olistt col.n-st { width: 134px; } .orders.olistt col.n-who { width: 132px; } .orders.olistt col.n-amt { width: 118px; } .orders.olistt col.n-pay { width: 96px; } .orders.olistt col.n-due { width: 112px; } .orders.olistt col.n-arr { width: 40px; }
 .orders.olistt td { padding-block: 12px; }
 .orders.olistt td .t .dt { display: block; margin-top: 2px; font-size: 11.5px; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .orders.olistt td .t .dt .urg { color: var(--bad); font-weight: 600; }

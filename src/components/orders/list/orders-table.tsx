@@ -15,8 +15,9 @@ import { formatBaht, formatDateShort } from "@/lib/utils";
 /* ============================================================
    ตารางออเดอร์ — ต้นแบบ mockup-orders-list-lite-2026-09-16 (เบสเคาะ "ทำจริงเลย")
 
-   ออเดอร์ · ลูกค้า · จำนวน · ขั้นงาน · คนทำ · ต้องจัดการ · ยอด·ชำระ · กำหนดส่ง · ›
-   ขั้นงานเหลือชื่อสถานะ · คนทำแยกคอลัมน์ · ต้องจัดการใช้ถ้อยคำสั้น (กฎกลาง lib/home-orders ชุดเดียวกับหน้าแรก)
+   ออเดอร์ · ลูกค้า · จำนวน · ขั้นงาน · คนทำ · ยอด·ชำระ · กำหนดส่ง · ›
+   ขั้นงานเหลือชื่อสถานะ · คนทำแยกคอลัมน์ · ตารางไม่มีคอลัมน์ "ต้องจัดการ" แล้ว (เบสสั่ง 2026-09-18)
+   เหตุที่ต้องจัดการยังอยู่ในแผงดูย่อ/ใบเต็ม และการ์ดจอ ≤900px (กฎกลาง lib/home-orders ชุดเดียวกับหน้าแรก)
    กดแถว = ดูย่อ (เลขออเดอร์เป็นปุ่มให้คีย์บอร์ดเข้าได้) · › = เปิดใบเต็ม · จอ ≤900px เป็นการ์ด (.ocards)
    ============================================================ */
 
@@ -174,7 +175,6 @@ export function OrdersTable({
             <col className={c("n-q")} />
             <col className={c("n-st")} />
             <col className={c("n-who")} />
-            <col className={c("n-why")} />
             {canSeeMoney ? <col className={c("n-amt")} /> : <col className={c("n-pay")} />}
             <col className={c("n-due")} />
             <col className={c("n-arr")} />
@@ -188,7 +188,6 @@ export function OrdersTable({
               </th>
               <th scope="col">ขั้นงาน</th>
               <th scope="col">คนทำ</th>
-              <th scope="col">ต้องจัดการ</th>
               {canSeeMoney ? <SortTh label="ยอดรวม" column={sortColumn("totalAmount")} right /> : <th scope="col">การชำระ</th>}
               <SortTh label="กำหนดส่ง" column={sortColumn("deadline")} />
               <th scope="col">
@@ -198,7 +197,6 @@ export function OrdersTable({
           </thead>
           <tbody>
             {orders.map((order) => {
-              const problem = describeOrderAttention(order.progress);
               const selected = peekId === order.id;
               const { title } = customerLines(order);
               const urgent = order.priority === "URGENT";
@@ -248,9 +246,6 @@ export function OrdersTable({
                   </td>
                   <td>
                     <WorkerCell order={order} />
-                  </td>
-                  <td>
-                    <WhyCell problem={problem} progress={order.progress} short />
                   </td>
                   {canSeeMoney ? (
                     <td className={c("amt r")}>

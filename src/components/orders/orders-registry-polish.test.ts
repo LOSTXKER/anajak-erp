@@ -30,10 +30,11 @@ describe("หน้ารายการออเดอร์ — ต้นแ�
     expect(pipelineSource).toContain("PIPELINE_EXCEPTIONS");
   });
 
-  it("ตารางตอบ ใบไหน/ลูกค้า → ขั้นงาน → ต้องจัดการ ด้วยกฎเดียวกับหน้าแรกและรูปม็อกอัพกลาง", () => {
-    for (const header of ["ลูกค้า", "จำนวน", "ขั้นงาน", "คนทำ", "ต้องจัดการ", "การชำระ"]) {
+  it("ตารางตอบ ใบไหน/ลูกค้า → ขั้นงาน ด้วยรูปม็อกอัพกลาง · ไม่มีคอลัมน์ต้องจัดการแล้ว (เบสสั่ง 2026-09-18)", () => {
+    for (const header of ["ลูกค้า", "จำนวน", "ขั้นงาน", "คนทำ", "การชำระ"]) {
       expect(tableSource).toMatch(new RegExp(`>\\s*${header}\\s*<`));
     }
+    expect(tableSource).not.toMatch(/>\s*ต้องจัดการ\s*</);
     for (const sortable of ["เลขออเดอร์", "ยอดรวม", "กำหนดส่ง"]) expect(tableSource).toContain(`label="${sortable}"`);
     expect(tableSource).toContain("describeOrderAttention(order.progress)");
     expect(tableSource).toContain("<Thumb cover={orderListCover(order)}");
