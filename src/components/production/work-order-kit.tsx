@@ -33,6 +33,7 @@ import {
   RefreshCw,
   RotateCcw,
   Send,
+  Undo2,
   Shirt,
   StickyNote,
   TriangleAlert,
@@ -833,7 +834,32 @@ export function WorkOrderKitView({ c: ctl, scannedMockup = Number.NaN }: { c: Wo
   const reopenTarget = allDone
     ? (workflowSteps[workflowSteps.length - 1] ?? null)
     : ([...workflowSteps.slice(0, flatIndex)].reverse().find((s) => s.status === "COMPLETED") ?? null);
-  const reopenBlocked = !!reopenTarget && (FLOW_OWNED_STEP_TYPES.has(reopenTarget.stepType) || reopenTarget.outsourceOrders.length > 0);
+  /* ย้อนกลับเป็นปุ่มจริงบนหัวใบเมื่อย้อนได้ (เบสสั่ง 2026-09-18 "จะได้กดได้ง่ายๆ")
+     ย้อนไม่ได้ = คงเป็นรายการจางในเมนู ⋯ พร้อมเหตุผล (ไม่โชว์ปุ่มที่กดแล้ว server ปฏิเสธ — B8)
+
+     ด่านต้องตรงกับ server ทุกข้อ (production.reopenStep + assertStepReopenable):
+     ปิดด้วยปุ่มเท่านั้น · ไม่มีใบส่งร้าน/รอบพิมพ์ผูก · ขั้นหลังจากนั้นยังไม่มีใครเริ่ม ·
+     ออเดอร์ยังอยู่ระหว่างผลิต (ใช้ ctl.canUpdateStep ตัวเดียวกับปุ่มลงมือ ไม่เขียนกฎสถานะใหม่)
+     นับขั้นพี่น้องจากทั้งใบ (production.steps) เหมือน server ไม่ใช่เฉพาะขั้นที่อยู่บนราง
+     (ใบตรวจรับนับไม่ได้ฝั่งนี้ — แต่ขั้นที่มีใบตรวจรับเป็นชนิดที่ flow เป็นเจ้าของอยู่แล้ว)
+
+     ปิดขั้นสุดท้ายแล้ว server เดินออเดอร์ไป "ตรวจคุณภาพ" ให้เอง (finalizeProductionIfComplete)
+     ปุ่มจึงหายเองตอนนั้น — ทางย้อนของสถานะนั้นอยู่ที่หัวใบออเดอร์ (QC → กำลังผลิต) */
+  const allStepsOfSheet = production?.steps ?? [];
+  const reopenBlockedReason: string | null = !reopenTarget
+    ? "ยังไม่มีขั้นที่ปิดให้ย้อน"
+    : reopenTarget.status !== "COMPLETED"
+      ? "ขั้นนี้ยังไม่ได้ปิด"
+      : FLOW_OWNED_STEP_TYPES.has(reopenTarget.stepType) ||
+          reopenTarget.outsourceOrders.length > 0 ||
+          reopenTarget.printRunItems.length > 0
+        ? "ปิดผ่านหลักฐานของระบบ"
+        : allStepsOfSheet.some((s) => s.sortOrder > reopenTarget.sortOrder && s.status !== "PENDING")
+          ? "ขั้นถัดไปเริ่มทำแล้ว"
+          : !ctl.canUpdateStep
+            ? "ออเดอร์ยังไม่อยู่ในสถานะกำลังผลิต"
+            : null;
+  const canReopenNow = canManageStep && !!reopenTarget && reopenBlockedReason === null;
   const receiveStep = workflowSteps.find((step) => step.stepType === "GARMENT_RECEIVE") ?? null;
   const sendQc = () =>
     production && (qcAction === "paper" ? ctl.sendToQc.mutate({ productionId: production.id }) : ctl.legacyFinalize.mutate({ productionId: production.id }));
@@ -941,6 +967,18 @@ export function WorkOrderKitView({ c: ctl, scannedMockup = Number.NaN }: { c: Wo
                   <Printer aria-hidden="true" />
                   <span className={c("lbl")}>ใบสั่งงาน</span>
                 </a>
+                {canReopenNow && reopenTarget ? (
+                  <button
+                    type="button"
+                    className={c("btn")}
+                    onClick={() => void ctl.handleReopen(reopenTarget)}
+                    disabled={ctl.reopenPending}
+                    aria-label={`ย้อนกลับ: ${stepLabel(reopenTarget)}`}
+                  >
+                    <Undo2 aria-hidden="true" />
+                    <span className={c("lbl")}>ย้อนกลับ: {stepLabel(reopenTarget)}</span>
+                  </button>
+                ) : null}
                 {qcAction ? (
                   <button type="button" className={c("btn primary")} onClick={sendQc} disabled={ctl.sendToQc.isPending || ctl.legacyFinalize.isPending}>
                     <Send aria-hidden="true" />
@@ -976,15 +1014,13 @@ export function WorkOrderKitView({ c: ctl, scannedMockup = Number.NaN }: { c: Wo
                             {!canManageStep ? <small>หัวหน้าเท่านั้น</small> : null}
                           </DropdownMenu.Item>
                         ) : null}
-                        <DropdownMenu.Item
-                          className={c("mi danger")}
-                          disabled={!canManageStep || !reopenTarget || reopenBlocked || ctl.reopenPending}
-                          onSelect={() => void (reopenTarget && ctl.handleReopen(reopenTarget))}
-                        >
-                          <RotateCcw aria-hidden="true" />
-                          {reopenTarget ? `ย้อนกลับไป ${stepLabel(reopenTarget)}` : "ย้อนกลับขั้นก่อน"}
-                          {!canManageStep ? <small>หัวหน้าเท่านั้น</small> : reopenBlocked ? <small>ปิดผ่านหลักฐานของระบบ</small> : null}
-                        </DropdownMenu.Item>
+                        {!canReopenNow ? (
+                          <DropdownMenu.Item className={c("mi danger")} disabled>
+                            <RotateCcw aria-hidden="true" />
+                            {reopenTarget ? `ย้อนกลับไป ${stepLabel(reopenTarget)}` : "ย้อนกลับขั้นก่อน"}
+                            {!canManageStep ? <small>หัวหน้าเท่านั้น</small> : <small>{reopenBlockedReason}</small>}
+                          </DropdownMenu.Item>
+                        ) : null}
                         <DropdownMenu.Separator className={c("sep")} />
                         <DropdownMenu.Item asChild className={c("mi")}>
                           <Link href={`/orders/${order.id}?tab=history`}>

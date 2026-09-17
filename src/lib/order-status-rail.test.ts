@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { findOffPathAnchor, railStepState, type StatusRevisionLike } from "./order-status-rail";
-import { getFlowSteps } from "./order-status";
+import { findOffPathAnchor, railStepState, type StatusRevisionLike, singleBackStatus } from "./order-status-rail";
+import { getFlowSteps, getNextStatuses } from "./order-status";
 
 const CUSTOM = getFlowSteps("CUSTOM");
 const READY = getFlowSteps("READY_MADE");
@@ -108,5 +108,40 @@ describe("railStepState — สีของแต่ละขั้นบนร�
     expect(railStepState({ index: 0, anchorIndex: -1, cancelled: false })).toBe("todo");
     expect(railStepState({ index: 9, anchorIndex: -1, cancelled: false })).toBe("todo");
     expect(railStepState({ index: 0, anchorIndex: -1, cancelled: true })).toBe("skipped");
+  });
+});
+
+// ปุ่มย้อนกลับบนหัวใบออเดอร์ (เบสสั่ง 2026-09-18) — ต้องโผล่เฉพาะตอนที่ถอยได้ทางเดียวจริง
+describe("singleBackStatus", () => {
+  const flow = getFlowSteps("CUSTOM");
+
+  it("QC ถอยไปกำลังผลิตได้ทางเดียว → ได้ปุ่ม", () => {
+    const targets = getNextStatuses("CUSTOM", "QUALITY_CHECK").filter((s) => s !== "CANCELLED");
+    expect(targets).toContain("PRODUCING");
+    expect(singleBackStatus({ flowSteps: flow, internalStatus: "QUALITY_CHECK", allowedTargets: targets })).toBe(
+      "PRODUCING",
+    );
+  });
+
+  it("ขั้นที่เดินหน้าอย่างเดียวไม่มีปุ่มย้อน", () => {
+    const targets = getNextStatuses("CUSTOM", "CONFIRMED").filter((s) => s !== "CANCELLED");
+    expect(singleBackStatus({ flowSteps: flow, internalStatus: "CONFIRMED", allowedTargets: targets })).toBeNull();
+  });
+
+  it("ส่งแล้วถอยได้สองทาง (พร้อมส่ง/QC) → ไม่ยกออกมาเป็นปุ่ม ให้เลือกในเมนู", () => {
+    const targets = getNextStatuses("CUSTOM", "SHIPPED").filter((s) => s !== "CANCELLED");
+    const back = targets.filter((s) => flow.indexOf(s) < flow.indexOf("SHIPPED") && flow.includes(s));
+    expect(back.length).toBeGreaterThan(1);
+    expect(singleBackStatus({ flowSteps: flow, internalStatus: "SHIPPED", allowedTargets: targets })).toBeNull();
+  });
+
+  it("สิทธิ์ตัดขั้นถอยออกไปแล้ว = ไม่มีปุ่ม (ไม่โชว์ปุ่มที่ server จะปฏิเสธ)", () => {
+    expect(singleBackStatus({ flowSteps: flow, internalStatus: "QUALITY_CHECK", allowedTargets: ["PACKING"] })).toBeNull();
+  });
+
+  it("พักงาน/ยกเลิกอยู่นอกเส้นทาง — ไม่เดาขั้นก่อนให้", () => {
+    expect(
+      singleBackStatus({ flowSteps: flow, internalStatus: "ON_HOLD", allowedTargets: ["PRODUCING", "PRODUCTION_QUEUE"] }),
+    ).toBeNull();
   });
 });

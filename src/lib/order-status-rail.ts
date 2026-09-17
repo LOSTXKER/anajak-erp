@@ -77,3 +77,28 @@ export function railStepState(params: {
   if (index === anchorIndex) return "current";
   return cancelled ? "skipped" : "todo";
 }
+
+/**
+ * ขั้นเดียวที่ "ถอยกลับ" ได้จากสถานะที่ยืนอยู่ — ให้หัวใบยกออกมาเป็นปุ่มจริงได้
+ * (เบสสั่ง 2026-09-18 "เอาปุ่ม CTA ย้อนกลับออกมาหน่อย จะได้กดได้ง่ายๆ")
+ *
+ * ถอย = ขั้นเป้าหมายอยู่ก่อนขั้นปัจจุบันบนเส้นทางเดียวกับราง ไม่ใช่ทุกสถานะที่ getNextStatuses คืนมา
+ * allowedTargets ต้องกรองสิทธิ์/ด่านใบผลิตมาก่อนแล้ว — ที่นี่ไม่ตัดสินสิทธิ์และไม่ตัดสินเหตุผลที่ต้องกรอก
+ *
+ * null = ไม่มีทางถอย หรือถอยได้หลายทาง (ส่งแล้ว → พร้อมส่ง/QC) ซึ่งต้องให้คนเลือกในเมนูเหมือนเดิม
+ * สถานะนอกเส้นทาง (พักงาน/ยกเลิก) ก็คืน null — ไม่มี "ขั้นก่อน" ที่ชี้ได้แน่นอน
+ */
+export function singleBackStatus(params: {
+  flowSteps: readonly string[];
+  internalStatus: string;
+  allowedTargets: readonly string[];
+}): string | null {
+  const { flowSteps, internalStatus, allowedTargets } = params;
+  const currentIndex = flowSteps.indexOf(internalStatus);
+  if (currentIndex < 0) return null;
+  const back = allowedTargets.filter((target) => {
+    const index = flowSteps.indexOf(target);
+    return index >= 0 && index < currentIndex;
+  });
+  return back.length === 1 ? back[0] : null;
+}
