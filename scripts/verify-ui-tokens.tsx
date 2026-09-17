@@ -1954,7 +1954,7 @@ check(
     React.createElement(OrderItemCard, {
       cardId: "verify-order-item-1",
       item: EMPTY_ITEM, itemIdx: 0, canRemove: false, isExpanded: true,
-      compact: true, allItems: [EMPTY_ITEM],
+      compact: true,
       printCatalog: [], addonCatalog: [],
       onUpdateItem: noop, onRemoveItem: noop, onAddPrint: noop, onRemovePrint: noop,
       onUpdatePrint: noop, onAddAddon: noop, onRemoveAddon: noop, onUpdateAddon: noop,

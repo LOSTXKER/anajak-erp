@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildOrderItemPriceSummary,
   createProductForSource,
+  duplicateOrderItem,
   getProductSourcePresentation,
   moveOrderItemProduct,
   resolveFeeCatalogSelection,
@@ -288,5 +289,74 @@ describe("createProductForSource", () => {
     expect(stock.itemSource).toBe("FROM_STOCK");
     expect(stock.variants).toEqual(EMPTY_PRODUCT.variants);
     expect(stock.formKey).toBeTruthy();
+  });
+});
+
+describe("duplicateOrderItem", () => {
+  const items = (): OrderItemForm[] => [
+    {
+      description: "เสื้อทีม",
+      notes: "แยกถุง",
+      prints: [{ position: "FRONT", printType: "DTF", colorCount: 2, unitPrice: 25, printSize: "A3", width: 29.7, height: 42, designNote: "", designImageUrl: "https://storage.example/a.png" }],
+      addons: [{ addonType: "NECK_LABEL", name: "ป้ายคอ", pricingType: "PER_PIECE", unitPrice: 12 }],
+      products: [
+        product({ formKey: "old-key", savedProductId: "saved-1", itemSource: "CUSTOM_MADE", description: "โปโลตัดเย็บ", baseUnitPrice: 240, variants: [{ size: "M", color: "ดำ", quantity: 4 }] }),
+      ],
+    },
+    { description: "ชุดอื่น", notes: "", prints: [], addons: [], products: [] },
+  ];
+
+  it("วางชุดที่คัดลอกไว้ท้ายรายการ (ไม่แทรกกลาง) พร้อมลาย สินค้า ไซส์ ส่วนเสริม และหมายเหตุ", () => {
+    const next = duplicateOrderItem(items(), 0);
+    expect(next).toHaveLength(3);
+    // ชุดอื่นต้องอยู่ index เดิม — เลข index เป็นตัวชี้ของหน้า (ชุดเป้าหมายของ picker/คีย์การ์ด)
+    expect(next[1].description).toBe("ชุดอื่น");
+    expect(next[2].description).toBe("เสื้อทีม");
+    expect(next[2].notes).toBe("แยกถุง");
+    expect(next[2].prints).toEqual(items()[0].prints);
+    expect(next[2].addons).toEqual(items()[0].addons);
+    expect(next[2].products[0].variants).toEqual([{ size: "M", color: "ดำ", quantity: 4 }]);
+  });
+
+  it("แถวสินค้าในชุดใหม่ได้ form key ใหม่และไม่พา savedProductId ของแถวเดิมไป (กันหน้าแก้ผูกใบตรวจรับผิดตัว)", () => {
+    const next = duplicateOrderItem(items(), 0);
+    expect(next[2].products[0].savedProductId).toBeUndefined();
+    expect(next[2].products[0].formKey).toBeTruthy();
+    expect(next[2].products[0].formKey).not.toBe("old-key");
+    expect(next[0].products[0].formKey).toBe("old-key");
+    expect(next[0].products[0].savedProductId).toBe("saved-1");
+  });
+
+  it("แก้ชุดที่คัดลอกแล้วชุดต้นทางไม่เปลี่ยนตาม (ก๊อปลึก)", () => {
+    const next = duplicateOrderItem(items(), 0);
+    next[2].prints[0].unitPrice = 99;
+    next[2].products[0].variants[0].quantity = 10;
+    expect(next[0].prints[0].unitPrice).toBe(25);
+    expect(next[0].products[0].variants[0].quantity).toBe(4);
+  });
+
+  it("ไม่พาหลักฐานการรับของของแถวเดิมไปชุดใหม่ (สภาพ · หมายเหตุรับของ · ตรวจรับแล้ว)", () => {
+    const withReceipt = items();
+    withReceipt[0].products = [
+      product({
+        itemSource: "CUSTOMER_PROVIDED",
+        description: "เสื้อลูกค้า",
+        baseUnitPrice: 0,
+        garmentCondition: "GOOD",
+        receiveNote: "รับครบ 20 ตัว ถุงครบ",
+        receivedInspected: true,
+        variants: [{ size: "L", color: "ขาว", quantity: 20 }],
+      }),
+    ];
+    const clone = duplicateOrderItem(withReceipt, 0)[2].products[0];
+    expect(clone.garmentCondition).toBe("");
+    expect(clone.receiveNote).toBe("");
+    expect(clone.receivedInspected).toBe(false);
+    expect(clone.variants).toEqual([{ size: "L", color: "ขาว", quantity: 20 }]);
+  });
+
+  it("ดัชนีที่ไม่มีอยู่ = คืนรายการเดิม", () => {
+    const original = items();
+    expect(duplicateOrderItem(original, 5)).toBe(original);
   });
 });

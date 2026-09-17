@@ -75,6 +75,7 @@ import {
   validateOrderItemProduct,
 } from "@/types/order-form";
 import { mapItemsToMutationInput, mapFeesToMutationInput } from "@/lib/order-mapping";
+import { duplicateOrderItem } from "@/lib/order-item-composer";
 import { mergeStockVariantsIntoItems } from "@/lib/order-form-stock";
 import {
   OrderItemCard,
@@ -1122,6 +1123,24 @@ export default function OrderFormPage(props: OrderFormPageProps) {
     toast("ล้างร่างแล้ว เริ่มกรอกใหม่");
   };
 
+  /* คัดลอกชุดงาน (เบสสั่ง 2026-09-18 แทนช่อง "คัดลอกลาย" เดิม) — ทำที่หน้าเพจเหมือนเพิ่ม/ลบรายการ
+     เพราะต้องขยับ expandedItemIdx ที่เป็นชุดเป้าหมายของช่องเลือกสินค้าจากสต็อกด้วย */
+  const duplicateItemToEnd = (idx: number) => {
+    const newIdx = items.length;
+    setItems((prev) => duplicateOrderItem(prev, idx));
+    setExpandedItemIdx(newIdx);
+    toast.success(`คัดลอกรายการที่ ${idx + 1} แล้ว — ชุดใหม่อยู่ท้ายรายการ`);
+    // รอ React วาดการ์ดใหม่ก่อนค่อยพาไป (สองรอบเฟรมแบบเดียวกับปุ่มเพิ่มรายการ)
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const added = document.getElementById(`new-order-item-${newIdx + 1}`);
+        if (!added) return;
+        added.focus({ preventScroll: true });
+        added.scrollIntoView({ block: "start" });
+      });
+    });
+  };
+
   const formPending = isEdit ? saveOrder.isPending : createOrder.isPending;
   const handleCancel = async () => {
     if (formPending) return;
@@ -1361,13 +1380,13 @@ export default function OrderFormPage(props: OrderFormPageProps) {
                   canRemove={items.length > 1}
                   isExpanded
                   compact
-                  allItems={items}
                   printCatalog={printCatalog}
                   addonCatalog={addonCatalog}
                   showPrints={canAddPrints}
                   showAddons={canAddPrints}
                   onUpdateItem={updateItem}
                   onRemoveItem={(idx) => { removeItem(idx); if (expandedItemIdx === idx) setExpandedItemIdx(null); else if (expandedItemIdx != null && expandedItemIdx > idx) setExpandedItemIdx(expandedItemIdx - 1); }}
+                  onDuplicateItem={duplicateItemToEnd}
                   onAddPrint={addPrint}
                   onRemovePrint={removePrint}
                   onUpdatePrint={updatePrint}

@@ -72,6 +72,34 @@ export function moveOrderItemProduct(
 }
 
 /**
+ * คัดลอกชุดงานทั้งใบไป "ท้ายรายการ" — ลาย สินค้า ไซส์ ส่วนเสริม และหมายเหตุมาครบ
+ * ต่อท้ายเหมือนปุ่มเพิ่มรายการ ไม่แทรกกลาง เพราะเลข index ของชุดอื่นคือตัวชี้ของหน้า
+ * (ชุดเป้าหมายของช่องเลือกสินค้าจากสต็อก · คีย์ของการ์ด · callback ที่ค้างจากการอัปโหลดไฟล์ลาย)
+ * แถวสินค้าในชุดใหม่ต้องได้ตัวระบุใหม่ และไม่พาของที่ผูกกับตัวสินค้าจริงไป:
+ *   formKey ใหม่ (กัน state ของสองแถวชนกัน) · ไม่พา savedProductId (ไม่งั้นหน้าแก้อ่านว่าเป็นแถวเดิม
+ *   แล้วผูกใบตรวจรับผิดตัว) · ไม่พาหลักฐานการรับของ (สภาพ/หมายเหตุ/ตรวจรับแล้ว) ซึ่งเป็นของรอบรับจริง
+ */
+export function duplicateOrderItem(items: OrderItemForm[], itemIdx: number): OrderItemForm[] {
+  const source = items[itemIdx];
+  if (!source) return items;
+  const clone: OrderItemForm = {
+    ...structuredClone(source),
+    products: source.products.map((product) => {
+      const rest = { ...structuredClone(product) };
+      delete rest.formKey;
+      delete rest.savedProductId;
+      return createOrderItemProduct({
+        ...rest,
+        garmentCondition: "",
+        receiveNote: "",
+        receivedInspected: false,
+      });
+    }),
+  };
+  return [...items, clone];
+}
+
+/**
  * สร้างข้อมูลสรุปเพื่อแสดงผลเท่านั้น โดยอาศัย pricing helper เดิมเป็นแหล่งจริงของยอดรวม
  * เพื่อให้ JSX ไม่ต้องตัดสินซ้ำว่าแถวไหนควรแสดงและใช้จำนวนใดคูณราคา
  */

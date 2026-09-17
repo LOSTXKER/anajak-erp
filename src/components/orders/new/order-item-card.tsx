@@ -20,6 +20,7 @@ import {
   CUSTOM_ADDON_TYPE,
   PRICING_TYPE_LABELS,
   PRINT_TYPES,
+  itemHasContent,
 } from "@/types/order-form";
 import { addonSelectValue, CUSTOM_ADDON_OPTION } from "@/lib/order-addon-ui";
 import { PrintTableRow } from "./print-table-row";
@@ -39,11 +40,12 @@ interface OrderItemCardProps {
   canRemove: boolean;
   isExpanded?: boolean;
   onToggleExpand?: () => void;
-  allItems?: OrderItemForm[];
   printCatalog?: Array<{ id: string; name: string; type: string; defaultPrice: number; pricingType: string }>;
   addonCatalog?: Array<{ id: string; name: string; type: string; defaultPrice: number; pricingType: string }>;
   onUpdateItem: (idx: number, field: string, value: unknown) => void;
   onRemoveItem: (idx: number) => void;
+  /** คัดลอกชุดงานทั้งใบไปท้ายรายการ — หน้าเพจทำ เพราะต้องขยับตัวชี้ชุดเป้าหมายและพาไปยังชุดใหม่ */
+  onDuplicateItem: (idx: number) => void;
   onAddPrint: (idx: number) => void;
   onRemovePrint: (itemIdx: number, pIdx: number) => void;
   onUpdatePrint: (itemIdx: number, pIdx: number, field: string, value: unknown) => void;
@@ -80,14 +82,16 @@ function Cols({ widths }: { widths: number[] }) {
 // เลขในกรอบ · ชื่อพิมพ์แก้ในที่ · ชิปแหล่ง/วิธีพิมพ์ · จำนวนตัว · ยอด (ต้นแบบ .ch.ih)
 // ทุกรายการกางเห็นหมด ไม่ accordion — เบส: ไม่ต้องซ่อน
 function OrderItemRow({
-  item, itemIdx, canRemove, headingId, onUpdateItem, onRemoveItem,
+  item, itemIdx, canRemove, canDuplicate, headingId, onUpdateItem, onRemoveItem, onDuplicateItem,
 }: {
   item: OrderItemForm;
   itemIdx: number;
   canRemove: boolean;
+  canDuplicate: boolean;
   headingId: string;
   onUpdateItem: (idx: number, field: string, value: unknown) => void;
   onRemoveItem: (idx: number) => void;
+  onDuplicateItem: () => void;
 }) {
   // ยอด/จำนวนจาก pricing helper ชุดเดียวกับสรุปยอด — แสดงเสมอแม้ยังว่าง (ต้นแบบ: 0 ตัว ฿0.00)
   const { totalQuantity, subtotal } = buildOrderItemPriceSummary(item);
@@ -122,8 +126,20 @@ function OrderItemRow({
       <div className={c("r")}>
         <span className={c("iq")}>{totalQuantity.toLocaleString("th-TH")} ตัว</span>
         <b className={c("it mono")}>{formatBaht(subtotal)}</b>
+        {/* คำสั่งของชุดงานนี้: คัดลอกทั้งชุด แล้วลบ — ปุ่มลบมีเส้นคั่นและระยะห่างกว่าปกติ
+            เพราะสองปุ่มหน้าตาเหมือนกันและปุ่มลบกู้คืนไม่ได้ (ชุดว่างคัดลอกไม่ได้ ไม่มีอะไรให้คัดลอก) */}
+        <button
+          type="button"
+          className={c("ibtn")}
+          onClick={onDuplicateItem}
+          disabled={!canDuplicate}
+          title={canDuplicate ? "คัดลอกรายการ" : "กรอกรายการนี้ก่อนจึงคัดลอกได้"}
+          aria-label={`คัดลอกรายการที่ ${itemIdx + 1}`}
+        >
+          <Copy aria-hidden="true" />
+        </button>
         {canRemove && (
-          <button type="button" className={c("ibtn")} onClick={() => onRemoveItem(itemIdx)} aria-label={`ลบรายการที่ ${itemIdx + 1}`}>
+          <button type="button" className={cn(c("ibtn"), "ml-1.5 border-l border-divider pl-2.5")} onClick={() => onRemoveItem(itemIdx)} title="ลบรายการ" aria-label={`ลบรายการที่ ${itemIdx + 1}`}>
             <Trash aria-hidden="true" />
           </button>
         )}
@@ -138,8 +154,8 @@ function OrderItemRow({
 
 export function OrderItemCard({
   cardId, item, itemIdx, canRemove, isExpanded,
-  allItems, printCatalog, addonCatalog,
-  onUpdateItem, onRemoveItem,
+  printCatalog, addonCatalog,
+  onUpdateItem, onRemoveItem, onDuplicateItem,
   onAddPrint, onRemovePrint, onUpdatePrint,
   onAddAddon, onRemoveAddon, onUpdateAddon,
   onOpenPicker, onSetItems,
@@ -147,17 +163,6 @@ export function OrderItemCard({
   compact = false,
 }: OrderItemCardProps) {
   const expanded = isExpanded;
-  const otherItems = (allItems ?? []).map((it, idx) => ({ it, idx })).filter(({ idx }) => idx !== itemIdx);
-
-  const copyPrintsFrom = (sourceIdx: number) => {
-    const source = allItems?.[sourceIdx];
-    if (!source) return;
-    onSetItems((prev) => {
-      const copy = [...prev];
-      copy[itemIdx] = { ...copy[itemIdx], prints: source.prints.map((p) => ({ ...p })) };
-      return copy;
-    });
-  };
 
   const applyPrintFromCatalog = (pIdx: number, catalogId: string) => {
     const catalogItem = printCatalog?.find((entry) => entry.id === catalogId);
@@ -280,37 +285,11 @@ export function OrderItemCard({
           <span className={c("tm violet")} aria-hidden="true"><ImageIcon /></span>
           ลายและงานพิมพ์
         </h3>
-        {(otherItems.length > 0 || item.prints.length > 0) && (
+        {item.prints.length > 0 && (
           <div className={c("r")}>
-            {otherItems.length > 0 && (
-              <span className={c("minisel")}>
-                <Copy aria-hidden="true" />
-                <Select
-                  surface="inline"
-                  size="dense"
-                  aria-label="คัดลอกลายจากรายการอื่น"
-                  value=""
-                  onChange={(e) => {
-                    if (e.target.value) copyPrintsFrom(parseInt(e.target.value));
-                  }}
-                  className="w-auto max-w-[180px] pl-[26px] pr-2 text-secondary"
-                >
-                  <option value="">คัดลอกลาย...</option>
-                  {/* ชุดที่ยังไม่มีลายคัดลอกไม่ได้ (จะล้างลายของชุดนี้ทิ้ง) — โชว์ไว้แต่กดไม่ได้ */}
-                  {otherItems.map(({ it, idx }) => (
-                    <option key={idx} value={idx} disabled={it.prints.length === 0}>
-                      {`#${idx + 1} ${it.description.slice(0, 20)}`.trim()}
-                      {it.prints.length === 0 ? " (ยังไม่มีลาย)" : ""}
-                    </option>
-                  ))}
-                </Select>
-              </span>
-            )}
-            {item.prints.length > 0 && (
-              <button type="button" className={c("btn ghost sm")} onClick={() => onAddPrint(itemIdx)}>
-                <Plus aria-hidden="true" />เพิ่มลาย
-              </button>
-            )}
+            <button type="button" className={c("btn ghost sm")} onClick={() => onAddPrint(itemIdx)}>
+              <Plus aria-hidden="true" />เพิ่มลาย
+            </button>
           </div>
         )}
       </div>
@@ -650,6 +629,8 @@ export function OrderItemCard({
         headingId={headingId}
         onUpdateItem={onUpdateItem}
         onRemoveItem={onRemoveItem}
+        onDuplicateItem={() => onDuplicateItem(itemIdx)}
+        canDuplicate={itemHasContent(item)}
       />
 
       {expanded && (
