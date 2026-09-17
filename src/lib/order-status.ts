@@ -272,6 +272,12 @@ export function getNextStatuses(
   if (currentStatus === "PRODUCING") {
     next.push("PRODUCTION_QUEUE");
   }
+  // พร้อมส่งถอยกลับไปแพ็คได้ทางเดียว (เบสเคาะกติกาถอยสถานะ 2026-09-18) — เดิมสถานะนี้ถอยไม่ได้เลย
+  // ทั้งที่ขั้นข้างหลัง (ส่งแล้ว) ถอยได้ คนจึงต้องกดส่งทั้งที่ยังไม่ส่งเพื่อจะถอย
+  // server จำกัดหัวหน้า+เหตุผล และกันไว้เมื่อมีใบส่งที่ออกไปแล้ว (ตีกลับใบส่งก่อน)
+  if (currentStatus === "READY_TO_SHIP") {
+    next.push("PACKING");
+  }
   // SHIPPED ถอยได้ 2 ทาง (server จำกัด OWNER/MANAGER + เหตุผล — audit ข้อ 22/24):
   // กดส่งพลาด → READY_TO_SHIP · ของตีกลับ/เคลม → QUALITY_CHECK กลับเข้าวงจรตรวจ-ซ่อม
   if (currentStatus === "SHIPPED") {
@@ -449,7 +455,9 @@ export function isProductionV2OwnedStatusTarget(status: InternalStatus): boolean
 export function isRollbackTransition(from: InternalStatus, to: InternalStatus): boolean {
   return (
     from === "COMPLETED" ||
-    (from === "SHIPPED" && (["READY_TO_SHIP", "QUALITY_CHECK"] as InternalStatus[]).includes(to))
+    (from === "SHIPPED" && (["READY_TO_SHIP", "QUALITY_CHECK"] as InternalStatus[]).includes(to)) ||
+    // พร้อมส่ง = แพ็คจบแล้วรอของออกจากร้าน ถอยกลับไปแพ็คจึงเป็นการถอยข้ามเส้นเหมือนกัน
+    (from === "READY_TO_SHIP" && to === "PACKING")
   );
 }
 

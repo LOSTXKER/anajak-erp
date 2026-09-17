@@ -336,7 +336,19 @@ function OrderDetailContent({
     if (hasV2Production && target !== "COMPLETED") return false;
     return canPermsSetStatus(me.permissions, order.internalStatus, target, productionV2Enabled);
   };
-  const forwardStatuses = nextStatuses.filter((s) => s !== "CANCELLED" && roleCanSetStatus(s));
+  /* ถอย "พร้อมส่ง → กำลังแพ็ค" ไม่ได้เมื่อมีใบส่งที่ออกไปแล้ว — ด่านเดียวกับ order.updateStatus
+     (ของอยู่กับขนส่ง/ถึงลูกค้าแล้ว ต้องตีกลับใบส่งที่ส่วนจัดส่งก่อน) */
+  const shippedOutDeliveries = (order.deliveries ?? []).filter(
+    (delivery) => delivery.status === "SHIPPED" || delivery.status === "DELIVERED",
+  ).length;
+  const backToPackingBlocked =
+    order.internalStatus === "READY_TO_SHIP" && shippedOutDeliveries > 0;
+  const forwardStatuses = nextStatuses.filter(
+    (s) =>
+      s !== "CANCELLED" &&
+      roleCanSetStatus(s) &&
+      !(s === "PACKING" && backToPackingBlocked),
+  );
   const canCancel = nextStatuses.includes("CANCELLED") && roleCanSetStatus("CANCELLED");
   // เมนูฝั่งขาย (แก้ข้อมูล/รายการ/สำเนา/ออกใบเสนอ) — server เป็น create_sales_docs
   const isSalesUp = permAllows(me.permissions, "create_sales_docs");
@@ -405,9 +417,9 @@ function OrderDetailContent({
 
   async function handleStatusChange(newStatus: string) {
     const current = order?.internalStatus ?? "";
-    // ถอยจากจุดที่ประกาศกับลูกค้าแล้ว (ส่งแล้ว/ปิดแล้ว) — server บังคับเหตุผล+ผู้จัดการ
-    const isRollback =
-      current === "COMPLETED" || (current === "SHIPPED" && ["READY_TO_SHIP", "QUALITY_CHECK"].includes(newStatus));
+    // ถอยข้ามเส้น "ของออกจากโรงงาน/ประกาศกับลูกค้า" (พร้อมส่ง/ส่งแล้ว/ปิดแล้ว) — server บังคับเหตุผล+ผู้จัดการ
+    // ใช้ตัวตัดสินตัวเดียวกับ server (lib/order-status) ไม่ลอกเงื่อนไขมาไว้ในหน้า
+    const isRollback = isRollbackTransition(current as InternalStatus, newStatus as InternalStatus);
 
     if (newStatus === "CANCELLED") {
       // บิลค้างต้องเห็นก่อนตัดสินใจ (เบสเคาะ 07-06) — เช็คจากข้อมูลสด server มีด่านเดียวกัน
@@ -444,7 +456,10 @@ function OrderDetailContent({
     } else if (isRollback) {
       const reason = await promptText({
         title: current === "COMPLETED" ? "เปิดงานกลับ?" : "ถอยสถานะกลับ?",
-        description: "งานนี้ประกาศส่งแล้ว/ปิดแล้ว — ระบุเหตุผล (เช่น ของตีกลับ/กดพลาด) จะถูกบันทึกในประวัติ",
+        description:
+          current === "READY_TO_SHIP"
+            ? "งานนี้แพ็คจบรอของออกจากร้านแล้ว — ระบุเหตุผลที่ต้องกลับไปแพ็คใหม่ จะถูกบันทึกในประวัติ"
+            : "งานนี้ประกาศส่งแล้ว/ปิดแล้ว — ระบุเหตุผล (เช่น ของตีกลับ/กดพลาด) จะถูกบันทึกในประวัติ",
         placeholder: "เหตุผล",
         confirmText: "ยืนยันถอยสถานะ",
         destructive: true,
@@ -794,6 +809,14 @@ function OrderDetailContent({
                           </DropdownMenu.Item>
                         ) : null}
                       </>
+                    ) : null}
+                    {/* ถอยไม่ได้ก็ต้องรู้ว่าทำไม — ไม่ปล่อยให้ทางถอยหายเงียบจากทั้งปุ่มและเมนู */}
+                    {backToPackingBlocked && roleCanSetStatus("PACKING") ? (
+                      <DropdownMenu.Item className={c("mi")} disabled>
+                        <Undo2 aria-hidden="true" />
+                        ย้อนกลับ: กำลังแพ็ค
+                        <small>มีใบส่งที่ออกแล้ว {shippedOutDeliveries} ใบ — ตีกลับใบส่งก่อน</small>
+                      </DropdownMenu.Item>
                     ) : null}
                     {menuStatuses.length > 0 ? (
                       <>

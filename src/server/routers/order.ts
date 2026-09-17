@@ -1277,18 +1277,18 @@ export const orderRouter = router({
         throw new TRPCError({ code: "FORBIDDEN", message });
       }
 
-      // ถอยกลับจากจุดที่ประกาศกับลูกค้าแล้ว (ส่งแล้ว/ปิดงานแล้ว) = เรื่องใหญ่ —
-      // ผู้จัดการขึ้นไป + ต้องมีเหตุผลบันทึกเสมอ (audit ข้อ 22/24/25)
+      // ถอยกลับจากจุดที่ของออกจากโรงงาน/ประกาศกับลูกค้าแล้ว (พร้อมส่ง/ส่งแล้ว/ปิดงานแล้ว) = เรื่องใหญ่ —
+      // ผู้จัดการขึ้นไป + ต้องมีเหตุผลบันทึกเสมอ (audit ข้อ 22/24/25 · พร้อมส่งเพิ่ม 2026-09-18)
       if (isRollbackTransition(old.internalStatus, input.internalStatus)) {
         // PERM3: งานหัวหน้า (default OWNER/MANAGER เดิมเป๊ะ) — ข้อความคงเดิม
         if (!can("supervise_operations")) {
           throw new TRPCError({
             code: "FORBIDDEN",
-            message: "ถอยสถานะจากส่งแล้ว/ปิดงานแล้ว ต้องเป็นผู้จัดการขึ้นไป",
+            message: "ถอยสถานะจากพร้อมส่ง/ส่งแล้ว/ปิดงานแล้ว ต้องเป็นผู้จัดการขึ้นไป",
           });
         }
         if (!input.reason?.trim()) {
-          badRequest("ถอยสถานะจากส่งแล้ว/ปิดงานแล้ว ต้องระบุเหตุผล (จะถูกบันทึกในประวัติ)");
+          badRequest("ถอยสถานะจากพร้อมส่ง/ส่งแล้ว/ปิดงานแล้ว ต้องระบุเหตุผล (จะถูกบันทึกในประวัติ)");
         }
       }
 
@@ -1464,6 +1464,21 @@ export const orderRouter = router({
           await assertV2FinalPackReadyToShip(tx, input.id);
           await assertOrderPackingReadyToShip(tx, input.id);
         }
+        // ถอย "พร้อมส่ง → กำลังแพ็ค": ของที่ออกจากร้านไปแล้วย้อนไม่ได้ (กติกาถอยสถานะ เบสเคาะ 2026-09-18)
+        // ใบส่งที่ยังเตรียมอยู่ (PENDING/PREPARING) ถอยได้ · ใบที่ส่งออกแล้วต้องตีกลับใบนั้นก่อน
+        // ไม่งั้นออเดอร์บอกว่ากำลังแพ็คทั้งที่ของอยู่กับขนส่ง/ถึงมือลูกค้าแล้ว
+        // ตรวจหลัง transition ด้วย from จริงใน tx — throw แล้ว rollback สถานะ+revision ทั้งก้อน
+        if (result.changed && from === "READY_TO_SHIP" && input.internalStatus === "PACKING") {
+          const shippedOut = await tx.delivery.count({
+            where: { orderId: input.id, status: { in: ["SHIPPED", "DELIVERED"] } },
+          });
+          if (shippedOut > 0) {
+            badRequest(
+              `ถอยกลับไปแพ็คไม่ได้ — มีใบส่งที่ออกไปแล้ว ${shippedOut} ใบ ให้ตีกลับใบส่งนั้นก่อน (ส่วนจัดส่ง)`,
+            );
+          }
+        }
+
         // QC ไม่ผ่าน ถอยกลับผลิต → reopen ใบผลิตที่ปิดแล้ว + เปิด step งานแก้
         // (งานแก้ต้องโผล่ในบอร์ด/คิว ไม่ใช่หายเงียบ · audit ข้อ 19/26)
         if (result.changed && from === "QUALITY_CHECK" && input.internalStatus === "PRODUCING") {

@@ -139,6 +139,13 @@ describe("singleBackStatus", () => {
     expect(singleBackStatus({ flowSteps: flow, internalStatus: "QUALITY_CHECK", allowedTargets: ["PACKING"] })).toBeNull();
   });
 
+  it("พร้อมส่งถอยได้ทางเดียว (กำลังแพ็ค) → ได้ปุ่มบนหัวใบ", () => {
+    const targets = getNextStatuses("CUSTOM", "READY_TO_SHIP").filter((s) => s !== "CANCELLED");
+    expect(singleBackStatus({ flowSteps: flow, internalStatus: "READY_TO_SHIP", allowedTargets: targets })).toBe(
+      "PACKING",
+    );
+  });
+
   it("พักงาน/ยกเลิกอยู่นอกเส้นทาง — ไม่เดาขั้นก่อนให้", () => {
     expect(
       singleBackStatus({ flowSteps: flow, internalStatus: "ON_HOLD", allowedTargets: ["PRODUCING", "PRODUCTION_QUEUE"] }),

@@ -15,6 +15,7 @@ import {
   canPermsSetStatus,
   isProductionV2FlowStatusTarget,
   isProductionV2OwnedStatusTarget,
+  isRollbackTransition,
 } from "./order-status";
 
 // เกราะของ status machine — ทุก transition ใหม่/ที่แก้ ต้องบันทึกไว้ที่นี่
@@ -248,5 +249,46 @@ describe("isOrderLocked / orderEditLockedReason (B10)", () => {
     expect(orderEditLockedReason("PRODUCING", "รายการ")).toContain("เริ่มผลิต");
     // subject แทรกในข้อความถูกช่อง
     expect(orderEditLockedReason("ON_HOLD", "ค่าธรรมเนียม")).toContain("แก้ค่าธรรมเนียมได้");
+  });
+});
+
+// กติกาถอยสถานะที่เบสเคาะ 2026-09-18: ถอยทีละขั้นได้จนถึงคิวผลิต · ข้ามเส้น "ของออกจากโรงงาน"
+// (พร้อมส่ง/ส่งแล้ว/ปิดงาน) ต้องหัวหน้า + เหตุผล · ของที่ออกไปแล้วกันที่ router (ดู order.ready-to-ship-rollback)
+describe("ถอยสถานะจากพร้อมส่ง", () => {
+  it("พร้อมส่งถอยกลับไปกำลังแพ็คได้ทางเดียว", () => {
+    expect(isValidTransition("CUSTOM", "READY_TO_SHIP", "PACKING")).toBe(true);
+    const back = getNextStatuses("CUSTOM", "READY_TO_SHIP").filter((s) => s === "PACKING");
+    expect(back).toEqual(["PACKING"]);
+  });
+
+  it("ไม่เปิดทางกระโดดข้ามขั้น — พร้อมส่งไปตรวจคุณภาพ/ผลิตตรงๆ ไม่ได้", () => {
+    expect(isValidTransition("CUSTOM", "READY_TO_SHIP", "QUALITY_CHECK")).toBe(false);
+    expect(isValidTransition("CUSTOM", "READY_TO_SHIP", "PRODUCING")).toBe(false);
+  });
+
+  it("นับเป็นการถอยข้ามเส้น จึงต้องหัวหน้า + เหตุผล (ด่านเดียวกับส่งแล้ว/ปิดงาน)", () => {
+    expect(isRollbackTransition("READY_TO_SHIP", "PACKING")).toBe(true);
+    // เดินหน้าไม่ใช่การถอย
+    expect(isRollbackTransition("READY_TO_SHIP", "SHIPPED")).toBe(false);
+  });
+
+  it("ฝ่ายผลิตที่ไม่มีสิทธิ์หัวหน้า ถอยจากพร้อมส่งไม่ได้", () => {
+    expect(
+      canPermsSetStatus(["update_order_status_production"], "READY_TO_SHIP", "PACKING", false),
+    ).toBe(false);
+    expect(
+      canPermsSetStatus(
+        ["update_order_status_production", "supervise_operations"],
+        "READY_TO_SHIP",
+        "PACKING",
+        false,
+      ),
+    ).toBe(true);
+  });
+
+  it("โซ่ถอยต่อจากแพ็คลงไปถึงคิวผลิตได้ตามกติกา", () => {
+    expect(isValidTransition("CUSTOM", "PACKING", "QUALITY_CHECK")).toBe(true);
+    expect(isValidTransition("CUSTOM", "QUALITY_CHECK", "PRODUCING")).toBe(true);
+    expect(isValidTransition("CUSTOM", "PRODUCING", "PRODUCTION_QUEUE")).toBe(true);
   });
 });
