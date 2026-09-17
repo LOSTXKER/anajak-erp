@@ -491,30 +491,8 @@ export const PRIORITY_LABELS: Record<string, string> = {
   URGENT: "เร่งด่วน",
 };
 
-/** ช่วงวันของแต่ละระดับ (เบสกำหนด 2026-09-18) — คนเลือกไม่รู้ว่า "สูง" คือกี่วัน
- *  เป็นคำอธิบายระดับเท่านั้น ไม่ใช่กฎคำนวณ: กำหนดส่งยังกรอกมือ ระบบไม่ตั้งวันจากระดับนี้ */
-export const PRIORITY_DAY_HINTS: Record<string, string> = {
-  LOW: "7-14 วัน",
-  NORMAL: "3-7 วัน",
-  HIGH: "2-3 วัน",
-  URGENT: "ภายใน 1 วัน",
-};
-
-/** ป้ายพร้อมช่วงวัน เช่น "เร่งด่วน (ภายใน 1 วัน)" — ใช้ที่ที่ระดับเป็นค่าในช่อง
- *  (ช่องเลือกในฟอร์ม · ภาพรวมออเดอร์ · ใบสั่งงาน) · ป้ายเตือนในตาราง/การ์ดยังสั้นคำเดียว */
-export function priorityLabelWithDays(priority: string): string {
-  const label = PRIORITY_LABELS[priority] ?? priority;
-  const hint = PRIORITY_DAY_HINTS[priority];
-  return hint ? `${label} (${hint})` : label;
-}
-
-/** ระดับที่ควรดันขึ้นเมื่อกำหนดส่งใกล้ (ฟอร์มใบใหม่เดาให้) — เส้นแบ่งชุดเดียวกับ PRIORITY_DAY_HINTS
- *  null = ไม่ต้องดัน (ปกติ/ต่ำ เป็นค่าที่คนเลือกเอง ระบบไม่ลดระดับให้) */
-export function priorityFromDeadlineDays(daysUntil: number): "URGENT" | "HIGH" | null {
-  if (daysUntil <= 1) return "URGENT"; // ภายใน 1 วัน
-  if (daysUntil <= 3) return "HIGH"; // 2-3 วัน
-  return null;
-}
+// ระดับนี้ไม่ใช่ "กี่วัน" — เวลาเป็นหน้าที่ของกำหนดส่ง ส่วนระดับคือลำดับคิวที่คนตัดสิน
+// (เบสเคาะ 2026-09-18 หลังลองใส่ช่วงวันในป้ายแล้วมันไปทับความหมายของกำหนดส่ง)
 
 // PAYMENT_TERMS_LABELS ย้ายไป src/lib/payment-terms.ts (รวมค่า+ป้าย+ความหมายที่เดียว)
 

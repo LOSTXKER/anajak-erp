@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { Field } from "@/components/ui/field";
 import { c } from "@/components/kit/kit";
-import { CHANNEL_LABELS, PRIORITY_LABELS, priorityLabelWithDays } from "@/lib/order-status";
+import { CHANNEL_LABELS, PRIORITY_LABELS } from "@/lib/order-status";
 
 // ช่องข้อมูลงาน (กำหนดส่ง/ช่องทาง/รายละเอียด/หมายเหตุ) — แยกจาก orders/new/page.tsx
 // ตอนรื้อฟอร์ม 2026-06-12 · ลำดับใหม่: รายละเอียดจากแชทขึ้นก่อน (จุด capture หลักตอนถือแชท)
@@ -94,13 +94,20 @@ export function OrderDetailFields({
         <Field label="กำหนดส่ง" id={`${id}-deadline`}>
           <DatePicker value={deadline} onChange={(v) => onDeadlineChange(v)} />
         </Field>
-        <Field label="ความเร่งด่วน" id={`${id}-priority`}>
+        {/* ชื่อช่องคือ "ลำดับคิวผลิต" ไม่ใช่ "ความเร่งด่วน" (เบสเคาะ 2026-09-18):
+            วันส่งบอกเวลาอยู่แล้ว ช่องนี้ตอบคนละคำถาม — หลายใบส่งวันเดียวกัน ใบไหนทำก่อน
+            ระบบไม่เดาระดับจากกำหนดส่งให้อีก ของที่เดาได้เองไม่ใช่การตัดสินใจ */}
+        <Field
+          label="ลำดับคิวผลิต"
+          id={`${id}-priority`}
+          description="ใช้ตอนหลายใบส่งวันเดียวกัน — ระดับสูงกว่าขึ้นคิวก่อน"
+        >
           <Select
             value={priority}
             onChange={(e) => onPriorityChange(e.target.value as Priority)}
           >
-            {Object.keys(PRIORITY_LABELS).map((key) => (
-              <option key={key} value={key}>{priorityLabelWithDays(key)}</option>
+            {Object.entries(PRIORITY_LABELS).map(([key, value]) => (
+              <option key={key} value={key}>{value}</option>
             ))}
           </Select>
         </Field>

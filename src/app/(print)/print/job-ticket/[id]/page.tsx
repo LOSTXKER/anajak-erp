@@ -15,7 +15,7 @@ import {
   PRINT_POSITIONS,
   PRINT_TYPES,
 } from "@/types/order-form";
-import { PRIORITY_LABELS, CHANNEL_LABELS, priorityLabelWithDays } from "@/lib/order-status";
+import { PRIORITY_LABELS, CHANNEL_LABELS } from "@/lib/order-status";
 import {
   STEP_TYPE_LABELS,
   isOutsourceStep,
@@ -292,7 +292,7 @@ export default async function PrintJobTicketPage({
             strong
           />
           <MetaCell label="ผู้เปิดงาน" value={order.createdBy.name} />
-          <MetaCell label="ความเร่งด่วน" value={priorityLabelWithDays(order.priority)} />
+          <MetaCell label="ลำดับคิวผลิต" value={PRIORITY_LABELS[order.priority] ?? order.priority} />
           <MetaCell label="จำนวนรวม" value={`${totalQty.toLocaleString("th-TH")} ตัว`} strong />
           <MetaCell label="จำนวนรายการ" value={`${order.items.length} รายการ`} />
         </div>

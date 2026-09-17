@@ -35,7 +35,7 @@ import {
 } from "@/lib/order-form-tabs";
 import { PageShell } from "@/components/page-shell";
 import { c, Callout, CardHead } from "@/components/kit/kit";
-import { CHANNEL_LABELS, priorityFromDeadlineDays } from "@/lib/order-status";
+import { CHANNEL_LABELS } from "@/lib/order-status";
 import { type PaymentTermsValue, PAYMENT_TERMS_LABELS } from "@/lib/payment-terms";
 import { type PickerCustomer } from "@/components/customers/customer-picker";
 import { calculateFormItemSubtotal, calculateOrderSummary } from "@/lib/pricing";
@@ -528,18 +528,6 @@ export default function OrderFormPage(props: OrderFormPageProps) {
     (sum, item) => sum + item.products.reduce((n, p) => n + p.variants.reduce((q, v) => q + (v.quantity || 0), 0), 0),
     0,
   );
-  // เดาความเร่งด่วนจากกำหนดส่ง (ใบใหม่เท่านั้น) — เส้นแบ่งอยู่ที่ priorityFromDeadlineDays
-  // ชุดเดียวกับช่วงวันบนป้าย ไม่งั้นช่องจะขึ้น "เร่งด่วน (ภายใน 1 วัน)" ให้งานที่ส่งอีก 3 วัน
-  useEffect(() => {
-    if (isEdit) return;
-    if (!deadline) return;
-    const deadlineDate = new Date(deadline);
-    const now = new Date();
-    const daysUntil = Math.ceil((deadlineDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-    const escalated = priorityFromDeadlineDays(daysUntil);
-    if (escalated) setHeaderField("priority", escalated);
-  }, [deadline, isEdit, setHeaderField]);
-
   useEffect(() => {
     if (isEdit) return;
     if (isMarketplace && !paymentTerms) {

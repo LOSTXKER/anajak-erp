@@ -15,10 +15,6 @@ import {
   canPermsSetStatus,
   isProductionV2FlowStatusTarget,
   isProductionV2OwnedStatusTarget,
-  PRIORITY_DAY_HINTS,
-  PRIORITY_LABELS,
-  priorityFromDeadlineDays,
-  priorityLabelWithDays,
 } from "./order-status";
 
 // เกราะของ status machine — ทุก transition ใหม่/ที่แก้ ต้องบันทึกไว้ที่นี่
@@ -252,34 +248,5 @@ describe("isOrderLocked / orderEditLockedReason (B10)", () => {
     expect(orderEditLockedReason("PRODUCING", "รายการ")).toContain("เริ่มผลิต");
     // subject แทรกในข้อความถูกช่อง
     expect(orderEditLockedReason("ON_HOLD", "ค่าธรรมเนียม")).toContain("แก้ค่าธรรมเนียมได้");
-  });
-});
-
-// ความเร่งด่วนต้องบอกกี่วัน — เบสเจอว่าเลือก "สูง" แล้วไม่รู้ว่าคือกี่วัน (2026-09-18)
-describe("ช่วงวันของความเร่งด่วน", () => {
-  it("ทุกระดับมีช่วงวัน ไม่มีระดับไหนเงียบ", () => {
-    for (const key of Object.keys(PRIORITY_LABELS)) {
-      expect(PRIORITY_DAY_HINTS[key], key).toBeTruthy();
-    }
-  });
-
-  it("ป้ายพร้อมช่วงวันอ่านเป็นประโยคเดียว", () => {
-    expect(priorityLabelWithDays("URGENT")).toBe("เร่งด่วน (ภายใน 1 วัน)");
-    expect(priorityLabelWithDays("HIGH")).toBe("สูง (2-3 วัน)");
-    expect(priorityLabelWithDays("NORMAL")).toBe("ปกติ (3-7 วัน)");
-    expect(priorityLabelWithDays("LOW")).toBe("ต่ำ (7-14 วัน)");
-  });
-
-  it("ค่าที่ไม่รู้จักคืนค่าเดิม ไม่แต่งวันให้", () => {
-    expect(priorityLabelWithDays("SOMETHING_ELSE")).toBe("SOMETHING_ELSE");
-  });
-
-  it("ฟอร์มเดาระดับจากกำหนดส่งด้วยเส้นแบ่งเดียวกับป้าย", () => {
-    expect(priorityFromDeadlineDays(-2)).toBe("URGENT"); // เลยกำหนดแล้ว
-    expect(priorityFromDeadlineDays(1)).toBe("URGENT");
-    expect(priorityFromDeadlineDays(2)).toBe("HIGH");
-    expect(priorityFromDeadlineDays(3)).toBe("HIGH");
-    expect(priorityFromDeadlineDays(4)).toBeNull(); // ปกติ/ต่ำ ปล่อยให้คนเลือกเอง
-    expect(priorityFromDeadlineDays(20)).toBeNull();
   });
 });
