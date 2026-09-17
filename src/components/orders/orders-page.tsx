@@ -8,7 +8,7 @@ import { useListPageState, usePageClamp } from "@/hooks/use-list-page-state";
 import { trpc } from "@/lib/trpc";
 import { permAllows } from "@/lib/permissions";
 import { canCreateOrderWithPricing } from "@/lib/order-access";
-import { c } from "@/components/kit/kit";
+import { c, Empty } from "@/components/kit/kit";
 import { KitDateRange } from "@/components/kit/date-range";
 import { OrderPipeline } from "@/components/orders/list/order-pipeline";
 import { OrderPeekPanel } from "@/components/orders/list/order-peek-panel";
@@ -403,27 +403,32 @@ function OrdersPageContent() {
             </div>
           </div>
         ) : rows.length === 0 ? (
-          <div className={c("noresult")}>
-            <Search aria-hidden="true" />
-            {hasActiveFilters ? (
-              <>
-                <span>ไม่พบออเดอร์ตามตัวกรองนี้</span>
+          /* กล่องว่างใช้ชิ้นเดียวกับที่อื่นทั้งเว็บ (Empty ของชุดกลาง) — เดิมวาด .noresult เอง
+             จนกล่อง "ไม่เจอ" หน้านี้ไม่เหมือนหน้าอื่น */
+          hasActiveFilters ? (
+            <Empty
+              icon={Search}
+              title="ไม่พบออเดอร์ตามตัวกรองนี้"
+              action={
                 <button type="button" className={c("btn sm")} onClick={clearFiltersAndSearch}>
                   ล้างตัวกรองและคำค้น
                 </button>
-              </>
-            ) : (
-              <>
-                <span>ยังไม่มีออเดอร์</span>
-                {canCreateOrder ? (
+              }
+            />
+          ) : (
+            <Empty
+              icon={Search}
+              title="ยังไม่มีออเดอร์"
+              action={
+                canCreateOrder ? (
                   <Link href="/orders/new" className={c("btn primary sm")}>
                     <Plus aria-hidden="true" />
                     สร้างออเดอร์
                   </Link>
-                ) : null}
-              </>
-            )}
-          </div>
+                ) : undefined
+              }
+            />
+          )
         ) : (
           <>
             <div aria-busy={isFetching} className={c(isFetching && "busy")}>

@@ -1,5 +1,5 @@
 import type { Tone } from "@/components/kit/kit";
-import { INTERNAL_STATUS_LABELS } from "@/lib/order-status";
+import { BLIND_SHIP_LABEL, INTERNAL_STATUS_LABELS } from "@/lib/order-status";
 
 /* ============================================================
    คำไทยของประวัติระบบ — แปลง action/entityType ที่ server เขียนไว้ให้คนอ่านรู้เรื่อง
@@ -154,7 +154,7 @@ const FIELD_LABELS: Record<string, string> = {
   refundedAmount: "ยอดคืน",
   tableCount: "จำนวนตาราง",
   rowCount: "จำนวนแถว",
-  blindShip: "ส่งแบบไม่ระบุผู้ส่ง",
+  blindShip: `ส่งแบบ${BLIND_SHIP_LABEL}`,
   blindShipSenderName: "ชื่อผู้ส่งบนกล่อง",
   action: "การทำงาน",
   note: "หมายเหตุ",

@@ -21,7 +21,7 @@ import { permAllows } from "@/lib/permissions";
 import { startOfBangkokDay, differenceInBangkokDays } from "@/lib/date-utils";
 import { formatTime, isImageUrl } from "@/lib/utils";
 import { PageShell } from "@/components/page-shell";
-import { c, CardHead, Callout, DueTag, Thumb } from "@/components/kit/kit";
+import { c, CardHead, Callout, DueTag, Empty, Thumb } from "@/components/kit/kit";
 import { ProductionModuleHead } from "@/components/production/production-module-head";
 
 type QueueEntry = RouterOutput["printRun"]["queue"][number];
@@ -251,10 +251,8 @@ function PrintDtf() {
                 </tbody>
               </table>
               {queue.length === 0 ? (
-                <div className={c("noresult")}>
-                  <SearchX aria-hidden="true" />
-                  <span>ยังไม่มีงานรอพิมพ์</span>
-                </div>
+                /* กล่องว่างของชุดกลาง เหมือนหน้าอื่นทั้งเว็บ — เดิมวาด .noresult เอง */
+                <Empty icon={SearchX} title="ยังไม่มีงานรอพิมพ์" />
               ) : null}
             </div>
             <div className={c("qfoot")}>

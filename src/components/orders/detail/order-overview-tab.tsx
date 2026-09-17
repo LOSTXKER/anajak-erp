@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import type { CustomerStatus, OrderType } from "@prisma/client";
 import { c, CardHead, MiniRing, Prop, StateBox, SubHead, timeText } from "@/components/kit/kit";
+import { customerTypeLabel } from "@/components/customers/customer-type";
 import { differenceInBangkokDays } from "@/lib/date-utils";
 import { CHANNEL_LABELS, ORDER_TYPE_UI_LABELS, PRIORITY_LABELS } from "@/lib/order-status";
 import { PAYMENT_TERMS_LABELS } from "@/lib/payment-terms";
@@ -157,7 +158,7 @@ export function OrderOverviewTab({
   const customer = order.customer;
   const creatorName = typeof order.createdBy === "string" ? order.createdBy : (order.createdBy?.name ?? null);
   const typeLabel = ORDER_TYPE_UI_LABELS[order.orderType];
-  const tech = printLabel ?? (order.orderType === "READY_MADE" ? "สำเร็จรูป" : null);
+  const tech = printLabel ?? (order.orderType === "READY_MADE" ? ORDER_TYPE_UI_LABELS.READY_MADE : null);
 
   const termsLabel = order.paymentTerms ? (PAYMENT_TERMS_LABELS[order.paymentTerms] ?? order.paymentTerms) : null;
   const customerTerms = customer?.defaultPaymentTerms ?? null;
@@ -395,9 +396,7 @@ export function OrderOverviewTab({
                         <span className={c("ln")}>
                           {contactPerson
                             ? `ผู้ติดต่อ ${contactPerson}`
-                            : customer.customerType === "CORPORATE"
-                              ? "นิติบุคคล"
-                              : "บุคคลธรรมดา"}
+                            : customerTypeLabel(customer.customerType)}
                         </span>
                         <small>{contactLine || "ยังไม่มีช่องทางติดต่อ"}</small>
                       </span>

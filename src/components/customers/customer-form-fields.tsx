@@ -13,6 +13,7 @@ import {
   type CustomerEditErrors,
   type CustomerEditForm,
 } from "@/lib/customer-form";
+import { CUSTOMER_TYPE_LABELS } from "@/components/customers/customer-type";
 import { Building2, User } from "lucide-react";
 
 // field ชุดเดียวของฟอร์มลูกค้า — ใช้ทั้งฟอร์มเพิ่ม (customers/page.tsx) และแก้ไข
@@ -64,8 +65,8 @@ export function CustomerFormFields({
             aria-label="ประเภทลูกค้า"
             className={isEdit ? "w-full" : undefined}
             options={[
-              { value: "INDIVIDUAL", label: "บุคคลธรรมดา", icon: User },
-              { value: "CORPORATE", label: "นิติบุคคล", icon: Building2 },
+              { value: "INDIVIDUAL", label: CUSTOMER_TYPE_LABELS.INDIVIDUAL, icon: User },
+              { value: "CORPORATE", label: CUSTOMER_TYPE_LABELS.CORPORATE, icon: Building2 },
             ]}
           />
         </fieldset>

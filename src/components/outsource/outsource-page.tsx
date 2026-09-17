@@ -21,7 +21,7 @@ import { OUTSOURCE_STATUS_LABELS } from "@/lib/outsource-ui";
 import { STEP_TYPE_LABELS } from "@/lib/production-steps";
 import { formatDateShort } from "@/lib/utils";
 import { PageShell } from "@/components/page-shell";
-import { c, Callout } from "@/components/kit/kit";
+import { c, Callout, Empty } from "@/components/kit/kit";
 import { Seg } from "@/components/kit/seg";
 import { ProductionModuleHead } from "@/components/production/production-module-head";
 import { GoodsReceiptDialog } from "@/components/goods-receipt/goods-receipt-dialog";
@@ -300,10 +300,8 @@ function OutsourceList() {
               </tbody>
             </table>
             {rows.length === 0 ? (
-              <div className={c("noresult")}>
-                <SearchX aria-hidden="true" />
-                <span>ไม่มีใบในกลุ่มนี้</span>
-              </div>
+              /* กล่องว่างของชุดกลาง เหมือนหน้าอื่นทั้งเว็บ — เดิมวาด .noresult เอง */
+              <Empty icon={SearchX} title="ไม่มีใบในกลุ่มนี้" />
             ) : null}
           </div>
           <ul className={c("ocards")}>

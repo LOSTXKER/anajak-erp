@@ -22,7 +22,7 @@ import { MockupPill, ProblemCallout } from "@/components/orders/orders-ui";
 import { customerLines, orderListCover, type OrderListRow } from "@/components/orders/list/orders-table";
 import { describeOrderAttention } from "@/lib/home-orders";
 import { isAttentionStatus } from "@/lib/order-progress";
-import { getFlowSteps } from "@/lib/order-status";
+import { getFlowSteps, ORDER_TYPE_UI_LABELS } from "@/lib/order-status";
 import { formatBaht, formatDateCompact } from "@/lib/utils";
 
 /* ============================================================
@@ -65,7 +65,7 @@ export function OrderPeekPanel({
   const index = flow.indexOf(order.internalStatus);
   const { currentStep, stepsDone, stepsTotal, dueInDays } = order.progress;
   const { title, person } = customerLines(order);
-  const tech = order.printLabel ?? (order.orderType === "READY_MADE" ? "สำเร็จรูป" : null);
+  const tech = order.printLabel ?? (order.orderType === "READY_MADE" ? ORDER_TYPE_UI_LABELS.READY_MADE : null);
   const who2 = [person, order.description?.trim() || null, tech].filter(Boolean).join(" · ");
   const phone = order.customer?.phone?.trim();
   const chatUrl = safeChatUrl(order.customer?.chatUrl);

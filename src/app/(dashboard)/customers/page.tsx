@@ -26,6 +26,7 @@ import {
   CUSTOMER_SEGMENT_ORDER,
   customerInitial,
 } from "@/components/customers/customer-segments";
+import { CustomerTypeChip } from "@/components/customers/customer-type";
 import { PageShell } from "@/components/page-shell";
 import { SegmentedControl } from "@/components/ui/segmented";
 import { KitDateRange } from "@/components/kit/date-range";
@@ -249,13 +250,13 @@ function CustomersPageContent() {
                               {title}
                             </Link>
                           </div>
-                          <p className={c("cu")}>
-                            {customer.company
-                              ? `ผู้ติดต่อ ${customer.name}`
-                              : customer.customerType === "CORPORATE"
-                                ? "นิติบุคคล"
-                                : "บุคคลธรรมดา"}
-                          </p>
+                          {/* ไม่มีชื่อบริษัท = ไม่มีผู้ติดต่อให้บอก บรรทัดรองจึงตกเป็นของประเภทลูกค้า
+                              (ป้ายชุดเดียวกับการ์ดจอแคบด้านล่าง เดิมที่นั่นตัดคำเหลือ "บุคคล") */}
+                          {customer.company ? (
+                            <p className={c("cu")}>ผู้ติดต่อ {customer.name}</p>
+                          ) : (
+                            <CustomerTypeChip type={customer.customerType} />
+                          )}
                         </div>
                       </div>
                     </DataTable.Td>
@@ -326,9 +327,7 @@ function CustomersPageContent() {
                     </div>
                     <div className="mt-3 flex flex-wrap items-center gap-2">
                       <Badge variant="default">{segmentLabel}</Badge>
-                      <span className="text-xs text-secondary">
-                        {customer.customerType === "CORPORATE" ? "นิติบุคคล" : "บุคคล"}
-                      </span>
+                      <CustomerTypeChip type={customer.customerType} />
                       <span className="text-xs text-secondary tabular-nums">
                         {customer._count.orders.toLocaleString("th-TH")} ออเดอร์
                       </span>

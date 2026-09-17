@@ -124,7 +124,7 @@ export default function AgingPage() {
 }
 
 function AgingPageContent() {
-  const { search, page, searchParams, replaceListState, onSearchChange, searchInputRef } =
+  const { search, page, searchParams, replaceListState, onSearchChange, clearSearch, searchInputRef } =
     useListPageState();
   const rawStatus = searchParams.get("status") ?? "";
   const status = AGING_STATUS_OPTIONS.some((option) => option.value === rawStatus)
@@ -541,15 +541,15 @@ function AgingPageContent() {
             ))}
           </div>
         )}
+        /* ล้างได้ทั้งคำค้นและช่วงอายุหนี้ (การเรียงไม่ใช่ตัวกรอง จึงคงไว้) */
+        filtered={Boolean(search || status)}
+        onClearFilters={() => clearSearch({ status: null })}
+        filteredDescription="ลองเปลี่ยนคำค้นหาหรือช่วงอายุหนี้"
         emptyState={
           <EmptyState
             icon={Users}
             title="ไม่พบลูกหนี้"
-            description={
-              search || status
-                ? "ลองเปลี่ยนคำค้นหาหรือช่วงอายุหนี้"
-                : "ใบแจ้งหนี้ทุกใบชำระครบแล้ว หรือยังไม่มีการวางบิล"
-            }
+            description="ใบแจ้งหนี้ทุกใบชำระครบแล้ว หรือยังไม่มีการวางบิล"
           />
         }
         pagination={

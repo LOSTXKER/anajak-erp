@@ -10,7 +10,7 @@ import type {
 } from "@prisma/client";
 import { router, protectedProcedure, requirePermission } from "../trpc";
 import { hasPermission } from "@/lib/permissions";
-import type { OutsourceAvailableCommand } from "@/lib/outsource-ui";
+import { OUTSOURCE_STATUS_LABELS, type OutsourceAvailableCommand } from "@/lib/outsource-ui";
 import { firstPendingStepIdsByLane } from "@/lib/production-step-actions";
 import { isOutsourceStep } from "@/lib/production-steps";
 import type { PrismaTx } from "@/lib/prisma";
@@ -1057,7 +1057,7 @@ export const outsourceRouter = router({
         if (!allowed.includes(data.status)) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: `ใบนี้สถานะ "${OUTSOURCE_STATUS_TH[current.status] ?? current.status}" แล้ว — เปลี่ยนเป็น "${OUTSOURCE_STATUS_TH[data.status] ?? data.status}" ไม่ได้ (อาจมีคนอัปเดตไปก่อน ลองรีเฟรช)`,
+            message: `ใบนี้สถานะ "${OUTSOURCE_STATUS_LABELS[current.status] ?? current.status}" แล้ว — เปลี่ยนเป็น "${OUTSOURCE_STATUS_LABELS[data.status] ?? data.status}" ไม่ได้ (อาจมีคนอัปเดตไปก่อน ลองรีเฟรช)`,
           });
         }
         if (lockedScope) {
@@ -1202,12 +1202,5 @@ const OUTSOURCE_TRANSITIONS: Record<string, string[]> = {
   QC_FAILED: [],
 };
 
-const OUTSOURCE_STATUS_TH: Record<string, string> = {
-  DRAFT: "ร่าง",
-  SENT: "ส่งร้านแล้ว",
-  IN_PROGRESS: "ร้านกำลังทำ",
-  COMPLETED: "ร้านทำเสร็จ",
-  RECEIVED_BACK: "รับกลับ รอ QC",
-  QC_PASSED: "QC ผ่าน",
-  QC_FAILED: "QC ไม่ผ่าน",
-};
+// คำสถานะของใบงานนอกอยู่ที่ OUTSOURCE_STATUS_CONFIG ใน @/lib/outsource-ui ชุดเดียว —
+// เดิม router มีชุดของตัวเอง คนใช้จึงเด้งว่าใบเป็น "ร่าง" ทั้งที่ป้ายตรงหน้าเขียน "รอส่งร้าน"

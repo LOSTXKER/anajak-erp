@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ResponsiveList } from "@/components/ui/responsive-list";
@@ -343,9 +344,9 @@ export default function UsersSettingsPage() {
                         <div className="min-w-0">
                           <span className="text-sm font-medium text-strong">{user.name}</span>
                           {isSelf && (
-                            <span className="ml-2 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
+                            <Badge variant="accent" className="ml-2">
                               คุณ
-                            </span>
+                            </Badge>
                           )}
                         </div>
                       </div>
@@ -442,9 +443,9 @@ export default function UsersSettingsPage() {
                         <p className="font-semibold text-strong">
                           {user.name}
                           {isSelf && (
-                            <span className="ml-2 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
+                            <Badge variant="accent" className="ml-2">
                               คุณ
-                            </span>
+                            </Badge>
                           )}
                         </p>
                         <p className="mt-0.5 truncate text-xs text-secondary">{user.email}</p>
@@ -596,9 +597,7 @@ export default function UsersSettingsPage() {
                           </span>
                           <span className="flex shrink-0 items-center gap-1.5">
                             {overridden && (
-                              <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
-                                ปรับเอง
-                              </span>
+                              <Badge variant="warning">ปรับเอง</Badge>
                             )}
                             {locked && <span className="text-xs text-muted">เจ้าของเท่านั้น</span>}
                           </span>

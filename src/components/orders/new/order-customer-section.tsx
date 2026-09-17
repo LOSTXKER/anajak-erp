@@ -9,6 +9,7 @@ import { c, CardHead } from "@/components/kit/kit";
 import { Field } from "@/components/ui/field";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CustomerPicker, type PickerCustomer } from "@/components/customers/customer-picker";
+import { CustomerTypeChip } from "@/components/customers/customer-type";
 import { customerProfileGaps } from "@/lib/customer-gaps";
 import { formatBaht } from "@/lib/utils";
 
@@ -44,7 +45,6 @@ export function OrderCustomerSection({
   invalid = false,
   lockedReason,
 }: OrderCustomerSectionProps) {
-  const isCorporate = selectedCustomer?.customerType === "CORPORATE";
   const profileGaps = selectedCustomer
     ? customerProfileGaps(selectedCustomer)
     : [];
@@ -125,7 +125,9 @@ export function OrderCustomerSection({
               <span className={c("who")}>
                 <span className={c("nm")}>
                   {label}
-                  {isCorporate && <span className={c("chip blue")}>นิติบุคคล</span>}
+                  {/* เดิมขึ้นเฉพาะนิติบุคคล คนคีย์จึงแยกไม่ออกว่า "ไม่มีป้าย" แปลว่าบุคคลธรรมดา
+                      หรือแค่ยังไม่ได้กรอก — ป้ายกลางตอบทั้งสองประเภท (เบสเคาะ 2026-09-18) */}
+                  <CustomerTypeChip type={selectedCustomer?.customerType} />
                 </span>
                 {(contact.length > 0 || taxId) && (
                   <span className={c("sub")}>

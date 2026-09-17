@@ -13,7 +13,9 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
+import { Shirt } from "lucide-react";
 
+import { Empty } from "@/components/kit/kit";
 import { Button } from "@/components/ui/button";
 import { FileUpload } from "@/components/ui/file-upload";
 import { ImageRemoveButton } from "@/components/ui/image-remove-button";
@@ -197,7 +199,9 @@ export function GarmentReceiveInline({
   return (
     <div>
       {rows.length === 0 ? (
-        <p className="px-5 py-6 text-center text-sm text-muted">ออเดอร์นี้ไม่มีรายการเสื้อที่ลูกค้าส่งมา</p>
+        /* กล่องว่างของชุดกลาง เหมือนหน้าอื่นทั้งเว็บ — เดิมเป็นข้อความเปล่า
+           flat เพราะกล่องขั้นมีเส้นคั่นหัวอยู่แล้ว ถ้าไม่ส่งจะได้เส้นซ้อนสองชั้น */
+        <Empty icon={Shirt} flat title="ออเดอร์นี้ไม่มีรายการเสื้อที่ลูกค้าส่งมา" />
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full table-fixed">

@@ -120,7 +120,7 @@ export function OutsourceShareDialog({ job, onClose }: OutsourceShareDialogProps
         <DialogHeader>
           <DialogTitle>แชร์ใบงานให้ร้าน</DialogTitle>
           <DialogDescription>
-            {job.description} · {job.quantity} ชิ้น
+            {job.description} · {job.quantity.toLocaleString("th-TH")} ตัว
             {job.expectedBackAt && ` · กำหนดส่งคืน ${formatDate(job.expectedBackAt)}`}
           </DialogDescription>
         </DialogHeader>

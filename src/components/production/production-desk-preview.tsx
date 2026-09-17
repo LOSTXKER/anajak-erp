@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { FOCUS_INSET, RADIUS } from "@/components/ui/tokens";
 import { MockupThumbnail } from "@/components/mockup/mockup-thumbnail";
 import { orderMockupCover } from "@/lib/mockup";
-import { INTERNAL_STATUS_LABELS, PRIORITY_LABELS } from "@/lib/order-status";
+import { BLIND_SHIP_LABEL, INTERNAL_STATUS_LABELS, PRIORITY_LABELS } from "@/lib/order-status";
 import type { BoardOrderLike } from "@/lib/production-board";
 import type { DeskRow, DeskStepLike } from "@/lib/production-desk";
 import type { DeskSort, DeskSortKey } from "@/lib/production-desk-sort";
@@ -170,7 +170,7 @@ export function DeskRowDetails<S extends DeskStepLike, O extends BoardOrderLike<
         {(order.priority === "URGENT" || order.priority === "HIGH" || order.blindShip) && <div className="flex flex-wrap gap-2">
           {order.priority === "URGENT" && <Badge variant="destructive">{PRIORITY_LABELS.URGENT}</Badge>}
           {order.priority === "HIGH" && <Badge variant="warning">{PRIORITY_LABELS.HIGH}</Badge>}
-          {order.blindShip && <Badge variant="warning">Blind ship</Badge>}
+          {order.blindShip && <Badge variant="warning">{BLIND_SHIP_LABEL}</Badge>}
         </div>}
       </header>
       <dl className="grid grid-cols-2 gap-4 border-y border-divider py-4 text-sm">

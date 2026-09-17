@@ -218,20 +218,17 @@ export default function SalesTaxReportPage() {
         items={visibleRows}
         isLoading={isLoading}
         label="ใบกำกับภาษี"
+        /* งวดไม่ใช่ตัวกรอง แต่เป็นขอบเขตของรายงาน (ไม่มีตัวเลือก "ทุกงวด") ปุ่มจึงล้างได้แค่คำค้น
+           — บรรทัดรองบอกไว้ว่างวดยังอยู่ที่เดิม จะได้ไม่เข้าใจว่ากดแล้วเห็นทั้งปี */
+        filtered={Boolean(term)}
+        onClearFilters={() => setSearch("")}
+        filteredDescription={`ค้นได้ด้วยเลขใบกำกับ ชื่อลูกค้า หรือเลขผู้เสียภาษี · ล้างแล้วจะเห็นทั้งงวด ${periodLabel} ตามเดิม`}
         emptyState={
-          term ? (
-            <EmptyState
-              icon={ReceiptText}
-              title="ไม่พบใบกำกับที่ค้นหา"
-              description="ลองคำค้นอื่น — ค้นได้ด้วยเลขใบกำกับ ชื่อลูกค้า หรือเลขผู้เสียภาษี"
-            />
-          ) : (
-            <EmptyState
-              icon={ReceiptText}
-              title={`งวด ${periodLabel} ยังไม่มีใบกำกับภาษี`}
-              description="ใบเสร็จ/ใบกำกับเกิดตอนบันทึกรับเงินแล้วกดออกใบที่งวดนั้น (tax point จ้างทำของ)"
-            />
-          )
+          <EmptyState
+            icon={ReceiptText}
+            title={`งวด ${periodLabel} ยังไม่มีใบกำกับภาษี`}
+            description="ใบเสร็จ/ใบกำกับเกิดตอนบันทึกรับเงินแล้วกดออกใบที่งวดนั้น (tax point จ้างทำของ)"
+          />
         }
         pagination={
           summary ? (

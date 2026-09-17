@@ -1,5 +1,5 @@
 import { createContext, useContext, type HTMLAttributes, type ReactNode } from "react";
-import { Inbox } from "lucide-react";
+import { Inbox, SearchX } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { QueryError } from "@/components/ui/query-error";
 import { Alert } from "@/components/ui/alert";
@@ -27,6 +27,14 @@ export interface ResponsiveListProps<T>
   /** แถบค้นหา/ตัวกรองของรายการนี้ — ส่งมาแล้ววางไว้ "ในการ์ดเดียวกับตาราง" แบบหน้าออเดอร์ (ชุด kit · 2026-09-17)
    *  ทุกสถานะ (โหลด/ว่าง/พัง/มีข้อมูล) ยังเห็นแถบนี้ในการ์ดเดิม จอไม่กระโดด */
   toolbar?: ReactNode;
+  /** ตอนนี้กรอง/ค้นอยู่ไหม — แต่ละหน้านับตัวกรองของตัวเองไม่เหมือนกัน ตัวกลางเดาแทนไม่ได้
+   *  จริง = กล่องว่างพูดว่า "ไม่พบตามตัวกรองนี้" แทน "ยังไม่มี…" และไม่ต้องให้หน้าเขียนเองซ้ำ */
+  filtered?: boolean;
+  /** ล้างตัวกรองและคำค้นของหน้านี้ — ไม่ส่งมา = ไม่ขึ้นปุ่ม
+   *  หน้าที่ล้างได้ไม่หมด (เช่นงวดที่ต้องเลือกเสมอ) ให้ส่งเฉพาะตอนที่กดแล้วล้างได้จริง */
+  onClearFilters?: () => void;
+  /** บรรทัดรองตอนกรองแล้วไม่เจอ — ใส่คำช่วยเฉพาะหน้า เช่นค้นด้วยอะไรได้บ้าง */
+  filteredDescription?: string;
 }
 
 /** ตาราง/การ์ดที่อยู่ในการ์ดของ ResponsiveList แล้ว ไม่ต้องวาดกรอบซ้อน (DataTable.Root อ่านค่านี้) */
@@ -61,6 +69,9 @@ export function ResponsiveList<T>({
   pagination,
   label = "รายการ",
   toolbar,
+  filtered = false,
+  onClearFilters,
+  filteredDescription,
   className,
   ...props
 }: ResponsiveListProps<T>) {
@@ -86,15 +97,32 @@ export function ResponsiveList<T>({
 
   const resolvedItems = items ?? [];
   if (resolvedItems.length === 0) {
+    /* กรองแล้วไม่เจอเคยเป็นทางตัน: จอว่างไม่มีปุ่มล้าง ต้องไล่ปิดตัวกรองทีละตัวเอง
+       กล่องนี้จึงอยู่ที่ตัวกลาง หน้าไม่ต้องเขียนคำว่า "ไม่พบตามเงื่อนไข" ของใครของมัน */
     return (
       <ListStateFrame toolbar={toolbar}>
-        {emptyState ?? (
+        {filtered ? (
           <EmptyState
-            icon={Inbox}
-            title={`ยังไม่มี${label}`}
-            description="ข้อมูลจะปรากฏที่นี่เมื่อมีรายการ"
-            action={emptyAction}
+            icon={SearchX}
+            title={`ไม่พบ${label}ตามตัวกรองนี้`}
+            description={filteredDescription ?? "ลองแก้คำค้นหรือขยายตัวกรอง แล้วดูอีกครั้ง"}
+            action={
+              onClearFilters ? (
+                <Button type="button" variant="outline" size="sm" onClick={onClearFilters}>
+                  ล้างตัวกรองและคำค้น
+                </Button>
+              ) : undefined
+            }
           />
+        ) : (
+          emptyState ?? (
+            <EmptyState
+              icon={Inbox}
+              title={`ยังไม่มี${label}`}
+              description="ข้อมูลจะปรากฏที่นี่เมื่อมีรายการ"
+              action={emptyAction}
+            />
+          )
         )}
       </ListStateFrame>
     );

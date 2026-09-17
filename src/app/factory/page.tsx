@@ -18,6 +18,7 @@ import { useProductionV2Enabled } from "@/components/factory/production-v2-conte
 import { ToneMark } from "@/components/ui/section";
 import { cn, formatDateShort } from "@/lib/utils";
 import { differenceInBangkokDays } from "@/lib/date-utils";
+import { BLIND_SHIP_LABEL, PRIORITY_LABELS } from "@/lib/order-status";
 
 // Factory TV — read-only pulse ของสายงานจริง 5 ด่าน
 // endpoint factory.board ไม่มี field เงินโดยโครงสร้าง และหน้านี้ไม่มี action ใด ๆ
@@ -191,7 +192,7 @@ function LegacyFactoryBoardPage() {
               orderNumber={item.orderNumber}
               customerName={item.customerName}
               deadline={item.deadline}
-              status={item.blindShip ? "Blind ship" : "รอแพ็ก"}
+              status={item.blindShip ? BLIND_SHIP_LABEL : "รอแพ็ก"}
               progress={`${item.totalQuantity} ตัว`}
               danger={item.blindShip}
             />
@@ -427,11 +428,12 @@ function BoardRail({ board }: { board: Board }) {
   const priorityAlerts = board.urgentOrders.map((item) => ({
     key: `urgent:${item.orderId}`,
     orderNumber: item.orderNumber,
+    // คำบนป้ายมาจาก PRIORITY_LABELS ชุดเดียวกับฟอร์ม/จอผลิต — จอนี้ยังนับเฉพาะ URGENT เหมือนเดิม
     label:
       item.priority === "URGENT" && isOverdue(item.deadline)
-        ? "งานด่วน · เลยกำหนด"
+        ? `${PRIORITY_LABELS.URGENT} · เลยกำหนด`
         : item.priority === "URGENT"
-          ? "งานด่วน"
+          ? PRIORITY_LABELS.URGENT
           : "เลยกำหนดส่ง",
     detail: item.customerName,
     danger: isOverdue(item.deadline),

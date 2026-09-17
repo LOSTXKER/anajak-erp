@@ -72,7 +72,7 @@ function NoteStatus({
 }
 
 function BillingNotesPageContent() {
-  const { search, page, searchParams, replaceListState, onSearchChange, searchInputRef } =
+  const { search, page, searchParams, replaceListState, onSearchChange, clearSearch, searchInputRef } =
     useListPageState();
   const dateFrom = validDateParam(searchParams.get("from"));
   const dateTo = validDateParam(searchParams.get("to"));
@@ -380,15 +380,15 @@ function BillingNotesPageContent() {
             ))}
           </div>
         )}
+        /* ช่วงวันที่วางบิลก็เป็นตัวกรอง — ต้องนับและล้างไปพร้อมคำค้น ไม่งั้นกดล้างแล้วยังว่างเหมือนเดิม */
+        filtered={Boolean(search || dateFrom || dateTo)}
+        onClearFilters={() => clearSearch({ from: null, to: null })}
+        filteredDescription="ลองเปลี่ยนคำค้นหา หรือขยายช่วงวันที่วางบิล"
         emptyState={
           <EmptyState
             icon={FileStack}
             title="ยังไม่มีใบวางบิล"
-            description={
-              search
-                ? "ลองเปลี่ยนคำค้นหา"
-                : "กดสร้างใบวางบิล แล้วเลือกใบแจ้งหนี้ค้างชำระของลูกค้าที่จะเรียกเก็บ"
-            }
+            description="กดสร้างใบวางบิล แล้วเลือกใบแจ้งหนี้ค้างชำระของลูกค้าที่จะเรียกเก็บ"
           />
         }
         pagination={

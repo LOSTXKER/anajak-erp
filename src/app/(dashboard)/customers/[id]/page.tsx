@@ -21,6 +21,7 @@ import { CustomerEditDialog } from "@/components/customers/customer-edit-dialog"
 import { CustomerCommLogDialog } from "@/components/customers/customer-comm-log-dialog";
 import { ChatLink } from "@/components/customers/chat-link";
 import { customerSegmentLabel } from "@/components/customers/customer-segments";
+import { CustomerTypeChip } from "@/components/customers/customer-type";
 import { commChannelLabel } from "@/lib/comm-channels";
 import { PageShell } from "@/components/page-shell";
 import { CardHead, Prop, c } from "@/components/kit/kit";
@@ -40,7 +41,6 @@ import {
   Plus,
   ShoppingCart,
   Tag,
-  User,
   Wallet,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -120,15 +120,9 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
       title={customer ? customer.company || customer.name : "ลูกค้า"}
       meta={metaParts.length > 0 ? metaParts.join(" · ") : undefined}
       back={{ href: "/customers", label: "ลูกค้าทั้งหมด" }}
-      titleBadge={
-        customer ? (
-          customer.customerType === "CORPORATE" ? (
-            <Badge variant="default" className="gap-1.5"><Building2 className="h-3 w-3" /> นิติบุคคล</Badge>
-          ) : (
-            <Badge variant="secondary" className="gap-1.5"><User className="h-3 w-3" /> บุคคลธรรมดา</Badge>
-          )
-        ) : undefined
-      }
+      /* เดิมสองประเภทตั้งใจให้สีต่างกัน (default vs secondary) แต่ทั้งคู่ map ลงเทา
+         จึงออกมาหน้าตาเดียวกัน — ป้ายกลางแยกนิติบุคคล (ฟ้า) กับบุคคลธรรมดา (เทา) จริง */
+      titleBadge={customer ? <CustomerTypeChip type={customer.customerType} size="lg" /> : undefined}
       action={
         <>
           {canEdit && (

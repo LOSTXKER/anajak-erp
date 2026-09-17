@@ -108,20 +108,23 @@ export function ActiveOrdersCard({
           }
         />
       ) : rows.length === 0 ? (
-        <div className={c("noresult")}>
-          <Search aria-hidden="true" />
-          <span>ไม่มีออเดอร์ตามตัวกรองนี้</span>
-          <button
-            type="button"
-            className={c("btn sm")}
-            onClick={() => {
-              setFilter("all");
-              onClearDay();
-            }}
-          >
-            ล้างตัวกรอง
-          </button>
-        </div>
+        /* ใบเดียวกันเคยมีกล่องว่างสองหน้าตา (Empty ข้างบน · .noresult ตรงนี้) — ใช้ชิ้นเดียวกันแล้ว */
+        <Empty
+          icon={Search}
+          title="ไม่มีออเดอร์ตามตัวกรองนี้"
+          action={
+            <button
+              type="button"
+              className={c("btn sm")}
+              onClick={() => {
+                setFilter("all");
+                onClearDay();
+              }}
+            >
+              ล้างตัวกรอง
+            </button>
+          }
+        />
       ) : (
         <>
           <div className={c("tblw")}>

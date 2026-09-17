@@ -20,10 +20,10 @@ import {
   ImageIcon,
   Link2,
   PenLine,
-  Search,
   Shirt,
   StickyNote,
   Truck,
+  Undo2,
   Wallet,
   X,
   XCircle,
@@ -38,8 +38,10 @@ import {
   canPermsSetStatus,
   canIssueChangeOrder,
   isOrderLocked,
+  isRollbackTransition,
   isMarketplaceChannel,
 } from "@/lib/order-status";
+import { singleBackStatus } from "@/lib/order-status-rail";
 import { permAllows } from "@/lib/permissions";
 import { canEditOrderWithPricing } from "@/lib/order-access";
 import { buildOrderEditHref, type OrderEditFocus } from "@/lib/order-edit-navigation";
@@ -70,8 +72,10 @@ import {
   resolveNextStepAction,
 } from "@/components/orders/detail/order-next-step-action";
 import { OrderDetailHead, OrderStatusSteps } from "@/components/orders/detail/order-detail-head";
-import { c, Callout, Empty } from "@/components/kit/kit";
+import { c, Callout } from "@/components/kit/kit";
 import { KitTabs } from "@/components/kit/tabs";
+import { RecordNotFound } from "@/components/ui/record-not-found";
+import { QueryError } from "@/components/ui/query-error";
 import { ProblemCallout } from "@/components/orders/orders-ui";
 import { describeOrderAttention } from "@/lib/home-orders";
 import { describeOrderProgress, isAttentionStatus } from "@/lib/order-progress";
@@ -297,37 +301,18 @@ function OrderDetailContent({
           <ChevronRight aria-hidden="true" />
           <span aria-current="page">{order?.orderNumber ?? "ออเดอร์"}</span>
         </nav>
-        <section className={c("card")}>
-          {!isError && !order ? (
-            <Empty
-              icon={Search}
-              size="lg"
-              flat
-              title="ไม่พบออเดอร์ใบนี้"
-              action={
-                <Link href="/orders" className={c("btn sm")}>
-                  กลับไปรายการออเดอร์
-                </Link>
-              }
-            />
-          ) : (
-            <Empty
-              icon={AlertTriangle}
-              size="lg"
-              flat
-              title={isError ? "โหลดออเดอร์ไม่สำเร็จ" : "โหลดสิทธิ์ผู้ใช้ไม่สำเร็จ จึงยังเปิดคำสั่งของออเดอร์ไม่ได้"}
-              action={
-                <button
-                  type="button"
-                  className={c("btn sm")}
-                  onClick={() => void (isError ? refetch() : meQuery.refetch())}
-                >
-                  ลองอีกครั้ง
-                </button>
-              }
-            />
-          )}
-        </section>
+        {/* ใช้ของกลางชุดเดียวกับหน้าแก้ไขออเดอร์/ใบผลิต: เปิดลิงก์ผิดจะได้เห็นสาเหตุ
+            และไม่ได้วงกลมสีเขียว (สงวนไว้ให้ "เคลียร์หมดแล้ว") มาคู่กับคำว่าโหลดพัง
+            ไม่ห่อ .card ทับ: RecordNotFound พกการ์ดมาเองแล้วจะได้การ์ดซ้อนการ์ด
+            ส่วน QueryError วางเปล่าบนผืนหน้าเหมือนที่ PageShell ทำให้ทุกหน้า */}
+        {!isError && !order ? (
+          <RecordNotFound what="ออเดอร์ใบนี้" backHref="/orders" backLabel="กลับไปรายการออเดอร์" />
+        ) : (
+          <QueryError
+            message={isError ? "โหลดออเดอร์ไม่สำเร็จ" : "โหลดสิทธิ์ผู้ใช้ไม่สำเร็จ จึงยังเปิดคำสั่งของออเดอร์ไม่ได้"}
+            onRetry={() => void (isError ? refetch() : meQuery.refetch())}
+          />
+        )}
       </div>
     );
   }
@@ -361,6 +346,23 @@ function OrderDetailContent({
     !productionV2Enabled && !hasV2Production && permAllows(me.permissions, ["manage_production", "supervise_operations"]);
   const currentStepIndex = flowSteps.indexOf(order.internalStatus);
   const isCompleted = order.internalStatus === "COMPLETED";
+  /* ปุ่มย้อนกลับยกออกมาจากเมนู ⋯ (เบสสั่ง 2026-09-18 "จะได้กดได้ง่ายๆ")
+     "ถอย" = ขั้นเป้าหมายอยู่ก่อนขั้นที่ยืนอยู่บนเส้นทางเดียวกับราง (ไม่ใช่ทุกสถานะที่ไปได้)
+     โผล่เมื่อมีทางถอยทางเดียวเท่านั้น — ส่งแล้วถอยได้ 2 ทาง (พร้อมส่ง/QC) ยังต้องเลือกในเมนู
+     ด่านสิทธิ์/ใบผลิต V2 ใช้ roleCanSetStatus ตัวเดียวกับเมนู จึงไม่มีปุ่มที่กดแล้ว server ปฏิเสธ */
+  const backStatus = singleBackStatus({
+    flowSteps,
+    internalStatus: order.internalStatus,
+    allowedTargets: forwardStatuses,
+  });
+  const backLabel =
+    backStatus === null
+      ? null
+      : isCompleted && backStatus === "SHIPPED"
+        ? "เปิดงานกลับ (→ จัดส่งแล้ว)"
+        : `ย้อนกลับ: ${INTERNAL_STATUS_LABELS[backStatus as keyof typeof INTERNAL_STATUS_LABELS]}`;
+  // เมนูไม่ต้องมีรายการเดียวกับปุ่ม — ทางเดียวต่อหนึ่งเรื่อง
+  const menuStatuses = forwardStatuses.filter((status) => status !== backStatus);
   const isMarketplace = isMarketplaceChannel(order.channel);
 
   const totalCost = order.costEntries?.reduce((sum: number, entry: { amount: number }) => sum + entry.amount, 0) ?? 0;
@@ -470,12 +472,34 @@ function OrderDetailContent({
     }
   }
 
+  /** ปุ่มย้อนกลับที่ยกออกมา — ถามยืนยันทุกครั้งเหมือนปุ่มย้อนขั้นในใบผลิต และบอกผลที่ตามมาของขานั้น
+   *  ปุ่มเด่นขึ้นแล้วกดพลาดได้ง่ายขึ้นด้วย · ขาที่ server บังคับเหตุผล (ส่งแล้ว/ปิดงาน)
+   *  handleStatusChange ถามอยู่แล้ว จึงไม่ถามซ้อนสองชั้น */
+  async function handleStepBack(target: string) {
+    const from = order?.internalStatus;
+    if (!from) return;
+    if (!isRollbackTransition(from, target as InternalStatus)) {
+      const consequence =
+        from === "QUALITY_CHECK" && target === "PRODUCING"
+          ? 'ใบผลิตจะถูกเปิดใหม่และเพิ่มขั้น "งานแก้" ให้ช่างติ๊ก ยอดที่จดไว้ยังอยู่'
+          : target === "DESIGNING"
+            ? "ใบจะกลับมาแก้รายการ/ราคาได้โดยตรง ไม่ต้องออกใบแก้ไขออเดอร์"
+            : "สถานะจะถอยกลับหนึ่งขั้น คนที่รับช่วงขั้นนั้นจะเห็นงานกลับมาในคิว";
+      const ok = await confirm({
+        title: `${backLabel}?`,
+        description: consequence,
+        confirmText: "ย้อนกลับ",
+      });
+      if (!ok) return;
+    }
+    await handleStatusChange(target);
+  }
+
   // เมนู ⋯ มีของให้เลือกจริงไหม — ไม่มีก็ไม่ต้องมีปุ่ม
-  const hasOverflowMenu = isSalesUp || forwardStatuses.length > 0 || canCancel;
+  const hasOverflowMenu = isSalesUp || menuStatuses.length > 0 || canCancel;
+  // ขา "เปิดงานกลับ" (ปิดงาน → จัดส่งแล้ว) ยกไปเป็นปุ่มย้อนกลับบนหัวใบแล้ว เมนูจึงเหลือป้ายสถานะตรงๆ
   const statusItemLabel = (status: string) =>
-    isCompleted && status === "SHIPPED"
-      ? "เปิดงานกลับ (→ จัดส่งแล้ว)"
-      : INTERNAL_STATUS_LABELS[status as keyof typeof INTERNAL_STATUS_LABELS];
+    INTERNAL_STATUS_LABELS[status as keyof typeof INTERNAL_STATUS_LABELS];
 
   /* "ต้องจัดการ" — สูตรเดียวกับหน้าแรกและตาราง: lib/order-progress → lib/home-orders */
   const progress = describeOrderProgress(order, now);
@@ -704,6 +728,18 @@ function OrderDetailContent({
                 <span className={c("lbl")}>ลิงก์ลูกค้า</span>
               </button>
             ) : null}
+            {backStatus && backLabel ? (
+              <button
+                type="button"
+                className={c("btn")}
+                onClick={() => void handleStepBack(backStatus)}
+                disabled={updateStatus.isPending}
+                aria-label={backLabel}
+              >
+                <Undo2 aria-hidden="true" />
+                <span className={c("lbl")}>{backLabel}</span>
+              </button>
+            ) : null}
             {/* ปุ่มขั้นต่อไป — ทางเดียวที่เช็คด่านพร้อมผลิต · ติดด่านปุ่มหาย แล้วป้ายบนสุดบอกแทน */}
             {cta ? (
               <button
@@ -759,10 +795,10 @@ function OrderDetailContent({
                         ) : null}
                       </>
                     ) : null}
-                    {forwardStatuses.length > 0 ? (
+                    {menuStatuses.length > 0 ? (
                       <>
                         {isSalesUp ? <DropdownMenu.Separator className={c("sep")} /> : null}
-                        {forwardStatuses.map((status) => (
+                        {menuStatuses.map((status) => (
                           <DropdownMenu.Item
                             key={status}
                             className={c("mi")}

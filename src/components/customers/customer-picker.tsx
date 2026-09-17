@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { CustomerCreateDialog } from "@/components/customers/customer-create-dialog";
+import { CUSTOMER_TYPE_LABELS } from "@/components/customers/customer-type";
 import { UserPlus, Search } from "lucide-react";
 import { QueryError } from "@/components/ui/query-error";
 
@@ -129,7 +130,9 @@ export function CustomerPicker({
           {options.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name} {c.company ? `(${c.company})` : ""}
-              {c.customerType === "CORPORATE" ? " [นิติบุคคล]" : ""}
+              {/* ใน <option> ใส่ป้ายไม่ได้ ต้องเป็นข้อความล้วน — อย่างน้อยใช้คำชุดเดียวกับที่อื่น
+                  และคั่นด้วยจุดแบบบรรทัดรองทั้งเว็บ แทนวงเล็บเหลี่ยมที่ไม่มีที่อื่นใช้ */}
+              {c.customerType === "CORPORATE" ? ` · ${CUSTOMER_TYPE_LABELS.CORPORATE}` : ""}
             </option>
           ))}
         </Select>

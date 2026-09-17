@@ -26,6 +26,7 @@ import { PageShell } from "@/components/page-shell";
 import { c, CardHead, Empty, timeText, type Tone } from "@/components/kit/kit";
 import { STEP_TYPE_LABELS } from "@/lib/production-steps";
 import { manufacturingTaskHref } from "@/lib/manufacturing-task";
+import { BLIND_SHIP_LABEL } from "@/lib/order-status";
 import { APPROVAL_STATUS_LABELS } from "@/lib/status-config";
 import {
   groupTaskItems,
@@ -166,7 +167,7 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
       attention: taskAttention(queue.deadline),
       ownership: "team",
       // กติกา blind ship ห้ามหายไปกับการจัดหน้า — ขึ้นเป็นป้ายคู่กับข้อความเต็ม
-      warning: queue.blindShip ? "Blind ship" : undefined,
+      warning: queue.blindShip ? BLIND_SHIP_LABEL : undefined,
       meta: queue.blindShip ? "ห้ามใส่เอกสาร Anajak" : undefined,
       actionLabel: "ไปคิวแพ็ค",
     });

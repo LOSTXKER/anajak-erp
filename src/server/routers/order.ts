@@ -2825,7 +2825,7 @@ export const orderRouter = router({
       }
 
       const feeName = `ค่าแก้แบบเกินโควตา (${overage.chargeableRounds} รอบ)`;
-      const feeDesc = `แก้แบบ ${overage.revisionRounds} รอบ (ฟรี ${overage.freeRounds}) — คิดเกิน ${overage.chargeableRounds} รอบ × ${REVISION_FEE_PER_ROUND}฿`;
+      const feeDesc = `แก้แบบ ${overage.revisionRounds} รอบ (ฟรี ${overage.freeRounds}) — คิดเกิน ${overage.chargeableRounds} รอบ × ฿${REVISION_FEE_PER_ROUND}`;
 
       const updatedOrder = await ctx.prisma.$transaction(async (tx) => {
         // ยอดคิดใต้ lock (กัน TOCTOU — เหตุผลเดียวกับ updateItems/updateFees)

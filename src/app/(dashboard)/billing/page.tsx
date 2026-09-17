@@ -139,7 +139,7 @@ function outstandingOf(invoice: { totalAmount: number; payments: { amount: numbe
 }
 
 function BillingPageContent() {
-  const { search, page, searchParams, replaceListState, onSearchChange, searchInputRef } =
+  const { search, page, searchParams, replaceListState, onSearchChange, clearSearch, searchInputRef } =
     useListPageState();
   const rawStatus = searchParams.get("status");
   const dateFrom = validDateParam(searchParams.get("from"));
@@ -176,6 +176,9 @@ function BillingPageContent() {
   // ว่างเพราะกรอง หรือว่างเพราะยังไม่มีบิล — ช่วงวันที่ก็เป็นตัวกรอง ต้องนับด้วย
   const hasFilters =
     !!search || statusFilter !== ALL || typeFilter !== ALL || !!dateFrom || !!dateTo;
+  // ตัวกรองของหน้านี้อยู่ใน URL ทั้งชุด กดล้างทีเดียวได้ครบจริง
+  const clearFiltersAndSearch = () =>
+    clearSearch({ status: null, type: null, from: null, to: null });
 
   return (
     <PageShell
@@ -319,15 +322,14 @@ function BillingPageContent() {
         errorMessage="โหลดรายการบิลไม่สำเร็จ"
         onRetry={() => refetch()}
         label="บิล"
+        filtered={hasFilters}
+        onClearFilters={clearFiltersAndSearch}
+        filteredDescription="ลองปรับคำค้น ช่วงวันที่ หรือตัวกรอง"
         emptyState={
           <EmptyState
             icon={FileText}
-            title={hasFilters ? "ไม่พบบิลตามเงื่อนไข" : "ยังไม่มีบิล"}
-            description={
-              hasFilters
-                ? "ลองปรับคำค้น ช่วงวันที่ หรือตัวกรอง"
-                : "สร้างบิลได้จากหน้าออเดอร์ — แท็บ เงิน/บิล"
-            }
+            title="ยังไม่มีบิล"
+            description="สร้างบิลได้จากหน้าออเดอร์ — แท็บ เงิน/บิล"
           />
         }
         renderMobile={(invoices) => (

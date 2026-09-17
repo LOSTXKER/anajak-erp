@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import type { RefObject } from "react";
 import type { LucideIcon } from "lucide-react";
 import { ArrowUpDown, CalendarClock, ChevronRight, PackageCheck, Search, SearchX, TriangleAlert, Truck } from "lucide-react";
-import { c, DueTag, PriorityChip, Thumb } from "@/components/kit/kit";
+import { c, DueTag, Empty, PriorityChip, Thumb } from "@/components/kit/kit";
 import { Seg } from "@/components/kit/seg";
 import { orderMockupCover } from "@/lib/mockup";
 import type { BoardOrderLike } from "@/lib/production-board";
@@ -276,15 +276,18 @@ export function DeskWorkCard<S extends DeskStepLike, O extends BoardOrderLike<S>
           </tbody>
         </table>
         {rows.length === 0 ? (
-          <div className={c("noresult")}>
-            <SearchX aria-hidden="true" />
-            <span>{filtered ? "ไม่พบงานที่ตรงกับตัวกรอง" : "ยังไม่มีงานในโรงงาน"}</span>
-            {filtered ? (
-              <button type="button" className={c("btn sm")} onClick={onClear}>
-                ล้างตัวกรอง
-              </button>
-            ) : null}
-          </div>
+          /* กล่องว่างของชุดกลาง เหมือนหน้าอื่นทั้งเว็บ — เดิมวาด .noresult เอง */
+          <Empty
+            icon={SearchX}
+            title={filtered ? "ไม่พบงานที่ตรงกับตัวกรอง" : "ยังไม่มีงานในโรงงาน"}
+            action={
+              filtered ? (
+                <button type="button" className={c("btn sm")} onClick={onClear}>
+                  ล้างตัวกรอง
+                </button>
+              ) : undefined
+            }
+          />
         ) : null}
       </div>
 

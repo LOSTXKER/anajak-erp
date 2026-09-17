@@ -295,13 +295,14 @@ export function ProductPickerDialog({
                             <span className="truncate text-sm font-medium text-strong">
                               {product.name}
                             </span>
-                            <span className="inline-flex flex-shrink-0 items-center rounded-full bg-surface-muted px-2 py-0.5 text-xs font-medium text-secondary">
+                            {/* ป้ายชุดกลาง (.chip) เหมือนทั้งเว็บ — เดิมวาดเองด้วย Tailwind จนคนละหน้าตากับป้ายคงเหลือในตารางเดียวกัน */}
+                            <Badge className="shrink-0">
                               {PRODUCT_TYPE_LABELS[product.productType] ?? product.productType}
-                            </span>
+                            </Badge>
                             {selectedFromProduct > 0 && (
-                              <span className="inline-flex flex-shrink-0 items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                              <Badge variant="accent" className="shrink-0">
                                 เลือก {selectedFromProduct}
-                              </span>
+                              </Badge>
                             )}
                           </div>
                           <div className="mt-0.5 flex items-center gap-3 text-xs text-muted">

@@ -139,7 +139,7 @@ export default function WhtRegisterPage() {
 }
 
 function WhtRegisterPageContent() {
-  const { search, searchParams, replaceListState, onSearchChange, searchInputRef } =
+  const { search, searchParams, replaceListState, onSearchChange, clearSearch, searchInputRef } =
     useListPageState();
   // แท็บสถานะอยู่ใน URL (?status=received|all) — ไม่มี param/ค่าเพี้ยน = "pending" (default)
   const rawTab = searchParams.get("status");
@@ -314,14 +314,13 @@ function WhtRegisterPageContent() {
         }
         items={rows}
         isLoading={isLoading}
+        /* ล้างได้จริงเฉพาะคำค้นกับช่วงวันที่ — แท็บสถานะเป็นมุมที่ผู้ใช้เลือกดูอยู่ ไม่ล้างให้
+           (แท็บจึงไม่นับเป็น "กรองอยู่" ด้วย: แท็บรอใบแล้วว่าง = ได้ใบครบแล้ว ไม่ใช่กรองจนไม่เหลือ) */
+        filtered={hasFilter}
+        onClearFilters={() => clearSearch({ from: null, to: null })}
+        filteredDescription="ลองคำค้นอื่นหรือขยายช่วงวันที่ — ค้นได้ด้วยชื่อลูกค้า เลขบิล หรือเลขที่หนังสือรับรอง"
         emptyState={
-          hasFilter ? (
-            <EmptyState
-              icon={ReceiptText}
-              title="ไม่พบรายการตามเงื่อนไข"
-              description="ลองคำค้นอื่นหรือขยายช่วงวันที่ — ค้นได้ด้วยชื่อลูกค้า เลขบิล หรือเลขที่หนังสือรับรอง"
-            />
-          ) : tab === "pending" ? (
+          tab === "pending" ? (
             <EmptyState
               icon={ReceiptText}
               title="ไม่มีรายการรอใบ"
