@@ -63,7 +63,7 @@ const MoneyInput = React.forwardRef<
     <span className="relative block w-full min-w-0">
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute inset-y-0 left-2.5 flex items-center text-xs text-muted"
+        className="pointer-events-none absolute inset-y-0 left-2.5 flex items-center text-xs text-[color:var(--ink-4)]"
       >
         ฿
       </span>

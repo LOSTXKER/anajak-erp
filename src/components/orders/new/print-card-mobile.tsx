@@ -11,7 +11,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { RADIUS } from "@/components/ui/tokens";
 import { c } from "@/components/kit/kit";
 import { cn } from "@/lib/utils";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash } from "lucide-react";
 import {
   PRINT_POSITIONS,
   PRINT_TYPES,
@@ -19,6 +19,7 @@ import {
   type PrintForm,
 } from "@/types/order-form";
 import { usePrintRow } from "./use-print-row";
+import { CURRENT_PRINT_TYPE } from "./print-table-row";
 
 // จอแคบใช้การ์ดแทนการบีบตาราง 8 คอลัมน์จนต้องเลื่อนซ้ายขวา — ชิ้นส่วนหน้าตาชุดเดียวกับแถวตาราง
 export function PrintCardMobile({
@@ -97,12 +98,12 @@ export function PrintCardMobile({
           {printCatalog && printCatalog.length > 0 ? (
             <Select
               aria-label={`เลือกวิธีพิมพ์หรือต้นแบบ จุดที่ ${printIdx + 1}`}
-              value=""
+              value={print.printType ? CURRENT_PRINT_TYPE : ""}
               onChange={(event) => {
-                if (event.target.value) onApplyCatalog(event.target.value);
+                if (event.target.value && event.target.value !== CURRENT_PRINT_TYPE) onApplyCatalog(event.target.value);
               }}
             >
-              <option value="">
+              <option value={print.printType ? CURRENT_PRINT_TYPE : ""}>
                 {print.printType
                   ? PRINT_TYPES[print.printType] || print.printType
                   : "วิธีพิมพ์..."}
@@ -137,7 +138,7 @@ export function PrintCardMobile({
           onClick={onRemove}
           className="shrink-0 text-muted"
         >
-          <Trash2 />
+          <Trash />
         </Button>
       </div>
 

@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { MoneyInput } from "@/components/ui/number-input";
 import { Select } from "@/components/ui/select";
 import { c, CardHead } from "@/components/kit/kit";
-import { Plus, Trash2, Receipt } from "lucide-react";
+import { Plus, Trash, ReceiptText } from "lucide-react";
 import { resolveFeeCatalogSelection } from "@/lib/order-item-composer";
 import type { OrderFeeForm } from "@/types/order-form";
 import { cn } from "@/lib/utils";
@@ -87,7 +87,7 @@ export function OrderFeeSection({
       aria-label={`ลบค่าใช้จ่าย ${fIdx + 1}`}
       onClick={() => onRemoveFee(fIdx)}
     >
-      <Trash2 aria-hidden="true" />
+      <Trash aria-hidden="true" />
     </button>
   );
 
@@ -95,7 +95,7 @@ export function OrderFeeSection({
   return (
     <section className={c("card")}>
       <CardHead
-        icon={Receipt}
+        icon={ReceiptText}
         tone="good"
         title="ค่าใช้จ่ายเพิ่มเติม"
         right={
@@ -108,7 +108,7 @@ export function OrderFeeSection({
       <div className={c("cb")}>
         {fees.length === 0 ? (
           <button type="button" className={c("drop act")} onClick={onAddFee}>
-            <Receipt aria-hidden="true" />
+            <ReceiptText aria-hidden="true" />
             <b>เพิ่มค่าใช้จ่าย</b>
           </button>
         ) : (

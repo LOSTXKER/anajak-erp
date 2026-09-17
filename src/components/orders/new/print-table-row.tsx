@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { MoneyInput } from "@/components/ui/number-input";
 import { Select } from "@/components/ui/select";
 import { c } from "@/components/kit/kit";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash } from "lucide-react";
 import {
   PRINT_POSITIONS,
   PRINT_TYPES,
@@ -14,6 +14,9 @@ import {
 } from "@/types/order-form";
 import { Spinner } from "@/components/ui/spinner";
 import { usePrintRow } from "./use-print-row";
+
+/** ค่าแทน "วิธีพิมพ์ปัจจุบัน" ในช่องเลือกแบบแค็ตตาล็อก — ค่าว่างถูกวาดสีจางเหมือนยังไม่ได้เลือก */
+export const CURRENT_PRINT_TYPE = "__current";
 
 // แถวลาย 1 จุด — 8 คอลัมน์ตามต้นแบบ: ไฟล์ · วิธีพิมพ์ · ขนาด · กว้าง×สูง · ตำแหน่ง · จำนวนสี · ค่าสกรีน/ตัว · ลบ
 export function PrintTableRow({
@@ -84,12 +87,12 @@ export function PrintTableRow({
           <Select
             size="sm"
             aria-label={`เลือกวิธีพิมพ์หรือต้นแบบ จุดที่ ${printIdx + 1}`}
-            value=""
+            value={print.printType ? CURRENT_PRINT_TYPE : ""}
             onChange={(event) => {
-              if (event.target.value) onApplyCatalog(event.target.value);
+              if (event.target.value && event.target.value !== CURRENT_PRINT_TYPE) onApplyCatalog(event.target.value);
             }}
           >
-            <option value="">
+            <option value={print.printType ? CURRENT_PRINT_TYPE : ""}>
               {print.printType
                 ? PRINT_TYPES[print.printType] || print.printType
                 : "วิธีพิมพ์..."}
@@ -226,7 +229,7 @@ export function PrintTableRow({
           aria-label={`ลบลาย ${printIdx + 1}`}
           onClick={onRemove}
         >
-          <Trash2 aria-hidden="true" />
+          <Trash aria-hidden="true" />
         </button>
       </td>
     </tr>

@@ -1048,6 +1048,7 @@ ul.ocards { margin: 0; list-style: none; }
 /* ป้ายของ Field จริงในฟอร์มนี้ = ป้ายเล็กสีจางห่างช่อง 5px ตามต้นแบบ (.fld) · ตัวช่องกรอกคงขนาด Input/Select จริง */
 .ofm [data-field-state] > :not(:last-child) { margin-block-end: 5px; }
 .ofm [data-field-state] > div:first-child > label { font-size: 12px; font-weight: 500; color: var(--ink-3); }
+.ofm [data-field-state] > p[id$="-description"] { font-size: 11.5px; color: var(--ink-3); }
 
 /* ลูกค้า — ไม่ซ้อนกล่องในการ์ดอีกชั้น · วงเงินเป็นชิปขอบบาง (เบส: "ไม่เป็น text ธรรมดา แต่ไม่ต้องเด่นไป") */
 .ofm .cust { display: flex; align-items: flex-start; gap: 14px; flex-wrap: wrap; padding: 14px 0 4px; }

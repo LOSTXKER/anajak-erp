@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AlertTriangle, Pen } from "lucide-react";
+import { AlertTriangle, PenLine } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { c } from "@/components/kit/kit";
 import { Button } from "@/components/ui/button";
@@ -46,7 +46,7 @@ export function CustomMadeSpecSummary({
         </span>
       )}
       <button type="button" className={c("btn ghost sm")} onClick={() => setOpen(true)}>
-        <Pen aria-hidden="true" />
+        <PenLine aria-hidden="true" />
         {filled ? "แก้สเปค" : "ระบุสเปค"}
       </button>
 

@@ -90,7 +90,7 @@ export function ProductTableRow({
 
   return (
     <>
-      <tr className={multi ? c("prow") : undefined}>
+      <tr className={c("prow")}>
         <td className={c("va")}>{sourceCell}</td>
 
         {/* สินค้า — ทุกแหล่งอ่านเป็นแบบเดียวกัน: รูปย่อ · ชื่อ · บรรทัดรอง

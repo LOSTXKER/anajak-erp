@@ -42,7 +42,7 @@ import { calculateFormItemSubtotal, calculateOrderSummary } from "@/lib/pricing"
 import { cn, formatBaht, formatCurrency } from "@/lib/utils";
 import { Alert } from "@/components/ui/alert";
 import { Field } from "@/components/ui/field";
-import { CircleCheck, ClipboardList, FileText, Landmark, Loader2, Lock, Pen, TriangleAlert } from "lucide-react";
+import { CircleCheck, ClipboardList, FileText, Landmark, Loader2, Lock, PenLine, TriangleAlert } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -504,9 +504,9 @@ export default function OrderFormPage(props: OrderFormPageProps) {
           "ออเดอร์นี้ออกใบกำกับ/มัดจำไปแล้ว — ยอดเปลี่ยน ต้องออกใบลดหนี้/เพิ่มหนี้แยก",
         );
       } else if (data.changeNumber) {
-        toast.success(`ออกใบแก้ไขออเดอร์ ${data.changeNumber} แล้ว`);
+        toast.success(`บันทึกการแก้ไขแล้ว · ออกใบแก้ไขออเดอร์ ${data.changeNumber}`);
       } else {
-        toast.success("บันทึกการแก้ไขออเดอร์แล้ว");
+        toast.success("บันทึกการแก้ไขแล้ว");
       }
       navigateOutOfEdit(editReturnHref);
     },
@@ -1119,6 +1119,7 @@ export default function OrderFormPage(props: OrderFormPageProps) {
     const url = new URL(window.location.href);
     url.searchParams.set("tab", ORDER_FORM_DEFAULT_TAB);
     window.history.replaceState({}, "", url);
+    toast("ล้างร่างแล้ว เริ่มกรอกใหม่");
   };
 
   const formPending = isEdit ? saveOrder.isPending : createOrder.isPending;
@@ -1487,7 +1488,7 @@ export default function OrderFormPage(props: OrderFormPageProps) {
               {changeOrderMode && (
                 <section className={c("card")}>
                   <CardHead
-                    icon={Pen}
+                    icon={PenLine}
                     tone="warn"
                     title="เหตุผลการแก้ไข"
                     right={editPlan?.work ? <span className={c("chip warn")}>ต้องกรอก</span> : undefined}

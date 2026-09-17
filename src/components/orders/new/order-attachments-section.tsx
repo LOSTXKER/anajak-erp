@@ -9,7 +9,7 @@ import { uploadFile } from "@/lib/supabase";
 import { safeFileExt } from "@/lib/file-urls";
 import { PRINT_POSITIONS } from "@/types/order-form";
 import type { ReferenceImage } from "@/types/order-form";
-import { ChevronRight, FileText, ImageIcon, Trash2, Upload } from "lucide-react";
+import { ChevronRight, FileText, ImageIcon, Trash, Upload } from "lucide-react";
 import { cn, isImageUrl } from "@/lib/utils";
 
 // รูป/ไฟล์อ้างอิงจากแชท — แยกจาก orders/new/page.tsx ตอนรื้อฟอร์ม 2026-06-12
@@ -202,7 +202,7 @@ export function OrderAttachmentsSection({
                       onClick={() => onImagesChange((prev) => prev.filter((_, i) => i !== idx))}
                       aria-label={`ลบไฟล์ ${img.fileName}`}
                     >
-                      <Trash2 aria-hidden="true" />
+                      <Trash aria-hidden="true" />
                     </button>
                   ) : (
                     <span aria-hidden="true" />

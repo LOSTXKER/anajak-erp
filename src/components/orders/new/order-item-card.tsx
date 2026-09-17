@@ -9,10 +9,10 @@ import { cn, formatBaht, formatCurrency } from "@/lib/utils";
 import { buildOrderItemPriceSummary, getProductSourcePresentation } from "@/lib/order-item-composer";
 import {
   Plus,
-  Trash2,
+  Trash,
   Copy,
   ImageIcon,
-  Layers,
+  Files,
 } from "lucide-react";
 import type { OrderItemForm } from "@/types/order-form";
 import {
@@ -124,7 +124,7 @@ function OrderItemRow({
         <b className={c("it mono")}>{formatBaht(subtotal)}</b>
         {canRemove && (
           <button type="button" className={c("ibtn")} onClick={() => onRemoveItem(itemIdx)} aria-label={`ลบรายการที่ ${itemIdx + 1}`}>
-            <Trash2 aria-hidden="true" />
+            <Trash aria-hidden="true" />
           </button>
         )}
       </div>
@@ -500,7 +500,7 @@ export function OrderItemCard({
       </div>
       {item.addons.length === 0 ? (
         <button type="button" className={c("drop act")} onClick={() => onAddAddon(itemIdx)}>
-          <Layers aria-hidden="true" />
+          <Files aria-hidden="true" />
           <b>เพิ่มส่วนเสริม</b>
         </button>
       ) : (
@@ -531,7 +531,7 @@ export function OrderItemCard({
                     </td>
                     <td className={c("act")}>
                       <button type="button" className={c("ibtn")} aria-label={`ลบส่วนเสริม ${aIdx + 1}`} onClick={() => onRemoveAddon(itemIdx, aIdx)}>
-                        <Trash2 aria-hidden="true" />
+                        <Trash aria-hidden="true" />
                       </button>
                     </td>
                   </tr>
@@ -547,7 +547,7 @@ export function OrderItemCard({
                     ส่วนเสริม #{addonIdx + 1}
                   </p>
                   <button type="button" className={c("ibtn")} aria-label={`ลบส่วนเสริม ${addonIdx + 1}`} onClick={() => onRemoveAddon(itemIdx, addonIdx)}>
-                    <Trash2 aria-hidden="true" />
+                    <Trash aria-hidden="true" />
                   </button>
                 </div>
                 <div className="grid grid-cols-2 gap-3">

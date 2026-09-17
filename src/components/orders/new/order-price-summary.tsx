@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
-import { Receipt } from "lucide-react";
+import { ReceiptText } from "lucide-react";
 import { HelpTip } from "@/components/ui/help-tip";
 import { c, CardHead } from "@/components/kit/kit";
 import { formatBaht } from "@/lib/utils";
@@ -195,7 +195,7 @@ export function OrderPriceSummary({
   return (
     <section className={c("card price sticky")}>
       <CardHead
-        icon={Receipt}
+        icon={ReceiptText}
         tone="good"
         title="สรุปยอด"
         right={taxRate > 0 ? <span className={c("chip gray")}>รวม VAT {taxRate}%</span> : undefined}

@@ -3,12 +3,12 @@
 import { c } from "@/components/kit/kit";
 import { OVERLAY_PANEL } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
-import { Plus, Package, Scissors, Shirt } from "lucide-react";
+import { Plus, PackageCheck, Scissors, Shirt } from "lucide-react";
 import { useState } from "react";
 
 // 3 ชนิดงาน (itemSource) — ใช้ทั้งใน popover และการ์ดเลือกชนิดตอน empty state
 export const PRODUCT_TYPE_OPTIONS = [
-  { key: "stock", icon: Package, label: "เลือกจากสต็อก" },
+  { key: "stock", icon: PackageCheck, label: "เลือกจากสต็อก" },
   { key: "custom", icon: Scissors, label: "สั่งตัดเย็บใหม่" },
   { key: "provided", icon: Shirt, label: "ลูกค้าส่งของมา" },
 ] as const;

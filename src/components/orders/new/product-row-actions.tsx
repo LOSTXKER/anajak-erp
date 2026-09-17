@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { ArrowDown, ArrowUp, Menu, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Menu, Trash } from "lucide-react";
 import { c } from "@/components/kit/kit";
 import { Button } from "@/components/ui/button";
 import {
@@ -48,7 +48,7 @@ export function ProductRowActions({
     if (totalProducts === 1) {
       return (
         <button type="button" className={c("ibtn")} onClick={onRemove} aria-label={removeLabel}>
-          <Trash2 aria-hidden="true" />
+          <Trash aria-hidden="true" />
         </button>
       );
     }
@@ -96,7 +96,7 @@ export function ProductRowActions({
                 )}
               >
                 <span className="flex items-center gap-2 [&_svg]:size-4">
-                  <Trash2 />ลบสินค้า
+                  <Trash />ลบสินค้า
                 </span>
               </DropdownMenu.Item>
             </DropdownMenu.Content>
@@ -152,7 +152,7 @@ export function ProductRowActions({
         aria-label={removeLabel}
         className="text-muted"
       >
-        <Trash2 />
+        <Trash />
       </Button>
       <span className="sr-only" aria-live="polite">{announcement}</span>
     </div>
