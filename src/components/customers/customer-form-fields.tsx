@@ -59,11 +59,12 @@ export function CustomerFormFields({
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <fieldset className={cn("space-y-2", !isEdit && "sm:col-span-2")}>
           <legend className="text-sm font-medium">ประเภทลูกค้า</legend>
+          {/* ขนาดพอดีเนื้อหาทั้งสองฟอร์ม (เบสสั่ง 2026-09-18 หลังทักว่า "เหมือนไม่ได้ใช้ฟอร์มเดียวกัน")
+              เดิมฝั่งแก้ไขยืดเต็มแถว รางเทาเลยเด่นจนดูเป็นแถบตัวกรอง ไม่ใช่ปุ่มเลือกตัวเดียวกัน */}
           <SegmentedControl
             value={form.customerType}
             onChange={(v) => set({ customerType: v })}
             aria-label="ประเภทลูกค้า"
-            className={isEdit ? "w-full" : undefined}
             options={[
               { value: "INDIVIDUAL", label: CUSTOMER_TYPE_LABELS.INDIVIDUAL, icon: User },
               { value: "CORPORATE", label: CUSTOMER_TYPE_LABELS.CORPORATE, icon: Building2 },

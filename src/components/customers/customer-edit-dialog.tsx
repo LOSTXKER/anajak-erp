@@ -39,6 +39,9 @@ export function CustomerEditDialog({
   onClose: () => void;
 }) {
   const [form, setForm] = useState(() => customerEditFormFromRecord(customer));
+  // โชว์ error หลังกดบันทึกครั้งแรก — จังหวะเดียวกับฟอร์มเพิ่มลูกค้า (เบสสั่งให้เหมือนกัน 2026-09-18)
+  // เดิมที่นี่โชว์สด: ลบชื่อเพื่อพิมพ์ใหม่แล้วขึ้นแดงทันทีทั้งที่ยังพิมพ์ไม่จบ
+  const [showErrors, setShowErrors] = useState(false);
 
   const utils = trpc.useUtils();
   const update = useMutationWithInvalidation(trpc.customer.update, {
@@ -59,12 +62,16 @@ export function CustomerEditDialog({
   });
 
   const validationErrors = validateCustomerEditForm(form);
-  const isFormValid = Object.keys(validationErrors).length === 0;
   const set = (patch: Partial<CustomerEditForm>) => setForm((f) => ({ ...f, ...patch }));
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!isFormValid) return;
+    // กล่องนี้เปิดจากหน้าลูกค้า แต่กันไว้เหมือนฟอร์มเพิ่ม: React ส่ง submit ข้าม portal ขึ้นฟอร์มแม่ได้
+    e.stopPropagation();
+    if (Object.keys(validationErrors).length > 0) {
+      setShowErrors(true);
+      return;
+    }
     update.mutate(buildCustomerUpdatePayload(customer.id, form, canEditCredit));
   }
 
@@ -88,7 +95,7 @@ export function CustomerEditDialog({
               <CustomerFormFields
                 form={form}
                 set={set}
-                errors={validationErrors}
+                errors={showErrors ? validationErrors : {}}
                 canEditCredit={canEditCredit}
                 mode="edit"
               />
@@ -104,7 +111,6 @@ export function CustomerEditDialog({
           <DialogSubmitFooter
             className="static z-auto px-5 sm:px-6"
             pending={update.isPending}
-            disabled={!isFormValid}
             submitLabel="บันทึก"
             submitIcon={<Save />}
             onCancel={onClose}
