@@ -102,3 +102,33 @@ export function singleBackStatus(params: {
   });
   return back.length === 1 ? back[0] : null;
 }
+
+
+/**
+ * ขั้นถอยถัดไปเมื่อ "รู้ปลายทางแล้ว" — ต่างจาก singleBackStatus ที่ตั้งใจไม่เดาเวลามีหลายทาง
+ *
+ * ปุ่มย้อนกลับบนหัวใบเป็นคำสั่งของคน จึงห้ามเดาแทน · แต่งานแก้ตามใบเคลมรู้ปลายทางแน่นอน
+ * ("กำลังผลิต" เท่านั้น) จึงเลือกทางถอยที่เข้าใกล้ปลายทางที่สุดโดยไม่เลยปลายทางได้
+ *
+ * ของจริงที่ทำให้ต้องมีตัวนี้ (เจอตอนเทสบนเว็บจริง 2026-09-19): "จัดส่งแล้ว" ถอยได้ 2 ทาง
+ * คือ พร้อมส่ง (กดส่งพลาด) กับ ตรวจคุณภาพ (ของตีกลับ) — singleBackStatus จึงคืน null
+ * แล้วปุ่ม "สั่งงานแก้" ตายในเคสที่พบบ่อยที่สุด คือของออกจากร้านไปแล้วถึงได้เคลม
+ */
+export function backStepToward(params: {
+  flowSteps: readonly string[];
+  internalStatus: string;
+  allowedTargets: readonly string[];
+  /** สถานะปลายทางที่อยากไปให้ถึง */
+  target: string;
+}): string | null {
+  const { flowSteps, internalStatus, allowedTargets, target } = params;
+  const currentIndex = flowSteps.indexOf(internalStatus);
+  const targetIndex = flowSteps.indexOf(target);
+  if (currentIndex < 0 || targetIndex < 0 || targetIndex >= currentIndex) return null;
+  // ถอยได้ = อยู่ก่อนขั้นปัจจุบัน แต่ไม่เลยปลายทาง · เลือกตัวที่ใกล้ปลายทางที่สุด
+  const candidates = allowedTargets
+    .map((status) => ({ status, index: flowSteps.indexOf(status) }))
+    .filter((candidate) => candidate.index >= targetIndex && candidate.index < currentIndex)
+    .sort((a, b) => a.index - b.index);
+  return candidates[0]?.status ?? null;
+}

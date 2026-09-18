@@ -7,9 +7,9 @@ import { openClaim, sumClaimLines } from "@/server/services/claim";
 import { lockOrderRow } from "@/server/services/order-cost";
 import { addOrderRevision, reopenProductionsForRework, transitionOrder } from "@/server/services/order-status";
 import { claimCloseBlockers, resolutionNeedsRework } from "@/lib/claim";
-import { getFlowSteps, getNextStatuses } from "@/lib/order-status";
+import { getFlowSteps, getNextStatuses, INTERNAL_STATUS_LABELS } from "@/lib/order-status";
 import type { InternalStatus, OrderType } from "@prisma/client";
-import { singleBackStatus } from "@/lib/order-status-rail";
+import { backStepToward } from "@/lib/order-status-rail";
 
 // ใบเคลม / รอบแก้งาน (ก้อน 1 — เบสสั่ง 2026-09-18 "รื้อได้ แก้ที่ราก")
 //
@@ -252,10 +252,18 @@ export const claimRouter = router({
         while (current !== "PRODUCING") {
           if (guard++ > 6) badRequest("ถอยสถานะไม่ถึงขั้นผลิต — ตรวจเส้นทางงานของออเดอร์นี้");
           const allowed = getNextStatuses(order.orderType as OrderType, current);
-          const back = singleBackStatus({ flowSteps, internalStatus: current, allowedTargets: allowed });
+          // รู้ปลายทางแน่นอน (กำลังผลิต) จึงเลือกทางถอยที่ใกล้ปลายทางที่สุดได้ ไม่ต้องรอให้เหลือทางเดียว
+          // — "จัดส่งแล้ว" ถอยได้สองทาง (พร้อมส่ง/ตรวจคุณภาพ) ซึ่งเป็นเคสหลักของของตีกลับ
+          const back = backStepToward({
+            flowSteps,
+            internalStatus: current,
+            allowedTargets: allowed,
+            target: "PRODUCING",
+          });
           if (!back) {
             badRequest(
-              `ออเดอร์อยู่สถานะ "${current}" ซึ่งถอยกลับไปผลิตอัตโนมัติไม่ได้ — ถอยด้วยปุ่มบนหัวใบออเดอร์ก่อน`,
+              `ออเดอร์อยู่สถานะ "${INTERNAL_STATUS_LABELS[current] ?? current}" ซึ่งถอยกลับไปผลิตอัตโนมัติไม่ได้ — ` +
+                `ถอยสถานะเองจากเมนู ⋯ บนหัวใบออเดอร์ก่อน แล้วค่อยสั่งงานแก้อีกครั้ง`,
             );
           }
           const moved = await transitionOrder(tx, {

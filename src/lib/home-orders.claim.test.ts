@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { describeHomeOrder, type HomeOrderLike } from "./home-orders";
+import { describeHomeOrder, describeOrderAttention, type HomeOrderLike } from "./home-orders";
 import { describeOrderProgress } from "./order-progress";
 
 /**
@@ -46,6 +46,35 @@ describe("describeHomeOrder — งานแก้มาก่อนทุกเ
       claim: { round: 1, label: "งานแก้ รอบที่ 1 · รอตัดสิน" },
     });
     expect(problem!.kind).toBe("claim");
+  });
+});
+
+describe("describeOrderAttention — ด่านสถานะต้องไม่กลืนงานแก้", () => {
+  /**
+   * ของจริงจากการเทสบนเว็บจริง 2026-09-19: กฎใน describeHomeOrder ถูกแล้ว แต่ตาราง
+   * ออเดอร์เรียกผ่านตัวนี้ ซึ่งตัดใบที่ "จบแล้ว" ทิ้งก่อนถึงกฎ — เหตุจึงไม่เคยขึ้นจอ
+   */
+  it("ส่งแล้ว + มีงานแก้ค้าง = ยังต้องขึ้นเหตุ", () => {
+    const problem = describeOrderAttention({
+      ...BASE,
+      internalStatus: "SHIPPED",
+      claim: { round: 1, label: "งานแก้ รอบที่ 1 · รอตัดสิน" },
+    });
+    expect(problem?.kind).toBe("claim");
+  });
+
+  it("ปิดงานแล้ว + มีงานแก้ค้าง = ยังต้องขึ้นเหตุ", () => {
+    const problem = describeOrderAttention({
+      ...BASE,
+      internalStatus: "COMPLETED",
+      claim: { round: 2, label: "งานแก้ รอบที่ 2 · ซ่อม/ทำใหม่เฉพาะที่เสีย" },
+    });
+    expect(problem?.kind).toBe("claim");
+  });
+
+  it("ส่งแล้วและไม่มีงานแก้ = เงียบเหมือนเดิม (ไม่ทำให้ใบที่จบแล้วกลับมารก)", () => {
+    expect(describeOrderAttention({ ...BASE, internalStatus: "SHIPPED", dueInDays: -9 })).toBeNull();
+    expect(describeOrderAttention({ ...BASE, internalStatus: "COMPLETED", dueInDays: -9 })).toBeNull();
   });
 });
 

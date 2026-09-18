@@ -76,6 +76,13 @@ const HOME_ORDER_SELECT = {
     },
   },
   revisions: { orderBy: { createdAt: "desc" }, take: 1, select: { createdAt: true } },
+  // งานแก้ที่ยังไม่จบ — ต้องดึงมาด้วย ไม่งั้นหน้าแรกอ่านใบที่มีเคลมเป็น "เลยกำหนด" เฉยๆ
+  // (เจอตอนเทสบนเว็บจริง 2026-09-19)
+  claims: {
+    where: { state: { in: ["OPEN", "DECIDED"] } },
+    orderBy: { round: "desc" },
+    select: { round: true, state: true, resolution: true, lines: { select: { qtyClaimed: true } } },
+  },
   productions: {
     orderBy: { createdAt: "desc" },
     take: 1,
@@ -285,8 +292,13 @@ export async function getHomeOverview(
   const now = opts.now ?? new Date();
   const startToday = startOfBangkokToday(now);
   const shippedSince = new Date(now.getTime() - ON_TIME_WINDOW_DAYS * DAY_MS);
+  // ใบที่ยังเดินอยู่ "หรือ" ใบที่จบแล้วแต่มีงานแก้ค้าง — ของตีกลับเกิดหลังส่งเสมอ
+  // ถ้ากรองด้วยสถานะอย่างเดียว งานเคลมจะหายจากหน้าแรกตั้งแต่ระดับ query
   const activeWhere = {
-    internalStatus: { notIn: [...ACTIVE_ORDER_EXCLUDED] },
+    OR: [
+      { internalStatus: { notIn: [...ACTIVE_ORDER_EXCLUDED] } },
+      { claims: { some: { state: { in: ["OPEN", "DECIDED"] } } } },
+    ],
   } satisfies Prisma.OrderWhereInput;
   const designWhere = {
     internalStatus: { in: [...DESIGN_STAGE_STATUSES] },

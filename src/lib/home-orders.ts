@@ -124,11 +124,15 @@ export function describeHomeOrder(order: HomeOrderLike): HomeProblem | null {
 /** "ต้องจัดการ" ที่ใช้กับออเดอร์ได้ทุกสถานะ (ตาราง/หน้ารายละเอียด) — ใบร่าง/ส่งแล้ว/ปิด/ยกเลิก
  *  ไม่มีเรื่องต้องตาม แม้กำหนดส่งจะผ่านไปแล้ว · หน้าแรกส่งมาแต่ใบที่ยังเดินอยู่จึงเรียกตัวบนตรง ๆ */
 export function describeOrderAttention(order: HomeOrderLike): HomeProblem | null {
+  // งานแก้ที่ยังไม่จบข้ามด่านสถานะ — ใบที่นับว่า "จบแล้ว" แต่ของกลับมาอยู่ที่ร้านยังต้องตาม
+  // (เจอตอนเทสบนเว็บจริง 2026-09-19: ตารางออเดอร์ไม่ขึ้นเหตุเลย เพราะด่านนี้ตัดก่อนถึงกฎ)
+  if (order.claim) return describeHomeOrder(order);
   return isAttentionStatus(order.internalStatus) ? describeHomeOrder(order) : null;
 }
 
 export const HOME_ORDER_FILTERS = [
   { key: "all", label: "ทั้งหมด" },
+  { key: "claim", label: "งานแก้" },
   { key: "late", label: "เลยกำหนด" },
   { key: "today", label: "ส่งวันนี้" },
   { key: "wait", label: "รอลูกค้า/ร้านนอก" },

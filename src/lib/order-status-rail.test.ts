@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { findOffPathAnchor, railStepState, type StatusRevisionLike, singleBackStatus } from "./order-status-rail";
+import { findOffPathAnchor, railStepState, type StatusRevisionLike, singleBackStatus, backStepToward } from "./order-status-rail";
 import { getFlowSteps, getNextStatuses } from "./order-status";
 
 const CUSTOM = getFlowSteps("CUSTOM");
@@ -149,6 +149,76 @@ describe("singleBackStatus", () => {
   it("พักงาน/ยกเลิกอยู่นอกเส้นทาง — ไม่เดาขั้นก่อนให้", () => {
     expect(
       singleBackStatus({ flowSteps: flow, internalStatus: "ON_HOLD", allowedTargets: ["PRODUCING", "PRODUCTION_QUEUE"] }),
+    ).toBeNull();
+  });
+});
+
+/**
+ * เดินถอยแบบรู้ปลายทาง (งานแก้ตามใบเคลม)
+ *
+ * เทสต์ชุดนี้เกิดจากของจริง: เทสบนเว็บจริง 2026-09-19 แล้วปุ่ม "สั่งงานแก้เข้าสายผลิต"
+ * ตายในเคสหลักที่สุด — ของถูกส่งไปแล้วถึงได้เคลม ("จัดส่งแล้ว" ถอยได้สองทาง)
+ * จึงเดินด้วยตารางสถานะจริงทั้งใบ ไม่ใช่ flow ปลอม เพื่อให้จับซ้ำได้ถ้าตารางเปลี่ยน
+ */
+describe("backStepToward — เดินถอยจนถึงกำลังผลิต", () => {
+  function walkToProducing(orderType: "CUSTOM" | "READY_MADE", from: string) {
+    const flowSteps = getFlowSteps(orderType) as readonly string[];
+    const path: string[] = [];
+    let current = from;
+    for (let guard = 0; guard < 8 && current !== "PRODUCING"; guard++) {
+      const back = backStepToward({
+        flowSteps,
+        internalStatus: current,
+        allowedTargets: getNextStatuses(orderType, current as never),
+        target: "PRODUCING",
+      });
+      if (!back) return { path, stuckAt: current };
+      path.push(back);
+      current = back;
+    }
+    return { path, stuckAt: current === "PRODUCING" ? null : current };
+  }
+
+  it("จัดส่งแล้ว → ตรวจคุณภาพ → กำลังผลิต (ไม่ไปทาง พร้อมส่ง)", () => {
+    expect(walkToProducing("CUSTOM", "SHIPPED")).toEqual({
+      path: ["QUALITY_CHECK", "PRODUCING"],
+      stuckAt: null,
+    });
+  });
+
+  it("ปิดงานแล้วก็ยังเดินถึงได้ — ลูกค้าเคลมหลังปิดงานมีจริง", () => {
+    expect(walkToProducing("CUSTOM", "COMPLETED")).toEqual({
+      path: ["SHIPPED", "QUALITY_CHECK", "PRODUCING"],
+      stuckAt: null,
+    });
+  });
+
+  it("ทุกสถานะหลังผลิตของทั้งสองชนิดงานต้องเดินถึงกำลังผลิตได้", () => {
+    for (const orderType of ["CUSTOM", "READY_MADE"] as const) {
+      for (const from of ["QUALITY_CHECK", "PACKING", "READY_TO_SHIP", "SHIPPED", "COMPLETED"]) {
+        expect(walkToProducing(orderType, from).stuckAt).toBeNull();
+      }
+    }
+  });
+
+  it("ไม่เดินเลยปลายทาง และไม่เดินเมื่ออยู่ก่อนปลายทางอยู่แล้ว", () => {
+    const flowSteps = getFlowSteps("CUSTOM") as readonly string[];
+    expect(
+      backStepToward({
+        flowSteps,
+        internalStatus: "PRODUCTION_QUEUE",
+        allowedTargets: getNextStatuses("CUSTOM", "PRODUCTION_QUEUE"),
+        target: "PRODUCING",
+      }),
+    ).toBeNull();
+    // สถานะนอกเส้นทาง (พักงาน) ไม่มีที่ยืนบนราง จึงต้องไม่เดา
+    expect(
+      backStepToward({
+        flowSteps,
+        internalStatus: "ON_HOLD",
+        allowedTargets: ["PRODUCTION_QUEUE", "CONFIRMED"],
+        target: "PRODUCING",
+      }),
     ).toBeNull();
   });
 });
