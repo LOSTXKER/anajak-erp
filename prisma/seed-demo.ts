@@ -1828,6 +1828,120 @@ async function main() {
         });
       }
 
+      /* ── งานแก้/เคลม (ก้อน 1) — ของที่ส่งไปแล้วถูกตีกลับ ──────────────────────────
+         เคลมเกิดหลังส่งเสมอ จึงต่อท้ายฉากที่เดินจนส่งของแล้ว: ใบส่งเปลี่ยนเป็นตีกลับ
+         เปิดใบเคลมพร้อมจำนวนรายไซซ์ (ที่หน้างานนับจริง) และฉากที่สองเดินต่อจนงานแก้
+         อยู่ในสายผลิต เพื่อให้เปิดฐานทดลองมาแล้วเห็นทั้งสองสภาพโดยไม่ต้องกดสร้างเอง */
+      const claimPlans = [
+        {
+          key: "claim-open",
+          claimNumber: `CLM-${period}-9001`,
+          title: "ลายลอกหลังซักครั้งแรก ลูกค้าถ่ายรูปส่งมาทางไลน์",
+          reason: "ลายลอกหลังซักครั้งแรก 12 ตัว",
+          state: "OPEN" as const,
+          resolution: null,
+          customerMessage: "รับเรื่องแล้วค่ะ ขอตรวจของก่อน จะแจ้งกลับภายในพรุ่งนี้",
+          rework: false,
+        },
+        {
+          key: "claim-rework",
+          claimNumber: `CLM-${period}-9002`,
+          title: "สีเพี้ยนจากไฟล์ที่อนุมัติ ลูกค้าขอทำใหม่เฉพาะที่เสีย",
+          reason: "สีเพี้ยนจากไฟล์ที่อนุมัติ",
+          state: "DECIDED" as const,
+          resolution: "REWORK" as const,
+          customerMessage: "ทำใหม่ให้ตามจำนวนที่แจ้ง ส่งกลับภายในสัปดาห์นี้ค่ะ",
+          rework: true,
+        },
+      ];
+
+      for (const plan of claimPlans) {
+        const order = seeded.get(plan.key);
+        if (!order) throw new Error(`Demo claim scenario ${plan.key} ไม่ครบ`);
+
+        // ของกลับเข้าร้านแล้ว — ใบส่งรอบแรกจึงเป็น "ตีกลับ" ไม่ใช่ส่งถึงแล้ว
+        await tx.delivery.updateMany({
+          where: { orderId: order.id },
+          data: { status: "RETURNED" },
+        });
+
+        // เสียรายไซซ์: เอาไซซ์จริงของออเดอร์มาสองไซซ์แรก ไม่ใช่ตัวเลขลอย
+        const damaged = order.variants
+          .filter((variant) => variant.quantity > 0)
+          .slice(0, 2)
+          .map((variant, position) => ({
+            size: variant.size,
+            color: variant.color || null,
+            qtyClaimed: Math.max(1, Math.min(variant.quantity, position === 0 ? 7 : 5)),
+          }));
+
+        await tx.orderClaim.create({
+          data: {
+            id: `demo-claim-${plan.key}`,
+            claimNumber: plan.claimNumber,
+            orderId: order.id,
+            customerId: order.customerId,
+            source: "DELIVERY_RETURN",
+            fault: "SHOP",
+            round: 1,
+            title: plan.title,
+            detail: `${plan.reason} · ข้อมูล demo local`,
+            reportedAt: fromNow(-1),
+            customerMessage: plan.customerMessage,
+            openedById: owner.id,
+            state: plan.state,
+            ...(plan.resolution
+              ? { resolution: plan.resolution, decidedById: owner.id, decidedAt: fromNow(-1) }
+              : {}),
+            lines: { create: damaged },
+            createdAt: fromNow(-1),
+            updatedAt: fromNow(-1),
+          },
+        });
+
+        await tx.orderRevision.create({
+          data: {
+            orderId: order.id,
+            version: 1,
+            changedBy: owner.id,
+            changeType: "CLAIM",
+            description: `เปิดใบเคลม ${plan.claimNumber} (รอบที่ 1): ของตีกลับ: ${plan.reason}`,
+            createdAt: fromNow(-1),
+          },
+        });
+
+        if (!plan.rework) continue;
+
+        // ตัดสินว่าซ่อมแล้ว → งานถอยกลับเข้าสายผลิตและมีขั้นงานแก้ผูกใบเคลมไว้
+        const production = await tx.production.findFirst({
+          where: { orderId: order.id },
+          select: { id: true, steps: { select: { sortOrder: true } } },
+        });
+        if (!production) throw new Error(`Demo claim scenario ${plan.key} ไม่มีใบผลิต`);
+        const maxSort = Math.max(0, ...production.steps.map((step) => step.sortOrder));
+        await tx.production.update({
+          where: { id: production.id },
+          data: { status: "IN_PROGRESS", endDate: null },
+        });
+        await tx.productionStep.create({
+          data: {
+            id: `demo-step-${plan.key}-rework`,
+            productionId: production.id,
+            stepType: "CUSTOM",
+            customStepName: `งานแก้ ${plan.claimNumber}`,
+            sortOrder: maxSort + 1,
+            status: "PENDING",
+            notes: `งานแก้ตามใบเคลม ${plan.claimNumber} (รอบที่ 1)`,
+            claimId: `demo-claim-${plan.key}`,
+          },
+        });
+        // สั่งงานแก้ = ออเดอร์ถอยกลับเข้าสายผลิต (ผลเดียวกับปุ่ม "สั่งงานแก้เข้าสายผลิต")
+        await tx.order.update({
+          where: { id: order.id },
+          data: { internalStatus: "PRODUCING", customerStatus: "IN_PRODUCTION" },
+        });
+      }
+
       const receiving = seeded.get("garment-receive");
       if (!receiving?.stepIds.garment) {
         throw new Error("Demo Prep partial receipt scenario ไม่ครบ");
@@ -2019,6 +2133,43 @@ async function main() {
           },
         },
       });
+
+      /* ใบที่ถูกตีกลับก็เดินผ่านพิมพ์ฟิล์มมาแล้ว จึงต้องมีหลักฐานรอบพิมพ์ของตัวเอง
+         ผูกเวลาเปิดรอบให้ตรงกับเวลาที่ขั้น DTF เริ่ม ตามกติกาตรวจของชุดข้อมูลนี้ */
+      for (const [position, key] of ["claim-open", "claim-rework"].entries()) {
+        const claimOrder = seeded.get(key);
+        if (!claimOrder?.stepIds.dtf) throw new Error(`Demo claim DTF scenario ${key} ไม่ครบ`);
+        const dtfStep = await tx.productionStep.findUniqueOrThrow({
+          where: { id: claimOrder.stepIds.dtf },
+          select: { startedAt: true, completedAt: true, qtyDone: true },
+        });
+        if (!dtfStep.startedAt) throw new Error(`Demo claim DTF step ${key} ไม่มีเวลาเริ่ม`);
+        await tx.printRun.create({
+          data: {
+            id: `demo-print-run-${key}`,
+            runNumber: `FR-${period}-90${position + 1}`,
+            status: "COMPLETED",
+            note: "รอบพิมพ์ของงานที่ถูกตีกลับภายหลัง",
+            createdById: "demo-user-dtf",
+            operatorId: "demo-user-dtf",
+            workResourceId: "demo-resource-dtf-printer-1",
+            printedAt: dtfStep.startedAt,
+            completedAt: dtfStep.completedAt ?? dtfStep.startedAt,
+            createdAt: dtfStep.startedAt,
+            updatedAt: dtfStep.completedAt ?? dtfStep.startedAt,
+            items: {
+              create: {
+                productionStepId: claimOrder.stepIds.dtf,
+                orderId: claimOrder.id,
+                qty: Math.max(claimOrder.quantity, dtfStep.qtyDone),
+                qtyGood: Math.max(claimOrder.quantity, dtfStep.qtyDone),
+                resultReportedAt: dtfStep.completedAt ?? dtfStep.startedAt,
+                createdAt: dtfStep.startedAt,
+              },
+            },
+          },
+        });
+      }
 
       const outsource = seeded.get("outsource-overdue");
       if (!outsource?.stepIds.outsource)

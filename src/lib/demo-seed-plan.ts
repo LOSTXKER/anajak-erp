@@ -32,7 +32,10 @@ export type DemoSeedFeature =
   | "DELIVERY_READY"
   | "DELIVERY_SHIPPED"
   | "DELIVERY_COMPLETED"
-  | "FINANCE";
+  | "FINANCE"
+  // งานแก้/เคลม (ก้อน 1) — ของที่ส่งไปแล้วถูกตีกลับ เพราะเคลมเกิดหลังส่งเสมอ
+  | "CLAIM_OPEN"
+  | "CLAIM_REWORK";
 
 export type DemoSeedScenario = {
   key: string;
@@ -243,6 +246,32 @@ export const DEMO_SEED_SCENARIOS = [
     customerIndex: 2,
     features: ["STOCK_PICK_READY", "FINANCE"],
   },
+  {
+    key: "claim-open",
+    sequence: 16,
+    title: "เสื้อโปโลงานเลี้ยงประจำปี — ลูกค้าตีกลับ รอตัดสิน",
+    internalStatus: "SHIPPED",
+    customerStatus: "SHIPPED",
+    quantity: 72,
+    ageDays: 26,
+    deadlineInDays: -4,
+    customerIndex: 1,
+    features: ["GARMENT_RECEIVE", "QC", "DELIVERY_SHIPPED", "FINANCE", "CLAIM_OPEN"],
+  },
+  {
+    key: "claim-rework",
+    sequence: 17,
+    title: "เสื้อยืดงานวิ่งการกุศล — กำลังแก้รอบที่ 1",
+    // ตั้งเป็น "จัดส่งแล้ว" เพราะงานนี้เดินจนส่งของจริงก่อน แล้วค่อยถูกตีกลับ
+    // ตัวเติมใบเคลมจะถอยสถานะกลับเป็น "กำลังผลิต" เองแบบเดียวกับที่ปุ่มสั่งงานแก้ทำ
+    internalStatus: "SHIPPED",
+    customerStatus: "SHIPPED",
+    quantity: 96,
+    ageDays: 28,
+    deadlineInDays: -6,
+    customerIndex: 2,
+    features: ["GARMENT_RECEIVE", "QC", "DELIVERY_SHIPPED", "FINANCE", "CLAIM_REWORK"],
+  },
 ] as const satisfies readonly DemoSeedScenario[];
 
 export function validateDemoSeedInvocation(
@@ -298,8 +327,10 @@ export function buildDemoResetTableNames(
 }
 
 export function assertDemoSeedPlan(scenarios: readonly DemoSeedScenario[]) {
-  if (scenarios.length < 10 || scenarios.length > 15) {
-    throw new Error("Demo seed ต้องมี 10–15 ออเดอร์");
+  // ขยายเพดานจาก 15 เป็น 17 ตอนเติมสถานการณ์งานแก้/เคลม (เบสสั่งรื้อชุดข้อมูล 2026-09-19
+  // "ทำระบบไปเยอะแล้ว") — เพดานมีไว้กันชุดข้อมูลบวมจนเปิดช้า ไม่ใช่ห้ามโตตามระบบ
+  if (scenarios.length < 10 || scenarios.length > 17) {
+    throw new Error("Demo seed ต้องมี 10–17 ออเดอร์");
   }
 
   const uniqueKeys = new Set(scenarios.map((scenario) => scenario.key));

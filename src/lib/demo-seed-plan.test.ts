@@ -94,12 +94,26 @@ describe("demo seed safety contract", () => {
 });
 
 describe("demo seed scenario coverage", () => {
-  it("keeps a coherent 10–15 order plan", () => {
+  it("keeps a coherent 10–17 order plan", () => {
     expect(() => assertDemoSeedPlan(DEMO_SEED_SCENARIOS)).not.toThrow();
-    expect(DEMO_SEED_SCENARIOS).toHaveLength(15);
+    expect(DEMO_SEED_SCENARIOS).toHaveLength(17);
     expect(DEMO_SEED_SCENARIOS.map((scenario) => scenario.sequence)).toEqual(
-      Array.from({ length: 15 }, (_, index) => index + 1),
+      Array.from({ length: 17 }, (_, index) => index + 1),
     );
+  });
+
+  /** งานแก้/เคลมต้องมีอยู่ในชุดข้อมูลทดลอง — เบสสั่งรื้อชุดข้อมูล 2026-09-19
+   *  เพราะของเดิมไม่มีเคลมเลย เปิดฐานทดลองมาจึงลองงานแก้ไม่ได้ถ้าไม่สร้างเอง */
+  it("มีทั้งใบที่รอตัดสิน และใบที่งานแก้อยู่ในสายผลิตแล้ว", () => {
+    const keys = DEMO_SEED_SCENARIOS.map((scenario) => scenario.key);
+    expect(keys).toContain("claim-open");
+    expect(keys).toContain("claim-rework");
+    // ทั้งสองใบต้องเดินจนส่งของแล้ว เพราะเคลมเกิดหลังของออกจากร้านเสมอ
+    for (const key of ["claim-open", "claim-rework"]) {
+      const scenario = DEMO_SEED_SCENARIOS.find((item) => item.key === key)!;
+      expect(scenario.internalStatus).toBe("SHIPPED");
+      expect(scenario.features).toContain("DELIVERY_SHIPPED");
+    }
   });
 
   it("covers office status, station execution, exception, fulfillment, and finance", () => {
