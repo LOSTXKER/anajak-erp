@@ -51,7 +51,8 @@ import {
 function exportOrdersCsv(
   orders: Array<{
     orderNumber: string;
-    customer: { name: string; company?: string | null } | null;
+    // ไฟล์ส่งออกแยกคอลัมน์ "ลูกค้า" กับ "บริษัท" อยู่แล้ว — ช่องไหนไม่มีข้อมูลก็ปล่อยว่างตามเดิม
+    customer: { name: string | null; company?: string | null } | null;
     channel: string;
     orderType: string;
     customerStatus: string;

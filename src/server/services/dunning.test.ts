@@ -38,6 +38,28 @@ describe("buildDunningDraft", () => {
     expect(d.text).not.toContain("(ออเดอร์"); // orderNumber null → ไม่มีวงเล็บออเดอร์
   });
 
+  it("นิติบุคคลไม่กรอกชื่อผู้ติดต่อ → ขึ้นต้นด้วยชื่อบริษัท ไม่ใช่ 'คุณ' ลอย ๆ", () => {
+    const d = buildDunningDraft({
+      customerName: null,
+      company: "บริษัท บี จำกัด",
+      ourCompany,
+      invoices: [{ invoiceNumber: "INV-10", orderNumber: null, outstanding: 300, dueDate: null, daysOverdue: 0 }],
+    });
+    expect(d.text).toContain("เรียน บริษัท บี จำกัด");
+    expect(d.text).not.toContain("เรียน คุณ");
+  });
+
+  it("ไม่มีทั้งบริษัทและชื่อผู้ติดต่อ → คำขึ้นต้นกลาง ๆ ที่ยังอ่านได้", () => {
+    const d = buildDunningDraft({
+      customerName: null,
+      company: null,
+      ourCompany,
+      invoices: [{ invoiceNumber: "INV-11", orderNumber: null, outstanding: 400, dueDate: null, daysOverdue: 0 }],
+    });
+    expect(d.text).toContain("เรียน ท่านลูกค้า");
+    expect(d.text).not.toContain("เรียน คุณ");
+  });
+
   it("ยังไม่เกินกำหนด (daysOverdue<=0) → ไม่ขึ้น 'เลยกำหนด' + โทน gentle default", () => {
     const d = buildDunningDraft({
       customerName: "ก",

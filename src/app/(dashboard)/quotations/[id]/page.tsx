@@ -41,6 +41,7 @@ import {
   Undo2,
 } from "lucide-react";
 import { RecordNotFound } from "@/components/ui/record-not-found";
+import { customerContactName, customerDisplayNameOrDash } from "@/lib/customer-name";
 
 // ============================================================
 // Loading skeleton
@@ -315,9 +316,9 @@ export default function QuotationDetailPage({
   const totalAmount = quotation?.totalAmount ?? subtotal - discountAmount + taxAmount;
 
   const customer = quotation?.customer ?? null;
-  const customerTitle = customer ? customer.company || customer.name : "";
+  const customerTitle = customer ? customerDisplayNameOrDash(customer) : "";
   // ผู้ติดต่อ = ชื่อคนที่คุยด้วย — ซ้ำกับชื่อลูกค้าเมื่อไม่มีชื่อนิติบุคคล จึงไม่ซ้ำอีกรอบ
-  const contactName = customer?.company ? customer.name : null;
+  const contactName = customerContactName(customer);
   const hasContact = Boolean(contactName || customer?.phone || customer?.email);
   const termsLabel = quotation?.terms
     ? PAYMENT_TERMS_LABELS[quotation.terms] ?? quotation.terms

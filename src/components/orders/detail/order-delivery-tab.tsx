@@ -37,6 +37,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { BlindShipDialog } from "@/components/orders/delivery/blind-ship-dialog";
 import { CreateDeliveryDialog, sizeColorLabel } from "@/components/orders/delivery/create-delivery-dialog";
 import { DeliveryStatusDialog } from "@/components/orders/delivery/delivery-status-dialog";
+import { customerDisplayName } from "@/lib/customer-name";
 import { c, Callout, CardHead, DueTag, Empty, Prop, Rw, StateBox, SubHead, timeText } from "@/components/kit/kit";
 
 /* ============================================================
@@ -164,7 +165,7 @@ export function OrderDeliveryTab({
   const blindShip = packContext.data?.blindShip ?? order.blindShip;
   const senderName = packContext.data
     ? packContext.data.blindShipSenderName || packContext.data.customerName
-    : order.blindShipSenderName || order.customer?.company || order.customer?.name;
+    : order.blindShipSenderName || customerDisplayName(order.customer);
 
   const left = (
     <section className={c("card")} aria-labelledby="dv-h">
@@ -547,7 +548,9 @@ export function OrderDeliveryTab({
       {showCreateDialog && packContext.data ? (
         <CreateDeliveryDialog
           orderId={orderId}
-          customerName={order.customer?.name}
+          /* ชื่อผู้รับตั้งต้น — นิติบุคคลอาจไม่มีชื่อผู้ติดต่อ ใช้ชื่อบริษัทแทน (ชุดกลางเรียงบริษัทก่อน)
+             ไม่มีทั้งคู่ = ไม่ส่งค่า ปล่อยให้กล่องใช้ช่องว่างของมันเอง ไม่ใช่คำว่า null */
+          customerName={customerDisplayName(order.customer) || undefined}
           customerPhone={order.customer?.phone ?? undefined}
           customerHasAddress={!!order.customer?.address}
           customerAddress={order.customer?.address}
@@ -573,7 +576,7 @@ export function OrderDeliveryTab({
           orderId={orderId}
           initialOn={packContext.data.blindShip ?? false}
           initialSender={packContext.data.blindShipSenderName ?? ""}
-          customerName={packContext.data.customerName || order.customer?.name}
+          customerName={packContext.data.customerName || customerDisplayName(order.customer) || undefined}
           onClose={() => setShowBlindShipDialog(false)}
         />
       ) : null}

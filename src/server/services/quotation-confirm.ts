@@ -13,6 +13,7 @@ import { randomBytes } from "crypto";
 import { TRPCError } from "@trpc/server";
 import { createNotification } from "@/server/helpers";
 import type { ExtendedPrismaClient, PrismaTx } from "@/lib/prisma";
+import { customerDisplayName } from "@/lib/customer-name";
 
 // ใบเสนอหมดอายุ = พ้นสิ้นวันไทยของ validUntil (นิยามเดียวกับ overdue ของบิล)
 // อยู่ที่นี่ (services) เป็นแหล่งเดียว — quotation router import ไปใช้ (กันสูตรหมดอายุ drift)
@@ -76,7 +77,8 @@ export async function getQuotationByConfirmToken(
       tax: true,
       totalAmount: true,
       createdAt: true,
-      customer: { select: { name: true } },
+      // company มาด้วยเพื่อประกอบชื่อเดียวที่คืนออกไป (customerName) — ไม่ได้เพิ่มฟิลด์ใน payload
+      customer: { select: { name: true, company: true } },
       items: {
         orderBy: { sortOrder: "asc" },
         select: {
@@ -108,7 +110,8 @@ export async function getQuotationByConfirmToken(
     status: q.status,
     description: q.description,
     terms: q.terms,
-    customerName: q.customer.name,
+    // ชื่อที่ลูกค้าเห็นบนลิงก์ใบเสนอราคา: บริษัทมาก่อน — ว่างแล้วหัวเรื่องจะเหลือ " · ยืนราคาถึง ..."
+    customerName: customerDisplayName(q.customer),
     validUntil: q.validUntil,
     isExpired: isQuotationExpired(q.validUntil),
     subtotal: num(q.subtotal),

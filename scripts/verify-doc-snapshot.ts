@@ -142,10 +142,71 @@ async function main() {
     "ที่อยู่ออฟฟิศใหม่หลังย้าย",
   );
 
+  // ── นิติบุคคลที่ไม่ได้กรอกชื่อผู้ติดต่อ (เบสสั่ง 2026-09-18) ────────────────
+  // สำเนาของลูกค้ารายนี้เก็บชื่อบริษัทช่องเดียว (buyerName = null) — ฝั่งอ่านต้องยังนับว่า
+  // "มีสำเนา" ไม่งั้นพิมพ์ใบเก่าซ้ำจะไหลไปอ่านค่าสดเงียบๆ · และชื่อผู้ซื้อบนใบกำกับ
+  // ต้องเป็นชื่อบริษัท ไม่ใช่ช่องโล่ง (ม.86/4)
+  const corporate = await prisma.customer.create({
+    data: {
+      company: `${TAG} บริษัท ไม่มีผู้ติดต่อ จำกัด`,
+      customerType: "CORPORATE",
+      taxId: "0105551234568",
+      branchNumber: "00000",
+      billingAddress: "1 ถ.เอกมัย",
+      billingProvince: "กรุงเทพมหานคร",
+    },
+  });
+  const corporateOrder = await prisma.order.create({
+    data: {
+      orderNumber: `${TAG}-CORP-${Date.now()}`,
+      customerId: corporate.id,
+      createdById: user.id,
+      totalAmount: 1000,
+    },
+  });
+  const corporateParty = await buildDocumentPartySnapshot(prisma, corporate.id);
+  check("นิติบุคคลไม่มีชื่อผู้ติดต่อ → สำเนาไม่มีชื่อคน", corporateParty.buyerName, null);
+
+  const corporateInvoice = await prisma.invoice.create({
+    data: {
+      invoiceNumber: `${TAG}-CORP-INV-${Date.now()}`,
+      orderId: corporateOrder.id,
+      customerId: corporate.id,
+      type: "FINAL_INVOICE",
+      amount: 1000,
+      totalAmount: 1070,
+      tax: 70,
+      ...corporateParty,
+    },
+  });
+  await prisma.customer.update({
+    where: { id: corporate.id },
+    data: { company: `${TAG} บริษัท เปลี่ยนชื่อแล้ว จำกัด`, billingAddress: "2 ที่อยู่ใหม่" },
+  });
+  const corporateFresh = await prisma.invoice.findUniqueOrThrow({
+    where: { id: corporateInvoice.id },
+    include: { customer: true },
+  });
+  const corporateBuyer = resolveDocBuyer(corporateFresh, corporateFresh.customer);
+  check(
+    "ใบของนิติบุคคลไม่มีผู้ติดต่อ → ชื่อผู้ซื้อคือชื่อบริษัทตอนออกใบ",
+    corporateBuyer.name,
+    `${TAG} บริษัท ไม่มีผู้ติดต่อ จำกัด`,
+  );
+  check("ไม่มีชื่อผู้ติดต่อ → ไม่มีวงเล็บชื่อคนต่อท้าย", corporateBuyer.company, null);
+  check(
+    "สำเนาที่มีแต่ชื่อบริษัท ยังนับว่ามีสำเนา → ที่อยู่ไม่ไหลไปค่าสด",
+    corporateBuyer.address,
+    "1 ถ.เอกมัย\nกรุงเทพมหานคร",
+  );
+
   // ── เก็บกวาด ───────────────────────────────────────────────────────────
   await prisma.invoice.deleteMany({ where: { orderId: order.id } });
   await prisma.order.delete({ where: { id: order.id } });
   await prisma.customer.delete({ where: { id: customer.id } });
+  await prisma.invoice.deleteMany({ where: { orderId: corporateOrder.id } });
+  await prisma.order.delete({ where: { id: corporateOrder.id } });
+  await prisma.customer.delete({ where: { id: corporate.id } });
 
   console.log(`\n${fail === 0 ? "✅ ผ่านครบ" : "❌ ไม่ผ่าน"} — ${pass} ผ่าน / ${fail} ไม่ผ่าน`);
   await prisma.$disconnect();

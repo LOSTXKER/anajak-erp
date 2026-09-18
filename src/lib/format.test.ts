@@ -52,3 +52,11 @@ describe("formatAmount — เลขเปล่าสำหรับข้อ�
     expect(formatAmount(-1449.5)).toBe("-1,449.50");
   });
 });
+
+describe("เศษติดลบที่ปัดแล้วเหลือศูนย์", () => {
+  it("formatAmount ไม่พ่น -0.00 (ตัวนี้อยู่ในจดหมายทวงหนี้ที่ส่งลูกค้า)", () => {
+    expect(formatAmount(-0.004)).toBe("0.00");
+    expect(formatAmount(-1449.5)).toBe("-1,449.50");
+    expect(formatAmount(0)).toBe("0.00");
+  });
+});

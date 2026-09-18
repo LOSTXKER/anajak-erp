@@ -31,6 +31,7 @@ import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
 import { Field } from "@/components/ui/field";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { customerDisplayName } from "@/lib/customer-name";
 
 type OutsourceOrder = RouterOutput["outsource"]["listOrders"][number];
 type SegKey = "open" | "draft" | "shop" | "late" | "check" | "done";
@@ -274,7 +275,13 @@ function OutsourceList() {
                         <span className={c("ow")}>{workLabel(order)}</span>
                       </td>
                       <td>
-                        <Link href={`/production/${order.productionStep.productionId}`} className={c("idbtn")} title={sourceOrder.customer.name} aria-label={`เปิดใบผลิต ${sourceOrder.orderNumber}`}>
+                        {/* tooltip บอกว่าใบผลิตนี้ของลูกค้าไหน — ไม่มีชื่อให้บอกก็ไม่ต้องมี tooltip */}
+                        <Link
+                          href={`/production/${order.productionStep.productionId}`}
+                          className={c("idbtn")}
+                          title={customerDisplayName(sourceOrder.customer) || undefined}
+                          aria-label={`เปิดใบผลิต ${sourceOrder.orderNumber}`}
+                        >
                           <span className={c("mono")}>{sourceOrder.orderNumber}</span>
                         </Link>
                       </td>

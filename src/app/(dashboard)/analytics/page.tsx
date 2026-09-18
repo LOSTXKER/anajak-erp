@@ -13,6 +13,7 @@ import { Section } from "@/components/ui/section";
 import { StatCard } from "@/components/ui/stat-card";
 import { DataTable } from "@/components/ui/data-table";
 import { c } from "@/components/kit/kit";
+import { customerContactName, customerDisplayNameOrDash } from "@/lib/customer-name";
 
 
 
@@ -191,9 +192,15 @@ export default function AnalyticsPage() {
                         href={`/customers/${customer.id}`}
                         className={cn("block min-w-0 rounded-lg", FOCUS_BUTTON)}
                       >
-                        <span className="block truncate font-medium text-strong">{customer.name}</span>
-                        {customer.company && (
-                          <span className="block truncate text-xs text-muted">{customer.company}</span>
+                        {/* บรรทัดหลักเรียงบริษัทก่อนเหมือนหน้ารายชื่อลูกค้า — เดิมขึ้นชื่อผู้ติดต่อไว้บน
+                            พอไม่ต้องกรอกชื่อผู้ติดต่อแล้ว บรรทัดบนจะว่างทั้งที่มีชื่อบริษัทอยู่ */}
+                        <span className="block truncate font-medium text-strong">
+                          {customerDisplayNameOrDash(customer)}
+                        </span>
+                        {customerContactName(customer) && (
+                          <span className="block truncate text-xs text-muted">
+                            {customerContactName(customer)}
+                          </span>
                         )}
                       </Link>
                     </DataTable.Td>

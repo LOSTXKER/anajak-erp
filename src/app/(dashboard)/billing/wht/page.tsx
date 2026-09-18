@@ -38,6 +38,7 @@ import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
 import { formatBaht, formatBahtRounded, formatDate, formatDateNumeric } from "@/lib/utils";
 import { PageShell } from "@/components/page-shell";
 import { permAllows } from "@/lib/permissions";
+import { customerDisplayName, customerDisplayNameOrDash } from "@/lib/customer-name";
 import {
   ReceiptText,
   Download,
@@ -94,7 +95,8 @@ function exportWhtCsv(rows: WhtRow[]) {
 
   const body = rows.map((r) => [
     formatDateNumeric(r.payment.createdAt),
-    r.customer.name,
+    // ไฟล์ส่งออก: ช่องว่างคือ "ไม่มีข้อมูล" ตามช่องอื่นในแถว (ไม่ใส่ "—" ให้นักบัญชีต้องมาล้างทีหลัง)
+    customerDisplayName(r.customer),
     r.customer.taxId ?? "",
     r.invoice.invoiceNumber,
     // บิลยกเลิกแถวยังอยู่ (ใบ 50ทวิ ที่รับแล้วคงเป็นหลักฐาน) — นักบัญชีต้องดูออกใน CSV
@@ -370,7 +372,7 @@ function WhtRegisterPageContent() {
                     </p>
                   </DataTable.Td>
                   <DataTable.Td>
-                    <p className="text-strong">{row.customer.name}</p>
+                    <p className="text-strong">{customerDisplayNameOrDash(row.customer)}</p>
                     {row.customer.taxId && (
                       <p className="text-xs tabular-nums text-muted">
                         {row.customer.taxId}
@@ -455,7 +457,7 @@ function WhtRegisterPageContent() {
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold text-strong">
-                      {row.customer.name}
+                      {customerDisplayNameOrDash(row.customer)}
                     </p>
                     {row.customer.taxId && (
                       <p className="text-xs tabular-nums text-muted">
@@ -545,7 +547,7 @@ function WhtRegisterPageContent() {
           <DialogHeader>
             <DialogTitle>บันทึกรับหนังสือรับรอง</DialogTitle>
             <DialogDescription>
-              {markTarget?.customer.name}
+              {customerDisplayNameOrDash(markTarget?.customer)}
             </DialogDescription>
           </DialogHeader>
 

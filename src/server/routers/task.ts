@@ -4,6 +4,7 @@ import { getPrintQueue } from "@/server/services/print-run";
 import { hasPermission, type Permission } from "@/lib/permissions";
 // คิวรีด/แพ็กสุดท้ายใช้ร่วมกับทีวี /factory (UX4) — จุดเดียว กัน drift
 import { buildPressQueue, buildPackQueue } from "@/server/services/factory-board";
+import { customerDisplayName } from "@/lib/customer-name";
 
 // "งานของฉันวันนี้" — รวมสิ่งที่ค้างอยู่บนโต๊ะของผู้ใช้ จุดเดียว · ทุก role เรียกได้
 // แต่ section โผล่ตามสิทธิ์จริงของคน (PERM3: default ตรงชุด role เดิมเป๊ะ — คนถูกติ๊ก
@@ -97,7 +98,8 @@ export const taskRouter = router({
       orderNumber: true,
       deadline: true,
       internalStatus: true,
-      customer: { select: { name: true } },
+      // คู่ name/company ส่งดิบให้จอเลือกบรรทัดหลัก/รองเอง (ผ่าน customer-name)
+      customer: { select: { name: true, company: true } },
     } as const;
 
     // ---- งานผลิตของฉัน: ขั้นตอนที่ยังไม่เสร็จ (staff = ของฉัน/ยังไม่มีเจ้าของ · หัวหน้า = ทั้งหมด)
@@ -281,7 +283,7 @@ export const taskRouter = router({
                     },
                   },
                 },
-                select: { id: true, orderNumber: true, customer: { select: { name: true } } },
+                select: { id: true, orderNumber: true, customer: { select: { name: true, company: true } } },
                 orderBy: { deadline: "asc" },
                 take: 100,
               }),
@@ -295,7 +297,7 @@ export const taskRouter = router({
                 select: {
                   id: true,
                   orderNumber: true,
-                  customer: { select: { name: true } },
+                  customer: { select: { name: true, company: true } },
                   designs: {
                     orderBy: { versionNumber: "desc" },
                     take: 1,
@@ -311,7 +313,7 @@ export const taskRouter = router({
                   internalStatus: { notIn: ["CANCELLED", "ON_HOLD", "SHIPPED", "COMPLETED"] },
                   deadline: { gte: startOfToday, lte: endOfTomorrow },
                 },
-                select: { id: true, orderNumber: true, deadline: true, customer: { select: { name: true } } },
+                select: { id: true, orderNumber: true, deadline: true, customer: { select: { name: true, company: true } } },
                 orderBy: { deadline: "asc" },
                 take: 100,
               }),
@@ -331,19 +333,19 @@ export const taskRouter = router({
               awaitingInspectionRaw.map((o) => ({
                 orderId: o.id,
                 orderNumber: o.orderNumber,
-                customerName: o.customer.name,
+                customerName: customerDisplayName(o.customer),
               }))
             ),
             designsAwaiting: pile(
               designsAwaitingRaw
                 .filter((o) => o.designs[0]?.approvalStatus === "PENDING")
-                .map((o) => ({ orderId: o.id, orderNumber: o.orderNumber, customerName: o.customer.name }))
+                .map((o) => ({ orderId: o.id, orderNumber: o.orderNumber, customerName: customerDisplayName(o.customer) }))
             ),
             dueSoon: pile(
               dueSoonRaw.map((o) => ({
                 orderId: o.id,
                 orderNumber: o.orderNumber,
-                customerName: o.customer.name,
+                customerName: customerDisplayName(o.customer),
                 deadline: o.deadline,
               }))
             ),
@@ -368,7 +370,7 @@ export const taskRouter = router({
                 totalAmount: true,
                 dueDate: true,
                 order: { select: { id: true, orderNumber: true } },
-                customer: { select: { name: true } },
+                customer: { select: { name: true, company: true } },
               },
               orderBy: { dueDate: "asc" },
               take: 100,
@@ -388,7 +390,7 @@ export const taskRouter = router({
               dueDate: i.dueDate,
               orderId: i.order.id,
               orderNumber: i.order.orderNumber,
-              customerName: i.customer.name,
+              customerName: customerDisplayName(i.customer),
             })),
             shippedOrders: shipped,
           };

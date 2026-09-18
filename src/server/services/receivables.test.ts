@@ -160,6 +160,20 @@ describe("buildAgingReport", () => {
     expect(report.totals.d1_30).toBe(500);
     expect(report.grandTotal).toBe(950);
   });
+
+  it("ลูกค้าคนละรายที่ไม่มีชื่อผู้ติดต่อ ต้องไม่ยุบเป็นแถวเดียว (จัดกลุ่มด้วย id)", () => {
+    const report = buildAgingReport(
+      [
+        inv({ totalAmount: 100, customer: { id: "x1", name: null, company: "บจก. เอ็กซ์หนึ่ง" } }),
+        inv({ totalAmount: 200, customer: { id: "x2", name: null, company: "บจก. เอ็กซ์สอง" } }),
+      ],
+      NOW
+    );
+
+    expect(report.rows).toHaveLength(2);
+    expect(report.rows.map((r) => r.customerId).sort()).toEqual(["x1", "x2"]);
+    expect(report.grandTotal).toBe(300);
+  });
 });
 
 describe("computeCreditExposure", () => {

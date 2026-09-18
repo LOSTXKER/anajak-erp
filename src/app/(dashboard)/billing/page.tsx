@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 import { FOCUS_BUTTON } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
+import { customerDisplayNameOrDash } from "@/lib/customer-name";
 
 // ภาษาสีสถานะการชำระใช้ชุดกลางที่เดียว (UX4.2) — ห้ามประกาศ local ซ้ำ
 // ป้าย+สีจะได้ตรงกับแท็บเงินในออเดอร์ที่ทีมเปิดคู่กันทุกวัน
@@ -364,7 +365,7 @@ function BillingPageContent() {
                       <div className="min-w-0">
                         <p className="text-xs text-muted">ลูกค้า</p>
                         <p className="mt-1 truncate text-sm font-medium text-strong">
-                          {inv.customer.name}
+                          {customerDisplayNameOrDash(inv.customer)}
                         </p>
                       </div>
                       <div className="text-right">
@@ -444,7 +445,7 @@ function BillingPageContent() {
                     <DataTable.Td>
                       <div className={c("who")}>
                         <div className={c("t")}>
-                          <div className={c("id")}>{inv.customer.name}</div>
+                          <div className={c("id")}>{customerDisplayNameOrDash(inv.customer)}</div>
                           <div className={c("cu")}>
                             <span className={c("mono")}>{inv.order.orderNumber}</span> ·{" "}
                             {INVOICE_TYPE_LABELS[inv.type] ?? inv.type}

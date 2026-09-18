@@ -29,7 +29,7 @@ export interface DunningCompany {
 }
 
 export interface DunningInput {
-  customerName: string; // ชื่อผู้ติดต่อ (Customer.name)
+  customerName: string | null; // ชื่อผู้ติดต่อ (Customer.name) — นิติบุคคลไม่ต้องกรอกก็ได้
   company: string | null; // ชื่อบริษัทลูกค้า (Customer.company) — นิติบุคคล
   invoices: DunningInvoiceLine[];
   ourCompany: DunningCompany; // ร้านเรา (CompanyProfile) สำหรับลงท้าย
@@ -69,9 +69,12 @@ export function buildDunningDraft(input: DunningInput): DunningDraft {
   const maxDaysOverdue = lines.reduce((m, inv) => Math.max(m, inv.daysOverdue), 0);
 
   // คำขึ้นต้น: นิติบุคคล = "เรียน {บริษัท}" · บุคคล = "เรียน คุณ{ชื่อ}"
-  const greetingName = input.company?.trim()
-    ? input.company.trim()
-    : `คุณ${input.customerName.trim()}`;
+  // ใช้ helper กลางไม่ได้ตรงนี้ เพราะชื่อคนต้องมีคำนำหน้า "คุณ" ส่วนชื่อบริษัทห้ามมี
+  // ลูกค้าที่ไม่มีทั้งบริษัทและชื่อผู้ติดต่อ (ฐานยอมให้ name ว่างตั้งแต่ 2026-09-18)
+  // ต้องไม่ได้ "เรียน คุณ" ลอย ๆ — ถอยไปคำกลางที่ยังส่งให้ลูกค้าอ่านได้
+  const contactName = input.customerName?.trim() ?? "";
+  const company = input.company?.trim() ?? "";
+  const greetingName = company || (contactName ? `คุณ${contactName}` : "ท่านลูกค้า");
 
   const intro =
     tone === "firm"

@@ -3,6 +3,7 @@ import { c, CardHead, Prop, StateBox, SubHead } from "@/components/kit/kit";
 import { OrderBillingSection } from "@/components/orders/order-billing-section";
 import { PAYMENT_TERMS_LABELS } from "@/lib/payment-terms";
 import { formatBaht } from "@/lib/utils";
+import { customerDisplayNameOrDash } from "@/lib/customer-name";
 
 /* ============================================================
    แท็บ "เงิน & บิล" — ต้นแบบ tabMoney() ทีละชิ้น (รื้อ 2026-09-15)
@@ -21,7 +22,8 @@ interface OrderMoneyTabProps {
     taxAmount: number | null;
     paymentTerms?: string | null;
     customer?: {
-      name: string;
+      // นิติบุคคลไม่ต้องกรอกชื่อผู้ติดต่อ (เบสสั่ง 2026-09-18) — ชื่อที่แสดงถอยไปใช้ชื่อบริษัท
+      name: string | null;
       company: string | null;
       // null เมื่อ viewer ไม่เห็นเงินฝั่งขาย (server ปิดมาให้แล้ว)
       creditLimit: number | null;
@@ -143,7 +145,7 @@ export function OrderMoneyTab({
             </Prop>
             {customer ? (
               <Prop icon={User} label="ลูกค้า">
-                {customer.company?.trim() || customer.name}
+                {customerDisplayNameOrDash(customer)}
                 {customerSmall ? <small>{customerSmall}</small> : null}
               </Prop>
             ) : null}

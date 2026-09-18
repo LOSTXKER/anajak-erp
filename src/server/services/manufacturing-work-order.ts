@@ -66,7 +66,8 @@ export async function getManufacturingCreationContext(
         orderNumber: true,
         deadline: true,
         internalStatus: true,
-        customer: { select: { name: true } },
+        // ต้องดึง company ด้วย ไม่งั้น customerDisplayName ถอยไปชื่อบริษัทไม่ได้ (ได้ค่าว่างเงียบ ๆ)
+        customer: { select: { name: true, company: true } },
         productions: {
           select: { id: true, workOrderNumber: true, workOrderState: true },
         },

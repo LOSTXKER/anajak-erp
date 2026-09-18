@@ -19,6 +19,7 @@ import {
   daysOverdue,
 } from "@/server/services/receivables";
 import { buildDunningDraft } from "@/server/services/dunning";
+import { customerDisplayName } from "@/lib/customer-name";
 import { parseCompanyProfile, COMPANY_PROFILE_KEY } from "@/lib/company-profile";
 import { registerReadTool, McpToolError } from "../tool";
 
@@ -50,7 +51,9 @@ export function registerReceivablesTool(server: McpServer): void {
     handler: async (args) => {
       // ── ระบุลูกค้า: รายใบ + ร่างทวง ──
       if (args.customerId || args.customerName) {
-        let customer: { id: string; name: string; company: string | null } | null;
+        // name ว่างได้ (นิติบุคคลไม่ต้องกรอกชื่อผู้ติดต่อ) — ทุกที่ที่ส่งชื่อออกไปให้ตัวแทน
+        // ภายนอกจึงต้องมี displayName ที่ไม่ว่างคู่มาด้วย ไม่งั้นมันเรียกลูกค้ารายนี้ไม่ถูก
+        let customer: { id: string; name: string | null; company: string | null } | null;
         if (args.customerId) {
           customer = await prisma.customer.findUnique({
             where: { id: args.customerId },
@@ -74,7 +77,12 @@ export function registerReceivablesTool(server: McpServer): void {
             return {
               ambiguous: true,
               message: "พบลูกค้าหลายราย — ระบุ customerId ให้ชัดก่อนทวง",
-              matches: matches.map((m) => ({ customerId: m.id, name: m.name, company: m.company })),
+              matches: matches.map((m) => ({
+                customerId: m.id,
+                displayName: customerDisplayName(m),
+                name: m.name,
+                company: m.company,
+              })),
             };
           }
           customer = matches[0];
@@ -109,7 +117,11 @@ export function registerReceivablesTool(server: McpServer): void {
         }
 
         return {
-          customer: { name: customer.name, company: customer.company },
+          customer: {
+            displayName: customerDisplayName(customer),
+            name: customer.name,
+            company: customer.company,
+          },
           invoiceCount: invoices.length,
           totalOutstanding,
           invoices,
@@ -123,7 +135,11 @@ export function registerReceivablesTool(server: McpServer): void {
         note: "ยอดลูกหนี้ค้างแยกถังอายุต่อลูกค้า (เรียงยอดมาก→น้อย)",
         grandTotal: report.grandTotal,
         totals: report.totals,
-        agingByCustomer: report.rows,
+        // แถวจัดกลุ่มด้วย customerId อยู่แล้ว (ชื่อว่างไม่ทำให้ยอดหลายรายยุบรวมกัน)
+        agingByCustomer: report.rows.map((row) => ({
+          ...row,
+          displayName: customerDisplayName(row),
+        })),
       };
     },
   });

@@ -98,12 +98,14 @@ export function agingBucketOf(dueDate: Date | null, now = new Date()): AgingBuck
 
 export interface AgingInvoiceInput extends ReceivableInvoice {
   dueDate: Date | null;
-  customer: { id: string; name: string; company: string | null };
+  // name ว่างได้ตั้งแต่ 2026-09-18 (นิติบุคคลไม่ต้องกรอกชื่อผู้ติดต่อ) — คู่ name/company
+  // ส่งต่อดิบ ๆ ให้ปลายทางเลือกเองว่าจะโชว์บรรทัดหลัก/บรรทัดรองยังไง (ผ่าน customer-name)
+  customer: { id: string; name: string | null; company: string | null };
 }
 
 export interface AgingRow {
-  customerId: string;
-  name: string;
+  customerId: string; // จัดกลุ่มด้วย id เสมอ — ชื่อว่างแล้วยุบหลายรายเป็นแถวเดียว = ตัวเลขผิด
+  name: string | null;
   company: string | null;
   buckets: Record<AgingBucket, number>;
   total: number;
@@ -117,9 +119,10 @@ export function buildAgingReport(
   invoices: AgingInvoiceInput[],
   now = new Date()
 ): { rows: AgingRow[]; totals: Record<AgingBucket, number>; grandTotal: number } {
+  // key = customer.id (ไม่ใช่ชื่อ) — ลูกค้าคนละรายที่ชื่อว่างเหมือนกันต้องไม่ยุบเป็นแถวเดียว
   const byCustomer = new Map<
     string,
-    { name: string; company: string | null; buckets: Record<AgingBucket, Prisma.Decimal> }
+    { name: string | null; company: string | null; buckets: Record<AgingBucket, Prisma.Decimal> }
   >();
   const totals = emptyBuckets();
 

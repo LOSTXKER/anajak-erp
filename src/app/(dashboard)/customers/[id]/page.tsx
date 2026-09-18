@@ -48,7 +48,7 @@ import { Alert } from "@/components/ui/alert";
 import { RecordNotFound } from "@/components/ui/record-not-found";
 import { cn } from "@/lib/utils";
 import { VISUAL_TONE_CLASSES, type VisualTone } from "@/lib/visual-tone";
-import { customerContactName } from "@/lib/customer-name";
+import { customerContactName, customerDisplayName, customerDisplayNameOrDash } from "@/lib/customer-name";
 
 /** ไอคอนนำหน้าแถวในการ์ด "สรุป" — ไอคอนสีตามหมวด ไม่มีพื้นกล่อง
  *  (พื้นกล่องถูกถอดออกทั้งเว็บ 2026-08-31 เบสเคาะแบบ B จากหน้าลอง /proto/quiet) */
@@ -115,10 +115,13 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
     customer &&
       (customer.phone || customer.email || customer.lineId || customer.address || customer.chatName || customer.chatUrl),
   );
+  // ชื่อที่ใช้เรียกลูกค้ารายนี้ทั้งหน้า — นิติบุคคลไม่ต้องกรอกชื่อผู้ติดต่อ จึงถอยไปใช้ชื่อบริษัท
+  // ว่างทั้งคู่ได้เฉพาะข้อมูลเก่าที่ไม่ผ่านด่านฟอร์ม (ฟอร์มบังคับอย่างน้อยหนึ่งอย่าง)
+  const customerName = customerDisplayName(customer);
 
   return (
     <PageShell
-      title={customer ? customer.company || customer.name : "ลูกค้า"}
+      title={customer ? customerDisplayNameOrDash(customer) : "ลูกค้า"}
       meta={metaParts.length > 0 ? metaParts.join(" · ") : undefined}
       back={{ href: "/customers", label: "ลูกค้าทั้งหมด" }}
       /* เดิมสองประเภทตั้งใจให้สีต่างกัน (default vs secondary) แต่ทั้งคู่ map ลงเทา
@@ -217,13 +220,16 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                   tone="blue"
                   title="ออเดอร์ล่าสุด"
                   right={
-                    <Link
-                      href={`/orders?q=${encodeURIComponent(customer.name)}`}
-                      className="inline-flex items-center gap-1 text-xs text-secondary"
-                    >
-                      ดูทั้งหมด
-                      <ArrowRight aria-hidden="true" className="h-3.5 w-3.5" />
-                    </Link>
+                    /* ลิงก์นี้ค้นออเดอร์ด้วยชื่อ — ไม่มีชื่อให้ค้นจะกลายเป็นออเดอร์ทั้งระบบ จึงไม่ขึ้นลิงก์ */
+                    customerName ? (
+                      <Link
+                        href={`/orders?q=${encodeURIComponent(customerName)}`}
+                        className="inline-flex items-center gap-1 text-xs text-secondary"
+                      >
+                        ดูทั้งหมด
+                        <ArrowRight aria-hidden="true" className="h-3.5 w-3.5" />
+                      </Link>
+                    ) : undefined
                   }
                 />
                 {customer.orders.length === 0 ? (
@@ -529,7 +535,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
           {loggingComm && (
             <CustomerCommLogDialog
               customerId={id}
-              customerName={customer.name}
+              customerName={customerName}
               onClose={() => setLoggingComm(false)}
             />
           )}

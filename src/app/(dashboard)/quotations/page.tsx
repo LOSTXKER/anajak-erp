@@ -24,6 +24,7 @@ import { ResponsiveList } from "@/components/ui/responsive-list";
 import { formatBaht, formatDate } from "@/lib/utils";
 import { QUOTATION_STATUS_LABELS, QUOTATION_STATUS_VARIANTS } from "@/lib/status-config";
 import { PageShell } from "@/components/page-shell";
+import { customerContactName, customerDisplayNameOrDash } from "@/lib/customer-name";
 import { Plus, ClipboardList, ChevronRight } from "lucide-react";
 import { FOCUS_BUTTON } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
@@ -123,10 +124,12 @@ function QuotationExpiry({
  *  ไม่มีชื่องาน = คงชื่อผู้ติดต่อไว้แทน เพื่อไม่ให้ลูกค้านิติบุคคลเหลือแค่ชื่อบริษัท */
 function customerSubLine(quotation: {
   description: string | null;
-  customer: { name: string; company: string | null };
+  // นิติบุคคลไม่ต้องมีชื่อผู้ติดต่อ (เบสสั่ง 2026-09-18) — ชื่อผู้ติดต่อจึงเป็น null ได้
+  customer: { name: string | null; company: string | null };
   _count: { items: number };
 }) {
-  const job = quotation.description?.trim() || (quotation.customer.company ? quotation.customer.name : "");
+  // ไม่มีชื่องาน ค่อยใช้ชื่อผู้ติดต่อ (บรรทัดบนเป็นชื่อบริษัทอยู่แล้ว) — ไม่มีผู้ติดต่อก็เหลือแค่จำนวนรายการ
+  const job = quotation.description?.trim() || customerContactName(quotation.customer) || "";
   const items = `${quotation._count.items.toLocaleString("th-TH")} รายการ`;
   return [job, items].filter(Boolean).join(" · ");
 }
@@ -258,7 +261,7 @@ function QuotationsPageContent() {
                 <Link
                   href={`/quotations/${q.id}`}
                   className={cn("card-surface card-surface-hover group block rounded-2xl p-4", FOCUS_BUTTON)}
-                  aria-label={`เปิดใบเสนอ ${q.quotationNumber} ของ ${q.customer.name}`}
+                  aria-label={`เปิดใบเสนอ ${q.quotationNumber} ของ ${customerDisplayNameOrDash(q.customer)}`}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -266,7 +269,7 @@ function QuotationsPageContent() {
                         {q.quotationNumber}
                       </p>
                       <p className="mt-1 truncate text-sm font-medium text-strong">
-                        {q.customer.company || q.customer.name}
+                        {customerDisplayNameOrDash(q.customer)}
                       </p>
                     </div>
                     <div className="shrink-0">
@@ -318,7 +321,7 @@ function QuotationsPageContent() {
                     <div className={c("who")}>
                       <div className={c("t")}>
                         <div className={c("id")}>
-                          <span className="truncate">{q.customer.company || q.customer.name}</span>
+                          <span className="truncate">{customerDisplayNameOrDash(q.customer)}</span>
                         </div>
                         <div className={c("cu")}>{customerSubLine(q)}</div>
                       </div>

@@ -3,6 +3,7 @@ import type { ExtendedPrismaClient } from "@/lib/prisma";
 import { getPrintQueue } from "@/server/services/print-run";
 import { evaluateHeatPressGate, STEP_TYPE_LABELS } from "@/lib/production-steps";
 import { BANGKOK_TZ } from "@/lib/utils";
+import { customerDisplayName } from "@/lib/customer-name";
 
 // ============================================================
 // factory-board — คิวการผลิตทั้งโรงงาน (จอเช้า myToday + ทีวี /factory ใช้ตัวเดียวกัน กัน drift)
@@ -93,7 +94,7 @@ export async function buildPrepQueue(prisma: ExtendedPrismaClient, limit = 8) {
             select: {
               orderNumber: true,
               deadline: true,
-              customer: { select: { name: true } },
+              customer: { select: { name: true, company: true } },
             },
           },
         },
@@ -107,7 +108,7 @@ export async function buildPrepQueue(prisma: ExtendedPrismaClient, limit = 8) {
     stepId: step.id,
     productionId: step.production.id,
     orderNumber: step.production.order.orderNumber,
-    customerName: step.production.order.customer.name,
+    customerName: customerDisplayName(step.production.order.customer),
     deadline: step.production.order.deadline,
     status: step.status,
     stepLabel: STEP_TYPE_LABELS[step.stepType] ?? step.stepType,
@@ -179,7 +180,7 @@ async function loadPressQueue(prisma: ExtendedPrismaClient, opts: StepQueueOpts 
             select: {
               orderNumber: true,
               deadline: true,
-              customer: { select: { name: true } },
+              customer: { select: { name: true, company: true } },
             },
           },
         },
@@ -196,7 +197,7 @@ async function loadPressQueue(prisma: ExtendedPrismaClient, opts: StepQueueOpts 
       stepId: s.id,
       productionId: s.production.id,
       orderNumber: s.production.order.orderNumber,
-      customerName: s.production.order.customer.name,
+      customerName: customerDisplayName(s.production.order.customer),
       deadline: s.production.order.deadline,
       status: s.status,
       qtyDone: s.qtyDone,
@@ -259,7 +260,7 @@ export async function buildPackQueue(prisma: ExtendedPrismaClient, opts: StepQue
       deadline: true,
       priority: true,
       blindShip: true, // ธงแดงบนคิวแพ็ก — พลาดใส่เอกสาร Anajak ครั้งเดียวเสียลูกค้า reseller
-      customer: { select: { name: true } },
+      customer: { select: { name: true, company: true } },
       items: { select: { totalQuantity: true } },
       productionCompletionOwner: {
         select: {
@@ -279,7 +280,7 @@ export async function buildPackQueue(prisma: ExtendedPrismaClient, opts: StepQue
       orderId: order.id,
       productionId: finalPack ? production.id : null,
       orderNumber: order.orderNumber,
-      customerName: order.customer.name,
+      customerName: customerDisplayName(order.customer),
       deadline: order.deadline,
       priority: order.priority,
       totalQuantity: order.items.reduce((sum, item) => sum + item.totalQuantity, 0),
@@ -306,7 +307,7 @@ async function buildOrderStatusQueue(
       deadline: true,
       priority: true,
       blindShip: true,
-      customer: { select: { name: true } },
+      customer: { select: { name: true, company: true } },
       items: { select: { totalQuantity: true } },
     },
     orderBy: { deadline: "asc" },
@@ -318,7 +319,7 @@ async function buildOrderStatusQueue(
     key: `${prefix}:${order.id}`,
     orderId: order.id,
     orderNumber: order.orderNumber,
-    customerName: order.customer.name,
+    customerName: customerDisplayName(order.customer),
     deadline: order.deadline,
     priority: order.priority,
     totalQuantity: order.items.reduce((sum, item) => sum + item.totalQuantity, 0),
@@ -350,7 +351,7 @@ export async function buildProblems(prisma: ExtendedPrismaClient, limit = 10) {
             select: {
               orderNumber: true,
               deadline: true,
-              customer: { select: { name: true } },
+              customer: { select: { name: true, company: true } },
             },
           },
         },
@@ -362,7 +363,7 @@ export async function buildProblems(prisma: ExtendedPrismaClient, limit = 10) {
   return steps.map((s) => ({
     stepId: s.id,
     orderNumber: s.production.order.orderNumber,
-    customerName: s.production.order.customer.name,
+    customerName: customerDisplayName(s.production.order.customer),
     deadline: s.production.order.deadline,
     status: s.status, // FAILED | ON_HOLD — client แปลงเป็นไทย
     stepLabel: s.customStepName ?? STEP_TYPE_LABELS[s.stepType] ?? s.stepType,
@@ -382,7 +383,7 @@ async function buildActiveRuns(prisma: ExtendedPrismaClient) {
       items: {
         select: {
           qty: true,
-          order: { select: { orderNumber: true, customer: { select: { name: true } } } },
+          order: { select: { orderNumber: true, customer: { select: { name: true, company: true } } } },
         },
       },
     },
@@ -393,7 +394,7 @@ async function buildActiveRuns(prisma: ExtendedPrismaClient) {
     openedByName: r.createdBy.name,
     jobs: r.items.map((it) => ({
       orderNumber: it.order.orderNumber,
-      customerName: it.order.customer.name,
+      customerName: customerDisplayName(it.order.customer),
       qty: it.qty,
     })),
   }));
@@ -466,7 +467,7 @@ export async function buildUrgentOrders(
     orderNumber: true,
     deadline: true,
     priority: true,
-    customer: { select: { name: true } },
+    customer: { select: { name: true, company: true } },
   } as const;
 
   // กันทั้งสองทาง: งานค้างจำนวนมากห้ามเบียด URGENT และ URGENT จำนวนมากก็ห้าม
@@ -508,7 +509,7 @@ export async function buildUrgentOrders(
     orderNumber: order.orderNumber,
     deadline: order.deadline,
     priority: order.priority,
-    customerName: order.customer.name,
+    customerName: customerDisplayName(order.customer),
   }));
 }
 
@@ -522,14 +523,14 @@ async function buildDueSoon(
     select: {
       orderNumber: true,
       deadline: true,
-      customer: { select: { name: true } },
+      customer: { select: { name: true, company: true } },
     },
     orderBy: { deadline: "asc" },
     take: limit,
   });
   return orders.map((o) => ({
     orderNumber: o.orderNumber,
-    customerName: o.customer.name,
+    customerName: customerDisplayName(o.customer),
     deadline: o.deadline,
   }));
 }
@@ -563,7 +564,7 @@ async function buildOutsourceDue(
           production: {
             select: {
               order: {
-                select: { orderNumber: true, customer: { select: { name: true } } },
+                select: { orderNumber: true, customer: { select: { name: true, company: true } } },
               },
             },
           },
@@ -573,7 +574,7 @@ async function buildOutsourceDue(
   });
   return rows.map((o) => ({
     orderNumber: o.productionStep.production.order.orderNumber,
-    customerName: o.productionStep.production.order.customer.name,
+    customerName: customerDisplayName(o.productionStep.production.order.customer),
     vendorName: o.vendor.name,
     expectedBackAt: o.expectedBackAt,
   }));

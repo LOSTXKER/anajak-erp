@@ -93,3 +93,14 @@ describe("formatDateNumeric — วันที่ในไฟล์ที่ด
     expect(formatDateNumeric(new Date(iso).getTime())).toBe("31/01/2569");
   });
 });
+
+describe("daysAgoText — ช่วงต่อระหว่างสัปดาห์กับเดือน", () => {
+  it("28-29 วันต้องไม่กลายเป็น \"0 เดือนก่อน\"", () => {
+    // 28 วัน = 4 สัปดาห์ หลุดช่วงสัปดาห์แล้ว แต่หารด้วย 30 ได้ 0
+    expect(daysAgoText(27)).toBe("3 สัปดาห์ก่อน");
+    expect(daysAgoText(28)).toBe("1 เดือนก่อน");
+    expect(daysAgoText(29)).toBe("1 เดือนก่อน");
+    expect(daysAgoText(30)).toBe("1 เดือนก่อน");
+    expect(daysAgoText(75)).toBe("2 เดือนก่อน");
+  });
+});

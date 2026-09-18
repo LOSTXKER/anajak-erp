@@ -81,6 +81,9 @@ export async function buildDocumentPartySnapshot(
   );
 
   return {
+    // นิติบุคคลไม่ต้องกรอกชื่อผู้ติดต่อ (เบสสั่ง 2026-09-18) → buyerName เป็น null ได้
+    // ทั้งที่สำเนาครบ · ฝั่งอ่าน (resolveDocBuyer) จึงวัด "มีสำเนา" จาก buyerName+buyerCompany
+    // และชื่อผู้ซื้อบนกระดาษ = ชื่อบริษัทถ้ามี ไม่มีค่อยใช้ชื่อคน
     buyerName: orNull(customer.name),
     buyerCompany: orNull(customer.company),
     buyerTaxId: orNull(customer.taxId),

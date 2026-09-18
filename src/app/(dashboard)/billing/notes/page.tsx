@@ -40,6 +40,7 @@ import { INVOICE_TYPE_LABELS } from "@/lib/invoice-labels";
 import { DASHED } from "@/components/ui/tokens";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+import { customerContactName, customerDisplayNameOrDash } from "@/lib/customer-name";
 
 export default function BillingNotesPage() {
   return (
@@ -245,9 +246,10 @@ function BillingNotesPageContent() {
                     {note.billingNoteNumber}
                   </DataTable.Td>
                   <DataTable.Td>
-                    {note.customer.company
-                      ? `${note.customer.company} (${note.customer.name})`
-                      : note.customer.name}
+                    {/* วงเล็บชื่อผู้ติดต่อเฉพาะตอนมีจริง — เดิมนิติบุคคลที่ไม่มีผู้ติดต่อจะได้ "(null)" ติดมา */}
+                    {customerContactName(note.customer)
+                      ? `${customerDisplayNameOrDash(note.customer)} (${customerContactName(note.customer)})`
+                      : customerDisplayNameOrDash(note.customer)}
                   </DataTable.Td>
                   <DataTable.Td align="right" className="tabular-nums">
                     {note._count.items}
@@ -315,7 +317,7 @@ function BillingNotesPageContent() {
                       {note.billingNoteNumber}
                     </p>
                     <p className="mt-1 text-xs text-muted">
-                      {note.customer.company || note.customer.name}
+                      {customerDisplayNameOrDash(note.customer)}
                     </p>
                   </div>
                   <NoteStatus
@@ -438,7 +440,9 @@ function BillingNotesPageContent() {
                   }} aria-label="เลือกลูกค้าออกใบวางบิล" placeholder="เลือกลูกค้า...">
                     {customers.data?.customers.map((c) => (
                       <option key={c.id} value={c.id}>
-                        {c.company ? `${c.company} (${c.name})` : c.name}
+                        {customerContactName(c)
+                          ? `${customerDisplayNameOrDash(c)} (${customerContactName(c)})`
+                          : customerDisplayNameOrDash(c)}
                       </option>
                     ))}
                   </Select>

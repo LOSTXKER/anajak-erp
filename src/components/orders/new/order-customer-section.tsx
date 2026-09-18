@@ -12,6 +12,7 @@ import { CustomerPicker, type PickerCustomer } from "@/components/customers/cust
 import { CustomerTypeChip } from "@/components/customers/customer-type";
 import { customerProfileGaps } from "@/lib/customer-gaps";
 import { formatBaht } from "@/lib/utils";
+import { customerContactName, customerDisplayName } from "@/lib/customer-name";
 
 // ช่องเลือกลูกค้า + ป้ายบริบทครบ (นิติบุคคล/โปรไฟล์ขาด/วงเงินเครดิต)
 // แยกจาก orders/new/page.tsx ตอนรื้อฟอร์ม 2026-06-12 — พฤติกรรมเดิมทุกอย่าง
@@ -83,9 +84,10 @@ export function OrderCustomerSection({
   /* เลือกลูกค้าแล้ว = ยุบช่องค้นหาเหลือสรุปว่าใครถูกเลือก (ต้นแบบ 2026-09-18)
      ของเดิมช่องค้นหา/ช่องเลือก/ปุ่มใหม่ ค้างอยู่ตลอด ทั้งที่งานตรงนั้นจบไปแล้ว */
   const picked = Boolean(selectedCustomer) && !changing;
-  const label = selectedCustomer?.company || selectedCustomer?.name || "";
+  const label = customerDisplayName(selectedCustomer);
   const contact = [
-    selectedCustomer?.company ? selectedCustomer?.name : null,
+    // ชื่อผู้ติดต่อขึ้นเป็นบรรทัดรองเฉพาะตอนไม่ซ้ำกับชื่อหลัก — ไม่มีก็ข้ามไปเบอร์/LINE เลย
+    customerContactName(selectedCustomer),
     selectedCustomer?.phone,
     selectedCustomer?.lineId,
   ].filter(Boolean);

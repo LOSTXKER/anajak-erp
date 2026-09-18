@@ -21,6 +21,7 @@ import { c } from "@/components/kit/kit";
 import { CustomerPicker } from "@/components/customers/customer-picker";
 import { permAllows } from "@/lib/permissions";
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
+import { customerDisplayName } from "@/lib/customer-name";
 import { Plus, Trash2, ClipboardList, User, PenLine } from "lucide-react";
 
 // ============================================================
@@ -153,7 +154,8 @@ function QuotationFormPage() {
     if (prefilled.current) return;
     let values: QuotationFormValues;
     if (fromOrderId && linkedOrder) {
-      setCustomerLabel(linkedOrder.customer?.name ?? "");
+      // ป้ายลูกค้าในฟอร์ม = ชื่อที่ใช้เรียกจริง (บริษัทมาก่อน) นิติบุคคลไม่มีผู้ติดต่อก็ยังมีชื่อขึ้น
+      setCustomerLabel(customerDisplayName(linkedOrder.customer));
       const orderItems = (linkedOrder.items ?? []) as Array<{
         description: string | null;
         totalQuantity: number;
@@ -182,7 +184,7 @@ function QuotationFormPage() {
         tax: 0,
       };
     } else if (editId && editing) {
-      setCustomerLabel(editing.customer?.name ?? "");
+      setCustomerLabel(customerDisplayName(editing.customer));
       values = {
         customerId: editing.customerId,
         description: editing.description ?? "",

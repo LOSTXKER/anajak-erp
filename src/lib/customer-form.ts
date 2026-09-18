@@ -36,7 +36,8 @@ export interface CustomerEditForm {
 
 export interface CustomerEditRecord {
   customerType: CustomerTypeValue;
-  name: string;
+  /** null = นิติบุคคลที่ไม่ได้กรอกชื่อผู้ติดต่อ (เบสสั่ง 2026-09-18) — ฐานเก็บเป็น null ไม่ใช่ "" */
+  name: string | null;
   company: string | null;
   phone: string | null;
   lineId: string | null;
@@ -127,7 +128,8 @@ export interface CustomerCommunicationPayload {
 export function customerEditFormFromRecord(customer: CustomerEditRecord): CustomerEditForm {
   return {
     customerType: customer.customerType,
-    name: customer.name,
+    // ช่องกรอกเป็น text input — ไม่มีชื่อผู้ติดต่อคือช่องว่าง ("") ไม่ใช่ null ที่จะโชว์คำว่า null
+    name: customer.name ?? "",
     company: customer.company ?? "",
     phone: customer.phone ?? "",
     lineId: customer.lineId ?? "",

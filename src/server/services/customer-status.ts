@@ -53,7 +53,8 @@ export async function getOrderStatusByToken(
       statusTokenExpiresAt: true,
       blindShip: true,
       blindShipSenderName: true,
-      customer: { select: { name: true } },
+      // ต้องดึง company ด้วย ไม่งั้น customerDisplayName ถอยไปชื่อบริษัทไม่ได้ (ได้ค่าว่างเงียบ ๆ)
+      customer: { select: { name: true, company: true } },
       // แบบที่อนุมัติแล้ว (เฉพาะ APPROVED — ห้ามคืน PENDING/REJECTED)
       designs: {
         where: { approvalStatus: "APPROVED" },

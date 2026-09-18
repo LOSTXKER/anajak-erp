@@ -15,6 +15,7 @@ import { transitionOrder } from "@/server/services/order-status";
 import { createAuditLog } from "@/server/helpers";
 import { canUseStationShirtDiagram } from "@/lib/station-work-visual";
 import { orderMockupCover } from "@/lib/mockup";
+import { customerDisplayName } from "@/lib/customer-name";
 
 const productionTeam = requirePermission("manage_production");
 
@@ -55,6 +56,8 @@ const stationOrderSelect = {
   customer: {
     select: {
       name: true,
+      // company มาด้วยเพื่อประกอบชื่อที่ขึ้นจอ (นิติบุคคลอาจไม่มีชื่อผู้ติดต่อ) — ไม่ใช่เงิน
+      company: true,
       phone: true,
       address: true,
     },
@@ -140,7 +143,7 @@ const stationQueueOrderSelect = {
   deadline: true,
   priority: true,
   blindShip: true,
-  customer: { select: { name: true } },
+  customer: { select: { name: true, company: true } },
   // รูปปกม็อกอัพ + รูปลาย — จอสถานีใหม่ (2026-09-03) ให้ช่างจำงานจากภาพ · เอาเฉพาะ URL ไม่มีเงิน/token
   designs: {
     where: { approvalStatus: "APPROVED" as const },
@@ -294,7 +297,8 @@ function toStationContext(row: StationOrderRow) {
       shippingPostalCode: row.shippingPostalCode,
     },
     customer: {
-      name: row.customer.name,
+      // ชื่อบนจอช่าง: บริษัทมาก่อน ไม่มีค่อยใช้ชื่อคน — รูป DTO เท่าเดิม ไม่ได้เพิ่มฟิลด์
+      name: customerDisplayName(row.customer),
       phone: row.customer.phone,
       address: row.customer.address,
       hasAddress: Boolean(row.customer.address?.trim()),
@@ -316,7 +320,7 @@ function toStationQueueItem(row: StationQueueOrderRow) {
     deadline: row.deadline,
     priority: row.priority,
     blindShip: row.blindShip,
-    customerName: row.customer.name,
+    customerName: customerDisplayName(row.customer),
     totalQuantity: row.items.reduce((sum, item) => sum + item.totalQuantity, 0),
     // รูปเดียวแทนงาน — คำนวณที่นี่เพื่อไม่ส่งรายการไฟล์ทั้งชุดลงจอ
     mockupCover: orderMockupCover(row),

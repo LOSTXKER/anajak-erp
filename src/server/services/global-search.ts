@@ -1,5 +1,5 @@
 import type { ExtendedPrismaClient } from "@/lib/prisma";
-import { customerDisplayName } from "@/lib/customer-name";
+import { customerContactName, customerDisplayName } from "@/lib/customer-name";
 
 export type GlobalSearchResult = {
   id: string;
@@ -71,7 +71,7 @@ export async function globalSearch(
           select: {
             id: true,
             quotationNumber: true,
-            customer: { select: { name: true } },
+            customer: { select: { name: true, company: true } },
           },
         })
       : Promise.resolve([]),
@@ -92,7 +92,7 @@ export async function globalSearch(
             invoiceNumber: true,
             orderId: true,
             order: { select: { orderNumber: true } },
-            customer: { select: { name: true } },
+            customer: { select: { name: true, company: true } },
           },
         })
       : Promise.resolve([]),
@@ -103,7 +103,7 @@ export async function globalSearch(
       id: order.id,
       type: "order" as const,
       title: order.orderNumber,
-      subtitle: order.customer.name || null,
+      subtitle: customerDisplayName(order.customer) || null,
       href: `/orders/${order.id}`,
     })),
     customers: customers.map((customer) => ({
@@ -111,7 +111,7 @@ export async function globalSearch(
       type: "customer" as const,
       title: customerDisplayName(customer),
       subtitle:
-        [customer.company ? customer.name : null, customer.phone, customer.email]
+        [customerContactName(customer), customer.phone, customer.email]
           .filter(Boolean)
           .join(" · ") || null,
       href: `/customers/${customer.id}`,
@@ -120,14 +120,17 @@ export async function globalSearch(
       id: quotation.id,
       type: "quotation" as const,
       title: quotation.quotationNumber,
-      subtitle: quotation.customer.name || null,
+      subtitle: customerDisplayName(quotation.customer) || null,
       href: `/quotations/${quotation.id}`,
     })),
     invoices: invoices.map((invoice) => ({
       id: invoice.id,
       type: "invoice" as const,
       title: invoice.invoiceNumber,
-      subtitle: [invoice.order.orderNumber, invoice.customer.name].filter(Boolean).join(" · ") || null,
+      subtitle:
+        [invoice.order.orderNumber, customerDisplayName(invoice.customer)]
+          .filter(Boolean)
+          .join(" · ") || null,
       href: `/orders/${invoice.orderId}?tab=money`,
     })),
   };

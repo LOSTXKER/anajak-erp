@@ -17,10 +17,13 @@
  * ใช้ formatBaht กับที่นี่ไม่ได้ เพราะจะกลายเป็น "฿1,449.00 บาท"
  */
 export function formatAmount(amount: number): string {
-  return amount.toLocaleString("th-TH", {
+  // เศษติดลบที่ปัดแล้วเหลือศูนย์ต้องไม่กลายเป็น "-0.00" — ตัวนี้ไปอยู่ในจดหมายทวงหนี้
+  // ที่ก๊อปส่งลูกค้าจริง (formatBaht กันไว้อยู่แล้ว ตัวนี้เคยลืม)
+  const digits = Math.abs(amount).toLocaleString("th-TH", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
+  return amount < 0 && digits !== "0.00" ? `-${digits}` : digits;
 }
 
 /**

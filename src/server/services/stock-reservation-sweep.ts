@@ -19,6 +19,7 @@ import { createNotification } from "@/server/helpers";
 import { requiredUpfrontAmount } from "@/lib/payment-terms";
 import { releaseOrderStockReservation } from "./stock-reservation";
 import { claimThrottleSlot } from "./sweep-throttle";
+import { customerDisplayName } from "@/lib/customer-name";
 
 // แจ้งคนที่ดูแลงาน/เงิน: เจ้าของออเดอร์ (createdById) + เจ้าของกิจการ + ผู้จัดการ
 const NOTIFY_ROLES = ["OWNER", "MANAGER"] as const;
@@ -87,7 +88,8 @@ export async function sweepStaleReservations(
       totalAmount: true,
       stockReservedAt: true,
       reservationExpiryWarnedAt: true,
-      customer: { select: { name: true } },
+      // company มาด้วยเพื่อประกอบชื่อขึ้นต้นข้อความกระดิ่ง (ห้ามขึ้นต้นด้วย ": จองค้าง...")
+      customer: { select: { name: true, company: true } },
       invoices: {
         where: { isVoided: false },
         select: { payments: { select: { amount: true, whtAmount: true } } },
@@ -169,7 +171,7 @@ export async function sweepStaleReservations(
           userId,
           type: "SYSTEM",
           title: `ปลดจองสต๊อกอัตโนมัติ — ${o.orderNumber}`,
-          message: `${o.customer.name}: จองค้างเกิน 3 วันยังไม่จ่ายมัดจำ → คืนเสื้อเข้าคลังแล้ว · ลูกค้าจ่ายแล้วกด "จองสต๊อกใหม่" ได้`,
+          message: `${customerDisplayName(o.customer)}: จองค้างเกิน 3 วันยังไม่จ่ายมัดจำ → คืนเสื้อเข้าคลังแล้ว · ลูกค้าจ่ายแล้วกด "จองสต๊อกใหม่" ได้`,
           link: `/orders/${o.id}`,
           entityType: "ORDER",
           entityId: o.id,
@@ -197,7 +199,7 @@ export async function sweepStaleReservations(
           userId,
           type: "SYSTEM",
           title: `ใกล้ถูกปลดจองสต๊อก — ${o.orderNumber}`,
-          message: `${o.customer.name}: จองเสื้อค้าง 2 วันยังไม่จ่ายมัดจำ · อีก 1 วันระบบจะคืนของเข้าคลังอัตโนมัติ`,
+          message: `${customerDisplayName(o.customer)}: จองเสื้อค้าง 2 วันยังไม่จ่ายมัดจำ · อีก 1 วันระบบจะคืนของเข้าคลังอัตโนมัติ`,
           link: `/orders/${o.id}`,
           entityType: "ORDER",
           entityId: o.id,

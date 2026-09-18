@@ -64,6 +64,7 @@ import {
   getLocalDemoStockAvailability,
   isLocalDemoStockEnabled,
 } from "@/server/services/local-demo-stock";
+import { customerDisplayName } from "@/lib/customer-name";
 
 // วางแผนการผลิต = งานหัวหน้า (PERM3: default OWNER/MANAGER เดิมเป๊ะ + override รายคน)
 const managerUp = requirePermission("supervise_operations");
@@ -438,7 +439,8 @@ export const productionRouter = router({
         internalStatus: true,
         orderType: true,
         blindShip: true, // ธงแดงบนการ์ดเลนแพ็ค (ก้อน 3)
-        customer: { select: { name: true } },
+        // company ด้วย — ไม่งั้นนิติบุคคลที่ไม่มีชื่อผู้ติดต่อขึ้น "ไม่ระบุลูกค้า" ทั้งที่มีชื่อบริษัท
+        customer: { select: { name: true, company: true } },
         productions: {
           orderBy: { createdAt: "desc" },
           select: {
@@ -546,7 +548,8 @@ export const productionRouter = router({
         internalStatus: o.internalStatus,
         orderType: o.orderType,
         blindShip: o.blindShip,
-        customerName: o.customer?.name ?? null,
+        // null = ไม่มีชื่อให้เรียกจริง ๆ (จอเลนมีข้อความสำรองของตัวเอง) ไม่ใช่แค่ไม่มีชื่อผู้ติดต่อ
+        customerName: customerDisplayName(o.customer) || null,
         productionId: o.productions[0]?.id ?? null,
         productions: o.productions,
         stepsDone,

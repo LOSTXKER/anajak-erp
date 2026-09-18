@@ -10,6 +10,7 @@ import type { InternalStatus } from "@prisma/client";
 import type { PrismaTx } from "@/lib/prisma";
 import { hasPermission } from "@/lib/permissions";
 import { MOCKUP_MAX_FILES_PER_VERSION } from "@/lib/mockup";
+import { customerDisplayName } from "@/lib/customer-name";
 
 const designerUp = requirePermission("manage_design_files");
 // บันทึกผลอนุมัติแทนลูกค้า = คนถือความสัมพันธ์ลูกค้า — ไม่ให้ DESIGNER อนุมัติแบบตัวเอง
@@ -62,6 +63,7 @@ async function notifyDesignDecision(
   params: {
     orderId: string;
     orderNumber: string;
+    /** ชื่อที่คนในทีมใช้เรียกลูกค้า (ผ่าน customerDisplayName แล้ว) — ห้ามส่ง Customer.name ดิบ */
     customerName: string;
     versionNumber: number;
     approved: boolean;
@@ -278,7 +280,8 @@ export const designRouter = router({
           order: {
             select: {
               orderNumber: true,
-              customer: { select: { name: true } },
+              // company ใช้ประกอบชื่อเดียวที่คืนออกไป ไม่ได้คืนเป็นฟิลด์แยก (ดู return ข้างล่าง)
+              customer: { select: { name: true, company: true } },
             },
           },
         },
@@ -291,6 +294,13 @@ export const designRouter = router({
       // (schema บังคับ) — เขียนแบบนี้แทน non-null assertion เพื่อไม่ให้พังเงียบถ้า schema เปลี่ยน
       return {
         ...design,
+        // ชื่อที่ลูกค้าเห็นบนลิงก์: บริษัทมาก่อน ไม่มีค่อยใช้ชื่อคน — นิติบุคคลไม่ต้องกรอก
+        // ชื่อผู้ติดต่อแล้ว (2026-09-18) ส่ง name ดิบจะเหลือ "ORD-xxx · " ห้อยท้าย
+        // payload ยังมีฟิลด์เท่าเดิม (order.customer.name ตัวเดียว)
+        order: {
+          orderNumber: design.order.orderNumber,
+          customer: { name: customerDisplayName(design.order.customer) },
+        },
         fileUrl: withFileToken(design.fileUrl, input.token) ?? design.fileUrl,
         thumbnailUrl: withFileToken(design.thumbnailUrl, input.token),
         files: design.files.map((file) => ({
@@ -347,7 +357,8 @@ export const designRouter = router({
 
         const design = await tx.designVersion.findUniqueOrThrow({
           where: { id: input.designId },
-          include: { order: { include: { customer: { select: { name: true } } } } },
+          // company มาด้วยเพื่อประกอบชื่อที่ใช้เรียกลูกค้า (นิติบุคคลอาจไม่มีชื่อผู้ติดต่อ)
+          include: { order: { include: { customer: { select: { name: true, company: true } } } } },
         });
 
         await processDesignApproval(tx, {
@@ -362,7 +373,7 @@ export const designRouter = router({
         await notifyDesignDecision(tx, {
           orderId: design.orderId,
           orderNumber: design.order.orderNumber,
-          customerName: design.order.customer.name,
+          customerName: customerDisplayName(design.order.customer),
           versionNumber: design.versionNumber,
           approved: input.approved,
           comment: input.comment,
@@ -430,7 +441,8 @@ export const designRouter = router({
             orderId: true,
             versionNumber: true,
             approvalStatus: true,
-            order: { select: { orderNumber: true, customer: { select: { name: true } } } },
+            // company ใช้ประกอบชื่อในกระดิ่งทีมเท่านั้น — ไม่ได้อยู่ใน payload ที่คืนให้คนถือ token
+            order: { select: { orderNumber: true, customer: { select: { name: true, company: true } } } },
           },
         });
 
@@ -446,7 +458,7 @@ export const designRouter = router({
         await notifyDesignDecision(tx, {
           orderId: design.orderId,
           orderNumber: design.order.orderNumber,
-          customerName: design.order.customer.name,
+          customerName: customerDisplayName(design.order.customer),
           versionNumber: design.versionNumber,
           approved: input.approved,
           comment: input.comment,

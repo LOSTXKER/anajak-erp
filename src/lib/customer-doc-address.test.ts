@@ -152,3 +152,49 @@ describe("formatBranchLabel", () => {
     expect(formatBranchLabel("  ")).toBeUndefined();
   });
 });
+
+describe("resolveDocBuyer — นิติบุคคลที่ไม่ได้กรอกชื่อผู้ติดต่อ (เบสสั่ง 2026-09-18)", () => {
+  const corporate = {
+    name: null,
+    company: "บริษัท สยามเท็กซ์ จำกัด",
+    taxId: "0105551234567",
+    branchNumber: "00000",
+    phone: "021234567",
+    billingAddress: "99 อาคารเอ ถ.สาทรใต้",
+    billingProvince: "กรุงเทพมหานคร",
+  };
+
+  it("ใบเก่าที่ไม่มีสำเนา → ชื่อผู้ซื้อคือชื่อบริษัท ห้ามออกมาโล่ง (ม.86/4)", () => {
+    const buyer = resolveDocBuyer({}, corporate);
+    expect(buyer.name).toBe("บริษัท สยามเท็กซ์ จำกัด");
+    // ไม่มีชื่อผู้ติดต่อ = ไม่มีวงเล็บต่อท้าย (PartyBlock พิมพ์ "บริษัท ()" ถ้าปล่อย company ไว้)
+    expect(buyer.company).toBeNull();
+    expect(buyer.taxId).toBe("0105551234567");
+  });
+
+  it("มีสำเนาแต่เก็บเฉพาะชื่อบริษัท → ยังนับเป็น 'มีสำเนา' ห้ามไหลไปอ่านค่าสด", () => {
+    const buyer = resolveDocBuyer(
+      {
+        buyerName: null,
+        buyerCompany: "บริษัท ต้นฉบับ จำกัด",
+        buyerTaxId: "0105551234567",
+        buyerAddress: "99 อาคารเอ ถ.สาทรใต้",
+        buyerProvince: "กรุงเทพมหานคร",
+      },
+      { ...corporate, company: "บริษัท เปลี่ยนชื่อแล้ว จำกัด", billingAddress: "1 ที่อยู่ใหม่" },
+    );
+    expect(buyer.name).toBe("บริษัท ต้นฉบับ จำกัด");
+    expect(buyer.company).toBeNull();
+    expect(buyer.address).toBe("99 อาคารเอ ถ.สาทรใต้\nกรุงเทพมหานคร");
+  });
+
+  it("ช่องชื่อผู้ติดต่อเป็นสตริงว่าง (ฟอร์มเดิมเก็บ \"\") ก็ต้องได้ผลเดียวกับ null", () => {
+    expect(resolveDocBuyer({}, { ...corporate, name: "" }).name).toBe("บริษัท สยามเท็กซ์ จำกัด");
+  });
+
+  it("ชื่อผู้ติดต่อซ้ำกับชื่อบริษัท → พิมพ์ชื่อเดียว ไม่ใช่ \"บริษัท ก (บริษัท ก)\"", () => {
+    const buyer = resolveDocBuyer({}, { ...corporate, name: "บริษัท สยามเท็กซ์ จำกัด" });
+    expect(buyer.name).toBe("บริษัท สยามเท็กซ์ จำกัด");
+    expect(buyer.company).toBeNull();
+  });
+});

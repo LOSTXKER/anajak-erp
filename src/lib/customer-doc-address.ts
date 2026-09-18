@@ -8,6 +8,8 @@
 // กติกาที่คงไว้เหมือนเดิม: ไม่มีที่อยู่ออกใบกำกับ → ถอยไปใช้ที่อยู่ผู้ติดต่อ (customer.address)
 // ซึ่งเป็นก้อนเดียว ไม่มีช่องย่อย · ตรงกับด่านเตือนใน lib/customer-gaps.ts
 
+import { customerContactName, customerDisplayName } from "./customer-name";
+
 export interface CustomerDocAddressSource {
   address?: string | null;
   billingAddress?: string | null;
@@ -75,7 +77,9 @@ export interface DocPartySource {
 }
 
 export interface LiveCustomerSource extends CustomerDocAddressSource {
-  name: string;
+  // นิติบุคคลไม่ต้องกรอกชื่อผู้ติดต่อ (เบสสั่ง 2026-09-18) — ช่องนี้จึงว่าง/เป็น null ได้
+  // ชื่อผู้ซื้อที่ขึ้นกระดาษหาจาก buyerNameParts ด้านล่าง ห้ามอ่าน name ตรงๆ
+  name: string | null;
   company?: string | null;
   taxId?: string | null;
   branchNumber?: string | null;
@@ -91,18 +95,34 @@ export interface DocBuyerBlock {
   phone: string | null;
 }
 
+/** ชื่อผู้ซื้อที่ต้องขึ้นกระดาษ + ชื่อบริษัทที่คู่กัน (PartyBlock พิมพ์ "บริษัท (ผู้ติดต่อ)")
+ *
+ *  ชื่อผู้ซื้อ = ชื่อบริษัทถ้ามี ไม่มีค่อยใช้ชื่อคน · ชื่อผู้ติดต่อเป็นของเสริมในวงเล็บ
+ *  นิติบุคคลที่ไม่ได้กรอกชื่อผู้ติดต่อ (เบสสั่ง 2026-09-18) เดิมจะได้ "บริษัท ก ()" หรือ
+ *  ช่องชื่อโล่งทั้งช่อง = ใบกำกับภาษีไม่มีชื่อผู้ซื้อ (ผิด ม.86/4) จึงยุบเหลือชื่อบริษัทเดี่ยว */
+function buyerNameParts(source: {
+  name?: string | null;
+  company?: string | null;
+}): { name: string; company: string | null } {
+  const contact = customerContactName(source);
+  // ไม่มีชื่อผู้ติดต่อ (หรือซ้ำกับชื่อบริษัท) = ไม่มีวงเล็บให้พิมพ์
+  if (!contact) return { name: customerDisplayName(source), company: null };
+  return { name: contact, company: text(source.company) };
+}
+
 /** บล็อกผู้ซื้อสำหรับ PartyBlock — snapshot ก่อน ไม่มีค่อยใช้ค่าสด
- *  เกณฑ์ "มี snapshot" = มี buyerName (เขียนพร้อมกันทั้งชุดที่จุดสร้างเอกสารเสมอ)
+ *  เกณฑ์ "มี snapshot" = มี buyerName หรือ buyerCompany (เขียนพร้อมกันทั้งชุดที่จุดสร้าง
+ *  เอกสารเสมอ) — วัดจาก buyerName ช่องเดียวไม่ได้แล้ว เพราะนิติบุคคลที่ไม่มีชื่อผู้ติดต่อ
+ *  จะเก็บ buyerName เป็น null ทั้งที่มีสำเนาครบ แล้วใบนั้นจะไหลไปอ่านค่าสดโดยไม่มีใครรู้
  *  — ห้ามผสมทีละช่อง เพราะจะได้ชื่อจากใบเก่าปนที่อยู่ปัจจุบัน = สำเนาที่ไม่เคยมีอยู่จริง */
 export function resolveDocBuyer(
   doc: DocPartySource,
   live: LiveCustomerSource,
 ): DocBuyerBlock {
-  const hasSnapshot = Boolean(text(doc.buyerName));
+  const hasSnapshot = Boolean(text(doc.buyerName) || text(doc.buyerCompany));
   if (!hasSnapshot) {
     return {
-      name: live.name,
-      company: live.company ?? null,
+      ...buyerNameParts(live),
       address: formatCustomerDocAddress(live),
       taxId: live.taxId ?? null,
       branch: formatBranchLabel(live.branchNumber),
@@ -120,8 +140,7 @@ export function resolveDocBuyer(
     .join(" ");
 
   return {
-    name: text(doc.buyerName),
-    company: text(doc.buyerCompany) || null,
+    ...buyerNameParts({ name: doc.buyerName, company: doc.buyerCompany }),
     address: [text(doc.buyerAddress), area].filter(Boolean).join("\n") || null,
     taxId: text(doc.buyerTaxId) || null,
     branch: formatBranchLabel(doc.buyerBranchNumber),

@@ -11,6 +11,7 @@ import { forbidden } from "@/server/errors";
 import { availableOperationCommands, dueRiskOf } from "./manufacturing-command-policy";
 import { assertRoutingConvergesToFinalPack } from "./manufacturing-domain";
 import { getPrepGarmentSurplus } from "./manufacturing-prep-readiness";
+import { customerDisplayName } from "@/lib/customer-name";
 
 export type ManufacturingReadAccess = {
   actorId: string;
@@ -121,7 +122,8 @@ const orderIdentitySelect = {
   deadline: true,
   priority: true,
   internalStatus: true,
-  customer: { select: { name: true } },
+  // company มาด้วยเพื่อประกอบ customerName ที่ขึ้นจอผลิต/จอช่าง (ไม่ใช่เงิน)
+  customer: { select: { name: true, company: true } },
 } satisfies Prisma.OrderSelect;
 
 const operationSummarySelect = {
@@ -379,7 +381,7 @@ export async function getManufacturingControlList(
         order: {
           id: row.order.id,
           orderNumber: row.order.orderNumber,
-          customerName: row.order.customer.name,
+          customerName: customerDisplayName(row.order.customer),
           deadline: row.order.deadline,
           priority: row.order.priority,
         },
@@ -634,7 +636,7 @@ export async function getManufacturingWorkOrder(
     order: {
       id: row.order.id,
       orderNumber: row.order.orderNumber,
-      customerName: row.order.customer.name,
+      customerName: customerDisplayName(row.order.customer),
       deadline: row.order.deadline,
       priority: row.order.priority,
       internalStatus: row.order.internalStatus,
@@ -1045,7 +1047,7 @@ async function stationJobDto(
     order: {
       id: row.production.order.id,
       orderNumber: row.production.order.orderNumber,
-      customerName: row.production.order.customer.name,
+      customerName: customerDisplayName(row.production.order.customer),
       deadline: row.production.order.deadline,
       priority: row.production.order.priority,
     },

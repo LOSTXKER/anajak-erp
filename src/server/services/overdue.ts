@@ -3,6 +3,7 @@ import { createNotification } from "@/server/helpers";
 import { thaiDateUtcMidnight } from "./payment-plan";
 import { claimThrottleSlot } from "./sweep-throttle";
 import { RECEIVABLE_TYPES } from "./receivables";
+import { customerDisplayName } from "@/lib/customer-name";
 
 // กวาดบิลเลยกำหนดชำระ → ตั้งสถานะ OVERDUE + แจ้งเตือนทีมการเงินในกระดิ่ง
 // ตัวเรียกมี 3 ทาง: cron route (/api/cron/overdue) · billing.markOverdue (ปุ่ม manual)
@@ -43,7 +44,9 @@ export async function sweepOverdueInvoices(
         id: true,
         invoiceNumber: true,
         totalAmount: true,
-        customer: { select: { name: true } },
+        // company มาด้วยเพื่อประกอบชื่อในกระดิ่ง — ใบของนิติบุคคลที่ไม่มีชื่อผู้ติดต่อ
+        // เคยได้บรรทัด "INV-001 —  (1,000.00 บาท)" ที่บอกไม่ได้ว่าใบของใคร
+        customer: { select: { name: true, company: true } },
       },
       orderBy: { dueDate: "asc" },
     });
@@ -66,7 +69,7 @@ export async function sweepOverdueInvoices(
       select: { id: true },
     });
 
-    const customerById = new Map(due.map((d) => [d.id, d.customer.name]));
+    const customerById = new Map(due.map((d) => [d.id, customerDisplayName(d.customer)]));
     const lines = marked
       .slice(0, 5)
       .map(

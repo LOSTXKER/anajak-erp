@@ -7,6 +7,7 @@
 import { appRouter } from "@/server/routers/_app";
 import { prisma } from "@/lib/prisma";
 import { evaluateHeatPressGate } from "@/lib/production-steps";
+import { customerDisplayName } from "@/lib/customer-name";
 
 const MARK = "[PRINTRUN-VERIFY]";
 let pass = 0;
@@ -123,7 +124,11 @@ async function main() {
     // ── 3. ฟิล์มเผื่อเข้าคลัง + หยิบใช้ ──
     const films = await caller.filmStock.list({ search: "โลโก้ทดสอบ" });
     const film = films.find((f) => f.orderId === A.order.id);
-    check("4.1 ฟิล์มเผื่อเข้าคลัง 3 ชิ้น", film?.qty === 3 && film?.customer.name.includes("ลูกค้าทดสอบ"));
+    // ชื่อลูกค้าบนคลังฟิล์มอ่านผ่านสูตรกลาง — ช่อง name ว่างได้แล้ว (นิติบุคคลไม่ต้องมีชื่อผู้ติดต่อ)
+    check(
+      "4.1 ฟิล์มเผื่อเข้าคลัง 3 ชิ้น",
+      film?.qty === 3 && customerDisplayName(film.customer).includes("ลูกค้าทดสอบ"),
+    );
     await caller.filmStock.consume({ id: film!.id, qty: 2, note: `${MARK} หยิบใช้` });
     const film2 = await prisma.filmStock.findUniqueOrThrow({ where: { id: film!.id } });
     check("4.2 หยิบใช้ 2 → เหลือ 1", film2.qty === 1);

@@ -22,6 +22,7 @@ import {
   productionWorkflowSteps,
 } from "@/lib/production-steps";
 import { isImageUrl } from "@/lib/utils";
+import { customerDisplayName, customerDisplayNameOrDash } from "@/lib/customer-name";
 import { mockupImages } from "@/lib/mockup";
 import { PrintPage, NotesBlock, formatDocDate, DocumentStamp } from "@/components/print/print-document";
 import { PrintActions } from "@/components/print/print-actions";
@@ -272,8 +273,11 @@ export default async function PrintJobTicketPage({
               <ShieldAlert className="h-5 w-5" aria-hidden="true" />
               BLIND SHIP — ห้ามใส่เอกสาร/ชื่อ Anajak ในกล่อง
             </p>
+            {/* ชื่อผู้ส่งต้องตรงกับใบรายการสินค้าที่เดินทางไปกับกล่อง (packing-list ใช้สูตร
+                เดียวกัน) — เดิมใบนี้ใช้ชื่อผู้ติดต่อเดี่ยวๆ นิติบุคคลที่ไม่มีชื่อผู้ติดต่อ
+                จะได้บรรทัดโล่ง และคนแพ็คเห็นชื่อผู้ส่งคนละชื่อกับที่ติดกล่อง */}
             <p className="mt-0.5 text-[13px] font-semibold text-red-700">
-              ผู้ส่งบนใบ: {order.blindShipSenderName || order.customer.name}
+              ผู้ส่งบนใบ: {order.blindShipSenderName || customerDisplayName(order.customer)}
             </p>
           </div>
         )}
@@ -282,7 +286,7 @@ export default async function PrintJobTicketPage({
         <div className="mt-3 grid grid-cols-4 gap-x-4 gap-y-2 rounded border border-slate-300 px-4 py-2.5">
           <MetaCell
             label="ลูกค้า"
-            value={order.customer.company || order.customer.name}
+            value={customerDisplayNameOrDash(order.customer)}
           />
           <MetaCell label="ช่องทาง" value={CHANNEL_LABELS[order.channel] ?? order.channel} />
           <MetaCell label="วันเปิดงาน" value={formatDocDate(order.createdAt)} />

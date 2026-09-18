@@ -39,6 +39,13 @@ const PRINT_RUN_STATUS_LABELS: Record<Board["activeRuns"][number]["status"], str
   CANCELLED: "ยกเลิกรอบ",
 };
 
+/* ชื่อลูกค้าบนจอทีวี — อ่านจากไกลและไม่มีที่ให้กดดูต่อ ช่องว่างจึงอ่านเป็น "ข้อมูลหาย"
+   นิติบุคคลไม่ต้องกรอกชื่อผู้ติดต่อแล้ว (เบสสั่ง 2026-09-18) endpoint จึงส่ง null มาได้
+   คำเดียวกับจอช่างและใบผลิต ("ไม่ระบุลูกค้า") — จอทีวีไม่มีเงินและไม่รับ field เพิ่ม */
+function customerLine(name: string | null | undefined): string {
+  return name?.trim() || "ไม่ระบุลูกค้า";
+}
+
 function isOverdue(deadline: Date | string | null): boolean {
   const days = differenceInBangkokDays(deadline, new Date());
   return days !== null && days < 0;
@@ -379,7 +386,7 @@ function QueueRow({
   danger = false,
 }: {
   orderNumber: string;
-  customerName: string;
+  customerName: string | null;
   deadline: Date | string | null;
   status: string;
   progress?: string | null;
@@ -404,7 +411,7 @@ function QueueRow({
         {overdue && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-red-400" title="เลยกำหนด" />}
       </div>
       <p className="mt-0.5 truncate text-xs text-muted">
-        {customerName}
+        {customerLine(customerName)}
         {assignee ? ` · ${assignee}` : ""}
       </p>
       <div className="mt-1.5 flex min-w-0 items-center justify-between gap-2 text-xs">
@@ -436,7 +443,7 @@ function BoardRail({ board }: { board: Board }) {
     // คำเดียวกับใบผลิตและจอช่าง — จอทีวีเคยเขียน "งานเสีย"/"พักงาน" ของตัวเอง
     // คนที่เดินจากจอทีวีไปเปิดใบผลิตจึงเห็นคนละคำของเรื่องเดียวกัน
     label: `${STEP_STATUS_LABELS[item.status === "FAILED" ? "FAILED" : "ON_HOLD"]} · ${item.stepLabel}`,
-    detail: item.assignedToName || item.customerName,
+    detail: item.assignedToName || customerLine(item.customerName),
     danger: true,
   }));
   const priorityAlerts = board.urgentOrders.map((item) => ({
@@ -449,7 +456,7 @@ function BoardRail({ board }: { board: Board }) {
         : item.priority === "URGENT"
           ? PRIORITY_LABELS.URGENT
           : "เลยกำหนดส่ง",
-    detail: item.customerName,
+    detail: customerLine(item.customerName),
     danger: isOverdue(item.deadline),
   }));
   const alerts = [
@@ -463,7 +470,7 @@ function BoardRail({ board }: { board: Board }) {
       key: `outsource:${item.orderNumber}:${item.vendorName}`,
       orderNumber: item.orderNumber,
       label: `ตามของจาก ${item.vendorName}`,
-      detail: item.customerName,
+      detail: customerLine(item.customerName),
       danger: false,
     })),
     ...board.dueSoon.map((item) => ({
@@ -474,7 +481,7 @@ function BoardRail({ board }: { board: Board }) {
         : item.deadline
           ? `ส่ง ${formatDueDate(item.deadline)}`
           : "ใกล้กำหนดส่ง",
-      detail: item.customerName,
+      detail: customerLine(item.customerName),
       danger: isOverdue(item.deadline),
     })),
   ];

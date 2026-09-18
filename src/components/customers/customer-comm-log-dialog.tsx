@@ -34,6 +34,7 @@ export function CustomerCommLogDialog({
   onClose,
 }: {
   customerId: string;
+  /** ชื่อที่แสดงได้ของลูกค้า (ผ่าน customerDisplayName มาแล้ว) — "" ได้ถ้ารายนั้นไม่มีทั้งบริษัทและชื่อผู้ติดต่อ */
   customerName: string;
   onClose: () => void;
 }) {
@@ -73,7 +74,8 @@ export function CustomerCommLogDialog({
         <DialogHeader>
           <DialogTitle>บันทึกการคุย</DialogTitle>
           <DialogDescription>
-            {customerName} — คุยอะไรไว้จดลงระบบ ทีมอื่นเห็นด้วย ไม่หายไปกับคนคุย
+            {/* ไม่มีชื่อ = ไม่ขึ้นขีดคั่นค้างไว้หน้าประโยค */}
+            {customerName ? `${customerName} — ` : ""}คุยอะไรไว้จดลงระบบ ทีมอื่นเห็นด้วย ไม่หายไปกับคนคุย
           </DialogDescription>
         </DialogHeader>
 

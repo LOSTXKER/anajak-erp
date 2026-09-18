@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { COMPANY_PROFILE_KEY, parseCompanyProfile } from "@/lib/company-profile";
 import { SHIPPING_METHOD_LABELS } from "@/lib/shipping-methods";
+import { customerDisplayName } from "@/lib/customer-name";
 import {
   PrintPage,
   NotesBlock,
@@ -45,8 +46,9 @@ export default async function PrintPackingListPage({
   const company = parseCompanyProfile(companySetting?.value);
 
   // blind ship: ผู้ส่ง = ชื่อแบรนด์ลูกค้าเท่านั้น — ห้าม fallback เป็นข้อมูลบริษัทจาก company profile
+  // ชื่อลูกค้าใช้สูตรกลาง (ชื่อบริษัทก่อน ไม่มีค่อยใช้ชื่อคน) เหมือนเดิม
   const blindSenderName =
-    order.blindShipSenderName || order.customer.company || order.customer.name;
+    order.blindShipSenderName || customerDisplayName(order.customer);
 
   const recipientAddress = [
     delivery.address,

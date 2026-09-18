@@ -96,9 +96,11 @@ export const analyticsRouter = router({
       revenueThisMonth: number;
       revenueChange: number;
       overdueInvoices: number;
+      // ส่งคู่ name/company ดิบ ๆ ให้จอเลือกเองว่าบรรทัดไหนหลัก/รอง (ผ่าน customer-name)
+      // name ว่างได้ตั้งแต่ 2026-09-18 — นิติบุคคลไม่ต้องกรอกชื่อผู้ติดต่อ
       topCustomers: {
         id: string;
-        name: string;
+        name: string | null;
         company: string | null;
         totalSpent: number;
         totalOrders: number;

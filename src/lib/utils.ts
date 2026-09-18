@@ -98,7 +98,10 @@ export function daysAgoText(days: number): string {
   if (days < 7) return `${days.toLocaleString("th-TH")} วันก่อน`;
   const weeks = Math.floor(days / 7);
   if (weeks < 4) return `${weeks.toLocaleString("th-TH")} สัปดาห์ก่อน`;
-  return `${Math.floor(days / 30).toLocaleString("th-TH")} เดือนก่อน`;
+  // ปัดขึ้นอย่างน้อยหนึ่งเดือน — 28-29 วันหลุดจากช่วงสัปดาห์แล้ว แต่หารด้วย 30 ได้ 0
+  // เคยพ่นออกมาว่า "0 เดือนก่อน" ในช่อง "สั่งล่าสุด" ของหน้าลูกค้า
+  const months = Math.max(1, Math.floor(days / 30));
+  return `${months.toLocaleString("th-TH")} เดือนก่อน`;
 }
 
 /** "ผ่านมานานแค่ไหน" ของทั้งเว็บ — ถ้อยคำชุด "…ก่อน" ตามต้นแบบ (เดิมหน้าแจ้งเตือนเขียน "…ที่แล้ว")

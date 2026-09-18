@@ -37,6 +37,7 @@ import {
   type TaskTone,
 } from "@/lib/task-groups";
 import { formatBaht, formatDate } from "@/lib/utils";
+import { customerDisplayName } from "@/lib/customer-name";
 
 /* ============================================================
    งานของฉัน — ต้นแบบ pgTasks(): หัวหน้า + ปุ่มโหลดใหม่ → การ์ดกองละใบ → แถวงาน
@@ -107,7 +108,7 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
         step.customStepName ||
         STEP_TYPE_LABELS[step.stepType] ||
         step.stepType,
-      description: step.order.customer.name,
+      description: customerDisplayName(step.order.customer),
       orderNumber: step.order.orderNumber,
       orderHref: orderLink(step.order.id),
       deadline: step.order.deadline,
@@ -182,7 +183,7 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
       href: `/production?create=${order.id}`,
       icon: Factory,
       title: "รอเปิดใบผลิต",
-      description: order.customer.name,
+      description: customerDisplayName(order.customer),
       orderNumber: order.orderNumber,
       orderHref: orderLink(order.id),
       deadline: order.deadline,
@@ -202,7 +203,7 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
       href: `/orders/${design.order.id}?tab=files`,
       icon: PenLine,
       title: "งานออกแบบ",
-      description: design.order.customer.name,
+      description: customerDisplayName(design.order.customer),
       orderNumber: design.order.orderNumber,
       orderHref: orderLink(design.order.id),
       deadline: design.order.deadline,
@@ -279,7 +280,7 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
       href: `/orders/${followUp.order.id}`,
       icon: ClipboardList,
       title: followUp.itemCount === 0 ? "ออเดอร์ยังไม่มีรายการ" : "ติดตามลูกค้า",
-      description: followUp.order.customer.name,
+      description: customerDisplayName(followUp.order.customer),
       orderNumber: followUp.order.orderNumber,
       orderHref: orderLink(followUp.order.id),
       deadline: followUp.order.deadline,
@@ -314,7 +315,7 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
       href: `/orders/${order.id}?tab=money`,
       icon: Wallet,
       title: "รอวางบิล/ปิดงาน",
-      description: order.customer.name,
+      description: customerDisplayName(order.customer),
       orderNumber: order.orderNumber,
       orderHref: orderLink(order.id),
       deadline: order.deadline,

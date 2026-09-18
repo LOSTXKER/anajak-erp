@@ -70,6 +70,35 @@ describe("customer edit form policy", () => {
     });
   });
 
+  it("นิติบุคคลที่ไม่มีชื่อผู้ติดต่อเปิดฟอร์มได้ด้วยช่องว่าง ไม่ใช่คำว่า null", () => {
+    const form = customerEditFormFromRecord({
+      customerType: "CORPORATE",
+      name: null,
+      company: "บริษัท บี จำกัด",
+      phone: null,
+      chatName: null,
+      chatUrl: null,
+      lineId: null,
+      email: null,
+      address: null,
+      notes: null,
+      segment: "REGULAR",
+      taxId: "0105555555555",
+      branchNumber: null,
+      creditLimit: null,
+      defaultPaymentTerms: null,
+      billingAddress: null,
+      billingSubDistrict: null,
+      billingDistrict: null,
+      billingProvince: null,
+      billingPostalCode: null,
+    });
+
+    expect(form.name).toBe("");
+    // เปิดแล้วกดบันทึกทันทีต้องไม่ติดด่าน — ชื่อบริษัทใช้เรียกแทนชื่อผู้ติดต่อได้
+    expect(validateCustomerEditForm(form)).toEqual({});
+  });
+
   it("trim ข้อความ ล้าง nullable field ด้วย null และเก็บ 0 เป็นวงเงินจริง", () => {
     expect(
       buildCustomerUpdatePayload("customer-1", {

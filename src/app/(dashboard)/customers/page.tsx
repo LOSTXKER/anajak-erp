@@ -36,7 +36,7 @@ import { Plus, Users, Phone, ChevronRight } from "lucide-react";
 import { FOCUS_BUTTON } from "@/components/ui/tokens";
 import { VISUAL_TONE_CLASSES } from "@/lib/visual-tone";
 import { cn } from "@/lib/utils";
-import { customerContactName } from "@/lib/customer-name";
+import { customerContactName, customerDisplayName, customerDisplayNameOrDash } from "@/lib/customer-name";
 
 /* กลุ่มลูกค้าไม่ใช่ "สถานะ" — ไม่มีอันไหนดีหรือร้าย (UI-2026 เฟส 3)
    ของเดิมยืมจานสีสถานะมาย้อมจนคอลัมน์เดียวมี 4 สี (VIP=เขียว ขาประจำ=น้ำเงิน
@@ -238,7 +238,9 @@ function CustomersPageContent() {
             </DataTable.Head>
             <DataTable.Body>
               {customers.map((customer) => {
-                const title = customer.company || customer.name;
+                // นิติบุคคลอาจไม่มีชื่อผู้ติดต่อ — ชื่อหลักถอยไปใช้ชื่อบริษัทให้แถวไม่ว่าง
+                // ตราใช้ชื่อดิบ (ว่าง = customerInitial คืน "?") ส่วนคำใช้ "—" แปลว่าไม่มีข้อมูล
+                const title = customerDisplayNameOrDash(customer);
                 const segmentLabel = CUSTOMER_SEGMENT_LABELS[customer.segment] ?? customer.segment;
                 return (
                   <DataTable.Row key={customer.id} href={`/customers/${customer.id}`}>
@@ -246,7 +248,7 @@ function CustomersPageContent() {
                       {/* ตรา + ชื่อ + ผู้ติดต่อ — เรียงชุดเดียวกับการ์ดจอแคบด้านล่าง
                           (เดิมเดสก์ท็อปสลับบน/ล่างกับการ์ด เปิดสองมุมมองแล้วอ่านคนละเรื่อง) */}
                       <div className={c("who")}>
-                        <CustomerMark label={title} />
+                        <CustomerMark label={customerDisplayName(customer)} />
                         <div className={c("t")}>
                           <div className={c("id")}>
                             <Link href={`/customers/${customer.id}`} className="font-medium text-strong">
@@ -307,18 +309,18 @@ function CustomersPageContent() {
         renderMobile={(customers) => (
           <ListCards label="รายชื่อลูกค้า">
             {customers.map((customer) => {
-              const title = customer.company || customer.name;
+              const title = customerDisplayNameOrDash(customer);
               const segmentLabel = CUSTOMER_SEGMENT_LABELS[customer.segment] ?? customer.segment;
               return (
                 <ListCardItem key={customer.id}>
                   <Link
                     href={`/customers/${customer.id}`}
                     className={cn("block min-h-11 rounded-lg p-4", FOCUS_BUTTON)}
-                    aria-label={`เปิดข้อมูลลูกค้า ${customer.name}`}
+                    aria-label={`เปิดข้อมูลลูกค้า ${title}`}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex min-w-0 items-center gap-3">
-                        <CustomerMark label={title} />
+                        <CustomerMark label={customerDisplayName(customer)} />
                         <div className="min-w-0">
                           <p className="font-semibold text-strong">{title}</p>
                           {customerContactName(customer) && (

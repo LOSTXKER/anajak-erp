@@ -70,7 +70,8 @@ export const customerUploadRouter = router({
       });
       return {
         orderNumber: order.orderNumber,
-        customerName: order.customer.name,
+        // ชื่อประกอบมาจาก service แล้ว (บริษัทมาก่อน) — รูป DTO เท่าเดิม ไม่ได้เพิ่มฟิลด์
+        customerName: order.customerDisplayName,
         deadline: order.deadline,
         files,
       };

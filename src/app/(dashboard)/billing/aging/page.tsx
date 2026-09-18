@@ -42,7 +42,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import { customerContactName } from "@/lib/customer-name";
+import { customerContactName, customerDisplayName, customerDisplayNameOrDash } from "@/lib/customer-name";
 
 type DunningTone = "gentle" | "firm";
 
@@ -77,14 +77,23 @@ function overdueOf(row: AgingRow) {
   return row.buckets.d1_30 + row.buckets.d31_60 + row.buckets.d61_90 + row.buckets.d90plus;
 }
 
+/** ชื่อบนหัวกล่องร่างข้อความทวง — มีทั้งบริษัทและผู้ติดต่อค่อยวงเล็บชื่อคนต่อท้าย
+ *  นิติบุคคลที่ไม่ได้กรอกชื่อผู้ติดต่อ (เบสสั่ง 2026-09-18) เหลือชื่อบริษัทเดี่ยว ๆ ไม่มีวงเล็บว่าง */
+function dunningLabel(row: AgingRow): string {
+  const contact = customerContactName(row);
+  const display = customerDisplayNameOrDash(row);
+  return contact ? `${display} (${contact})` : display;
+}
+
 /* ดาวน์โหลดรายงานลูกหนี้เป็น CSV — pattern เดียวกับ exportWhtCsv ใน billing/wht/page.tsx
    (BOM U+FEFF นำหน้าให้ Excel ไทยอ่าน UTF-8 ถูก) · ออกจากผลกรองที่อยู่บนจอ ไม่ยิง API ใหม่ */
 function exportAgingCsv(rows: AgingRow[]) {
   const header = ["ลูกค้า", "ผู้ติดต่อ", ...BUCKETS.map((bucket) => bucket.label), "รวมค้าง"];
 
   const body = rows.map((row) => [
-    row.company || row.name,
-    row.company ? row.name : "",
+    // สองคอลัมน์: "ลูกค้า" คือชื่อที่ใช้เรียก (บริษัทมาก่อน) · "ผู้ติดต่อ" ว่างได้เมื่อไม่มีหรือซ้ำกัน
+    customerDisplayName(row),
+    customerContactName(row) ?? "",
     ...BUCKETS.map((bucket) => row.buckets[bucket.key].toFixed(2)),
     row.total.toFixed(2),
   ]);
@@ -184,7 +193,8 @@ function AgingPageContent() {
     const needle = search.trim().toLocaleLowerCase("th");
     if (!needle) return data.rows;
     return data.rows.filter((row) =>
-      `${row.name} ${row.company ?? ""}`.toLocaleLowerCase("th").includes(needle)
+      // ต่อคำค้นจากช่องที่มีค่าจริงเท่านั้น — ชื่อผู้ติดต่อว่างต้องไม่กลายเป็นคำว่า null ในกองที่ค้น
+      [row.name, row.company].filter(Boolean).join(" ").toLocaleLowerCase("th").includes(needle)
     );
   }, [data, search]);
 
@@ -209,7 +219,7 @@ function AgingPageContent() {
 
     return [...rows].sort((a, b) => {
       if (sort === "name:asc") {
-        return (a.company || a.name).localeCompare(b.company || b.name, "th");
+        return customerDisplayName(a).localeCompare(customerDisplayName(b), "th");
       }
       if (sort === "overdue:desc") {
         return overdueOf(b) - overdueOf(a);
@@ -407,25 +417,25 @@ function AgingPageContent() {
                             href={`/customers/${row.customerId}`}
                             className="font-medium text-strong"
                           >
-                            {row.company || row.name}
+                            {customerDisplayNameOrDash(row)}
                           </Link>
                           <Button
                             variant="ghost"
                             size="icon-sm"
                             className="shrink-0 text-muted"
-                            aria-label={`ร่างข้อความทวง ${row.company || row.name}`}
+                            aria-label={`ร่างข้อความทวง ${customerDisplayNameOrDash(row)}`}
                             onClick={() => {
                               setTone("gentle");
                               setDraftFor({
                                 id: row.customerId,
-                                label: row.company ? `${row.company} (${row.name})` : row.name,
+                                label: dunningLabel(row),
                               });
                             }}
                           >
                             <MessageSquare />
                           </Button>
                         </div>
-                        {row.company ? <div className={c("cu")}>{row.name}</div> : null}
+                        {customerContactName(row) ? <div className={c("cu")}>{customerContactName(row)}</div> : null}
                       </div>
                     </div>
                   </DataTable.Td>
@@ -490,7 +500,7 @@ function AgingPageContent() {
                       href={`/customers/${row.customerId}`}
                       className="font-semibold text-strong"
                     >
-                      {row.company || row.name}
+                      {customerDisplayNameOrDash(row)}
                     </Link>
                     {customerContactName(row) && (
                       <p className="mt-0.5 text-xs text-muted">
@@ -531,7 +541,7 @@ function AgingPageContent() {
                     setTone("gentle");
                     setDraftFor({
                       id: row.customerId,
-                      label: row.company ? `${row.company} (${row.name})` : row.name,
+                      label: dunningLabel(row),
                     });
                   }}
                 >

@@ -58,7 +58,9 @@ type OrderRow = {
   totalAmount: number;
   createdAt: Date;
   updatedAt: Date;
-  customer: { name: string; company: string | null };
+  // ชนิดเขียนมือคู่กับ select ข้างบน (แถวเข้ามาผ่าน `as OrderRow` — ถ้าเขียนผิดไม่มีใครฟ้อง)
+  // name ว่างได้ตั้งแต่ 2026-09-18 · formatOrder ส่งต่อให้ customerDisplayName อยู่แล้ว
+  customer: { name: string | null; company: string | null };
 };
 
 function formatOrder(o: OrderRow, ctx: AgentContext) {

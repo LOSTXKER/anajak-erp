@@ -380,7 +380,10 @@ model AgentCallLog {
 
 model Customer {
   id           String          @id @default(cuid())
-  name         String
+  // ชื่อผู้ติดต่อ — นิติบุคคลไม่ต้องมีก็ได้ (เบสสั่ง 2026-09-18) ใช้ company เรียกแทน
+  // ทุกจุดที่แสดงชื่อลูกค้าต้องผ่าน lib/customer-name ไม่งั้นได้ช่องว่างบนจอ
+  // กติกาที่ยังบังคับ: ต้องมี name หรือ company อย่างน้อยหนึ่ง (ด่านอยู่ที่ router + ฟอร์ม)
+  name         String?
   company      String?
   email        String?
   phone        String?

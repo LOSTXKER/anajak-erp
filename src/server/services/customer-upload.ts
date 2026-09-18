@@ -21,6 +21,7 @@ import { createNotification } from "@/server/helpers";
 import type { ExtendedPrismaClient, PrismaTx } from "@/lib/prisma";
 import { lockOrderRow } from "@/server/services/order-cost";
 import { CUSTOMER_UPLOAD_EXTENSIONS, CUSTOMER_UPLOAD_MAX_BYTES } from "@/lib/customer-upload-policy";
+import { customerDisplayName } from "@/lib/customer-name";
 
 const UPLOAD_TOKEN_TTL_DAYS = 30;
 export const UPLOAD_BUCKET = "designs";
@@ -49,7 +50,13 @@ type TokenOrder = {
   orderNumber: string;
   deadline: Date | null;
   uploadTokenExpiresAt: Date | null;
-  customer: { name: string };
+  /**
+   * ชื่อที่ขึ้นหัวหน้าลิงก์ให้ลูกค้าเห็นว่า "ลิงก์นี้ของใคร" — ประกอบแล้ว (บริษัทมาก่อน)
+   * นิติบุคคลไม่ต้องกรอกชื่อผู้ติดต่อตั้งแต่ 2026-09-18 ถ้าส่ง Customer.name ดิบ
+   * หัวหน้าจะว่างแล้วเหลือ " · กำหนดส่ง ..." ลอยมาโดด ๆ
+   * ยังเป็นฟิลด์เดียวเท่าเดิม — ไม่ได้เพิ่มอะไรเข้า payload ของคนถือ token
+   */
+  customerDisplayName: string;
 };
 
 /** หาออเดอร์จาก uploadToken + ตรวจหมดอายุ (fail-closed) — payload นี้ถึงมือลูกค้านอกระบบ ห้ามคืนทั้ง row */
@@ -64,7 +71,7 @@ export async function getOrderByUploadToken(
       orderNumber: true,
       deadline: true,
       uploadTokenExpiresAt: true,
-      customer: { select: { name: true } },
+      customer: { select: { name: true, company: true } },
     },
   });
   if (!order) {
@@ -77,7 +84,8 @@ export async function getOrderByUploadToken(
       message: "ลิงก์อัปโหลดหมดอายุแล้ว กรุณาติดต่อร้านเพื่อขอลิงก์ใหม่",
     });
   }
-  return order;
+  const { customer, ...rest } = order;
+  return { ...rest, customerDisplayName: customerDisplayName(customer) };
 }
 
 /** ออก signed upload URL ให้ลูกค้าอัปไฟล์เดียว — server เลือก path เอง (ลูกค้ากำหนดไม่ได้) */

@@ -28,6 +28,7 @@ import { resolveSoleOrderArtworkId } from "@/server/services/artwork";
 import { lockProductionTopology } from "@/server/services/production-topology-lock";
 import { firstPendingStepIdsByLane } from "@/lib/production-step-actions";
 import { createAuditLog } from "@/server/helpers";
+import { customerDisplayName } from "@/lib/customer-name";
 // สูตรตัดสินล้วน (ช่องคิว/ไฟล์พร้อม/เพดานจำนวน/ปิดขั้น) — unit test ได้ไม่ต้องมี DB
 import {
   isFileReadyForPrint,
@@ -548,6 +549,7 @@ export interface PrintQueueEntry {
   productionId: string;
   orderId: string;
   orderNumber: string;
+  /** ชื่อที่ขึ้นจอช่าง — ประกอบแล้ว (บริษัทมาก่อน ไม่มีค่อยใช้ชื่อคน) ห้ามส่ง Customer.name ดิบ */
   customerName: string;
   dueDate: Date | null;
   qtyDone: number;
@@ -712,7 +714,8 @@ export async function getPrintQueue(
               orderNumber: true,
               internalStatus: true,
               deadline: true,
-              customer: { select: { name: true } },
+              // company มาด้วยเพื่อประกอบชื่อบนจอช่าง — ยังไม่มีเงินสักฟิลด์ตามกติกา DTO จอช่าง
+              customer: { select: { name: true, company: true } },
               items: { select: { totalQuantity: true } },
               designs: {
                 where: { approvalStatus: "APPROVED" },
@@ -764,7 +767,7 @@ export async function getPrintQueue(
       productionId: s.productionId,
       orderId: order.id,
       orderNumber: order.orderNumber,
-      customerName: order.customer.name,
+      customerName: customerDisplayName(order.customer),
       dueDate: order.deadline,
       qtyDone,
       qtyTotal: slot.qtyTotal,

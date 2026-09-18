@@ -4,6 +4,7 @@
 // งวดต้องไปตามวันที่เอกสาร ไม่ใช่วันกดสร้าง) · ใบเก่าที่ไม่มีใช้ createdAt
 
 import { badRequest } from "@/server/errors";
+import { customerDisplayName } from "@/lib/customer-name";
 import {
   buildSalesTaxRows,
   summarizeSalesTax,
@@ -53,7 +54,9 @@ export async function getSalesTaxReport(
       adjustmentReason: true,
       originalInvoice: { select: { invoiceNumber: true, type: true } },
       order: { select: { orderNumber: true } },
-      customer: { select: { name: true, taxId: true, branchNumber: true } },
+      // ต้องดึง company มาด้วย — ช่อง "ชื่อผู้ซื้อสินค้า/ผู้รับบริการ" ของรายงานภาษีขาย
+      // ใช้ชื่อบริษัทก่อน ไม่มีค่อยใช้ชื่อคน (นิติบุคคลไม่ต้องกรอกชื่อผู้ติดต่อแล้ว)
+      customer: { select: { name: true, company: true, taxId: true, branchNumber: true } },
     },
   });
 
@@ -84,7 +87,7 @@ export async function getSalesTaxReport(
         adjustmentReason: inv.adjustmentReason,
         originalInvoiceNumber: inv.originalInvoice?.invoiceNumber ?? null,
         orderNumber: inv.order.orderNumber,
-        customerName: inv.customer.name,
+        customerName: customerDisplayName(inv.customer),
         customerTaxId: inv.customer.taxId,
         customerBranchNumber: inv.customer.branchNumber,
       })

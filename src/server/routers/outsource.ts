@@ -676,7 +676,8 @@ export const outsourceRouter = router({
                     select: {
                       orderNumber: true,
                       internalStatus: true,
-                      customer: { select: { name: true } },
+                      // company ด้วย — จอร้านนอกประกอบชื่อผ่าน customer-name (ไม่ดึงมา = ขึ้นว่าง)
+                      customer: { select: { name: true, company: true } },
                     },
                   },
                 },

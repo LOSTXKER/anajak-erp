@@ -16,6 +16,7 @@ import type { ExtendedPrismaClient } from "@/lib/prisma";
 import { qcReasonLabel } from "@/lib/qc";
 import { STEP_TYPE_LABELS } from "@/lib/production-steps";
 import { BANGKOK_TZ } from "@/lib/utils";
+import { customerDisplayName } from "@/lib/customer-name";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
@@ -217,7 +218,8 @@ export async function getProductionMetrics(prisma: ExtendedPrismaClient, options
           orderNumber: true,
           internalStatus: true,
           deadline: true,
-          customer: { select: { name: true } },
+          // company ด้วย — ไม่งั้นแถวของนิติบุคคลกลายเป็น "ไม่ระบุลูกค้า" ทั้งที่มีชื่อบริษัท
+          customer: { select: { name: true, company: true } },
           deliveries: { where: { shippedAt: { not: null } }, select: { shippedAt: true } },
         },
       })
@@ -228,7 +230,7 @@ export async function getProductionMetrics(prisma: ExtendedPrismaClient, options
     monthIndex: options.monthIndex,
     orders: orders.map((order) => ({
       orderNumber: order.orderNumber,
-      customerName: order.customer?.name ?? "ไม่ระบุลูกค้า",
+      customerName: customerDisplayName(order.customer) || "ไม่ระบุลูกค้า",
       internalStatus: order.internalStatus,
       deadline: order.deadline,
       shippedAt: order.deliveries.map((d) => d.shippedAt!).filter(Boolean),
