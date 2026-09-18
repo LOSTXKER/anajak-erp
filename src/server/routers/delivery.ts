@@ -3,7 +3,7 @@ import { router, protectedProcedure, requirePermission } from "../trpc";
 import { byIdInput } from "@/server/schemas";
 import { badRequest } from "@/server/errors";
 import { createAuditLog, createNotification } from "@/server/helpers";
-import { advanceOrderForward } from "@/server/services/order-status";
+import { addOrderRevision, advanceOrderForward } from "@/server/services/order-status";
 import { lockOrderRow } from "@/server/services/order-cost";
 import {
   assertOrderPackingReadyToShip,
@@ -403,6 +403,8 @@ export const deliveryRouter = router({
       byIdInput.extend({
         status: z.enum(["PENDING", "PREPARING", "SHIPPED", "DELIVERED", "RETURNED"]),
         trackingNumber: z.string().optional(),
+        /** เหตุผล — บังคับเมื่อตีกลับ (RETURNED) แล้วเก็บลงประวัติออเดอร์ */
+        reason: z.string().trim().max(500).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -425,6 +427,15 @@ export const deliveryRouter = router({
         if (!isValidDeliveryTransition(fromStatus, input.status)) {
           badRequest(
             `ใบส่งสถานะ "${DELIVERY_STATUS_LABELS[fromStatus] ?? fromStatus}" เปลี่ยนเป็น "${DELIVERY_STATUS_LABELS[input.status] ?? input.status}" ไม่ได้ — เดินทีละขั้น`
+          );
+        }
+        // ตีกลับ = ของออกจากร้านไปแล้วแต่กลับมา ต้องมีคนตัดสินต่อ (ซ่อม/ส่งใหม่/ลดหนี้)
+        // เดิมเป็นการเปลี่ยนคำเดียวจบ ไม่เหลือร่องรอยว่าทำไม — กระดิ่งเตือนครั้งเดียวแล้วหาย
+        // คนที่มารับช่วงทีหลังจึงอ่านไม่ได้ว่าเกิดอะไรขึ้น บังคับเหตุผลและเก็บลงประวัติออเดอร์
+        const returnReason = input.reason?.trim();
+        if (statusChanged && input.status === "RETURNED" && !returnReason) {
+          badRequest(
+            "ระบุเหตุผลที่ตีกลับก่อน — เช่น ลูกค้าไม่รับ / ส่งผิดที่ / ของเสียหายระหว่างขนส่ง"
           );
         }
         if (statusChanged) {
@@ -548,6 +559,13 @@ export const deliveryRouter = router({
             where: { id: delivery.orderId },
             select: { id: true, orderNumber: true },
           });
+          // เหตุผลอยู่ในประวัติออเดอร์ถาวร ไม่หายไปพร้อมกระดิ่งที่อ่านแล้ว
+          await addOrderRevision(tx, {
+            orderId: order.id,
+            changedBy: ctx.userId,
+            changeType: "DELIVERY",
+            description: `ใบส่งถูกตีกลับ: ${returnReason}`,
+          });
           const managers = await tx.user.findMany({
             where: { role: { in: ["OWNER", "MANAGER"] }, isActive: true },
             select: { id: true },
@@ -557,7 +575,7 @@ export const deliveryRouter = router({
               userId: m.id,
               type: "ORDER",
               title: `ของถูกตีกลับ — ${order.orderNumber}`,
-              message: `ตัดสินใจ: ซ่อม/ส่งใหม่/ลดหนี้ (ถอยสถานะกลับตรวจ QC ได้จากหน้าออเดอร์)`,
+              message: `เหตุผล: ${returnReason} · ตัดสินใจ: ซ่อม/ส่งใหม่/ลดหนี้ (ถอยสถานะกลับตรวจ QC ได้จากหน้าออเดอร์)`,
               link: `/orders/${order.id}`,
               entityType: "ORDER",
               entityId: order.id,

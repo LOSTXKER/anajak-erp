@@ -53,6 +53,8 @@ function productionOwnedTx() {
       update: vi.fn(),
     },
     orderItem: {
+      // ถ่ายภาพรายการเดิมก่อนลบ (ก้อน 0) — ทุกประตูที่แทนรายการอ่านของเดิมก่อน deleteMany
+      findMany: vi.fn().mockResolvedValue([]),
       deleteMany: vi.fn(),
       create: vi.fn(),
     },

@@ -6,11 +6,16 @@ import {
 } from "./delivery-ui";
 
 describe("delivery UI policy", () => {
-  it("สร้างใบส่งได้เฉพาะช่วงแพ็ค/พร้อมส่ง/ส่งแล้วและต้องมีสิทธิ์", () => {
+  it("สร้างใบส่งได้ตั้งแต่แพ็คจนถึงปิดงาน และต้องมีสิทธิ์", () => {
     expect(canCreateDelivery("PACKING", true)).toBe(true);
     expect(canCreateDelivery("READY_TO_SHIP", true)).toBe(true);
     expect(canCreateDelivery("SHIPPED", true)).toBe(true);
-    expect(canCreateDelivery("COMPLETED", true)).toBe(false);
+    // ปิดงานแล้วก็เปิดใบส่งรอบใหม่ได้ (งานแก้/เคลม ก้อน 0 — เบสสั่ง 2026-09-18)
+    // server ยอมมาตั้งแต่แรกสำหรับ "เคสของตีกลับหลังปิดงาน" แต่จอเคยซ่อนปุ่มไว้
+    // จนคนต้องถอยสถานะออกจากปิดงานก่อนทั้งที่ไม่จำเป็น — เทสต์นี้กันไม่ให้ซ่อนกลับ
+    expect(canCreateDelivery("COMPLETED", true)).toBe(true);
+    expect(canCreateDelivery("CANCELLED", true)).toBe(false);
+    expect(canCreateDelivery("PRODUCING", true)).toBe(false);
     expect(canCreateDelivery("PACKING", false)).toBe(false);
   });
 

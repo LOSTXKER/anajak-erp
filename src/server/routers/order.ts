@@ -52,6 +52,11 @@ import {
   visibleRevisionDescription,
 } from "@/lib/revision-policy";
 import {
+  ORDER_ITEM_SNAPSHOT_INCLUDE,
+  snapshotOrderItems,
+  type OrderItemSnapshotEntry,
+} from "@/lib/order-item-snapshot";
+import {
   assertSalesWithinCreditLimit,
   lockCustomerCreditRow,
   UNCOMMITTED_STATUSES,
@@ -1939,7 +1944,17 @@ export const orderRouter = router({
           });
         }
 
+        // ภาพถ่ายรายการเดิมก่อนลบ (เหตุผลเดียวกับใน updateItems) — ประตูนี้คือทั้งฟอร์มแก้ออเดอร์
+        // และใบแก้ไขออเดอร์ ซึ่งเป็นจุดที่ต้องย้อนอ่านบ่อยที่สุดเวลาลูกค้าเคลม
+        let oldItemsSnapshot: OrderItemSnapshotEntry[] | null = null;
         if (itemsWithCalc) {
+          oldItemsSnapshot = snapshotOrderItems(
+            await tx.orderItem.findMany({
+              where: { orderId: input.id },
+              orderBy: { sortOrder: "asc" },
+              include: ORDER_ITEM_SNAPSHOT_INCLUDE,
+            })
+          );
           await tx.orderItem.deleteMany({ where: { orderId: input.id } });
           for (const item of itemsWithCalc) {
             await tx.orderItem.create({
@@ -2098,7 +2113,10 @@ export const orderRouter = router({
               changedBy: ctx.userId,
               changeType: "CHANGE_ORDER",
               description: `ใบแก้ไขออเดอร์ ${changeNumber}: ${input.reason!.trim()}`,
-              oldValue: JSON.stringify({ totalAmount: locked.totalAmount }),
+              oldValue: JSON.stringify({
+                totalAmount: locked.totalAmount,
+                ...(oldItemsSnapshot ? { items: oldItemsSnapshot } : {}),
+              }),
               newValue: JSON.stringify({ totalAmount: totals.totalAmount }),
             },
           });
@@ -2125,6 +2143,7 @@ export const orderRouter = router({
                 subtotalItems: locked.subtotalItems,
                 subtotalFees: locked.subtotalFees,
                 totalAmount: locked.totalAmount,
+                ...(oldItemsSnapshot ? { items: oldItemsSnapshot } : {}),
               }),
               newValue: JSON.stringify({
                 subtotalItems: totals.subtotalItems,
@@ -2426,6 +2445,17 @@ export const orderRouter = router({
           newTotal: totals.totalAmount,
         });
 
+        // ภาพถ่ายรายการเดิมก่อนลบ — deleteMany พาไซซ์/สี/ลายเดิมหายถาวร ไม่เหลือที่ไหนอีก
+        // (เก็บเฉพาะฝั่ง "ก่อนแก้" พอ: สภาพหลังแก้อ่านได้จากตัวออเดอร์ และถ้ามีการแก้รอบถัดไป
+        //  รอบนั้นจะจดสภาพนี้เป็น oldValue ของตัวเอง — ประวัติจึงต่อกันครบโดยไม่จดซ้ำสองชุด)
+        const oldItems = snapshotOrderItems(
+          await tx.orderItem.findMany({
+            where: { orderId: input.id },
+            orderBy: { sortOrder: "asc" },
+            include: ORDER_ITEM_SNAPSHOT_INCLUDE,
+          })
+        );
+
         // Delete old items (cascades to variants, prints, addons)
         await tx.orderItem.deleteMany({ where: { orderId: input.id } });
 
@@ -2476,7 +2506,7 @@ export const orderRouter = router({
         return {
           updatedOrder,
           totals,
-          oldTotals: { subtotalItems: locked.subtotalItems, totalAmount: locked.totalAmount },
+          oldTotals: { subtotalItems: locked.subtotalItems, totalAmount: locked.totalAmount, items: oldItems },
         };
       });
 
@@ -2701,6 +2731,15 @@ export const orderRouter = router({
         });
         const oldTotal = locked.totalAmount;
 
+        // ภาพถ่ายรายการเดิมก่อนลบ (เหตุผลเดียวกับใน updateItems)
+        const oldItems = snapshotOrderItems(
+          await tx.orderItem.findMany({
+            where: { orderId: input.id },
+            orderBy: { sortOrder: "asc" },
+            include: ORDER_ITEM_SNAPSHOT_INCLUDE,
+          })
+        );
+
         // แทนรายการ+ค่าธรรมเนียมทั้งชุดใน tx เดียว (เหมือน updateItems+updateFees รวมกัน)
         await tx.orderItem.deleteMany({ where: { orderId: input.id } });
         for (const item of itemsWithCalc) {
@@ -2756,7 +2795,7 @@ export const orderRouter = router({
             changedBy: ctx.userId,
             changeType: "CHANGE_ORDER",
             description: `ใบแก้ไขออเดอร์ ${changeNumber}: ${input.reason}`,
-            oldValue: JSON.stringify({ totalAmount: oldTotal }),
+            oldValue: JSON.stringify({ totalAmount: oldTotal, items: oldItems }),
             newValue: JSON.stringify({ totalAmount: totals.totalAmount }),
           },
         });
@@ -3045,6 +3084,11 @@ export const orderRouter = router({
                 shippingDistrict: original.shippingDistrict,
                 shippingProvince: original.shippingProvince,
                 shippingPostalCode: original.shippingPostalCode,
+                // ปิดตัวตนร้านต้องติดไปกับสำเนาด้วย — ลูกค้ารีเซลเลอร์ที่ห้ามให้ปลายทางรู้ว่าใครผลิต
+                // ถ้าไม่ก๊อป ใบที่ทำซ้ำจะส่งในชื่อเราเงียบๆ จนกว่าจะมีคนนึกได้ว่าต้องไปติ๊กเอง
+                // (กำหนดส่งไม่ก๊อปโดยตั้งใจ — งานใหม่ต้องนัดวันใหม่)
+                blindShip: original.blindShip,
+                blindShipSenderName: original.blindShipSenderName,
                 items: {
                   create: original.items.map((item, index) => {
                     const data = buildItemCreateData({

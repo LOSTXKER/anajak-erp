@@ -43,6 +43,8 @@ const KIND: Record<string, { kind: Kind; icon: LucideIcon }> = {
   STOCK: { kind: "prod", icon: Boxes },
   QC_COUNT: { kind: "prod", icon: Factory },
   PRODUCTION: { kind: "prod", icon: Factory },
+  // ของตีกลับเป็นเรื่องที่ต้องมีคนตัดสินต่อ จึงใช้หมวดเดียวกับสถานะที่สะดุด ไม่ใช่หมวดกลางๆ
+  DELIVERY: { kind: "bad", icon: AlertTriangle },
   ITEMS: { kind: "", icon: Package },
   CHANGE_ORDER: { kind: "", icon: Package },
   INFO: { kind: "", icon: FileText },

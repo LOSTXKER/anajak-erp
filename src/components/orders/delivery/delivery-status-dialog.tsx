@@ -14,6 +14,7 @@ import {
 import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
 import { Select } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Field } from "@/components/ui/field";
 import { Label } from "@/components/ui/label";
 import { DELIVERY_STATUS_LABELS } from "@/lib/status-config";
@@ -39,6 +40,11 @@ export function DeliveryStatusDialog({
   const [statusTrackingNumber, setStatusTrackingNumber] = useState(
     delivery.trackingNumber || ""
   );
+  // ตีกลับต้องมีเหตุผลเสมอ (server บังคับด้วย) — เก็บลงประวัติออเดอร์ให้คนรับช่วงอ่านได้
+  const [returnReason, setReturnReason] = useState("");
+  // โชว์ error หลังกดบันทึกครั้งแรก จังหวะเดียวกับฟอร์มอื่นทั้งเว็บ
+  const [showError, setShowError] = useState(false);
+  const needsReason = newStatus === "RETURNED" && delivery.status !== "RETURNED";
   // สถานะปัจจุบันของใบที่กำลังแก้ — ใช้กรอง dropdown ให้โชว์เฉพาะที่เดินไปได้ (B13 state machine)
   const statusFrom = delivery.status as DeliveryStatus;
 
@@ -54,10 +60,15 @@ export function DeliveryStatusDialog({
 
   function handleStatusUpdate() {
     if (!newStatus) return;
+    if (needsReason && !returnReason.trim()) {
+      setShowError(true);
+      return;
+    }
     updateDeliveryStatus.mutate({
       id: delivery.id,
       status: newStatus as "PENDING" | "PREPARING" | "SHIPPED" | "DELIVERED" | "RETURNED",
       trackingNumber: statusTrackingNumber || undefined,
+      reason: needsReason ? returnReason.trim() : undefined,
     });
   }
 
@@ -79,6 +90,21 @@ export function DeliveryStatusDialog({
                 ))}
               </Select>
           </div>
+          {needsReason && (
+            <Field
+              label="เหตุผลที่ตีกลับ"
+              required
+              error={showError && !returnReason.trim() ? "ระบุเหตุผลก่อนบันทึก" : undefined}
+              help="เก็บในประวัติออเดอร์ และส่งไปกับกระดิ่งที่เตือนผู้จัดการให้มาตัดสินใจ"
+            >
+              <Textarea
+                value={returnReason}
+                onChange={(e) => setReturnReason(e.target.value)}
+                rows={2}
+                placeholder="เช่น ลูกค้าไม่รับ ปลายทางปิด / ส่งผิดที่ / ลายลอกตอนถึงมือลูกค้า"
+              />
+            </Field>
+          )}
           {(newStatus === "SHIPPED" || newStatus === "PREPARING") && (
             <Field label="เลขพัสดุ">
               <Input

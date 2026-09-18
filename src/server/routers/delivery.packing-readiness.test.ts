@@ -56,7 +56,8 @@ describe("delivery packing evidence persistence", () => {
     await expect(
       deliveryRouter
         .createCaller(ctxFor(tx))
-        .updateStatus({ id: "delivery-1", status: "RETURNED" }),
+        // ตีกลับต้องมีเหตุผลตั้งแต่ ก้อน 0 — เทสต์นี้วัดด่านหลักฐานแพ็ค ไม่ใช่ด่านเหตุผล
+        .updateStatus({ id: "delivery-1", status: "RETURNED", reason: "ลูกค้าไม่รับ ปลายทางปิด" }),
     ).rejects.toThrow("ยังไม่มีใบส่งของที่ใช้งานอยู่");
   });
 
