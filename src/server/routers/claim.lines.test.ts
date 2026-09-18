@@ -85,3 +85,30 @@ describe("claim.setLines", () => {
     ).rejects.toThrow();
   });
 });
+
+/**
+ * รูปหลักฐานอยู่ในใบเคลมของรอบนั้น (เบสเลือก 2026-09-19) — ไม่กองรวมกับไฟล์ออเดอร์
+ * ล็อกไว้สองข้อ: ใบที่จบแล้วแนบเพิ่มไม่ได้ · และรูปเป็นของภายใน ไม่มีทางออกไปฝั่งลูกค้า
+ */
+describe("claim.setPhotos", () => {
+  it("แนบรูปกับใบที่ยังไม่จบได้", async () => {
+    const { ctx } = contextFor({ role: "SALES", claim: OPEN_CLAIM });
+    const update = vi.fn().mockResolvedValue({ id: "claim-1" });
+    (ctx.prisma as unknown as { orderClaim: { update: unknown } }).orderClaim = {
+      findUnique: vi.fn().mockResolvedValue(OPEN_CLAIM),
+      update,
+    };
+    await claimRouter.createCaller(ctx).setPhotos({ id: "claim-1", photoUrls: ["/api/files/a.jpg"] });
+    expect(update).toHaveBeenCalledWith({
+      where: { id: "claim-1" },
+      data: { photoUrls: ["/api/files/a.jpg"] },
+    });
+  });
+
+  it("ใบที่ปิดแล้วแนบรูปเพิ่มไม่ได้", async () => {
+    const { ctx } = contextFor({ role: "MANAGER", claim: { ...OPEN_CLAIM, state: "CLOSED" } });
+    await expect(
+      claimRouter.createCaller(ctx).setPhotos({ id: "claim-1", photoUrls: ["/api/files/a.jpg"] }),
+    ).rejects.toThrow("จบไปแล้ว");
+  });
+});

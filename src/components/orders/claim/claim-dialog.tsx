@@ -17,6 +17,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
+import { FileUpload } from "@/components/ui/file-upload";
+import { ImageRemoveButton } from "@/components/ui/image-remove-button";
 import {
   CLAIM_FAULT_LABELS,
   CLAIM_RESOLUTION_LABELS,
@@ -51,6 +53,7 @@ type ClaimRow = {
   steps: { id: string }[];
   closeNote: string | null;
   customerMessage: string | null;
+  photoUrls: string[];
   lines: { size: string; color: string | null; qtyClaimed: number }[];
 };
 
@@ -112,6 +115,49 @@ function SizeGrid({
   );
 }
 
+/** รูปหลักฐานของรอบแก้ — เบสเลือกให้เก็บในใบเคลม ไม่ใช่กองรวมกับไฟล์ออเดอร์ (2026-09-19)
+ *  เคลมหลายรอบ รูปต้องอยู่กับรอบที่กำลังคุย ไม่ใช่ปนกันจนต้องไล่หาว่าของรอบไหน */
+function ClaimPhotos({
+  orderId,
+  urls,
+  onChange,
+  disabled,
+}: {
+  orderId: string;
+  urls: string[];
+  onChange: (next: string[]) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="space-y-2">
+      <p className="text-sm font-medium">รูปที่ลูกค้าส่งมา</p>
+      <div className="flex flex-wrap items-center gap-2">
+        {urls.map((url) => (
+          <div key={url} className="group relative h-16 w-16">
+            {/* ใช้ img ตรง — รูปเสิร์ฟผ่าน /api/files ที่เช็ค session
+                next/image optimizer ดึงฝั่ง server ไม่มี cookie จะได้ 401 */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={url} alt="รูปหลักฐานงานแก้" className="h-full w-full rounded-lg object-cover" />
+            <ImageRemoveButton
+              onClick={() => onChange(urls.filter((u) => u !== url))}
+              label="ลบรูปหลักฐานงานแก้"
+            />
+          </div>
+        ))}
+        <FileUpload
+          bucket="designs"
+          pathPrefix={`claims/${orderId}`}
+          accept="image/*"
+          disabled={disabled}
+          className="w-40"
+          onUploaded={(url) => onChange([...urls, url])}
+          onError={(message) => toast.error(message)}
+        />
+      </div>
+    </div>
+  );
+}
+
 const RESOLUTIONS = Object.keys(CLAIM_RESOLUTION_LABELS);
 const FAULTS = Object.keys(CLAIM_FAULT_LABELS);
 
@@ -162,6 +208,11 @@ export function ClaimDialog({
     },
     onError: () => {},
   });
+  const savePhotos = useMutationWithInvalidation(trpc.claim.setPhotos, {
+    invalidate: [...invalidate],
+    onSuccess: () => {},
+    onError: () => {},
+  });
   const saveMessage = useMutationWithInvalidation(trpc.claim.setCustomerMessage, {
     invalidate: [...invalidate],
     onSuccess: () => {
@@ -189,12 +240,14 @@ export function ClaimDialog({
   // จำนวนที่เสียรายไซซ์ · null = ยังไม่ได้แตะในรอบนี้ (ใช้ค่าจากใบ)
   const [qty, setQty] = useState<Record<string, number> | null>(null);
   const [editQty, setEditQty] = useState(false);
+  const [newPhotos, setNewPhotos] = useState<string[]>([]);
 
   const pending =
     open.isPending ||
     decide.isPending ||
     startRework.isPending ||
     saveLines.isPending ||
+    savePhotos.isPending ||
     saveMessage.isPending ||
     closeClaim.isPending;
   const error =
@@ -202,6 +255,7 @@ export function ClaimDialog({
     decide.error?.message ??
     startRework.error?.message ??
     saveLines.error?.message ??
+    savePhotos.error?.message ??
     saveMessage.error?.message ??
     closeClaim.error?.message ??
     null;
@@ -286,6 +340,7 @@ export function ClaimDialog({
                 />
               </Field>
               <SizeGrid sizes={sizes} value={qtyValue} onChange={setQty} />
+              <ClaimPhotos orderId={orderId} urls={newPhotos} onChange={setNewPhotos} disabled={pending} />
               <Field
                 label="ข้อความที่ลูกค้าเห็น"
                 help="ขึ้นบนลิงก์ติดตามงานแทนคำปริยาย — ไม่ใส่ก็ได้ ลูกค้าจะเห็นว่า “รับเรื่องแล้ว”"
@@ -310,6 +365,7 @@ export function ClaimDialog({
                     title: title.trim(),
                     customerMessage: customerMessage?.trim() || undefined,
                     lines: linesOf(qtyValue),
+                    photoUrls: newPhotos,
                   });
                 }}
               >
@@ -379,6 +435,13 @@ export function ClaimDialog({
                   <span className="text-sm text-blue-600 dark:text-blue-400">แก้</span>
                 </button>
               )}
+
+              <ClaimPhotos
+                orderId={orderId}
+                urls={active.photoUrls}
+                disabled={!canDecide || pending}
+                onChange={(next) => savePhotos.mutate({ id: active.id, photoUrls: next })}
+              />
 
               {/* ที่เดียวที่เขียนข้อความถึงลูกค้า — เห็นผลก่อนกดบันทึก เพราะกล่องบนคือหน้าจอจริงของเขา
                   (ยอดเงินและคนผิดไม่เคยขึ้นหน้านั้น บรรทัดนี้คือสิ่งเดียวที่ลูกค้าอ่าน) */}

@@ -146,6 +146,7 @@ export const claimRouter = router({
         detail: z.string().trim().max(2000).optional(),
         // ข้อความที่ลูกค้าเห็นบนลิงก์ติดตามงาน — ไม่ใส่ก็ได้ หน้านั้นมีคำปริยายของแต่ละขั้นอยู่แล้ว
         customerMessage: z.string().trim().max(500).optional(),
+        photoUrls: z.array(z.string()).max(12).default([]),
         reportedAt: z.coerce.date().optional(),
         lines: z
           .array(
@@ -174,6 +175,7 @@ export const claimRouter = router({
           detail: input.detail,
           reportedAt: input.reportedAt,
           customerMessage: input.customerMessage,
+          photoUrls: input.photoUrls,
           openedById: ctx.userId!,
           lines: input.lines,
         });
@@ -284,6 +286,29 @@ export const claimRouter = router({
         },
       });
       return updated;
+    }),
+
+  /**
+   * รูปหลักฐานของรอบแก้นี้ — เบสเลือก 2026-09-19 ให้เก็บในใบเคลม ไม่ใช่กองรวมกับไฟล์ออเดอร์
+   * เหตุผล: เคลมหลายรอบ รูปต้องผูกกับรอบที่กำลังคุยอยู่ ไม่ใช่ปนกันจนต้องมานั่งไล่ว่าของรอบไหน
+   * รูปเหล่านี้เป็นหลักฐานภายใน — ไม่เคยออกไปฝั่งลูกค้า (ดู lib/claim-customer)
+   */
+  setPhotos: protectedProcedure
+    .use(claimDecider)
+    .input(byIdInput.extend({ photoUrls: z.array(z.string()).max(12) }))
+    .mutation(async ({ ctx, input }) => {
+      const claim = await ctx.prisma.orderClaim.findUnique({
+        where: { id: input.id },
+        select: { id: true, state: true },
+      });
+      if (!claim) notFound("ใบเคลม", input.id);
+      if (claim.state === "CLOSED" || claim.state === "CANCELLED") {
+        badRequest("ใบเคลมนี้จบไปแล้ว — แนบรูปเพิ่มไม่ได้");
+      }
+      return ctx.prisma.orderClaim.update({
+        where: { id: claim.id },
+        data: { photoUrls: input.photoUrls },
+      });
     }),
 
   /**
