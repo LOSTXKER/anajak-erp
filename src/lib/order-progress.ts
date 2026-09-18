@@ -1,5 +1,6 @@
 import type { InternalStatus } from "@prisma/client";
 import { differenceInBangkokDays } from "@/lib/date-utils";
+import { claimHeadline } from "@/lib/claim";
 import { isOutsourceStep, STEP_TYPE_LABELS } from "@/lib/production-steps";
 import type { HomeOrderLike } from "@/lib/home-orders";
 
@@ -51,6 +52,13 @@ export interface OrderProgressSource {
   revisions: readonly { createdAt: DateLike }[];
   /** ใบผลิต — มี createdAt จะเลือกใบล่าสุดเอง · ไม่มีถือว่าเรียงใหม่สุดก่อนมาแล้ว */
   productions: readonly { createdAt?: DateLike; steps: readonly OrderProgressStep[] }[];
+  /** ใบเคลม/งานแก้ (ก้อน 1) — query ไหนที่ include มาด้วย จอนั้นจะเห็นงานแก้ทันทีโดยไม่ต้องแก้จอ */
+  claims?: readonly {
+    round: number;
+    state: string;
+    resolution: string | null;
+    lines?: readonly { qtyClaimed: number }[];
+  }[];
 }
 
 export type OrderProgress = HomeOrderLike;
@@ -114,6 +122,11 @@ export function describeOrderProgress(source: OrderProgressSource, now: Date): O
     if (at !== null && (lastActivity === null || at > lastActivity)) lastActivity = at;
   }
 
+  // ใบเคลมที่ยังไม่จบของออเดอร์นี้ — รอบล่าสุดก่อน (query ที่ไม่ include มาก็ไม่มีผลใดๆ)
+  const openClaim = (source.claims ?? [])
+    .filter((claim) => claim.state === "OPEN" || claim.state === "DECIDED")
+    .sort((a, b) => b.round - a.round)[0];
+
   return {
     orderNumber: source.orderNumber,
     internalStatus: source.internalStatus,
@@ -131,5 +144,16 @@ export function describeOrderProgress(source: OrderProgressSource, now: Date): O
     vendor,
     stuckDays: lastActivity !== null ? Math.max(0, differenceInBangkokDays(now, lastActivity) ?? 0) : null,
     ready: source.internalStatus === "READY_TO_SHIP",
+    claim: openClaim
+      ? {
+          round: openClaim.round,
+          label: claimHeadline({
+            round: openClaim.round,
+            state: openClaim.state,
+            resolution: openClaim.resolution,
+            qtyClaimed: (openClaim.lines ?? []).reduce((sum, line) => sum + line.qtyClaimed, 0),
+          }),
+        }
+      : null,
   };
 }

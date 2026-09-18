@@ -30,11 +30,14 @@ export interface HomeOrderLike {
   stuckDays: number | null;
   /** พร้อมส่งแล้ว (แพ็กเสร็จ) */
   ready: boolean;
+  /** งานแก้/เคลมที่ยังไม่จบ (ก้อน 1) — null = ไม่มี · มาก่อนทุกเหตุเพราะมีคนรออยู่ปลายทาง */
+  claim?: { round: number; label: string } | null;
 }
 
-export type HomeProblemGroup = "late" | "today" | "wait" | "stuck";
+export type HomeProblemGroup = "claim" | "late" | "today" | "wait" | "stuck";
 export type HomeProblemTone = "danger" | "warning" | "success" | "neutral";
 export type HomeProblemKind =
+  | "claim"
   | "overdue"
   | "vendor-late"
   | "ready"
@@ -53,7 +56,8 @@ export interface HomeProblem {
   who: string | null;
 }
 
-const GROUP_RANK: Record<HomeProblemGroup, number> = { late: 0, today: 1, wait: 2, stuck: 3 };
+// งานแก้มาก่อน "เลยกำหนด" เพราะลูกค้าถือของเสียอยู่ในมือและรอคำตอบจากเรา
+const GROUP_RANK: Record<HomeProblemGroup, number> = { claim: 0, late: 1, today: 2, wait: 3, stuck: 4 };
 
 function stepOrStatus(order: HomeOrderLike): string {
   return order.currentStep?.label ?? INTERNAL_STATUS_LABELS[order.internalStatus] ?? order.internalStatus;
@@ -62,6 +66,11 @@ function stepOrStatus(order: HomeOrderLike): string {
 /** เหตุที่ต้องจัดการของออเดอร์ใบนี้ — null = เดินปกติ */
 export function describeHomeOrder(order: HomeOrderLike): HomeProblem | null {
   const who = order.currentStep?.assigneeName ?? null;
+  // งานแก้ที่ยังไม่จบมาก่อนทุกเหตุ และมาก่อนด่านสถานะด้วย — ออเดอร์ที่ส่ง/ปิดแล้วเคยหลุด
+  // จากทุกคิวเพราะถือว่า "จบแล้ว" ทั้งที่ของกลับมาอยู่ที่ร้าน
+  if (order.claim) {
+    return { group: "claim", kind: "claim", tone: "danger", label: order.claim.label, who };
+  }
   if (order.dueInDays !== null && order.dueInDays < 0) {
     if (order.vendor && order.vendor.overdueDays > 0) {
       return {

@@ -622,6 +622,13 @@ export const orderRouter = router({
             items: {
               select: { totalQuantity: true, prints: { select: { printType: true } } },
             },
+            /* งานแก้/เคลมที่ยังไม่จบ (ก้อน 1) — ทำให้ออเดอร์ที่ส่ง/ปิดแล้วกลับมาโผล่ใน
+               "ต้องจัดการ" ได้ เพราะของกลับมาอยู่ที่ร้านแล้ว ไม่ใช่งานที่จบจริง */
+            claims: {
+              where: { state: { in: ["OPEN", "DECIDED"] } },
+              orderBy: { round: "desc" },
+              select: { round: true, state: true, resolution: true, lines: { select: { qtyClaimed: true } } },
+            },
             revisions: { orderBy: { createdAt: "desc" }, take: 1, select: { createdAt: true } },
             productions: {
               orderBy: { createdAt: "desc" },
@@ -778,6 +785,12 @@ export const orderRouter = router({
           fees: { orderBy: { createdAt: "asc" } },
           revisions: { orderBy: { createdAt: "desc" } },
           designs: { orderBy: { versionNumber: "desc" } },
+          // งานแก้/เคลมที่ยังไม่จบ — หัวใบออเดอร์อ่านผ่าน describeOrderProgress ชุดเดียวกับตาราง
+          claims: {
+            where: { state: { in: ["OPEN", "DECIDED"] } },
+            orderBy: { round: "desc" },
+            select: { round: true, state: true, resolution: true, lines: { select: { qtyClaimed: true } } },
+          },
           productions: {
             include: {
               steps: {

@@ -42,6 +42,8 @@ import {
   isMarketplaceChannel,
 } from "@/lib/order-status";
 import { singleBackStatus } from "@/lib/order-status-rail";
+import { ClaimDialog } from "@/components/orders/claim/claim-dialog";
+import { claimHeadline } from "@/lib/claim";
 import { permAllows } from "@/lib/permissions";
 import { canEditOrderWithPricing } from "@/lib/order-access";
 import { buildOrderEditHref, type OrderEditFocus } from "@/lib/order-edit-navigation";
@@ -186,6 +188,11 @@ function OrderDetailContent({
   }
 
   const { data: order, isLoading, isError, refetch } = trpc.order.getById.useQuery({ id });
+  // งานแก้/เคลมที่ยังไม่จบ — โผล่เป็นแถบบนสุดเท่านั้น ไม่เพิ่มการ์ด/แท็บ
+  const claimsQuery = trpc.claim.byOrder.useQuery({ orderId: id });
+  const activeClaim = (claimsQuery.data ?? []).find(
+    (claim) => claim.state === "OPEN" || claim.state === "DECIDED",
+  );
   const meQuery = trpc.user.me.useQuery();
   const me = meQuery.data;
   // นโยบาย ⑦: ช่าง/กราฟิกไม่เห็นเงินฝั่งขาย — รอสิทธิ์ก่อนวาดหน้า ไม่ให้ปุ่ม/แท็บโผล่ภายหลัง
@@ -202,6 +209,7 @@ function OrderDetailContent({
   const attachmentsQuery = trpc.attachment.listByEntity.useQuery({ entityType: "ORDER", entityId: id });
   // "ตอนนี้" ของหน้า — คิดวันถึงกำหนด/อยู่ขั้นนี้กี่วัน ครั้งเดียวต่อการเปิดหน้า
   const [now] = useState(() => new Date());
+  const [claimOpen, setClaimOpen] = useState(false);
 
   const updateStatus = useMutationWithInvalidation(trpc.order.updateStatus, {
     invalidate: [utils.order.getById, utils.order.list],
@@ -352,6 +360,9 @@ function OrderDetailContent({
   const canCancel = nextStatuses.includes("CANCELLED") && roleCanSetStatus("CANCELLED");
   // เมนูฝั่งขาย (แก้ข้อมูล/รายการ/สำเนา/ออกใบเสนอ) — server เป็น create_sales_docs
   const isSalesUp = permAllows(me.permissions, "create_sales_docs");
+  // งานแก้/เคลม (ก้อน 1) — ตัดสินเป็นของฝ่ายขายขึ้นไป ส่วนสั่งงานแก้ต้องหัวหน้า
+  const canDecideClaims = permAllows(me.permissions, "decide_claims");
+  const canStartRework = permAllows(me.permissions, "supervise_operations");
   // ฟอร์มแก้ทั้งใบมีราคา — ขาดสิทธิ์เห็นเงินต้องไม่เปิด route นี้
   const canUseEditForm = canEditOrderWithPricing(me.permissions);
   const canEditReceiveTracking =
@@ -588,6 +599,21 @@ function OrderDetailContent({
   const showAttention = Boolean(attention && order.internalStatus !== "ON_HOLD" && attention.kind !== "ready");
 
   const alerts = [
+    activeClaim ? (
+      <Callout
+        key="claim"
+        tone="danger"
+        role="alert"
+        icon={AlertTriangle}
+        action={
+          <button type="button" className={c("btn sm")} onClick={() => setClaimOpen(true)}>
+            เปิดใบเคลม
+          </button>
+        }
+      >
+        {activeClaim.claimNumber} · {claimHeadline(activeClaim)}
+      </Callout>
+    ) : null,
     blockers.length > 0 ? (
       <Callout
         key="blockers"
@@ -805,6 +831,12 @@ function OrderDetailContent({
                           <Copy aria-hidden="true" />
                           สำเนาออเดอร์
                         </DropdownMenu.Item>
+                        {canDecideClaims ? (
+                          <DropdownMenu.Item className={c("mi")} onSelect={() => setClaimOpen(true)}>
+                            <AlertTriangle aria-hidden="true" />
+                            {activeClaim ? "เปิดใบเคลมที่ค้างอยู่" : "แจ้งงานแก้ / เคลม"}
+                          </DropdownMenu.Item>
+                        ) : null}
                         {["DRAFT", "INQUIRY"].includes(order.internalStatus) ? (
                           // สะพานใบเสนอ: ออกใบเสนอผูกใบนี้ — ลูกค้าตกลงแล้วยืนยันออเดอร์เดิม ไม่สร้างซ้ำ
                           <DropdownMenu.Item className={c("mi")} onSelect={() => router.push(`/quotations/new?orderId=${id}`)}>
@@ -975,6 +1007,16 @@ function OrderDetailContent({
       )}
 
       {panel("history", <OrderRevisions revisions={order.revisions ?? []} />)}
+
+      {claimOpen ? (
+        <ClaimDialog
+          orderId={id}
+          orderStatus={order.internalStatus}
+          canDecide={canDecideClaims}
+          canStartRework={canStartRework}
+          onClose={() => setClaimOpen(false)}
+        />
+      ) : null}
     </div>
   );
 }
