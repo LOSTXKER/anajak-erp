@@ -247,7 +247,10 @@ export async function finalizeProductionIfComplete(
 // ทั้งที่เป็นงานเร่งสุดในโรงงาน · audit ข้อ 19/26) — reopen + เปิด step "งานแก้" ให้มีที่ติ๊ก
 export async function reopenProductionsForRework(
   tx: PrismaTx,
-  params: { orderId: string; reason?: string }
+  // claimId/stepName: งานแก้ที่สั่งจากใบเคลม (ก้อน 1) ผูกขั้นที่เปิดกลับไปหาใบ เพื่อใช้เป็น
+  // ด่านปิดใบเคลม · เหตุผลที่ส่งมาลงใน notes ของขั้น ซึ่งช่างอ่านได้ — ฝั่งใบเคลมจึงส่ง
+  // ข้อความตายตัวที่ไม่มียอดเงิน ไม่ใช่คำตัดสินที่คนพิมพ์เอง
+  params: { orderId: string; reason?: string; claimId?: string; stepName?: string }
 ) {
   const closed = await tx.production.findMany({
     where: { orderId: params.orderId, status: "COMPLETED" },
@@ -278,10 +281,11 @@ export async function reopenProductionsForRework(
       data: {
         productionId: p.id,
         stepType: "CUSTOM",
-        customStepName: "งานแก้ (QC ไม่ผ่าน)",
+        customStepName: params.stepName ?? "งานแก้ (QC ไม่ผ่าน)",
         sortOrder: maxSort + 1,
         status: "PENDING",
         notes: params.reason ?? null,
+        claimId: params.claimId ?? null,
       },
     });
   }

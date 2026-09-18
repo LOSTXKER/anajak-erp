@@ -20,6 +20,7 @@ const SAFE_REVISION_DESCRIPTIONS: Record<string, string> = {
   QUOTATION: "อัปเดตใบเสนอราคา",
   INFO: "อัปเดตข้อมูลออเดอร์",
   DELIVERY: "ใบส่งถูกตีกลับ",
+  CLAIM: "งานแก้และเคลม",
 };
 
 export function visibleRevisionDescription(

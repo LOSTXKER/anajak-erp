@@ -4,6 +4,7 @@ import { byIdInput } from "@/server/schemas";
 import { badRequest } from "@/server/errors";
 import { createAuditLog, createNotification } from "@/server/helpers";
 import { addOrderRevision, advanceOrderForward } from "@/server/services/order-status";
+import { openClaim } from "@/server/services/claim";
 import { lockOrderRow } from "@/server/services/order-cost";
 import {
   assertOrderPackingReadyToShip,
@@ -557,7 +558,7 @@ export const deliveryRouter = router({
         if (statusChanged && input.status === "RETURNED") {
           const order = await tx.order.findUniqueOrThrow({
             where: { id: delivery.orderId },
-            select: { id: true, orderNumber: true },
+            select: { id: true, orderNumber: true, customerId: true },
           });
           // เหตุผลอยู่ในประวัติออเดอร์ถาวร ไม่หายไปพร้อมกระดิ่งที่อ่านแล้ว
           await addOrderRevision(tx, {
@@ -566,6 +567,26 @@ export const deliveryRouter = router({
             changeType: "DELIVERY",
             description: `ใบส่งถูกตีกลับ: ${returnReason}`,
           });
+
+          // เปิดใบเคลมให้อัตโนมัติ (ก้อน 1) — เฉพาะของที่ "ออกจากร้านไปแล้วจริง" เท่านั้น
+          // กล่องที่ยัง PENDING/PREPARING แล้วถูกกดตีกลับคือการยกเลิกกล่องภายใน ไม่ใช่เคลมของลูกค้า
+          // ถ้าเปิดทุกกรณีคิวเคลมจะเต็มไปด้วยเรื่องที่ไม่ใช่เรื่อง จนไม่มีใครอ่าน
+          const cameBackFromCustomer = fromStatus === "SHIPPED" || fromStatus === "DELIVERED";
+          const alreadyOpen = cameBackFromCustomer
+            ? await tx.orderClaim.count({
+                where: { sourceDeliveryId: delivery.id, state: { in: ["OPEN", "DECIDED"] } },
+              })
+            : 0;
+          if (cameBackFromCustomer && alreadyOpen === 0) {
+            await openClaim(tx, {
+              orderId: order.id,
+              customerId: order.customerId,
+              source: "DELIVERY_RETURN",
+              title: `ของตีกลับ: ${returnReason}`,
+              openedById: ctx.userId,
+              sourceDeliveryId: delivery.id,
+            });
+          }
           const managers = await tx.user.findMany({
             where: { role: { in: ["OWNER", "MANAGER"] }, isActive: true },
             select: { id: true },

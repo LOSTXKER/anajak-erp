@@ -14,7 +14,8 @@ export type DocType =
   | "BILLING_NOTE"
   | "PRINT_RUN"
   | "WORK_ORDER"
-  | "CHANGE_ORDER";
+  | "CHANGE_ORDER"
+  | "CLAIM";
 
 const DOC_PREFIXES: Record<DocType, string> = {
   ORDER: "ORD",
@@ -28,6 +29,7 @@ const DOC_PREFIXES: Record<DocType, string> = {
   PRINT_RUN: "FR", // รอบพิมพ์ฟิล์ม (Film Run) — เลขอ้างบนป้ายฟิล์ม/หน้าจอช่างพิมพ์
   WORK_ORDER: "MO", // ใบสั่งผลิต (Manufacturing Order)
   CHANGE_ORDER: "CO", // ใบแก้ไขออเดอร์ (Change Order) — ออเดอร์อนุมัติแล้วแก้ผ่านใบนี้
+  CLAIM: "CLM", // ใบเคลม/รอบแก้งาน — ลูกค้าขอแก้หลังรับของ หรือเราทำเสียต้องซ่อม
 };
 
 export function currentPeriod(date = new Date()): string {

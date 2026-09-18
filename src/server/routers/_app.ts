@@ -11,6 +11,7 @@ import { analyticsRouter } from "./analytics";
 import { quotationRouter } from "./quotation";
 import { productRouter } from "./product";
 import { deliveryRouter } from "./delivery";
+import { claimRouter } from "./claim";
 import { notificationRouter } from "./notification";
 import { costRouter } from "./cost";
 import { attachmentRouter } from "./attachment";
@@ -49,6 +50,7 @@ export const appRouter = router({
   quotation: quotationRouter,
   product: productRouter,
   delivery: deliveryRouter,
+  claim: claimRouter,
   notification: notificationRouter,
   cost: costRouter,
   attachment: attachmentRouter,
