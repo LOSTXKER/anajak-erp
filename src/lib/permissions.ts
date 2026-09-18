@@ -41,6 +41,7 @@ export type Permission =
   | "ship_orders" // สร้างขนส่ง/เลขติดตาม/ยืนยันส่ง — งานออฟฟิศเท่านั้น
   | "manage_design_files" // อัปโหลดแบบ/แก้แพทเทิร์น/แก้คลังลาย
   | "create_design_assets" // สร้างแพทเทิร์น/ลายใหม่ + ลิงก์อนุมัติแบบ
+  | "decide_claims" // ตัดสินใบเคลม: ซ่อมให้/ลดราคา/คืนเงิน/ไม่รับเคลม (เอกสารเงินยังต้องใช้สิทธิ์การเงินแยก)
   | "supervise_operations" // งานหัวหน้า: เปิดใบผลิต/ลบใบส่ง/ถอยสถานะงานส่งแล้ว/QC ร้านนอก
   // ── กลุ่มระบบ ──
   | "manage_settings" // ตั้งค่ากิจการ/ราคากลาง/แพ็คเกจ/เชื่อม Stock/ข้อมูลหลักสินค้า
@@ -85,6 +86,10 @@ export const PERMISSION_DEFS: PermissionDef[] = [
   { key: "create_design_assets", label: "สร้างแพทเทิร์น/ลาย + ลิงก์อนุมัติแบบ", group: "ปฏิบัติการ", defaultRoles: ["OWNER", "MANAGER", "DESIGNER", "SALES"] },
   // managerUp ฝั่งคุมงาน (production.create + delivery.delete + rollback สถานะ + outsource QC ตัดสิน
   // + มอบหมายงาน/แก้ต้นทุนจริงบนขั้นผลิต + user.assignables)
+  // เบสเคาะ 2026-09-18: ฝ่ายขายตัดสินเคลมได้ด้วย เพราะเป็นคนที่รับเรื่องจากลูกค้าโดยตรง
+  // และงานจะค้างถ้ารอหัวหน้าอย่างเดียว (ร้านมี 5 คน) · การออกใบลดหนี้/เพิ่มหนี้ยังคุมด้วย
+  // manage_billing_docs ตามเดิม = ตัดสินกับออกเอกสารเงินเป็นคนละกุญแจ
+  { key: "decide_claims", label: "ตัดสินใบเคลม (ซ่อม/ลดราคา/คืนเงิน)", group: "ปฏิบัติการ", defaultRoles: ["OWNER", "MANAGER", "SALES"] },
   { key: "supervise_operations", label: "งานหัวหน้า (เปิดใบผลิต/มอบหมายงาน+ต้นทุน/ลบใบส่ง/ถอยสถานะ*/QC ร้านนอก)", group: "ปฏิบัติการ", defaultRoles: ["OWNER", "MANAGER"] },
 
   // ── ระบบ ──

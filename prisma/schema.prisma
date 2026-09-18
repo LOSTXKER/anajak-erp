@@ -420,6 +420,7 @@ model Customer {
 
   // Relations
   orders            Order[]
+  claims            OrderClaim[]
   brandProfiles     BrandProfile[]
   communicationLogs CommunicationLog[]
   invoices          Invoice[]
@@ -598,6 +599,7 @@ model Order {
   fees                      OrderFee[]
   revisions                 OrderRevision[]
   changeOrders              ChangeOrder[]
+  claims                    OrderClaim[]
   designs                   DesignVersion[]
   productions               Production[]      @relation("OrderProductions")
   productionCompletionOwner Production?       @relation("OrderProductionCompletionOwner", fields: [productionCompletionOwnerId], references: [id], onDelete: SetNull)
@@ -804,6 +806,125 @@ model ChangeOrder {
 
   @@index([orderId])
   @@map("change_orders")
+}
+
+// ใบเคลม / รอบแก้งาน (ก้อน 1 — เบสสั่ง 2026-09-18 หลังถามว่าจะรับมือยังไงเมื่อส่งของแล้วลูกค้าขอแก้)
+//
+// สันหลังที่ผูก 5 กลไกที่เคยหลุดจากกัน: ผลตรวจ QC · ใบส่งที่ตีกลับ · ขั้นงานแก้ในใบผลิต ·
+// ใบลดหนี้/เพิ่มหนี้ · ใบแก้ไขออเดอร์ — ตัวใบเก็บ "เจตนา + เส้นเชื่อม + ด่านปิด" เท่านั้น
+// ไม่เขียนสถานะออเดอร์เอง (ผ่าน transitionOrder) และไม่เขียนเงินเอง (ผ่าน billing service)
+//
+// กฎความสัมพันธ์: ต้นเรื่องที่มีได้ใบละหนึ่ง = FK อยู่บนใบเคลม · ผลที่ตามมาที่มีได้หลายแถว
+// = แถวนั้นถือ claim_id ของตัวเอง (ใบลดหนี้ · ใบส่งรอบชดเชย · ขั้นงานแก้)
+model OrderClaim {
+  id          String      @id @default(cuid())
+  claimNumber String      @unique @map("claim_number") // CLM-YYMM-NNNN
+  orderId     String      @map("order_id")
+  customerId  String      @map("customer_id") // denorm — คิวเคลมและประวัติลูกค้ากรองข้ามออเดอร์
+  state       ClaimState  @default(OPEN)
+  source      ClaimSource
+  fault       ClaimFault  @default(UNDETERMINED)
+  round       Int         @default(1) // รอบแก้ที่เท่าไรของออเดอร์นี้ — ขึ้นบนจอช่างและหน้าลูกค้า
+
+  // เรื่องอะไร
+  title      String // สรุปบรรทัดเดียวที่คนอ่านออก
+  detail     String?
+  faultNote  String?  @map("fault_note")
+  reportedAt DateTime @map("reported_at") // วันที่ลูกค้าแจ้ง ≠ วันที่เราเปิดใบ
+  photoUrls  String[] @default([]) @map("photo_urls")
+
+  // ตัดสินยังไง — ยอดในนี้คือ "ข้อตกลง" ไม่ใช่ยอดทางบัญชี ยอดจริงอยู่ที่ Invoice เสมอ
+  resolution     ClaimResolution?
+  resolutionNote String?          @map("resolution_note")
+  agreedCredit   Decimal          @default(0) @map("agreed_credit") @db.Decimal(12, 2) // ที่ตกลงจะลด/คืน
+  agreedCharge   Decimal          @default(0) @map("agreed_charge") @db.Decimal(12, 2) // ที่ตกลงจะเก็บเพิ่ม
+
+  // ใครทำอะไรเมื่อไร
+  openedById  String    @map("opened_by_id")
+  decidedById String?   @map("decided_by_id")
+  decidedAt   DateTime? @map("decided_at")
+  closedById  String?   @map("closed_by_id")
+  closedAt    DateTime? @map("closed_at")
+  closeNote   String?   @map("close_note")
+
+  // ต้นเรื่อง (มีได้ใบละหนึ่ง)
+  sourceDeliveryId String? @map("source_delivery_id")
+  sourceQcRecordId String? @map("source_qc_record_id")
+
+  // สิ่งที่ลูกค้าเห็นบนหน้าติดตามงาน — ไม่มีคำว่า "เคลม" และไม่มีเงิน
+  customerMessage String? @map("customer_message")
+
+  revision  Int      @default(0) // optimistic lock — แบบเดียวกับ ProductionException/ReworkCase
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  order          Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  customer       Customer         @relation(fields: [customerId], references: [id])
+  sourceDelivery Delivery?        @relation("ClaimSourceDelivery", fields: [sourceDeliveryId], references: [id], onDelete: SetNull)
+  sourceQcRecord QcRecord?        @relation("ClaimSourceQc", fields: [sourceQcRecordId], references: [id], onDelete: SetNull)
+  lines          OrderClaimLine[]
+  invoices       Invoice[]        @relation("ClaimInvoices")
+  deliveries     Delivery[]       @relation("ClaimDeliveries")
+  steps          ProductionStep[] @relation("ClaimSteps")
+
+  @@index([orderId])
+  @@index([customerId])
+  @@index([state, reportedAt]) // คิวงานเคลม
+  @@index([sourceDeliveryId])
+  @@map("order_claims")
+}
+
+// บรรทัดของใบเคลม — เบสยืนยัน 2026-09-18 ว่าหน้างานนับเป็นรายไซซ์ ("S เสีย 3 M เสีย 2")
+// จึงต้องมีตั้งแต่ก้อน 1: ข้อความอิสระแปลงเป็นแถวทีหลังไม่ได้
+// qtyAccepted เป็น null = ยังไม่ตรวจ ต่างจาก 0 = ตรวจแล้วไม่รับสักตัว
+model OrderClaimLine {
+  id          String  @id @default(cuid())
+  claimId     String  @map("claim_id")
+  size        String
+  color       String?
+  qtyClaimed  Int     @map("qty_claimed") // ลูกค้าแจ้งว่าเสียกี่ตัว
+  qtyAccepted Int?    @map("qty_accepted") // เรารับว่าเสียจริงกี่ตัว
+  qtyReturned Int     @default(0) @map("qty_returned") // ของที่กลับถึงร้านจริง
+  note        String?
+
+  claim OrderClaim @relation(fields: [claimId], references: [id], onDelete: Cascade)
+
+  @@index([claimId])
+  @@map("order_claim_lines")
+}
+
+enum ClaimState {
+  OPEN // เปิดแล้ว ยังไม่ตัดสิน
+  DECIDED // ตัดสินแล้ว รอทำให้จบ (งานแก้/เอกสารเงิน)
+  CLOSED
+  CANCELLED // เปิดผิด/ลูกค้าถอนเรื่อง
+}
+
+enum ClaimSource {
+  DELIVERY_RETURN // ตีกลับใบส่ง — จุดเดียวที่เปิดใบให้อัตโนมัติ
+  CUSTOMER_REPORT // ลูกค้าทักมาเอง ของยังอยู่กับลูกค้า
+  INTERNAL_FOUND // เราเจอเองก่อนส่ง
+  QC_AFTER_DELIVERY // ตรวจเจอหลังของกลับเข้าร้าน
+}
+
+enum ClaimFault {
+  UNDETERMINED
+  SHOP // เราทำพลาด
+  CUSTOMER // ลูกค้าเปลี่ยนใจ/ไฟล์ลูกค้าผิด
+  VENDOR // ร้านนอก
+  MATERIAL // วัสดุ/ล็อตผ้า
+  CARRIER // เสียหาย/หายระหว่างขนส่ง
+  NONE // ไม่มีใครผิดชัด
+}
+
+enum ClaimResolution {
+  REWORK // ซ่อม/ทำใหม่เฉพาะที่เสีย
+  REPLACE // ทำใหม่ทั้งชุด
+  DISCOUNT // ลูกค้ารับของไป แลกกับลดราคา
+  REFUND // คืนเงิน
+  EXTRA_CHARGE // ลูกค้าขอเปลี่ยน เก็บเงินเพิ่ม
+  GOODWILL // ไม่คิดเงิน ไม่แก้ของ (ชดเชยด้วยอย่างอื่น)
+  REJECTED // ไม่รับเคลม
 }
 
 // ============================================================
@@ -1027,8 +1148,13 @@ model Delivery {
   updatedAt      DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  order Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  lines DeliveryLine[]
+  // ใบส่งรอบชดเชยที่เกิดจากใบเคลม (ก้อน 1) — แยกจากรอบแรกได้ในข้อมูล ไม่ใช่เดาจากลำดับ
+  claimId String? @map("claim_id")
+
+  order       Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  lines       DeliveryLine[]
+  claim       OrderClaim?    @relation("ClaimDeliveries", fields: [claimId], references: [id], onDelete: SetNull)
+  claimSource OrderClaim[]   @relation("ClaimSourceDelivery")
 
   @@index([orderId])
   @@map("deliveries")
@@ -1241,6 +1367,7 @@ model QcRecord {
   createdAt        DateTime @default(now()) @map("created_at")
 
   order          Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  claimSource    OrderClaim[]    @relation("ClaimSourceQc")
   checkedBy      User            @relation("QcCheckedBy", fields: [checkedById], references: [id])
   productionStep ProductionStep? @relation(fields: [productionStepId], references: [id])
   defects        QcDefect[]
@@ -1403,7 +1530,11 @@ model ProductionStep {
   updatedAt           DateTime               @updatedAt @map("updated_at")
 
   // Relations
+  // ขั้นงานแก้ที่เปิดเพราะใบเคลม — ใช้เป็นด่านปิดใบ (ปิดไม่ได้ถ้างานแก้ยังไม่จบ)
+  claimId String? @map("claim_id")
+
   production         Production                       @relation(fields: [productionId], references: [id], onDelete: Cascade)
+  claim              OrderClaim?                      @relation("ClaimSteps", fields: [claimId], references: [id], onDelete: SetNull)
   completionOwnerFor Production[]                     @relation("ProductionCompletionOwner")
   assignedTo         User?                            @relation("AssignedTo", fields: [assignedToId], references: [id])
   workCenter         WorkCenter?                      @relation(fields: [workCenterId], references: [id])
@@ -2083,7 +2214,11 @@ model Invoice {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
+  // เอกสารเงินที่ออกให้ใบเคลมใบนี้ — นักบัญชีเปิดใบลดหนี้แล้วถามได้ว่ามาจากเคลมไหน
+  claimId String? @map("claim_id")
+
   order            Order             @relation(fields: [orderId], references: [id])
+  claim            OrderClaim?       @relation("ClaimInvoices", fields: [claimId], references: [id], onDelete: SetNull)
   customer         Customer          @relation(fields: [customerId], references: [id])
   payments         Payment[]
   billingNoteItems BillingNoteItem[]

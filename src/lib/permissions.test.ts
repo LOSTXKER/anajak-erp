@@ -14,6 +14,9 @@ import {
 // ── ตาราง default ที่คาดหวัง — เขียนซ้ำอิสระจาก PERMISSION_DEFS โดยเจตนา ──
 // pin พฤติกรรมระบบจริง ณ 2026-07-07 (ถอดจากด่าน requireRole ทุก router): ใครแก้ catalog
 // แล้วตารางนี้ไม่แก้ตาม = เทสแดง บังคับให้ตั้งใจเปลี่ยนทั้งคู่พร้อมเหตุผล
+// 2026-09-18: เพิ่ม decide_claims (ตัดสินใบเคลม) ให้ OWNER/MANAGER/SALES — เบสเคาะเองว่า
+// ฝ่ายขายตัดสินได้ด้วย เพราะเป็นคนรับเรื่องจากลูกค้า และงานจะค้างถ้ารอหัวหน้าอย่างเดียว
+// (การออกใบลดหนี้/เพิ่มหนี้ยังคุมด้วย manage_billing_docs ตามเดิม — คนละกุญแจ)
 const EXPECTED: Record<Role, Permission[]> = {
   OWNER: [
     "see_order_money", "see_finance", "record_payments", "manage_billing_docs",
@@ -22,7 +25,7 @@ const EXPECTED: Record<Role, Permission[]> = {
     "update_order_status_design", "close_orders",
     "manage_production", "manage_delivery", "manage_design_files",
     "ship_orders",
-    "create_design_assets", "supervise_operations",
+    "create_design_assets", "supervise_operations", "decide_claims",
     "manage_settings", "view_admin_reports", "manage_users",
   ],
   MANAGER: [
@@ -33,7 +36,7 @@ const EXPECTED: Record<Role, Permission[]> = {
     "update_order_status_design", "close_orders",
     "manage_production", "manage_delivery", "manage_design_files",
     "ship_orders",
-    "create_design_assets", "supervise_operations",
+    "create_design_assets", "supervise_operations", "decide_claims",
     "manage_settings", "view_admin_reports",
   ],
   ACCOUNTANT: [
@@ -45,7 +48,7 @@ const EXPECTED: Record<Role, Permission[]> = {
     "update_order_status_sales", "update_order_status_production",
     "update_order_status_design", "close_orders",
     "manage_delivery", "create_design_assets",
-    "ship_orders",
+    "ship_orders", "decide_claims",
   ],
   PRODUCTION_STAFF: [
     "update_order_status_production", "manage_production", "manage_delivery",
@@ -58,9 +61,9 @@ const EXPECTED: Record<Role, Permission[]> = {
 const ROLES = Object.keys(EXPECTED) as Role[];
 
 describe("catalog — โครงถูกต้อง", () => {
-  it("มี 20 สิทธิ์ ครบ ไม่ซ้ำ และทุกตัวมี label/group/defaultRoles", () => {
-    expect(PERMISSIONS).toHaveLength(20);
-    expect(new Set(PERMISSIONS).size).toBe(20);
+  it("มี 21 สิทธิ์ ครบ ไม่ซ้ำ และทุกตัวมี label/group/defaultRoles", () => {
+    expect(PERMISSIONS).toHaveLength(21);
+    expect(new Set(PERMISSIONS).size).toBe(21);
     for (const d of PERMISSION_DEFS) {
       expect(d.label.length).toBeGreaterThan(0);
       expect(d.group.length).toBeGreaterThan(0);
@@ -70,7 +73,7 @@ describe("catalog — โครงถูกต้อง", () => {
   });
 });
 
-describe("default matrix 6 role × 20 สิทธิ์ — รวมการส่งของแบบ office-only", () => {
+describe("default matrix 6 role × 21 สิทธิ์ — รวมการส่งของแบบ office-only", () => {
   for (const role of ROLES) {
     it(`${role}: ชุด default ตรงตาราง (${EXPECTED[role].length} สิทธิ์)`, () => {
       // เทียบเป็นเซ็ตครบสองทาง — สิทธิ์เกิน/ขาดโผล่ทั้งคู่

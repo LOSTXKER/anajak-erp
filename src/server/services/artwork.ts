@@ -3,7 +3,7 @@
 // (รวม outsource DTG/สกรีน/ปัก ~30% ที่ไม่ผ่าน PrintRun) และสเปกพิสูจน์แล้วว่าพิมพ์ผ่านจริง
 // ตามนิยาม design doc "ลายทุกตัวที่เคยพิมพ์ผ่าน" · เส้นเปลี่ยนสถานะมือ QC→PACKING
 // ก็ต้อง promote (order.updateStatus) — ห้ามมีทางที่ลายหายเงียบ
-import type { Prisma, PrismaClient } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 import type { PrismaTx } from "@/lib/prisma";
 import { buildArtworkName } from "@/lib/artwork";
 
@@ -150,7 +150,10 @@ export async function resolveSoleOrderArtworkId(
 export async function sanitizeArtworkLinks<
   T extends { prints: { artworkId?: string | null; designImageUrl?: string | null }[] },
 >(
-  prisma: PrismaClient | PrismaTx | Prisma.TransactionClient,
+  // รับ PrismaTx ตัวเดียว (client เต็มก็ส่งเข้ามาได้เพราะมีเมธอดครบกว่า) — เดิมเป็น union
+  // สามชนิด ซึ่งบังคับให้ TypeScript เทียบ type map ของ Prisma ทั้งก้อนสามรอบ
+  // พอ schema โตขึ้น (ตารางใบเคลม ก้อน 1) มันชนเพดานความลึกแล้ว build ล้มทันที
+  prisma: PrismaTx,
   customerId: string,
   items: T[]
 ): Promise<void> {
