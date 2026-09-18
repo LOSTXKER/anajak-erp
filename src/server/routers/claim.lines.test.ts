@@ -94,7 +94,7 @@ describe("claim.setPhotos", () => {
   it("แนบรูปกับใบที่ยังไม่จบได้", async () => {
     const { ctx } = contextFor({ role: "SALES", claim: OPEN_CLAIM });
     const update = vi.fn().mockResolvedValue({ id: "claim-1" });
-    (ctx.prisma as unknown as { orderClaim: { update: unknown } }).orderClaim = {
+    (ctx.prisma as unknown as { orderClaim: unknown }).orderClaim = {
       findUnique: vi.fn().mockResolvedValue(OPEN_CLAIM),
       update,
     };
