@@ -26,7 +26,7 @@ import type { DeliveryStatus } from "@/lib/delivery-status";
 import { canCreateDelivery, deliveryActionAvailability } from "@/lib/delivery-ui";
 import { differenceInBangkokDays } from "@/lib/date-utils";
 import { isAttentionStatus } from "@/lib/order-progress";
-import { STANDARD_SIZES } from "@/lib/size-matrix";
+import { sizeRank } from "@/lib/size-matrix";
 import { DELIVERY_STATUS_LABELS } from "@/lib/status-config";
 import { SHIPPING_METHOD_LABELS } from "@/lib/shipping-methods";
 import { formatBaht, formatDateShort } from "@/lib/utils";
@@ -268,10 +268,6 @@ export function OrderDeliveryTab({
       }
     }
   }
-  const sizeRank = (size: string) => {
-    const index = (STANDARD_SIZES as readonly string[]).indexOf(size);
-    return index < 0 ? STANDARD_SIZES.length : index;
-  };
   const sizeRows = [...sizeTotals].filter(([, quantity]) => quantity > 0).sort((a, b) => sizeRank(a[0]) - sizeRank(b[0]));
   const totalQuantity = sizeRows.reduce((sum, [, quantity]) => sum + quantity, 0);
 

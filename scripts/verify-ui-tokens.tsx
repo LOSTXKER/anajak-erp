@@ -784,12 +784,17 @@ check(
   ["disabled:border-border", "disabled:bg-surface-muted", "disabled:text-muted", "disabled:shadow-none", "disabled:opacity-100"],
   ["disabled:opacity-50"],
 );
-check(
-  "ปุ่ม disabled ใช้ muted surface โดยไม่จางทั้งก้อน",
-  renderToStaticMarkup(<Button variant="outline" disabled>ก</Button>),
-  ["disabled:border-border", "disabled:bg-surface-muted", "disabled:text-muted", "disabled:shadow-none", "disabled:opacity-100"],
-  ["disabled:opacity-50"],
-);
+// ต้องเช็คทั้งปุ่มรองและปุ่มหลัก: ปุ่มหลักมี bg ของตัวเอง (bg-blue-600) ซึ่งทับ
+// disabled:bg-surface-muted ถ้าไม่ใส่ `!` ผลคือปุ่มที่กดไม่ได้ยังทึบเต็มสี เปลี่ยนแค่สีอักษร
+// (ของจริงเป็นแบบนั้นมาตลอดจนเจอตอนเทสบนเว็บ 2026-09-19 — ด่านเดิมเช็คเฉพาะ outline จึงเขียว)
+for (const variant of ["outline", "default"] as const) {
+  check(
+    `ปุ่ม ${variant} disabled ใช้ muted surface โดยไม่จางทั้งก้อน`,
+    renderToStaticMarkup(<Button variant={variant} disabled>ก</Button>),
+    ["disabled:border-border!", "disabled:bg-surface-muted!", "disabled:text-muted!", "disabled:shadow-none", "disabled:opacity-100"],
+    ["disabled:opacity-50"],
+  );
+}
 check(
   "ปุ่มอันตรายโหมดมืดไม่ย้อนเป็นแดงอ่อน",
   renderToStaticMarkup(<Button variant="destructive">ลบ</Button>),

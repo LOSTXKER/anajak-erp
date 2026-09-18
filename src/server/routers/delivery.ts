@@ -596,7 +596,7 @@ export const deliveryRouter = router({
               userId: m.id,
               type: "ORDER",
               title: `ของถูกตีกลับ — ${order.orderNumber}`,
-              message: `เหตุผล: ${returnReason} · ตัดสินใจ: ซ่อม/ส่งใหม่/ลดหนี้ (ถอยสถานะกลับตรวจ QC ได้จากหน้าออเดอร์)`,
+              message: `เหตุผล: ${returnReason} · เปิดใบงานแก้ให้แล้ว — กดแถบแดงบนหัวใบออเดอร์เพื่อตัดสินและสั่งงานแก้ในที่เดียว`,
               link: `/orders/${order.id}`,
               entityType: "ORDER",
               entityId: order.id,

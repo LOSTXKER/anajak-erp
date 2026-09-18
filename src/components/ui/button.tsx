@@ -3,7 +3,7 @@ import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 import { CONTROL_H, CONTROL_H_SM, CONTROL_MIN_H } from "./control-size";
-import { DISABLED_CONTROL_SURFACE, FOCUS_BUTTON } from "./tokens";
+import { DISABLED_BUTTON, FOCUS_BUTTON } from "./tokens";
 
 const buttonVariants = cva(
   cn(
@@ -12,7 +12,7 @@ const buttonVariants = cva(
     // ปุ่มแบบ kit (2026-09-17): มุม 12px ตัวหนังสือน้ำหนัก 500 · ไม่มีเอฟเฟกต์ตอนชี้ ตอบสนองตอนกดเท่านั้น
     "rounded-lg",
     "inline-flex min-w-11 touch-manipulation items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-[background-color,color,transform] active:scale-[0.98] sm:min-w-0 [@media(pointer:coarse)]:min-w-11 disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:size-[15px] [&_svg]:shrink-0",
-    DISABLED_CONTROL_SURFACE,
+    DISABLED_BUTTON,
   ),
   {
     variants: {

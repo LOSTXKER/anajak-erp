@@ -51,7 +51,66 @@ type ClaimRow = {
   steps: { id: string }[];
   closeNote: string | null;
   customerMessage: string | null;
+  lines: { size: string; color: string | null; qtyClaimed: number }[];
 };
+
+/** ช่องกรอก "เสียกี่ตัว" รายไซซ์ — เบสยืนยันว่าหน้างานนับแบบนี้ ("S เสีย 3 M เสีย 2")
+ *  โชว์จำนวนที่ส่งไปของแต่ละไซซ์กำกับ เพื่อให้กรอกเกินของที่ส่งไม่ได้ และเทียบได้ทันที */
+function SizeGrid({
+  sizes,
+  value,
+  onChange,
+}: {
+  sizes: { size: string; sent: number }[];
+  value: Record<string, number>;
+  onChange: (next: Record<string, number>) => void;
+}) {
+  const total = Object.values(value).reduce((sum, qty) => sum + qty, 0);
+  if (sizes.length === 0) {
+    return <p className="text-sm text-muted">ออเดอร์นี้ยังไม่ได้แยกไซซ์ — ระบุจำนวนในช่องเรื่องที่เกิดขึ้นแทน</p>;
+  }
+  return (
+    <div className="space-y-2">
+      <div className="flex items-baseline gap-2">
+        <span className="text-sm font-medium">เสียกี่ตัว</span>
+        <span className="text-sm text-muted">กรอกเฉพาะไซซ์ที่มีปัญหา</span>
+        <span className="flex-1" />
+        <span className={`text-lg font-semibold tabular-nums ${total > 0 ? "text-amber-600 dark:text-amber-400" : "text-muted"}`}>
+          รวม {total} ตัว
+        </span>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {sizes.map((row) => (
+          <label
+            key={row.size}
+            htmlFor={`claim-qty-${row.size}`}
+            className={`flex min-w-[92px] flex-1 flex-col gap-1.5 rounded-xl border p-2.5 ${
+              (value[row.size] ?? 0) > 0 ? "border-amber-500/50 bg-surface-muted" : "border-border bg-surface-muted"
+            }`}
+          >
+            <span className="flex items-baseline gap-1.5">
+              <span className="text-sm font-semibold">{row.size}</span>
+              <span className="text-xs text-muted">ส่งไป {row.sent}</span>
+            </span>
+            <Input
+              id={`claim-qty-${row.size}`}
+              type="number"
+              min={0}
+              max={row.sent}
+              aria-label={`จำนวนที่เสียไซซ์ ${row.size}`}
+              value={String(value[row.size] ?? 0)}
+              onChange={(event) => {
+                const next = Math.max(0, Math.min(row.sent, Number(event.target.value) || 0));
+                onChange({ ...value, [row.size]: next });
+              }}
+              className="h-10 text-center text-base font-semibold tabular-nums"
+            />
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 const RESOLUTIONS = Object.keys(CLAIM_RESOLUTION_LABELS);
 const FAULTS = Object.keys(CLAIM_FAULT_LABELS);
@@ -73,6 +132,8 @@ export function ClaimDialog({
 }) {
   const utils = trpc.useUtils();
   const claimsQuery = trpc.claim.byOrder.useQuery({ orderId });
+  const sizesQuery = trpc.claim.orderSizes.useQuery({ orderId });
+  const sizes = sizesQuery.data ?? [];
   const claims = (claimsQuery.data ?? []) as unknown as ClaimRow[];
   const active = claims.find((claim) => claim.state === "OPEN" || claim.state === "DECIDED") ?? null;
 
@@ -90,6 +151,15 @@ export function ClaimDialog({
   const startRework = useMutationWithInvalidation(trpc.claim.startRework, {
     invalidate: [...invalidate],
     onSuccess: () => toast.success("สั่งงานแก้เข้าสายผลิตแล้ว"),
+    onError: () => {},
+  });
+  const saveLines = useMutationWithInvalidation(trpc.claim.setLines, {
+    invalidate: [...invalidate],
+    onSuccess: () => {
+      setQty(null);
+      setEditQty(false);
+      toast.success("บันทึกจำนวนที่เสียแล้ว");
+    },
     onError: () => {},
   });
   const saveMessage = useMutationWithInvalidation(trpc.claim.setCustomerMessage, {
@@ -116,17 +186,22 @@ export function ClaimDialog({
   const [closeNote, setCloseNote] = useState("");
   // ข้อความที่ลูกค้าเห็นบนลิงก์ติดตามงาน — null = ยังไม่ได้พิมพ์อะไรในรอบนี้ (ใช้ค่าจากใบ)
   const [customerMessage, setCustomerMessage] = useState<string | null>(null);
+  // จำนวนที่เสียรายไซซ์ · null = ยังไม่ได้แตะในรอบนี้ (ใช้ค่าจากใบ)
+  const [qty, setQty] = useState<Record<string, number> | null>(null);
+  const [editQty, setEditQty] = useState(false);
 
   const pending =
     open.isPending ||
     decide.isPending ||
     startRework.isPending ||
+    saveLines.isPending ||
     saveMessage.isPending ||
     closeClaim.isPending;
   const error =
     open.error?.message ??
     decide.error?.message ??
     startRework.error?.message ??
+    saveLines.error?.message ??
     saveMessage.error?.message ??
     closeClaim.error?.message ??
     null;
@@ -144,6 +219,21 @@ export function ClaimDialog({
         openReworkSteps: active.openReworkSteps,
       })
     : null;
+
+  const savedQty: Record<string, number> = {};
+  for (const line of active?.lines ?? []) savedQty[line.size] = (savedQty[line.size] ?? 0) + line.qtyClaimed;
+  const qtyValue = qty ?? savedQty;
+  const qtyTotal = Object.values(qtyValue).reduce((sum, n) => sum + n, 0);
+  const qtySummary =
+    Object.entries(qtyValue)
+      .filter(([, n]) => n > 0)
+      .map(([size, n]) => `${size} ${n}`)
+      .join(" · ") || "ยังไม่ระบุไซซ์";
+  const qtyDirty = qty !== null && JSON.stringify(qty) !== JSON.stringify(savedQty);
+  const linesOf = (value: Record<string, number>) =>
+    Object.entries(value)
+      .filter(([, n]) => n > 0)
+      .map(([size, n]) => ({ size, qtyClaimed: n }));
 
   const messageDirty =
     active !== null &&
@@ -195,6 +285,7 @@ export function ClaimDialog({
                   placeholder="เรื่องที่ลูกค้าแจ้ง หรือสิ่งที่เราเจอเอง"
                 />
               </Field>
+              <SizeGrid sizes={sizes} value={qtyValue} onChange={setQty} />
               <Field
                 label="ข้อความที่ลูกค้าเห็น"
                 help="ขึ้นบนลิงก์ติดตามงานแทนคำปริยาย — ไม่ใส่ก็ได้ ลูกค้าจะเห็นว่า “รับเรื่องแล้ว”"
@@ -218,7 +309,7 @@ export function ClaimDialog({
                     source: "CUSTOMER_REPORT",
                     title: title.trim(),
                     customerMessage: customerMessage?.trim() || undefined,
-                    lines: [],
+                    lines: linesOf(qtyValue),
                   });
                 }}
               >
@@ -244,6 +335,50 @@ export function ClaimDialog({
                   <dd>{active.title}</dd>
                 </div>
               </dl>
+
+              {editQty ? (
+                <div className="space-y-3 rounded-lg border border-border p-3">
+                  <SizeGrid sizes={sizes} value={qtyValue} onChange={setQty} />
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      disabled={!canDecide || pending || !qtyDirty}
+                      onClick={() => saveLines.mutate({ id: active.id, lines: linesOf(qtyValue) })}
+                    >
+                      บันทึกจำนวน
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setQty(null);
+                        setEditQty(false);
+                      }}
+                    >
+                      ยกเลิก
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                /* ขั้นที่กรอกแล้วยุบเหลือบรรทัดเดียว — กล่องจะได้ไม่ยาวขึ้นเรื่อยๆ (เบสเคาะจากหน้าลอง 2026-09-19) */
+                <button
+                  type="button"
+                  onClick={() => setEditQty(true)}
+                  className="flex w-full items-center gap-2.5 rounded-lg bg-surface-muted p-3 text-left text-sm"
+                >
+                  <span className="text-green-600 dark:text-green-400">✓</span>
+                  <span className="flex-1">
+                    {qtyTotal > 0 ? (
+                      <>
+                        เสีย <span className="font-semibold text-strong">{qtyTotal} ตัว</span> · {qtySummary}
+                      </>
+                    ) : (
+                      <span className="text-muted">ยังไม่ได้ระบุว่าเสียกี่ตัว</span>
+                    )}
+                  </span>
+                  <span className="text-sm text-blue-600 dark:text-blue-400">แก้</span>
+                </button>
+              )}
 
               {/* ที่เดียวที่เขียนข้อความถึงลูกค้า — เห็นผลก่อนกดบันทึก เพราะกล่องบนคือหน้าจอจริงของเขา
                   (ยอดเงินและคนผิดไม่เคยขึ้นหน้านั้น บรรทัดนี้คือสิ่งเดียวที่ลูกค้าอ่าน) */}

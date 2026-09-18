@@ -607,11 +607,13 @@ function OrderDetailContent({
         icon={AlertTriangle}
         action={
           <button type="button" className={c("btn sm")} onClick={() => setClaimOpen(true)}>
-            เปิดใบเคลม
+            จัดการงานแก้
           </button>
         }
       >
-        {activeClaim.claimNumber} · {claimHeadline(activeClaim)}
+        {/* เอาเลขใบเคลมออกจากที่เด่นที่สุด — คนอ่านอยากรู้ว่าเสียกี่ตัวและรออะไรอยู่
+            ไม่ใช่เลขใบ · เลขใบยังอยู่ในกล่อง (เบสเคาะจากหน้าลอง 2026-09-19) */}
+        {claimHeadline(activeClaim)}
       </Callout>
     ) : null,
     blockers.length > 0 ? (
@@ -834,7 +836,7 @@ function OrderDetailContent({
                         {canDecideClaims ? (
                           <DropdownMenu.Item className={c("mi")} onSelect={() => setClaimOpen(true)}>
                             <AlertTriangle aria-hidden="true" />
-                            {activeClaim ? "เปิดใบเคลมที่ค้างอยู่" : "แจ้งงานแก้ / เคลม"}
+                            {activeClaim ? "จัดการงานแก้ที่ค้างอยู่" : "แจ้งงานแก้ / เคลม"}
                           </DropdownMenu.Item>
                         ) : null}
                         {["DRAFT", "INQUIRY"].includes(order.internalStatus) ? (

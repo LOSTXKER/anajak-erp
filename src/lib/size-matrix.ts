@@ -6,6 +6,13 @@ import type { VariantForm } from "@/types/order-form";
 // ไซส์มาตรฐานที่โชว์เป็นช่องประจำ (เพิ่มไซส์อื่น XS/4XL/5XL/เด็ก/ตัวเลข ได้เอง)
 export const STANDARD_SIZES = ["S", "M", "L", "XL", "2XL", "3XL"] as const;
 
+/** ลำดับไซส์บนจอ — มาตรฐานก่อนตามลำดับจริง ไซส์แปลกไปท้ายสุด (ใช้ร่วมทุกจอที่เรียงไซส์)
+ *  เดิมแต่ละจอเขียน sizeRank ของตัวเอง ทำให้ S/M/L เรียงไม่เหมือนกันได้ */
+export function sizeRank(size: string): number {
+  const index = (STANDARD_SIZES as readonly string[]).indexOf(size);
+  return index < 0 ? STANDARD_SIZES.length : index;
+}
+
 /** สร้าง variants จาก [ไซส์, จำนวน][] + สีร่วม — เก็บเฉพาะไซส์ที่มีจำนวน > 0 (คงลำดับ) */
 export function buildSizeVariants(sizeQty: [string, number][], color: string): VariantForm[] {
   const c = color.trim();

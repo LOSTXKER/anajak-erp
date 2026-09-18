@@ -2,11 +2,12 @@ import { z } from "zod";
 import { router, protectedProcedure, requirePermission } from "../trpc";
 import { byIdInput } from "@/server/schemas";
 import { badRequest, notFound } from "@/server/errors";
-import { createAuditLog } from "@/server/helpers";
+import { createAuditLog, createNotification } from "@/server/helpers";
 import { openClaim, sumClaimLines } from "@/server/services/claim";
 import { lockOrderRow } from "@/server/services/order-cost";
 import { addOrderRevision, reopenProductionsForRework, transitionOrder } from "@/server/services/order-status";
 import { claimCloseBlockers, resolutionNeedsRework } from "@/lib/claim";
+import { sizeRank } from "@/lib/size-matrix";
 import { getFlowSteps, getNextStatuses, INTERNAL_STATUS_LABELS } from "@/lib/order-status";
 import type { InternalStatus, OrderType } from "@prisma/client";
 import { backStepToward } from "@/lib/order-status-rail";
@@ -63,6 +64,78 @@ export const claimRouter = router({
       });
     }),
 
+  /**
+   * ไซซ์ของออเดอร์นี้ + ส่งไปไซซ์ละกี่ตัว — ให้ช่องกรอก "เสียกี่ตัว" มีกรอบอ้างอิง
+   * (เบสยืนยัน 2026-09-18 ว่าหน้างานนับรายไซซ์ · เคาะหน้าตา 2026-09-19 จากหน้าลอง)
+   * รวมข้ามรายการสินค้าในออเดอร์ เพราะใบเคลมนับเป็น "ของทั้งใบ" ไม่ได้แยกตามแถวสินค้า
+   */
+  orderSizes: protectedProcedure
+    .input(z.object({ orderId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const variants = await ctx.prisma.orderItemVariant.findMany({
+        where: { orderItemProduct: { orderItem: { orderId: input.orderId } } },
+        select: { size: true, quantity: true },
+      });
+      const sent = new Map<string, number>();
+      for (const variant of variants) {
+        sent.set(variant.size, (sent.get(variant.size) ?? 0) + variant.quantity);
+      }
+      return [...sent.entries()]
+        .map(([size, qty]) => ({ size, sent: qty }))
+        .sort((a, b) => sizeRank(a.size) - sizeRank(b.size) || a.size.localeCompare(b.size));
+    }),
+
+  /**
+   * แก้จำนวนที่เสียรายไซซ์ของใบที่เปิดแล้ว — แทนของเดิมทั้งชุด (เหมือนแก้รายการออเดอร์)
+   * ใบที่จบแล้วห้ามแก้ เพราะจำนวนคือฐานของเอกสารเงินที่ออกไปแล้ว
+   */
+  setLines: protectedProcedure
+    .use(claimDecider)
+    .input(
+      byIdInput.extend({
+        lines: z
+          .array(
+            z.object({
+              size: z.string().trim().min(1),
+              color: z.string().trim().max(60).optional(),
+              qtyClaimed: z.number().int().min(1),
+            }),
+          )
+          .max(40),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const claim = await ctx.prisma.orderClaim.findUnique({
+        where: { id: input.id },
+        select: { id: true, state: true, orderId: true, claimNumber: true },
+      });
+      if (!claim) notFound("ใบเคลม", input.id);
+      if (claim.state === "CLOSED" || claim.state === "CANCELLED") {
+        badRequest("ใบเคลมนี้จบไปแล้ว — แก้จำนวนย้อนหลังไม่ได้ เปิดใบใหม่ถ้ามีของเสียเพิ่ม");
+      }
+      const total = input.lines.reduce((sum, line) => sum + line.qtyClaimed, 0);
+      return ctx.prisma.$transaction(async (tx) => {
+        await tx.orderClaimLine.deleteMany({ where: { claimId: claim.id } });
+        if (input.lines.length > 0) {
+          await tx.orderClaimLine.createMany({
+            data: input.lines.map((line) => ({
+              claimId: claim.id,
+              size: line.size,
+              color: line.color ?? null,
+              qtyClaimed: line.qtyClaimed,
+            })),
+          });
+        }
+        await addOrderRevision(tx, {
+          orderId: claim.orderId,
+          changedBy: ctx.userId!,
+          changeType: "CLAIM",
+          description: `แก้จำนวนที่เสียของใบเคลม ${claim.claimNumber}: รวม ${total} ตัว`,
+        });
+        return { total };
+      });
+    }),
+
   open: protectedProcedure
     .use(claimDecider)
     .input(
@@ -92,8 +165,8 @@ export const claimRouter = router({
       });
       if (!order) notFound("ออเดอร์", input.orderId);
 
-      const claim = await ctx.prisma.$transaction(async (tx) =>
-        openClaim(tx, {
+      const claim = await ctx.prisma.$transaction(async (tx) => {
+        const created = await openClaim(tx, {
           orderId: order.id,
           customerId: order.customerId,
           source: input.source,
@@ -103,8 +176,26 @@ export const claimRouter = router({
           customerMessage: input.customerMessage,
           openedById: ctx.userId!,
           lines: input.lines,
-        }),
-      );
+        });
+        // เปิดใบเองต้องเตือนเหมือนตอนของตีกลับ — เรื่องเดียวกัน ต่างแค่ทางเข้า
+        // (ก่อนหน้านี้เตือนเฉพาะทางตีกลับ ผู้จัดการจึงไม่รู้เรื่องที่ฝ่ายขายรับมาเอง)
+        const managers = await tx.user.findMany({
+          where: { role: { in: ["OWNER", "MANAGER"] }, isActive: true },
+          select: { id: true },
+        });
+        for (const manager of managers) {
+          await createNotification(tx, {
+            userId: manager.id,
+            type: "ORDER",
+            title: `เปิดงานแก้ รอบที่ ${created.round} — ${order.orderNumber}`,
+            message: `${input.title} · เปิดกล่องงานแก้บนหัวใบออเดอร์เพื่อตัดสินและสั่งงานแก้`,
+            link: `/orders/${order.id}`,
+            entityType: "ORDER",
+            entityId: order.id,
+          });
+        }
+        return created;
+      });
 
       await createAuditLog(ctx.prisma, {
         userId: ctx.userId!,

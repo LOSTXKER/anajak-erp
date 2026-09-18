@@ -114,6 +114,13 @@ export type ControlSurface = "field" | "raised" | "inline";
 export const INLINE_CONTROL_SURFACE =
   "border-transparent bg-transparent shadow-none";
 
+/** ปุ่มที่กดไม่ได้ — กติกาเดียวกับ field (muted surface ไม่จางทั้งก้อน) แต่ต้องใส่ `!`
+ *  เพราะ bg ของ variant (ปุ่มหลัก = bg-blue-600) ทับ disabled:bg-surface-muted
+ *  ผลคือปุ่มที่กดไม่ได้ยังทึบเป็นสีน้ำเงินเต็ม เปลี่ยนแค่สีตัวอักษร คนจึงกดแล้วงงว่าทำไมเงียบ
+ *  (เจอตอนเทสบนเว็บจริง 2026-09-19 — ด่าน verify:ui เช็คเฉพาะ variant outline จึงไม่เคยจับได้) */
+export const DISABLED_BUTTON =
+  "disabled:border-border! disabled:bg-surface-muted! disabled:text-muted! disabled:shadow-none disabled:opacity-100";
+
 /** disabled ยังต้องอ่านค่าและเห็นรูปทรงได้ — ใช้ muted fill โดยไม่ลด opacity ทั้งก้อน */
 export const DISABLED_CONTROL_SURFACE =
   "disabled:border-border disabled:bg-surface-muted disabled:text-muted disabled:shadow-none disabled:opacity-100";
