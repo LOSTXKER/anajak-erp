@@ -11,6 +11,7 @@ import { randomBytes } from "crypto";
 import { TRPCError } from "@trpc/server";
 import { withFileToken } from "@/lib/file-urls";
 import { CUSTOMER_STATUS_LABELS } from "@/lib/order-status";
+import { describeReworkForCustomer } from "@/lib/claim-customer";
 import type { PrismaTx } from "@/lib/prisma";
 import type { CustomerStatus } from "@prisma/client";
 import { customerDisplayName } from "@/lib/customer-name";
@@ -113,6 +114,21 @@ export async function getOrderStatusByToken(
           },
         },
       },
+      // รอบแก้งานที่ยังไม่จบ (ก้อน 1) — เอาไปแปลงเป็นคำที่ลูกค้าอ่านได้เท่านั้น
+      // ห้ามดึง title/detail/fault/faultNote/agreed* หรือ claimNumber ออกมาเด็ดขาด:
+      // นั่นคือบันทึกภายใน (ใครผิด เงินเท่าไร) ที่เขียนไว้คุยกันในทีม ไม่ใช่คุยกับลูกค้า
+      claims: {
+        where: { state: { in: ["OPEN", "DECIDED"] } },
+        orderBy: { round: "desc" },
+        take: 1,
+        select: {
+          round: true,
+          state: true,
+          resolution: true,
+          customerMessage: true,
+          steps: { select: { status: true } },
+        },
+      },
     },
   });
 
@@ -129,12 +145,27 @@ export async function getOrderStatusByToken(
 
   const design = order.designs[0] ?? null;
 
+  // งานแก้รอบล่าสุดที่ยังไม่จบ — ถ้าไม่มี หน้าลูกค้าก็ทำงานเหมือนเดิมทุกอย่าง
+  const claim = order.claims[0] ?? null;
+  const rework = describeReworkForCustomer(
+    claim && {
+      round: claim.round,
+      state: claim.state,
+      resolution: claim.resolution,
+      customerMessage: claim.customerMessage,
+      reworkSteps: claim.steps.length,
+      openReworkSteps: claim.steps.filter((step) => step.status !== "COMPLETED").length,
+    },
+  );
+
   return {
     orderNumber: order.orderNumber,
     customerName: customerDisplayName(order.customer),
     deadline: order.deadline,
     createdAt: order.createdAt,
     customerStatus: order.customerStatus,
+    // รอบแก้งาน: ข้อความสำเร็จรูปล้วน (ดูเหตุผลใน lib/claim-customer) — null = ไม่มีเรื่องค้าง
+    rework,
     // blindShip: กลบแบรนด์ Anajak (reseller อาจส่งลิงก์ต่อให้ปลายทาง)
     isBlindShip: order.blindShip,
     brandName: order.blindShip

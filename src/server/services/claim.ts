@@ -20,6 +20,8 @@ export interface OpenClaimParams {
   detail?: string | null;
   /** วันที่ลูกค้าแจ้ง — ไม่ใช่วันที่เราเปิดใบ (เคลมย้อนหลังมีจริง) */
   reportedAt?: Date;
+  /** ข้อความที่ลูกค้าเห็นบนลิงก์ติดตามงาน — ไม่ใส่ = หน้านั้นใช้คำปริยายของแต่ละขั้น */
+  customerMessage?: string | null;
   openedById: string;
   sourceDeliveryId?: string | null;
   sourceQcRecordId?: string | null;
@@ -43,6 +45,7 @@ export async function openClaim(tx: PrismaTx, params: OpenClaimParams) {
       title: params.title,
       detail: params.detail ?? null,
       reportedAt: params.reportedAt ?? new Date(),
+      customerMessage: params.customerMessage ?? null,
       openedById: params.openedById,
       sourceDeliveryId: params.sourceDeliveryId ?? null,
       sourceQcRecordId: params.sourceQcRecordId ?? null,

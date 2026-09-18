@@ -21,6 +21,7 @@ import { StatusLabel, toneFromBadgeVariant } from "@/components/ui/status-label"
 import { DueTag } from "@/components/ui/due-tag";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { ActionZone } from "@/components/ui/action-zone";
 import { PublicLinkError } from "@/components/public-link-error";
 import {
@@ -36,6 +37,45 @@ import { Package, CheckCircle2, Palette, FileText, Truck, ExternalLink, Check, X
 // (เคยประกาศเอง 4 ชุดแล้ว drift: สี PARTIALLY_PAID กับคำหลายตัวไม่ตรงฝั่งทีม)
 
 const baht = formatBaht;
+
+type RailStep = { label: string; state: "done" | "current" | "todo" };
+
+/** แถบขั้นแนวตั้ง — ใช้ทั้งเส้นทางงานปกติและรอบแก้งาน ลูกค้าจะได้ไม่ต้องอ่านหน้าตาใหม่
+ *  วงกลม 24px ไม่มีตัวเลข: ผ่านแล้ว = ติ๊กพื้นเขียวจาง · ขั้นนี้ = วงทึบ · ยังไม่ถึง = ขอบบาง
+ *  ขั้นปัจจุบันเน้นด้วยน้ำหนัก/ความเข้ม ไม่ย้อมสี (กฎโฟกัส: ขนาด-น้ำหนักก่อนสี) */
+function StepRail({ steps }: { steps: RailStep[] }) {
+  return (
+    <ol className="mt-3">
+      {steps.map((step) => (
+        <li key={step.label} className="flex items-center gap-2.5 py-2">
+          <span
+            className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
+              step.state === "done"
+                ? "bg-green-50 text-green-700 dark:bg-green-950/40 dark:text-green-300"
+                : step.state === "current"
+                  ? "bg-blue-600"
+                  : "border border-border"
+            }`}
+            aria-hidden="true"
+          >
+            {step.state === "done" ? <Check className="h-3.5 w-3.5" /> : null}
+          </span>
+          <span
+            className={
+              step.state === "current"
+                ? "text-sm font-semibold text-strong"
+                : step.state === "done"
+                  ? "text-sm text-secondary"
+                  : "text-sm text-muted"
+            }
+          >
+            {step.label}
+          </span>
+        </li>
+      ))}
+    </ol>
+  );
+}
 
 export default function OrderStatusPage({
   params,
@@ -62,6 +102,9 @@ export default function OrderStatusPage({
 
   const d = status.data;
   const cancelled = d.customerStatus === "CANCELLED";
+  // รอบแก้งานที่ยังไม่จบ — มีเมื่อไรต้องเล่าเรื่องนี้แทนเส้นทางงานปกติ ไม่งั้นแถบความคืบหน้า
+  // จะเดินถอยหลังเงียบๆ (สั่งงานแก้ = ออเดอร์ถอยจาก "จัดส่งแล้ว" กลับไป "กำลังผลิต")
+  const rework = d.rework;
   const currentIdx = d.steps.findIndex((s) => s.status === d.customerStatus);
   const currentLabel = CUSTOMER_STATUS_LABELS[d.customerStatus];
   const dueInDays = differenceInBangkokDays(d.deadline, status.dataUpdatedAt);
@@ -90,6 +133,23 @@ export default function OrderStatusPage({
               </div>
             </CardContent>
           </Card>
+        ) : rework ? (
+          /* รอบแก้งาน: เล่าเรื่อง "เรากำลังแก้ให้" แทนเส้นทางงานปกติ — เส้นทางเดิมเดินถอยหลัง
+             อยู่จริงในระบบ ถ้าโชว์ตามตรงลูกค้าจะเห็นขั้นที่เคยผ่านแล้วกลายเป็นยังไม่ถึงเฉยๆ
+             ไม่โชว์กำหนดส่งเดิมด้วย: วันนั้นเลยไปแล้วตั้งแต่ของออกจากร้าน ป้ายแดง "เลยกำหนด"
+             ข้างคำว่ากำลังแก้ให้ = เอาความผิดไปวางไว้ผิดที่ · วันส่งรอบใหม่ให้ร้านเขียนในข้อความ */
+          <Card>
+            <CardContent className="p-4.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <StatusLabel label={rework.headline} tone="warning" emphasize className="text-sm" />
+                {rework.round > 1 && <Badge variant="warning">รอบแก้ที่ {rework.round}</Badge>}
+              </div>
+              {rework.steps.length > 0 && <StepRail steps={rework.steps} />}
+              <p className={`text-sm leading-relaxed text-secondary ${rework.steps.length > 0 ? "mt-1" : "mt-2"}`}>
+                {rework.note}
+              </p>
+            </CardContent>
+          </Card>
         ) : (
           <Card>
             <CardContent className="p-4.5">
@@ -109,41 +169,12 @@ export default function OrderStatusPage({
                   </span>
                 )}
               </div>
-              <ol className="mt-3">
-                {d.steps.map((s, i) => {
-                  const done = i < currentIdx;
-                  const current = i === currentIdx;
-                  return (
-                    <li key={s.status} className="flex items-center gap-2.5 py-2">
-                      {/* วงกลม 24px ไม่มีตัวเลข: ผ่านแล้ว = ติ๊กพื้นเขียวจาง · ขั้นนี้ = วงทึบ · ยังไม่ถึง = ขอบบาง */}
-                      <span
-                        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
-                          done
-                            ? "bg-green-50 text-green-700 dark:bg-green-950/40 dark:text-green-300"
-                            : current
-                              ? "bg-blue-600"
-                              : "border border-border"
-                        }`}
-                        aria-hidden="true"
-                      >
-                        {done ? <Check className="h-3.5 w-3.5" /> : null}
-                      </span>
-                      {/* ขั้นปัจจุบันเน้นด้วยน้ำหนัก/ความเข้ม ไม่ย้อมสี (กฎโฟกัส: ขนาด-น้ำหนักก่อนสี) */}
-                      <span
-                        className={
-                          current
-                            ? "text-sm font-semibold text-strong"
-                            : done
-                              ? "text-sm text-secondary"
-                              : "text-sm text-muted"
-                        }
-                      >
-                        {s.label}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ol>
+              <StepRail
+                steps={d.steps.map((s, i) => ({
+                  label: s.label,
+                  state: i < currentIdx ? "done" : i === currentIdx ? "current" : "todo",
+                }))}
+              />
               <p className="mt-1 text-sm leading-relaxed text-muted">
                 ตอนนี้อยู่ขั้น{currentLabel} — ทีมงานจะอัปเดตให้อีกครั้งเมื่อขั้นถัดไปเริ่ม
               </p>
@@ -229,6 +260,11 @@ export default function OrderStatusPage({
                   )}
                   {dv.deliveredAt && (
                     <p className="text-sm text-green-700 dark:text-green-300">ถึงปลายทาง {formatDate(dv.deliveredAt)}</p>
+                  )}
+                  {/* ของที่กลับมาที่ร้านตอนมีรอบแก้ — บอกตรงนี้ว่ากลับมาทำไม ไม่ให้ป้ายสถานะ
+                      ลอยอยู่เฉยๆ จนลูกค้าเดาว่าของหายหรือถูกปฏิเสธ */}
+                  {dv.status === "RETURNED" && rework && (
+                    <p className="mt-1 text-sm text-secondary">ของชุดนี้กลับมาที่ร้านเพื่อแก้ให้แล้ว</p>
                   )}
                   {dv.lines.length > 0 && (
                     <ul className="mt-2 space-y-0.5 text-sm text-muted">

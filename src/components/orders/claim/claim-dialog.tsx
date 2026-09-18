@@ -26,6 +26,7 @@ import {
   claimHeadline,
   resolutionNeedsRework,
 } from "@/lib/claim";
+import { describeReworkForCustomer } from "@/lib/claim-customer";
 
 // กล่องงานแก้/เคลมของออเดอร์ — เปิดจากแถบบนหัวใบ (ไม่เพิ่มแท็บและไม่เพิ่มการ์ดในหน้า
 // ตามที่เบสเคยตีกลับงานที่เพิ่มการ์ดจนรก) กล่องเดียวทำได้ครบวงจร: เปิดเรื่อง → ตัดสิน →
@@ -49,6 +50,7 @@ type ClaimRow = {
   openReworkSteps: number;
   steps: { id: string }[];
   closeNote: string | null;
+  customerMessage: string | null;
 };
 
 const RESOLUTIONS = Object.keys(CLAIM_RESOLUTION_LABELS);
@@ -90,6 +92,14 @@ export function ClaimDialog({
     onSuccess: () => toast.success("สั่งงานแก้เข้าสายผลิตแล้ว"),
     onError: () => {},
   });
+  const saveMessage = useMutationWithInvalidation(trpc.claim.setCustomerMessage, {
+    invalidate: [...invalidate],
+    onSuccess: () => {
+      setCustomerMessage(null);
+      toast.success("อัปเดตข้อความที่ลูกค้าเห็นแล้ว");
+    },
+    onError: () => {},
+  });
   const closeClaim = useMutationWithInvalidation(trpc.claim.close, {
     invalidate: [...invalidate],
     onSuccess: () => toast.success("ปิดใบเคลมแล้ว"),
@@ -104,17 +114,41 @@ export function ClaimDialog({
   const [fault, setFault] = useState("SHOP");
   const [amount, setAmount] = useState("");
   const [closeNote, setCloseNote] = useState("");
+  // ข้อความที่ลูกค้าเห็นบนลิงก์ติดตามงาน — null = ยังไม่ได้พิมพ์อะไรในรอบนี้ (ใช้ค่าจากใบ)
+  const [customerMessage, setCustomerMessage] = useState<string | null>(null);
 
   const pending =
-    open.isPending || decide.isPending || startRework.isPending || closeClaim.isPending;
+    open.isPending ||
+    decide.isPending ||
+    startRework.isPending ||
+    saveMessage.isPending ||
+    closeClaim.isPending;
   const error =
     open.error?.message ??
     decide.error?.message ??
     startRework.error?.message ??
+    saveMessage.error?.message ??
     closeClaim.error?.message ??
     null;
 
   const needsAmount = resolution === "DISCOUNT" || resolution === "REFUND" || resolution === "EXTRA_CHARGE";
+
+  // สิ่งที่ลูกค้าเห็นอยู่ตอนนี้ — คิดด้วยฟังก์ชันตัวเดียวกับที่ server ใช้ จะได้ไม่เพี้ยนกัน
+  const customerView = active
+    ? describeReworkForCustomer({
+        round: active.round,
+        state: active.state,
+        resolution: active.resolution,
+        customerMessage: (customerMessage ?? active.customerMessage ?? "").trim() || null,
+        reworkSteps: active.steps.length,
+        openReworkSteps: active.openReworkSteps,
+      })
+    : null;
+
+  const messageDirty =
+    active !== null &&
+    customerMessage !== null &&
+    customerMessage.trim() !== (active.customerMessage ?? "").trim();
 
   const blockers = active
     ? claimCloseBlockers({
@@ -161,6 +195,17 @@ export function ClaimDialog({
                   placeholder="เรื่องที่ลูกค้าแจ้ง หรือสิ่งที่เราเจอเอง"
                 />
               </Field>
+              <Field
+                label="ข้อความที่ลูกค้าเห็น"
+                help="ขึ้นบนลิงก์ติดตามงานแทนคำปริยาย — ไม่ใส่ก็ได้ ลูกค้าจะเห็นว่า “รับเรื่องแล้ว”"
+              >
+                <Textarea
+                  value={customerMessage ?? ""}
+                  onChange={(event) => setCustomerMessage(event.target.value)}
+                  rows={2}
+                  placeholder="เช่น รับเรื่องแล้วค่ะ ขอตรวจของก่อน จะแจ้งกลับภายในพรุ่งนี้"
+                />
+              </Field>
               <Button
                 disabled={!canDecide || pending}
                 onClick={() => {
@@ -168,7 +213,13 @@ export function ClaimDialog({
                     setShowTitleError(true);
                     return;
                   }
-                  open.mutate({ orderId, source: "CUSTOMER_REPORT", title: title.trim(), lines: [] });
+                  open.mutate({
+                    orderId,
+                    source: "CUSTOMER_REPORT",
+                    title: title.trim(),
+                    customerMessage: customerMessage?.trim() || undefined,
+                    lines: [],
+                  });
                 }}
               >
                 เปิดใบเคลม
@@ -193,6 +244,35 @@ export function ClaimDialog({
                   <dd>{active.title}</dd>
                 </div>
               </dl>
+
+              {/* ที่เดียวที่เขียนข้อความถึงลูกค้า — เห็นผลก่อนกดบันทึก เพราะกล่องบนคือหน้าจอจริงของเขา
+                  (ยอดเงินและคนผิดไม่เคยขึ้นหน้านั้น บรรทัดนี้คือสิ่งเดียวที่ลูกค้าอ่าน) */}
+              {customerView ? (
+                <div className="space-y-2 rounded-lg border border-border bg-surface-muted p-3">
+                  <div>
+                    <p className="text-xs text-muted">ลูกค้าเห็นบนลิงก์ติดตามงานตอนนี้</p>
+                    <p className="mt-0.5 text-sm font-medium text-strong">{customerView.headline}</p>
+                    <p className="text-sm text-secondary">{customerView.note}</p>
+                  </div>
+                  <Textarea
+                    value={customerMessage ?? active.customerMessage ?? ""}
+                    onChange={(event) => setCustomerMessage(event.target.value)}
+                    rows={2}
+                    placeholder="เขียนเองได้ เช่น ทำใหม่ให้ 12 ตัว ส่งกลับวันศุกร์ที่ 25 ก.ย. ค่ะ"
+                  />
+                  {messageDirty ? (
+                    <Button
+                      size="sm"
+                      disabled={!canDecide || pending}
+                      onClick={() =>
+                        saveMessage.mutate({ id: active.id, customerMessage: (customerMessage ?? "").trim() })
+                      }
+                    >
+                      บันทึกข้อความ
+                    </Button>
+                  ) : null}
+                </div>
+              ) : null}
 
               {active.state === "OPEN" ? (
                 <div className="space-y-3 rounded-lg border border-border p-3">

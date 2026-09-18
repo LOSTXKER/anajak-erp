@@ -71,6 +71,8 @@ export const claimRouter = router({
         source: z.enum(["CUSTOMER_REPORT", "INTERNAL_FOUND", "QC_AFTER_DELIVERY"]),
         title: z.string().trim().min(1, "ใส่เรื่องที่เกิดขึ้นสั้นๆ ก่อน").max(200),
         detail: z.string().trim().max(2000).optional(),
+        // ข้อความที่ลูกค้าเห็นบนลิงก์ติดตามงาน — ไม่ใส่ก็ได้ หน้านั้นมีคำปริยายของแต่ละขั้นอยู่แล้ว
+        customerMessage: z.string().trim().max(500).optional(),
         reportedAt: z.coerce.date().optional(),
         lines: z
           .array(
@@ -98,6 +100,7 @@ export const claimRouter = router({
           title: input.title,
           detail: input.detail,
           reportedAt: input.reportedAt,
+          customerMessage: input.customerMessage,
           openedById: ctx.userId!,
           lines: input.lines,
         }),
@@ -190,6 +193,31 @@ export const claimRouter = router({
         },
       });
       return updated;
+    }),
+
+  /**
+   * ข้อความที่ลูกค้าเห็นบนลิงก์ติดตามงาน — ทางเขียนทางเดียวของ field นี้
+   *
+   * แยกออกมาเป็นคำสั่งของตัวเองแทนที่จะพ่วงกับ "ตัดสิน" เพราะจังหวะที่อยากบอกลูกค้ามากที่สุด
+   * (นัดวันส่งรอบใหม่) มักมาทีหลังการตัดสิน และการแก้ข้อความไม่ควรไปทับว่าใครตัดสินเมื่อไร
+   * ใบที่จบแล้วห้ามแก้ — หน้าลูกค้าไม่แสดงใบที่จบแล้วอยู่แล้ว แก้ไปก็ไม่มีใครเห็น
+   */
+  setCustomerMessage: protectedProcedure
+    .use(claimDecider)
+    .input(byIdInput.extend({ customerMessage: z.string().trim().max(500) }))
+    .mutation(async ({ ctx, input }) => {
+      const claim = await ctx.prisma.orderClaim.findUnique({
+        where: { id: input.id },
+        select: { id: true, state: true },
+      });
+      if (!claim) notFound("ใบเคลม", input.id);
+      if (claim.state === "CLOSED" || claim.state === "CANCELLED") {
+        badRequest("ใบเคลมนี้จบไปแล้ว — ลูกค้าไม่เห็นข้อความของใบนี้บนหน้าติดตามงานแล้ว");
+      }
+      return ctx.prisma.orderClaim.update({
+        where: { id: claim.id },
+        data: { customerMessage: input.customerMessage || null },
+      });
     }),
 
   /**
