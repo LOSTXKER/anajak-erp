@@ -685,11 +685,15 @@ export const orderRouter = router({
 
       const ordersWithPayment = orders.map((order) => {
         const invoices = order.invoices;
-        let paymentLabel: "paid" | "unpaid" | "partial" | "none" = "none";
+        let paymentLabel: "paid" | "unpaid" | "partial" | "overdue" | "none" = "none";
         if (invoices.length > 0) {
+          // เลยกำหนดจ่ายมาก่อนทุกสถานะ — ใบที่มีบิลเกินกำหนดแม้แต่ใบเดียวคือใบที่ต้องตามก่อนเพื่อน
+          // (เดิมคอลัมน์นี้ส่งแค่ paid/partial/unpaid ตารางจึงไม่มีทางแยกใบเลยกำหนดออกจากใบที่เพิ่งเปิด)
+          const anyOverdue = invoices.some((inv) => inv.paymentStatus === "OVERDUE");
           const allPaid = invoices.every((inv) => inv.paymentStatus === "PAID");
           const anyPaid = invoices.some((inv) => inv.paymentStatus === "PAID" || inv.paymentStatus === "PARTIALLY_PAID");
-          if (allPaid) paymentLabel = "paid";
+          if (anyOverdue) paymentLabel = "overdue";
+          else if (allPaid) paymentLabel = "paid";
           else if (anyPaid) paymentLabel = "partial";
           else paymentLabel = "unpaid";
         }

@@ -132,6 +132,7 @@ export const PAYMENT_LABEL_TO_STATUS = {
   paid: "PAID",
   partial: "PARTIALLY_PAID",
   unpaid: "UNPAID",
+  overdue: "OVERDUE",
 } as const;
 
 /* ============================================================

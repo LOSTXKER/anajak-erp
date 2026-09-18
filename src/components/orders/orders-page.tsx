@@ -80,6 +80,7 @@ function exportOrdersCsv(
     paid: PAYMENT_STATUS_LABELS.PAID,
     unpaid: PAYMENT_STATUS_LABELS.UNPAID,
     partial: PAYMENT_STATUS_LABELS.PARTIALLY_PAID,
+    overdue: PAYMENT_STATUS_LABELS.OVERDUE,
     none: "—",
   };
   const rows = orders.map((o) => [
