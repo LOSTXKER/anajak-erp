@@ -28,6 +28,7 @@ import {
   validateDemoSeedInvocation,
 } from "../src/lib/demo-seed-plan";
 import { FORM_ROUTES, seedWorkOrderFormStates } from "./seed-demo-form-states";
+import { seedDemoClaims } from "./seed-demo-claims";
 
 const prisma = new PrismaClient();
 const DAY_MS = 24 * 60 * 60 * 1_000;
@@ -191,6 +192,14 @@ const customerSeeds = [
     phone: "02-000-1101",
     email: "purchasing@northstar.example.invalid",
     taxId: "0105550001101",
+    address: "1188/42 อาคารนอร์ทสตาร์ ชั้น 9 ถนนพระราม 9\nห้วยขวาง ห้วยขวาง กรุงเทพมหานคร 10310",
+    billingAddress: "1188/42 อาคารนอร์ทสตาร์ ชั้น 9 ถนนพระราม 9",
+    billingSubDistrict: "ห้วยขวาง",
+    billingDistrict: "ห้วยขวาง",
+    billingProvince: "กรุงเทพมหานคร",
+    billingPostalCode: "10310",
+    branchNumber: "00000",
+    lineId: "@northstar.retail",
     tags: ["B2B", "เครดิต 30 วัน"],
     defaultPaymentTerms: "NET_30",
     creditLimit: money(250_000),
@@ -204,6 +213,14 @@ const customerSeeds = [
     phone: "080-000-2202",
     email: "team@runclub.example.invalid",
     taxId: "0105550002202",
+    address: "55/7 ซอยสุขุมวิท 31\nคลองตันเหนือ วัฒนา กรุงเทพมหานคร 10110",
+    billingAddress: "55/7 ซอยสุขุมวิท 31",
+    billingSubDistrict: "คลองตันเหนือ",
+    billingDistrict: "วัฒนา",
+    billingProvince: "กรุงเทพมหานคร",
+    billingPostalCode: "10110",
+    branchNumber: "00000",
+    lineId: "@bkkrunclub",
     tags: ["อีเวนต์", "สั่งซ้ำ"],
     defaultPaymentTerms: "DEPOSIT_50",
     creditLimit: money(100_000),
@@ -217,6 +234,14 @@ const customerSeeds = [
     phone: "081-000-3303",
     email: "alumni@campus.example.invalid",
     taxId: "0105550003303",
+    address: "254 ถนนพญาไท อาคารสมาคมศิษย์เก่า\nวังใหม่ ปทุมวัน กรุงเทพมหานคร 10330",
+    billingAddress: "254 ถนนพญาไท อาคารสมาคมศิษย์เก่า",
+    billingSubDistrict: "วังใหม่",
+    billingDistrict: "ปทุมวัน",
+    billingProvince: "กรุงเทพมหานคร",
+    billingPostalCode: "10330",
+    branchNumber: "00000",
+    lineId: "@arch.alumni",
     tags: ["มหาวิทยาลัย"],
     defaultPaymentTerms: "NET_30",
     creditLimit: money(150_000),
@@ -230,6 +255,14 @@ const customerSeeds = [
     phone: "082-000-4404",
     email: "hello@riveryard.example.invalid",
     taxId: "0105550004404",
+    address: "9/3 ถนนเจริญนคร ริมแม่น้ำ\nคลองต้นไทร คลองสาน กรุงเทพมหานคร 10600",
+    billingAddress: "9/3 ถนนเจริญนคร ริมแม่น้ำ",
+    billingSubDistrict: "คลองต้นไทร",
+    billingDistrict: "คลองสาน",
+    billingProvince: "กรุงเทพมหานคร",
+    billingPostalCode: "10600",
+    branchNumber: "00000",
+    lineId: "@riveryard",
     tags: ["ร้านอาหาร", "นำเสื้อมาเอง"],
     defaultPaymentTerms: "FULL_PREPAY",
     creditLimit: money(50_000),
@@ -243,6 +276,14 @@ const customerSeeds = [
     phone: "083-000-5505",
     email: "project@seathai.example.invalid",
     taxId: "0105550005505",
+    address: "401 อาคารทะเลไทย ถนนสาทรใต้\nทุ่งมหาเมฆ สาทร กรุงเทพมหานคร 10120",
+    billingAddress: "401 อาคารทะเลไทย ถนนสาทรใต้",
+    billingSubDistrict: "ทุ่งมหาเมฆ",
+    billingDistrict: "สาทร",
+    billingProvince: "กรุงเทพมหานคร",
+    billingPostalCode: "10120",
+    branchNumber: "00001",
+    lineId: "@seathai.project",
     tags: ["องค์กร", "งานด่วน"],
     defaultPaymentTerms: "DEPOSIT_50",
     creditLimit: money(300_000),
@@ -256,11 +297,37 @@ const customerSeeds = [
     phone: "084-000-6606",
     email: "studio@sunday.example.invalid",
     taxId: "0105550006606",
+    address: "77 ซอยลาดพร้าว 71 แยก 4\nสะพานสอง วังทองหลาง กรุงเทพมหานคร 10310",
+    billingAddress: "77 ซอยลาดพร้าว 71 แยก 4",
+    billingSubDistrict: "สะพานสอง",
+    billingDistrict: "วังทองหลาง",
+    billingProvince: "กรุงเทพมหานคร",
+    billingPostalCode: "10310",
+    branchNumber: "00000",
+    lineId: "@sundaystudio",
     tags: ["แบรนด์", "Blind ship"],
     defaultPaymentTerms: "NET_15",
     creditLimit: money(120_000),
   },
 ] satisfies Prisma.CustomerCreateManyInput[];
+
+/** สำเนาผู้ซื้อที่ต้องติดไปกับเอกสาร — เอกสารที่มีชื่อผู้ซื้อแต่ไม่มีที่อยู่จะพิมพ์ออกมา
+ *  ไม่มีที่อยู่เลย เพราะฝั่งอ่านถือว่า "มี snapshot แล้ว" และห้ามผสมค่าสด
+ *  (lib/customer-doc-address.ts) — ใบกำกับภาษีเต็มรูปต้องมีที่อยู่ผู้ซื้อตาม ม.86/4 */
+function buyerSnapshot(customer: (typeof customerSeeds)[number]) {
+  return {
+    buyerName: customer.name,
+    buyerCompany: customer.company,
+    buyerTaxId: customer.taxId,
+    buyerPhone: customer.phone,
+    buyerAddress: customer.billingAddress,
+    buyerSubDistrict: customer.billingSubDistrict,
+    buyerDistrict: customer.billingDistrict,
+    buyerProvince: customer.billingProvince,
+    buyerPostalCode: customer.billingPostalCode,
+    buyerBranchNumber: customer.branchNumber,
+  };
+}
 
 type SeededOrder = {
   id: string;
@@ -869,7 +936,7 @@ async function main() {
   const seeded = new Map<string, SeededOrder>();
   const dtfTimelines = {
     printing: {
-      createdAt: fromNow(-1),
+      createdAt: fromNow(0, -4),
       printedAt: null,
       completedAt: null,
     },
@@ -1198,6 +1265,14 @@ async function main() {
               scenario.key === "packing" ? customer.company : null,
             stockReservedAt: isStockPickReady ? fromNow(-2) : null,
             stockReservationError: stockBlockerReason,
+            // ลิงก์ให้ลูกค้าเปิดเอง — ของจริงสุ่ม 64 ตัวอักษรตอนกดสร้าง ที่นี่ตั้งให้อ่านออก
+            // จะได้พิมพ์ URL ลองได้ทันที; ใบแรก (inquiry) เว้นไว้ให้ลองกดสร้างลิงก์เอง
+            statusToken:
+              scenario.key === "inquiry" ? null : `demo-status-${scenario.key}`,
+            statusTokenExpiresAt: scenario.key === "inquiry" ? null : fromNow(30),
+            uploadToken:
+              scenario.key === "inquiry" ? null : `demo-upload-${scenario.key}`,
+            uploadTokenExpiresAt: scenario.key === "inquiry" ? null : fromNow(30),
             completedAt: orderCompletedAt,
             notes: "ข้อมูล demo local — ชื่อและข้อมูลติดต่อเป็นข้อมูลสมมติ",
             createdAt: orderCreatedAt,
@@ -1207,13 +1282,16 @@ async function main() {
 
         const itemId = `demo-item-${scenario.key}`;
         const productLineId = `demo-item-product-${scenario.key}`;
+        // ชื่อสินค้าชุดเดียวใช้ทั้งรายการในออเดอร์และรายการในใบส่ง — หลักฐานการแพ็ค
+        // จับคู่ด้วย (ชื่อ|ไซซ์|สี) ถ้าใบส่งใช้ชื่องานแทนชื่อสินค้า จะนับว่ายังไม่ได้แพ็คสักตัว
+        const productDescription = isDemoStock
+          ? stockProduct.name
+          : `เสื้อยืด Cotton 100% สี${color}`;
         await tx.orderItem.create({
           data: {
             id: itemId,
             orderId: id,
-            description: isDemoStock
-              ? stockProduct.name
-              : `เสื้อยืด Cotton 100% สี${color}`,
+            description: productDescription,
             totalQuantity: scenario.quantity,
             subtotal: price.subtotalItems,
             taxLineType: "HIRE_OF_WORK",
@@ -1225,9 +1303,7 @@ async function main() {
             orderItemId: itemId,
             productId: isDemoStock ? stockProduct.id : null,
             productType: isDemoStock ? stockProduct.productType : "T_SHIRT",
-            description: isDemoStock
-              ? stockProduct.name
-              : `เสื้อยืด Cotton 100% สี${color}`,
+            description: productDescription,
             material: isDemoStock ? null : "Cotton 100%",
             baseUnitPrice: price.productUnit,
             totalQuantity: scenario.quantity,
@@ -1287,6 +1363,10 @@ async function main() {
               approvedAt: approved
                 ? fromNow(-Math.max(1, scenario.ageDays - 2))
                 : null,
+              // ลิงก์ตรวจแบบ /approve/design/<token> — จอไม่มีปุ่มสร้างลิงก์เมื่อยังไม่มี token
+              // (order-files-tab เช็ค selected.approvalToken ก่อนโชว์ปุ่ม) ถ้า seed ไม่ใส่จะเปิดหน้านี้ไม่ได้เลย
+              approvalToken: `demo-approve-${scenario.key}`,
+              tokenExpiresAt: fromNow(30),
               createdAt: fromNow(-Math.max(1, scenario.ageDays - 1)),
             },
           });
@@ -1313,19 +1393,26 @@ async function main() {
               totalAmount: price.totalAmount,
               sentAt: quotationSentAt,
               acceptedAt: quotationAcceptedAt,
-              buyerName: customer.name,
-              buyerCompany: customer.company,
-              buyerTaxId: customer.taxId,
-              buyerPhone: customer.phone,
+              ...buyerSnapshot(customer),
               createdAt: orderCreatedAt,
               updatedAt: quotationAcceptedAt ?? quotationSentAt,
               items: {
-                create: {
-                  name: scenario.title,
-                  quantity: scenario.quantity,
-                  unitPrice: price.subtotalItems.div(scenario.quantity),
-                  totalPrice: price.subtotalItems,
-                },
+                // ต้องมีบรรทัดค่าบริการด้วย ไม่งั้นยอดรวมบนใบเสนอเกินผลรวมรายการอยู่ 500
+                // (ยอดใบเสนอนับ subtotalFees แต่ก่อนหน้านี้พิมพ์แต่บรรทัดเสื้อ)
+                create: [
+                  {
+                    name: scenario.title,
+                    quantity: scenario.quantity,
+                    unitPrice: price.subtotalItems.div(scenario.quantity),
+                    totalPrice: price.subtotalItems,
+                  },
+                  {
+                    name: "ค่าออกแบบและปรับไฟล์งาน",
+                    quantity: 1,
+                    unitPrice: price.subtotalFees,
+                    totalPrice: price.subtotalFees,
+                  },
+                ],
               },
             },
           });
@@ -1594,8 +1681,7 @@ async function main() {
               lines: {
                 create: variants.map((variant) => ({
                   orderItemProductId: productLineId,
-                  description:
-                    stockProduct?.name ?? `เสื้อยืด Cotton 100% สี${color}`,
+                  description: productDescription,
                   size: variant.size,
                   color: variant.color,
                   qtyExpected: variant.quantity,
@@ -1612,7 +1698,7 @@ async function main() {
             scenario.internalStatus as InternalStatus,
           );
           const checkedAt = isPartialCheck
-            ? fromNow(-1, -3)
+            ? fromNow(0, -3)
             : productionEndOffset === null
               ? fromNow(-1)
               : fromNow(productionEndOffset, 6);
@@ -1703,7 +1789,7 @@ async function main() {
               updatedAt: deliveredAt ?? shippedAt ?? deliveryCreatedAt,
               lines: {
                 create: variants.map((variant) => ({
-                  description: scenario.title,
+                  description: productDescription,
                   size: variant.size,
                   color: variant.color,
                   qty: partial
@@ -1762,10 +1848,7 @@ async function main() {
                   : fromNow(7),
               paidAt: paymentStatus === "PAID" ? paymentDate : null,
               issueDate: invoiceIssueDate,
-              buyerName: customer.name,
-              buyerCompany: customer.company,
-              buyerTaxId: customer.taxId,
-              buyerPhone: customer.phone,
+              ...buyerSnapshot(customer),
               notes: "เอกสาร demo local",
               createdAt: invoiceIssueDate,
               updatedAt:
@@ -1801,10 +1884,7 @@ async function main() {
                   paidAt: paymentDate,
                   issueDate: paymentDate,
                   forPaymentId: paymentId,
-                  buyerName: customer.name,
-                  buyerCompany: customer.company,
-                  buyerTaxId: customer.taxId,
-                  buyerPhone: customer.phone,
+                  ...buyerSnapshot(customer),
                   notes: `ใบเสร็จของงวดรับเงิน ${documentNumber} · demo local`,
                   createdAt: paymentDate,
                   updatedAt: paymentDate,
@@ -2296,14 +2376,101 @@ async function main() {
         });
       }
 
+      // ใบเสนอราคาที่ยังไม่ผูกออเดอร์ — เส้น "ลูกค้าตอบรับ → กดเปิดออเดอร์" ต้องมีใบลอย
+      // ใบที่ผูกออเดอร์ซึ่งเดินไปถึงขั้นออกแบบแล้วกดเปิดออเดอร์ไม่ได้ (state machine ปฏิเสธ)
+      {
+        const floatingCustomer = customerSeeds[5];
+        const draftCustomer = customerSeeds[3];
+        const floatingPrice = orderPrice(150);
+        const draftPrice = orderPrice(40);
+
+        quotationNumber += 1;
+        await tx.quotation.create({
+          data: {
+            id: "demo-quotation-open-order",
+            quotationNumber: `QT-${period}-${String(quotationNumber).padStart(4, "0")}`,
+            customerId: floatingCustomer.id,
+            createdById: owner.id,
+            status: "ACCEPTED",
+            validUntil: fromNow(12),
+            terms: floatingCustomer.defaultPaymentTerms,
+            subtotal: floatingPrice.subtotalItems.plus(floatingPrice.subtotalFees),
+            tax: floatingPrice.taxAmount,
+            totalAmount: floatingPrice.totalAmount,
+            sentAt: fromNow(-3),
+            acceptedAt: fromNow(-1),
+            ...buyerSnapshot(floatingCustomer),
+            notes: "ลูกค้าตอบรับทางไลน์แล้ว รอเปิดออเดอร์",
+            createdAt: fromNow(-3),
+            updatedAt: fromNow(-1),
+            items: {
+              create: [
+                {
+                  name: "เสื้อวิ่งมินิมาราธอนรุ่นที่ 5",
+                  quantity: 150,
+                  unitPrice: floatingPrice.subtotalItems.div(150),
+                  totalPrice: floatingPrice.subtotalItems,
+                },
+                {
+                  name: "ค่าออกแบบและปรับไฟล์งาน",
+                  quantity: 1,
+                  unitPrice: floatingPrice.subtotalFees,
+                  totalPrice: floatingPrice.subtotalFees,
+                },
+              ],
+            },
+          },
+        });
+
+        quotationNumber += 1;
+        await tx.quotation.create({
+          data: {
+            id: "demo-quotation-draft",
+            quotationNumber: `QT-${period}-${String(quotationNumber).padStart(4, "0")}`,
+            customerId: draftCustomer.id,
+            createdById: owner.id,
+            status: "DRAFT",
+            validUntil: fromNow(15),
+            terms: draftCustomer.defaultPaymentTerms,
+            subtotal: draftPrice.subtotalItems.plus(draftPrice.subtotalFees),
+            tax: draftPrice.taxAmount,
+            totalAmount: draftPrice.totalAmount,
+            ...buyerSnapshot(draftCustomer),
+            notes: "ร่างไว้รอเคาะจำนวนกับลูกค้า",
+            createdAt: fromNow(-1),
+            updatedAt: fromNow(-1),
+            items: {
+              create: [
+                {
+                  name: "เสื้อโปโลพนักงานหน้าร้าน",
+                  quantity: 40,
+                  unitPrice: draftPrice.subtotalItems.div(40),
+                  totalPrice: draftPrice.subtotalItems,
+                },
+                {
+                  name: "ค่าออกแบบและปรับไฟล์งาน",
+                  quantity: 1,
+                  unitPrice: draftPrice.subtotalFees,
+                  totalPrice: draftPrice.subtotalFees,
+                },
+              ],
+            },
+          },
+        });
+      }
+
       await tx.documentSequence.createMany({
         data: [
           {
             docType: "ORDER",
+            // ต้องรวมชุดใบผลิตตัวอย่างที่กินเลขต่อท้ายด้วย ไม่งั้นออเดอร์ใบแรกที่เปิดเอง
+            // ในเดือนเดียวกันจะได้เลขซ้ำของเดิมแล้วชน unique — retry ก็ได้เลขเดิม
+            // (ข้อจำกัดเขียนไว้ที่ services/document-number.ts)
             period,
-            lastNumber: Math.max(
-              ...DEMO_SEED_SCENARIOS.map((scenario) => scenario.sequence),
-            ),
+            lastNumber:
+              Math.max(
+                ...DEMO_SEED_SCENARIOS.map((scenario) => scenario.sequence),
+              ) + FORM_ROUTES.length,
           },
           { docType: "QUOTATION", period, lastNumber: quotationNumber },
           {
@@ -2384,11 +2551,162 @@ async function main() {
 
         await tx.productionStep.updateMany({ data: { executionEnabled: false } });
 
+        // ต้องล้าง "เจ้าของการปิดงาน" ของ V2 ด้วย ไม่ใช่แค่ธงกับเลข MO — ด่านฝั่ง QC
+        // ตรวจรับของ และจอสถานี อ่านสองช่องนี้เป็นสัญญาณว่าใบนี้เป็น V2 แล้วปฏิเสธ
+        // คำสั่งแบบเดิมทั้งหมด (services/qc.ts · goods-receipt.ts · routers/factory.ts)
         await tx.production.updateMany({
-          where: { workOrderNumber: { not: null } },
-          data: { workOrderNumber: null },
+          where: {
+            OR: [
+              { workOrderNumber: { not: null } },
+              { completionOwnerStepId: { not: null } },
+            ],
+          },
+          data: { workOrderNumber: null, completionOwnerStepId: null },
         });
 
+        await tx.order.updateMany({
+          where: { productionCompletionOwnerId: { not: null } },
+          data: { productionCompletionOwnerId: null },
+        });
+
+      }
+
+      // งานแก้/เคลมหลังลูกค้ารับของ — ทำท้ายสุดเพราะอ้างออเดอร์ ใบส่ง และใบแจ้งหนี้ที่ seed ไว้แล้ว
+      const claimResult = await seedDemoClaims(tx, {
+        period,
+        ownerId: owner.id,
+        now: new Date(),
+        art: DEMO_ART,
+      });
+
+      // ตัวนับเลขเอกสารของสามชนิดนี้ต้องมีตั้งแต่ต้น ไม่งั้นใบแรกที่เบสออกเองจะได้เลขซ้ำกับที่ seed ใช้ไป
+      await tx.documentSequence.createMany({
+        data: [
+          { docType: "CLAIM", period, lastNumber: claimResult.claims },
+          { docType: "CREDIT_NOTE", period, lastNumber: claimResult.creditNotes },
+          { docType: "DEBIT_NOTE", period, lastNumber: claimResult.debitNotes },
+        ],
+      });
+
+      // แจ้งเตือนและงานที่มอบหมายต้องถึงเจ้าของ/ผู้จัดการที่ active ทุกคน — สองหน้านี้
+      // กรองตาม userId ของคนที่ล็อกอินเสมอ ล็อกอินคนละบัญชีแล้วเจอจอว่างจะเข้าใจว่าระบบไม่ทำงาน
+      const alertUsers = await tx.user.findMany({
+        where: { isActive: true, role: { in: ["OWNER", "MANAGER"] } },
+        select: { id: true },
+        orderBy: { createdAt: "asc" },
+      });
+
+      // "งานของฉัน" กองแรกคืองานที่มอบให้ตัวเอง — ถ้าไม่มีเลยกองนั้นถูกกรองทิ้งทั้งกอง
+      const unassignedSteps = await tx.productionStep.findMany({
+        where: { assignedToId: null, status: { not: "COMPLETED" } },
+        select: { id: true },
+        orderBy: { id: "asc" },
+        take: alertUsers.length,
+      });
+      for (const [stepIndex, step] of unassignedSteps.entries()) {
+        await tx.productionStep.update({
+          where: { id: step.id },
+          data: { assignedToId: alertUsers[stepIndex].id },
+        });
+      }
+      await tx.notification.createMany({
+        data: alertUsers.flatMap((user, userIndex) => [
+          {
+            id: `demo-notification-stock-${userIndex}`,
+            userId: user.id,
+            type: "SYSTEM" as const,
+            title: "งานผลิตติดปัญหาสต๊อค",
+            message: `${blockedStock.number} ${blockedStock.blockerReason}`,
+            link: `/production/${blockedStock.id}`,
+            entityType: "ORDER",
+            entityId: blockedStock.id,
+          },
+          {
+            id: `demo-notification-outsource-${userIndex}`,
+            userId: user.id,
+            type: "DEADLINE" as const,
+            title: "ร้านนอกเกินกำหนดรับกลับ",
+            message: `${seeded.get("outsource-overdue")?.number} เกินกำหนด 1 วัน`,
+            link: "/outsource",
+            entityType: "OUTSOURCE_ORDER",
+            entityId: "demo-outsource-overdue",
+          },
+        ]),
+      });
+
+      // รับเงินบางส่วน + หัก ณ ที่จ่าย 3% — ครอบสองช่องที่ฐานเดิมไม่มีเลย:
+      // สถานะบิล "จ่ายบางส่วน" และทะเบียนหัก ณ ที่จ่ายที่เปิดมาแล้วว่างทั้งหน้า
+      const partialInvoice = await tx.invoice.findUnique({
+        where: { id: "demo-invoice-designing" },
+        select: { id: true, customerId: true, totalAmount: true },
+      });
+      if (partialInvoice) {
+        const half = partialInvoice.totalAmount.div(2).toDecimalPlaces(2);
+        const base = half.div(1.07).toDecimalPlaces(2); // ฐานก่อน VAT ที่ใช้คิดหัก ณ ที่จ่าย
+        const wht = base.mul(3).div(100).toDecimalPlaces(2);
+        const cash = half.minus(wht);
+        const paidAt = fromNow(-1, 2);
+        await tx.payment.create({
+          data: {
+            id: "demo-payment-partial-wht",
+            invoiceId: partialInvoice.id,
+            amount: cash,
+            whtAmount: wht,
+            method: "TRANSFER",
+            reference: `DEMO-WHT-${period}`,
+            notes: "โอนมัดจำครึ่งแรก หักภาษี ณ ที่จ่าย 3%",
+            createdAt: paidAt,
+          },
+        });
+        await tx.whtCertificate.create({
+          data: {
+            id: "demo-wht-designing",
+            paymentId: "demo-payment-partial-wht",
+            invoiceId: partialInvoice.id,
+            customerId: partialInvoice.customerId,
+            baseAmount: base,
+            ratePct: 3,
+            amount: wht,
+            received: false, // ยังไม่ได้รับหนังสือรับรอง — ลองกด "ได้รับแล้ว" ที่หน้าทะเบียน
+            notes: "รอลูกค้าส่งหนังสือรับรองหัก ณ ที่จ่าย",
+            createdAt: paidAt,
+            updatedAt: paidAt,
+          },
+        });
+        // ทุกงวดที่รับเงินต้องมีใบเสร็จผูกไว้ (tax point) — ด่านท้าย seed บังคับไว้เอง
+        const partialReceiptNumber = ++receiptNumber;
+        const partialCustomer = customerSeeds.find(
+          (customer) => customer.id === partialInvoice.customerId,
+        );
+        await tx.invoice.create({
+          data: {
+            id: "demo-receipt-partial-wht",
+            invoiceNumber: `REC-${period}-${String(partialReceiptNumber).padStart(4, "0")}`,
+            orderId: "demo-order-designing",
+            customerId: partialInvoice.customerId,
+            type: "RECEIPT",
+            amount: half.minus(half.mul(7).div(107).toDecimalPlaces(2)),
+            tax: half.mul(7).div(107).toDecimalPlaces(2),
+            totalAmount: half,
+            paymentStatus: "PAID",
+            dueDate: null,
+            paidAt,
+            issueDate: paidAt,
+            forPaymentId: "demo-payment-partial-wht",
+            ...(partialCustomer ? buyerSnapshot(partialCustomer) : {}),
+            notes: "ใบเสร็จของงวดมัดจำครึ่งแรก (หัก ณ ที่จ่าย 3%) · demo local",
+            createdAt: paidAt,
+            updatedAt: paidAt,
+          },
+        });
+        await tx.documentSequence.update({
+          where: { docType_period: { docType: "RECEIPT", period } },
+          data: { lastNumber: receiptNumber },
+        });
+        await tx.invoice.update({
+          where: { id: partialInvoice.id },
+          data: { paymentStatus: "PARTIALLY_PAID" },
+        });
       }
 
 
@@ -2878,10 +3196,12 @@ async function main() {
     prisma.qcRecord.count(),
     prisma.delivery.count(),
     prisma.invoice.count(),
+    prisma.quotation.count(),
+    prisma.orderClaim.count(),
   ]);
   console.log("Demo seed สำเร็จบน 127.0.0.1:5433/anajak_erp_demo");
   console.log(
-    `customers=${summary[0]} orders=${summary[1]} productions=${summary[2]} steps=${summary[3]} print_runs=${summary[4]} outsource=${summary[5]} qc=${summary[6]} deliveries=${summary[7]} invoices=${summary[8]}`,
+    `customers=${summary[0]} orders=${summary[1]} productions=${summary[2]} steps=${summary[3]} print_runs=${summary[4]} outsource=${summary[5]} qc=${summary[6]} deliveries=${summary[7]} invoices=${summary[8]} quotations=${summary[9]} claims=${summary[10]}`,
   );
   console.log("Stock credentials=0 · ไม่มีการเรียก Anajak Stock");
 }
