@@ -13,7 +13,7 @@
 
 import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
-import { Flame, Printer, Shirt, Truck, Wrench } from "lucide-react";
+import { Flag, Flame, Printer, Shirt, Truck, Wrench } from "lucide-react";
 
 import { c, CardHead, DueTag, Prop } from "@/components/kit/kit";
 import { ItemHead, PrintStrip, ProductCell } from "@/components/order-items/item-parts";
@@ -26,6 +26,7 @@ import { heatLabel } from "@/lib/print-heat";
 import { FLOW_OWNED_STEP_TYPES, isOutsourceStep } from "@/lib/production-steps";
 import { formatDateShort } from "@/lib/utils";
 import { pieceTableAnchor } from "./work-order-anchors";
+import { ProblemPanel, ProblemReportSheet } from "./work-order-problem";
 import { activeOutsource, daysFromNow, stepLabel, viewOf } from "./work-order-pieces";
 import type { WorkOrderController } from "./work-order-controller";
 
@@ -113,13 +114,20 @@ function Cols({ showQty }: { showQty: boolean }) {
 export function WorkOrderStepCard({
   step,
   ctl,
-  footer,
+  action,
+  reason,
+  canReport = false,
 }: {
   step: ProductionStep;
   ctl: WorkOrderController;
-  /** ปุ่มของขั้น — กติกาว่ากดอะไรได้อยู่ที่ตัวหน้า ไม่ใช่ที่การ์ด */
-  footer?: ReactNode;
+  /** ปุ่มลงมือของขั้น — กติกาว่ากดอะไรได้อยู่ที่ตัวหน้า ไม่ใช่ที่การ์ด */
+  action?: ReactNode;
+  /** เหตุที่ยังลงมือไม่ได้ — ขึ้นซ้ายมือของแถวปุ่ม */
+  reason?: string | null;
+  /** แจ้งปัญหาขั้นนี้ได้ไหม (เงื่อนไขเดียวกับที่ server ยอมรับ) */
+  canReport?: boolean;
 }) {
+  const [report, setReport] = useState<{ intro?: string } | null>(null);
   const order = ctl.order;
   const production = ctl.production;
   const items = useMemo(() => order?.items ?? [], [order]);
@@ -144,6 +152,7 @@ export function WorkOrderStepCard({
     return map;
   }, [step.quantities]);
   const [draft, setDraft] = useState<Record<string, RowQty>>({});
+  const hasProblem = step.status === "FAILED" || step.status === "ON_HOLD";
   const valueOf = (key: string): RowQty => draft[key] ?? saved[key] ?? { done: 0, waste: 0 };
   const showQty = editable || step.quantities.length > 0;
   const dirty = variantRows.some((row) => {
@@ -181,6 +190,7 @@ export function WorkOrderStepCard({
         right={<span className={c("chip", CHIP_TONE[view.chip])}>{outsource ? "อยู่ร้านนอก" : view.label}</span>}
       />
       <div className={c("cb")}>
+        {hasProblem ? <ProblemPanel step={step} ctl={ctl} /> : null}
         {outsource ? (
           <dl className={c("props")} style={{ marginBottom: 16 }}>
             <Prop label="ร้าน">{outsource.vendor.name}</Prop>
@@ -250,7 +260,15 @@ export function WorkOrderStepCard({
                   <button
                     type="button"
                     className={c("btn sm primary")}
-                    onClick={() => ctl.savePieceQty(step.id, variantRows.map((row) => ({ variantId: row.variantId!, ...valueOf(row.key) })))}
+                    onClick={() => {
+                      const rows = variantRows.map((row) => ({ variantId: row.variantId!, ...valueOf(row.key) }));
+                      const scrap = rows.reduce((sum, row) => sum + row.waste, 0);
+                      ctl.savePieceQty(step.id, rows, {
+                        onSuccess: () => {
+                          if (scrap > 0 && canReport && !report) setReport({ intro: `เสีย ${scrap.toLocaleString("th-TH")} ตัว — เกิดจากอะไร` });
+                        },
+                      });
+                    }}
                     disabled={ctl.piecePending}
                   >
                     บันทึกยอด
@@ -363,7 +381,22 @@ export function WorkOrderStepCard({
           </>
         )}
       </div>
-      {footer}
+      {report ? (
+        <ProblemReportSheet step={step} ctl={ctl} intro={report.intro} onClose={() => setReport(null)} />
+      ) : outsource && action ? (
+        <>{action}</>
+      ) : action || reason || canReport ? (
+        <div className={c("stepfoot")}>
+          <span className={c("why")}>{reason}</span>
+          {canReport ? (
+            <button type="button" className={c("btn")} onClick={() => setReport({})}>
+              <Flag aria-hidden="true" />
+              แจ้งปัญหาขั้นนี้
+            </button>
+          ) : null}
+          {action}
+        </div>
+      ) : null}
     </section>
   );
 }

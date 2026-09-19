@@ -22,7 +22,6 @@ import {
   CircleCheck,
   ClipboardCheck,
   Ellipsis,
-  Flag,
   History,
   Pause,
   Printer,
@@ -41,7 +40,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { c, CardHead, Callout, PriorityChip, Thumb } from "@/components/kit/kit";
 import { KitTabs } from "@/components/kit/tabs";
 import { GarmentReceiveInline } from "@/components/production/garment-receive-inline";
-import { ProblemDialog } from "@/components/production/step-command-dialogs";
 import type { ProductionStep } from "@/components/production/types";
 import { orderMockupCover } from "@/lib/mockup";
 import { INTERNAL_STATUS_LABELS } from "@/lib/order-status";
@@ -54,6 +52,7 @@ import { currentRailNode, railNodesOf } from "@/lib/work-order-rail";
 import { routeWaitingOn } from "@/lib/work-order-route";
 import { useWorkOrderController, type WorkOrderController } from "./work-order-controller";
 import { checklistAnchor, pieceTableAnchor, ticksMissing } from "./work-order-anchors";
+import { problemAnchor } from "./work-order-problem";
 import { WorkOrderItemsTab } from "./work-order-items-tab";
 import { activeOutsource, dtfUnavailableReason, outsourceReceiptCandidates, outsourceStepReason, stepLabel } from "./work-order-pieces";
 import { ChecklistCard, HistoryCard, OrderInfoCard } from "./work-order-side";
@@ -128,7 +127,6 @@ function WorkOrderKit({ id }: { id: string }) {
 
 export function WorkOrderKitView({ c: ctl, scannedMockup = Number.NaN }: { c: WorkOrderController; scannedMockup?: number }) {
   const { production, order, me, productionQuery, meQuery, workflowSteps, nowById } = ctl;
-  const [problemStep, setProblemStep] = useState<ProductionStep | null>(null);
   const [fixReceiveOpen, setFixReceiveOpen] = useState(false);
   const [tab, setTab] = useState<"steps" | "items" | "history">("steps");
 
@@ -225,24 +223,15 @@ export function WorkOrderKitView({ c: ctl, scannedMockup = Number.NaN }: { c: Wo
 
   const hasVariantRows = (order?.items ?? []).some((item) => item.products.some((prod) => prod.variants.length > 0));
 
-  function stepFooter(step: ProductionStep): ReactNode {
-    const action = actionFor(step);
-    const canReport = ctl.canUpdateStep && ctl.canOwnOrSupervise(step) && step.status !== "COMPLETED" && step.status !== "FAILED";
-    const reason = step.status !== "COMPLETED" && !action ? blockReason(step) : null;
-    if (activeOutsource(step) && action) return <>{action}</>;
-    if (!action && !canReport && !reason) return null;
-    return (
-      <div className={c("stepfoot")}>
-        <span className={c("why")}>{reason}</span>
-        {canReport ? (
-          <button type="button" className={c("btn")} onClick={() => setProblemStep(step)}>
-            <Flag aria-hidden="true" />
-            แจ้งปัญหาขั้นนี้
-          </button>
-        ) : null}
-        {action}
-      </div>
-    );
+  /** แจ้งปัญหาขั้นนี้ได้ไหม — ให้ตรงกับด่านของ server ทุกข้อ จะได้ไม่มีปุ่มที่กดแล้วโดนปฏิเสธ
+   *  (ขั้นยังไม่ปิด · ยังไม่มีเรื่องค้าง · ไม่ได้พักไว้ · ของไม่ได้อยู่ร้านนอก · ไม่ได้อยู่ในรอบพิมพ์ ·
+   *   ออเดอร์ยังอยู่ระหว่างผลิต · ไม่ใช่งานของคนอื่นถ้าไม่ใช่หัวหน้า · ขั้นก่อนหน้าในสายงานไม่ค้าง) */
+  function canReportProblem(step: ProductionStep): boolean {
+    if (!ctl.canUpdateStep || !ctl.canOwnOrSupervise(step)) return false;
+    if (step.status === "COMPLETED" || step.status === "FAILED" || step.status === "ON_HOLD") return false;
+    if (activeOutsource(step)) return false;
+    if (step.stepType === "DTF_PRINT" && step.printRunItems.length > 0) return false;
+    return routeWaitingOn(step, workflowSteps).length === 0;
   }
 
   function assignAction(step: ProductionStep) {
@@ -324,11 +313,9 @@ export function WorkOrderKitView({ c: ctl, scannedMockup = Number.NaN }: { c: Wo
                     icon={step.status === "ON_HOLD" ? Pause : TriangleAlert}
                     role="alert"
                     action={
-                      canManageStep ? (
-                        <button type="button" className={c("btn sm")} onClick={() => ctl.openEdit(step, "manager")}>
-                          จัดการ
-                        </button>
-                      ) : undefined
+                      <button type="button" className={c("btn sm")} onClick={() => focusFirst(problemAnchor(step.id), "button")}>
+                        ดูเรื่องนี้
+                      </button>
                     }
                   >
                     <b>
@@ -522,7 +509,19 @@ export function WorkOrderKitView({ c: ctl, scannedMockup = Number.NaN }: { c: Wo
                         </div>
                       </section>
                     ) : (
-                      [current, ...pairedOpen].map((step) => <WorkOrderStepCard key={step.id} step={step} ctl={ctl} footer={stepFooter(step)} />)
+                      [current, ...pairedOpen].map((step) => {
+                        const action = actionFor(step);
+                        return (
+                          <WorkOrderStepCard
+                            key={step.id}
+                            step={step}
+                            ctl={ctl}
+                            action={action}
+                            reason={step.status !== "COMPLETED" && !action ? blockReason(step) : null}
+                            canReport={canReportProblem(step)}
+                          />
+                        );
+                      })
                     )}
                   </div>
                   <div className={c("stack sticky")}>
@@ -535,7 +534,6 @@ export function WorkOrderKitView({ c: ctl, scannedMockup = Number.NaN }: { c: Wo
           </div>
         )}
       </PageShell>
-      {problemStep ? <ProblemDialog open onClose={() => setProblemStep(null)} step={problemStep} c={ctl} /> : null}
       {fixReceiveOpen && order && receiveStep ? (
         <Dialog open onOpenChange={(open) => !open && setFixReceiveOpen(false)}>
           <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">

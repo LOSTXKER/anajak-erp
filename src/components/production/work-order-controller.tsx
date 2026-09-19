@@ -85,6 +85,13 @@ export function useWorkOrderController(id: string) {
     onSuccess: () => toast.success("แจ้งปัญหาให้หัวหน้าแล้ว"),
     onError: (err: { message?: string }) => toast.error("แจ้งปัญหาไม่สำเร็จ", { description: err.message }),
   });
+  // หัวหน้าตัดสินในกล่องปัญหาของขั้นนั้นเลย (2026-09-20) — เดิมต้องเปิดหน้าต่าง "จัดการปัญหา"
+  // ที่รวมร่างกับฟอร์มมอบหมายงาน ทำให้คนกดไม่รู้ว่าตกลงกำลังทำอะไรอยู่
+  const resolveProblem = useMutationWithInvalidation(trpc.production.resolveStationProblem, {
+    invalidate: [...invalidate, utils.factory.stationContext],
+    onSuccess: () => toast.success("แก้ปัญหาแล้ว — ขั้นนี้กลับมาทำต่อได้"),
+    onError: (err: { message?: string }) => toast.error(err.message ?? "ส่งงานกลับไม่สำเร็จ"),
+  });
   const legacyFinalize = useMutationWithInvalidation(trpc.production.finalizeLegacyPackaging, {
     invalidate: [...invalidate, utils.factory.stationContext],
     onSuccess: (data: { orderStatus: string; alreadyFinalized: boolean }) => {
@@ -289,6 +296,7 @@ export function useWorkOrderController(id: string) {
     setSelectedStepId,
     quickPass,
     reportProblem,
+    resolveProblem,
     legacyFinalize,
     sendToQc,
     handleSupervisorStatus,
@@ -297,7 +305,11 @@ export function useWorkOrderController(id: string) {
     openOutsourceReturn: (stepId: string, outsourceOrderId: string) => setOutsourceReturn({ stepId, outsourceOrderId }),
     tickStandard: (stepId: string, item: string, checked: boolean) => tickStandardMutation.mutate({ stepId, item, checked }),
     tickPending: tickStandardMutation.isPending,
-    savePieceQty: (stepId: string, rows: { variantId: string; done: number; waste: number }[]) => pieceQty.mutate({ stepId, rows }),
+    savePieceQty: (
+      stepId: string,
+      rows: { variantId: string; done: number; waste: number }[],
+      options?: { onSuccess?: () => void },
+    ) => pieceQty.mutate({ stepId, rows }, options),
     piecePending: pieceQty.isPending,
     handleReopen,
     reopenPending: reopen.isPending,

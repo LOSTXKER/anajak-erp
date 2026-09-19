@@ -142,6 +142,38 @@ describe("ใบผลิตแสดงสินค้าเป็นตาร�
     const plain = text(render("problem"));
     expect(plain).toContain("ติดปัญหา");
   });
+});
+
+describe("ระบบแจ้งปัญหาจบในการ์ดขั้น", () => {
+  it("กล่องปัญหาบอกเหตุ ของเสียรายไซซ์ และเส้นทางว่าตอนนี้รอใคร", () => {
+    const html = render("problem");
+    const plain = text(html);
+    expect(html).toContain('id="work-order-problem-');
+    expect(plain).toContain("ฟิล์มลอกหลังรีด");
+    // ของเสียที่บันทึกไว้แล้วต้องโผล่ในกล่อง ไม่ต้องให้หัวหน้าไปไล่หาในตาราง
+    expect(plain).toMatch(/S 3 เสีย/);
+    expect(plain).toContain("แจ้งแล้ว");
+    expect(plain).toContain("หัวหน้าตัดสิน");
+    expect(plain).toContain("แก้เสร็จ ทำต่อได้");
+  });
+
+  it("ช่างเห็นว่ารอหัวหน้า · หัวหน้าเห็นปุ่มตัดสินในกล่องเดียวกัน", () => {
+    const staff = text(render("problem", "staff"));
+    expect(staff).toContain("รอหัวหน้าตัดสินก่อนทำต่อ");
+    expect(staff).not.toContain("แก้แล้ว ทำต่อได้");
+
+    const boss = text(render("problem", "boss"));
+    expect(boss).toContain("แก้แล้ว ทำต่อได้");
+  });
+
+  it("ขั้นที่มีปัญหาอยู่แล้วไม่มีปุ่มแจ้งซ้ำ", () => {
+    expect(text(render("problem"))).not.toContain("แจ้งปัญหาขั้นนี้");
+  });
+
+  it("ขั้นงานแก้ (ขั้นพิเศษนอกสถานีประจำ) ก็มีปุ่มแจ้งปัญหา", () => {
+    // เดิม server ปฏิเสธขั้นชนิดนี้ทุกครั้ง ทั้งที่ปุ่มขึ้นให้กด
+    expect(text(render("reopen"))).toContain("แจ้งปัญหาขั้นนี้");
+  });
 
   it("ปุ่มลงมือใช้ปุ่มชุดหน้าตากลาง ไม่ใช่ปุ่มชุดเก่าคนละหน้าตา", () => {
     const html = render("doing");

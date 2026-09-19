@@ -217,16 +217,23 @@ describe("production.reportStationProblem", () => {
     expectSharedProductionLockOrder(harness.tx.$queryRaw);
   });
 
-  it("ปฏิเสธ stepType ที่ไม่มี Factory Station mapping", async () => {
-    const harness = makeHarness({ step: { stepType: "CUSTOM" } });
+  // เปลี่ยนกติกาโดยตั้งใจ 2026-09-20: เดิมขั้นที่ map สถานีประจำไม่ได้ (งานแก้/ปัก/ตัดเย็บ/แพ็ก)
+  // ถูกปฏิเสธทั้งหมด ทั้งที่ปุ่มแจ้งปัญหาขึ้นให้กด — ขั้นงานแก้จึงแจ้งปัญหาไม่ได้เลยสักครั้ง
+  it("ขั้นที่ไม่ได้อยู่บนสถานีประจำ (งานแก้) แจ้งปัญหาได้ และบันทึกที่มาเป็น other", async () => {
+    const harness = makeHarness({ step: { stepType: "CUSTOM", customStepName: "งานแก้ (QC ไม่ผ่าน)" } });
 
-    await expect(
-      productionRouter
-        .createCaller(harness.ctx)
-        .reportStationProblem({ stepId: "step-1", reason: "เครื่องมือเสีย" }),
-    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await productionRouter
+      .createCaller(harness.ctx)
+      .reportStationProblem({ stepId: "step-1", reason: "เครื่องมือเสีย" });
 
-    expect(harness.tx.productionStep.update).not.toHaveBeenCalled();
+    expect(harness.tx.productionStep.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ status: "FAILED" }) }),
+    );
+    expect(harness.tx.auditLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        newValue: expect.objectContaining({ source: "STATION", workCenter: "other", operation: "REPORT_PROBLEM" }),
+      }),
+    });
   });
 
   it("ปฏิเสธขั้นที่เสร็จแล้ว", async () => {

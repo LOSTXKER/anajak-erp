@@ -228,7 +228,7 @@ export const STATES: StateFixture[] = [
     title: "ติดปัญหา — รอหัวหน้า",
     group: "ขั้นทำเอง",
     order: makeOrder({ deadlineInDays: 1, priority: "URGENT" }),
-    steps: [press({ status: "FAILED", startedAt: fromNow(-1), assignedTo: USERS.staff, qtyDone: 12, checks: ticks("HEAT_PRESS", 2), quantities: rows([12, 0, 0]), notes: stationProblemNotes(null, "ฟิล์มลอกหลังรีด 3 ตัว สงสัยอุณหภูมิเครื่องเพี้ยน") }), QC(20)],
+    steps: [press({ status: "FAILED", startedAt: fromNow(-1), assignedTo: USERS.staff, qtyDone: 12, checks: ticks("HEAT_PRESS", 2), quantities: rows([12, 0, 0], [3, 0, 0]), notes: stationProblemNotes(null, "ฟิล์มลอกหลังรีด 3 ตัว สงสัยอุณหภูมิเครื่องเพี้ยน") }), QC(20)],
   },
   {
     key: "reopen",

@@ -94,6 +94,7 @@ export function useProtoController(fx: StateFixture, role: Role): WorkOrderContr
       setSelectedStepId: noop,
       quickPass: { mutate: protoOnly, isPending: false },
       reportProblem: { mutate: protoOnly, isPending: false },
+      resolveProblem: { mutate: protoOnly, isPending: false },
       legacyFinalize: { mutate: protoOnly, isPending: false },
       sendToQc: { mutate: protoOnly, isPending: false },
       handleSupervisorStatus: async () => protoOnly(),
@@ -107,9 +108,10 @@ export function useProtoController(fx: StateFixture, role: Role): WorkOrderContr
           return { ...prev, [k]: checked ? [...new Set([...base, item])] : base.filter((i) => i !== item) };
         }),
       tickPending: false,
-      savePieceQty: (stepId: string, rowsIn: RowQty[]) => {
+      savePieceQty: (stepId: string, rowsIn: RowQty[], options?: { onSuccess?: () => void }) => {
         setQty((prev) => ({ ...prev, [`${fx.key}:${stepId}`]: rowsIn }));
         toast.success("บันทึกยอดแล้ว (หน้าลอง)");
+        options?.onSuccess?.();
       },
       piecePending: false,
       handleReopen: async () => protoOnly(),
@@ -134,6 +136,9 @@ export function useProtoController(fx: StateFixture, role: Role): WorkOrderContr
         }),
       dialogs: null,
     };
-    return ctrl as unknown as WorkOrderController;
+    // ครบทุกคำสั่งของเครื่องยนต์ตัวจริงหรือยัง — ขาดตัวไหน typecheck ตกที่บรรทัดนี้
+    // (เดิม cast ทิ้งทั้งก้อน หน้าลองจึงพังตอนกดปุ่มโดยที่เทสต์/ด่านที่แค่เรนเดอร์จับไม่ได้)
+    const complete: Record<keyof WorkOrderController, unknown> = ctrl;
+    return complete as unknown as WorkOrderController;
   }, [fx, ticked, qty, me, nowMs]);
 }

@@ -760,13 +760,10 @@ export const productionRouter = router({
           tx,
           input.stepId,
         );
-        const workCenter = factoryStationKeyForStep(existing.stepType);
-        if (!workCenter) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "ขั้นนี้ไม่ได้อยู่ในสถานีโรงงานที่รองรับการแจ้งปัญหา",
-          });
-        }
+        // ขั้นที่ไม่ได้อยู่บนสถานีประจำ (งานแก้ · ปัก · ตัดเย็บ · แพ็ก) ก็ต้องแจ้งปัญหาได้
+        // เดิมด่านนี้ปฏิเสธทุกขั้นที่ map สถานีไม่ได้ — ปุ่ม "แจ้งปัญหา" จึงขึ้นบนขั้นงานแก้แล้วกดไม่ผ่าน
+        // ทุกครั้ง (เบสสั่งรื้อระบบปัญหา 2026-09-19) · ค่าสถานีใช้แค่บันทึกประวัติและกระดิ่ง ไม่ได้ใช้เดินงาน
+        const workCenter = factoryStationKeyForStep(existing.stepType) ?? "other";
         if (existing.status === "COMPLETED") {
           throw new TRPCError({
             code: "BAD_REQUEST",
