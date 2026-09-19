@@ -1,21 +1,21 @@
 "use client";
 
 /**
- * /production/[id] บนชุดหน้าตากลาง — ต้นแบบ mockup-production-calm-2026-09-15 (เบสสั่งลงจริง 2026-09-16)
+ * /production/[id] — ใบผลิตหนึ่งใบ
  *
- * แถบแจ้งเตือนทุกชนิดอยู่บนสุด · หัวใบ (รูปม็อกอัพ เลขใบ ความสำคัญ | ใบสั่งงาน · ถัดไป · ⋯) · เส้นงานไม่มีกรอบ/คำใต้ขั้น
- * แท็บ ขั้นตอน = การ์ดขั้น (ลายคู่ตำแหน่ง + ยอดต่อไซซ์ + ปุ่มของขั้นท้ายการ์ด) | เช็คลิสต์ · ข้อมูลออเดอร์ · แท็บ ประวัติขั้นงาน (เบสขอแยกแท็บ 09-16)
- * แท็บ สินค้า = สินค้า/ไซซ์ + ลายพร้อมรูป · ม็อกอัพอนุมัติ · วัตถุดิบ (ของเดิม)
+ * โครงหน้า (ต้นแบบ mockup-production-calm-2026-09-15 · เบสสั่งลงจริง 2026-09-16):
+ * แถบแจ้งเตือนบนสุด · หัวใบ (รูปม็อกอัพ เลขใบ ความสำคัญ | ใบสั่งงาน · ถัดไป · ⋯) · เส้นงานไม่มีกรอบ
+ * แท็บ ขั้นตอน = การ์ดขั้น | เช็คลิสต์ · ข้อมูลออเดอร์ · แท็บ สินค้า · แท็บ ประวัติขั้นงาน
  *
- * กติกาทั้งหมดมาจาก useWorkOrderController ชุดเดิม (ปุ่มลงมือ ติ๊ก ยอด ย้อนขั้น พัก ส่ง QC) — ไม่มีทางลัดสถานะใหม่
- * ขั้นพิมพ์ DTF ปิดจากหน้า "พิมพ์ DTF" (กดพิมพ์เสร็จหลายใบพร้อมกัน) ตามความจริงหน้าเครื่องที่เบสตอบ 09-16
+ * ตารางรายรายการอยู่ work-order-step-card.tsx · การ์ดขวา/ประวัติอยู่ work-order-side.tsx
+ * ไฟล์นี้เหลือหน้าที่เดียว: จัดหน้า และตัดสินว่าปุ่มไหนกดได้ตามกติกาของ useWorkOrderController
+ * (ไม่มีทางลัดสถานะใหม่ · ขั้นพิมพ์ DTF ปิดจากหน้า "พิมพ์ DTF" ตามความจริงหน้าเครื่อง 09-16)
  */
 
-import { Suspense, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { Suspense, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import type { LucideIcon } from "lucide-react";
 import {
   Check,
   ChevronRight,
@@ -23,21 +23,14 @@ import {
   ClipboardCheck,
   Ellipsis,
   Flag,
-  Flame,
   History,
-  ImageOff,
-  ListChecks,
   Pause,
   Printer,
-  ReceiptText,
   RefreshCw,
   RotateCcw,
   Send,
-  Undo2,
-  Shirt,
-  StickyNote,
   TriangleAlert,
-  Truck,
+  Undo2,
   UserRound,
   Wrench,
 } from "lucide-react";
@@ -45,34 +38,28 @@ import {
 import { PageShell } from "@/components/page-shell";
 import { RecordNotFound } from "@/components/ui/record-not-found";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { c, CardHead, Callout, DueTag, PriorityChip, Prop, Thumb } from "@/components/kit/kit";
+import { c, CardHead, Callout, PriorityChip, Thumb } from "@/components/kit/kit";
 import { KitTabs } from "@/components/kit/tabs";
-import { MaterialUsage } from "@/components/material-usage";
-import { GarmentPickCard } from "@/components/production/garment-pick-card";
 import { GarmentReceiveInline } from "@/components/production/garment-receive-inline";
-import { printTypesForProductionStep } from "@/components/production/production-design-card";
 import { ProblemDialog } from "@/components/production/step-command-dialogs";
-import { stationHeatLabel } from "@/components/factory/station-garment-preview";
-import type { ProductionDetail, ProductionStep } from "@/components/production/types";
+import type { ProductionStep } from "@/components/production/types";
 import { orderMockupCover } from "@/lib/mockup";
 import { INTERNAL_STATUS_LABELS } from "@/lib/order-status";
 import { STEP_STATUS_LABELS } from "@/lib/status-config";
 import { permAllows } from "@/lib/permissions";
-import { currentProductionProblemReason, latestPlainProductionNote } from "@/lib/production-problem";
-import { FLOW_OWNED_STEP_TYPES, isOutsourceStep } from "@/lib/production-steps";
-import { formatDateShort, formatDateTime, isImageUrl } from "@/lib/utils";
+import { currentProductionProblemReason } from "@/lib/production-problem";
+import { FLOW_OWNED_STEP_TYPES } from "@/lib/production-steps";
+import { formatDateTime } from "@/lib/utils";
 import { currentRailNode, railNodesOf } from "@/lib/work-order-rail";
 import { routeWaitingOn } from "@/lib/work-order-route";
-import { workOrderStandards } from "@/lib/work-order-standards";
-import { PRINT_POSITIONS, PRINT_TYPES, PRODUCT_TYPES } from "@/types/order-form";
 import { useWorkOrderController, type WorkOrderController } from "./work-order-controller";
-import { checklistAnchor, ticksMissing } from "./work-order-checklist";
-import { activeOutsource, daysFromNow, dtfUnavailableReason, outsourceReceiptCandidates, outsourceStepReason, stepLabel, viewOf } from "./work-order-pieces";
-import { pieceRowsOf, pieceTableAnchor } from "./work-order-quantities";
+import { checklistAnchor, pieceTableAnchor, ticksMissing } from "./work-order-anchors";
+import { WorkOrderItemsTab } from "./work-order-items-tab";
+import { activeOutsource, dtfUnavailableReason, outsourceReceiptCandidates, outsourceStepReason, stepLabel } from "./work-order-pieces";
+import { ChecklistCard, HistoryCard, OrderInfoCard } from "./work-order-side";
+import { WorkOrderStepCard } from "./work-order-step-card";
 
 export const DTF_PAGE_HREF = "/production/print-runs";
-
-type Order = ProductionDetail["order"];
 
 function focusFirst(anchor: string, selector: string) {
   const el = document.querySelector<HTMLElement>(`#${anchor} ${selector}`) ?? document.getElementById(anchor);
@@ -89,232 +76,6 @@ function focusWhatIsBlocking(stepId: string) {
     document.getElementById(checklistAnchor(stepId));
   el?.scrollIntoView({ behavior: "smooth", block: "center" });
   el?.focus?.();
-}
-
-const CHIP_TONE = { success: "good", info: "blue", warning: "warn", error: "bad", neutral: "gray" } as const;
-
-function stepIcon(step: ProductionStep): LucideIcon {
-  if (activeOutsource(step) || isOutsourceStep(step.stepType)) return Truck;
-  if (step.stepType === "HEAT_PRESS") return Flame;
-  if (step.stepType === "DTF_PRINT") return Printer;
-  if (step.stepType === "GARMENT_PICK" || step.stepType === "GARMENT_RECEIVE") return Shirt;
-  return Wrench;
-}
-
-function durationText(from: Date | string | null | undefined, to: Date | string | null | undefined): string | null {
-  if (!from || !to) return null;
-  const hours = (new Date(to).getTime() - new Date(from).getTime()) / 3_600_000;
-  if (!Number.isFinite(hours) || hours < 0) return null;
-  if (hours < 24) return `${hours < 1 ? hours.toFixed(1) : Math.round(hours * 10) / 10} ชม.`;
-  return `${Math.round(hours / 24)} วัน`;
-}
-
-/* ───────────────────────── ลายที่ต้องทำ (รูปลาย + ตำแหน่ง + ขนาด) ───────────────────────── */
-
-type ArtLine = { key: string; image: string | null; tech: string; position: string; size: string | null; note: string | null; qty: number };
-
-function artLinesOf(order: Order, stepType?: string): ArtLine[] {
-  const allowed = printTypesForProductionStep(stepType);
-  if (allowed && allowed.length === 0) return [];
-  const lines = new Map<string, ArtLine>();
-  for (const item of order.items) {
-    const itemQty = item.products.reduce((sum, product) => sum + (product.totalQuantity ?? 0), 0);
-    for (const print of item.prints) {
-      if (allowed && !allowed.includes(print.printType)) continue;
-      const image = [print.artwork?.imageUrl, print.designImageUrl].find((url) => isImageUrl(url)) ?? null;
-      const size =
-        print.width && print.height ? `${print.width} × ${print.height} ซม.` : print.printSize && print.printSize !== "CUSTOM" ? print.printSize : null;
-      const heat = stationHeatLabel(
-        print.artwork
-          ? { tempC: print.artwork.heatTempC, pressSec: print.artwork.heatPressSec, pressure: print.artwork.heatPressure }
-          : null,
-      );
-      const note = [print.designNote?.trim() || null, stepType === "HEAT_PRESS" ? heat : null].filter(Boolean).join(" · ") || null;
-      const key = `${print.position}|${print.printType}|${image ?? ""}|${size ?? ""}`;
-      const existing = lines.get(key);
-      if (existing) existing.qty += itemQty;
-      else
-        lines.set(key, {
-          key,
-          image,
-          tech: PRINT_TYPES[print.printType] ?? print.printType,
-          position: PRINT_POSITIONS[print.position] ?? print.position,
-          size,
-          note,
-          qty: itemQty,
-        });
-    }
-  }
-  return [...lines.values()];
-}
-
-function ArtList({ lines, withQty = false }: { lines: ArtLine[]; withQty?: boolean }) {
-  if (lines.length === 0) return null;
-  return (
-    <ul className={c("arts", withQty && "one")} aria-label="ลายและตำแหน่ง">
-      {lines.map((line) => (
-        <li key={line.key}>
-          {line.image ? (
-            <a href={line.image} target="_blank" rel="noreferrer" className={c("aimg")} aria-label={`ดูลาย${line.position}เต็มจอ`}>
-              {/* eslint-disable-next-line @next/next/no-img-element -- รูปลายจากคลัง/ไฟล์ที่อัปโหลด */}
-              <img src={line.image} alt="" loading="lazy" decoding="async" />
-            </a>
-          ) : (
-            <span className={c("aimg")} aria-hidden="true">
-              <ImageOff />
-            </span>
-          )}
-          <span className={c("atx")}>
-            <span className={c("at")}>
-              <b>{line.tech}</b>
-              <span className={c("chip gray")}>{line.position}</span>
-            </span>
-            {line.size ? <span className={c("asz")}>{line.size}</span> : null}
-            {line.note ? <small>{line.note}</small> : null}
-          </span>
-          {withQty ? <span className={c("aq")}>{line.qty.toLocaleString("th-TH")} ตัว</span> : null}
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-/* ───────────────────────── ตารางยอดต่อไซซ์ ───────────────────────── */
-
-type RowQty = { done: number; waste: number };
-
-function PieceTable({ step, order, c: ctl }: { step: ProductionStep; order: Order; c: WorkOrderController }) {
-  const rows = pieceRowsOf(order);
-  const counting = step.qtyTotal !== null && step.qtyTotal > 0;
-  const editable =
-    counting &&
-    ctl.canUpdateStep &&
-    ctl.canOwnOrSupervise(step) &&
-    step.status !== "COMPLETED" &&
-    step.status !== "FAILED" &&
-    !FLOW_OWNED_STEP_TYPES.has(step.stepType) &&
-    !activeOutsource(step);
-  const saved = useMemo(() => {
-    const map: Record<string, RowQty> = {};
-    for (const q of step.quantities) if (q.sourceOrderItemVariantId) map[q.sourceOrderItemVariantId] = { done: q.qtyGood, waste: q.qtyScrap };
-    return map;
-  }, [step.quantities]);
-  const [draft, setDraft] = useState<Record<string, RowQty>>({});
-  const valueOf = (key: string): RowQty => draft[key] ?? saved[key] ?? { done: 0, waste: 0 };
-  const variantRows = rows.filter((row) => row.variantId);
-  const showQty = editable || step.quantities.length > 0;
-  const dirty = variantRows.some((row) => {
-    const d = draft[row.key];
-    if (!d) return false;
-    const s = saved[row.key] ?? { done: 0, waste: 0 };
-    return d.done !== s.done || d.waste !== s.waste;
-  });
-  const total = rows.reduce((sum, row) => sum + row.qty, 0);
-  const doneSum = variantRows.reduce((sum, row) => sum + valueOf(row.key).done, 0);
-  const wasteSum = variantRows.reduce((sum, row) => sum + valueOf(row.key).waste, 0);
-  const setRow = (key: string, patch: Partial<RowQty>) => setDraft((d) => ({ ...d, [key]: { ...valueOf(key), ...patch } }));
-  const fillAll = () => setDraft(Object.fromEntries(variantRows.map((row) => [row.key, { done: row.qty, waste: 0 }])));
-  const save = () => ctl.savePieceQty(step.id, variantRows.map((row) => ({ variantId: row.variantId!, ...valueOf(row.key) })));
-  const parse = (value: string, max: number) => Math.max(0, Math.min(max, parseInt(value.replace(/\D/g, "") || "0", 10)));
-
-  if (rows.length === 0) return null;
-  return (
-    <>
-      {editable ? (
-        <div className={c("qbar")}>
-          <span className={c("t", dirty && "dirty")} aria-live="polite">
-            {dirty ? "ยังไม่บันทึก" : ""}
-          </span>
-          {variantRows.length > 0 ? (
-            <button type="button" className={c("btn sm")} onClick={fillAll} disabled={ctl.piecePending}>
-              ใส่ครบทุกไซซ์
-            </button>
-          ) : (
-            <button type="button" className={c("btn sm")} onClick={() => ctl.openQty(step.id)}>
-              บันทึกยอด
-            </button>
-          )}
-          {dirty ? (
-            <button type="button" className={c("btn sm primary")} onClick={save} disabled={ctl.piecePending}>
-              บันทึกยอด
-            </button>
-          ) : null}
-        </div>
-      ) : null}
-      <div className={c("item")} id={pieceTableAnchor(step.id)} role="region" aria-label={`ยอดต่อไซซ์ ขั้น${stepLabel(step)}`}>
-        <div className={c("tblw")}>
-          <table className={c("tbl")}>
-            <caption className={c("sr")}>ยอดต่อไซซ์ ขั้น{stepLabel(step)}</caption>
-            <colgroup>
-              <col />
-              <col className={c("c-ord")} />
-              {showQty ? <col className={c("c-in")} /> : null}
-              {showQty ? <col className={c("c-in")} /> : null}
-            </colgroup>
-            <thead>
-              <tr>
-                <th scope="col">ไซซ์</th>
-                <th scope="col" className={c("num")}>สั่ง</th>
-                {showQty ? <th scope="col" className={c("num inh")}>ทำแล้ว</th> : null}
-                {showQty ? <th scope="col" className={c("num inh")}>เสีย</th> : null}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => {
-                const value = valueOf(row.key);
-                const label = [row.product, row.color, row.size].filter(Boolean).join(" ");
-                const canEdit = editable && Boolean(row.variantId);
-                return (
-                  <tr key={row.key}>
-                    <td className={c("sz")}>
-                      <b>{row.size ?? "ไม่ระบุ"}</b>
-                      {row.color && row.color !== row.productColor ? <small> {row.color}</small> : null}
-                    </td>
-                    <td className={c("num")}>{row.qty.toLocaleString("th-TH")}</td>
-                    {showQty ? (
-                      <td className={c("inp")}>
-                        <input
-                          className={c("qin", value.done === row.qty && "full", value.done === 0 && "zero")}
-                          inputMode="numeric"
-                          value={row.variantId ? value.done : "—"}
-                          disabled={!canEdit || ctl.piecePending}
-                          onChange={(event) => setRow(row.key, { done: parse(event.target.value, row.qty) })}
-                          onFocus={(event) => event.target.select()}
-                          aria-label={`ทำแล้ว ${label}`}
-                        />
-                      </td>
-                    ) : null}
-                    {showQty ? (
-                      <td className={c("inp")}>
-                        <input
-                          className={c("qin", value.waste === 0 && "zero")}
-                          style={value.waste > 0 ? ({ color: "var(--warn)" } as CSSProperties) : undefined}
-                          inputMode="numeric"
-                          value={row.variantId ? value.waste : "—"}
-                          disabled={!canEdit || ctl.piecePending}
-                          onChange={(event) => setRow(row.key, { waste: parse(event.target.value, row.qty) })}
-                          onFocus={(event) => event.target.select()}
-                          aria-label={`เสีย ${label}`}
-                        />
-                      </td>
-                    ) : null}
-                  </tr>
-                );
-              })}
-            </tbody>
-            <tfoot>
-              <tr>
-                <td className={c("lbl")}>รวมทั้งใบ</td>
-                <td className={c("num")}>{total.toLocaleString("th-TH")}</td>
-                {showQty ? <td className={c("num inh")}>{doneSum.toLocaleString("th-TH")}</td> : null}
-                {showQty ? <td className={c("num inh", wasteSum > 0 && "warn")}>{wasteSum.toLocaleString("th-TH")}</td> : null}
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      </div>
-    </>
-  );
 }
 
 /* ───────────────────────── เส้นงาน ───────────────────────── */
@@ -357,263 +118,6 @@ function WorkRail({ labels, currentIndex, allDone, stopped }: { labels: string[]
   );
 }
 
-/* ───────────────────────── การ์ดขวา ───────────────────────── */
-
-function ChecklistCard({ step, c: ctl, assign }: { step: ProductionStep; c: WorkOrderController; assign: ReactNode }) {
-  const standards = workOrderStandards(step.stepType);
-  const done = step.status === "COMPLETED";
-  const halted = step.status === "FAILED" || step.status === "ON_HOLD";
-  const ticked = new Map(step.checks.map((check) => [check.itemKey, check.checkedBy.name]));
-  const missing = done || halted ? 0 : ticksMissing(step);
-  const canTick = ctl.canUpdateStep && ctl.canOwnOrSupervise(step) && !done && !halted;
-  const owner = step.assignedTo?.name ?? null;
-  return (
-    <section className={c("card")} aria-labelledby={`ck-${step.id}`} id={checklistAnchor(step.id)}>
-      <CardHead
-        icon={ListChecks}
-        id={`ck-${step.id}`}
-        title="เช็คลิสต์"
-        right={
-          missing > 0 ? (
-            <span className={c("chip warn")}>ติ๊กอีก {missing} ข้อ</span>
-          ) : standards.length > 0 && !halted ? (
-            <span className={c("chip good")}>
-              <Check aria-hidden="true" />
-              ครบ
-            </span>
-          ) : null
-        }
-      />
-      <div className={c("cb")}>
-        <div className={c("whorow")}>
-          <span className={c("av")} aria-hidden="true">
-            {owner ? owner.replace(/^[เแโใไ]/, "").slice(0, 1) : <UserRound />}
-          </span>
-          <span className={c("tx")}>
-            <small>ผู้ทำ</small>
-            <b>{owner ?? "ยังไม่มีคนรับ"}</b>
-          </span>
-          {assign}
-        </div>
-        {standards.length > 0 ? (
-          <ul className={c("checks")}>
-            {standards.map((label, index) => {
-              const on = ticked.has(label);
-              const id = `ck-${step.id}-${index}`;
-              return (
-                <li key={label} className={c(on ? "on" : "miss")}>
-                  <label htmlFor={id}>
-                    <input
-                      id={id}
-                      type="checkbox"
-                      checked={on}
-                      disabled={!canTick || ctl.tickPending}
-                      onChange={(event) => ctl.tickStandard(step.id, label, event.target.checked)}
-                    />
-                    <span className={c("tx")} title={on ? `ติ๊กโดย ${ticked.get(label)}` : undefined}>
-                      {label}
-                    </span>
-                  </label>
-                </li>
-              );
-            })}
-          </ul>
-        ) : null}
-      </div>
-    </section>
-  );
-}
-
-function OrderInfoCard({ order, production, c: ctl }: { order: Order; production: ProductionDetail; c: WorkOrderController }) {
-  const approved = order.designs[0] ?? null;
-  const note = production.notes ? latestPlainProductionNote(production.notes) : null;
-  return (
-    <section className={c("card")} aria-labelledby="wo-order-h">
-      <CardHead icon={ReceiptText} id="wo-order-h" title="ข้อมูลออเดอร์" />
-      <div className={c("cb")}>
-        <div className={c("oprops")}>
-          <Link href={`/orders/${order.id}`} className={c("preview")}>
-            <span className={c("tx")}>
-              <b>{order.customer?.name ?? "ไม่ระบุลูกค้า"}</b>
-            </span>
-            <span className={c("go")}>
-              เปิด
-              <ChevronRight aria-hidden="true" />
-            </span>
-          </Link>
-          <dl className={c("props")}>
-            <Prop label="กำหนดส่ง">
-              <DueTag status={order.internalStatus} deadline={order.deadline} dueInDays={daysFromNow(order.deadline, ctl.nowMs)} small={false} />
-            </Prop>
-            <Prop label="จำนวนทั้งใบ">{ctl.totalQty.toLocaleString("th-TH")} ตัว</Prop>
-            <Prop label="ม็อกอัพอนุมัติ" none={!approved}>
-              {approved ? `v${approved.versionNumber}` : "ยังไม่มี"}
-            </Prop>
-            <Prop label="สถานะออเดอร์">{INTERNAL_STATUS_LABELS[order.internalStatus] ?? order.internalStatus}</Prop>
-          </dl>
-          {note ? (
-            <Callout icon={StickyNote} role="note">
-              {note}
-            </Callout>
-          ) : null}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-type HistoryEvent = { key: string; tone: "good" | "blue" | "bad"; title: string; sub: string; at: Date; meta: string | null };
-
-function historyOf(steps: readonly ProductionStep[]): HistoryEvent[] {
-  const events: HistoryEvent[] = [];
-  for (const step of steps) {
-    const who = step.assignedTo?.name;
-    if (step.completedAt) {
-      events.push({
-        key: `${step.id}-done`,
-        tone: "good",
-        title: stepLabel(step),
-        sub: who ? `ปิดโดย ${who}` : "ปิดขั้นแล้ว",
-        at: new Date(step.completedAt),
-        meta: durationText(step.startedAt, step.completedAt),
-      });
-    } else if (step.status === "FAILED" || step.status === "ON_HOLD") {
-      events.push({
-        key: `${step.id}-problem`,
-        tone: "bad",
-        title: `${stepLabel(step)} · ${STEP_STATUS_LABELS[step.status === "FAILED" ? "FAILED" : "ON_HOLD"]}`,
-        sub: currentProductionProblemReason(step) ?? (who ? `ผู้ทำ ${who}` : ""),
-        at: new Date(step.startedAt ?? Date.now()),
-        meta: null,
-      });
-    } else if (step.startedAt) {
-      events.push({
-        key: `${step.id}-start`,
-        tone: "blue",
-        title: `${stepLabel(step)} · เริ่มทำ`,
-        sub: who ? `โดย ${who}` : "",
-        at: new Date(step.startedAt),
-        meta: null,
-      });
-    }
-    for (const outsource of step.outsourceOrders) {
-      if (!outsource.sentAt) continue;
-      events.push({
-        key: `${outsource.id}-sent`,
-        tone: "blue",
-        title: `${stepLabel(step)} · ส่ง${outsource.vendor.name}`,
-        sub: `${outsource.quantity.toLocaleString("th-TH")} ตัว`,
-        at: new Date(outsource.sentAt),
-        meta: null,
-      });
-    }
-  }
-  return events.sort((a, b) => b.at.getTime() - a.at.getTime());
-}
-
-function HistoryCard({ steps }: { steps: readonly ProductionStep[] }) {
-  const events = historyOf(steps);
-  return (
-    <section className={c("card")} aria-labelledby="wo-hist-h">
-      <CardHead icon={History} id="wo-hist-h" title="ประวัติขั้นงาน" />
-      <div className={c("cb")}>
-        {events.length === 0 ? <p className={c("mempty")}>ยังไม่มีขั้นที่เริ่มทำ</p> : null}
-        <ol className={c("hist")}>
-          {events.map((event) => (
-            <li key={event.key}>
-              <span className={c("d", event.tone)} aria-hidden="true" />
-              <span className={c("tx")}>
-                {event.title}
-                {event.sub ? <small>{event.sub}</small> : null}
-              </span>
-              <span className={c("m")}>
-                {event.meta ? <b>{event.meta}</b> : null}
-                {formatDateTime(event.at)}
-              </span>
-            </li>
-          ))}
-        </ol>
-      </div>
-    </section>
-  );
-}
-
-/* ───────────────────────── แท็บสินค้า ───────────────────────── */
-
-function ItemsTab({ order, production, c: ctl }: { order: Order; production: ProductionDetail; c: WorkOrderController }) {
-  const approved = order.designs[0] ?? null;
-  const mockup = approved ? orderMockupCover(order) : null;
-  const products = order.items.flatMap((item) => item.products);
-  return (
-    <>
-      <div className={c("two")}>
-        <section className={c("card")} aria-labelledby="wo-items-h">
-          <CardHead icon={Shirt} id="wo-items-h" title="สินค้าในใบนี้" />
-          <div className={c("cb")}>
-            <div className={c("stack")}>
-              {products.map((product) => {
-                const name = product.description || PRODUCT_TYPES[product.productType ?? ""] || "สินค้า";
-                return (
-                  <div key={product.id} className={c("item")}>
-                    <div className={c("item-head")}>
-                      <b>{name}</b>
-                      <span className={c("chip gray")}>{(product.totalQuantity ?? 0).toLocaleString("th-TH")} ตัว</span>
-                      {product.fabricColor ? <span className={c("chip line")}>{product.fabricColor}</span> : null}
-                    </div>
-                    {product.variants.length > 0 ? (
-                      <div className={c("sizes")}>
-                        {product.variants.map((variant) => (
-                          <span key={variant.id}>
-                            {[variant.color !== product.fabricColor ? variant.color : null, variant.size].filter(Boolean).join(" ") || "ไม่ระบุ"}
-                            <b>{variant.quantity.toLocaleString("th-TH")}</b>
-                          </span>
-                        ))}
-                      </div>
-                    ) : null}
-                  </div>
-                );
-              })}
-              <div className={c("hr")} />
-              <div className={c("sub-h")}>
-                <h3>งานพิมพ์/ปัก</h3>
-              </div>
-              <ArtList lines={artLinesOf(order)} withQty />
-            </div>
-          </div>
-        </section>
-        <section className={c("card")} aria-labelledby="wo-mock-h">
-          <CardHead
-            icon={ClipboardCheck}
-            tone="violet"
-            id="wo-mock-h"
-            title="ม็อกอัพ"
-            right={approved ? <span className={c("chip good")}>อนุมัติ v{approved.versionNumber}</span> : <span className={c("chip warn")}>ยังไม่มี</span>}
-          />
-          <div className={c("cb")}>
-            <div className={c("canvas")}>
-              {mockup ? (
-                <a href={mockup} target="_blank" rel="noreferrer" aria-label="เปิดม็อกอัพเต็มจอ">
-                  {/* eslint-disable-next-line @next/next/no-img-element -- ไฟล์ม็อกอัพที่อัปโหลด */}
-                  <img src={mockup} alt={`ม็อกอัพ ${order.orderNumber}`} />
-                </a>
-              ) : (
-                <span className={c("e")}>
-                  <ImageOff aria-hidden="true" />
-                  ยังไม่มีม็อกอัพที่อนุมัติ
-                </span>
-              )}
-            </div>
-            {approved?.approvedAt ? <p className={c("caption")}>อนุมัติ {formatDateShort(approved.approvedAt)}</p> : null}
-          </div>
-        </section>
-      </div>
-      <div className={c("embed")}>
-        <MaterialUsage productionId={production.id} orderNumber={order.orderNumber} showCosts={ctl.canSeeCost} readOnly={!ctl.canUpdateStep} embedded />
-      </div>
-    </>
-  );
-}
-
 /* ───────────────────────── หน้า ───────────────────────── */
 
 function WorkOrderKit({ id }: { id: string }) {
@@ -645,7 +149,6 @@ export function WorkOrderKitView({ c: ctl, scannedMockup = Number.NaN }: { c: Wo
     const label = node.map(stepLabel).join(" + ");
     return nodes.some((o, j) => j !== i && o.map(stepLabel).join(" + ") === label) ? `${label} ${i + 1}` : label;
   });
-  const hasVariantRows = order ? pieceRowsOf(order).some((r) => r.variantId) : false;
   const canManageStep = ctl.canSuperviseStep && ctl.hasProductionPermission;
   const stopped = !allDone && !!current && (current.status === "FAILED" || current.status === "ON_HOLD");
 
@@ -720,8 +223,9 @@ export function WorkOrderKitView({ c: ctl, scannedMockup = Number.NaN }: { c: Wo
     return ctl.primaryButton(step, now, { kit: true });
   }
 
-  // ฟังก์ชันวาด (ไม่ใช่ component ซ้อน) — ไม่งั้นตารางยอดถูกสร้างใหม่ทุกครั้งที่ข้อมูลรีเฟรช และยอดที่พิมพ์ค้างหาย
-  function renderStepFooter(step: ProductionStep) {
+  const hasVariantRows = (order?.items ?? []).some((item) => item.products.some((prod) => prod.variants.length > 0));
+
+  function stepFooter(step: ProductionStep): ReactNode {
     const action = actionFor(step);
     const canReport = ctl.canUpdateStep && ctl.canOwnOrSupervise(step) && step.status !== "COMPLETED" && step.status !== "FAILED";
     const reason = step.status !== "COMPLETED" && !action ? blockReason(step) : null;
@@ -751,84 +255,6 @@ export function WorkOrderKitView({ c: ctl, scannedMockup = Number.NaN }: { c: Wo
     );
   }
 
-  function renderStepCard(step: ProductionStep) {
-    if (!order || !production) return null;
-    const view = viewOf(step, nowById.get(step.id));
-    const outsource = activeOutsource(step);
-    const counting = step.qtyTotal !== null && step.qtyTotal > 0;
-    const Icon = stepIcon(step);
-    const iconTone = view.state === "blocked" ? "bad" : view.state === "held" || outsource ? "warn" : "blue";
-    return (
-      <section className={c("card stepcard")} aria-labelledby={`st-${step.id}`}>
-        <CardHead
-          icon={Icon}
-          tone={iconTone}
-          id={`st-${step.id}`}
-          title={
-            <>
-              {stepLabel(step)}
-              {counting ? (
-                <small>
-                  {" "}
-                  {(step.qtyDone ?? 0).toLocaleString("th-TH")} / {step.qtyTotal!.toLocaleString("th-TH")} ตัว
-                </small>
-              ) : null}
-            </>
-          }
-          right={<span className={c("chip", CHIP_TONE[view.chip])}>{outsource ? "อยู่ร้านนอก" : view.label}</span>}
-        />
-        <div className={c("cb")}>
-          {outsource ? (
-            <dl className={c("props")} style={{ marginBottom: 16 }}>
-              <Prop label="ร้าน">{outsource.vendor.name}</Prop>
-              <Prop label="นัดรับกลับ" none={!outsource.expectedBackAt}>
-                {outsource.expectedBackAt ? (
-                  <DueTag status="PRODUCING" deadline={outsource.expectedBackAt} dueInDays={daysFromNow(outsource.expectedBackAt, ctl.nowMs)} small={false} />
-                ) : (
-                  "ยังไม่นัด"
-                )}
-              </Prop>
-              <Prop label="งานที่ส่ง">
-                {outsource.description || stepLabel(step)}
-                <small>
-                  {outsource.quantity.toLocaleString("th-TH")} ตัว{outsource.sentAt ? ` · ส่ง ${formatDateShort(outsource.sentAt)}` : ""}
-                </small>
-              </Prop>
-              {outsource.notes ? <Prop label="หมายเหตุร้าน">{outsource.notes}</Prop> : null}
-            </dl>
-          ) : null}
-          {step.stepType === "GARMENT_PICK" ? (
-            <div className={c("embed")}>
-              <GarmentPickCard
-                productionId={production.id}
-                steps={workflowSteps}
-                stepId={step.id}
-                canIssueGarments={ctl.canUpdateStep && ctl.canOwnOrSupervise(step)}
-                canReturnGarments={ctl.canSuperviseStep && ctl.hasProductionPermission && !ctl.writeDataStale}
-                primaryTask
-              />
-            </div>
-          ) : step.stepType === "GARMENT_RECEIVE" ? (
-            <div className={c("embed")}>
-              <GarmentReceiveInline
-                orderId={order.id}
-                productionStepId={step.id}
-                canRecord={ctl.canUpdateStep && ctl.canOwnOrSupervise(step) && step.status !== "COMPLETED" && step.status !== "FAILED"}
-                canCorrect={ctl.canSuperviseStep && ctl.hasProductionPermission && step.status === "COMPLETED"}
-              />
-            </div>
-          ) : (
-            <>
-              <ArtList lines={artLinesOf(order, step.stepType)} />
-              <PieceTable key={step.id} step={step} order={order} c={ctl} />
-            </>
-          )}
-        </div>
-        {renderStepFooter(step)}
-      </section>
-    );
-  }
-
   const qcAction = production && ctl.canUpdateStep && allDone && (ctl.readyForQcViaPaper || ctl.legacyPackagingReadyForQc) ? (ctl.readyForQcViaPaper ? "paper" : "legacy") : null;
   const nextLabel = railLabels[currentNodeIndex + 1] ?? null;
   const flatIndex = current ? workflowSteps.indexOf(current) : workflowSteps.length;
@@ -841,19 +267,13 @@ export function WorkOrderKitView({ c: ctl, scannedMockup = Number.NaN }: { c: Wo
      ด่านต้องตรงกับ server ทุกข้อ (production.reopenStep + assertStepReopenable):
      ปิดด้วยปุ่มเท่านั้น · ไม่มีใบส่งร้าน/รอบพิมพ์ผูก · ขั้นหลังจากนั้นยังไม่มีใครเริ่ม ·
      ออเดอร์ยังอยู่ระหว่างผลิต (ใช้ ctl.canUpdateStep ตัวเดียวกับปุ่มลงมือ ไม่เขียนกฎสถานะใหม่)
-     นับขั้นพี่น้องจากทั้งใบ (production.steps) เหมือน server ไม่ใช่เฉพาะขั้นที่อยู่บนราง
-     (ใบตรวจรับนับไม่ได้ฝั่งนี้ — แต่ขั้นที่มีใบตรวจรับเป็นชนิดที่ flow เป็นเจ้าของอยู่แล้ว)
-
-     ปิดขั้นสุดท้ายแล้ว server เดินออเดอร์ไป "ตรวจคุณภาพ" ให้เอง (finalizeProductionIfComplete)
-     ปุ่มจึงหายเองตอนนั้น — ทางย้อนของสถานะนั้นอยู่ที่หัวใบออเดอร์ (QC → กำลังผลิต) */
+     นับขั้นพี่น้องจากทั้งใบ (production.steps) เหมือน server ไม่ใช่เฉพาะขั้นที่อยู่บนราง */
   const allStepsOfSheet = production?.steps ?? [];
   const reopenBlockedReason: string | null = !reopenTarget
     ? "ยังไม่มีขั้นที่ปิดให้ย้อน"
     : reopenTarget.status !== "COMPLETED"
       ? "ขั้นนี้ยังไม่ได้ปิด"
-      : FLOW_OWNED_STEP_TYPES.has(reopenTarget.stepType) ||
-          reopenTarget.outsourceOrders.length > 0 ||
-          reopenTarget.printRunItems.length > 0
+      : FLOW_OWNED_STEP_TYPES.has(reopenTarget.stepType) || reopenTarget.outsourceOrders.length > 0 || reopenTarget.printRunItems.length > 0
         ? "ปิดผ่านหลักฐานของระบบ"
         : allStepsOfSheet.some((s) => s.sortOrder > reopenTarget.sortOrder && s.status !== "PENDING")
           ? "ขั้นถัดไปเริ่มทำแล้ว"
@@ -1036,9 +456,7 @@ export function WorkOrderKitView({ c: ctl, scannedMockup = Number.NaN }: { c: Wo
               </div>
             </div>
 
-            {workflowSteps.length > 0 ? (
-              <WorkRail labels={railLabels} currentIndex={currentNodeIndex} allDone={allDone} stopped={stopped} />
-            ) : null}
+            {workflowSteps.length > 0 ? <WorkRail labels={railLabels} currentIndex={currentNodeIndex} allDone={allDone} stopped={stopped} /> : null}
 
             <KitTabs
               label="ส่วนของใบผลิต"
@@ -1056,7 +474,7 @@ export function WorkOrderKitView({ c: ctl, scannedMockup = Number.NaN }: { c: Wo
               {tab === "history" ? (
                 <HistoryCard steps={workflowSteps} />
               ) : tab === "items" ? (
-                <ItemsTab order={order} production={production} c={ctl} />
+                <WorkOrderItemsTab order={order} production={production} ctl={ctl} />
               ) : workflowSteps.length === 0 ? (
                 <section className={c("card")}>
                   <div className={c("empty flat")}>
@@ -1067,7 +485,7 @@ export function WorkOrderKitView({ c: ctl, scannedMockup = Number.NaN }: { c: Wo
                   </div>
                 </section>
               ) : (
-                <div className={c("two")}>
+                <div className={c("two wide")}>
                   <div className={c("stack")}>
                     {allDone || !current ? (
                       <section className={c("card stepcard")} aria-labelledby="wo-done-h">
@@ -1104,16 +522,12 @@ export function WorkOrderKitView({ c: ctl, scannedMockup = Number.NaN }: { c: Wo
                         </div>
                       </section>
                     ) : (
-                      [current, ...pairedOpen].map((step) => <div key={step.id}>{renderStepCard(step)}</div>)
+                      [current, ...pairedOpen].map((step) => <WorkOrderStepCard key={step.id} step={step} ctl={ctl} footer={stepFooter(step)} />)
                     )}
                   </div>
                   <div className={c("stack sticky")}>
-                    {!allDone && current
-                      ? [current, ...pairedOpen].map((step) => (
-                          <ChecklistCard key={step.id} step={step} c={ctl} assign={assignAction(step)} />
-                        ))
-                      : null}
-                    <OrderInfoCard order={order} production={production} c={ctl} />
+                    {!allDone && current ? [current, ...pairedOpen].map((step) => <ChecklistCard key={step.id} step={step} ctl={ctl} assign={assignAction(step)} />) : null}
+                    <OrderInfoCard order={order} production={production} ctl={ctl} />
                   </div>
                 </div>
               )}

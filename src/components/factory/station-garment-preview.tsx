@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { FOCUS_INSET_ON_LIGHT, RADIUS, TINT } from "@/components/ui/tokens";
+import { heatLabel } from "@/lib/print-heat";
 import { formatDate, isImageUrl } from "@/lib/utils";
 import { PRINT_POSITIONS, PRINT_TYPES } from "@/types/order-form";
 import { cn } from "@/lib/utils";
@@ -342,14 +343,8 @@ function ApprovedDesignReference({
   );
 }
 
-export function stationHeatLabel(heat: StationPreviewPrint["heat"]): string | null {
-  if (!heat) return null;
-  const parts: string[] = [];
-  if (heat.tempC != null) parts.push(`${heat.tempC}°C`);
-  if (heat.pressSec != null) parts.push(`${heat.pressSec} วิ`);
-  if (heat.pressure) parts.push(heat.pressure);
-  return parts.length > 0 ? `รีด ${parts.join(" · ")}` : null;
-}
+/** ค่ารีดร้อนย้ายไป lib/print-heat.ts (2026-09-20) — คงชื่อเดิมไว้ให้ผู้เรียกในโฟลเดอร์สถานี */
+export const stationHeatLabel = heatLabel;
 
 function StationPrintRow({
   print,
@@ -368,7 +363,7 @@ function StationPrintRow({
   const artImage = isStationPreviewImageUrl(print.imageUrl)
     ? print.imageUrl
     : null;
-  const heatLabel = stationHeatLabel(print.heat);
+  const heatText = heatLabel(print.heat);
 
   return (
     <li className="space-y-4 px-4 py-5 sm:px-5">
@@ -383,12 +378,12 @@ function StationPrintRow({
             {printDimensionLabel(print)}
             {print.colorCount ? ` · ${print.colorCount} สี` : ""}
           </p>
-          {heatLabel ? (
+          {heatText ? (
             <p
               data-station-heat-spec=""
               className="mt-1.5 text-sm font-semibold tabular-nums text-secondary"
             >
-              {heatLabel}
+              {heatText}
             </p>
           ) : null}
         </div>

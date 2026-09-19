@@ -1,8 +1,7 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import { ChecklistCard } from "./work-order-checklist";
-import { WorkOrderSteps } from "./work-order-steps";
+import { ChecklistCard } from "./work-order-side";
 import { OutsourceReturnReceipt, type WorkOrderController } from "./work-order-controller";
 import { dtfUnavailableReason, outsourceReceiptCandidates, outsourceStepReason } from "./work-order-pieces";
 import { workOrderStandards } from "@/lib/work-order-standards";
@@ -11,49 +10,32 @@ import type { ProductionStep } from "./types";
 (globalThis as Record<string, unknown>).React = React;
 
 describe("ใบผลิตบอกสถานะและหลักฐานตามข้อมูลจริง", () => {
-  function finishedOrder(internalStatus: string) {
-    const c = {
-      production: { id: "production-1", notes: null },
-      order: { id: "order-1", internalStatus, designs: [], customer: { name: "ลูกค้า" }, deadline: null },
-      workflowSteps: [], totalQty: 120, nowMs: 0,
-    } as unknown as WorkOrderController;
-    return renderToStaticMarkup(React.createElement(WorkOrderSteps, {
-      c, current: null, pairedOpen: [], allDone: true, qcAction: null,
-    }));
-  }
-
-  it("ใบนี้ครบแล้วแต่ออเดอร์ยังผลิตอยู่ ต้องไม่อ้างว่าอยู่ QC", () => {
-    const html = finishedOrder("PRODUCING");
-    expect(html).toContain("กำลังผลิต");
-    expect(html).toContain("ดูงานผลิตทั้งออเดอร์");
-    expect(html).toContain("/orders/order-1?tab=production");
-    expect(html).not.toContain("อยู่ที่ QC");
-    expect(html).not.toContain("ไปตรวจ QC");
-  });
-
-  it.each([
-    ["QUALITY_CHECK", "production", "ไปตรวจ QC"],
-    ["PACKING", "delivery", "ดูการแพ็กและจัดส่ง"],
-    ["READY_TO_SHIP", "delivery", "พร้อมจัดส่ง"],
-    ["COMPLETED", "delivery", "เสร็จสิ้น"],
-  ])("สถานะ %s ส่งไปแท็บที่เกี่ยว", (status, tab, text) => {
-    const html = finishedOrder(status);
-    expect(html).toContain(`/orders/order-1?tab=${tab}`);
-    expect(html).toContain(text);
-  });
-
   it("ขั้นปิดแล้วคงผลติ๊กจริง ไม่ติ๊กข้อที่ไม่มีหลักฐานให้เอง", () => {
     const standards = workOrderStandards("HEAT_PRESS");
     const step = {
       id: "step-1", stepType: "HEAT_PRESS", status: "COMPLETED", assignedTo: null,
       checks: [{ itemKey: standards[0], checkedBy: { name: "ผู้ตรวจ" } }], outsourceOrders: [],
     } as unknown as ProductionStep;
-    const c = { canUpdateStep: true, canOwnOrSupervise: () => true, tickPending: false } as unknown as WorkOrderController;
-    const html = renderToStaticMarkup(React.createElement(ChecklistCard, { step, c, nowMs: 0 }));
+    const ctl = { canUpdateStep: true, canOwnOrSupervise: () => true, tickPending: false } as unknown as WorkOrderController;
+    const html = renderToStaticMarkup(React.createElement(ChecklistCard, { step, ctl, assign: null }));
     expect((html.match(/checked=""/g) ?? []).length).toBe(1);
     expect((html.match(/disabled=""/g) ?? []).length).toBe(standards.length);
-    expect(html).toContain(`1/${standards.length}`);
+    // ขั้นที่ปิดแล้วต้องบอกตามหลักฐานที่จดไว้ ไม่ใช่เหมาว่า "ครบ"
+    expect(html).toContain(`บันทึกไว้ 1/${standards.length} ข้อ`);
+    expect(html).not.toContain(">ครบ<");
     expect(html).toContain("ติ๊กโดย ผู้ตรวจ");
+  });
+
+  it("ขั้นที่ยังทำอยู่บอกจำนวนข้อที่เหลือ และติ๊กได้", () => {
+    const step = {
+      id: "step-2", stepType: "HEAT_PRESS", status: "IN_PROGRESS", assignedTo: { id: "u", name: "บาส" },
+      checks: [], outsourceOrders: [],
+    } as unknown as ProductionStep;
+    const ctl = { canUpdateStep: true, canOwnOrSupervise: () => true, tickPending: false } as unknown as WorkOrderController;
+    const html = renderToStaticMarkup(React.createElement(ChecklistCard, { step, ctl, assign: null }));
+    expect(html).toContain(`ติ๊กอีก ${workOrderStandards("HEAT_PRESS").length} ข้อ`);
+    expect(html).toContain("บาส");
+    expect(html).not.toContain('disabled=""');
   });
 
   it("DTF ที่ยังไม่เสร็จพาไปหน้าพิมพ์ DTF", () => {

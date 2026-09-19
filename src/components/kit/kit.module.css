@@ -770,6 +770,22 @@ ul.ocards { margin: 0; list-style: none; }
 .mfg .item .tbl col.c-in { width: 136px; }
 .mfg .item .tbl td.inp { padding: 6px 16px 6px 12px; }
 .mfg .item .tbl td.inp:last-child { padding-right: 0; }
+/* ตารางรายรายการบนใบผลิต (2026-09-20) — คอลัมน์ชุดเดียวกันทุกตารางในการ์ด รวมแถวรวมทั้งใบ
+   จึงตรงแนวกันโดยไม่ต้องเดาความกว้างเอง (บทเรียน 09-10 "เลขในคอลัมน์ต้องตรงกัน") */
+.mfg .item .tbl col.c-no { width: 36px; }
+.mfg .item .tbl col.c-sz { width: 72px; }
+.mfg .item .tbl td.rno { color: var(--ink-4); font-size: 12.5px; }
+.mfg .item-head .iq { margin-left: auto; }
+/* รูปลายบนใบผลิตใหญ่กว่าหน้าออเดอร์ — ช่างใช้เทียบงานจริงไม่ใช่แค่ผ่านตา */
+.mfg .pstrip { gap: 12px 22px; padding: 12px 14px; }
+.mfg .pstrip .prod .thumb { width: 52px; height: 52px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line-2); cursor: zoom-in; }
+.mfg .pstrip .prod b { font-size: 14px; }
+@media (max-width: 640px) {
+  .mfg .item .tbl col.c-ord { width: 56px; }
+  .mfg .item .tbl col.c-in { width: 84px; }
+  .mfg .item .tbl td.inp { padding: 6px 0 6px 8px; }
+  .mfg .item .tbl th.num.inh, .mfg .item .tbl tfoot td.num.inh { padding-right: 13px; }
+}
 .mfg .qin { display: block; width: 100%; max-width: 124px; margin-left: auto; height: 42px; padding: 0 12px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface); color: var(--ink); text-align: right; font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; transition: border-color .15s, box-shadow .15s; }
 .mfg .qin:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-tint); }
 .mfg .qin:disabled { border-color: transparent; background: transparent; color: var(--ink-2); -webkit-text-fill-color: currentColor; opacity: 1; }

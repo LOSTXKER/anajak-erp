@@ -118,6 +118,8 @@ export function useProtoController(fx: StateFixture, role: Role): WorkOrderContr
         createElement(WorkOrderPrimaryButton, {
           step,
           now,
+          // ใบผลิตจริงวาดปุ่มด้วยชุดหน้าตากลาง — หน้าลองต้องได้ปุ่มหน้าตาเดียวกัน
+          options: { kit: true },
           busy: false,
           canUpdateStep,
           canSuperviseStep,

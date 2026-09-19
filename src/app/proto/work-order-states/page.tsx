@@ -2,7 +2,7 @@
 
 /**
  * หน้าลอง "ใบผลิตทุกสถานะ" (เบสสั่ง 2026-09-09 "ทำ proto ทุกสถานะ ขั้นตอนมาให้ดู จะได้ปรับ UX/UI ได้ง่าย")
- * ซ้าย = รายชื่อสถานะ · ขวา = ใบผลิตตัวจริง (WorkOrderView) ในสถานะนั้น — ปุ่ม/ราง/เช็คลิสต์เป็นชุดเดียวกับของจริง
+ * ซ้าย = รายชื่อสถานะ · ขวา = ใบผลิตตัวจริง (WorkOrderKitView) ในสถานะนั้น — ปุ่ม/ราง/เช็คลิสต์/ตารางเป็นชุดเดียวกับของจริง
  * ตัวเลือกอยู่ใน URL (?s=… &boss=1) ก๊อปลิงก์ส่งกลับได้เลย
  */
 import Link from "next/link";
@@ -10,15 +10,12 @@ import { useTheme } from "next-themes";
 import { ArrowLeft, Moon, Smartphone, Sun, UserRound } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { OrderItemsDisplay } from "@/components/orders/detail/order-items-display";
-import { ProductionDesignCard } from "@/components/production/production-design-card";
-import { WorkOrderView } from "@/components/production/work-order-page";
-import type { RouterOutput } from "@/lib/trpc";
+import { WorkOrderKitView } from "@/components/production/work-order-kit";
 import { cn } from "@/lib/utils";
 
 import { useProtoFlag, useProtoVariant } from "../_kit/use-proto-variant";
 import { useProtoController } from "./_controller";
-import { DEFAULT_STATE, ORDER_ITEMS, STATES, STATE_KEYS, stateOf } from "./_fixtures";
+import { DEFAULT_STATE, STATES, STATE_KEYS, stateOf } from "./_fixtures";
 
 export default function WorkOrderStatesProto() {
   const [key, setKey] = useProtoVariant("s", STATE_KEYS, DEFAULT_STATE);
@@ -76,17 +73,7 @@ export default function WorkOrderStatesProto() {
             </Button>
           ))}
         </div>
-        <WorkOrderView
-          key={`${key}:${boss ? "boss" : "staff"}`}
-          c={c}
-          scannedMockup={fx.flags?.scannedMockup ?? Number.NaN}
-          itemsTab={
-            <>
-              <OrderItemsDisplay orderId={fx.order.orderNumber} items={ORDER_ITEMS as RouterOutput["order"]["getById"]["items"]} fees={[]} showMoney={false} canEditReceiveTracking={false} />
-              <ProductionDesignCard order={fx.order} />
-            </>
-          }
-        />
+        <WorkOrderKitView key={`${key}:${boss ? "boss" : "staff"}`} c={c} scannedMockup={fx.flags?.scannedMockup ?? Number.NaN} />
       </div>
     </div>
   );

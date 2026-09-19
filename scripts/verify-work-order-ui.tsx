@@ -1,16 +1,20 @@
-// เรนเดอร์ชิ้นส่วนลงมือของใบผลิต/หน้างานเป็น HTML แล้ว assert โครงที่เบสเคาะ — ไม่ต่อฐาน ไม่ต้องล็อกอิน
-// (โซนลงมือแบบ A 2026-09-03 · กล่องแจ้งเตือนแบบ B 2026-09-03) · อยู่ในด่าน verify:ui
+// เรนเดอร์ "ใบผลิตจริง" (/production/[id]) เป็น HTML แล้ว assert โครงที่เบสเคาะ — ไม่ต่อฐาน ไม่ต้องล็อกอิน
+//
+// 2026-09-20: ด่านนี้เคยตรวจชุดคอมโพเนนต์เก่าที่ไม่มีหน้าไหนเปิด (WorkOrderSteps/StepPieceTable/ChecklistCard เดิม)
+// หน้าจริงจึงไม่เคยถูกตรวจเลย — ย้ายมาตรวจตัวหน้าจริงผ่านข้อมูลปลอมชุดเดียวกับหน้าลอง
+// โครงที่ต้องคงไว้: ตารางรายรายการแบบหน้าออเดอร์ · ลายอยู่กับรายการของมัน · ช่องกรอกยอดแถวละไซซ์ · ไม่มีเงิน
 import React from "react";
 (globalThis as Record<string, unknown>).React = React;
 import { renderToStaticMarkup } from "react-dom/server";
+import { readFileSync } from "node:fs";
 import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { PathnameContext, SearchParamsContext } from "next/dist/shared/lib/hooks-client-context.shared-runtime";
 import { Alert } from "../src/components/ui/alert";
 import { ActionZone } from "../src/components/ui/action-zone";
 import { Button } from "../src/components/ui/button";
-import { ChecklistCard } from "../src/components/production/work-order-checklist";
-import { StepPieceTable, pieceRowsOf } from "../src/components/production/work-order-quantities";
-import { WorkOrderSteps } from "../src/components/production/work-order-steps";
+import { useProtoController } from "../src/app/proto/work-order-states/_controller";
+import { makeOrder, stateOf } from "../src/app/proto/work-order-states/_fixtures";
+import { WorkOrderKitView } from "../src/components/production/work-order-kit";
 import type { ProductionDetail } from "../src/components/production/types";
 import { ProblemCard } from "../src/components/production/work-order-pieces";
 
@@ -35,101 +39,117 @@ function render(node: React.ReactNode) {
   );
 }
 
-const base = { customStepName: null, notes: null, qcNotes: null, outsourceOrders: [], printRunItems: [], qtyTotal: 240, startedAt: null, completedAt: null, assignedTo: null, qtyDone: 0, pairWithPrevious: false, checks: [], quantities: [] };
-const fakeOrder = {
-  items: [
-    {
-      id: "it1",
-      totalQuantity: 240,
-      prints: [
-        { id: "p1", position: "FRONT", printType: "DTF", printSize: "CUSTOM", width: 8, height: 8, colorCount: 4, designNote: null, designImageUrl: "/demo-mockups/front.svg", artwork: null },
-        { id: "p2", position: "SLEEVE_L", printType: "EMBROIDERY", printSize: "CUSTOM", width: 5, height: 5, colorCount: 1, designNote: null, designImageUrl: null, artwork: null },
-      ],
-      products: [
-        {
-          id: "pr1",
-          productType: "POLO",
-          description: "โปโล Dry-Tech คอปก",
-          itemSource: "FROM_STOCK",
-          fabricColor: "กรมท่า",
-          totalQuantity: 240,
-          variants: [
-            { id: "v1", size: "S", color: "กรมท่า", quantity: 20 },
-            { id: "v2", size: "M", color: "กรมท่า", quantity: 40 },
-            { id: "v3", size: "L", color: "กรมท่า", quantity: 60 },
-          ],
-        },
-      ],
-    },
-  ],
-} as never;
-const nowById = new Map();
-const ctrl = { reportProblem: { isPending: false, mutate() {} }, openEdit() {}, handleSupervisorStatus: async () => {}, nowById, canUpdateStep: true, canOwnOrSupervise: () => true, openQty() {}, tickStandard() {}, tickPending: false, savePieceQty() {}, piecePending: false } as never;
+type Order = ProductionDetail["order"];
 
-/* ── ตารางรายตัวของขั้นที่ยืนอยู่ (เบสเคาะ 09-08 รอบ 11): แถวละไซซ์ · หัวตารางกลาง · ยอดตัวเลขเด่น ── */
-const rows = pieceRowsOf(fakeOrder);
-ok("แถวรายตัว: แถวละไซซ์ 3 แถว จากสินค้าเดียว", rows.length === 3 && rows.map((r) => r.size).join(",") === "S,M,L");
-ok("แถวรายตัว: ชื่อ/สี/จำนวน/รูปลาย ครบ", rows[0]!.product === "โปโล Dry-Tech คอปก" && rows[0]!.color === "กรมท่า" && rows[2]!.qty === 60 && rows[0]!.thumb === "/demo-mockups/front.svg");
-ok("แถวรายตัว: ลายเป็นภาษาคน (ตำแหน่ง + เทคนิค)", rows[0]!.prints.join("|") === "หน้า DTF|แขนซ้าย ปัก");
+/** ใบที่มีสองรายการ: เสื้อกีฬา (DTF หน้า) กับ โปโลสตาฟ (DTF หลัง + ปักแขน) */
+function twoItemOrder(): Order {
+  const base = makeOrder({}) as Order;
+  const item = base.items[0]!;
+  const second = {
+    ...item,
+    id: "it2",
+    description: "เสื้อโปโลสตาฟ",
+    totalQuantity: 18,
+    prints: [
+      { ...item.prints[0]!, id: "p2", position: "BACK", printType: "DTF" },
+      { ...item.prints[0]!, id: "p3", position: "SLEEVE_R", printType: "EMBROIDERY", designImageUrl: null },
+    ],
+    products: [
+      {
+        ...item.products[0]!,
+        id: "pr2",
+        description: "เสื้อโปโล จูติ",
+        product: { name: "เสื้อโปโล จูติ", sku: "PL-WHT", imageUrl: null },
+        totalQuantity: 18,
+        variants: [
+          { id: "v2-m", size: "M", color: "ขาว", quantity: 8 },
+          { id: "v2-l", size: "L", color: "ขาว", quantity: 10 },
+        ],
+      },
+    ],
+  } as (typeof base)["items"][number];
+  return { ...base, items: [item, second] };
+}
 
-const table = render(<StepPieceTable step={{ ...base, id: "h", stepType: "HEAT_PRESS", status: "IN_PROGRESS", qtyDone: 96, qtyTotal: 240 } as never} order={fakeOrder} c={ctrl} />);
-ok("ตาราง: หัวตารางใช้ TABLE_HEAD_SURFACE (โปร่งตามพื้นแม่)", table.includes("<thead class=\"border-b border-divider bg-transparent text-secondary\""));
-ok("ตาราง: หัวตาราง + ไซซ์ 3 แถว และรวม 120 ตัว", (table.match(/<tr/g) ?? []).length === 4 && table.includes("รวมทั้งใบ") && table.includes("120"));
-ok("ตาราง: ยอดทำแล้วของขั้นอยู่หัวการ์ด (96 / 240)", /96\s*\/\s*240/.test(table.replace(/<[^>]+>/g, "")));
-/* A9.3: ขั้นที่นับยอดกรอก ทำแล้ว/เสีย ต่อแถวได้ — ปุ่มบันทึกโผล่เมื่อแก้ (ไม่มีปุ่มกดไม่ได้) · ปุ่มครบทุกแถวมีตลอด */
-ok("ตาราง: ช่องกรอกทำแล้ว/เสีย แถวละไซซ์ (6 ช่อง)", (table.match(/aria-label="ทำแล้ว /g) ?? []).length === 3 && (table.match(/aria-label="เสีย /g) ?? []).length === 3);
-ok("ตาราง: มีปุ่มใส่ครบทุกไซซ์ · ปุ่มบันทึกยอดยังไม่โผล่ตอนยังไม่แก้", table.includes(">ใส่ครบทุกไซซ์<") && !table.includes(">บันทึกยอด<"));
-ok("ตาราง: ไซซ์นำแถว และชื่อสินค้า/ภาพ/รายละเอียดลายแสดงครั้งเดียวต่อสินค้า", table.includes('font-semibold text-strong">S<') && (table.match(/>โปโล Dry-Tech คอปก<\/h3>/g) ?? []).length === 1 && (table.match(/<img /g) ?? []).length === 1 && (table.match(/>หน้า DTF<\/li>/g) ?? []).length === 1);
-ok("ตาราง: สีหลักของเสื้อไม่หาย และลายแยกเป็นรายการอ่านได้", table.includes(">กรมท่า<") && table.includes(">หน้า DTF</li>") && table.includes(">แขนซ้าย ปัก</li>"));
-ok("ตาราง: ชื่อพื้นที่และหัวคอลัมน์อ่านได้ด้วยเครื่องช่วยอ่าน", table.includes('role="region"') && table.includes('aria-label="รายการเสื้อ ขั้นรีดร้อน"') && (table.match(/scope="col"/g) ?? []).length === 4);
-ok("ตาราง: ช่องกรอกสูงพอนิ้วบนจอทัช (CONTROL_H)", table.includes("[@media(pointer:coarse)]:h-11"));
-ok("ตาราง: แจ้งสถานะบันทึกยอดให้เครื่องช่วยอ่านรับรู้", table.includes('aria-live="polite"'));
-const distinctProductsOrder = structuredClone(fakeOrder as ProductionDetail["order"]);
-const originalProduct = distinctProductsOrder.items[0]!.products[0]!;
-distinctProductsOrder.items[0]!.products.push({ ...originalProduct, id: "pr2", totalQuantity: 20, variants: [{ ...originalProduct.variants[0]!, id: "v4", quantity: 20 }] });
-const distinctProductsTable = render(<StepPieceTable step={{ ...base, id: "multi", stepType: "HEAT_PRESS", status: "IN_PROGRESS" } as never} order={distinctProductsOrder} c={ctrl} />);
-ok("ตาราง: สินค้าคนละรายการที่ชื่อเดียวกันไม่ถูกรวมทับ", (distinctProductsTable.match(/<h3 /g) ?? []).length === 2 && (distinctProductsTable.match(/aria-label="ทำแล้ว /g) ?? []).length === 4 && distinctProductsTable.includes("140"));
-const savedQty = render(<StepPieceTable step={{ ...base, id: "h2", stepType: "HEAT_PRESS", status: "COMPLETED", qtyDone: 240, quantities: [{ id: "q1", sourceOrderItemVariantId: "v1", qtyPlanned: 20, qtyGood: 20, qtyScrap: 1 }] } as never} order={fakeOrder} c={ctrl} />);
-ok("ตาราง: ขั้นที่ปิดแล้วโชว์ยอดต่อแถวที่จดไว้ (อ่านอย่างเดียว)", !savedQty.includes("aria-label=\"ทำแล้ว") && savedQty.includes(">ทำแล้ว<") && savedQty.includes(">เสีย<"));
-const pick = render(<StepPieceTable step={{ ...base, id: "g", stepType: "GARMENT_PICK", status: "PENDING", qtyDone: 0, qtyTotal: 240 } as never} order={fakeOrder} c={ctrl} />);
-ok("ตาราง: ขั้นเบิกเสื้อไม่มีช่องกรอก/ปุ่มบันทึกยอด (ยอดมาจากการเบิกจริง)", !pick.includes(">บันทึกยอด<") && !pick.includes("aria-label=\"ทำแล้ว"));
+function Sheet({ scenario, order, boss = true }: { scenario: string; order?: Order; boss?: boolean }) {
+  const fixture = stateOf(scenario);
+  const c = useProtoController(order ? { ...fixture, order } : fixture, boss ? "boss" : "staff");
+  return <WorkOrderKitView c={c} />;
+}
 
-const pairedPrimary = { ...base, id: "paired-primary", stepType: "HEAT_PRESS", status: "IN_PROGRESS" } as never;
-const pairedSecondary = { ...base, id: "paired-secondary", stepType: "TAGGING", status: "IN_PROGRESS", pairWithPrevious: true } as never;
-const pairedController = {
-  ...(ctrl as unknown as Record<string, unknown>),
-  production: { id: "paired-production", notes: null },
-  order: { ...(fakeOrder as unknown as Record<string, unknown>), id: "paired-order", designs: [], deadline: null, customer: { name: "โรงเรียนตัวอย่าง" } },
-  workflowSteps: [pairedPrimary, pairedSecondary],
-  nowMs: 0,
-  totalQty: 120,
-} as never;
-const paired = render(<WorkOrderSteps c={pairedController} current={pairedPrimary} pairedOpen={[pairedSecondary]} allDone={false} qcAction={null} stepFooter={() => <Button>ปิดขั้นคู่</Button>} />);
-ok("ขั้นคู่: ทั้งสองขั้นมีตารางยอดและปุ่มของตัวเองอยู่ในกล่องของขั้นนั้น (A14)", (paired.match(/aria-label="ทำแล้ว /g) ?? []).length === 6 && paired.includes('id="work-order-pieces-paired-primary"') && paired.includes('id="work-order-pieces-paired-secondary"') && (paired.match(/>ปิดขั้นคู่</g) ?? []).length === 2);
-ok("ขั้นคู่: แต่ละเช็คลิสต์มีพิกัดของตัวเองให้ปุ่มปิดขั้นพาไป", paired.includes('id="work-order-checklist-paired-primary"') && paired.includes('id="work-order-checklist-paired-secondary"'));
+const sheet = (scenario: string, order?: Order, boss?: boolean) => render(<Sheet scenario={scenario} order={order} boss={boss} />);
+const plain = (html: string) => html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
 
-/* ── เช็คลิสต์ก่อนปิดขั้น (A9.2 ติ๊กได้ · ผลติ๊กมาจาก step.checks · ชิปบอกจำนวนที่เหลือ) ── */
-const check = render(<ChecklistCard step={{ ...base, id: "h", stepType: "HEAT_PRESS", status: "IN_PROGRESS", assignedTo: { id: "u", name: "บาส" }, checks: [{ itemKey: "ตั้งอุณหภูมิ/เวลา/แรงกดตามค่าของลายในใบงาน", checkedAt: new Date("2026-09-09"), checkedBy: { id: "u", name: "บาส" } }] } as never} c={ctrl} nowMs={0} />);
-ok("เช็คลิสต์: หัวการ์ด = “เช็คลิสต์” ไม่ซ้ำชื่อขั้น/ชิปสถานะกับตารางซ้าย", check.includes(">เช็คลิสต์<") && !check.includes(">กำลังทำ<"));
-ok("เช็คลิสต์: มีผู้ทำ", check.includes("บาส"));
-ok("เช็คลิสต์: ข้อกำหนดของรีดร้อนครบ 3 ข้อ แถวสูง 44px เป็น checkbox ติ๊กได้", (check.match(/min-h-11/g) ?? []).length === 3 && (check.match(/type="checkbox"/g) ?? []).length === 3 && (check.match(/checked=""/g) ?? []).length === 1);
-ok("เช็คลิสต์: ชิปบอกจำนวนที่ยังไม่ติ๊ก", check.includes(">ติ๊กอีก 2 ข้อ<"));
-const closed = render(<ChecklistCard step={{ ...base, id: "h3", stepType: "HEAT_PRESS", status: "COMPLETED" } as never} c={ctrl} nowMs={0} />);
-ok("เช็คลิสต์ (ปิดแล้ว): ไม่เติมหลักฐานติ๊กให้เอง กดไม่ได้ และบอกว่าบันทึกกี่ข้อ", (closed.match(/checked=""/g) ?? []).length === 0 && (closed.match(/disabled=""/g) ?? []).length === 3 && closed.includes("มีผลตรวจบันทึกไว้ 0/3 ข้อ"));
-const closedWithEvidence = render(<ChecklistCard step={{ ...base, id: "h4", stepType: "HEAT_PRESS", status: "COMPLETED", checks: [{ itemKey: "ตั้งอุณหภูมิ/เวลา/แรงกดตามค่าของลายในใบงาน", checkedBy: { name: "บาส" } }] } as never} c={ctrl} nowMs={0} />);
-ok("เช็คลิสต์ (ปิดแล้ว): แสดงเฉพาะผลที่บันทึกจริงพร้อมผู้ตรวจ", (closedWithEvidence.match(/checked=""/g) ?? []).length === 1 && closedWithEvidence.includes("ติ๊กโดย บาส") && closedWithEvidence.includes("มีผลตรวจบันทึกไว้ 1/3 ข้อ"));
-ok("เช็คลิสต์: ไม่มีศัพท์ภายใน (จดในระบบ/จดบนกระดาษ/ถือว่าผ่าน)", !check.includes("จดในระบบ") && !check.includes("จดบนกระดาษ") && !check.includes("ถือว่าผ่าน"));
-const outsourced = render(
-  <ChecklistCard
-    step={{ ...base, id: "e", stepType: "EMBROIDERY", status: "IN_PROGRESS", assignedTo: { id: "u3", name: "พี่ก้อย" }, outsourceOrders: [{ id: "o1", status: "SENT", description: "ปักโลโก้แขนซ้าย", quantity: 240, sentAt: new Date("2026-09-05"), expectedBackAt: new Date("2026-09-09"), receivedAt: null, qcPassed: null, qcNotes: null, notes: "แยกถุงตามไซซ์", createdAt: new Date("2026-09-05"), vendor: { id: "v", name: "ร้านปักพี่หน่อย" } }] } as never}
-    c={ctrl}
-    nowMs={new Date("2026-09-08").getTime()}
-  />,
+/* ── ตารางรายรายการแบบหน้าออเดอร์ (เบสสั่ง 2026-09-19 "ไม่รู้ว่าต้องสกรีนกับเสื้อตัวไหน") ── */
+const two = sheet("doing", twoItemOrder());
+const twoText = plain(two);
+ok(
+  "ตาราง: แต่ละรายการมีหัวของตัวเอง (เลข · ชื่อ · จำนวน) ไม่รวมสินค้าทุกรายการเป็นกองเดียว",
+  twoText.includes("1 เสื้อทีมงานอีเวนต์") && twoText.includes("2 เสื้อโปโลสตาฟ") && (twoText.match(/รวมรายการนี้/g) ?? []).length === 2,
 );
-ok("เช็คลิสต์ (ร้านนอก): ร้าน + นัดรับกลับเป็น Fact/DueTag ไม่ใช่บรรทัดจุด", outsourced.includes("ร้านปักพี่หน่อย") && outsourced.includes("นัดรับกลับ") && !outsourced.includes("ร้านปักพี่หน่อย ·"));
-ok("เช็คลิสต์ (ร้านนอก): งาน จำนวน วันส่ง หมายเหตุ อยู่ครบ", outsourced.includes("ปักโลโก้แขนซ้าย") && outsourced.includes("240 ตัว") && outsourced.includes("วันที่ส่ง") && outsourced.includes("แยกถุงตามไซซ์"));
-const held = render(<ChecklistCard step={{ ...base, id: "x", stepType: "HEAT_PRESS", status: "ON_HOLD" } as never} c={ctrl} nowMs={0} />);
-ok("เช็คลิสต์ (พักไว้): ติ๊กไม่ได้ ไม่มีชิปติ๊กอีก N (การ์ดพักไว้บอกแทน)", (held.match(/disabled=""/g) ?? []).length === 3 && !held.includes("ติ๊กอีก"));
+ok("ตาราง: หัวคอลัมน์ครบชุดเดียวกับหน้าออเดอร์ + ช่องกรอกของขั้น", /# สินค้า ไซซ์ สั่ง ทำแล้ว เสีย/.test(twoText));
+ok(
+  "ตาราง: ช่องสินค้าคร่อมทุกแถวไซซ์ของสินค้าตัวเดียวกัน ไม่พิมพ์ชื่อซ้ำทุกบรรทัด",
+  (two.match(/rowspan="(\d+)"/gi) ?? []).map((m) => m.replace(/\D/g, "")).join(",") === "3,2",
+);
+ok("ตาราง: เลขแถวนับต่อกันทั้งใบเหมือนบิล (รายการที่สองเริ่มที่ 4)", /4 เสื้อโปโล จูติ/.test(twoText));
+ok("ตาราง: ไซซ์เป็นคอลัมน์ของตัวเอง และมีแถวรวมทั้งใบเมื่อมีหลายรายการ", twoText.includes("3 ไซซ์") && twoText.includes("รวมทั้งใบ"));
+ok(
+  "ตาราง: ช่องกรอกทำแล้ว/เสีย แถวละไซซ์ (2 รายการ 5 ไซซ์ = 10 ช่อง)",
+  (two.match(/aria-label="ทำแล้ว /g) ?? []).length === 5 && (two.match(/aria-label="เสีย /g) ?? []).length === 5,
+);
+ok("ตาราง: มีปุ่มใส่ครบทุกไซซ์ · ปุ่มบันทึกยอดยังไม่โผล่ตอนยังไม่แก้", two.includes(">ใส่ครบทุกไซซ์<") && !two.includes(">บันทึกยอด<"));
+ok(
+  "ตาราง: ชื่อพื้นที่และหัวคอลัมน์อ่านได้ด้วยเครื่องช่วยอ่าน",
+  two.includes('role="region"') && two.includes('aria-label="รายการเสื้อ ขั้นรีดร้อน"') && (two.match(/scope="col"/g) ?? []).length === 12,
+);
+ok("ตาราง: แจ้งสถานะบันทึกยอดให้เครื่องช่วยอ่านรับรู้", two.includes('aria-live="polite"'));
+ok("หัวการ์ด: ยอดทำแล้วของขั้นอยู่ที่หัว (20 / 60 ตัว)", /20 \/ 60 ตัว/.test(twoText));
+
+/* ── ลายอยู่กับรายการของมัน และกรองตามชนิดขั้น ── */
+ok("ลาย: แถบลายอยู่เหนือตารางของรายการนั้น พร้อมตำแหน่งและขนาด", twoText.includes("DTF หน้า") && twoText.includes("DTF หลัง"));
+ok("ลาย: ขั้นรีดร้อนไม่เอาลายปักของอีกรายการมาปน", !twoText.includes("ปัก"));
+
+/* ── ใบผลิตห้ามมีเงินแม้เปิดในฐานะเจ้าของ (SPEC) ── */
+const moneyWords = ["฿", "ราคา", "ค่าสกรีน", "ยอดรวม", "ส่วนลด"];
+ok(
+  "เงิน: ไม่มีตัวเลข/คำเรื่องเงินบนใบผลิตทุกสถานการณ์ แม้เปิดในฐานะหัวหน้า",
+  ["doing", "pair", "problem", "outsource-shop"].every((scenario) => {
+    const text = plain(sheet(scenario));
+    return moneyWords.every((word) => !text.includes(word));
+  }),
+);
+
+/* ── ขั้นคู่: แต่ละขั้นมีตาราง/เช็คลิสต์/ปุ่มของตัวเอง (A14) ── */
+const paired = sheet("pair");
+ok(
+  "ขั้นคู่: ทั้งสองขั้นมีตารางยอดและพิกัดของตัวเอง",
+  new Set(paired.match(/id="work-order-pieces-[^"]+"/g) ?? []).size === 2,
+);
+ok(
+  "ขั้นคู่: แต่ละเช็คลิสต์มีพิกัดของตัวเองให้ปุ่มปิดขั้นพาไป",
+  new Set(paired.match(/id="work-order-checklist-[^"]+"/g) ?? []).size === 2,
+);
+
+/* ── เช็คลิสต์ (A9.2 ติ๊กได้ · ผลติ๊กมาจาก step.checks · ชิปบอกจำนวนที่เหลือ) ── */
+const doing = sheet("doing");
+ok("เช็คลิสต์: หัวการ์ด = “เช็คลิสต์” ไม่ซ้ำชื่อขั้น/ชิปสถานะกับการ์ดซ้าย", doing.includes(">เช็คลิสต์<"));
+ok("เช็คลิสต์: ข้อกำหนดของรีดร้อนเป็น checkbox ติ๊กได้ และบอกจำนวนที่ยังไม่ติ๊ก", (doing.match(/type="checkbox"/g) ?? []).length === 3 && /ติ๊กอีก \d+ ข้อ/.test(plain(doing)));
+ok("เช็คลิสต์: มีผู้ทำของขั้นนั้น", plain(doing).includes("ผู้ทำ"));
+ok("เช็คลิสต์: ไม่มีศัพท์ภายใน (จดในระบบ/จดบนกระดาษ/ถือว่าผ่าน)", !doing.includes("จดในระบบ") && !doing.includes("จดบนกระดาษ") && !doing.includes("ถือว่าผ่าน"));
+
+/* ── ของอยู่ร้านนอก: ยอดมาจากใบรับกลับ ไม่ใช่กรอกเอง ── */
+const atShop = sheet("outsource-shop");
+ok("ร้านนอก: ไม่มีช่องกรอกยอด และบอกว่าของอยู่ร้าน", !atShop.includes('aria-label="ทำแล้ว ') && plain(atShop).includes("อยู่ร้านนอก"));
+
+/* ── ติดปัญหา: ขึ้นแถบบนสุดของหน้า (ต้นแบบ 2026-09-16) ── */
+const problem = sheet("problem");
+ok("ปัญหา: ขึ้นแถบแจ้งเตือนบนสุดก่อนหัวใบ", problem.indexOf("alerts") < problem.indexOf("crumbs") && plain(problem).includes("ติดปัญหา"));
+
+/* ── ช่องกรอกยอดสูงพอสำหรับนิ้วบนจอทัชในโรงงาน ── */
+const kitCss = readFileSync("src/components/kit/kit.module.css", "utf8");
+const qinHeight = Number(/\.mfg \.qin \{[^}]*height: (\d+)px/.exec(kitCss)?.[1] ?? 0);
+ok(`ช่องกรอกสูงพอนิ้วบนจอทัช (${qinHeight}px ≥ 42px)`, qinHeight >= 42);
 
 /* ── ActionZone: note อยู่แถวบน · ปุ่มแถวล่าง ── */
 const zone = render(
@@ -152,8 +172,8 @@ ok("Alert: หัวเรื่อง + เนื้อความ + ปุ่
 // กล่องแจ้งเตือนแบบ callout ของชุด kit (2026-09-17 เบสสั่งให้ทุกหน้าเข้ากัน): พื้นสีอ่อนตามความหมาย ขอบจาง ไม่มีแถบข้าง
 ok("Alert: พื้นสีอ่อนแบบ callout ขอบจาง ไม่มีแถบสีข้าง", alert.includes("bg-red-50") && alert.includes("border-red-600/25") && !alert.includes("border-l-"));
 
-const card = render(<ProblemCard step={{ ...base, id: "p", stepType: "GARMENT_PICK", status: "FAILED", notes: "ขาด 60", assignedTo: { id: "u", name: "เนส" } } as never} />);
-ok("การ์ดปัญหาในใบผลิต: ขั้น + ผู้รับผิดชอบ เป็นชิป", card.includes(">ขั้น<") && card.includes(">ผู้รับผิดชอบ<") && card.includes(">เนส<"));
+const card = render(<ProblemCard step={{ id: "p", stepType: "GARMENT_PICK", status: "FAILED", notes: "ขาด 60", assignedTo: { id: "u", name: "เนส" }, customStepName: null, qcNotes: null } as never} />);
+ok("การ์ดปัญหาในจอหน้างาน: ขั้น + ผู้รับผิดชอบ เป็นชิป", card.includes(">ขั้น<") && card.includes(">ผู้รับผิดชอบ<") && card.includes(">เนส<"));
 
 console.log(`verify-work-order-ui: ผ่าน ${pass} · ตก ${fails.length}`);
 if (fails.length) process.exit(1);

@@ -295,8 +295,9 @@ export const productionRouter = router({
                 orderBy: { sortOrder: "asc" as const },
                 select: {
                   id: true,
-                  // จงใจไม่ส่ง description/notes ของ item — ยังไม่มีจอไหน render
-                  // (notes เป็น free text ฝั่งแอดมิน เสี่ยงพ่วงเรื่องราคา/ดีลถึงจอช่าง)
+                  // description = ชื่อชุดงานที่หัวรายการ (ตัวเดียวกับที่พิมพ์บนใบสั่งงานกระดาษอยู่แล้ว)
+                  // ยังจงใจไม่ส่ง notes ของ item — เป็น free text ฝั่งแอดมิน เสี่ยงพ่วงราคา/ดีลถึงจอช่าง
+                  description: true,
                   totalQuantity: true,
                   products: {
                     orderBy: { sortOrder: "asc" as const },
@@ -307,6 +308,9 @@ export const productionRouter = router({
                       itemSource: true,
                       fabricColor: true,
                       totalQuantity: true,
+                      // ชื่อ/รหัส/รูปสินค้า และแพ็ก — ช่องสินค้าในตารางรายรายการ (ไม่มีราคาสักตัว)
+                      product: { select: { name: true, sku: true, imageUrl: true } },
+                      packagingOption: { select: { name: true } },
                       variants: {
                         orderBy: { size: "asc" as const },
                         select: {

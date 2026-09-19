@@ -5,9 +5,8 @@ import { ArrowLeft, Factory } from "lucide-react";
 
 import { PageShell } from "@/components/page-shell";
 import { Button } from "@/components/ui/button";
-import { TABLE_HEAD_SURFACE } from "@/components/ui/tokens";
 import { DeskTable, DeskTiles, DeskToolbar, STATION_OUTSOURCE_ALL } from "@/components/production/production-desk-view";
-import { WorkOrderView } from "@/components/production/work-order-page";
+import { WorkOrderKitView } from "@/components/production/work-order-kit";
 import type { WorkOrderController } from "@/components/production/work-order-controller";
 import type { ProductionDetail, ProductionStep } from "@/components/production/types";
 import { buildProductionBoard, filterBoardJobs, type BoardOrderLike } from "@/lib/production-board";
@@ -100,6 +99,7 @@ function legacyFixture(state: FlowState, order: FlowOrder, view: OrderView): Sta
     designs: [],
     items: order.scopes.map((scope) => ({
       id: scope.key,
+      description: scope.product,
       totalQuantity: scope.orderedQty,
       prints: scope.prints.map((print) => ({
         id: print.id,
@@ -120,6 +120,8 @@ function legacyFixture(state: FlowState, order: FlowOrder, view: OrderView): Sta
         itemSource: scope.source === "customer" ? "CUSTOMER_PROVIDED" : "OUR_STOCK",
         fabricColor: scope.color,
         totalQuantity: scope.orderedQty,
+        product: null,
+        packagingOption: null,
         variants: [{ id: scope.variantId, size: scope.size, color: scope.color, quantity: scope.orderedQty }],
       }],
     })),
@@ -171,15 +173,7 @@ function BaselineDetail({ state, role, view, onBack }: { state: FlowState; role:
       </div>
       {limitations.length ? <p className="mx-4 rounded-lg border border-divider bg-surface-muted px-4 py-3 text-sm text-secondary sm:mx-6">จอนี้ยังแสดง {limitations.join(" / ")} แยกกันไม่ได้ จึงใช้เทียบการจัดวางเท่านั้น</p> : null}
       <div onClickCapture={guardNavigation}>
-        <WorkOrderView c={controller} itemsTab={
-          <div className="card-surface overflow-x-auto rounded-2xl">
-            <table className="w-full text-left text-sm">
-              <caption className="px-4 py-3 text-left font-semibold text-strong">รายการในออเดอร์ {order.number}</caption>
-              <thead className={TABLE_HEAD_SURFACE}><tr><th className="px-4 py-3">สินค้า</th><th className="px-4 py-3">สี / ไซซ์</th><th className="px-4 py-3">งานตกแต่ง</th><th className="px-4 py-3 text-right">จำนวน</th></tr></thead>
-              <tbody className="divide-y divide-divider">{order.scopes.map((scope) => <tr key={scope.key}><td className="px-4 py-3">{scope.product}</td><td className="px-4 py-3">{scope.color} / {scope.size}</td><td className="px-4 py-3">{scope.prints.map((print) => print.label).join(", ") || "—"}</td><td className="px-4 py-3 text-right tabular-nums">{scope.orderedQty}</td></tr>)}</tbody>
-            </table>
-          </div>
-        } />
+        <WorkOrderKitView c={controller} />
       </div>
     </div>
   );

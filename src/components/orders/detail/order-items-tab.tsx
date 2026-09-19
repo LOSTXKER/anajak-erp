@@ -6,8 +6,6 @@ import {
   ArrowRight,
   Check,
   CheckCircle2,
-  FileText,
-  ImageIcon,
   PackageCheck,
   PenLine,
   Plus,
@@ -18,23 +16,34 @@ import {
   Wallet,
 } from "lucide-react";
 import { OrderChangeOrders } from "@/components/orders/detail/order-change-orders";
-import { c, CardHead, Empty, Prop, SubHead, Thumb } from "@/components/kit/kit";
-import { TechChip } from "@/components/orders/orders-ui";
+import { c, CardHead, Empty, Prop, SubHead } from "@/components/kit/kit";
+import { ItemHead, PrintStrip, ProductCell } from "@/components/order-items/item-parts";
+import {
+  itemPieceRows,
+  itemQty,
+  itemRowStarts,
+  positionLabel,
+  printDims,
+  printSizeLabel,
+  productName,
+  productQty,
+  productSpans,
+  sizeCountOf,
+  techLabel,
+  unique,
+} from "@/components/order-items/rows";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { getProductSourcePresentation } from "@/lib/order-item-composer";
 import { trpc } from "@/lib/trpc";
 import type { RouterOutput } from "@/lib/trpc";
-import { formatBaht, isImageUrl } from "@/lib/utils";
+import { formatBaht } from "@/lib/utils";
 import {
   BODY_FITS,
   COLLAR_TYPES,
   FABRIC_TYPES,
   GARMENT_CONDITIONS,
   PRICING_TYPE_LABELS,
-  PRINT_POSITIONS,
-  PRINT_SIZES,
-  PRINT_TYPES,
   PRODUCT_TYPES,
   SLEEVE_TYPES,
 } from "@/types/order-form";
@@ -50,7 +59,8 @@ import type { PricingType } from "@/types/order-form";
    role ที่ไม่เห็นเงิน: การ์ดขวาเป็น "สเปกงาน" แทนสรุปราคา
 
    ⚠️ แท็บถูกคง DOM ไว้ตอนสลับ → เงินต้อง gate ด้วย {showMoney && ...} ที่ JSX เท่านั้น ห้ามซ่อนด้วยคลาส
-   OrderItemsDisplay ตัวเดิมยังใช้ในหน้าใบผลิตและหน้าลอง — ไฟล์นี้ใช้เฉพาะหน้าออเดอร์
+   ตัววาดหัวรายการ/แถบลาย/ช่องสินค้า ใช้ร่วมกับใบผลิตที่ components/order-items (2026-09-20)
+   ที่นี่เหลือเฉพาะของฝั่งขาย: ราคา ตรวจรับเสื้อลูกค้า สเปกตัดเย็บ ส่วนเสริม ค่าบริการ
    ============================================================ */
 
 type OrderData = RouterOutput["order"]["getById"];
@@ -74,15 +84,9 @@ interface OrderItemsTabProps {
   onOpenMoney?: () => void;
 }
 
-/* ---------------------------------------------------------------- ตัวเลข (ยกจาก OrderItemsDisplay) */
-
-function productQty(prod: OrderItemProduct): number {
-  return prod.variants?.reduce((s, v) => s + v.quantity, 0) ?? 0;
-}
-
-function itemQty(item: OrderItem): number {
-  return item.products?.reduce((s, p) => s + productQty(p), 0) ?? 0;
-}
+/* ---------------------------------------------------------------- ตัวเลขเฉพาะฝั่งเงิน
+   ตัวเลข/ป้ายที่ใช้ร่วมกับใบผลิต ย้ายไป components/order-items/rows.ts แล้ว (2026-09-20)
+   เหลือที่นี่เฉพาะสูตรเงิน ซึ่งใบผลิตต้องไม่มี */
 
 function netUnitPrice(prod: OrderItemProduct): number {
   return Math.max(0, (prod.baseUnitPrice ?? 0) - (prod.discount ?? 0));
@@ -92,61 +96,8 @@ function printPerPiece(prints: OrderItemPrint[]): number {
   return prints.reduce((s, p) => s + (p.unitPrice ?? 0), 0);
 }
 
-/** ป้ายขนาดลายแบบเดียวกับช่อง "ขนาด" ในฟอร์ม (A3 / A4 / กำหนดเอง) */
-function printSizeLabel(print: OrderItemPrint): string {
-  const key = print.printSize;
-  if (key && PRINT_SIZES[key]) return key === "CUSTOM" ? PRINT_SIZES.CUSTOM.label : key;
-  return print.width || print.height ? "กำหนดเอง" : "—";
-}
-
-function printDims(print: OrderItemPrint): string | null {
-  return print.width || print.height ? `${print.width || 0} × ${print.height || 0}` : null;
-}
-
-/** บรรทัดรองของลาย: ขนาด · กว้าง×สูง ซม. · จำนวนสี */
-function printSubLine(print: OrderItemPrint): string {
-  const dims = printDims(print);
-  return [printSizeLabel(print), dims ? `${dims} ซม.` : null, print.colorCount != null ? `${print.colorCount} สี` : null]
-    .filter((part) => part && part !== "—")
-    .join(" · ") || "—";
-}
-
-const techLabel = (print: OrderItemPrint) => PRINT_TYPES[print.printType] ?? print.printType;
-const positionLabel = (print: OrderItemPrint) => PRINT_POSITIONS[print.position] ?? print.position;
-const productName = (prod: OrderItemProduct) => prod.product?.name || prod.description || "สินค้า";
 const sourceLabel = (prod: OrderItemProduct) =>
   prod.itemSource ? getProductSourcePresentation(prod.itemSource).label : null;
-
-/** หนึ่งแถว = เสื้อหนึ่งสี/ไซซ์ของชุดงาน · ผลรวมทุกแถว + ส่วนเสริม = item.subtotal ที่ server คิด */
-interface PieceRow {
-  key: string;
-  prod: OrderItemProduct;
-  color: string | null;
-  size: string | null;
-  qty: number;
-}
-
-function itemPieceRows(item: OrderItem): PieceRow[] {
-  return (item.products ?? []).flatMap((prod) => {
-    const variants = prod.variants ?? [];
-    // สินค้าที่ยังไม่มีไซซ์ = แถวเดียวจำนวน 0 (ให้เห็นว่ามีสินค้าแต่ยังไม่ได้ใส่จำนวน)
-    if (variants.length === 0) return [{ key: prod.id, prod, color: null, size: null, qty: 0 }];
-    return variants.map((v) => ({ key: v.id, prod, color: v.color ?? null, size: v.size || null, qty: v.quantity }));
-  });
-}
-
-const unique = <T,>(values: T[]) => [...new Set(values)];
-
-/** จำนวนแถวที่ช่อง "สินค้า" ต้องคร่อม — 0 = แถวนี้ใช้ช่องของแถวก่อนหน้า */
-function productSpans(rows: PieceRow[]): number[] {
-  const spans = rows.map(() => 0);
-  rows.forEach((row, i) => {
-    if (i > 0 && row.prod.id === rows[i - 1].prod.id) return;
-    spans[i] = 1;
-    for (let j = i + 1; j < rows.length && rows[j].prod.id === row.prod.id; j++) spans[i] += 1;
-  });
-  return spans;
-}
 
 /** ป้ายช่องกรอกในแถวตรวจรับ — ต้นแบบไม่มีคลาส .field จึงเขียน inline */
 const FIELD_LABEL = { fontSize: 11.5, color: "var(--ink-3)" } as const;
@@ -273,77 +224,15 @@ function ReceiveState({
   );
 }
 
-/* ---------------------------------------------------------------- ลายในแถว */
-
-function PrintThumb({ print }: { print: OrderItemPrint }) {
-  const alt = `ลาย ${positionLabel(print)}`;
-  if (isImageUrl(print.designImageUrl)) {
-    return (
-      <a href={print.designImageUrl!} target="_blank" rel="noreferrer" title="เปิดภาพเต็ม" className={c("thumb")}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={print.designImageUrl!} alt={alt} loading="lazy" decoding="async" />
-      </a>
-    );
-  }
-  if (print.designImageUrl) {
-    // มีไฟล์แต่ไม่ใช่รูป (เช่น .ai/.pdf) — ยังต้องกดเปิดได้ ไม่ใช่ขึ้นว่าไม่มีไฟล์
-    return (
-      <a
-        href={print.designImageUrl}
-        target="_blank"
-        rel="noreferrer"
-        title="เปิดไฟล์แบบ"
-        aria-label={`เปิดไฟล์แบบ ${alt}`}
-        className={c("thumb")}
-      >
-        <FileText aria-hidden="true" />
-      </a>
-    );
-  }
-  return (
-    <span className={c("thumb")} title="ยังไม่มีไฟล์แบบ">
-      <ImageIcon aria-hidden="true" />
-      <span className={c("sr")}>ยังไม่มีไฟล์แบบ</span>
-    </span>
-  );
-}
-
-/**
- * ลายของชุดงาน — แถบเดียวเหนือตาราง ไม่ซ้ำทุกแถว (เบสเคาะ 2026-09-17 จากต้นแบบ
- * "ทำหน้ารายการใหม่ แต่เป็นแบบตารางเหมือนเดิม") · เหตุผลเดิมของการแยกแถวละตัวคือ
- * "สกรีนกรอกครั้งเดียว แต่เสื้อมีหลายไซส์" การแปะลายซ้ำทุกแถวจึงขัดกับเหตุผลนั้นเอง
- * ค่าสกรีน/ตัวทางขวา = เลขเดียวกับคอลัมน์ "ค่าสกรีน" ของทุกแถว
- */
-function PrintStrip({ prints, showMoney }: { prints: OrderItemPrint[]; showMoney: boolean }) {
-  if (prints.length === 0) return null;
+/** ค่าสกรีน/ตัว ทางขวาของแถบลาย = เลขเดียวกับคอลัมน์ "ค่าสกรีน" ของทุกแถว (หน้าออเดอร์เท่านั้น) */
+function PrintCost({ prints }: { prints: OrderItemPrint[] }) {
   const perPiece = printPerPiece(prints);
+  if (perPiece <= 0) return null;
   return (
-    <div className={c("pstrip")}>
-      <div className={c("pstrip-list")}>
-        {prints.map((print) => (
-          <div key={print.id} className={c("prod")}>
-            <PrintThumb print={print} />
-            <div style={{ minWidth: 0 }}>
-              <b style={{ fontWeight: 500 }}>
-                {techLabel(print)} <span className={c("chip gray")}>{positionLabel(print)}</span>
-              </b>
-              <span className={c("sub")}>{printSubLine(print)}</span>
-              {print.designNote ? (
-                <span className={c("sub")} style={{ overflowWrap: "anywhere" }}>
-                  {print.designNote}
-                </span>
-              ) : null}
-            </div>
-          </div>
-        ))}
-      </div>
-      {showMoney && perPiece > 0 ? (
-        <p className={c("pstrip-cost")}>
-          <b className={c("mono")}>{formatBaht(perPiece)}</b>
-          <span>ค่าสกรีน/ตัว{prints.length > 1 ? " · รวมทุกจุด" : ""}</span>
-        </p>
-      ) : null}
-    </div>
+    <p className={c("pstrip-cost")}>
+      <b className={c("mono")}>{formatBaht(perPiece)}</b>
+      <span>ค่าสกรีน/ตัว{prints.length > 1 ? " · รวมทุกจุด" : ""}</span>
+    </p>
   );
 }
 
@@ -411,31 +300,14 @@ function ItemBlock({
   const manyProducts = products.length > 1;
   // ช่อง "สินค้า" คร่อมทุกแถวของสินค้าเดียวกัน (rowSpan) — เดิมพิมพ์ชื่อซ้ำทุกบรรทัด
   const spans = productSpans(rows);
-  const sizeCount = unique(rows.map((row) => row.size ?? "")).length;
+  const sizeCount = sizeCountOf(rows);
 
-  const sources = unique(
-    products
-      .map((prod) => prod.itemSource)
-      .filter((source): source is string => Boolean(source) && source !== "FROM_STOCK"),
-  );
-  const techs = unique(prints.map(techLabel));
   const customerProvided = products.filter((prod) => prod.itemSource === "CUSTOMER_PROVIDED");
   const customMade = products.filter((prod) => prod.itemSource === "CUSTOM_MADE");
 
   return (
     <div className={c("item")}>
-      <div className={c("item-head")}>
-        <span className={c("item-no")}>{index + 1}</span>
-        <b>{item.description || `รายการที่ ${index + 1}`}</b>
-        {sources.map((source) => (
-          <span key={source} className={c("chip line")}>
-            {getProductSourcePresentation(source).label}
-          </span>
-        ))}
-        {techs.map((tech) => (
-          <TechChip key={tech} label={tech} />
-        ))}
-      </div>
+      <ItemHead item={item} index={index} />
 
       {customerProvided.map((prod) => (
         <ReceiveState
@@ -451,7 +323,7 @@ function ItemBlock({
         <CustomSpec key={prod.id} prod={prod} showName={manyProducts} />
       ))}
 
-      <PrintStrip prints={prints} showMoney={showMoney} />
+      <PrintStrip prints={prints} cost={showMoney ? <PrintCost prints={prints} /> : null} />
 
       {rows.length > 0 ? (
         <div className={c("tblw")}>
@@ -470,30 +342,12 @@ function ItemBlock({
             <tbody>
               {rows.map((row, i) => {
                 const { prod } = row;
-                const subLine = [
-                  row.color,
-                  prod.product?.sku ?? null,
-                  prod.packagingOption?.name ? `แพค ${prod.packagingOption.name}` : null,
-                  prod.itemSource && prod.itemSource !== "FROM_STOCK" && prod.productType
-                    ? (PRODUCT_TYPES[prod.productType] ?? prod.productType)
-                    : null,
-                ].filter(Boolean);
                 const net = netUnitPrice(prod);
                 const discount = prod.discount ?? 0;
                 return (
                   <tr key={row.key}>
                     <td style={{ color: "var(--ink-4)" }}>{startIndex + i + 1}</td>
-                    {spans[i] > 0 ? (
-                      <td className={c("pcell")} rowSpan={spans[i]}>
-                        <div className={c("prod")}>
-                          <Thumb cover={prod.product?.imageUrl ?? null} alt="" />
-                          <div style={{ minWidth: 0 }}>
-                            <b style={{ fontWeight: 500, overflowWrap: "anywhere" }}>{productName(prod)}</b>
-                            {subLine.length > 0 ? <span className={c("sub")}>{subLine.join(" · ")}</span> : null}
-                          </div>
-                        </div>
-                      </td>
-                    ) : null}
+                    {spans[i] > 0 ? <ProductCell row={row} rowSpan={spans[i]} /> : null}
                     <td className={c("szc")}>{row.size ? <b>{row.size}</b> : <span style={{ color: "var(--ink-4)" }}>—</span>}</td>
                     <td className={c("num")}>
                       <b>{row.qty.toLocaleString("th-TH")}</b>
@@ -598,11 +452,7 @@ export function OrderItemsTab({
   const feeList = fees ?? [];
   const isEmpty = list.length === 0;
   const orderQty = list.reduce((s, item) => s + itemQty(item), 0);
-  // เลขแถวแรกของแต่ละชุดงาน — ชุดงาน 2 เริ่มต่อจากแถวสุดท้ายของชุดงาน 1
-  const rowStarts = list.reduce<number[]>((acc, item, i) => {
-    acc.push(i === 0 ? 0 : acc[i - 1] + itemPieceRows(list[i - 1]).length);
-    return acc;
-  }, []);
+  const rowStarts = itemRowStarts(list);
 
   const itemsCard = (
     <section className={c("card")} aria-labelledby="items-h">

@@ -47,6 +47,7 @@ export function makeOrder(input: { internalStatus?: "PRODUCING" | "QUALITY_CHECK
     items: [
       {
         id: "it1",
+        description: "เสื้อทีมงานอีเวนต์",
         totalQuantity: QUANTITY,
         prints: [{ id: "p1", position: printType === "EMBROIDERY" ? "SLEEVE_L" : "FRONT", printType, printSize: "A4", width: 20, height: 25, colorCount: 4, designNote: null, designImageUrl: ART, artwork: null }],
         products: [
@@ -57,6 +58,8 @@ export function makeOrder(input: { internalStatus?: "PRODUCING" | "QUALITY_CHECK
             itemSource: "CUSTOMER_PROVIDED",
             fabricColor: "ขาว",
             totalQuantity: QUANTITY,
+            product: { name: "เสื้อยืด Cotton 100%", sku: "TS-WHT", imageUrl: null },
+            packagingOption: null,
             variants: VARIANTS.map((v) => ({ id: v.id, size: v.size, color: "ขาว", quantity: v.quantity })),
           },
         ],
@@ -140,9 +143,58 @@ export type StateFixture = {
 
 const press = (over: Partial<StepInput> = {}) => makeStep({ key: "press", stepType: "HEAT_PRESS", sortOrder: 10, ...over });
 
+/** ใบที่มีหลายรายการ — ของจริงที่ฐานทดลองยังไม่มี แต่เป็นเคสที่เบสถามถึง
+ *  ("ไม่รู้ว่างานนี้ต้องสกรีนกับเสื้อตัวไหน ถ้ามีหลายรายการมันจะดูง่ายถ้าทำแบบหน้าออเดอร์" 2026-09-19)
+ *  รายการ 1 เสื้อกีฬา: DTF หน้า + DTF หลัง · รายการ 2 โปโลสตาฟ: DTF อกซ้าย + ปักแขนขวา (ร้านนอก) */
+export function makeMultiItemOrder(): ProductionDetail["order"] {
+  const base = makeOrder({}) as ProductionDetail["order"];
+  const item = base.items[0]!;
+  const first = {
+    ...item,
+    description: "เสื้อกีฬาทีมงาน",
+    prints: [
+      { ...item.prints[0]!, id: "m-p1", position: "FRONT", printType: "DTF", designNote: "โลโก้ทีม" },
+      { ...item.prints[0]!, id: "m-p2", position: "BACK", printType: "DTF", designNote: "เบอร์ + ชื่อ ตามใบรายชื่อ", designImageUrl: null },
+    ],
+    products: [{ ...item.products[0]!, description: "เสื้อกีฬาคอวี ไมโครสปอร์ต", product: { name: "เสื้อกีฬาคอวี ไมโครสปอร์ต", sku: "SP-NVY", imageUrl: null }, fabricColor: "กรม" }],
+  } as (typeof base)["items"][number];
+  const second = {
+    ...item,
+    id: "it2",
+    description: "เสื้อโปโลสตาฟ",
+    totalQuantity: 18,
+    prints: [
+      { ...item.prints[0]!, id: "m-p3", position: "POCKET", printType: "DTF", designNote: "โลโก้ทีม" },
+      { ...item.prints[0]!, id: "m-p4", position: "SLEEVE_R", printType: "EMBROIDERY", designNote: "ร้านปักศรีนครินทร์", designImageUrl: null },
+    ],
+    products: [
+      {
+        ...item.products[0]!,
+        id: "pr2",
+        description: "เสื้อโปโล จูติ",
+        product: { name: "เสื้อโปโล จูติ", sku: "PL-WHT", imageUrl: null },
+        itemSource: "FROM_STOCK",
+        totalQuantity: 18,
+        variants: [
+          { id: "v2-m", size: "M", color: "ขาว", quantity: 8 },
+          { id: "v2-l", size: "L", color: "ขาว", quantity: 10 },
+        ],
+      },
+    ],
+  } as (typeof base)["items"][number];
+  return { ...base, items: [first, second] };
+}
+
 export const STATES: StateFixture[] = [
   // ── ขั้นทำเอง ──
   { key: "start", title: "รอเริ่มขั้นแรก", group: "ขั้นทำเอง", order: makeOrder({}), steps: [press(), QC(20)] },
+  {
+    key: "multi-item",
+    title: "หลายรายการในใบเดียว",
+    group: "ขั้นทำเอง",
+    order: makeMultiItemOrder(),
+    steps: [press({ status: "IN_PROGRESS", startedAt: fromNow(0, -2), assignedTo: USERS.staff, qtyDone: 20, checks: ticks("HEAT_PRESS", 1), quantities: rows([15, 5, 0]) }), makeStep({ key: "emb", stepType: "EMBROIDERY", sortOrder: 20 }), QC(30)],
+  },
   {
     key: "doing",
     title: "กำลังทำ — ติ๊ก 1/3 ยอด 20/60",
