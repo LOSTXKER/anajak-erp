@@ -20,10 +20,12 @@ import { firstPendingStepIdsByLane } from "@/lib/production-step-actions";
 import { paperDoneMarker, paperStepsToClose, stepsBlockingQc } from "@/lib/work-order-record-mode";
 import {
   activeStationProblemReason,
+  currentProductionProblemReason,
   normalizedProblemReason,
   resolvedProblemMarker,
   resolvedProblemNotes,
   stationProblemNotes,
+  stepIsStopped,
 } from "@/lib/production-problem";
 import {
   assertStaffFields,
@@ -122,6 +124,27 @@ const stepSelect = {
     select: { id: true, sourceOrderItemVariantId: true, qtyPlanned: true, qtyGood: true, qtyScrap: true },
   },
   assignedTo: { select: { id: true, name: true } },
+  // เรื่องที่ยังไม่จบของขั้นนี้ (2026-09-20) — แถวจริงแทนข้อความใน notes
+  // ทุกจอต้องอ่านผ่าน lib/production-problem ไม่ใช่เช็ค status === FAILED เอง · ไม่มี field เงิน
+  exceptions: {
+    where: { state: { in: ["OPEN", "ACKNOWLEDGED"] as ("OPEN" | "ACKNOWLEDGED")[] } },
+    orderBy: { createdAt: "asc" as const },
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      blocksJob: true,
+      state: true,
+      source: true,
+      createdAt: true,
+      acknowledgedAt: true,
+      resolvedAt: true,
+      resolution: true,
+      raisedBy: { select: { id: true, name: true } },
+      owner: { select: { id: true, name: true } },
+      lines: { orderBy: { id: "asc" as const }, select: { id: true, size: true, color: true, qty: true } },
+    },
+  },
   outsourceOrders: {
     orderBy: { createdAt: "desc" as const },
     select: {
@@ -744,6 +767,9 @@ export const productionRouter = router({
       z.object({
         stepId: z.string(),
         reason: z.string().trim().min(3, "กรุณาระบุเหตุผลอย่างน้อย 3 ตัวอักษร"),
+        detail: z.string().trim().max(500).optional(),
+        /** false = เรื่องนี้ไม่หยุดทั้งขั้น ช่างทำตัวที่เหลือต่อได้ (เบสเคาะ 2026-09-20) */
+        blocksStep: z.boolean().default(true),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -866,11 +892,14 @@ export const productionRouter = router({
           }
         }
 
+        // เรื่องแบบหยุดทั้งขั้นมีได้ทีละเรื่อง (สถานะงานเป็นตัวกั้น) · เรื่องแบบไม่หยุดขั้นซ้อนกันได้
+        // ทั้งสองแบบลงเป็นแถวจริงใน production_exceptions — notes ยังเขียน marker ต่อเพื่อใบเก่าและจอที่ยังอ่าน notes
         const alreadyReported =
+          input.blocksStep &&
           existing.status === "FAILED" &&
           activeStationProblemReason(existing.notes) ===
             normalizedProblemReason(input.reason);
-        if (existing.status === "FAILED" && !alreadyReported) {
+        if (input.blocksStep && existing.status === "FAILED" && !alreadyReported) {
           throw new TRPCError({
             code: "BAD_REQUEST",
             message:
@@ -884,20 +913,54 @@ export const productionRouter = router({
             operation: "REPORT_PROBLEM" as const,
           };
         }
+        const stops = input.blocksStep && !alreadyReported;
 
-        const nextNotes = alreadyReported
-          ? existing.notes
-          : stationProblemNotes(existing.notes, input.reason);
+        const nextNotes = stops
+          ? stationProblemNotes(existing.notes, input.reason)
+          : existing.notes;
 
         const step = await tx.productionStep.update({
           where: { id: input.stepId },
           data: {
-            ...(!alreadyReported
-              ? { status: "FAILED" as const, notes: nextNotes }
-              : {}),
+            ...(stops ? { status: "FAILED" as const, notes: nextNotes } : {}),
             ...(autoClaim ? { assignedToId: ctx.userId } : {}),
           },
           select: updateStepResultSelect,
+        });
+
+        // ของเสียรายไซซ์ที่บันทึกไว้แล้ว = ของที่เรื่องนี้พูดถึง — snapshot ไว้กับใบปัญหา
+        // (ยอดใน OperationQuantity เปลี่ยนได้ทุกครั้งที่ช่างบันทึกใหม่ ประวัติจึงต้องเก็บสำเนา)
+        const scrapRows = await tx.operationQuantity.findMany({
+          where: { productionStepId: input.stepId, qtyScrap: { gt: 0 } },
+          select: {
+            sourceOrderItemVariantId: true,
+            size: true,
+            color: true,
+            qtyScrap: true,
+          },
+        });
+        const problem = await tx.productionException.create({
+          data: {
+            productionId: existing.productionId,
+            productionStepId: input.stepId,
+            source: "STATION",
+            title: normalizedProblemReason(input.reason),
+            description: input.detail || null,
+            severity: input.blocksStep ? "CRITICAL" : "WARNING",
+            blocksJob: input.blocksStep,
+            disposition: input.blocksStep ? "HOLD" : null,
+            state: "OPEN",
+            raisedById: ctx.userId,
+            lines: {
+              create: scrapRows.map((row) => ({
+                variantId: row.sourceOrderItemVariantId,
+                size: row.size,
+                color: row.color,
+                qty: row.qtyScrap,
+              })),
+            },
+          },
+          select: { id: true },
         });
 
         // retry ที่ state FAILED+notes เดิมไม่ควรส่งกระดิ่งซ้ำ; กรณี step เดิมไม่มี owner
@@ -920,7 +983,7 @@ export const productionRouter = router({
           const notification = failedStepNotification({
             orderNumber: order.orderNumber,
             stepName: stepDisplayName(existing),
-            notes: input.reason,
+            notes: stops ? input.reason : `${input.reason} (ทำต่อได้ ไม่ได้หยุดขั้น)`,
             productionId: existing.productionId,
             orderId: order.id,
           });
@@ -946,14 +1009,21 @@ export const productionRouter = router({
             source: "STATION",
             workCenter,
             operation: "REPORT_PROBLEM",
-            status: "FAILED",
+            status: stops ? "FAILED" : existing.status,
+            blocksStep: input.blocksStep,
+            problemId: problem.id,
             notes: nextNotes,
             assignedToId: step.assignedToId,
           },
           reason: input.reason,
         });
 
-        return { ...step, workCenter, operation: "REPORT_PROBLEM" as const };
+        return {
+          ...step,
+          workCenter,
+          problemId: problem.id,
+          operation: "REPORT_PROBLEM" as const,
+        };
       });
     }),
 
@@ -966,6 +1036,8 @@ export const productionRouter = router({
           .string()
           .trim()
           .min(3, "กรุณาระบุวิธีแก้อย่างน้อย 3 ตัวอักษร"),
+        /** ปิดเรื่องใดเรื่องหนึ่ง — ไม่ส่งมา = ปิดทุกเรื่องที่ค้างของขั้นนั้น (ใบเก่าไม่มีแถว) */
+        problemId: z.string().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -989,36 +1061,85 @@ export const productionRouter = router({
           });
         }
 
+        // เรื่องที่จะปิดรอบนี้ — ระบุ id = ปิดเรื่องเดียว (ขั้นหนึ่งมีได้หลายเรื่องตั้งแต่ 2026-09-20)
+        const openProblems = await tx.productionException.findMany({
+          where: {
+            productionStepId: input.stepId,
+            state: { in: ["OPEN", "ACKNOWLEDGED"] },
+            ...(input.problemId ? { id: input.problemId } : {}),
+          },
+          select: { id: true, blocksJob: true, title: true },
+        });
+        if (input.problemId && openProblems.length === 0) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "เรื่องนี้ถูกปิดไปแล้ว — โหลดหน้าใหม่เพื่อดูสถานะล่าสุด",
+          });
+        }
+        // เหลือเรื่องแบบหยุดขั้นอยู่อีกไหมหลังปิดรอบนี้ — ถ้าเหลือ ขั้นต้องยังหยุดต่อ
+        const blockersLeft = input.problemId
+          ? await tx.productionException.count({
+              where: {
+                productionStepId: input.stepId,
+                id: { notIn: openProblems.map((row) => row.id) },
+                blocksJob: true,
+                state: { in: ["OPEN", "ACKNOWLEDGED"] },
+              },
+            })
+          : 0;
+        /** เรื่องที่ปิดรอบนี้ไม่ได้หยุดขั้น → แค่ปิดใบ ไม่แตะสถานะงาน */
+        const stepStaysAsIs =
+          blockersLeft > 0 ||
+          (openProblems.length > 0 && openProblems.every((row) => !row.blocksJob));
+
         const resolutionMarker = resolvedProblemMarker(input.resolutionReason);
         // retry หลัง response หลุด: PENDING + trail เดิมต้องไม่เขียน/audit/แจ้งซ้ำ
         if (
+          !stepStaysAsIs &&
+          openProblems.length === 0 &&
           existing.status === "PENDING" &&
           existing.notes?.endsWith(resolutionMarker)
         ) {
           return { ...existing, operation: "RESOLVE_PROBLEM" as const };
         }
-        if (existing.status !== "FAILED") {
+        if (!stepStaysAsIs && existing.status !== "FAILED") {
           throw new TRPCError({
             code: "BAD_REQUEST",
             message:
               "แก้ปัญหาได้เฉพาะขั้นที่มีสถานะมีปัญหา และห้ามถอยขั้นที่เดินต่อแล้ว",
           });
         }
-        const nextNotes = resolvedProblemNotes(
-          existing.notes,
-          input.resolutionReason,
-        );
+        const nextNotes = stepStaysAsIs
+          ? existing.notes
+          : resolvedProblemNotes(existing.notes, input.resolutionReason);
 
-        const step = await tx.productionStep.update({
-          where: { id: input.stepId },
-          data: {
-            status: "PENDING",
-            startedAt: null,
-            completedAt: null,
-            notes: nextNotes,
-          },
-          select: updateStepResultSelect,
-        });
+        const now = new Date();
+        if (openProblems.length > 0) {
+          await tx.productionException.updateMany({
+            where: { id: { in: openProblems.map((row) => row.id) } },
+            data: {
+              state: "RESOLVED",
+              resolution: input.resolutionReason,
+              ownerId: ctx.userId,
+              acknowledgedAt: now,
+              resolvedAt: now,
+              closedAt: now,
+            },
+          });
+        }
+
+        const step = stepStaysAsIs
+          ? existing
+          : await tx.productionStep.update({
+              where: { id: input.stepId },
+              data: {
+                status: "PENDING",
+                startedAt: null,
+                completedAt: null,
+                notes: nextNotes,
+              },
+              select: updateStepResultSelect,
+            });
 
         if (existing.assignedToId && existing.assignedToId !== ctx.userId) {
           const assignee = await tx.user.findUnique({
@@ -1046,7 +1167,8 @@ export const productionRouter = router({
           oldValue: { status: existing.status, notes: existing.notes },
           newValue: {
             operation: "RESOLVE_PROBLEM",
-            status: "PENDING",
+            status: stepStaysAsIs ? existing.status : "PENDING",
+            problemIds: openProblems.map((row) => row.id),
             notes: nextNotes,
           },
           reason: input.resolutionReason,
@@ -1054,6 +1176,213 @@ export const productionRouter = router({
 
         return { ...step, operation: "RESOLVE_PROBLEM" as const };
       });
+    }),
+
+  /**
+   * หัวหน้ารับเรื่อง — ช่างที่แจ้งจะเห็นทันทีว่ามีคนดูแล้ว ไม่ต้องเดินมาถาม
+   * ("กดไปแล้วไงต่อ" เบสสั่ง 2026-09-19) · ไม่เปลี่ยนสถานะงาน ขั้นที่หยุดยังหยุดอยู่จนตัดสิน
+   */
+  acknowledgeProblem: protectedProcedure
+    .use(managerUp)
+    .input(z.object({ problemId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      return ctx.prisma.$transaction(async (tx) => {
+        const problem = await tx.productionException.findUniqueOrThrow({
+          where: { id: input.problemId },
+          select: {
+            id: true,
+            state: true,
+            title: true,
+            raisedById: true,
+            productionId: true,
+            productionStep: { select: { id: true, stepType: true, customStepName: true } },
+            production: { select: { order: { select: { orderNumber: true } } } },
+          },
+        });
+        if (problem.state !== "OPEN") {
+          return { id: problem.id, alreadyAcknowledged: true };
+        }
+        await tx.productionException.update({
+          where: { id: problem.id },
+          data: {
+            state: "ACKNOWLEDGED",
+            acknowledgedAt: new Date(),
+            ownerId: ctx.userId,
+            revision: { increment: 1 },
+          },
+        });
+        if (problem.raisedById !== ctx.userId) {
+          const reporter = await tx.user.findUnique({
+            where: { id: problem.raisedById },
+            select: { id: true, isActive: true },
+          });
+          if (reporter?.isActive) {
+            await createNotification(tx, {
+              userId: reporter.id,
+              type: "PRODUCTION",
+              title: `หัวหน้ารับเรื่องแล้ว — ${problem.production.order.orderNumber}`,
+              message: problem.title,
+              link: productionStepWorkLink(problem.productionId),
+              entityType: "PRODUCTION_STEP",
+              entityId: problem.productionStep?.id ?? problem.productionId,
+            });
+          }
+        }
+        await createAuditLog(tx, {
+          userId: ctx.userId,
+          action: "UPDATE",
+          entityType: "PRODUCTION_STEP",
+          entityId: problem.productionStep?.id ?? problem.productionId,
+          oldValue: { state: problem.state },
+          newValue: { operation: "ACKNOWLEDGE_PROBLEM", state: "ACKNOWLEDGED", problemId: problem.id },
+          reason: problem.title,
+        });
+        return { id: problem.id, alreadyAcknowledged: false };
+      });
+    }),
+
+  /**
+   * คิวปัญหา — ทุกเรื่องที่ยังไม่จบของทั้งโรงงานในหน้าเดียว (เบสสั่ง 2026-09-19 "ไม่มีหน้ารวมปัญหา")
+   * รวมใบเก่าที่ยังไม่มีแถว (ขั้นหยุดอยู่ด้วย marker ใน notes) เพื่อไม่ให้คิวโกหกว่าไม่มีปัญหา
+   * ไม่มีเงินในผลลัพธ์ — จอนี้ทุกบทบาทเปิดได้
+   */
+  problemQueue: protectedProcedure
+    .input(z.object({ includeClosed: z.boolean().default(true) }).optional())
+    .query(async ({ ctx, input }) => {
+      const closedSince = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      const orderSelect = {
+        select: {
+          order: {
+            select: {
+              id: true,
+              orderNumber: true,
+              deadline: true,
+              internalStatus: true,
+              customer: { select: { name: true, company: true } },
+            },
+          },
+        },
+      } as const;
+      const [rows, legacySteps] = await Promise.all([
+        ctx.prisma.productionException.findMany({
+          where: {
+            OR: [
+              { state: { in: ["OPEN", "ACKNOWLEDGED"] } },
+              ...(input?.includeClosed === false
+                ? []
+                : [{ resolvedAt: { gte: closedSince } }]),
+            ],
+          },
+          orderBy: [{ state: "asc" }, { createdAt: "asc" }],
+          take: 200,
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            blocksJob: true,
+            state: true,
+            source: true,
+            createdAt: true,
+            acknowledgedAt: true,
+            resolvedAt: true,
+            resolution: true,
+            productionId: true,
+            raisedBy: { select: { name: true } },
+            owner: { select: { name: true } },
+            lines: { select: { qty: true } },
+            productionStep: {
+              select: { id: true, stepType: true, customStepName: true, status: true },
+            },
+            production: orderSelect,
+          },
+        }),
+        ctx.prisma.productionStep.findMany({
+          where: {
+            status: { in: ["FAILED", "ON_HOLD"] },
+            exceptions: {
+              none: { state: { in: ["OPEN", "ACKNOWLEDGED"] }, blocksJob: true },
+            },
+            production: {
+              order: {
+                internalStatus: {
+                  in: ["PRODUCTION_QUEUE", "PRODUCING", "QUALITY_CHECK", "PACKING"],
+                },
+              },
+            },
+          },
+          orderBy: { updatedAt: "asc" },
+          take: 100,
+          select: {
+            id: true,
+            stepType: true,
+            customStepName: true,
+            status: true,
+            notes: true,
+            qcNotes: true,
+            updatedAt: true,
+            productionId: true,
+            assignedTo: { select: { name: true } },
+            production: orderSelect,
+          },
+        }),
+      ]);
+
+      const stepName = (step: { stepType: string; customStepName: string | null }) =>
+        step.customStepName ?? STEP_TYPE_LABELS[step.stepType] ?? step.stepType;
+
+      return [
+        ...rows.map((row) => ({
+          id: row.id,
+          legacy: false,
+          title: row.title,
+          detail: row.description,
+          // ตั้งใจให้หยุด + สถานะขั้นหยุดอยู่จริง = หยุดจริง (เหตุผลเดียวกับ stopsWork ใน lib/production-problem)
+          blocksStep:
+            row.blocksJob &&
+            (!row.productionStep || stepIsStopped(row.productionStep)),
+          state: row.state as string,
+          source: row.source as string,
+          reportedAt: row.createdAt,
+          acknowledgedAt: row.acknowledgedAt,
+          resolvedAt: row.resolvedAt,
+          resolution: row.resolution,
+          raisedByName: row.raisedBy?.name ?? null,
+          ownerName: row.owner?.name ?? null,
+          scrapQty: row.lines.reduce((sum, line) => sum + line.qty, 0),
+          productionId: row.productionId,
+          stepId: row.productionStep?.id ?? null,
+          stepLabel: row.productionStep ? stepName(row.productionStep) : "ทั้งใบผลิต",
+          orderId: row.production.order.id,
+          orderNumber: row.production.order.orderNumber,
+          customerName: customerDisplayName(row.production.order.customer) || null,
+          deadline: row.production.order.deadline,
+        })),
+        ...legacySteps.map((step) => ({
+          id: `legacy:${step.id}`,
+          legacy: true,
+          title:
+            currentProductionProblemReason(step) ??
+            (step.status === "ON_HOLD" ? "หัวหน้าพักงานไว้" : "ยังไม่ระบุเหตุ"),
+          detail: null as string | null,
+          blocksStep: true,
+          state: "OPEN",
+          source: "STATION",
+          reportedAt: step.updatedAt,
+          acknowledgedAt: null as Date | null,
+          resolvedAt: null as Date | null,
+          resolution: null as string | null,
+          raisedByName: step.assignedTo?.name ?? null,
+          ownerName: null as string | null,
+          scrapQty: 0,
+          productionId: step.productionId,
+          stepId: step.id as string | null,
+          stepLabel: stepName(step),
+          orderId: step.production.order.id,
+          orderNumber: step.production.order.orderNumber,
+          customerName: customerDisplayName(step.production.order.customer) || null,
+          deadline: step.production.order.deadline,
+        })),
+      ];
     }),
 
   assignProductionStep: protectedProcedure

@@ -56,6 +56,15 @@ function makeHarness(options: {
     string,
     { id: string; role: Role; permissionOverrides: unknown; isActive: boolean }
   >;
+  /** ยอดเสียรายไซซ์ที่บันทึกไว้แล้ว — ใบปัญหาก๊อปไว้เป็น snapshot ตอนแจ้ง */
+  scrapRows?: Array<{
+    sourceOrderItemVariantId: string | null;
+    size: string | null;
+    color: string | null;
+    qtyScrap: number;
+  }>;
+  /** เรื่องที่ยังค้างของขั้นนี้ (ใช้ตอน resolve) */
+  openProblems?: Array<{ id: string; blocksJob: boolean; title: string }>;
 } = {}) {
   let state: StepState = { ...baseStep, ...options.step };
   const orderStatus = options.orderStatus ?? "PRODUCING";
@@ -141,6 +150,18 @@ function makeHarness(options: {
     },
     notification: { create: vi.fn().mockResolvedValue({ id: "notification-1" }) },
     auditLog: { create: vi.fn().mockResolvedValue({ id: "audit-1" }) },
+    // ใบปัญหาเป็นแถวจริงตั้งแต่ 2026-09-20 — แจ้ง/ปิด ต้องเขียนแถวในธุรกรรมเดียวกับสถานะขั้น
+    operationQuantity: {
+      findMany: vi.fn().mockResolvedValue(options.scrapRows ?? []),
+    },
+    productionException: {
+      create: vi.fn().mockResolvedValue({ id: "problem-1" }),
+      findMany: vi.fn().mockResolvedValue(options.openProblems ?? []),
+      findUniqueOrThrow: vi.fn(),
+      update: vi.fn(),
+      count: vi.fn().mockResolvedValue(0),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+    },
   };
   const transaction = vi.fn(
     async (callback: (transaction: typeof tx) => unknown) => callback(tx),
@@ -526,6 +547,133 @@ describe("production.reportStationProblem", () => {
 
     expect(harness.transaction).not.toHaveBeenCalled();
   });
+
+  // ใบปัญหาเป็นแถวจริง (เบสอนุมัติ migration 2026-09-20) — เดิมมีแต่ข้อความต่อท้ายใน notes
+  it("เปิดใบปัญหาเป็นแถวจริง พร้อมของเสียรายไซซ์ที่บันทึกไว้แล้ว", async () => {
+    const harness = makeHarness({
+      scrapRows: [
+        { sourceOrderItemVariantId: "v-s", size: "S", color: "ดำ", qtyScrap: 3 },
+        { sourceOrderItemVariantId: "v-m", size: "M", color: "ดำ", qtyScrap: 1 },
+      ],
+    });
+
+    const result = await productionRouter
+      .createCaller(harness.ctx)
+      .reportStationProblem({ stepId: "step-1", reason: "ฟิล์มลอกหลังรีด", detail: "อุณหภูมิเพี้ยน" });
+
+    expect(result).toMatchObject({ problemId: "problem-1", status: "FAILED" });
+    expect(harness.tx.productionException.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        productionStepId: "step-1",
+        source: "STATION",
+        title: "ฟิล์มลอกหลังรีด",
+        description: "อุณหภูมิเพี้ยน",
+        blocksJob: true,
+        state: "OPEN",
+        raisedById: "production-staff-1",
+        lines: {
+          create: [
+            { variantId: "v-s", size: "S", color: "ดำ", qty: 3 },
+            { variantId: "v-m", size: "M", color: "ดำ", qty: 1 },
+          ],
+        },
+      }),
+      select: { id: true },
+    });
+  });
+
+  it("เรื่องที่ไม่หยุดทั้งขั้น: เปิดใบไว้ แจ้งหัวหน้า แต่ไม่แตะสถานะงาน", async () => {
+    const harness = makeHarness({ step: { status: "IN_PROGRESS", assignedToId: "production-staff-1" } });
+
+    const result = await productionRouter
+      .createCaller(harness.ctx)
+      .reportStationProblem({ stepId: "step-1", reason: "งานเสีย (พิมพ์ รีด ปักพลาด)", blocksStep: false });
+
+    expect(result.status).toBe("IN_PROGRESS");
+    expect(harness.tx.productionException.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ blocksJob: false, severity: "WARNING", disposition: null }),
+      select: { id: true },
+    });
+    // ไม่มีการเขียนสถานะ/marker ทับ — ช่างทำตัวที่เหลือต่อได้
+    expect(harness.tx.productionStep.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: {} }),
+    );
+    expect(harness.tx.notification.create).toHaveBeenCalledOnce();
+  });
+
+  it("ขั้นที่หยุดอยู่แล้ว ยังแจ้งเรื่องแบบไม่หยุดขั้นเพิ่มได้ (หลายเรื่องต่อขั้น)", async () => {
+    const harness = makeHarness({ step: { status: "FAILED", notes: "[แจ้งปัญหาจากสถานี] เครื่องเสีย" } });
+
+    await expect(
+      productionRouter
+        .createCaller(harness.ctx)
+        .reportStationProblem({ stepId: "step-1", reason: "เรื่องใหม่ที่ไม่เกี่ยวกัน" }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+
+    await productionRouter
+      .createCaller(harness.ctx)
+      .reportStationProblem({ stepId: "step-1", reason: "ลายเบี้ยว 2 ตัว", blocksStep: false });
+
+    expect(harness.tx.productionException.create).toHaveBeenCalledOnce();
+  });
+});
+
+describe("production.acknowledgeProblem", () => {
+  it("หัวหน้ารับเรื่อง = จดคนถือเรื่องและเวลา แล้วบอกช่างที่แจ้ง", async () => {
+    const harness = makeHarness({ role: "MANAGER", userId: "manager-1" });
+    harness.tx.productionException.findUniqueOrThrow = vi.fn().mockResolvedValue({
+      id: "problem-1",
+      state: "OPEN",
+      title: "ฟิล์มลอกหลังรีด",
+      raisedById: "production-staff-1",
+      productionId: "production-1",
+      productionStep: { id: "step-1", stepType: "HEAT_PRESS", customStepName: null },
+      production: { order: { orderNumber: "ORD-2608-0041" } },
+    });
+    harness.tx.productionException.update = vi.fn().mockResolvedValue({ id: "problem-1" });
+    harness.tx.user.findUnique = vi.fn().mockResolvedValue({ id: "production-staff-1", isActive: true });
+
+    const result = await productionRouter
+      .createCaller(harness.ctx)
+      .acknowledgeProblem({ problemId: "problem-1" });
+
+    expect(result).toEqual({ id: "problem-1", alreadyAcknowledged: false });
+    expect(harness.tx.productionException.update).toHaveBeenCalledWith({
+      where: { id: "problem-1" },
+      data: expect.objectContaining({ state: "ACKNOWLEDGED", ownerId: "manager-1" }),
+    });
+    expect(harness.tx.notification.create).toHaveBeenCalledOnce();
+  });
+
+  it("กดซ้ำไม่เขียนซ้ำและไม่แจ้งซ้ำ", async () => {
+    const harness = makeHarness({ role: "MANAGER", userId: "manager-1" });
+    harness.tx.productionException.findUniqueOrThrow = vi.fn().mockResolvedValue({
+      id: "problem-1",
+      state: "ACKNOWLEDGED",
+      title: "ฟิล์มลอกหลังรีด",
+      raisedById: "production-staff-1",
+      productionId: "production-1",
+      productionStep: { id: "step-1", stepType: "HEAT_PRESS", customStepName: null },
+      production: { order: { orderNumber: "ORD-2608-0041" } },
+    });
+    harness.tx.productionException.update = vi.fn();
+
+    const result = await productionRouter
+      .createCaller(harness.ctx)
+      .acknowledgeProblem({ problemId: "problem-1" });
+
+    expect(result.alreadyAcknowledged).toBe(true);
+    expect(harness.tx.productionException.update).not.toHaveBeenCalled();
+    expect(harness.tx.notification.create).not.toHaveBeenCalled();
+  });
+
+  it("ช่างรับเรื่องแทนหัวหน้าไม่ได้", async () => {
+    const harness = makeHarness();
+
+    await expect(
+      productionRouter.createCaller(harness.ctx).acknowledgeProblem({ problemId: "problem-1" }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
 });
 
 describe("production.resolveStationProblem", () => {
@@ -618,6 +766,65 @@ describe("production.resolveStationProblem", () => {
 
     expect(harness.tx.productionStep.update).not.toHaveBeenCalled();
     expect(harness.tx.auditLog.create).not.toHaveBeenCalled();
+  });
+
+  it("ปิดใบปัญหาที่ไม่ได้หยุดขั้น = ปิดเฉพาะใบ ไม่ไปรีเซ็ตขั้นที่กำลังทำอยู่", async () => {
+    const harness = makeHarness({
+      role: "MANAGER",
+      userId: "manager-2",
+      step: { status: "IN_PROGRESS" },
+      openProblems: [{ id: "problem-9", blocksJob: false, title: "ลายเบี้ยว 2 ตัว" }],
+    });
+
+    await productionRouter.createCaller(harness.ctx).resolveStationProblem({
+      stepId: "step-1",
+      problemId: "problem-9",
+      resolutionReason: "คัดออกแล้ว ทำชดเชยครบ",
+    });
+
+    expect(harness.tx.productionException.updateMany).toHaveBeenCalledWith({
+      where: { id: { in: ["problem-9"] } },
+      data: expect.objectContaining({ state: "RESOLVED", resolution: "คัดออกแล้ว ทำชดเชยครบ" }),
+    });
+    expect(harness.tx.productionStep.update).not.toHaveBeenCalled();
+  });
+
+  it("ยังมีเรื่องที่หยุดขั้นค้างอยู่ ขั้นต้องไม่กลับมาพร้อมทำ", async () => {
+    const harness = makeHarness({
+      role: "MANAGER",
+      userId: "manager-2",
+      step: { status: "FAILED", notes: "[แจ้งปัญหาจากสถานี] เครื่องเสีย" },
+      openProblems: [{ id: "problem-1", blocksJob: true, title: "เครื่องเสีย" }],
+    });
+    harness.tx.productionException.count = vi.fn().mockResolvedValue(1);
+
+    await productionRouter.createCaller(harness.ctx).resolveStationProblem({
+      stepId: "step-1",
+      problemId: "problem-1",
+      resolutionReason: "เปลี่ยนหัวรีดแล้ว",
+    });
+
+    expect(harness.tx.productionException.updateMany).toHaveBeenCalledOnce();
+    expect(harness.tx.productionStep.update).not.toHaveBeenCalled();
+  });
+
+  it("ปิดเรื่องที่ถูกปิดไปแล้วโดยคนอื่น ต้องบอกให้โหลดใหม่ ไม่เงียบ", async () => {
+    const harness = makeHarness({
+      role: "MANAGER",
+      userId: "manager-2",
+      step: { status: "FAILED", notes: "[แจ้งปัญหาจากสถานี] เครื่องเสีย" },
+      openProblems: [],
+    });
+
+    await expect(
+      productionRouter.createCaller(harness.ctx).resolveStationProblem({
+        stepId: "step-1",
+        problemId: "problem-1",
+        resolutionReason: "เปลี่ยนหัวรีดแล้ว",
+      }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+
+    expect(harness.tx.productionStep.update).not.toHaveBeenCalled();
   });
 });
 

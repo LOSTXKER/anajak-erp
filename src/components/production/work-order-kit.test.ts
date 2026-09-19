@@ -153,8 +153,26 @@ describe("ระบบแจ้งปัญหาจบในการ์ดข�
     // ของเสียที่บันทึกไว้แล้วต้องโผล่ในกล่อง ไม่ต้องให้หัวหน้าไปไล่หาในตาราง
     expect(plain).toMatch(/S 3 เสีย/);
     expect(plain).toContain("แจ้งแล้ว");
-    expect(plain).toContain("หัวหน้าตัดสิน");
+    expect(plain).toContain("รอหัวหน้ารับเรื่อง");
     expect(plain).toContain("แก้เสร็จ ทำต่อได้");
+  });
+
+  it("เรื่องที่ไม่หยุดขั้น: ทำต่อได้ ไม่ขึ้นว่าขั้นติดปัญหา และของเสียยังกรอกได้", () => {
+    const plain = text(render("problem-soft"));
+    expect(plain).toContain("งานเสีย");
+    expect(plain).toContain("ทำต่อได้");
+    expect(plain).toMatch(/S 2 เสีย/);
+    // ขั้นยังเดินอยู่ จึงต้องไม่มีคำว่าติดปัญหาและยังแจ้งเรื่องใหม่ได้
+    expect(plain).not.toContain("หยุดทั้งขั้น");
+    expect(plain).toContain("แจ้งปัญหาขั้นนี้");
+  });
+
+  it("หัวหน้ารับเรื่องแล้ว ช่างเห็นว่ามีคนดูให้อยู่ ไม่ต้องเดินมาถาม", () => {
+    const staff = text(render("problem-soft", "staff"));
+    expect(staff).toContain("หัวหน้ารับเรื่องแล้ว");
+    // รับเรื่องแล้วต้องไม่มีปุ่ม "รับเรื่องไว้ก่อน" ซ้ำให้หัวหน้ากดอีก
+    expect(text(render("problem-soft", "boss"))).not.toContain("รับเรื่องไว้ก่อน");
+    expect(text(render("problem", "boss"))).toContain("รับเรื่องไว้ก่อน");
   });
 
   it("ช่างเห็นว่ารอหัวหน้า · หัวหน้าเห็นปุ่มตัดสินในกล่องเดียวกัน", () => {

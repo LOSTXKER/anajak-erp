@@ -245,7 +245,21 @@ export const PROBLEM_REASON_MIN_LENGTH = 3;
 export const STATION_PROBLEM_REASONS = [
   "เสื้อไม่พอ / ไม่ตรงใบงาน",
   "เสื้อมีตำหนิ",
+  "งานเสีย (พิมพ์ รีด ปักพลาด)",
   "ฟิล์ม / ไฟล์ไม่ตรงม็อกอัพ",
   "เครื่องเสีย",
   "ของร้านนอกยังไม่มา",
 ] as const;
+
+/**
+ * เรื่องนี้ควรหยุดทั้งขั้นไหม — ค่าเริ่มต้นของปุ่มเลือกในแผ่นแจ้ง (ช่างเปลี่ยนได้เสมอ)
+ * ของเสียไม่กี่ตัวหรือเสื้อมีตำหนิบางตัว ไม่ควรหยุดงานที่เหลือทั้งกอง (เบสเคาะ 2026-09-20)
+ */
+const KEEPS_RUNNING: ReadonlySet<string> = new Set([
+  "เสื้อมีตำหนิ",
+  "งานเสีย (พิมพ์ รีด ปักพลาด)",
+]);
+
+export function defaultBlocksStep(reason: string | null): boolean {
+  return !reason || !KEEPS_RUNNING.has(reason);
+}

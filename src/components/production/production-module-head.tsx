@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
-import { ChartColumn, Factory, Printer, Truck } from "lucide-react";
+import { ChartColumn, Factory, Printer, TriangleAlert, Truck } from "lucide-react";
 import { c } from "@/components/kit/kit";
 import { trpc } from "@/lib/trpc";
 import { differenceInBangkokDays } from "@/lib/date-utils";
@@ -14,7 +14,7 @@ import { differenceInBangkokDays } from "@/lib/date-utils";
    ไม่มีบรรทัดสรุปใต้ชื่อ (เบส "รกตา ไม่โปร่ง") — ตัวเลขที่ต้องจัดการอยู่ในเลขแดงของเมนู
    ============================================================ */
 
-export type ProductionModuleKey = "desk" | "dtf" | "outsource" | "metrics";
+export type ProductionModuleKey = "desk" | "problems" | "dtf" | "outsource" | "metrics";
 
 export const PRODUCTION_MODULE_LINKS: readonly {
   key: ProductionModuleKey;
@@ -23,6 +23,8 @@ export const PRODUCTION_MODULE_LINKS: readonly {
   icon: LucideIcon;
 }[] = [
   { key: "desk", href: "/production", label: "งานในโรงงาน", icon: Factory },
+  // คิวปัญหา (เบสสั่ง 2026-09-19) — เดิมไม่มีหน้ารวม เรื่องที่แจ้งจึงหายเข้าไปในใบผลิตทีละใบ
+  { key: "problems", href: "/production/problems", label: "ปัญหา", icon: TriangleAlert },
   { key: "dtf", href: "/production/print-runs", label: "พิมพ์ DTF", icon: Printer },
   { key: "outsource", href: "/production/outsource", label: "ร้านนอก", icon: Truck },
   { key: "metrics", href: "/production/metrics", label: "ตัวชี้วัด", icon: ChartColumn },
@@ -43,10 +45,16 @@ export function ProductionModuleHead({
   // เลขแดงชุดเดียวกันทุกหน้าในโมดูล: งานรอพิมพ์ DTF · ร้านนอกเลยนัดรับ (query เดิม ใช้ cache ร่วมกับหน้านั้น ๆ)
   const queue = trpc.printRun.queue.useQuery(undefined, { staleTime: 60_000 });
   const outsource = trpc.outsource.listOrders.useQuery({}, { staleTime: 60_000 });
+  const problems = trpc.production.problemQueue.useQuery({ includeClosed: false }, { staleTime: 60_000 });
   const lateOutsource = (outsource.data ?? []).filter(
     (order) => ["SENT", "IN_PROGRESS", "COMPLETED"].includes(order.status) && (differenceInBangkokDays(order.expectedBackAt, outsource.dataUpdatedAt || 0) ?? 0) < 0,
   ).length;
-  const counts: Partial<Record<ProductionModuleKey, number>> = { dtf: queue.data?.length ?? 0, outsource: lateOutsource, ...badges };
+  const counts: Partial<Record<ProductionModuleKey, number>> = {
+    dtf: queue.data?.length ?? 0,
+    outsource: lateOutsource,
+    problems: (problems.data ?? []).length,
+    ...badges,
+  };
   const current = PRODUCTION_MODULE_LINKS.find((link) => link.key === active) ?? PRODUCTION_MODULE_LINKS[0]!;
   const Icon = current.icon;
   return (

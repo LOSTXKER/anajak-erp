@@ -22,6 +22,7 @@ import {
   CircleCheck,
   ClipboardCheck,
   Ellipsis,
+  Flag,
   History,
   Pause,
   Printer,
@@ -45,14 +46,14 @@ import { orderMockupCover } from "@/lib/mockup";
 import { INTERNAL_STATUS_LABELS } from "@/lib/order-status";
 import { STEP_STATUS_LABELS } from "@/lib/status-config";
 import { permAllows } from "@/lib/permissions";
-import { currentProductionProblemReason } from "@/lib/production-problem";
+import { openProblemsOf } from "@/lib/production-problem";
 import { FLOW_OWNED_STEP_TYPES } from "@/lib/production-steps";
 import { formatDateTime } from "@/lib/utils";
 import { currentRailNode, railNodesOf } from "@/lib/work-order-rail";
 import { routeWaitingOn } from "@/lib/work-order-route";
 import { useWorkOrderController, type WorkOrderController } from "./work-order-controller";
 import { checklistAnchor, pieceTableAnchor, ticksMissing } from "./work-order-anchors";
-import { problemAnchor } from "./work-order-problem";
+import { canReportProblem, problemAnchor } from "./work-order-problem";
 import { WorkOrderItemsTab } from "./work-order-items-tab";
 import { activeOutsource, dtfUnavailableReason, outsourceReceiptCandidates, outsourceStepReason, stepLabel } from "./work-order-pieces";
 import { ChecklistCard, HistoryCard, OrderInfoCard } from "./work-order-side";
@@ -223,17 +224,6 @@ export function WorkOrderKitView({ c: ctl, scannedMockup = Number.NaN }: { c: Wo
 
   const hasVariantRows = (order?.items ?? []).some((item) => item.products.some((prod) => prod.variants.length > 0));
 
-  /** แจ้งปัญหาขั้นนี้ได้ไหม — ให้ตรงกับด่านของ server ทุกข้อ จะได้ไม่มีปุ่มที่กดแล้วโดนปฏิเสธ
-   *  (ขั้นยังไม่ปิด · ยังไม่มีเรื่องค้าง · ไม่ได้พักไว้ · ของไม่ได้อยู่ร้านนอก · ไม่ได้อยู่ในรอบพิมพ์ ·
-   *   ออเดอร์ยังอยู่ระหว่างผลิต · ไม่ใช่งานของคนอื่นถ้าไม่ใช่หัวหน้า · ขั้นก่อนหน้าในสายงานไม่ค้าง) */
-  function canReportProblem(step: ProductionStep): boolean {
-    if (!ctl.canUpdateStep || !ctl.canOwnOrSupervise(step)) return false;
-    if (step.status === "COMPLETED" || step.status === "FAILED" || step.status === "ON_HOLD") return false;
-    if (activeOutsource(step)) return false;
-    if (step.stepType === "DTF_PRINT" && step.printRunItems.length > 0) return false;
-    return routeWaitingOn(step, workflowSteps).length === 0;
-  }
-
   function assignAction(step: ProductionStep) {
     if (!canManageStep || step.status === "COMPLETED") return null;
     return (
@@ -306,26 +296,28 @@ export function WorkOrderKitView({ c: ctl, scannedMockup = Number.NaN }: { c: Wo
           <div className={c("tokens page mfg")}>
             {ctl.writeDataStale || stalePaper || ctl.problemSteps.length > 0 ? (
               <div className={c("alerts")}>
-                {ctl.problemSteps.map((step) => (
-                  <Callout
-                    key={step.id}
-                    tone={step.status === "ON_HOLD" ? undefined : "danger"}
-                    icon={step.status === "ON_HOLD" ? Pause : TriangleAlert}
-                    role="alert"
-                    action={
-                      <button type="button" className={c("btn sm")} onClick={() => focusFirst(problemAnchor(step.id), "button")}>
-                        ดูเรื่องนี้
-                      </button>
-                    }
-                  >
-                    <b>
-                      {stepLabel(step)}
-                      {STEP_STATUS_LABELS[step.status === "ON_HOLD" ? "ON_HOLD" : "FAILED"]}
-                    </b>{" "}
-                    — {currentProductionProblemReason(step) ?? step.notes ?? "ยังไม่ระบุเหตุ"}
-                    {step.assignedTo ? <span className={c("whoinline")}> ผู้ทำ {step.assignedTo.name}</span> : null}
-                  </Callout>
-                ))}
+                {ctl.problemSteps.flatMap((step) =>
+                  openProblemsOf(step).map((problem) => (
+                    <Callout
+                      key={problem.id}
+                      tone={problem.stopsWork && !problem.held ? "danger" : undefined}
+                      icon={problem.held ? Pause : problem.stopsWork ? TriangleAlert : Flag}
+                      role="alert"
+                      action={
+                        <button type="button" className={c("btn sm")} onClick={() => focusFirst(problemAnchor(step.id), "button")}>
+                          ดูเรื่องนี้
+                        </button>
+                      }
+                    >
+                      <b>
+                        {stepLabel(step)}
+                        {problem.stopsWork ? STEP_STATUS_LABELS[problem.held ? "ON_HOLD" : "FAILED"] : " — แจ้งไว้ ทำต่อได้"}
+                      </b>{" "}
+                      — {problem.title}
+                      {problem.raisedBy ? <span className={c("whoinline")}> แจ้งโดย {problem.raisedBy.name}</span> : null}
+                    </Callout>
+                  )),
+                )}
                 {stalePaper ? (
                   <Callout
                     tone="danger"
@@ -518,7 +510,7 @@ export function WorkOrderKitView({ c: ctl, scannedMockup = Number.NaN }: { c: Wo
                             ctl={ctl}
                             action={action}
                             reason={step.status !== "COMPLETED" && !action ? blockReason(step) : null}
-                            canReport={canReportProblem(step)}
+                            canReport={canReportProblem(step, ctl)}
                           />
                         );
                       })

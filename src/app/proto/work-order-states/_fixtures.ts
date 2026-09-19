@@ -88,11 +88,44 @@ export function makeStep(input: StepInput): ProductionStep {
     pairWithPrevious: false,
     checks: [],
     quantities: [],
+    exceptions: [],
     assignedTo: null,
     outsourceOrders: [],
     printRunItems: [],
     ...rest,
   } as unknown as ProductionStep;
+}
+
+/** ใบปัญหาหนึ่งเรื่องของขั้น — รูปเดียวกับแถวจริงใน production_exceptions */
+export function problem(input: {
+  id?: string;
+  title: string;
+  detail?: string;
+  /** false = ทำตัวที่เหลือต่อได้ (ขั้นไม่ต้องเป็น FAILED) */
+  blocks?: boolean;
+  /** หัวหน้ารับเรื่องแล้ว */
+  seen?: boolean;
+  by?: { id: string; name: string };
+  waste?: [number, number, number];
+}) {
+  const lines = (input.waste ?? [0, 0, 0])
+    .map((qty, i) => ({ id: `xl-${i}`, size: VARIANTS[i]!.size, color: null, qty }))
+    .filter((line) => line.qty > 0);
+  return {
+    id: input.id ?? "x-1",
+    title: input.title,
+    description: input.detail ?? null,
+    blocksJob: input.blocks ?? true,
+    state: (input.seen ? "ACKNOWLEDGED" : "OPEN") as "OPEN" | "ACKNOWLEDGED",
+    source: "STATION" as const,
+    createdAt: fromNow(0, -2),
+    acknowledgedAt: input.seen ? fromNow(0, -1) : null,
+    resolvedAt: null,
+    resolution: null,
+    raisedBy: input.by ?? USERS.staff,
+    owner: input.seen ? USERS.boss : null,
+    lines,
+  };
 }
 
 /** ผลติ๊ก n ข้อแรกของขั้นชนิดนั้น */
@@ -228,7 +261,37 @@ export const STATES: StateFixture[] = [
     title: "ติดปัญหา — รอหัวหน้า",
     group: "ขั้นทำเอง",
     order: makeOrder({ deadlineInDays: 1, priority: "URGENT" }),
-    steps: [press({ status: "FAILED", startedAt: fromNow(-1), assignedTo: USERS.staff, qtyDone: 12, checks: ticks("HEAT_PRESS", 2), quantities: rows([12, 0, 0], [3, 0, 0]), notes: stationProblemNotes(null, "ฟิล์มลอกหลังรีด 3 ตัว สงสัยอุณหภูมิเครื่องเพี้ยน") }), QC(20)],
+    steps: [
+      press({
+        status: "FAILED",
+        startedAt: fromNow(-1),
+        assignedTo: USERS.staff,
+        qtyDone: 12,
+        checks: ticks("HEAT_PRESS", 2),
+        quantities: rows([12, 0, 0], [3, 0, 0]),
+        notes: stationProblemNotes(null, "ฟิล์มลอกหลังรีด 3 ตัว สงสัยอุณหภูมิเครื่องเพี้ยน"),
+        exceptions: [problem({ title: "ฟิล์มลอกหลังรีด 3 ตัว สงสัยอุณหภูมิเครื่องเพี้ยน", waste: [3, 0, 0] })],
+      }),
+      QC(20),
+    ],
+  },
+  {
+    key: "problem-soft",
+    title: "แจ้งไว้ แต่ทำต่อได้",
+    group: "ขั้นทำเอง",
+    order: makeOrder({}),
+    steps: [
+      press({
+        status: "IN_PROGRESS",
+        startedAt: fromNow(0, -3),
+        assignedTo: USERS.staff,
+        qtyDone: 28,
+        checks: ticks("HEAT_PRESS", 2),
+        quantities: rows([28, 0, 0], [2, 0, 0]),
+        exceptions: [problem({ title: "งานเสีย (พิมพ์ รีด ปักพลาด)", detail: "ลายเบี้ยว 2 ตัว คัดออกแล้ว", blocks: false, seen: true, waste: [2, 0, 0] })],
+      }),
+      QC(20),
+    ],
   },
   {
     key: "reopen",

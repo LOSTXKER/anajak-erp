@@ -804,6 +804,9 @@ ul.ocards { margin: 0; list-style: none; }
    แทนของเดิมที่เป็นกล่องแดงบนหัวใบ + หน้าต่าง "จัดการปัญหา" + หน้าต่าง "แก้ให้" คนละชุด */
 .mfg .pp { display: grid; gap: 14px; margin-bottom: 20px; padding: 16px; border-radius: 18px; border: 1px solid color-mix(in srgb, var(--bad) 30%, transparent); background: var(--bad-bg); }
 .mfg .pp.held { border-color: color-mix(in srgb, var(--warn) 35%, transparent); background: var(--warn-bg); }
+/* เรื่องที่ไม่หยุดขั้น — ต้องเห็น แต่ต้องไม่อ่านเป็น "สายหยุด" (เบสเคาะ 2026-09-20) */
+.mfg .pp.soft { border-color: color-mix(in srgb, var(--warn) 30%, transparent); background: var(--warn-bg); }
+.mfg .pp.soft .ph .ic { color: var(--warn); }
 .mfg .pp .ph { display: flex; align-items: center; gap: 10px 12px; flex-wrap: wrap; }
 .mfg .pp .ph .ic { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 12px; background: var(--surface); color: var(--bad); flex: none; }
 .mfg .pp.held .ph .ic { color: var(--warn); }
@@ -856,7 +859,33 @@ ul.ocards { margin: 0; list-style: none; }
 .mfg .rp .rf { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
 .mfg .rp .rf .why { margin-right: auto; font-size: 12.5px; color: var(--ink-3); }
 .mfg .btn.lgt { min-height: 46px; padding: 0 20px; font-size: 14.5px; }
+.mfg .rchips.two { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
 @media (max-width: 560px) { .mfg .rp { padding: 16px; } .mfg .rp .rf .btn { flex: 1; } }
+
+/* จอทัชโรงงาน (/production/floor) — ชิ้นเดียวกับใบผลิต แค่นิ้วกดถูกและอ่านจากระยะยืน
+   เบสเคาะ 2026-09-20 "จอช่างต้องใช้ระบบปัญหาชุดเดียวกับใบผลิต" */
+.mfg .pp.touch { gap: 16px; padding: 20px; }
+.mfg .pp.touch .ph .ic { width: 44px; height: 44px; }
+.mfg .pp.touch .ph .ic :global(svg.lucide) { width: 22px; height: 22px; }
+.mfg .pp.touch .ph .tt b { font-size: 19px; }
+.mfg .pp.touch .ph .tt small { font-size: 14px; }
+.mfg .pp.touch .hit .q { min-height: 36px; padding: 0 14px; font-size: 15px; }
+.mfg .pp.touch .prail { padding: 16px 8px; }
+.mfg .pp.touch .prail .c { width: 34px; height: 34px; font-size: 14px; }
+.mfg .pp.touch .prail .c :global(svg.lucide) { width: 18px; height: 18px; }
+.mfg .pp.touch .prail .t b { font-size: 15px; }
+.mfg .pp.touch .prail .t small { font-size: 13px; }
+.mfg .pp.touch .pact .btn, .mfg .pp.touch .fixform .btn { min-height: 56px; padding: 0 22px; font-size: 16px; }
+.mfg .pp.touch .pact .turn { font-size: 15.5px; }
+.mfg .pp.touch .qchip { min-height: 48px; padding: 0 18px; font-size: 15px; }
+.mfg .rp.touch { padding: 22px; border-radius: 18px; border: 1px solid var(--line); }
+.mfg .rp.touch .rh b { font-size: 18px; }
+.mfg .rp.touch .lb { font-size: 14px; }
+.mfg .rp.touch .rchip { min-height: 68px; font-size: 16px; border-radius: 16px; }
+.mfg .rp.touch .rchip :global(svg.lucide) { width: 22px; height: 22px; }
+.mfg .rp.touch textarea { min-height: 56px; font-size: 16px; }
+.mfg .rp.touch .rf .why { font-size: 14px; }
+.mfg .rp.touch .rf .btn { min-height: 56px; padding: 0 24px; font-size: 16px; }
 
 .mfg .stepfoot { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 14px 18px; border-top: 1px solid var(--line-2); }
 .mfg .stepfoot .why { margin-right: auto; font-size: 12.5px; color: var(--ink-2); }

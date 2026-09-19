@@ -202,6 +202,15 @@ enum ExceptionSeverity {
   CRITICAL
 }
 
+// เรื่องนี้มาจากไหน — คิวปัญหารวมทุกที่มาไว้หน้าเดียว (เบสสั่ง 2026-09-19 "ระบบแจ้งปัญหาใช้ยาก")
+enum ExceptionSource {
+  STATION // ช่างแจ้งจากขั้นผลิต
+  QC // ตรวจไม่ผ่าน
+  OUTSOURCE // ตรวจรับงานร้านนอกไม่ผ่าน
+  CLAIM // ลูกค้าแจ้ง/ตีกลับ
+  SYSTEM // ระบบเปิดเอง (คำสั่งของ Manufacturing V2)
+}
+
 enum QualityDisposition {
   HOLD
   REWORK
@@ -1874,9 +1883,12 @@ model ProductionException {
   title            String
   description      String?
   severity         ExceptionSeverity   @default(WARNING)
+  // blocksJob = false → ขั้นยังเดินต่อได้ (เสีย 3 ตัวจาก 84 ไม่ควรหยุดทั้งขั้น) · true → ขั้นหยุดรอหัวหน้าตัดสิน
   blocksJob        Boolean             @default(true) @map("blocks_job")
   state            ExceptionState      @default(OPEN)
   disposition      QualityDisposition?
+  source           ExceptionSource     @default(SYSTEM)
+  photoUrls        String[]            @default([]) @map("photo_urls")
   raisedById       String              @map("raised_by_id")
   ownerId          String?             @map("owner_id")
   acknowledgedAt   DateTime?           @map("acknowledged_at")
@@ -1894,12 +1906,32 @@ model ProductionException {
   raisedBy       User            @relation("ProductionExceptionRaisedBy", fields: [raisedById], references: [id])
   owner          User?           @relation("ProductionExceptionOwner", fields: [ownerId], references: [id])
   reworkCases    ReworkCase[]
+  lines          ProductionExceptionLine[]
 
   @@index([productionId, state, blocksJob])
   @@index([productionStepId, state, blocksJob])
   @@index([workCenterId, state])
   @@index([ownerId, state])
+  // คิวปัญหา: เรื่องที่ยังไม่จบเรียงตามอายุ
+  @@index([state, createdAt])
   @@map("production_exceptions")
+}
+
+// ของที่เสีย/ต้องแก้รายไซซ์ของเรื่องนั้น — snapshot ตอนแจ้ง ไม่ใช่ยอดปัจจุบันของขั้น
+// (ยอดปัจจุบันอยู่ OperationQuantity ซึ่งเปลี่ยนได้ทุกครั้งที่ช่างบันทึกใหม่)
+// ไม่มี FK ไป OrderItemVariant ด้วยเหตุผลเดียวกับ OperationQuantity: เก็บ id ไว้อ้างอิง แต่ข้อความต้องอ่านออกเสมอ
+model ProductionExceptionLine {
+  id          String  @id @default(cuid())
+  exceptionId String  @map("exception_id")
+  variantId   String? @map("variant_id")
+  size        String?
+  color       String?
+  qty         Int
+
+  exception ProductionException @relation(fields: [exceptionId], references: [id], onDelete: Cascade)
+
+  @@index([exceptionId])
+  @@map("production_exception_lines")
 }
 
 model ReworkCase {

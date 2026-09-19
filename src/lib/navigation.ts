@@ -18,6 +18,7 @@ import {
   Scissors,
   Settings,
   ShoppingCart,
+  TriangleAlert,
   Truck,
   Users,
 } from "lucide-react";
@@ -128,6 +129,15 @@ export const NAVIGATION_ITEMS: readonly NavigationItem[] = [
      route ทั้งสามมีจริงอยู่แล้วและเปิดให้ทุกบทบาทอ่านได้ (router เป็น protectedProcedure
      ล้วน สิทธิ์ไปตัดที่ปุ่มบันทึกในหน้า) จึงไม่ผูก permission เพิ่ม — ให้ตรงกับแถบเมนูย่อย
      ในหัวโมดูล (PRODUCTION_MODULE_LINKS) ที่แสดงทั้งสี่ลิงก์ให้ทุกคนเหมือนกัน */
+  {
+    id: "production-problems",
+    label: "ปัญหาหน้างาน",
+    href: "/production/problems",
+    icon: TriangleAlert,
+    group: "production",
+    aliases: ["problem", "exception", "ปัญหา", "ของเสีย", "ติดปัญหา"],
+    surfaces: BOTH,
+  },
   {
     id: "print-runs",
     label: "พิมพ์ DTF",

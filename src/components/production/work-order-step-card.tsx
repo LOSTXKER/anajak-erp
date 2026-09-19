@@ -23,6 +23,7 @@ import { GarmentReceiveInline } from "@/components/production/garment-receive-in
 import { printTypesForProductionStep } from "@/components/production/production-design-card";
 import type { ProductionDetail, ProductionStep } from "@/components/production/types";
 import { heatLabel } from "@/lib/print-heat";
+import { stepHasOpenProblem } from "@/lib/production-problem";
 import { FLOW_OWNED_STEP_TYPES, isOutsourceStep } from "@/lib/production-steps";
 import { formatDateShort } from "@/lib/utils";
 import { pieceTableAnchor } from "./work-order-anchors";
@@ -152,7 +153,7 @@ export function WorkOrderStepCard({
     return map;
   }, [step.quantities]);
   const [draft, setDraft] = useState<Record<string, RowQty>>({});
-  const hasProblem = step.status === "FAILED" || step.status === "ON_HOLD";
+  const hasProblem = stepHasOpenProblem(step);
   const valueOf = (key: string): RowQty => draft[key] ?? saved[key] ?? { done: 0, waste: 0 };
   const showQty = editable || step.quantities.length > 0;
   const dirty = variantRows.some((row) => {

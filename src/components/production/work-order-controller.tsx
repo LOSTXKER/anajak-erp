@@ -23,6 +23,7 @@ import { StepOutsourceDialog } from "@/components/production/step-outsource-dial
 import { StepQtySheet } from "@/components/production/step-qty-sheet";
 import { StepUpdateDialog } from "@/components/production/step-update-dialog";
 import type { ProductionStep } from "@/components/production/types";
+import { stepHasOpenProblem } from "@/lib/production-problem";
 import { selectNowSteps, type NowStep } from "@/lib/production-step-actions";
 import { evaluateHeatPressGate, productionWorkflowSteps } from "@/lib/production-steps";
 import { canSendToQc, paperStepsToClose } from "@/lib/work-order-record-mode";
@@ -81,16 +82,22 @@ export function useWorkOrderController(id: string) {
     onError: (err: { message?: string }) => toast.error(err.message ?? "อัปเดตขั้นตอนไม่สำเร็จ"),
   });
   const reportProblem = useMutationWithInvalidation(trpc.production.reportStationProblem, {
-    invalidate,
+    invalidate: [...invalidate, utils.production.problemQueue],
     onSuccess: () => toast.success("แจ้งปัญหาให้หัวหน้าแล้ว"),
     onError: (err: { message?: string }) => toast.error("แจ้งปัญหาไม่สำเร็จ", { description: err.message }),
   });
   // หัวหน้าตัดสินในกล่องปัญหาของขั้นนั้นเลย (2026-09-20) — เดิมต้องเปิดหน้าต่าง "จัดการปัญหา"
   // ที่รวมร่างกับฟอร์มมอบหมายงาน ทำให้คนกดไม่รู้ว่าตกลงกำลังทำอะไรอยู่
   const resolveProblem = useMutationWithInvalidation(trpc.production.resolveStationProblem, {
-    invalidate: [...invalidate, utils.factory.stationContext],
-    onSuccess: () => toast.success("แก้ปัญหาแล้ว — ขั้นนี้กลับมาทำต่อได้"),
+    invalidate: [...invalidate, utils.factory.stationContext, utils.production.problemQueue],
+    onSuccess: () => toast.success("ปิดเรื่องแล้ว"),
     onError: (err: { message?: string }) => toast.error(err.message ?? "ส่งงานกลับไม่สำเร็จ"),
+  });
+  // "รับเรื่องไว้ก่อน" — ช่างที่แจ้งเห็นทันทีว่ามีคนดูแล้ว ไม่ต้องเดินมาถามหัวหน้า
+  const acknowledgeProblem = useMutationWithInvalidation(trpc.production.acknowledgeProblem, {
+    invalidate: [...invalidate, utils.production.problemQueue],
+    onSuccess: () => toast.success("รับเรื่องแล้ว — ช่างเห็นว่ากำลังดูให้อยู่"),
+    onError: (err: { message?: string }) => toast.error(err.message ?? "รับเรื่องไม่สำเร็จ"),
   });
   const legacyFinalize = useMutationWithInvalidation(trpc.production.finalizeLegacyPackaging, {
     invalidate: [...invalidate, utils.factory.stationContext],
@@ -152,7 +159,8 @@ export function useWorkOrderController(id: string) {
   const nowMs = productionQuery.dataUpdatedAt || 0;
   const totalQty = order?.items.reduce((sum, item) => sum + item.totalQuantity, 0) ?? 0;
   const completedSteps = workflowSteps.filter((s) => s.status === "COMPLETED").length;
-  const problemSteps = workflowSteps.filter((s) => s.status === "FAILED" || s.status === "ON_HOLD");
+  // รวมเรื่องที่ไม่ได้หยุดขั้นด้วย — ไม่งั้นของเสียที่แจ้งไว้จะหายไปจากแถบเตือนบนหัวใบ
+  const problemSteps = workflowSteps.filter((s) => stepHasOpenProblem(s));
   const hasPendingLegacyPackaging = production?.steps.some((s) => s.stepType === "PACKAGING" && s.status !== "COMPLETED") ?? false;
   const legacyPackagingReadyForQc = orderCanProduce && hasPendingLegacyPackaging && workflowSteps.every((s) => s.status === "COMPLETED");
   /** ขั้นกระดาษที่ยังเปิด + ทุกขั้นที่จดในระบบปิดแล้ว → ปุ่ม "ส่งเข้า QC" (ถือว่าผ่านให้) */
@@ -224,12 +232,10 @@ export function useWorkOrderController(id: string) {
         busy={quickPass.isPending}
         canUpdateStep={canUpdateStep}
         canSuperviseStep={canSuperviseStep}
-        hasProductionPermission={hasProductionPermission}
         canOwnOrSupervise={canOwnOrSupervise}
         onStart={handleStart}
         onComplete={handleComplete}
         onQuickPass={(s) => void handleQuickPass(s)}
-        onManage={(s) => setEditStep({ step: s, mode: "manager" })}
         onGoodsReceipt={(stepId) => setGoodsReceiptStepId(stepId)}
         onOutsource={(s) => setOutsourceStep(s)}
       />
@@ -297,6 +303,7 @@ export function useWorkOrderController(id: string) {
     quickPass,
     reportProblem,
     resolveProblem,
+    acknowledgeProblem,
     legacyFinalize,
     sendToQc,
     handleSupervisorStatus,
@@ -360,17 +367,15 @@ export type WorkOrderPrimaryButtonProps = {
   busy: boolean;
   canUpdateStep: boolean;
   canSuperviseStep: boolean;
-  hasProductionPermission: boolean;
   canOwnOrSupervise: (step: ProductionStep) => boolean;
   onStart: (step: ProductionStep) => void;
   onComplete: (step: ProductionStep) => void;
   onQuickPass: (step: ProductionStep) => void;
-  onManage: (step: ProductionStep) => void;
   onGoodsReceipt: (stepId: string) => void;
   onOutsource: (step: ProductionStep) => void;
 };
 
-export function WorkOrderPrimaryButton({ step, now, options = {}, busy, canUpdateStep, canSuperviseStep, hasProductionPermission, canOwnOrSupervise, onStart, onComplete, onQuickPass, onManage, onGoodsReceipt, onOutsource }: WorkOrderPrimaryButtonProps) {
+export function WorkOrderPrimaryButton({ step, now, options = {}, busy, canUpdateStep, canSuperviseStep, canOwnOrSupervise, onStart, onComplete, onQuickPass, onGoodsReceipt, onOutsource }: WorkOrderPrimaryButtonProps) {
   const size = cn(options.touch && "h-16 text-lg");
   // ใบผลิตชุดกลาง (kit) ใช้กติกาปุ่มชุดเดียวกัน แค่วาดเป็นปุ่มของชุดหน้าตากลาง
   const Button = options.kit ? KitButton : UiButton;
@@ -381,17 +386,10 @@ export function WorkOrderPrimaryButton({ step, now, options = {}, busy, canUpdat
       </Button>
     );
   }
-  if (step.status === "FAILED" || step.status === "ON_HOLD") {
-    return canSuperviseStep && hasProductionPermission ? (
-      <Button variant="destructive" className={size} onClick={() => onManage(step)}>
-        จัดการปัญหา
-      </Button>
-    ) : (
-      <Button variant="outline" className={size} disabled>
-        รอหัวหน้าจัดการ
-      </Button>
-    );
-  }
+  // ขั้นที่ติดปัญหา: การตัดสินอยู่ในกล่องปัญหาของขั้นนั้น (ProblemPanel) แล้ว
+  // จึงไม่มีปุ่มซ้ำตรงนี้ — เดิมปุ่มแดง "จัดการปัญหา" เปิดหน้าต่างมอบหมายงาน
+  // ทำให้คนกดไม่รู้ว่ากำลังทำอะไรอยู่ (เบสสั่งรื้อ 2026-09-19 "กดไปแล้วไงต่อ")
+  if (step.status === "FAILED" || step.status === "ON_HOLD") return null;
   if (step.stepType === "GARMENT_RECEIVE" && canUpdateStep && canOwnOrSupervise(step)) {
     return (
       <Button className={size} onClick={() => onGoodsReceipt(step.id)} disabled={busy}>

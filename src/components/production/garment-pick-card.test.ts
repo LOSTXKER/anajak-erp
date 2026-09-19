@@ -36,6 +36,7 @@ const garmentPickStep = {
   pairWithPrevious: false,
   checks: [],
   quantities: [],
+  exceptions: [],
 } as ProductionStep;
 
 const baseProps: ComponentProps<typeof GarmentPickCard> = {

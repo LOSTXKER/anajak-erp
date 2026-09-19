@@ -92,10 +92,10 @@ describe("navigation registry", () => {
       "quotations",
       "customers",
     ]);
-    // กลุ่มการผลิตมีเมนูย่อยครบสี่ตามต้นแบบ เรียงตามทางเดินงานจริง
+    // กลุ่มการผลิตเรียงตามทางเดินงานจริง — คิวปัญหาอยู่ถัดจากคิวงาน (เบสสั่ง 2026-09-19)
     expect(
       groups.find((group) => group.id === "production")?.items.map((item) => item.id),
-    ).toEqual(["production", "print-runs", "outsource", "production-metrics"]);
+    ).toEqual(["production", "production-problems", "print-runs", "outsource", "production-metrics"]);
     // ของและสินค้ารวมสต๊อกเสื้อไว้ด้วยกันตามต้นแบบ โดยไม่ตัด "แพทเทิร์น" ที่ต้นแบบไม่มี
     expect(groups.find((group) => group.id === "products")?.items.map((item) => item.id)).toEqual([
       "products",
@@ -115,6 +115,7 @@ describe("navigation registry", () => {
     expect(groups.some((group) => group.id === "finance")).toBe(false);
     expect(groups.find((group) => group.id === "production")?.items.map((item) => item.id)).toEqual([
       "production",
+      "production-problems",
       "print-runs",
       "outsource",
       "production-metrics",
@@ -123,6 +124,6 @@ describe("navigation registry", () => {
     const operatorGroups = groupedNavigationItems("sidebar", ["manage_production"]);
     expect(
       operatorGroups.find((group) => group.id === "production")?.items.map((item) => item.id),
-    ).toEqual(["production", "print-runs", "outsource", "production-metrics"]);
+    ).toEqual(["production", "production-problems", "print-runs", "outsource", "production-metrics"]);
   });
 });

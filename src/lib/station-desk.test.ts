@@ -12,6 +12,7 @@ import {
   stationForStep,
   findStationForJob,
   composeProblemReason,
+  defaultBlocksStep,
   PROBLEM_REASON_MIN_LENGTH,
 } from "@/lib/station-desk";
 
@@ -200,6 +201,14 @@ describe("composeProblemReason — ข้อความแจ้งปัญห
     expect(composeProblemReason("other", "")).toBe("");
     expect(composeProblemReason(null, "อะไรก็ได้")).toBe("");
     expect("ab".length < PROBLEM_REASON_MIN_LENGTH).toBe(true);
+  });
+  it("ค่าเริ่มต้นของ 'หยุดทั้งขั้นไหม' — ของเสียรายตัวไม่ควรหยุดงานที่เหลือทั้งกอง", () => {
+    expect(defaultBlocksStep("เครื่องเสีย")).toBe(true);
+    expect(defaultBlocksStep("เสื้อไม่พอ / ไม่ตรงใบงาน")).toBe(true);
+    expect(defaultBlocksStep("เสื้อมีตำหนิ")).toBe(false);
+    expect(defaultBlocksStep("งานเสีย (พิมพ์ รีด ปักพลาด)")).toBe(false);
+    // ยังไม่เลือกเหตุ = ถือว่าหยุดไว้ก่อน (ปลอดภัยกว่าปล่อยให้เดินต่อ)
+    expect(defaultBlocksStep(null)).toBe(true);
   });
 });
 
