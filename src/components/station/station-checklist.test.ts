@@ -93,6 +93,8 @@ describe("station actions follow work-order rules", () => {
       primaryButton,
       canSuperviseStep: false,
       hasProductionPermission: true,
+      // ปุ่มแจ้งปัญหาใช้ตัวตัดสินชุดเดียวกับใบผลิต ซึ่งอ่านสายงานทั้งใบ (canReportProblem)
+      workflowSteps: [currentStep],
       reportProblem: { isPending: false },
     } as unknown as WorkOrderController;
     const html = renderToStaticMarkup(React.createElement(StationStepZone, {

@@ -19,12 +19,15 @@ import { InfoChip, InfoChipRow } from "@/components/ui/info-chip";
 import { Metric } from "@/components/ui/metric";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RADIUS, SUNK_PANEL } from "@/components/ui/tokens";
+import { c as kit } from "@/components/kit/kit";
 import { GarmentPickCard } from "@/components/production/garment-pick-card";
 import { ProductionDesignCard } from "@/components/production/production-design-card";
-import { FixDialog, ProblemDialog } from "@/components/production/step-command-dialogs";
+import { FixDialog } from "@/components/production/step-command-dialogs";
 import type { ProductionStep } from "@/components/production/types";
 import { useWorkOrderController, type WorkOrderController } from "@/components/production/work-order-controller";
-import { OutsourceFacts, Owner, ProblemCard, StateChip, activeOutsource, daysFromNow, dtfUnavailableReason, outsourceStepReason, stepLabel, viewOf } from "@/components/production/work-order-pieces";
+import { ProblemPanel, ProblemReportSheet, canReportProblem } from "@/components/production/work-order-problem";
+import { OutsourceFacts, Owner, StateChip, activeOutsource, daysFromNow, dtfUnavailableReason, outsourceStepReason, stepLabel, viewOf } from "@/components/production/work-order-pieces";
+import { latestPlainProductionNote, openProblemsOf } from "@/lib/production-problem";
 import { isOutsourceStep } from "@/lib/production-steps";
 import type { StationDef } from "@/lib/station-desk";
 import { isInferredDone } from "@/lib/work-order-record-mode";
@@ -159,6 +162,7 @@ export function StationStepZone({
   const view = viewOf(step, now);
   const [problemOpen, setProblemOpen] = useState(false);
   const [fixOpen, setFixOpen] = useState(autoFix);
+  const problems = openProblemsOf(step);
   const allTicked = missingStandards(step.stepType, step.checks.map((check) => check.itemKey)).length === 0;
   const done = step.status === "COMPLETED";
   const stuck = step.status === "FAILED" || step.status === "ON_HOLD";
@@ -168,14 +172,15 @@ export function StationStepZone({
   const dtfReason = dtfUnavailableReason(step);
   const outsource = activeOutsource(step);
 
-  const canReport = c.canUpdateStep && c.canOwnOrSupervise(step) && !done && step.status !== "FAILED";
+  const canReport = canReportProblem(step, c);
+  const stepNote = latestPlainProductionNote(step.notes);
   const note = done
     ? inferredDone
       ? `ถือว่าผ่านตอนส่งเข้า QC${step.completedAt ? ` ${formatDateTime(step.completedAt)}` : ""} — ยอดจริงอยู่บนใบสั่งงาน`
       : `ปิดขั้นแล้ว${step.completedAt ? ` ${formatDateTime(step.completedAt)}` : ""}${step.assignedTo ? ` โดย ${step.assignedTo.name}` : ""}`
     : stuck
       ? boss
-        ? "ติดปัญหาอยู่ — กด “จัดการปัญหา” เพื่อปลดให้ช่างทำต่อ"
+        ? "ติดปัญหาอยู่ — ตัดสินได้ที่กล่องปัญหาด้านบน"
         : "ติดปัญหาอยู่ — รอหัวหน้าแก้ก่อน จึงทำต่อได้"
       : now && now.waitingOn.length > 0
         ? `รอ: ${now.waitingOn.join(" และ ")}`
@@ -230,9 +235,11 @@ export function StationStepZone({
           ) : null}
         </div>
 
-        {stuck ? (
-          <div className="mt-4">
-            <ProblemCard step={step} />
+        {/* กล่องปัญหาชุดเดียวกับใบผลิต (เบสเคาะ 2026-09-20) — ช่างเห็นว่ารอใคร หัวหน้าตัดสินในกล่องเดียวกัน
+            เดิมจอนี้มีการ์ดแดงของตัวเอง + หน้าต่าง "แก้ให้" คนละชุดกับใบผลิต */}
+        {problems.length > 0 ? (
+          <div className={cn("mt-4", kit("tokens mfg"))}>
+            <ProblemPanel step={step} ctl={c} touch />
           </div>
         ) : null}
         {step.outsourceOrders.length > 0 ? (
@@ -245,7 +252,9 @@ export function StationStepZone({
             อยู่ในรอบพิมพ์ {step.printRunItems[0]!.printRun.runNumber}
           </InfoChip>
         ) : null}
-        {step.notes && !stuck ? <p className="mt-3 text-sm text-secondary">{step.notes}</p> : null}
+        {/* หมายเหตุของขั้น — เฉพาะข้อความที่คนเขียนไว้ ไม่เอา marker ของระบบ
+            (เดิมเทประวัติ "[แจ้งปัญหาจากสถานี] … [แก้ปัญหาแล้ว] …" ให้ช่างอ่านทั้งพรืด) */}
+        {stepNote && !stuck ? <p className="mt-3 text-sm text-secondary">{stepNote}</p> : null}
 
         {step.stepType === "GARMENT_PICK" ? (
           <div className="mt-4">
@@ -264,17 +273,24 @@ export function StationStepZone({
         <StationStepChecklist step={step} c={c} />
       </div>
 
+      {/* แจ้งปัญหาเปิดเป็นแผ่นในหน้าเดียวกัน ไม่เด้งหน้าต่างให้เสียจังหวะงาน (ชุดเดียวกับใบผลิต) */}
+      {problemOpen ? (
+        <div className={kit("tokens mfg")}>
+          <ProblemReportSheet step={step} ctl={c} touch onClose={() => setProblemOpen(false)} />
+        </div>
+      ) : null}
+
       {/* ไม่มีปุ่มที่กดไม่ได้ — ลงมือไม่ได้ให้ประโยคสถานะบอก (เบสเคาะ A 09-03) */}
       <ActionZone touch note={note} icon={done ? CheckCircle2 : stuck ? AlertTriangle : now ? Wrench : Clock} tone={done ? "success" : stuck ? "error" : now && !gated ? "info" : "neutral"}>
         {primary}
-        {canReport ? (
+        {canReport && !problemOpen ? (
           <Button variant="outline" className="h-16 text-lg" onClick={() => setProblemOpen(true)}>
             <AlertTriangle /> แจ้งปัญหา
           </Button>
         ) : null}
         {boss && c.canSuperviseStep && c.hasProductionPermission ? (
           <Button variant="outline" className="h-16 text-lg" onClick={() => setFixOpen(true)}>
-            <Wrench /> แก้ให้
+            <Wrench /> คำสั่งหัวหน้า
           </Button>
         ) : null}
       </ActionZone>
@@ -284,7 +300,6 @@ export function StationStepZone({
         <Fact label="เสร็จเมื่อ" value={step.completedAt ? formatDateTime(step.completedAt) : "ยังไม่เสร็จ"} tone={step.completedAt ? "success" : "muted"} size="sm" />
       </FactList>
 
-      <ProblemDialog open={problemOpen} onClose={() => setProblemOpen(false)} step={step} c={c} />
       <FixDialog open={fixOpen} onClose={() => setFixOpen(false)} step={step} c={c} />
     </div>
   );
