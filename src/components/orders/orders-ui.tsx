@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
-import { Activity, AlertTriangle, Flame, PackageCheck, Pause, Truck, User } from "lucide-react";
+import { Activity, AlertTriangle, Flame, OctagonAlert, PackageCheck, Pause, Truck, User } from "lucide-react";
 import { c, Callout, type Tone } from "@/components/kit/kit";
 import type { HomeProblem, HomeProblemKind } from "@/lib/home-orders";
 import type { OrderProgress } from "@/lib/order-progress";
@@ -65,6 +65,9 @@ export function orderAttentionText(problem: HomeProblem, progress: OrderProgress
     // งานแก้/เคลม — ข้อความปั้นมาจาก lib/home-orders แล้ว (มีเลขรอบและจำนวน) ใช้ตามนั้นเลย
     case "claim":
       return { text: problem.label, who: problem.who };
+    // งานหยุดเดิน — ข้อความปั้นมาจาก lib/home-orders แล้ว (หัวเรื่อง + เหตุจริง) ใช้ตามนั้น
+    case "blocked":
+      return { text: problem.label, who: problem.who };
     case "overdue":
       return { text: `เลยกำหนดส่ง ${lateDays} วัน · ค้างขั้น ${step}`, who: problem.who };
     case "vendor-late":
@@ -95,6 +98,8 @@ export function orderAttentionShort(problem: HomeProblem, progress: OrderProgres
   switch (problem.kind) {
     case "claim":
       return problem.label;
+    case "blocked":
+      return problem.label;
     case "overdue":
       return `ค้างขั้น${step}`;
     case "vendor-late":
@@ -114,6 +119,7 @@ export function orderAttentionShort(problem: HomeProblem, progress: OrderProgres
 
 export const PROBLEM_ICON: Record<HomeProblemKind, LucideIcon> = {
   claim: AlertTriangle,
+  blocked: OctagonAlert,
   overdue: Flame,
   "vendor-late": Truck,
   ready: PackageCheck,

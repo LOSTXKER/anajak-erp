@@ -32,12 +32,16 @@ export interface HomeOrderLike {
   ready: boolean;
   /** งานแก้/เคลมที่ยังไม่จบ (ก้อน 1) — null = ไม่มี · มาก่อนทุกเหตุเพราะมีคนรออยู่ปลายทาง */
   claim?: { round: number; label: string } | null;
+  /** ขั้นผลิตที่หยุดเดิน — ช่างแจ้งปัญหา หรือหัวหน้าสั่งพัก · null = เดินอยู่
+   *  เบสเคาะ 2026-09-19 ให้เหตุนี้ชนะ "เลยกำหนด" เพราะมันคือสาเหตุที่ทำให้เลยกำหนด และเป็นอันที่แก้ได้ */
+  blocked?: { stepLabel: string; reason: string | null; held: boolean; assigneeName: string | null } | null;
 }
 
-export type HomeProblemGroup = "claim" | "late" | "today" | "wait" | "stuck";
+export type HomeProblemGroup = "claim" | "blocked" | "late" | "today" | "wait" | "stuck";
 export type HomeProblemTone = "danger" | "warning" | "success" | "neutral";
 export type HomeProblemKind =
   | "claim"
+  | "blocked"
   | "overdue"
   | "vendor-late"
   | "ready"
@@ -57,7 +61,7 @@ export interface HomeProblem {
 }
 
 // งานแก้มาก่อน "เลยกำหนด" เพราะลูกค้าถือของเสียอยู่ในมือและรอคำตอบจากเรา
-const GROUP_RANK: Record<HomeProblemGroup, number> = { claim: 0, late: 1, today: 2, wait: 3, stuck: 4 };
+const GROUP_RANK: Record<HomeProblemGroup, number> = { claim: 0, blocked: 1, late: 2, today: 3, wait: 4, stuck: 5 };
 
 function stepOrStatus(order: HomeOrderLike): string {
   return order.currentStep?.label ?? INTERNAL_STATUS_LABELS[order.internalStatus] ?? order.internalStatus;
@@ -70,6 +74,19 @@ export function describeHomeOrder(order: HomeOrderLike): HomeProblem | null {
   // จากทุกคิวเพราะถือว่า "จบแล้ว" ทั้งที่ของกลับมาอยู่ที่ร้าน
   if (order.claim) {
     return { group: "claim", kind: "claim", tone: "danger", label: order.claim.label, who };
+  }
+  // งานหยุดเดินมาก่อน "เลยกำหนด" — ใบที่เลยกำหนดเพราะเครื่องเสีย ต้องบอกว่าเครื่องเสีย
+  // ไม่ใช่บอกว่า "ค้างขั้น รีดร้อน" ซึ่งบอกไม่ได้ว่าต้องไปทำอะไรต่อ
+  if (order.blocked) {
+    const b = order.blocked;
+    const head = b.held ? "พักไว้" : "ติดปัญหา";
+    return {
+      group: "blocked",
+      kind: "blocked",
+      tone: "danger",
+      label: b.reason ? `${head} · ${b.reason}` : `${head} · ${b.stepLabel}`,
+      who: b.assigneeName ?? who,
+    };
   }
   if (order.dueInDays !== null && order.dueInDays < 0) {
     if (order.vendor && order.vendor.overdueDays > 0) {
@@ -133,6 +150,7 @@ export function describeOrderAttention(order: HomeOrderLike): HomeProblem | null
 export const HOME_ORDER_FILTERS = [
   { key: "all", label: "ทั้งหมด" },
   { key: "claim", label: "งานแก้" },
+  { key: "blocked", label: "ติดปัญหา" },
   { key: "late", label: "เลยกำหนด" },
   { key: "today", label: "ส่งวันนี้" },
   { key: "wait", label: "รอลูกค้า/ร้านนอก" },

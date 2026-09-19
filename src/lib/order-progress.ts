@@ -2,6 +2,7 @@ import type { InternalStatus } from "@prisma/client";
 import { differenceInBangkokDays } from "@/lib/date-utils";
 import { claimHeadline } from "@/lib/claim";
 import { isOutsourceStep, STEP_TYPE_LABELS } from "@/lib/production-steps";
+import { currentProductionProblemReason } from "@/lib/production-problem";
 import type { HomeOrderLike } from "@/lib/home-orders";
 
 /* ============================================================
@@ -34,6 +35,9 @@ export interface OrderProgressStep {
   customStepName: string | null;
   status: string;
   assignedTo: { name: string | null } | null;
+  /** หมายเหตุของขั้น — query ไหน select มาด้วย จอนั้นจะบอกได้ว่า "ติดอะไร" ไม่ใช่แค่ "ติด" */
+  notes?: string | null;
+  qcNotes?: string | null;
   /** ใบจ้างร้านนอกของขั้นนี้ · ไม่มี status = caller กรองเฉพาะใบที่ยังไม่รับกลับมาให้แล้ว */
   outsourceOrders: readonly {
     status?: string;
@@ -97,6 +101,10 @@ export function describeOrderProgress(source: OrderProgressSource, now: Date): O
   const steps = latestProduction(source.productions)?.steps ?? [];
   const current = steps.find((step) => OPEN_STEP_STATUSES.has(step.status)) ?? null;
 
+  // ขั้นที่หยุดเดิน — งานติดปัญหา (ช่างแจ้ง) หรือหัวหน้าสั่งพัก · ขั้นแบบนี้ไม่เข้า OPEN_STEP_STATUSES
+  // จึงเคยหายจากทุกตัวเลข หน้าแรกเลยขึ้น "—" ทั้งที่งานหยุดอยู่ (เบสเจอ 2026-09-19 "ดูยากงง")
+  const halted = steps.find((step) => step.status === "FAILED" || step.status === "ON_HOLD") ?? null;
+
   // งานที่อยู่ร้านนอก: ใบจ้างที่ยังไม่รับกลับ ขั้นไหนก็ได้ในใบผลิต · เลือกใบที่เลยรับนานสุด
   let vendor: OrderProgress["vendor"] = null;
   for (const step of steps) {
@@ -136,6 +144,14 @@ export function describeOrderProgress(source: OrderProgressSource, now: Date): O
           label: productionStepLabel(current),
           assigneeName: current.assignedTo?.name ?? null,
           outsource: isOutsourceStep(current.stepType),
+        }
+      : null,
+    blocked: halted
+      ? {
+          stepLabel: productionStepLabel(halted),
+          reason: currentProductionProblemReason(halted),
+          held: halted.status === "ON_HOLD",
+          assigneeName: halted.assignedTo?.name ?? null,
         }
       : null,
     stepsDone: steps.filter((step) => step.status === "COMPLETED").length,

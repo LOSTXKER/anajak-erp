@@ -642,6 +642,9 @@ export const orderRouter = router({
                     stepType: true,
                     customStepName: true,
                     status: true,
+                    // เหตุที่ขั้นหยุดเดิน — ตารางออเดอร์ใช้กติกา "ต้องจัดการ" ชุดเดียวกับหน้าแรก
+                    notes: true,
+                    qcNotes: true,
                     assignedTo: { select: { name: true } },
                     outsourceOrders: {
                       where: { status: { in: ["SENT", "IN_PROGRESS"] } },

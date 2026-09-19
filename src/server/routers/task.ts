@@ -5,6 +5,7 @@ import { hasPermission, type Permission } from "@/lib/permissions";
 // คิวรีด/แพ็กสุดท้ายใช้ร่วมกับทีวี /factory (UX4) — จุดเดียว กัน drift
 import { buildPressQueue, buildPackQueue } from "@/server/services/factory-board";
 import { customerDisplayName } from "@/lib/customer-name";
+import { currentProductionProblemReason } from "@/lib/production-problem";
 
 // "งานของฉันวันนี้" — รวมสิ่งที่ค้างอยู่บนโต๊ะของผู้ใช้ จุดเดียว · ทุก role เรียกได้
 // แต่ section โผล่ตามสิทธิ์จริงของคน (PERM3: default ตรงชุด role เดิมเป๊ะ — คนถูกติ๊ก
@@ -124,6 +125,9 @@ export const taskRouter = router({
               operationState: true,
               workCenter: { select: { code: true, name: true } },
               status: true,
+              // เหตุที่ขั้นหยุดเดิน — แถวเคยเขียนแค่ "ติดปัญหา · ชื่อคน" ซึ่งซ้ำกับชิปข้างๆ
+              notes: true,
+              qcNotes: true,
               assignedTo: { select: { id: true, name: true } },
               production: {
                 select: {
@@ -149,6 +153,7 @@ export const taskRouter = router({
                 workCenterCode: s.workCenter?.code ?? null,
                 workCenterName: s.workCenter?.name ?? null,
                 status: s.status,
+                blockedReason: currentProductionProblemReason(s),
                 assignedToId: s.assignedTo?.id ?? null,
                 assignedToName: s.assignedTo?.name ?? null,
                 productionId: s.production.id,

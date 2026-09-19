@@ -114,7 +114,10 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
       deadline: step.order.deadline,
       attention: taskAttention(step.order.deadline, isBlocked),
       ownership: ownership(step.assignedToId),
-      meta: `${state} · ${step.assignedToName ?? "ยังไม่มีคนรับ"}`,
+      // งานที่หยุดเดินบอก "ติดอะไร" แทนการเขียนคำสถานะซ้ำกับป้ายข้างๆ (เบสเจอ 2026-09-19 "ดูยากงง")
+      meta: isBlocked && step.blockedReason
+        ? `${step.blockedReason} · ${step.assignedToName ?? "ยังไม่มีคนรับ"}`
+        : `${state} · ${step.assignedToName ?? "ยังไม่มีคนรับ"}`,
       actionLabel: isBlocked ? "ดูปัญหา" : "เปิดขั้นงาน",
     });
   }

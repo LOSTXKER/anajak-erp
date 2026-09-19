@@ -4,6 +4,7 @@ import { getPrintQueue } from "@/server/services/print-run";
 import { evaluateHeatPressGate, STEP_TYPE_LABELS } from "@/lib/production-steps";
 import { BANGKOK_TZ } from "@/lib/utils";
 import { customerDisplayName } from "@/lib/customer-name";
+import { currentProductionProblemReason } from "@/lib/production-problem";
 
 // ============================================================
 // factory-board — คิวการผลิตทั้งโรงงาน (จอเช้า myToday + ทีวี /factory ใช้ตัวเดียวกัน กัน drift)
@@ -344,6 +345,10 @@ export async function buildProblems(prisma: ExtendedPrismaClient, limit = 10) {
       stepType: true,
       customStepName: true,
       status: true,
+      // เหตุที่ติด — ทีวีเคยแดงเฉยๆ ช่างที่เดินผ่านต้องไปถามหัวหน้าว่าติดอะไร (เบสเจอ 2026-09-19)
+      // ไม่มีเงินในสองช่องนี้ DTO ของทีวียังปลอดเงินเหมือนเดิม
+      notes: true,
+      qcNotes: true,
       assignedTo: { select: { name: true } },
       production: {
         select: {
@@ -366,6 +371,7 @@ export async function buildProblems(prisma: ExtendedPrismaClient, limit = 10) {
     customerName: customerDisplayName(s.production.order.customer),
     deadline: s.production.order.deadline,
     status: s.status, // FAILED | ON_HOLD — client แปลงเป็นไทย
+    reason: currentProductionProblemReason(s),
     stepLabel: s.customStepName ?? STEP_TYPE_LABELS[s.stepType] ?? s.stepType,
     assignedToName: s.assignedTo?.name ?? null,
   }));

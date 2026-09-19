@@ -151,7 +151,7 @@ export function ActiveOrdersCard({
                   return (
                     <tr
                       key={order.id}
-                      className={c("row", problem?.group === "late" && "hot", problem?.group === "today" && "warm")}
+                      className={c("row", (problem?.group === "late" || problem?.group === "blocked") && "hot", problem?.group === "today" && "warm")}
                       onClick={() => router.push(href)}
                     >
                       <td>

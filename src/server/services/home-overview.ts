@@ -93,6 +93,9 @@ const HOME_ORDER_SELECT = {
           stepType: true,
           customStepName: true,
           status: true,
+          // เหตุที่ขั้นหยุดเดิน — หน้าแรกเคยขึ้น "—" เพราะไม่มีข้อมูลนี้ (เบสเจอ 2026-09-19)
+          notes: true,
+          qcNotes: true,
           assignedTo: { select: { name: true } },
           outsourceOrders: {
             where: { status: { in: [...OUTSOURCE_OPEN_STATUSES] } },

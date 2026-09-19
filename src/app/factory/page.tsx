@@ -443,7 +443,9 @@ function BoardRail({ board }: { board: Board }) {
     // คำเดียวกับใบผลิตและจอช่าง — จอทีวีเคยเขียน "งานเสีย"/"พักงาน" ของตัวเอง
     // คนที่เดินจากจอทีวีไปเปิดใบผลิตจึงเห็นคนละคำของเรื่องเดียวกัน
     label: `${STEP_STATUS_LABELS[item.status === "FAILED" ? "FAILED" : "ON_HOLD"]} · ${item.stepLabel}`,
-    detail: item.assignedToName || customerLine(item.customerName),
+    // บรรทัดรองบอก "ติดอะไร" ก่อนชื่อคน — ช่างที่เดินผ่านจอรู้เลยว่าต้องไปหยิบอะไรมาแก้
+    // เดิมบอกแค่ชื่อคน ใครเห็นก็ต้องเดินไปถามต่อ (เบสเจอ 2026-09-19)
+    detail: item.reason || item.assignedToName || customerLine(item.customerName),
     danger: true,
   }));
   const priorityAlerts = board.urgentOrders.map((item) => ({

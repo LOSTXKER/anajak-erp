@@ -184,6 +184,8 @@ describe("describeHomeOrderRow — แปลงออเดอร์เป็น
                 stepType: "EMBROIDERY",
                 customStepName: null,
                 status: "IN_PROGRESS",
+                notes: null,
+                qcNotes: null,
                 assignedTo: null,
                 outsourceOrders: [{ expectedBackAt: bkk("2026-09-16T09:00:00"), vendor: { name: "ร้านปัก" } }],
               },
