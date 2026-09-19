@@ -72,23 +72,37 @@ import { pieceRowsOf, pieceTableAnchor } from "./work-order-quantities";
 
 export const DTF_PAGE_HREF = "/production/print-runs";
 
+/** ชื่อคลาสจริงตัวเดียวสำหรับ querySelector/classList — c() คืนได้หลายตัวคั่นเว้นวรรค ใช้ตรงๆ ไม่ได้ */
+const kitClassName = (name: string) => c(name).split(" ")[0] ?? name;
+
 type Order = ProductionDetail["order"];
 
-function focusFirst(anchor: string, selector: string) {
-  const el = document.querySelector<HTMLElement>(`#${anchor} ${selector}`) ?? document.getElementById(anchor);
-  el?.scrollIntoView({ behavior: "smooth", block: "center" });
-  el?.focus?.();
+/** กะพริบสั้นๆ ที่ปลายทาง — บนจอกว้างเป้าหมายอยู่ในสายตาอยู่แล้ว scrollIntoView จึงไม่ขยับอะไรเลย
+    (เบส 2026-09-19 "กดปิดขั้นนี้ไปแล้วไม่เห็นมีอะไร") · ขีดนำของข้อที่ยังไม่ติ๊กยังค้างไว้ให้คนที่ปิด animation */
+function flash(el: Element | null | undefined, className: string) {
+  if (!el) return;
+  el.classList.remove(className);
+  void (el as HTMLElement).offsetWidth;
+  el.classList.add(className);
+  window.setTimeout(() => el.classList.remove(className), 1400);
 }
 
-/** ปุ่ม "ถัดไป" พาไปสิ่งที่ต้องทำก่อน: ติ๊กที่ยังว่าง → ช่องยอดแถวแรก → การ์ดของขั้น */
-function focusWhatIsBlocking(stepId: string) {
-  const el =
-    document.querySelector<HTMLElement>(`#${checklistAnchor(stepId)} input[type=checkbox]:not(:checked)`) ??
-    document.querySelector<HTMLElement>(`#${pieceTableAnchor(stepId)} input`) ??
-    document.getElementById(pieceTableAnchor(stepId)) ??
-    document.getElementById(checklistAnchor(stepId));
-  el?.scrollIntoView({ behavior: "smooth", block: "center" });
-  el?.focus?.();
+/** พาไปสิ่งที่ต้องทำก่อน แล้วทำให้เห็นว่าไปถึงแล้ว */
+function goToBlocker(stepId: string, kind: "ticks" | "qty") {
+  if (kind === "ticks") {
+    const box = document.getElementById(checklistAnchor(stepId));
+    const item = box?.querySelector(`.${kitClassName("checks")} li:not(.${kitClassName("on")})`) ?? box;
+    item?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    flash(item, kitClassName("flash"));
+    box?.querySelector<HTMLElement>("input[type=checkbox]:not(:checked)")?.focus();
+    return;
+  }
+  const table = document.getElementById(pieceTableAnchor(stepId));
+  const input = table?.querySelector<HTMLInputElement>("input:not(:disabled)");
+  (input ?? table)?.scrollIntoView({ behavior: "smooth", block: "center" });
+  flash(input, kitClassName("flash"));
+  input?.focus();
+  input?.select();
 }
 
 const CHIP_TONE = { success: "good", info: "blue", warning: "warn", error: "bad", neutral: "gray" } as const;
@@ -359,7 +373,9 @@ function WorkRail({ labels, currentIndex, allDone, stopped }: { labels: string[]
 
 /* ───────────────────────── การ์ดขวา ───────────────────────── */
 
-function ChecklistCard({ step, c: ctl, assign }: { step: ProductionStep; c: WorkOrderController; assign: ReactNode }) {
+/** เลขข้อที่ยังไม่ติ๊กย้ายไปอยู่ในปุ่มปิดบนหัวใบแล้ว ที่นี่จึงเหลือแค่ป้าย "ครบ" ตอนติ๊กหมด
+    (ชิปส้มสองใบเลขเดียวกันบนจอเดียว = เพิ่มของ ซึ่งเบสตีกลับมาแล้ว 2026-09-14) */
+function ChecklistCard({ step, c: ctl, assign, withStepName = false }: { step: ProductionStep; c: WorkOrderController; assign: ReactNode; withStepName?: boolean }) {
   const standards = workOrderStandards(step.stepType);
   const done = step.status === "COMPLETED";
   const halted = step.status === "FAILED" || step.status === "ON_HOLD";
@@ -372,11 +388,9 @@ function ChecklistCard({ step, c: ctl, assign }: { step: ProductionStep; c: Work
       <CardHead
         icon={ListChecks}
         id={`ck-${step.id}`}
-        title="เช็คลิสต์"
+        title={withStepName ? `เช็คลิสต์ · ${stepLabel(step)}` : "เช็คลิสต์"}
         right={
-          missing > 0 ? (
-            <span className={c("chip warn")}>ติ๊กอีก {missing} ข้อ</span>
-          ) : standards.length > 0 && !halted ? (
+          missing === 0 && standards.length > 0 && !halted ? (
             <span className={c("chip good")}>
               <Check aria-hidden="true" />
               ครบ
@@ -668,13 +682,22 @@ export function WorkOrderKitView({ c: ctl, scannedMockup = Number.NaN }: { c: Wo
     return null;
   }
 
-  function actionFor(step: ProductionStep): ReactNode {
+  /** ปุ่มลงมือของขั้น แยกเป็นชนิดเพื่อให้หัวใบรู้ว่ายกขึ้นไปได้ไหม และยังติดอะไรอยู่
+      go      = ปุ่มจริง ขึ้นหัวใบได้
+      blocked = ยังกดปิดไม่ได้ ปุ่มบอกเหตุในตัวเองและพาไปที่ที่ขาด
+      in-card = ต้องอยู่ในการ์ด (ใบรับกลับร้านนอกผูกกับใบส่งทีละใบ) */
+  type StepAction =
+    | { kind: "go"; node: ReactNode }
+    | { kind: "blocked"; why: string; to: "ticks" | "qty" }
+    | { kind: "in-card"; node: ReactNode };
+
+  function actionFor(step: ProductionStep, opts: { withStepName?: boolean } = {}): StepAction | null {
     if (step.stepType === "GARMENT_RECEIVE") return null;
     const outsource = activeOutsource(step);
     if (outsource) {
       const receipts = outsourceReceiptCandidates(step);
       if (!ctl.canUpdateStep || !ctl.canOwnOrSupervise(step) || !permAllows(me?.permissions, "manage_delivery") || receipts.length === 0) return null;
-      return receipts.map((receipt) => (
+      const rows = receipts.map((receipt) => (
         <div key={receipt.id} className={c("receipt")}>
           <span className={c("tx")}>
             <b>
@@ -688,44 +711,58 @@ export function WorkOrderKitView({ c: ctl, scannedMockup = Number.NaN }: { c: Wo
           </button>
         </div>
       ));
+      return { kind: "in-card", node: <>{rows}</> };
     }
     if (step.stepType === "DTF_PRINT" && step.status !== "COMPLETED" && step.status !== "FAILED" && step.status !== "ON_HOLD" && !dtfUnavailableReason(step)?.startsWith("อยู่ในรอบ")) {
-      return ctl.canUpdateStep && ctl.hasProductionPermission ? (
-        <Link href={DTF_PAGE_HREF} className={c("btn primary")}>
-          <Printer aria-hidden="true" />
-          ไปหน้าพิมพ์ DTF
-        </Link>
-      ) : null;
+      return ctl.canUpdateStep && ctl.hasProductionPermission
+        ? {
+            kind: "go",
+            node: (
+              <Link href={DTF_PAGE_HREF} className={c("btn primary")}>
+                <Printer aria-hidden="true" />
+                ไปหน้าพิมพ์ DTF
+              </Link>
+            ),
+          }
+        : null;
     }
     const now = nowById.get(step.id);
     const closes = now?.action === "complete" || now?.action === "record-qty" || now?.action === "quick-pass";
     if (closes && step.status !== "COMPLETED") {
-      if (ticksMissing(step) > 0) {
-        return (
-          <button type="button" className={c("btn primary")} aria-disabled onClick={() => focusFirst(checklistAnchor(step.id), "input[type=checkbox]:not(:checked)")}>
-            <Check aria-hidden="true" />
-            ปิดขั้นนี้
-          </button>
-        );
-      }
-      if (hasVariantRows && step.qtyTotal && (step.qtyDone ?? 0) < step.qtyTotal) {
-        return (
-          <button type="button" className={c("btn primary")} aria-disabled onClick={() => focusFirst(pieceTableAnchor(step.id), "input")}>
-            <Check aria-hidden="true" />
-            ปิดขั้นนี้
-          </button>
-        );
-      }
+      // ลำดับตามลำดับงานจริง: กรอกยอด → ติ๊ก → ปิด (เดิมเช็คติ๊กก่อน คนกรอกยอดก่อนจึงโดนไล่ขึ้นลงสองรอบ)
+      if (hasVariantRows && step.qtyTotal && (step.qtyDone ?? 0) < step.qtyTotal) return { kind: "blocked", why: "ยังไม่ได้กรอกยอด", to: "qty" };
+      const missing = ticksMissing(step);
+      if (missing > 0) return { kind: "blocked", why: `ติ๊กอีก ${missing} ข้อ`, to: "ticks" };
     }
-    return ctl.primaryButton(step, now, { kit: true });
+    const node = ctl.primaryButton(step, now, { kit: true, withStepName: opts.withStepName });
+    return node ? { kind: "go", node } : null;
+  }
+
+  /** ปุ่มที่ยังปิดไม่ได้ — คงกดได้ (aria-disabled ไม่ใช่ disabled) เพื่อพาไปสิ่งที่ขาด และบอกเหตุในตัวปุ่มเอง */
+  function blockedButton(step: ProductionStep, action: { why: string; to: "ticks" | "qty" }, withStepName: boolean) {
+    return (
+      <button
+        type="button"
+        className={c("btn")}
+        aria-disabled="true"
+        onClick={() => goToBlocker(step.id, action.to)}
+      >
+        <Check aria-hidden="true" />
+        {withStepName ? `ปิดขั้น${stepLabel(step)}` : "ปิดขั้นนี้"}
+        <span className={c("blk")}>{action.why}</span>
+      </button>
+    );
   }
 
   // ฟังก์ชันวาด (ไม่ใช่ component ซ้อน) — ไม่งั้นตารางยอดถูกสร้างใหม่ทุกครั้งที่ข้อมูลรีเฟรช และยอดที่พิมพ์ค้างหาย
-  function renderStepFooter(step: ProductionStep) {
+  /** ท้ายการ์ดขั้น — ขั้นที่หัวใบถือปุ่มอยู่แล้วเหลือเฉพาะปุ่มที่ย้ายขึ้นไม่ได้ (ใบรับกลับร้านนอก)
+      ขั้นคู่ที่เปิดพร้อมกันยังถือปุ่มของตัวเอง เพราะปุ่มเดียวบนหัวใบบอกไม่ได้ว่าปิดขั้นไหน */
+  function renderStepFooter(step: ProductionStep, headerOwns: boolean) {
     const action = actionFor(step);
+    if (action?.kind === "in-card") return <>{action.node}</>;
+    if (headerOwns) return null;
     const canReport = ctl.canUpdateStep && ctl.canOwnOrSupervise(step) && step.status !== "COMPLETED" && step.status !== "FAILED";
     const reason = step.status !== "COMPLETED" && !action ? blockReason(step) : null;
-    if (activeOutsource(step) && action) return <>{action}</>;
     if (!action && !canReport && !reason) return null;
     return (
       <div className={c("stepfoot")}>
@@ -736,7 +773,7 @@ export function WorkOrderKitView({ c: ctl, scannedMockup = Number.NaN }: { c: Wo
             แจ้งปัญหาขั้นนี้
           </button>
         ) : null}
-        {action}
+        {action?.kind === "blocked" ? blockedButton(step, action, true) : action?.node}
       </div>
     );
   }
@@ -751,7 +788,7 @@ export function WorkOrderKitView({ c: ctl, scannedMockup = Number.NaN }: { c: Wo
     );
   }
 
-  function renderStepCard(step: ProductionStep) {
+  function renderStepCard(step: ProductionStep, headerOwns: boolean) {
     if (!order || !production) return null;
     const view = viewOf(step, nowById.get(step.id));
     const outsource = activeOutsource(step);
@@ -775,7 +812,12 @@ export function WorkOrderKitView({ c: ctl, scannedMockup = Number.NaN }: { c: Wo
               ) : null}
             </>
           }
-          right={<span className={c("chip", CHIP_TONE[view.chip])}>{outsource ? "อยู่ร้านนอก" : view.label}</span>}
+          right={
+            <>
+              {headerOwns && !actionFor(step) && blockReason(step) ? <span className={c("chip hold")}>{blockReason(step)}</span> : null}
+              <span className={c("chip", CHIP_TONE[view.chip])}>{outsource ? "อยู่ร้านนอก" : view.label}</span>
+            </>
+          }
         />
         <div className={c("cb")}>
           {outsource ? (
@@ -824,13 +866,12 @@ export function WorkOrderKitView({ c: ctl, scannedMockup = Number.NaN }: { c: Wo
             </>
           )}
         </div>
-        {renderStepFooter(step)}
+        {renderStepFooter(step, headerOwns)}
       </section>
     );
   }
 
   const qcAction = production && ctl.canUpdateStep && allDone && (ctl.readyForQcViaPaper || ctl.legacyPackagingReadyForQc) ? (ctl.readyForQcViaPaper ? "paper" : "legacy") : null;
-  const nextLabel = railLabels[currentNodeIndex + 1] ?? null;
   const flatIndex = current ? workflowSteps.indexOf(current) : workflowSteps.length;
   const reopenTarget = allDone
     ? (workflowSteps[workflowSteps.length - 1] ?? null)
@@ -866,6 +907,29 @@ export function WorkOrderKitView({ c: ctl, scannedMockup = Number.NaN }: { c: Wo
     production && (qcAction === "paper" ? ctl.sendToQc.mutate({ productionId: production.id }) : ctl.legacyFinalize.mutate({ productionId: production.id }));
 
   const printHref = order && production ? `/print/job-ticket/${order.id}?production=${production.id}` : "#";
+
+  /* CTA ทั้งหมดอยู่บนขวาที่เดียว (เบสสั่ง 2026-09-19) — เดิมปุ่มลงมืออยู่ท้ายการ์ด ส่วนบนขวาเป็น
+     "ถัดไป: <ชื่อขั้น>" ที่กดไม่ได้และซ้ำกับรางใต้มัน · หัวใบจึงต้อง sticky (kit.module.css .mfg .dhead)
+     ไม่งั้นปุ่มเลื่อนหายตอนกรอกยอดแถวท้ายของใบที่มีหลายไซซ์ */
+  const headStep = allDone ? null : current;
+  const headAction = headStep ? actionFor(headStep, { withStepName: pairedOpen.length > 0 }) : null;
+  const canReportHead =
+    !!headStep && ctl.canUpdateStep && ctl.canOwnOrSupervise(headStep) && headStep.status !== "COMPLETED" && headStep.status !== "FAILED";
+  const headMain: ReactNode = qcAction ? (
+    <button type="button" className={c("btn primary")} onClick={sendQc} disabled={ctl.sendToQc.isPending || ctl.legacyFinalize.isPending}>
+      <Send aria-hidden="true" />
+      ส่งเข้า QC
+    </button>
+  ) : allDone && order ? (
+    <Link href={`/orders/${order.id}?tab=${order.internalStatus === "QUALITY_CHECK" ? "production" : "delivery"}`} className={c("btn")}>
+      เปิดออเดอร์
+      <ChevronRight aria-hidden="true" />
+    </Link>
+  ) : headStep && headAction?.kind === "blocked" ? (
+    blockedButton(headStep, headAction, pairedOpen.length > 0)
+  ) : headAction?.kind === "go" ? (
+    headAction.node
+  ) : null;
 
   return (
     <>
@@ -980,17 +1044,15 @@ export function WorkOrderKitView({ c: ctl, scannedMockup = Number.NaN }: { c: Wo
                     <span className={c("lbl")}>ย้อนกลับ: {stepLabel(reopenTarget)}</span>
                   </button>
                 ) : null}
-                {qcAction ? (
-                  <button type="button" className={c("btn primary")} onClick={sendQc} disabled={ctl.sendToQc.isPending || ctl.legacyFinalize.isPending}>
-                    <Send aria-hidden="true" />
-                    ส่งเข้า QC
-                  </button>
-                ) : current && !allDone && nextLabel ? (
-                  <button type="button" className={c("btn next")} aria-disabled onClick={() => focusWhatIsBlocking(current.id)} title="กดเพื่อไปสิ่งที่ต้องทำก่อน">
-                    <span>ถัดไป: {nextLabel}</span>
+                {canReportHead && headStep ? (
+                  <button type="button" className={c("btn keep")} onClick={() => setProblemStep(headStep)}>
+                    <Flag aria-hidden="true" />
+                    <span className={c("lbl")}>แจ้งปัญหา</span>
                   </button>
                 ) : null}
-                {current ? (
+                {headMain ? <span className={c("sepv")} aria-hidden="true" /> : null}
+                {headMain ? <span className={c("cta")}>{headMain}</span> : null}
+                {production ? (
                   <DropdownMenu.Root>
                     <DropdownMenu.Trigger asChild>
                       <button type="button" className={c("btn icon")} aria-label="คำสั่งเพิ่มเติม">
@@ -1001,11 +1063,11 @@ export function WorkOrderKitView({ c: ctl, scannedMockup = Number.NaN }: { c: Wo
                       <DropdownMenu.Content align="end" sideOffset={6} className={c("tokens dmenu")}>
                         <DropdownMenu.Item
                           className={c("mi")}
-                          disabled={!canManageStep || current.status === "COMPLETED" || current.status === "FAILED"}
-                          onSelect={() => void ctl.handleSupervisorStatus(current, current.status === "ON_HOLD" ? "PENDING" : "ON_HOLD")}
+                          disabled={!canManageStep || !current || current.status === "COMPLETED" || current.status === "FAILED"}
+                          onSelect={() => current && void ctl.handleSupervisorStatus(current, current.status === "ON_HOLD" ? "PENDING" : "ON_HOLD")}
                         >
                           <Pause aria-hidden="true" />
-                          {current.status === "ON_HOLD" ? "คืนขั้นนี้กลับคิว" : "พักขั้นนี้ไว้ก่อน"}
+                          {current?.status === "ON_HOLD" ? "คืนขั้นนี้กลับคิว" : "พักขั้นนี้ไว้ก่อน"}
                           {!canManageStep ? <small>หัวหน้าเท่านั้น</small> : null}
                         </DropdownMenu.Item>
                         {receiveStep ? (
@@ -1088,29 +1150,15 @@ export function WorkOrderKitView({ c: ctl, scannedMockup = Number.NaN }: { c: Wo
                             </div>
                           </div>
                         </div>
-                        <div className={c("stepfoot")}>
-                          <span className={c("why")} />
-                          {qcAction ? (
-                            <button type="button" className={c("btn primary")} onClick={sendQc} disabled={ctl.sendToQc.isPending || ctl.legacyFinalize.isPending}>
-                              <Send aria-hidden="true" />
-                              ส่งเข้า QC
-                            </button>
-                          ) : (
-                            <Link href={`/orders/${order.id}?tab=${order.internalStatus === "QUALITY_CHECK" ? "production" : "delivery"}`} className={c("btn")}>
-                              เปิดออเดอร์
-                              <ChevronRight aria-hidden="true" />
-                            </Link>
-                          )}
-                        </div>
                       </section>
                     ) : (
-                      [current, ...pairedOpen].map((step) => <div key={step.id}>{renderStepCard(step)}</div>)
+                      [current, ...pairedOpen].map((step) => <div key={step.id}>{renderStepCard(step, step === current)}</div>)
                     )}
                   </div>
                   <div className={c("stack sticky")}>
                     {!allDone && current
                       ? [current, ...pairedOpen].map((step) => (
-                          <ChecklistCard key={step.id} step={step} c={ctl} assign={assignAction(step)} />
+                          <ChecklistCard key={step.id} step={step} c={ctl} assign={assignAction(step)} withStepName={pairedOpen.length > 0} />
                         ))
                       : null}
                     <OrderInfoCard order={order} production={production} c={ctl} />

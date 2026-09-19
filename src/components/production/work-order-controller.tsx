@@ -35,6 +35,8 @@ export type WorkOrderButtonOptions = {
   touch?: boolean;
   /** วาดด้วยปุ่มชุดหน้าตากลาง (ใบผลิตแบบใหม่) */
   kit?: boolean;
+  /** ใส่ชื่อขั้นในปุ่มปิด — ใบที่มีขั้นเปิดพร้อมกันหลายใบ ปุ่มบนหัวใบต้องบอกว่าปิดขั้นไหน */
+  withStepName?: boolean;
 };
 
 export function useWorkOrderController(id: string) {
@@ -166,13 +168,19 @@ export function useWorkOrderController(id: string) {
   function handleStart(step: ProductionStep) {
     quickPass.mutate({ stepId: step.id, status: "IN_PROGRESS" });
   }
+  /** ปิดขั้นแล้วบอกผลทุกครั้ง — เดิมเงียบสนิท (mutation อื่นในไฟล์นี้มี toast ครบ) ผู้ใช้จึงไม่รู้ว่ากดติดไหม */
+  function closedMessage(step: ProductionStep) {
+    const next = workflowSteps.find((s) => s.id !== step.id && s.status !== "COMPLETED");
+    return `ปิดขั้น${stepLabel(step)}แล้ว${next ? ` · ถัดไป ${stepLabel(next)}` : ""}`;
+  }
   function handleComplete(step: ProductionStep) {
     const counting = step.qtyTotal !== null && step.qtyTotal > 0;
     if (counting && (step.qtyDone ?? 0) < (step.qtyTotal ?? 0)) {
       setQtyStepId(step.id);
       return;
     }
-    quickPass.mutate({ stepId: step.id, status: "COMPLETED" });
+    const message = closedMessage(step);
+    quickPass.mutate({ stepId: step.id, status: "COMPLETED" }, { onSuccess: () => toast.success(message) });
   }
   async function handleQuickPass(step: ProductionStep) {
     const ok = await confirm({
@@ -181,7 +189,8 @@ export function useWorkOrderController(id: string) {
       confirmText: "ผ่านรวด",
     });
     if (!ok) return;
-    quickPass.mutate({ stepId: step.id, status: "COMPLETED" });
+    const message = closedMessage(step);
+    quickPass.mutate({ stepId: step.id, status: "COMPLETED" }, { onSuccess: () => toast.success(message) });
   }
   /** หัวหน้าพักงาน / ผ่านขั้นแทนช่าง — ยืนยันก่อน แล้วยิง updateStep เดิม (server จดชื่อผู้กดใน audit) */
   async function handleSupervisorStatus(step: ProductionStep, status: "ON_HOLD" | "COMPLETED" | "PENDING") {
@@ -241,7 +250,12 @@ export function useWorkOrderController(id: string) {
         <StepQtySheet
           step={qtySheetStep}
           busy={quickPass.isPending}
-          onSubmit={(payload) => quickPass.mutate({ stepId: qtySheetStep.id, ...payload })}
+          onSubmit={(payload) =>
+            quickPass.mutate(
+              { stepId: qtySheetStep.id, ...payload },
+              "status" in payload ? { onSuccess: () => toast.success(closedMessage(qtySheetStep)) } : undefined,
+            )
+          }
           onClose={() => setQtyStepId(null)}
         />
       ) : null}
@@ -408,7 +422,11 @@ export function WorkOrderPrimaryButton({ step, now, options = {}, busy, canUpdat
     case "record-qty":
       return (
         <Button className={size} onClick={() => onComplete(step)} disabled={busy}>
-          {step.qtyTotal && (step.qtyDone ?? 0) < step.qtyTotal ? "บันทึกยอด / ปิดขั้น" : "ปิดขั้นนี้"}
+          {step.qtyTotal && (step.qtyDone ?? 0) < step.qtyTotal
+            ? "บันทึกยอด / ปิดขั้น"
+            : options.withStepName
+              ? `ปิดขั้น${stepLabel(step)}`
+              : "ปิดขั้นนี้"}
         </Button>
       );
     case "send-outsource":

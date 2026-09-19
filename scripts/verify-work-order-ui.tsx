@@ -11,8 +11,12 @@ import { Button } from "../src/components/ui/button";
 import { ChecklistCard } from "../src/components/production/work-order-checklist";
 import { StepPieceTable, pieceRowsOf } from "../src/components/production/work-order-quantities";
 import { WorkOrderSteps } from "../src/components/production/work-order-steps";
-import type { ProductionDetail } from "../src/components/production/types";
+import type { ProductionDetail, ProductionStep } from "../src/components/production/types";
 import { ProblemCard } from "../src/components/production/work-order-pieces";
+import { WorkOrderKitView } from "../src/components/production/work-order-kit";
+import { WorkOrderPrimaryButton } from "../src/components/production/work-order-controller";
+import { selectNowSteps } from "../src/lib/production-step-actions";
+import { evaluateHeatPressGate, productionWorkflowSteps } from "../src/lib/production-steps";
 
 let pass = 0;
 const fails: string[] = [];
@@ -154,6 +158,61 @@ ok("Alert: พื้นสีอ่อนแบบ callout ขอบจาง �
 
 const card = render(<ProblemCard step={{ ...base, id: "p", stepType: "GARMENT_PICK", status: "FAILED", notes: "ขาด 60", assignedTo: { id: "u", name: "เนส" } } as never} />);
 ok("การ์ดปัญหาในใบผลิต: ขั้น + ผู้รับผิดชอบ เป็นชิป", card.includes(">ขั้น<") && card.includes(">ผู้รับผิดชอบ<") && card.includes(">เนส<"));
+
+/* ── ใบผลิตชุดกลาง /production/[id] (work-order-kit) — หน้าที่เบสเปิดใช้จริง
+      CTA อยู่บนขวาที่เดียว และปุ่มที่ยังปิดไม่ได้ต้องบอกเหตุในตัวเอง ไม่ใช่ปุ่มน้ำเงินที่กดแล้วเงียบ
+      (เบสเจอเอง 2026-09-19 "ไม่รู้เลยว่าต้องติ๊กก่อนกด" · "กดไปแล้วไม่เห็นมีอะไร") ── */
+const kitVariants = [
+  { id: "kv1", size: "L", color: "ขาว", quantity: 21 },
+  { id: "kv2", size: "M", color: "ขาว", quantity: 24 },
+];
+const kitOrder = {
+  id: "ko", orderNumber: "ORD-KIT-0001", priority: "NORMAL", internalStatus: "PRODUCING",
+  deadline: new Date("2026-10-01"), customer: { id: "kc", name: "ลูกค้าทดสอบ" }, designs: [],
+  items: [{ id: "ki", totalQuantity: 45, prints: [], products: [{ id: "kp", productType: "TSHIRT", description: "เสื้อยืด", itemSource: "FROM_STOCK", fabricColor: "ขาว", totalQuantity: 45, variants: kitVariants }] }],
+} as never;
+const kitBase = { customStepName: null, notes: null, qcNotes: null, outsourceOrders: [], printRunItems: [], startedAt: new Date(), completedAt: null, assignedTo: { id: "u1", name: "ก้อย" }, pairWithPrevious: false, quantities: [], qtyTotal: 45, qtyDone: 45 };
+const kitTicks = (n: number) =>
+  ["ตั้งอุณหภูมิ/เวลา/แรงกดตามค่าของลายในใบงาน", "รีดตัวอย่าง 1 ตัว ตรวจตำแหน่งเทียบม็อกอัพก่อนรีดทั้งล็อต", "เช็คการลอกหลังเย็น 1 ตัวต่อ 50 ตัว"]
+    .slice(0, n)
+    .map((itemKey) => ({ itemKey, checkedAt: new Date(), checkedBy: { id: "u1", name: "ก้อย" } }));
+
+function renderKit(steps: ProductionStep[]) {
+  const workflowSteps = productionWorkflowSteps(steps);
+  const nowSteps = selectNowSteps(workflowSteps, { canOutsource: true, canUpdateStep: true, canSupervise: true, meId: "u1", pressGate: evaluateHeatPressGate(workflowSteps) });
+  const ctl = {
+    productionQuery: { isLoading: false, isError: false, refetch() {} }, meQuery: { isLoading: false, isError: false, refetch() {} },
+    production: { id: "kprod", orderId: "ko", status: "IN_PROGRESS", notes: null, order: kitOrder, steps },
+    order: kitOrder, me: { id: "u1", name: "ก้อย", permissions: null }, notFound: false,
+    workflowSteps, nowSteps, nowById: new Map(nowSteps.map((n) => [n.step.id, n])), nowMs: Date.now(),
+    totalQty: 45, completedSteps: 0, problemSteps: [], canSeeCost: true, canUpdateStep: true, canSuperviseStep: true,
+    hasProductionPermission: true, canOwnOrSupervise: () => true, writeDataStale: false,
+    readyForQcViaPaper: false, legacyPackagingReadyForQc: false,
+    sendToQc: { isPending: false, mutate() {} }, legacyFinalize: { isPending: false, mutate() {} },
+    reopenPending: false, handleReopen() {}, handleSupervisorStatus: async () => {}, openEdit() {}, openQty() {},
+    openOutsourceReturn() {}, tickStandard() {}, tickPending: false, savePieceQty() {}, piecePending: false, dialogs: null,
+    primaryButton: (step: ProductionStep, now: unknown, options: unknown) =>
+      React.createElement(WorkOrderPrimaryButton, { step, now, options, busy: false, canUpdateStep: true, canSuperviseStep: true, hasProductionPermission: true, canOwnOrSupervise: () => true, onStart() {}, onComplete() {}, onQuickPass() {}, onManage() {}, onGoodsReceipt() {}, onOutsource() {} } as never),
+  } as never;
+  return render(<WorkOrderKitView c={ctl} />);
+}
+
+const kitBlocked = renderKit([{ ...kitBase, id: "ks1", stepType: "HEAT_PRESS", status: "IN_PROGRESS", sortOrder: 1, checks: [] }] as never);
+ok("ใบผลิต kit: ปุ่มที่ยังปิดไม่ได้บอกเหตุในตัวปุ่ม ไม่ต้องกดก่อนถึงจะรู้", kitBlocked.includes("ปิดขั้นนี้") && kitBlocked.includes("ติ๊กอีก 3 ข้อ"));
+ok("ใบผลิต kit: ปุ่มที่ยังปิดไม่ได้ต้องไม่ใช่ปุ่มหลักทึบ (ไม่หลอกตา)", !/aria-disabled="true"[^>]*class="[^"]*\bprimary\b/.test(kitBlocked) && !/class="[^"]*\bprimary\b[^"]*"[^>]*aria-disabled="true"/.test(kitBlocked));
+ok("ใบผลิต kit: ยังกดได้เพื่อพาไปสิ่งที่ขาด (aria-disabled ไม่ใช่ disabled)", kitBlocked.includes('aria-disabled="true"') && !kitBlocked.includes('disabled="" aria-disabled'));
+ok("ใบผลิต kit: CTA อยู่บนขวาที่เดียว ไม่มีแถวปุ่มใต้การ์ดของขั้นที่ยืนอยู่", !kitBlocked.includes("stepfoot") && kitBlocked.includes("แจ้งปัญหา"));
+ok("ใบผลิต kit: ไม่มีปุ่มนำทางตายบนหัวใบ (ถัดไป: …)", !kitBlocked.includes("ถัดไป:"));
+ok("ใบผลิต kit: เลขข้อที่ยังไม่ติ๊กอยู่ที่เดียว (ไม่ซ้ำเป็นชิปบนการ์ดเช็คลิสต์)", (kitBlocked.match(/ติ๊กอีก 3 ข้อ/g) ?? []).length === 1);
+
+const kitPaired = renderKit([
+  { ...kitBase, id: "ks1", stepType: "HEAT_PRESS", status: "IN_PROGRESS", sortOrder: 1, checks: kitTicks(3) },
+  { ...kitBase, id: "ks2", stepType: "CURING", status: "IN_PROGRESS", sortOrder: 2, pairWithPrevious: true, checks: [] },
+] as never);
+// ขั้นที่ลงมือได้ก่อนคือ "อบสี" (selectNowSteps ตัดสิน) — ปุ่มบนหัวใบต้องพกชื่อขั้นนั้นมาด้วย ไม่ใช่ "ปิดขั้นนี้" ลอยๆ
+ok("ใบผลิต kit (ขั้นคู่): ปุ่มบนหัวใบบอกว่าปิดขั้นไหน", kitPaired.includes("ปิดขั้นอบสี"));
+ok("ใบผลิต kit (ขั้นคู่): การ์ดเช็คลิสต์แยกชื่อขั้น ไม่ใช่ \"เช็คลิสต์\" ซ้ำกัน", kitPaired.includes("เช็คลิสต์ · รีดร้อน") && kitPaired.includes("เช็คลิสต์ · อบสี"));
+ok("ใบผลิต kit (ขั้นคู่): ขั้นที่หัวใบไม่ได้ถือ ยังมีปุ่มของตัวเองในการ์ด", kitPaired.includes("stepfoot"));
 
 console.log(`verify-work-order-ui: ผ่าน ${pass} · ตก ${fails.length}`);
 if (fails.length) process.exit(1);
