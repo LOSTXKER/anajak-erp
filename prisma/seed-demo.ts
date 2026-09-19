@@ -41,7 +41,7 @@ const V2_WORK_CENTERS = [
   { id: "demo-wc-prep", code: "PREP", name: "เตรียมงาน", sortOrder: 10 },
   { id: "demo-wc-dtf", code: "DTF_PRINT", name: "พิมพ์ DTF", sortOrder: 20 },
   { id: "demo-wc-press", code: "HEAT_PRESS", name: "รีดร้อน", sortOrder: 30 },
-  { id: "demo-wc-qc", code: "FINAL_QC", name: "ตรวจคุณภาพขั้นสุดท้าย", sortOrder: 40 },
+  { id: "demo-wc-qc", code: "FINAL_QC", name: "ตรวจงานก่อนส่ง QC", sortOrder: 40 },
   { id: "demo-wc-pack", code: "FINAL_PACK", name: "แพ็กขั้นสุดท้าย", sortOrder: 50 },
   { id: "demo-wc-outsource", code: "OUTSOURCE", name: "งานส่งผลิตภายนอก", sortOrder: 60 },
 ] as const;
@@ -368,13 +368,13 @@ async function seedProductionV2Master(
     ["PREP", "เตรียมงาน", 10, "PREPARATION", V2_CENTER_ID.PREP],
     ["DTF_PRINT", "พิมพ์ DTF", 20, "MANUFACTURING", V2_CENTER_ID.DTF_PRINT],
     ["HEAT_PRESS", "รีดร้อน", 30, "MANUFACTURING", V2_CENTER_ID.HEAT_PRESS],
-    ["FINAL_QC", "ตรวจคุณภาพขั้นสุดท้าย", 40, "QUALITY", V2_CENTER_ID.FINAL_QC],
+    ["FINAL_QC", "ตรวจงานก่อนส่ง QC", 40, "QUALITY", V2_CENTER_ID.FINAL_QC],
     ["FINAL_PACK", "แพ็กขั้นสุดท้าย", 50, "PACKING", V2_CENTER_ID.FINAL_PACK],
   ] as const;
   const outsourceOperations = [
     ["PREP", "เตรียมงาน", 10, "PREPARATION", V2_CENTER_ID.PREP],
     ["OUTSOURCE", "ส่งผลิตภายนอก", 20, "OUTSOURCE", V2_CENTER_ID.OUTSOURCE],
-    ["FINAL_QC", "ตรวจคุณภาพขั้นสุดท้าย", 30, "QUALITY", V2_CENTER_ID.FINAL_QC],
+    ["FINAL_QC", "ตรวจงานก่อนส่ง QC", 30, "QUALITY", V2_CENTER_ID.FINAL_QC],
     ["FINAL_PACK", "แพ็กขั้นสุดท้าย", 40, "PACKING", V2_CENTER_ID.FINAL_PACK],
   ] as const;
   await tx.routingOperation.createMany({
@@ -610,7 +610,7 @@ async function seedProductionV2WorkOrder(
     {
       id: finalQcId,
       code: "FINAL_QC",
-      name: "ตรวจคุณภาพขั้นสุดท้าย",
+      name: "ตรวจงานก่อนส่ง QC",
       stepType: "CUSTOM",
       phase: "QUALITY",
       state: finalQcState,

@@ -205,7 +205,7 @@ export const CASE_4: WorkOrder = {
     {
       id: "s3",
       order: 3,
-      label: "ตรวจคุณภาพขั้นสุดท้าย",
+      label: "ตรวจงานก่อนส่ง QC",
       short: "ตรวจ QC",
       kind: "qc",
       lane: "tail",

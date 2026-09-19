@@ -14,7 +14,7 @@ const workCenters = [
   // ตรวจของที่กลับจากร้านนอกก่อนเข้าสายเรา (เบสสั่ง 2026-09-01: "ตรวจของกลับจากร้านด้วย")
   // เจอของเสียตั้งแต่แรก ไม่ใช่ไปเจอตอนรีดฟรีเสร็จแล้ว
   { code: "RETURN_QC", name: "ตรวจของกลับจากร้าน", sortOrder: 35 },
-  { code: "FINAL_QC", name: "ตรวจคุณภาพขั้นสุดท้าย", sortOrder: 40 },
+  { code: "FINAL_QC", name: "ตรวจงานก่อนส่ง QC", sortOrder: 40 },
   { code: "FINAL_PACK", name: "แพ็กขั้นสุดท้าย", sortOrder: 50 },
   { code: "OUTSOURCE", name: "งานส่งผลิตภายนอก", sortOrder: 60 },
 ] as const;
@@ -45,7 +45,7 @@ const standardOperations = [
   ["RETURN_QC", "ตรวจของกลับจากร้าน", 50, "QUALITY", "RETURN_QC", false],
   ["DTF_PRINT", "พิมพ์ฟิล์ม DTF", 60, "MANUFACTURING", "DTF_PRINT", false],
   ["HEAT_PRESS", "รีดร้อน", 70, "MANUFACTURING", "HEAT_PRESS", false],
-  ["FINAL_QC", "ตรวจคุณภาพขั้นสุดท้าย", 80, "QUALITY", "FINAL_QC", false],
+  ["FINAL_QC", "ตรวจงานก่อนส่ง QC", 80, "QUALITY", "FINAL_QC", false],
   ["FINAL_PACK", "แพ็ก", 90, "PACKING", "FINAL_PACK", false],
 ] as const;
 

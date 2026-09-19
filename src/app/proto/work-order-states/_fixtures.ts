@@ -124,7 +124,7 @@ export function outsource(input: { status: "SENT" | "IN_PROGRESS" | "RECEIVED_BA
 }
 
 const QC = (sortOrder: number, status: ProductionStep["status"] = "PENDING") =>
-  makeStep({ key: "qc", stepType: "CUSTOM", customStepName: "ตรวจคุณภาพขั้นสุดท้าย", sortOrder, status, qtyDone: status === "COMPLETED" ? QUANTITY : 0, completedAt: status === "COMPLETED" ? fromNow(0, -1) : null, assignedTo: status === "COMPLETED" ? USERS.boss : null });
+  makeStep({ key: "qc", stepType: "CUSTOM", customStepName: "ตรวจงานก่อนส่ง QC", sortOrder, status, qtyDone: status === "COMPLETED" ? QUANTITY : 0, completedAt: status === "COMPLETED" ? fromNow(0, -1) : null, assignedTo: status === "COMPLETED" ? USERS.boss : null });
 
 export type StateFixture = {
   key: string;

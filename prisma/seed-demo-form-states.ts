@@ -36,7 +36,7 @@ type FormRoute = {
   steps: StepSpec[];
 };
 
-const QC: StepSpec = { key: "qc", stepType: "CUSTOM", name: "ตรวจคุณภาพขั้นสุดท้าย" };
+const QC: StepSpec = { key: "qc", stepType: "CUSTOM", name: "ตรวจงานก่อนส่ง QC" };
 
 export const FORM_ROUTES: FormRoute[] = [
   {
