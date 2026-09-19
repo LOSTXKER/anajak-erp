@@ -13,6 +13,8 @@ import {
   findStationForJob,
   composeProblemReason,
   PROBLEM_REASON_MIN_LENGTH,
+  canReportStationProblem,
+  stationProblemBlockedReason,
 } from "@/lib/station-desk";
 
 const NOW = new Date("2026-08-30T07:00:00.000Z");
@@ -214,5 +216,29 @@ describe("findStationForJob — เปิดหน้าลงมือจาก
     const outsource = stationCards(b, defs.find((d) => d.key === STATION_OUTSOURCE)!).find((c) => c.step?.id === "s5")!;
     expect(findStationForJob(b, defs, outsource.spot.productionId!, "s5")?.key).toBe(STATION_OUTSOURCE);
     expect(findStationForJob(b, defs, "ไม่มีใบนี้", null)).toBeNull();
+  });
+});
+
+/* ── ด่านปุ่มแจ้งปัญหา — UI ต้องไม่วาดปุ่มที่ production.reportStationProblem ปฏิเสธแน่ ๆ
+      (เบสเจอ 2026-09-19: กดบนขั้นตัดเย็บแล้วขึ้น error แดงทุกครั้ง) ── */
+describe("ด่านแจ้งปัญหาฝั่งจอ", () => {
+  it("ขั้นที่ไม่มีสถานีโรงงานรองรับ กดแจ้งปัญหาไม่ได้", () => {
+    for (const stepType of ["SEWING", "EMBROIDERY", "SCREEN_PRINTING", "TAGGING", "PACKAGING", "CUSTOM", "CURING"]) {
+      expect(canReportStationProblem({ stepType, status: "IN_PROGRESS" })).toBe(false);
+      expect(stationProblemBlockedReason({ stepType, status: "IN_PROGRESS" })).toContain("สถานีโรงงาน");
+    }
+  });
+
+  it("ขั้นที่มีสถานีและยังทำอยู่ กดแจ้งปัญหาได้", () => {
+    for (const stepType of ["GARMENT_PICK", "GARMENT_RECEIVE", "DTF_PRINT", "HEAT_PRESS"]) {
+      expect(canReportStationProblem({ stepType, status: "IN_PROGRESS" })).toBe(true);
+      expect(canReportStationProblem({ stepType, status: "PENDING" })).toBe(true);
+    }
+  });
+
+  it("เสร็จแล้ว / พักไว้ / แจ้งไว้แล้ว กดซ้ำไม่ได้ และบอกเหตุคนละข้อ", () => {
+    expect(stationProblemBlockedReason({ stepType: "HEAT_PRESS", status: "COMPLETED" })).toContain("เสร็จแล้ว");
+    expect(stationProblemBlockedReason({ stepType: "HEAT_PRESS", status: "ON_HOLD" })).toContain("พักไว้");
+    expect(stationProblemBlockedReason({ stepType: "HEAT_PRESS", status: "FAILED" })).toContain("แจ้งปัญหาไว้แล้ว");
   });
 });

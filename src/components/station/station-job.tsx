@@ -26,7 +26,7 @@ import type { ProductionStep } from "@/components/production/types";
 import { useWorkOrderController, type WorkOrderController } from "@/components/production/work-order-controller";
 import { OutsourceFacts, Owner, ProblemCard, StateChip, activeOutsource, daysFromNow, dtfUnavailableReason, outsourceStepReason, stepLabel, viewOf } from "@/components/production/work-order-pieces";
 import { isOutsourceStep } from "@/lib/production-steps";
-import type { StationDef } from "@/lib/station-desk";
+import { canReportStationProblem, type StationDef } from "@/lib/station-desk";
 import { isInferredDone } from "@/lib/work-order-record-mode";
 import { missingStandards, workOrderStandards } from "@/lib/work-order-standards";
 import { cn, formatDate, formatDateTime } from "@/lib/utils";
@@ -168,7 +168,7 @@ export function StationStepZone({
   const dtfReason = dtfUnavailableReason(step);
   const outsource = activeOutsource(step);
 
-  const canReport = c.canUpdateStep && c.canOwnOrSupervise(step) && !done && step.status !== "FAILED";
+  const canReport = c.canUpdateStep && c.canOwnOrSupervise(step) && !done && canReportStationProblem(step);
   const note = done
     ? inferredDone
       ? `ถือว่าผ่านตอนส่งเข้า QC${step.completedAt ? ` ${formatDateTime(step.completedAt)}` : ""} — ยอดจริงอยู่บนใบสั่งงาน`

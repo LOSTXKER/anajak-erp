@@ -456,6 +456,11 @@ export const productionRouter = router({
                 sortOrder: true,
                 qtyDone: true,
                 qtyTotal: true,
+                // เหตุที่ติด/พัก — คิวผลิตวาดช่องไว้แล้ว (production-desk.ts stateOf) แต่ไม่เคยมีข้อมูลส่งมา
+                // แถวจึงบอกได้แค่ "ติดปัญหา" บอกไม่ได้ว่าติดอะไร (เบสเจอ 2026-09-19)
+                // ไม่มีเงินในสองช่องนี้ — Station/TV DTO ยังปลอดเงินเหมือนเดิม
+                notes: true,
+                qcNotes: true,
                 // id ด้วย — UI ต้องเทียบกับ me.id กันโชว์ปุ่มบนงานที่เป็นของคนอื่น
                 assignedTo: { select: { id: true, name: true } },
                 outsourceOrders: {

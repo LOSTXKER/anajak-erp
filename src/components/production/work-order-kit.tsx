@@ -64,6 +64,7 @@ import { formatDateShort, formatDateTime, isImageUrl } from "@/lib/utils";
 import { currentRailNode, railNodesOf } from "@/lib/work-order-rail";
 import { routeWaitingOn } from "@/lib/work-order-route";
 import { workOrderStandards } from "@/lib/work-order-standards";
+import { canReportStationProblem } from "@/lib/station-desk";
 import { PRINT_POSITIONS, PRINT_TYPES, PRODUCT_TYPES } from "@/types/order-form";
 import { useWorkOrderController, type WorkOrderController } from "./work-order-controller";
 import { checklistAnchor, ticksMissing } from "./work-order-checklist";
@@ -761,7 +762,7 @@ export function WorkOrderKitView({ c: ctl, scannedMockup = Number.NaN }: { c: Wo
     const action = actionFor(step);
     if (action?.kind === "in-card") return <>{action.node}</>;
     if (headerOwns) return null;
-    const canReport = ctl.canUpdateStep && ctl.canOwnOrSupervise(step) && step.status !== "COMPLETED" && step.status !== "FAILED";
+    const canReport = ctl.canUpdateStep && ctl.canOwnOrSupervise(step) && canReportStationProblem(step);
     const reason = step.status !== "COMPLETED" && !action ? blockReason(step) : null;
     if (!action && !canReport && !reason) return null;
     return (
@@ -913,8 +914,7 @@ export function WorkOrderKitView({ c: ctl, scannedMockup = Number.NaN }: { c: Wo
      ไม่งั้นปุ่มเลื่อนหายตอนกรอกยอดแถวท้ายของใบที่มีหลายไซซ์ */
   const headStep = allDone ? null : current;
   const headAction = headStep ? actionFor(headStep, { withStepName: pairedOpen.length > 0 }) : null;
-  const canReportHead =
-    !!headStep && ctl.canUpdateStep && ctl.canOwnOrSupervise(headStep) && headStep.status !== "COMPLETED" && headStep.status !== "FAILED";
+  const canReportHead = !!headStep && ctl.canUpdateStep && ctl.canOwnOrSupervise(headStep) && canReportStationProblem(headStep);
   const headMain: ReactNode = qcAction ? (
     <button type="button" className={c("btn primary")} onClick={sendQc} disabled={ctl.sendToQc.isPending || ctl.legacyFinalize.isPending}>
       <Send aria-hidden="true" />
@@ -976,10 +976,9 @@ export function WorkOrderKitView({ c: ctl, scannedMockup = Number.NaN }: { c: Wo
                     }
                   >
                     <b>
-                      {stepLabel(step)}
-                      {STEP_STATUS_LABELS[step.status === "ON_HOLD" ? "ON_HOLD" : "FAILED"]}
+                      {stepLabel(step)} · {STEP_STATUS_LABELS[step.status === "ON_HOLD" ? "ON_HOLD" : "FAILED"]}
                     </b>{" "}
-                    — {currentProductionProblemReason(step) ?? step.notes ?? "ยังไม่ระบุเหตุ"}
+                    — {currentProductionProblemReason(step) ?? "ยังไม่ระบุเหตุ"}
                     {step.assignedTo ? <span className={c("whoinline")}> ผู้ทำ {step.assignedTo.name}</span> : null}
                   </Callout>
                 ))}

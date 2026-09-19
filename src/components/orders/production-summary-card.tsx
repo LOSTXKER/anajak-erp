@@ -8,6 +8,7 @@ import { OUTSOURCE_ACTIVE_STATUSES, productionWorkflowSteps } from "@/lib/produc
 import { productionStepLabel } from "@/lib/order-progress";
 import { differenceInBangkokDays } from "@/lib/date-utils";
 import type { RouterOutput } from "@/lib/trpc";
+import { currentProductionProblemReason } from "@/lib/production-problem";
 import { STEP_STATUS_LABELS } from "@/lib/status-config";
 
 /* ============================================================
@@ -203,8 +204,13 @@ function ProductionSteps({
                         ? { tone: "bad", label: "ร้านนอกช้า" }
                         : { tone: "blue", label: "กำลังทำ" }
                       : { tone: "gray", label: "รอ" };
+            // บรรทัดใต้ชื่อขั้นต้องเดินตามสถานะเดียวกับชิป — เดิมอ่านจาก state อย่างเดียว
+            // ขั้นที่ติดปัญหาจึงขึ้นชิปแดง "ติดปัญหา" คู่กับข้อความ "กำลังทำ" ในแถวเดียวกัน (เบสเจอ 2026-09-19)
+            const halted = step.status === "FAILED" || step.status === "ON_HOLD";
+            const haltReason = halted ? currentProductionProblemReason(step) : null;
             const detail = [
-              state === "done" ? "เสร็จแล้ว" : state === "cur" ? "กำลังทำ" : "รอ",
+              halted ? STEP_STATUS_LABELS[step.status] : state === "done" ? "เสร็จแล้ว" : state === "cur" ? "กำลังทำ" : "รอ",
+              halted ? haltReason : null,
               state !== "todo" ? who : null,
               lateDays > 0 ? `เลยกำหนดรับ ${lateDays} วัน` : null,
             ]

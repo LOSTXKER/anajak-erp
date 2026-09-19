@@ -21,6 +21,8 @@ import {
   type ProductionBoard,
 } from "@/lib/production-board";
 import { LANE_LABELS, LANE_ORDER, OUTSOURCE_LANES, STEP_TYPE_LABELS, laneOf } from "@/lib/production-steps";
+import { currentProductionProblemReason } from "@/lib/production-problem";
+import { factoryStationKeyForStep } from "@/lib/factory-station";
 
 export const STATION_OUTSOURCE = "outsource";
 
@@ -138,8 +140,10 @@ function stepLabelOf(step: BoardStepLike): string {
 function stateOf<S extends StationStepLike>(spot: BoardSpot<S>): { state: StationCardState; reason: string | null } {
   const step = spot.step;
   if (!step) return { state: "ready", reason: null };
-  if (step.status === "FAILED") return { state: "blocked", reason: step.notes ?? step.qcNotes ?? "รอหัวหน้าตัดสินใจ" };
-  if (step.status === "ON_HOLD") return { state: "blocked", reason: step.notes ?? "พักไว้ — รอหัวหน้าตัดสินใจ" };
+  // เหตุต้องผ่าน currentProductionProblemReason เสมอ — notes ดิบมีบรรทัด marker ("[แจ้งปัญหาจากสถานี] …")
+  // ซึ่งเคยรั่วออกจอให้ช่างอ่านทั้งกอง (เบสเจอ 2026-09-19 "ดูยากงง")
+  if (step.status === "FAILED") return { state: "blocked", reason: currentProductionProblemReason(step) ?? "รอหัวหน้าตัดสินใจ" };
+  if (step.status === "ON_HOLD") return { state: "blocked", reason: currentProductionProblemReason(step) ?? "พักไว้ — รอหัวหน้าตัดสินใจ" };
   if (spot.waitingOn.length > 0) return { state: "waiting", reason: spot.waitingOn.join(" และ ") };
   const outsource = step.outsourceOrders?.[0];
   if (outsource && OUTSOURCE_AWAITING.has(outsource.status)) {
@@ -230,6 +234,24 @@ export function findStationForJob<S extends StationStepLike, O extends BoardOrde
   }
   return null;
 }
+
+/**
+ * ขั้นนี้กดแจ้งปัญหาได้ไหม — สะท้อนด่านของ production.reportStationProblem เฉพาะข้อที่ตรวจได้จากข้อมูลบนจอ
+ * server ยังเป็นผู้ตัดสินจริง ที่นี่มีไว้เพื่อ "ไม่วาดปุ่มที่ server จะปฏิเสธแน่ ๆ" (กติกา AGENTS)
+ *
+ * เดิม UI วาดปุ่มให้ทุกขั้นที่ยังไม่เสร็จ ทั้งที่ factoryStationKeyForStep รองรับแค่ 4 ชนิดจาก 17
+ * ช่างกดบนขั้นตัดเย็บ/ปัก/สกรีน/ป้ายคอ/แพ็ก แล้วเจอ error แดงทุกครั้ง (เบสเจอ 2026-09-19)
+ */
+export function stationProblemBlockedReason(step: { stepType: string; status: string }): string | null {
+  if (!factoryStationKeyForStep(step.stepType)) return "ขั้นนี้ไม่มีสถานีโรงงานรองรับการแจ้งปัญหา";
+  if (step.status === "COMPLETED") return "ขั้นนี้เสร็จแล้ว";
+  if (step.status === "ON_HOLD") return "ขั้นนี้ถูกพักไว้ — ให้หัวหน้าตัดสินใจสถานะก่อน";
+  if (step.status === "FAILED") return "ขั้นนี้แจ้งปัญหาไว้แล้ว";
+  return null;
+}
+
+export const canReportStationProblem = (step: { stepType: string; status: string }) =>
+  stationProblemBlockedReason(step) === null;
 
 /** ข้อความแจ้งปัญหาที่ส่งเข้า server จากปุ่มเลือกเหตุ + ช่องรายละเอียด — "" = ยังส่งไม่ได้ */
 export function composeProblemReason(reason: string | null, detail: string): string {

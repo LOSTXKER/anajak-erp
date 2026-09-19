@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { buildProductionBoard, type BoardOrderLike } from "./production-board";
 import {
@@ -226,5 +227,17 @@ describe("ตารางผลิตเรียงต่อเนื่อง�
   it("ตัวเลือกใน URL ที่ไม่รู้จักกลับไปเรียงกำหนดส่งใกล้ก่อน", () => {
     expect(resolveDeskSort("unknown", "unknown")).toEqual({ key: "deadline", direction: "asc" });
     expect(resolveDeskSort("quantity", "desc")).toEqual({ key: "quantity", direction: "desc" });
+  });
+});
+
+/* ── B4: คิวผลิตต้องได้เหตุจริง ไม่ใช่บอกแค่ "ติดปัญหา"
+      เดิม production.kanban ไม่ได้ select notes แถวจึงไม่มีวันขึ้นเหตุ ส่วนเทสเขียวเพราะ fixture ใส่เอง
+      เทสนี้ผูกกับ source ของ router โดยตรง เพื่อไม่ให้ select หลุดอีก ── */
+describe("คิวผลิตต้องได้เหตุที่ติดมาจาก server", () => {
+  it("production.kanban select ขั้นงานต้องมี notes และ qcNotes", () => {
+    const src = readFileSync(new URL("../server/routers/production.ts", import.meta.url), "utf8");
+    const kanban = src.slice(src.indexOf("kanban:"), src.indexOf("kanban:") + 4000);
+    expect(kanban).toContain("notes: true");
+    expect(kanban).toContain("qcNotes: true");
   });
 });
